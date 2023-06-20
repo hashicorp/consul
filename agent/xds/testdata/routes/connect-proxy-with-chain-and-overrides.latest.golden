@@ -16,7 +16,8 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "78ebd528~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "78ebd528~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "timeout": "33s"
               }
             }
           ]

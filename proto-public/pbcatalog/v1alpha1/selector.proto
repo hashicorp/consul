@@ -1,0 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+// WorkloadSelector represents criteria for selecting a subset of workloads.
+message WorkloadSelector {
+  repeated string prefixes = 1;
+  repeated string names = 2;
+}

@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{did-update (action (fn (set this 'term') '') @search)}}
 {{yield (hash
   search=(action this.search)

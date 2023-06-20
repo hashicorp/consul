@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package write
 
 import (
@@ -11,6 +14,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/config"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/lib/decode"
@@ -97,6 +101,11 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	c.UI.Info(fmt.Sprintf("Config entry written: %s/%s", entry.GetKind(), entry.GetName()))
+
+	if msg := config.KindSpecificWriteWarning(entry); msg != "" {
+		c.UI.Warn("WARNING: " + msg)
+	}
+
 	return 0
 }
 

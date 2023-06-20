@@ -1,10 +1,15 @@
-@charset 'utf-8';
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 
-/* css for hds */
-@import '@hashicorp/design-system-components';
+@charset 'utf-8';
 
 /* tailwind before all the customizations */
 @import 'tailwind';
+
+/* css for hds */
+@import '@hashicorp/design-system-components';
 
 /* all variables and custom queries including generic base variables */
 @import 'variables';

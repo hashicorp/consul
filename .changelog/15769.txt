@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Fix assignment of error when auto-reloading cert and key file changes.
+```

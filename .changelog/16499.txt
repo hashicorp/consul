@@ -1,0 +1,3 @@
+```release-note:bug
+mesh: Fix resolution of service resolvers with subsets for external upstreams
+```

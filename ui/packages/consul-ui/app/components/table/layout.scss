@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %table {
   width: 100%;
   border-collapse: collapse;
@@ -56,8 +61,8 @@
 %table tbody td em {
   display: block;
   font-style: normal;
-  font-weight: normal;
+  font-weight: var(--token-typography-font-weight-regular);
 }
 %table tbody td em {
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }

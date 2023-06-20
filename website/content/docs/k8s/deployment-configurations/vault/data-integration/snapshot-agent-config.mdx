@@ -9,7 +9,7 @@ description: >-
 
 This topic describes how to configure the Consul Helm chart to use a snapshot agent config stored in Vault.
 ## Overview
-To use an ACL replication token stored in Vault, follow the steps outlined in the [Data Integration](/docs/k8s/deployment-configurations/vault/data-integration) section.
+To use an ACL replication token stored in Vault, follow the steps outlined in the [Data Integration](/consul/docs/k8s/deployment-configurations/vault/data-integration) section.
 
 Complete the following steps once:
   1. Store the secret in Vault.
@@ -20,9 +20,9 @@ Repeat the following steps for each datacenter in the cluster:
   1. Update the Consul on Kubernetes helm chart.
 
 ## Prerequisites
-Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
-1. Read and completed the steps in the [Systems Integration](/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
-2. Read the [Data Integration Overview](/docs/k8s/deployment-configurations/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
+Before you set up data integration between Vault and Consul on Kubernetes, complete the following prerequisites:
+1. Read and completed the steps in the [Systems Integration](/consul/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/consul/docs/k8s/deployment-configurations/vault).
+2. Read the [Data Integration Overview](/consul/docs/k8s/deployment-configurations/vault/data-integration) section of [Vault as a Secrets Backend](/consul/docs/k8s/deployment-configurations/vault).
 
 ## Store the Secret in Vault
 
@@ -56,21 +56,23 @@ $ vault policy write snapshot-agent-config-policy snapshot-agent-config-policy.h
 
 ## Create Vault Authorization Roles for Consul
 
-Next, you will create a Kubernetes auth role for the Consul snapshot agent:
+Next, add this policy to your Consul server Kubernetes auth role:
 
 ```shell-session
 $ vault write auth/kubernetes/role/consul-server \
-    bound_service_account_names=<Consul snapshot agent service account> \
+    bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=snapshot-agent-config-policy \
     ttl=1h
 ```
+Note that if you have other policies associated
+with the Consul server service account that are not in the example, you need to include those as well.
 
 To find out the service account name of the Consul snapshot agent,
 you can run the following `helm template` command with your Consul on Kubernetes values file:
 
 ```shell-session
-$ helm template --release-name ${RELEASE_NAME} -s templates/client-snapshot-agent-serviceaccount.yaml hashicorp/consul -f values.yaml
+$ helm template --release-name ${RELEASE_NAME} -s templates/server-serviceaccount.yaml hashicorp/consul -f values.yaml
 ```
 
 ## Update Consul on Kubernetes Helm chart
@@ -85,7 +87,7 @@ global:
   secretsBackend:
     vault:
       enabled: true
-      consulSnapshotAgentRole: snapshot-agent
+      consulServerRole: consul-server
 client:
   snapshotAgent:
     configSecret:

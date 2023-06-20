@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -27,7 +30,7 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 
 	var reply structs.IndexedCARoots
 	defer setMeta(resp, &reply.QueryMeta)
-	if err := s.agent.RPC("ConnectCA.Roots", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "ConnectCA.Roots", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -74,7 +77,7 @@ func (s *HTTPHandlers) ConnectCAConfigurationGet(resp http.ResponseWriter, req *
 	}
 
 	var reply structs.CAConfiguration
-	err := s.agent.RPC("ConnectCA.ConfigurationGet", &args, &reply)
+	err := s.agent.RPC(req.Context(), "ConnectCA.ConfigurationGet", &args, &reply)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +97,7 @@ func (s *HTTPHandlers) ConnectCAConfigurationSet(req *http.Request) (interface{}
 	}
 
 	var reply interface{}
-	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
+	err := s.agent.RPC(req.Context(), "ConnectCA.ConfigurationSet", &args, &reply)
 	if err != nil && err.Error() == consul.ErrStateReadOnly.Error() {
 		return nil, HTTPError{
 			StatusCode: http.StatusBadRequest,

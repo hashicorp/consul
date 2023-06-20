@@ -1,0 +1,4 @@
+```release-note:feature
+connect: Add local_idle_timeout_ms to allow configuring the Envoy route idle timeout on local_app
+connect: Add IdleTimeout to service-router to allow configuring the Envoy route idle timeout
+```

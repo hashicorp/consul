@@ -1,42 +1,39 @@
-<div
-  class={{class-map
-    'consul-peer-form'
-  }}
-  ...attributes
->
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
+<div class={{class-map "consul-peer-form"}} ...attributes>
   <StateMachine
-    @src={{require './chart.xstate' from='/components/consul/peer/form'}}
-  as |fsm|>
+    @src={{require "./chart.xstate" from="/components/consul/peer/form"}}
+    as |fsm|
+  >
 
     <TabNav
       @items={{array
         (hash
-          label='Generate token'
-          selected=(state-matches fsm.state 'generate')
+          label=(t "components.consul.peer.form.generate-label")
+          selected=(state-matches fsm.state "generate")
           state="GENERATE"
         )
         (hash
-          label='Establish peering'
-          selected=(state-matches fsm.state 'initiate')
+          label=(t "components.consul.peer.form.establish-label")
+          selected=(state-matches fsm.state "initiate")
           state="INITIATE"
         )
       }}
-      @onTabClicked={{pick 'state' fsm.dispatch}}
+      @onTabClicked={{pick "state" fsm.dispatch}}
     />
 
-    <fsm.State @matches={{array 'generate'}}>
+    <fsm.State @matches={{array "generate"}}>
 
       <DataSource
-        @src={{uri '/${partition}/${nspace}/${dc}/peer-generate/'
-          @params
+        @src={{uri "/${partition}/${nspace}/${dc}/peer-generate/" @params}}
+        as |source|
+      >
+        {{yield
+          (hash Form=(component "consul/peer/form/generate" item=source.data))
         }}
-      as |source|>
-          {{yield (hash
-            Form=(component 'consul/peer/form/generate'
-              item=source.data
-            )
-          )
-          }}
       </DataSource>
 
     </fsm.State>
@@ -44,20 +41,15 @@
     <fsm.State @matches="initiate">
 
       <DataSource
-        @src={{uri '/${partition}/${nspace}/${dc}/peer-initiate/'
-          @params
+        @src={{uri "/${partition}/${nspace}/${dc}/peer-initiate/" @params}}
+        as |source|
+      >
+        {{yield
+          (hash Form=(component "consul/peer/form/initiate" item=source.data))
         }}
-      as |source|>
-          {{yield (hash
-              Form=(component 'consul/peer/form/initiate'
-                item=source.data
-              )
-            )
-          }}
       </DataSource>
 
     </fsm.State>
-
 
   </StateMachine>
 </div>

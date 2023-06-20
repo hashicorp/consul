@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -162,7 +165,7 @@ func (a *ACL) aclPreCheck() error {
 
 // BootstrapTokens is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
-func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
+func (a *ACL) BootstrapTokens(args *structs.ACLInitialTokenBootstrapRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -207,9 +210,24 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	if err != nil {
 		return err
 	}
-	secret, err := lib.GenerateUUID(a.srv.checkTokenUUID)
-	if err != nil {
-		return err
+	secret := args.BootstrapSecret
+	if secret == "" {
+		secret, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = uuid.ParseUUID(secret)
+		if err != nil {
+			return err
+		}
+		ok, err := a.srv.checkTokenUUID(secret)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("Provided token cannot be used because a token with that secret already exists.")
+		}
 	}
 
 	req := structs.ACLTokenBootstrapRequest{
@@ -299,19 +317,22 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 				// no extra validation is needed here. If you have the secret ID you can read it.
 			}
 
-			if token != nil && token.IsExpired(time.Now()) {
-				token = nil
-			}
-
 			if err != nil {
 				return err
 			}
 
+			if token != nil && token.IsExpired(time.Now()) {
+				return fmt.Errorf("token has expired: %w", acl.ErrNotFound)
+			} else if token == nil {
+				// token does not exist
+				if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+					return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+				}
+				return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+			}
+
 			reply.Index, reply.Token = index, token
 			reply.SourceDatacenter = args.Datacenter
-			if token == nil {
-				return errNotFound
-			}
 
 			if args.Expanded {
 				info, err := a.lookupExpandedTokenInfo(ws, state, token)
@@ -443,8 +464,13 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID, &args.ACLToken.EnterpriseMeta)
 	if err != nil {
 		return err
-	} else if token == nil || token.IsExpired(time.Now()) {
-		return acl.ErrNotFound
+	} else if token == nil {
+		if ns := args.ACLToken.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+	} else if token.IsExpired(time.Now()) {
+		return fmt.Errorf("token is expired: %w", acl.ErrNotFound)
 	} else if !a.srv.InPrimaryDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
 		args.Datacenter = a.srv.config.PrimaryDatacenter
@@ -453,10 +479,6 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 
 	if token.AuthMethod != "" {
 		return fmt.Errorf("Cannot clone a token created from an auth method")
-	}
-
-	if token.Rules != "" {
-		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
 	}
 
 	clone := &structs.ACLToken{
@@ -559,7 +581,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return fmt.Errorf("Accessor ID is missing or an invalid UUID")
 	}
 
-	if args.TokenID == structs.ACLTokenAnonymousID {
+	if args.TokenID == acl.AnonymousTokenID {
 		return fmt.Errorf("Delete operation not permitted on the anonymous token")
 	}
 
@@ -586,8 +608,11 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 	} else {
-		// in Primary Datacenter but the token does not exist - return early as there is nothing to do.
-		return nil
+		// in Primary Datacenter but the token does not exist - return early indicating it wasn't found.
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
 	}
 
 	req := &structs.ACLTokenBatchDeleteRequest{
@@ -902,7 +927,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// validate the rules
-	_, err = acl.NewPolicyFromSource(policy.Rules, policy.Syntax, a.srv.aclConfig, policy.EnterprisePolicyMeta())
+	_, err = acl.NewPolicyFromSource(policy.Rules, a.srv.aclConfig, policy.EnterprisePolicyMeta())
 	if err != nil {
 		return err
 	}
@@ -968,7 +993,10 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	}
 
 	if policy == nil {
-		return nil
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("policy not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("policy does not exist: %w", acl.ErrNotFound)
 	}
 
 	if policy.ID == structs.ACLPolicyGlobalManagementID {
@@ -1085,7 +1113,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 		}
 	}
 
-	a.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }
@@ -1382,7 +1410,10 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 	}
 
 	if role == nil {
-		return nil
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("role not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("role does not exist: %w", acl.ErrNotFound)
 	}
 
 	req := structs.ACLRoleBatchDeleteRequest{
@@ -1489,7 +1520,7 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 		}
 	}
 
-	a.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }
@@ -1695,11 +1726,15 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 	}
 
 	_, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, args.BindingRuleID, &args.EnterpriseMeta)
-	switch {
-	case err != nil:
+	if err != nil {
 		return err
-	case rule == nil:
-		return nil
+	}
+
+	if rule == nil {
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("binding rule not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("binding rule does not exist: %w", acl.ErrNotFound)
 	}
 
 	req := structs.ACLBindingRuleBatchDeleteRequest{
@@ -1944,7 +1979,10 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 	}
 
 	if method == nil {
-		return nil
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("auth method not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("auth method does not exist: %w", acl.ErrNotFound)
 	}
 
 	if err := a.srv.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
@@ -2071,7 +2109,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 	}
 
 	if args.Token == "" {
-		return acl.ErrNotFound
+		return fmt.Errorf("no valid token ID provided: %w", acl.ErrNotFound)
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.Logout", args, reply); done {

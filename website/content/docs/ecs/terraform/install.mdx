@@ -7,9 +7,9 @@ description: >-
 
 # Install Consul on AWS Elastic Container Service (ECS) with Terraform
 
-This topic describes how to use HashiCorp's Terraform modules to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, refer to the [Manual Installation](/docs/ecs/manual/install) page to install Consul on ECS without Terraform.
+This topic describes how to use HashiCorp's Terraform modules to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, refer to the [Manual Installation](/consul/docs/ecs/manual/install) page to install Consul on ECS without Terraform.
 
-This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the guides in the [Getting Started](/docs/ecs#getting-started) section for complete and runnable examples.
+This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the guides in the [Getting Started](/consul/docs/ecs#getting-started) section for complete and runnable examples.
 
 ## Overview
 
@@ -22,13 +22,13 @@ The following procedure describes the general workflow:
 
 2. [Run Terraform](#running-terraform) to deploy the resources in AWS
 
-If you want to operate Consul in production environments, follow the instructions in the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation. The instructions describe how to enable ACLs and TLS and gossip encryption, which provide network security for production-grade deployments.
+If you want to operate Consul in production environments, follow the instructions in the [Secure Configuration](/consul/docs/ecs/terraform/secure-configuration) documentation. The instructions describe how to enable ACLs and TLS and gossip encryption, which provide network security for production-grade deployments.
 
 ## Requirements
 
-* You should have some familiarity with using Terraform. Refer to the [Terraform documentation](https://www.terraform.io/docs) to learn about infrastructure as code and how to get started with Terraform.
+* You should have some familiarity with using Terraform. Refer to the [Terraform documentation](/terraform/docs) to learn about infrastructure as code and how to get started with Terraform.
 * You should also be familiar with AWS ECS before following these instructions. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for details.
-* If you intend to [use the `gateway-task` module to deploy mesh gateways](#configure-the-gateway-task-module), all Consul server and client agents in all datacenters must have TLS and gossip encryption enabled. Refer to the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation for instructions.
+* If you intend to [use the `gateway-task` module to deploy mesh gateways](#configure-the-gateway-task-module), all Consul server and client agents in all datacenters must have TLS and gossip encryption enabled. Refer to the [Secure Configuration](/consul/docs/ecs/terraform/secure-configuration) documentation for instructions.
 
 ## Create the task definition
 
@@ -88,7 +88,7 @@ The following fields are required. Refer to the [module reference documentation]
 | `container_definitions` | list     | This is the list of [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions) for the task definition. This is where you include your application containers. |
 | `essential`             | boolean  | Must be `true` to ensure the health of your application container affects the health status of the task.                                                                                                                                       |
 | `port`                  | integer  | The port that your application listens on, if any. If your application does not listen on a port, set `outbound_only = true`.                                                                                                                  |
-| `retry_join`            | list     | This is the [`retry_join`](/docs/agent/config/config-files#retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
+| `retry_join`            | list     | This is the [`retry_join`](/consul/docs/agent/config/config-files#retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
 ### Configure an ECS service for the mesh task module
 
 [ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) are one of the most common
@@ -137,8 +137,8 @@ in their [`network_configuration`](https://registry.terraform.io/providers/hashi
 
 Add the `gateway-task` to your Terraform configuration if you want to deploy a mesh gateway. Mesh gateways enable service to service communication across the WAN, as well as federate service mesh traffic across Consul admin partitions and Consul datacenters over the WAN. Refer to the following documentation to learn more about mesh gateways:
 
-* [WAN Federation via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
-* [Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters).
+* [WAN Federation via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
+* [Service-to-service Traffic Across Datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters).
 
 You must add and configure a `gateway-task` for each Consul datacenter in your network. You must also enable TLS and gossip encryption on all server and client agents in all data centers per the [Requirements](#requirements). Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested.
 
@@ -180,7 +180,7 @@ The following fields are required. Refer to the [module reference documentation]
 | `family` | string   | Specifies the [ECS task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). The family is also used as the Consul service name by default. |
 | `ecs_cluster_arn` | string | Specifies the ARN of the ECS cluster where the mesh gateway task should be launched. |
 | `subnets` | list of strings | Specifies the subnet IDs where the task will be launched. |
-| `retry_join` | list of strings | Defines a set of arguments to pass to the Consul agent [`-retry-join`](/docs/agent/config/cli-flags#_retry_join) flag. The arguments specify locations of the Consul servers in the local datacenter that Consul client agents can connect to. |
+| `retry_join` | list of strings | Defines a set of arguments to pass to the Consul agent [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join) flag. The arguments specify locations of the Consul servers in the local datacenter that Consul client agents can connect to. |
 | `tls` | boolean | Set to `true` to enable TLS. |
 | `consul_server_ca_cert_arn` | string   | Specifies the ARN of the Secrets Manager containing the Consul server CA certificate |
 | `gossip_key_secret_arn` | string | Specifies the ARN of the Secrets Manager containing the Consul's gossip encryption key. |
@@ -195,7 +195,7 @@ The ECS service is automatically created by the `gateway-task` module. The servi
 
 The `mesh-init` container is a short-lived container that sets up the initial configurations for Consul and Envoy. The `gateway-task` module automatically configures the `mesh-init` container based on the inputs specified in the [task definition](#task-definition) and [ECS service](#ecs-service) configuration.
 
-For additional information, refer to [Task Startup](/docs/ecs/architecture#task-startup) for additional information.
+For additional information, refer to [Task Startup](/consul/docs/ecs/architecture#task-startup) for additional information.
 
 #### Gateway task configuration examples
 
@@ -269,7 +269,7 @@ module "my_mesh_gateway" {
 
 ##### WAN federation
 
-Configure the following options in the `gateway-task` to enable [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+Configure the following options in the `gateway-task` to enable [WAN federation via mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
 | Option | Type | Description |
 | ---    | ---  | ---         |
@@ -295,7 +295,7 @@ module "my_mesh_gateway" {
 
 </CodeBlockConfig>
 
-When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/docs/security/acl/acl-federated-datacenters) must be enabled on all server and client agents in all datacenters.
+When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/consul/docs/security/acl/acl-federated-datacenters) must be enabled on all server and client agents in all datacenters.
 
 ## Run Terraform
 
@@ -344,7 +344,7 @@ Terraform should be run in your project directory as follows.
 * Run `terraform apply` to have Terraform create AWS resources, such as the task definition from the `mesh-task` module.
 
 Terraform automatically reads all files in the current directory that have a `.tf` file extension.
-Refer to the [Terraform documentation](https://www.terraform.io/docs) for more information and Terraform best practices.
+Refer to the [Terraform documentation](/terraform/docs) for more information and Terraform best practices.
 
 ## Configure routes
 
@@ -445,8 +445,8 @@ python manage.py runserver "$BIND_ADDRESS"
 
 ## Next steps
 
-- Follow the [Secure Configuration](/docs/ecs/terraform/secure-configuration) to get production-ready.
+- Follow the [Secure Configuration](/consul/docs/ecs/terraform/secure-configuration) to get production-ready.
 - Now that your applications are running in the service mesh, read about
-  other [Service Mesh features](/docs/connect).
-- View the [Architecture](/docs/ecs/architecture) documentation to understand
+  other [Service Mesh features](/consul/docs/connect).
+- View the [Architecture](/consul/docs/ecs/architecture) documentation to understand
   what's going on under the hood.

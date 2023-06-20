@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test } from 'qunit';
 import Helper from 'consul-ui/helpers/document-attrs';
 
@@ -30,8 +35,9 @@ module('Unit | Helper | document-attrs', function () {
     assert.deepEqual(actual, ['a', 'b'], 'keys are removed, leaving keys that need to remain');
     // remove first helper
     a.synchronize(root);
-    assert.ok(
-      typeof attrs.get('class') === 'undefined',
+    assert.strictEqual(
+      typeof attrs.get('class'),
+      'undefined',
       'property is completely removed once its empty'
     );
     assert.throws(() => {

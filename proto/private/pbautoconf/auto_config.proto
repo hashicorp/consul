@@ -1,0 +1,55 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.internal.autoconf;
+
+import "private/pbconfig/config.proto";
+import "private/pbconnect/connect.proto";
+
+// AutoConfigRequest is the data structure to be sent along with the
+// AutoConfig.InitialConfiguration RPC
+message AutoConfigRequest {
+  // Datacenter is the local datacenter name. This wont actually be set by clients
+  // but rather will be set by the servers to allow for forwarding to
+  // the leader. If it ever happens to be set and differs from the local datacenters
+  // name then an error should be returned.
+  string Datacenter = 1;
+
+  // Node is the node name that the requester would like to assume
+  // the identity of.
+  string Node = 2;
+
+  // Segment is the network segment that the requester would like to join
+  string Segment = 4;
+
+  // Partition is the partition that the requester would like to join
+  string Partition = 8;
+
+  // JWT is a signed JSON Web Token used to authorize the request
+  string JWT = 5;
+
+  // ConsulToken is a Consul ACL token that the agent requesting the
+  // configuration already has.
+  string ConsulToken = 6;
+
+  // CSR is a certificate signing request to be used when generating the
+  // agents TLS certificate
+  string CSR = 7;
+}
+
+// AutoConfigResponse is the data structure sent in response to a AutoConfig.InitialConfiguration request
+message AutoConfigResponse {
+  // Config is the partial Consul configuration to inject into the agents own configuration
+  config.Config Config = 1;
+
+  // CARoots is the current list of Connect CA Roots
+  connect.CARoots CARoots = 2;
+  // Certificate is the TLS certificate issued for the agent
+  connect.IssuedCert Certificate = 3;
+
+  // ExtraCACertificates holds non-Connect certificates that may be necessary
+  // to verify TLS connections with the Consul servers
+  repeated string ExtraCACertificates = 4;
+}

@@ -23,7 +23,7 @@ This endpoint creates a new partition and has the following characteristics:
 | URL path | `/v1/partition` |
 | Response type | `application/json` |
 | [Required ACLs] | `operator:write` |
-| Corresponding CLI command | [`consul partition create`](/commands/partition#create) |
+| Corresponding CLI command | [`consul partition create`](/consul/commands/partition#create) |
 | [Consistency modes] | N/A |
 | [Blocking queries] | N/A |
 | [Agent caching] | N/A |
@@ -74,7 +74,7 @@ This endpoint reads a partition with the given name and has the following charac
 | URL path | `/v1/partition/:name` |
 | Response type | `application/json` |
 | [Required ACLs] | `operator:read`; however, a non-anonymous token can always read its own partition |
-| Corresponding CLI command | [`consul partition read`](/commands/partition#read) |
+| Corresponding CLI command | [`consul partition read`](/consul/commands/partition#read) |
 | [Consistency modes] | `default`, `consistent` |
 | [Blocking queries] | No |
 | [Agent caching] | No |
@@ -111,7 +111,7 @@ This endpoint updates a partition description and has the following characterist
 | URL path | `/v1/partition/:name` |
 | Response type | `application/json` |
 | [Required ACLs] | `operator:write` |
-| Corresponding CLI command | [`consul partition write`](/commands/partition#write) |
+| Corresponding CLI command | [`consul partition write`](/consul/commands/partition#write) |
 | [Consistency modes] | N/A |
 | [Blocking queries] | N/A |
 | [Agent caching] | N/A |
@@ -173,7 +173,7 @@ This endpoint has the following characteristics:
 | URL path | `/v1/partition/:name` |
 | Response type | none; success or failure is indicated by the HTTP response status code |
 | [Required ACLs] | `operator:write` |
-| Corresponding CLI command | [`consul partition delete`](/commands/partition#delete) |
+| Corresponding CLI command | [`consul partition delete`](/consul/commands/partition#delete) |
 | [Consistency modes] | N/A |
 | [Blocking queries] | N/A |
 | [Agent caching] | N/A |
@@ -212,7 +212,7 @@ This endpoint lists all the partitions and has the following characteristics:
 | URL path | `/v1/partitions` |
 | Response type | `application/json` |
 | [Required ACLs] | `operator:read` |
-| Corresponding CLI command | [`consul partition list`](/commands/partition#list) |
+| Corresponding CLI command | [`consul partition list`](/consul/commands/partition#list) |
 | [Consistency modes] | `default`, `consistent` |
 | [Blocking queries] | No |
 | [Agent caching] | No |

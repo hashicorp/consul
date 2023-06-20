@@ -1,0 +1,3 @@
+```release-note:improvement
+raft: Added experimental `wal` backend for log storage.
+```

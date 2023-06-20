@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if (not-eq @error.status "403")}}
   <EmptyState
     class={{concat "status-" @error.status}}
@@ -27,21 +32,25 @@
       </p>
     </BlockSlot>
     <BlockSlot @name="actions">
-      <li class="back-link">
-        <Action
+      <li>
+        <Hds::Link::Standalone
           data-test-home
-          @href={{href-to 'index'}}
-        >
-          Go back
-        </Action>
+          @route='index'
+          @text='Go back'
+          @icon='chevron-left'
+          @iconPosition='trailing'
+          @size='small'
+        />
       </li>
-      <li class="docs-link">
-        <Action
+      <li>
+        <Hds::Link::Standalone
+          data-test-home
+          @text='Read the documentation'
           @href="{{env 'CONSUL_DOCS_URL'}}"
-          @external={{true}}
-        >
-          Read the documentation
-        </Action>
+          @iconPosition='trailing'
+          @icon='docs-link'
+          @size='small'
+        />
       </li>
     </BlockSlot>
   </EmptyState>
@@ -68,21 +77,23 @@
       </p>
     </BlockSlot>
     <BlockSlot @name="actions">
-      <li class="docs-link">
-        <Action
+      <li>
+        <Hds::Link::Standalone
+          @text='Read the documentation'
           @href="{{env 'CONSUL_DOCS_URL'}}/acl/index.html"
-          @external={{true}}
-        >
-          Read the documentation
-        </Action>
+          @icon='docs-link'
+          @iconPosition='trailing'
+          @size='small'
+        />
       </li>
-      <li class="learn-link">
-        <Action
+      <li>
+        <Hds::Link::Standalone
+          @text='Follow the guide'
           @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/security-networking/production-acls"
-          @external={{true}}
-        >
-          Follow the guide
-        </Action>
+          @icon='learn-link'
+          @iconPosition='trailing'
+          @size='small'
+        />
       </li>
     </BlockSlot>
   </EmptyState>

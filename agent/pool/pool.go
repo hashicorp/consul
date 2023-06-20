@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package pool
 
 import (
@@ -18,7 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -140,6 +143,9 @@ type ConnPool struct {
 	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
 	Logger *log.Logger
 
+	// RPCHoldTimeout is used as a buffer when calculating timeouts to
+	// allow for leader rotation.
+	RPCHoldTimeout time.Duration
 	// MaxQueryTime is used for calculating timeouts on blocking queries.
 	MaxQueryTime time.Duration
 	// DefaultQueryTime is used for calculating timeouts on blocking queries.
@@ -630,8 +636,9 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 	if bq, ok := args.(BlockableQuery); ok {
 		blockingTimeout := bq.BlockingTimeout(p.MaxQueryTime, p.DefaultQueryTime)
 		if blockingTimeout > 0 {
-			// override the default client timeout
-			timeout = blockingTimeout
+			// Override the default client timeout but add RPCHoldTimeout
+			// as a buffer for retries during leadership changes.
+			timeout = blockingTimeout + p.RPCHoldTimeout
 		}
 	}
 	if timeout > 0 {

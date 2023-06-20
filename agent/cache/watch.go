@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cache
 
 import (
@@ -7,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib"
+	"google.golang.org/protobuf/proto"
 )
 
 // UpdateEvent is a struct summarizing an update to a cache entry
@@ -136,7 +140,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 			failures = 0
 		} else {
 			failures++
-			wait = backOffWait(c.options, failures)
+			wait = backOffWait(failures)
 
 			c.options.Logger.
 				With("error", err).
@@ -181,7 +185,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 		}
 
 		// Check for a change in the value or an index change
-		if index < meta.Index || !reflect.DeepEqual(lastValue, res) {
+		if index < meta.Index || !isEqual(lastValue, res) {
 			cb(ctx, UpdateEvent{correlationID, res, meta, err})
 
 			// Update index and lastValue
@@ -223,7 +227,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 		// as this would eliminate the single-flighting of these requests in the cache and
 		// the efficiencies gained by it.
 		if failures > 0 {
-			wait = backOffWait(c.options, failures)
+			wait = backOffWait(failures)
 		} else {
 			// Calculate when the cached data's Age will get too stale and
 			// need to be re-queried. When the data's Age already exceeds the
@@ -250,4 +254,21 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 			return
 		}
 	}
+}
+
+// isEqual compares two values for deep equality. Protobuf objects
+// require us to use a special comparison because cloned structs
+// may have non-exported fields that differ. For non-protobuf objects,
+// we use reflect.DeepEqual().
+func isEqual(a, b interface{}) bool {
+	// TODO move this logic into an interface so that each type can determine
+	// its own logic for equality, rather than a centralized type-cast like this.
+	if a != nil && b != nil {
+		a, aok := a.(proto.Message)
+		b, bok := b.(proto.Message)
+		if aok && bok {
+			return proto.Equal(a, b)
+		}
+	}
+	return reflect.DeepEqual(a, b)
 }

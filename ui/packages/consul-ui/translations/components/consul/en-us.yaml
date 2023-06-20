@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 peer:
   search-bar:
     state:
@@ -14,6 +17,12 @@ peer:
         name: Status
         asc: Pending to Deleting
         desc: Deleting to Pending
+  form:
+    generate-label: Generate token
+    establish-label: Establish peering
+  generate:
+    name: 'Name of peer'
+    addresses: 'Server address(es)'
 service:
   search-bar:
     kind: Service Type

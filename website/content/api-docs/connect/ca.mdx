@@ -8,7 +8,7 @@ description: |-
 
 # Certificate Authority (CA) - Connect HTTP API
 
-The `/connect/ca` endpoints provide tools for interacting with Connect's
+The `/connect/ca` endpoints provide tools for interacting with the service mesh's
 Certificate Authority mechanism.
 
 ## List CA Root Certificates
@@ -21,10 +21,10 @@ the cluster.
 | `GET`  | `/connect/ca/roots` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -33,7 +33,7 @@ The table below shows this endpoint's support for
 ### Query Parameters
 
 - `pem` `(boolean: false)` - Specifies that the return body should be a PEM encoded
-  certificate chain suitable for use by applications needing to trust Connect CA
+  certificate chain suitable for use by applications needing to trust service mesh CA
   signed certificates. The Content-Type will be set to `application/pem-certificate-chain`
   to indicate the format of the response.
 
@@ -113,10 +113,10 @@ This endpoint returns the current CA configuration.
 | `GET`  | `/connect/ca/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
 | ---------------- | ----------------- | ------------- | ----------------------------- |
@@ -125,7 +125,7 @@ The table below shows this endpoint's support for
 <sup>1</sup> ACL required was <code>operator:read</code> prior to versions 1.8.6,
 1.7.10, and 1.6.10.
 
-The corresponding CLI command is [`consul connect ca get-config`](/commands/connect/ca#get-config).
+The corresponding CLI command is [`consul connect ca get-config`](/consul/commands/connect/ca#get-config).
 
 ### Sample Request
 
@@ -151,37 +151,47 @@ $ curl \
 ## Update CA Configuration
 
 This endpoint updates the configuration for the CA. If this results in a
-new root certificate being used, the [Root Rotation](/docs/connect/ca#root-certificate-rotation) process will be triggered.
+new root certificate being used, the [Root Rotation](/consul/docs/connect/ca#root-certificate-rotation) process will be triggered.
 
 | Method | Path                        | Produces           |
 | ------ | --------------------------- | ------------------ |
 | `PUT`  | `/connect/ca/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul connect ca set-config`](/commands/connect/ca#set-config).
+The corresponding CLI command is [`consul connect ca set-config`](/consul/commands/connect/ca#set-config).
+
+~> **If currently using Vault CA provider:**
+   If you intend to change the CA provider from Vault to another,
+   or to change the Vault provider's [`RootPKIPath`](/consul/docs/connect/ca/vault#rootpkipath),
+   you must temporarily elevate the privileges of the Vault token
+   or auth method in use as described in the
+   [Vault CA provider documentation](/consul/docs/connect/ca/vault#additional-vault-acl-policies-for-sensitive-operations).
 
 ### JSON Request Body Schema
 
 - `Provider` `(string: <required>)` - Specifies the CA provider type to use.
 
 - `Config` `(map[string]string: <required>)` - The raw configuration to use
-  for the chosen provider. For more information on configuring the Connect CA
-  providers, see [Provider Config](/docs/connect/ca).
+  for the chosen provider. For more information on configuring the service mesh CA
+  providers, see [Provider Config](/consul/docs/connect/ca).
 
-- `ForceWithoutCrossSigning` `(bool: <optional>)` - Indicates that the CA change
-  should be forced to complete even if the current CA doesn't support cross
-  signing. Changing root without cross-signing may cause temporary connection
-  failures until the rollout completes. See [Forced Rotation Without
-  Cross-Signing](/docs/connect/ca#forced-rotation-without-cross-signing)
+- `ForceWithoutCrossSigning` `(bool: false)` - Indicates that the CA change
+  should be forced to complete even if the current CA doesn't support root cross-signing.
+
+  ~> **Caution:** Setting this field to `true` will cause temporary connection failures
+  until service mesh proxies and/or Consul client agents receive a new certificate
+  that establishes trust with the new root.
+  Do not use this field unless you are sure you need it.
+  Refer to [Forced Rotation Without Cross-Signing](/consul/docs/connect/ca#forced-rotation-without-cross-signing)
   for more detail.
 
 ### Sample Payload

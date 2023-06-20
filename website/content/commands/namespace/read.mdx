@@ -1,13 +1,15 @@
 ---
 layout: commands
 page_title: 'Commands: Namespace Read'
+description: |
+  The `consul namespace read` command outputs information about a single namespace in Consul Enterprise.
 ---
 
 # Consul Namespace Read
 
 Command: `consul namespace read`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/namespace/:name](/api-docs/namespaces#read-a-namespace)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/namespace/:name](/consul/api-docs/namespaces#read-a-namespace)
 
 <EnterpriseAlert />
 
@@ -15,8 +17,8 @@ This `namespace read` command reads a namespaces configuration. This was added i
 ACLs are enabled then this command will require a token with `operator:read` privileges or any `read` privileges
 within the target namespace.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required                                      |

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 .app .skip-links {
   @extend %skip-links;
 }
@@ -5,14 +10,10 @@
   @extend %app-notifications;
 }
 %app-notifications {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
   position: fixed;
-  z-index: 50;
-  top: -45px;
-  left: 0;
+  z-index: 100;
+  bottom: 2rem;
+  left: 1.5rem;
 
   pointer-events: none;
 }
@@ -77,12 +78,11 @@ main {
   @extend %transition-pushover;
 }
 %footer {
+  @extend %body-100-regular;
   position: fixed;
   z-index: 50;
 
-  color: rgb(var(--tone-gray-400));
-  font-size: var(--typo-size-800);
-
+  color: var(--token-color-foreground-disabled);
   width: 250px;
   padding-left: 25px;
 }
@@ -123,11 +123,10 @@ main {
   }
   %main-nav-horizontal-toggle:checked ~ footer,
   %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width, 300px) * -1);
+    left: calc(var(--chrome-width, 280px) * -1);
   }
-  %main-nav-horizontal-toggle ~ main .notifications,
   %main-nav-horizontal-toggle ~ main {
-    margin-left: var(--chrome-width, 300px);
+    margin-left: var(--chrome-width, 280px);
   }
   %main-nav-horizontal-toggle:checked ~ main .notifications,
   %main-nav-horizontal-toggle:checked ~ main {
@@ -144,7 +143,7 @@ main {
   }
   %main-nav-horizontal-toggle ~ footer,
   %main-nav-horizontal-toggle + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width, 300px) * -1);
+    left: calc(var(--chrome-width, 280px) * -1);
   }
   %main-nav-horizontal-toggle ~ main .notifications,
   %main-nav-horizontal-toggle ~ main {

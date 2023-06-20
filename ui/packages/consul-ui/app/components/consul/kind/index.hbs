@@ -1,89 +1,104 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if item.Kind}}
-  {{#let (titleize (humanize item.Kind)) as |Name|}}
-    {{#if withInfo}}
-        <dl class="tooltip-panel">
-          <dt>
-            <span data-test-kind={{item.Kind}} class="consul-kind">
-              {{Name}}
-            </span>
-          </dt>
-          <dd>
-            <MenuPanel @position="left">
-              <BlockSlot @name="header">
-                {{#if (eq item.Kind 'ingress-gateway')}}
-                  Ingress gateways enable ingress traffic from services outside the Consul service mesh to services inside the Consul service mesh.
-                {{else if (eq item.Kind 'terminating-gateway')}}
-                  Terminating gateways allow connect-enabled services in Consul service mesh to communicate with services outside the service mesh.
-                {{else}}
-                  Mesh gateways enable routing of Connect traffic between different Consul datacenters.
-                {{/if}}
-              </BlockSlot>
-              <BlockSlot @name="menu">
-                <li role="separator">
-                  {{#if (eq item.Kind 'ingress-gateway')}}
-                      About Ingress gateways
-                  {{else if (eq item.Kind 'terminating-gateway')}}
-                      About Terminating gateways
-                  {{else}}
-                      About Mesh gateways
-                  {{/if}}
-                </li>
-          {{#let (from-entries (array
-              (array 'ingress-gateway' '/consul/developer-mesh/ingress-gateways')
-              (array 'terminating-gateway' '/consul/developer-mesh/understand-terminating-gateways')
-              (array 'mesh-gateway' '/consul/developer-mesh/connect-gateways')
-            )
-          ) as |link|}}
-                <li role="none" class="learn-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
-                    Learn guides
-                  </a>
-                </li>
-          {{/let}}
-          {{#let (from-entries (array
-              (array 'ingress-gateway' '/connect/ingress-gateway')
-              (array 'terminating-gateway' '/connect/terminating-gateway')
-              (array 'mesh-gateway' '/connect/mesh-gateway')
-            )
-          ) as |link|}}
-                <li role="none" class="docs-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
-                    Documentation
-                  </a>
-                </li>
-                <li role="separator">
-                  Other gateway types
-                </li>
-              {{#if (not-eq item.Kind 'mesh-gateway')}}
-                <li role="none" class="docs-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'mesh-gateway')}} rel="noopener noreferrer" target="_blank">
-                    Mesh gateways
-                  </a>
-                </li>
+  {{#if withInfo}}
+    <dl class="tooltip-panel">
+      <dt>
+        <span data-test-kind={{item.Kind}} class="consul-kind">
+          {{Name}}
+        </span>
+      </dt>
+      <dd>
+        <MenuPanel @position="left">
+          <BlockSlot @name="header">
+            {{#if (eq item.Kind 'ingress-gateway')}}
+              Ingress gateways enable ingress traffic from services outside the Consul service mesh to services inside the Consul service mesh.
+            {{else if (eq item.Kind 'terminating-gateway')}}
+              Terminating gateways allow connect-enabled services in Consul service mesh to communicate with services outside the service mesh.
+            {{else if (eq item.Kind 'api-gateway')}}
+              API gateways enable ingress traffic from services outside the Consul service mesh to services inside the Consul service mesh.
+            {{else}}
+              Mesh gateways enable routing of Connect traffic between different Consul datacenters.
+            {{/if}}
+          </BlockSlot>
+          <BlockSlot @name="menu">
+            <li role="separator">
+              {{#if (eq item.Kind 'ingress-gateway')}}
+                  About Ingress gateways
+              {{else if (eq item.Kind 'terminating-gateway')}}
+                  About Terminating gateways
+              {{else if (eq item.Kind 'api-gateway')}}
+                  About API gateways
+              {{else}}
+                  About Mesh gateways
               {{/if}}
-              {{#if (not-eq item.Kind 'terminating-gateway')}}
-                <li role="none" class="docs-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'terminating-gateway')}} rel="noopener noreferrer" target="_blank">
-                    Terminating gateways
-                  </a>
-                </li>
-              {{/if}}
-              {{#if (not-eq item.Kind 'ingress-gateway')}}
-                <li role="none" class="docs-link">
-                  <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'ingress-gateway')}} rel="noopener noreferrer" target="_blank">
-                    Ingress gateways
-                  </a>
-                </li>
-              {{/if}}
-          {{/let}}
-              </BlockSlot>
-            </MenuPanel>
-          </dd>
-        </dl>
-      {{else}}
-          <span data-test-kind={{item.Kind}} class="consul-kind">
-            {{Name}}
-          </span>
-      {{/if}}
-  {{/let}}
+            </li>
+      {{#let (from-entries (array
+          (array 'ingress-gateway' '/consul/developer-mesh/ingress-gateways')
+          (array 'terminating-gateway' '/consul/developer-mesh/understand-terminating-gateways')
+          (array 'mesh-gateway' '/consul/developer-mesh/connect-gateways')
+        )
+      ) as |link|}}
+            <li role="none" class="learn-link">
+              <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
+                Learn guides
+              </a>
+            </li>
+      {{/let}}
+      {{#let (from-entries (array
+          (array 'ingress-gateway' '/connect/gateways/ingress-gateway')
+          (array 'terminating-gateway' '/connect/gateways/terminating-gateway')
+          (array 'api-gateway' '/connect/gateways/api-gateway')
+          (array 'mesh-gateway' '/connect/gateways/mesh-gateway')
+        )
+      ) as |link|}}
+            <li role="none" class="docs-link">
+              <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
+                Documentation
+              </a>
+            </li>
+            <li role="separator">
+              Other gateway types
+            </li>
+          {{#if (not-eq item.Kind 'mesh-gateway')}}
+            <li role="none" class="docs-link">
+              <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'mesh-gateway')}} rel="noopener noreferrer" target="_blank">
+                Mesh gateways
+              </a>
+            </li>
+          {{/if}}
+          {{#if (not-eq item.Kind 'terminating-gateway')}}
+            <li role="none" class="docs-link">
+              <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'terminating-gateway')}} rel="noopener noreferrer" target="_blank">
+                Terminating gateways
+              </a>
+            </li>
+          {{/if}}
+          {{#if (not-eq item.Kind 'ingress-gateway')}}
+            <li role="none" class="docs-link">
+              <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'ingress-gateway')}} rel="noopener noreferrer" target="_blank">
+                Ingress gateways
+              </a>
+            </li>
+          {{/if}}
+          {{#if (not-eq item.Kind 'api-gateway')}}
+            <li role="none" class="docs-link">
+              <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link 'api-gateway')}} rel="noopener noreferrer" target="_blank">
+                API gateways
+              </a>
+            </li>
+          {{/if}}
+      {{/let}}
+          </BlockSlot>
+        </MenuPanel>
+      </dd>
+    </dl>
+  {{else}}
+    <span data-test-kind={{item.Kind}} class="consul-kind">
+      {{Name}}
+    </span>
+  {{/if}}
 {{/if}}

@@ -15,8 +15,8 @@ Feature: dc / acls / policies / delete: Policy Delete
     And I click delete on the policies
     And I click confirmDelete on the policies
     Then a DELETE request was made to "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter&ns=@!namespace"
-    And "[data-notification]" has the "notification-delete" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: Deleting a policy model from the policies listing page errors
     Given the url "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter&ns=@namespace" responds with a 500 status
     And 1 policy model from yaml
@@ -30,8 +30,8 @@ Feature: dc / acls / policies / delete: Policy Delete
     And I click actions on the policies
     And I click delete on the policies
     And I click confirmDelete on the policies
-    And "[data-notification]" has the "notification-delete" class
-    And "[data-notification]" has the "error" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-critical" class
   Scenario: Deleting a policy from the policy detail page
     When I visit the policy page for yaml
     ---
@@ -41,8 +41,8 @@ Feature: dc / acls / policies / delete: Policy Delete
     And I click delete
     And I click confirmDelete on the deleteModal
     Then a DELETE request was made to "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter&ns=@!namespace"
-    And "[data-notification]" has the "notification-delete" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   # FIXME
   # Scenario: Deleting a policy from the policy detail page errors
   #   Given the url "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter&ns=@namespace" responds with a 500 status

@@ -1,0 +1,16 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Bot Auto Approve
+
+on: pull_request_target
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    if: github.actor == 'hc-github-team-consul-core'
+    steps:
+      - uses: hmarr/auto-approve-action@v3 # TSCCR: no entry for repository "hmarr/auto-approve-action"
+        with:
+          review-message: "Auto approved Consul Bot automated PR"
+          github-token: ${{ secrets.MERGE_APPROVE_TOKEN }}

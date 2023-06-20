@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <div {{create-ref 'element'}} {{did-insert this.measureDimensions}}>
   {{on-window 'resize' this.handleWindowResize}}
   {{yield (hash data=this.data)}}

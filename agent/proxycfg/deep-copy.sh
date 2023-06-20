@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 readonly PACKAGE_DIR="$(dirname "${BASH_SOURCE[0]}")"
 cd $PACKAGE_DIR
@@ -10,6 +13,7 @@ deep-copy -pointer-receiver \
   -type ConfigSnapshotUpstreams \
   -type PeerServersValue \
   -type PeeringServiceValue \
+  -type configSnapshotAPIGateway \
   -type configSnapshotConnectProxy \
   -type configSnapshotIngressGateway \
   -type configSnapshotMeshGateway \

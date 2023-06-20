@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -23,7 +26,7 @@ func (s *HTTPHandlers) FederationStateGet(resp http.ResponseWriter, req *http.Re
 
 	var out structs.FederationStateResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("FederationState.Get", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "FederationState.Get", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -48,7 +51,7 @@ func (s *HTTPHandlers) FederationStateList(resp http.ResponseWriter, req *http.R
 
 	var out structs.IndexedFederationStates
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("FederationState.List", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "FederationState.List", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +76,7 @@ func (s *HTTPHandlers) FederationStateListMeshGateways(resp http.ResponseWriter,
 
 	var out structs.DatacenterIndexedCheckServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("FederationState.ListMeshGateways", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "FederationState.ListMeshGateways", &args, &out); err != nil {
 		return nil, err
 	}
 

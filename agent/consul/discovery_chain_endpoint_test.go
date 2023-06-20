@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -258,6 +261,8 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 						33*time.Second,
 					),
 				},
+				AutoVirtualIPs:   []string{"240.0.0.1"},
+				ManualVirtualIPs: []string{},
 			},
 		}
 		require.Equal(t, expect, resp)

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package peerstream
 
 import (
@@ -369,9 +372,8 @@ func (s *MutableStatus) SetImportedServices(serviceNames []structs.ServiceName) 
 	defer s.mu.Unlock()
 
 	s.ImportedServices = make([]string, len(serviceNames))
-
 	for i, sn := range serviceNames {
-		s.ImportedServices[i] = sn.Name
+		s.ImportedServices[i] = sn.String()
 	}
 }
 
@@ -389,7 +391,7 @@ func (s *MutableStatus) SetExportedServices(serviceNames []structs.ServiceName) 
 	s.ExportedServices = make([]string, len(serviceNames))
 
 	for i, sn := range serviceNames {
-		s.ExportedServices[i] = sn.Name
+		s.ExportedServices[i] = sn.String()
 	}
 }
 

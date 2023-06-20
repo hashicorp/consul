@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import format from 'pretty-ms';
 import parse from 'parse-duration';
 import { assert } from '@ember/debug';

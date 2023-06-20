@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Route
   @name={{routeName}}
 as |route|>
@@ -44,7 +49,11 @@ as |route|>
     <div class="tab-section">
   {{#if (can 'create intention for service' item=item.Service)}}
         <Portal @target="app-view-actions">
-          <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
+          <Hds::Button
+            @text='Create'
+            @route='dc.services.show.intentions.create'
+            data-test-create
+          />
         </Portal>
   {{/if}}
   {{#if (gt items.length 0) }}
@@ -107,11 +116,23 @@ as |route|>
                     }}
                   </BlockSlot>
                   <BlockSlot @name="actions">
-                    <li class="docs-link">
-                      <a href="{{env 'CONSUL_DOCS_URL'}}/commands/intention" rel="noopener noreferrer" target="_blank">Documentation on intentions</a>
+                    <li>
+                      <Hds::Link::Standalone
+                        @text='Documentation on intentions'
+                        @href="{{env 'CONSUL_DOCS_URL'}}/commands/intention"
+                        @icon='docs-link'
+                        @iconPosition='trailing'
+                        @size='small'
+                      />
                     </li>
-                    <li class="learn-link">
-                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Take the tutorial</a>
+                    <li>
+                      <Hds::Link::Standalone
+                        @text='Take the tutorial'
+                        @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect"
+                        @icon='learn-link'
+                        @iconPosition='trailing'
+                        @size='small'
+                      />
                     </li>
                   </BlockSlot>
                 </EmptyState>

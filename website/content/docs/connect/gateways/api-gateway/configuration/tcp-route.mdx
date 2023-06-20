@@ -1,0 +1,256 @@
+---
+layout: docs
+page_title: TCP Route Configuration Reference
+description: Learn how to configure a TCP Route that is bound to an API gateway on VMs.
+---
+
+# TCP route configuration Reference
+
+This topic provides reference information for the gateway TCP routes configuration
+entry. Refer to [Route Resource Configuration](/consul/docs/api-gateway/configuration/routes) for information
+about configuring API gateways in Kubernetes environments.
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and
+requirements in an `tcp-route` configuration entry. Click on a property name to
+view additional details, including default values.
+
+- [`Kind`](#kind): string | must be `"tcp-route"`
+- [`Name`](#name): string | no default
+- [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
+- [`Partition`](#partition): string | no default <EnterpriseAlert inline />
+- [`Meta`](#meta): map | no default
+- [`Services`](#services): list | no default
+  - [`Name`](#services-name): string | no default
+  - [`Namespace`](#services-namespace): string | no default <EnterpriseAlert inline />
+  - [`Partition`](#services-partition): string | no default <EnterpriseAlert inline />
+- [`Parents`](#parents): list | no default
+  - [`Kind`](#parents-kind): string | must be `"api-gateway"`
+  - [`Name`](#parents-name): string | no default
+  - [`Namespace`](#parents-namespace): string | no default <EnterpriseAlert inline />
+  - [`Partition`](#parents-partition): string | no default <EnterpriseAlert inline />
+  - [`SectionName`](#parents-sectionname): string | no default
+
+## Complete configuration
+
+When every field is defined, a `tcp-route` configuration entry has the following form:
+
+<CodeTabs>
+
+```HCL
+Kind = "tcp-route"
+Name = "<name of the route>"
+Namespace = "<enterprise: namespace of the route>"
+Partition = "<enterprise: partition of the route>"
+
+Meta = {
+  "<any key>" = "<any value>"
+}
+
+Services = [
+  {
+    Name = "<name of service>"
+    Namespace = "<enterprise: namespace of the service>"
+    Partition = "<enterprise: partition of the service>"
+  }
+]
+
+
+Parents = [
+  {
+    Kind = "api-gateway"
+    Name = "<name of the api-gateway to bind to>"
+    Namespace = "<enterprise: namespace of the parent>"
+    Partition = "<enterprise: partition of the parent>"
+    SectionName = "<listener on the api-gateway to bind to>"
+  }
+]
+```
+
+```JSON
+{
+  "Kind": "tcp-route",
+  "Name": "<name of the route>",
+  "Namespace": "<enterprise: namespace of the route>",
+  "Partition": "<enterprise: partition of the route>",
+  "Meta": {
+    "<any key>": "<any value>"
+  },
+  "Services": [
+    {
+      "Name": "<name of service>"
+      "Namespace": "<enterprise: namespace of the service>",
+      "Partition": "<enterprise: partition of the service>",
+    }
+  ],
+  "Parents": [
+    {
+      "Kind": "api-gateway",
+      "Name": "<name of the api-gateway to bind to>",
+      "Namespace": "<enterprise: namespace of the parent>",
+      "Partition": "<enterprise: partition of the parent>",
+      "SectionName": "<listener on the api-gateway to bind to>"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+## Specification
+
+This section provides details about the fields you can configure in the
+`tcp-route` configuration entry.
+
+### `Kind`
+
+Specifies the type of configuration entry to implement. This must be set to
+`"tcp-route"`.
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string value that must be set to`tcp-route`.
+
+### `Name`
+
+Specifies a name for the configuration entry. The name is metadata that you can
+use to reference the configuration entry when performing Consul operations,
+such as applying a configuration entry to a specific cluster.
+
+#### Values
+
+- Default: Defaults to the name of the node after writing the entry to the Consul server.
+- This field is required.
+- Data type: string
+
+### `Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Meta`
+
+Specifies an arbitrary set of key-value pairs to associate with the gateway.
+
+#### Values
+
+- Default: none
+- Data type: map containing one or more keys and string values.
+
+### `Services`
+
+Specifies a TCP-based service the API gateway routes incoming requests
+to. You can only specify one service.
+
+#### Values
+
+- Default: none
+- The data type is a list of maps. Each member of the list contains the following fields:
+  - [`Name`](#services-name)
+  - [`Namespace`](#services-namespace) <EnterpriseAlert inline />
+  - [`Partition`](#services-partition) <EnterpriseAlert inline />
+
+### `Services.Name`
+
+Specifies the list of TCP-based services to route to. You can specify a maximum of one service.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Services.Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the service is located.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Services.Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the service is located.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Parents`
+
+Specifies the list of gateways that the route is bound to.
+
+#### Values
+
+- Default: none
+- Data type: List of map. Each member of the list contains the following fields:
+  - [`Kind`](#parents-kind)
+  - [`Name`](#parents-name)
+  - [`Namespace`](#parents-namespace) <EnterpriseAlert inline />
+  - [`Partition`](#parents-partition) <EnterpriseAlert inline />
+  - [`SectionName`](#parents-sectionname)
+
+### `Parents.Kind`
+
+Specifies the type of resource to bind to. This field is required and must be
+set to `"api-gateway"`
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string
+
+### `Parents.Name`
+
+Specifies the name of the API gateway to bind to.
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string
+
+### `Parents.Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the parent is located.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Parents.Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the parent is located.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Parents.SectionName`
+
+Specifies the name of the listener defined in the [`api-gateway` configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway) that the route binds to. If the field is configured to an empty string, the route binds to all listeners on the parent gateway.
+
+#### Values
+
+- Default: `""`
+- Data type: string

@@ -1,9 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xds
 
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -16,23 +18,22 @@ import (
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 const (
 	meshGatewayExportedClusterNamePrefix = "exported~"
-	failoverClusterNamePrefix            = "failover-target~"
 )
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters" in the snapshot.
@@ -62,6 +63,12 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 			return nil, err
 		}
 		return res, nil
+	case structs.ServiceKindAPIGateway:
+		res, err := s.clustersFromSnapshotAPIGateway(cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -74,7 +81,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.DiscoveryChain)+1)
 
 	// Include the "app" cluster for the public listener
-	appCluster, err := s.makeAppCluster(cfgSnap, LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
+	appCluster, err := s.makeAppCluster(cfgSnap, xdscommon.LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
 	if err != nil {
 		return nil, err
 	}
@@ -88,18 +95,10 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		clusters = append(clusters, passthroughs...)
 	}
 
-	getUpstream := func(uid proxycfg.UpstreamID) (*structs.Upstream, bool) {
-		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
-
-		explicit := upstream.HasLocalPortOrSocket()
-		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
-		return upstream, !implicit && !explicit
-	}
-
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in endpoints.go
 	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			continue
 		}
@@ -124,12 +123,15 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// upstream in endpoints.go so that the sets of endpoints generated matches
 	// the sets of clusters.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			continue
 		}
 
-		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+		peerMeta, found := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+		if !found {
+			s.Logger.Warn("failed to fetch upstream peering metadata for cluster", "uid", uid)
+		}
 		cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstream, peerMeta)
 
 		upstreamCluster, err := s.makeUpstreamClusterForPeerService(uid, cfg, peerMeta, cfgSnap)
@@ -807,6 +809,44 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 	return clusters, nil
 }
 
+func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var clusters []proto.Message
+	createdClusters := make(map[proxycfg.UpstreamID]bool)
+	readyListeners := getReadyListeners(cfgSnap)
+
+	for _, readyListener := range readyListeners {
+		for _, upstream := range readyListener.upstreams {
+			uid := proxycfg.NewUpstreamID(&upstream)
+
+			// If we've already created a cluster for this upstream, skip it. Multiple listeners may
+			// reference the same upstream, so we don't need to create duplicate clusters in that case.
+			if createdClusters[uid] {
+				continue
+			}
+
+			// Grab the discovery chain compiled in handlerAPIGateway.recompileDiscoveryChains
+			chain, ok := cfgSnap.APIGateway.DiscoveryChain[uid]
+			if !ok {
+				// this should not happen
+				return nil, fmt.Errorf("no discovery chain for upstream %q", uid)
+			}
+
+			// Generate the list of upstream clusters for the discovery chain
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, &upstream, chain, cfgSnap, false)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, cluster := range upstreamClusters {
+				clusters = append(clusters, cluster)
+			}
+
+			createdClusters[uid] = true
+		}
+	}
+	return clusters, nil
+}
+
 func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Cluster, cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey, u *structs.Upstream) {
 	var threshold *envoy_cluster_v3.CircuitBreakers_Thresholds
 	setThresholdLimit := func(limitType string, limit int) {
@@ -849,6 +889,20 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 	if threshold != nil {
 		c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{threshold}
 	}
+
+	// Configure the outlier detector for upstream service
+	var override *structs.PassiveHealthCheck
+	if svc != nil {
+		override = svc.PassiveHealthCheck
+	}
+	outlierDetection := ToOutlierDetection(cfgSnap.IngressGateway.Defaults.PassiveHealthCheck, override, false)
+
+	// Specail handling for failover peering service, which has set MaxEjectionPercent
+	if c.OutlierDetection != nil && c.OutlierDetection.MaxEjectionPercent != nil {
+		outlierDetection.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: c.OutlierDetection.MaxEjectionPercent.Value}
+	}
+
+	c.OutlierDetection = outlierDetection
 }
 
 func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy_cluster_v3.Cluster, error) {
@@ -949,12 +1003,12 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 
 	clusterName := generatePeeredClusterName(uid, tbs)
 
-	outlierDetection := ToOutlierDetection(upstreamConfig.PassiveHealthCheck)
+	outlierDetection := ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true)
 	// We can't rely on health checks for services on cluster peers because they
 	// don't take into account service resolvers, splitters and routers. Setting
 	// MaxEjectionPercent too 100% gives outlier detection the power to eject the
 	// entire cluster.
-	outlierDetection.MaxEjectionPercent = &wrappers.UInt32Value{Value: 100}
+	outlierDetection.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: 100}
 
 	s.Logger.Trace("generating cluster for", "cluster", clusterName)
 	if c == nil {
@@ -1084,7 +1138,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck, nil, true),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			if err := s.setHttp2ProtocolOptions(c); err != nil {
@@ -1144,6 +1198,21 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 	return c, nil
 }
 
+func finalizeUpstreamConfig(cfg structs.UpstreamConfig, chain *structs.CompiledDiscoveryChain, connectTimeout time.Duration) structs.UpstreamConfig {
+	if cfg.Protocol == "" {
+		cfg.Protocol = chain.Protocol
+	}
+
+	if cfg.Protocol == "" {
+		cfg.Protocol = "tcp"
+	}
+
+	if cfg.ConnectTimeoutMs == 0 {
+		cfg.ConnectTimeoutMs = int(connectTimeout / time.Millisecond)
+	}
+	return cfg
+}
+
 func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	uid proxycfg.UpstreamID,
 	upstream *structs.Upstream,
@@ -1180,21 +1249,6 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			"error", err)
 	}
 
-	finalizeUpstreamConfig := func(cfg structs.UpstreamConfig, connectTimeout time.Duration) structs.UpstreamConfig {
-		if cfg.Protocol == "" {
-			cfg.Protocol = chain.Protocol
-		}
-
-		if cfg.Protocol == "" {
-			cfg.Protocol = "tcp"
-		}
-
-		if cfg.ConnectTimeoutMs == 0 {
-			cfg.ConnectTimeoutMs = int(connectTimeout / time.Millisecond)
-		}
-		return cfg
-	}
-
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
 	if !forMeshGateway {
 		if rawUpstreamConfig.EnvoyClusterJSON != "" {
@@ -1223,15 +1277,14 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		case node.Resolver == nil:
 			return nil, fmt.Errorf("impossible to process a non-resolver node")
 		}
-		failover := node.Resolver.Failover
 		// These variables are prefixed with primary to avoid shaddowing bugs.
 		primaryTargetID := node.Resolver.Target
 		primaryTarget := chain.Targets[primaryTargetID]
-		primaryTargetClusterData, ok := s.getTargetClusterData(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway, false)
-		if !ok {
+		primaryTargetClusterName := s.getTargetClusterName(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway, false)
+		if primaryTargetClusterName == "" {
 			continue
 		}
-		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, node.Resolver.ConnectTimeout)
+		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, chain, node.Resolver.ConnectTimeout)
 
 		if forMeshGateway && !cfgSnap.Locality.Matches(primaryTarget.Datacenter, primaryTarget.Partition) {
 			s.Logger.Warn("ignoring discovery chain target that crosses a datacenter or partition boundary in a mesh gateway",
@@ -1241,28 +1294,32 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			continue
 		}
 
-		// Construct the information required to make  target clusters. When
-		// failover is configured, create the aggregate cluster.
-		var targetClustersData []targetClusterData
-		if failover != nil && !forMeshGateway {
-			var failoverClusterNames []string
-			for _, tid := range append([]string{primaryTargetID}, failover.Targets...) {
-				if td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, tid, forMeshGateway, true); ok {
-					targetClustersData = append(targetClustersData, td)
-					failoverClusterNames = append(failoverClusterNames, td.clusterName)
-				}
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, node, upstreamConfig, forMeshGateway)
+		if err != nil {
+			return nil, err
+		}
+
+		targetGroups, err := mappedTargets.groupedTargets()
+		if err != nil {
+			return nil, err
+		}
+
+		var failoverClusterNames []string
+		if mappedTargets.failover {
+			for _, targetGroup := range targetGroups {
+				failoverClusterNames = append(failoverClusterNames, targetGroup.ClusterName)
 			}
 
 			aggregateClusterConfig, err := anypb.New(&envoy_aggregate_cluster_v3.ClusterConfig{
 				Clusters: failoverClusterNames,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to construct the aggregate cluster %q: %v", primaryTargetClusterData.clusterName, err)
+				return nil, fmt.Errorf("failed to construct the aggregate cluster %q: %v", mappedTargets.baseClusterName, err)
 			}
 
 			c := &envoy_cluster_v3.Cluster{
-				Name:           primaryTargetClusterData.clusterName,
-				AltStatName:    primaryTargetClusterData.clusterName,
+				Name:           mappedTargets.baseClusterName,
+				AltStatName:    mappedTargets.baseClusterName,
 				ConnectTimeout: durationpb.New(node.Resolver.ConnectTimeout),
 				LbPolicy:       envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_ClusterType{
@@ -1274,40 +1331,14 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 
 			out = append(out, c)
-		} else {
-			targetClustersData = append(targetClustersData, primaryTargetClusterData)
 		}
 
 		// Construct the target clusters.
-		for _, targetData := range targetClustersData {
-			target := chain.Targets[targetData.targetID]
-			sni := target.SNI
-			var additionalSpiffeIDs []string
-
-			targetSpiffeID := connect.SpiffeIDService{
-				Host:       cfgSnap.Roots.TrustDomain,
-				Namespace:  target.Namespace,
-				Partition:  target.Partition,
-				Datacenter: target.Datacenter,
-				Service:    target.Service,
-			}.URI().String()
-			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetData.targetID)
-			if targetUID.Peer != "" {
-				peerMeta := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
-				upstreamCluster, err := s.makeUpstreamClusterForPeerService(targetUID, upstreamConfig, peerMeta, cfgSnap)
-				if err != nil {
-					continue
-				}
-				// Override the cluster name to include the failover-target~ prefix.
-				upstreamCluster.Name = targetData.clusterName
-				out = append(out, upstreamCluster)
-				continue
-			}
-
-			s.Logger.Debug("generating cluster for", "cluster", targetData.clusterName)
+		for _, groupedTarget := range targetGroups {
+			s.Logger.Debug("generating cluster for", "cluster", groupedTarget.ClusterName)
 			c := &envoy_cluster_v3.Cluster{
-				Name:                 targetData.clusterName,
-				AltStatName:          targetData.clusterName,
+				Name:                 groupedTarget.ClusterName,
+				AltStatName:          groupedTarget.ClusterName,
 				ConnectTimeout:       durationpb.New(node.Resolver.ConnectTimeout),
 				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
 				CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
@@ -1327,7 +1358,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 					Thresholds: makeThresholdsIfNeeded(upstreamConfig.Limits),
 				},
-				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck),
+				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true),
 			}
 
 			var lb *structs.LoadBalancer
@@ -1335,7 +1366,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				lb = node.LoadBalancer
 			}
 			if err := injectLBToCluster(lb, c); err != nil {
-				return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", targetData.clusterName, err)
+				return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", groupedTarget.ClusterName, err)
 			}
 
 			if upstreamConfig.Protocol == "http2" || upstreamConfig.Protocol == "grpc" {
@@ -1344,31 +1375,17 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				}
 			}
 
-			configureTLS := true
-			if forMeshGateway {
-				// We only initiate TLS if we're doing an L7 proxy.
-				configureTLS = structs.IsProtocolHTTPLike(upstreamConfig.Protocol)
+			switch len(groupedTarget.Targets) {
+			case 0:
+				continue
+			case 1:
+				// We expect one target so this passes through to continue setting the cluster up.
+			default:
+				return nil, fmt.Errorf("cannot have more than one target")
 			}
 
-			if configureTLS {
-				commonTLSContext := makeCommonTLSContext(
-					cfgSnap.Leaf(),
-					cfgSnap.RootPEMs(),
-					makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
-				)
-
-				spiffeIDs := append([]string{targetSpiffeID}, additionalSpiffeIDs...)
-				sort.Strings(spiffeIDs)
-				err = injectSANMatcher(commonTLSContext, spiffeIDs...)
-				if err != nil {
-					return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
-				}
-
-				tlsContext := &envoy_tls_v3.UpstreamTlsContext{
-					CommonTlsContext: commonTLSContext,
-					Sni:              sni,
-				}
-				transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
+			if targetInfo := groupedTarget.Targets[0]; targetInfo.TLSContext != nil {
+				transportSocket, err := makeUpstreamTLSTransportSocket(targetInfo.TLSContext)
 				if err != nil {
 					return nil, err
 				}
@@ -1441,6 +1458,10 @@ func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
 func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ...string) error {
+	if tlsContext == nil {
+		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext not to be nil")
+	}
+
 	validationCtx, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 	if !ok {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",
@@ -1476,8 +1497,8 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 // from rather than our slight variant in JSON/hcl.
 func makeClusterFromUserConfig(configJSON string) (*envoy_cluster_v3.Cluster, error) {
 	// Type field is present so decode it as a types.Any
-	var any any.Any
-	err := jsonpb.UnmarshalString(configJSON, &any)
+	var any anypb.Any
+	err := protojson.Unmarshal([]byte(configJSON), &any)
 	if err != nil {
 		return nil, err
 	}
@@ -1805,7 +1826,7 @@ func injectLBToCluster(ec *structs.LoadBalancer, c *envoy_cluster_v3.Cluster) er
 		if ec.LeastRequestConfig != nil {
 			c.LbConfig = &envoy_cluster_v3.Cluster_LeastRequestLbConfig_{
 				LeastRequestLbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig{
-					ChoiceCount: &wrappers.UInt32Value{Value: ec.LeastRequestConfig.ChoiceCount},
+					ChoiceCount: &wrapperspb.UInt32Value{Value: ec.LeastRequestConfig.ChoiceCount},
 				},
 			}
 		}
@@ -1821,8 +1842,8 @@ func injectLBToCluster(ec *structs.LoadBalancer, c *envoy_cluster_v3.Cluster) er
 		if ec.RingHashConfig != nil {
 			c.LbConfig = &envoy_cluster_v3.Cluster_RingHashLbConfig_{
 				RingHashLbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig{
-					MinimumRingSize: &wrappers.UInt64Value{Value: ec.RingHashConfig.MinimumRingSize},
-					MaximumRingSize: &wrappers.UInt64Value{Value: ec.RingHashConfig.MaximumRingSize},
+					MinimumRingSize: &wrapperspb.UInt64Value{Value: ec.RingHashConfig.MinimumRingSize},
+					MaximumRingSize: &wrapperspb.UInt64Value{Value: ec.RingHashConfig.MaximumRingSize},
 				},
 			}
 		}
@@ -1873,7 +1894,7 @@ type targetClusterData struct {
 	clusterName string
 }
 
-func (s *ResourceGenerator) getTargetClusterData(upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams, chain *structs.CompiledDiscoveryChain, tid string, forMeshGateway bool, failover bool) (targetClusterData, bool) {
+func (s *ResourceGenerator) getTargetClusterName(upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams, chain *structs.CompiledDiscoveryChain, tid string, forMeshGateway bool, failover bool) string {
 	target := chain.Targets[tid]
 	clusterName := target.Name
 	targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
@@ -1886,20 +1907,17 @@ func (s *ResourceGenerator) getTargetClusterData(upstreamsSnapshot *proxycfg.Con
 				"peer", targetUID.Peer,
 				"target", tid,
 			)
-			return targetClusterData{}, false
+			return ""
 		}
 
 		clusterName = generatePeeredClusterName(targetUID, tbs)
 	}
 	clusterName = CustomizeClusterName(clusterName, chain)
 	if failover {
-		clusterName = failoverClusterNamePrefix + clusterName
+		clusterName = xdscommon.FailoverClusterNamePrefix + clusterName
 	}
 	if forMeshGateway {
 		clusterName = meshGatewayExportedClusterNamePrefix + clusterName
 	}
-	return targetClusterData{
-		targetID:    tid,
-		clusterName: clusterName,
-	}, true
+	return clusterName
 }

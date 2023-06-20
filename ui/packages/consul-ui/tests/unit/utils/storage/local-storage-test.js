@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import localStorage from 'consul-ui/utils/storage/local-storage';
 import { module, test } from 'qunit';
 

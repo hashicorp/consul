@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # This Dockerfile contains multiple targets.
 # Use 'docker build --target=<name> .' to build one.
 # e.g. `docker build --target=official .`
@@ -13,7 +16,7 @@
 # Official docker image that includes binaries from releases.hashicorp.com. This
 # downloads the release from releases.hashicorp.com and therefore requires that
 # the release is published before building the Docker image.
-FROM docker.mirror.hashicorp.services/alpine:3.15 as official
+FROM docker.mirror.hashicorp.services/alpine:3.18 as official
 
 # This is the release of Consul to pull in.
 ARG VERSION
@@ -109,7 +112,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Production docker image that uses CI built binaries.
 # Remember, this image cannot be built locally.
-FROM docker.mirror.hashicorp.services/alpine:3.15 as default
+FROM docker.mirror.hashicorp.services/alpine:3.18 as default
 
 ARG PRODUCT_VERSION
 ARG BIN_NAME
@@ -198,7 +201,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Red Hat UBI-based image
 # This target is used to build a Consul image for use on OpenShift.
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6 as ubi
+FROM registry.access.redhat.com/ubi9-minimal:9.2 as ubi
 
 ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
@@ -233,7 +236,7 @@ COPY LICENSE /licenses/mozilla.txt
 # Its shasum is hardcoded. If you upgrade the dumb-init verion you'll need to
 # also update the shasum.
 RUN set -eux && \
-    microdnf install -y ca-certificates curl gnupg libcap openssl iputils jq iptables wget unzip tar && \
+    microdnf install -y ca-certificates shadow-utils gnupg libcap openssl iputils jq iptables wget unzip tar && \
     wget -O /usr/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 && \
     echo 'e874b55f3279ca41415d290c512a7ba9d08f98041b28ae7c2acb19a545f1c4df /usr/bin/dumb-init' > dumb-init-shasum && \
     sha256sum --check dumb-init-shasum && \

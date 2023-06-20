@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Service from '@ember/service';
 import { schema as intentionPermissionSchema } from 'consul-ui/models/intention-permission';
 import { schema as intentionPermissionHttpSchema } from 'consul-ui/models/intention-permission-http';

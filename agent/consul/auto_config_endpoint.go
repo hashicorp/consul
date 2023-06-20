@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -16,9 +19,9 @@ import (
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/template"
-	"github.com/hashicorp/consul/proto/pbautoconf"
-	"github.com/hashicorp/consul/proto/pbconfig"
-	"github.com/hashicorp/consul/proto/pbconnect"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbconfig"
+	"github.com/hashicorp/consul/proto/private/pbconnect"
 	"github.com/hashicorp/consul/tlsutil"
 )
 

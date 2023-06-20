@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { visit } from '@ember/test-helpers';
 
 export default function (scenario, pages, set, reset) {

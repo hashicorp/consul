@@ -7,29 +7,26 @@ description: >-
 
 # Custom Resource Definitions (CRDs) for Consul on Kubernetes
 
-This topic describes how to manage Consul [configuration entries](/docs/agent/config-entries)
+This topic describes how to manage Consul [configuration entries](/consul/docs/agent/config-entries)
 with Kubernetes Custom Resources. Configuration entries provide cluster-wide defaults for the service mesh.
-
-## Requirements
-
-* consul-helm 0.28.0 or later 
-* consul-k8s 0.22.0 or later 
-* consul 1.8.4 or later; some configuration entries require a newer version of Consul
 
 ## Supported Configuration Entries
 
 You can specify the following values in the `kind` field. Click on a configuration entry to view its documentation:
 
-- [`Mesh`](/docs/connect/config-entries/mesh) (requires Consul 1.10.0+)
-- [`ExportedServices`](/docs/connect/config-entries/exported-services) <EnterpriseAlert inline />
-- [`ProxyDefaults`](/docs/connect/config-entries/proxy-defaults)
-- [`ServiceDefaults`](/docs/connect/config-entries/service-defaults)
-- [`ServiceSplitter`](/docs/connect/config-entries/service-splitter)
-- [`ServiceRouter`](/docs/connect/config-entries/service-router)
-- [`ServiceResolver`](/docs/connect/config-entries/service-resolver)
-- [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) (requires Consul 1.9.0+)
-- [`IngressGateway`](/docs/connect/config-entries/ingress-gateway)
-- [`TerminatingGateway`](/docs/connect/config-entries/terminating-gateway)
+- [`Mesh`](/consul/docs/connect/config-entries/mesh) 
+- [`ExportedServices`](/consul/docs/connect/config-entries/exported-services)
+- [`PeeringAcceptor`](/consul/docs/k8s/connect/cluster-peering/tech-specs#peeringacceptor)
+- [`PeeringDialer`](/consul/docs/k8s/connect/cluster-peering/tech-specs#peeringdialer)
+- [`ProxyDefaults`](/consul/docs/connect/config-entries/proxy-defaults)
+- [`SamenessGroup`](/consul/docs/connect/config-entries/sameness-group)
+- [`ServiceDefaults`](/consul/docs/connect/config-entries/service-defaults)
+- [`ServiceSplitter`](/consul/docs/connect/config-entries/service-splitter)
+- [`ServiceRouter`](/consul/docs/connect/config-entries/service-router)
+- [`ServiceResolver`](/consul/docs/connect/config-entries/service-resolver)
+- [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions) 
+- [`IngressGateway`](/consul/docs/connect/config-entries/ingress-gateway)
+- [`TerminatingGateway`](/consul/docs/connect/config-entries/terminating-gateway)
 
 ## Installation
 
@@ -50,7 +47,7 @@ Hang tight while we grab the latest from your chart repositories...
 Update Complete. ⎈Happy Helming!⎈
 ```
 
-Refer to [Install with Helm Chart](/docs/k8s/installation/install) for further installation
+Refer to [Install with Helm Chart](/consul/docs/k8s/installation/install) for further installation
 instructions.
 
 **Note**: Configuration entries require `connectInject` to be enabled, which is a default behavior in the official Helm Chart. If you disabled this setting, you must re-enable it to use CRDs.
@@ -58,7 +55,7 @@ instructions.
 ## Upgrading An Existing Cluster to CRDs
 
 If you have an existing Consul cluster running on Kubernetes you may need to perform
-extra steps to migrate to CRDs. Refer to [Upgrade An Existing Cluster to CRDs](/docs/k8s/crds/upgrade-to-crds) for full instructions.
+extra steps to migrate to CRDs. Refer to [Upgrade An Existing Cluster to CRDs](/consul/docs/k8s/crds/upgrade-to-crds) for full instructions.
 
 ## Usage
 
@@ -81,7 +78,7 @@ EOF
 servicedefaults.consul.hashicorp.com/foo created
 ```
 
-Refer to [Configuration Entries](/docs/agent/config-entries) for detailed schema documentation.
+Refer to [Configuration Entries](/consul/docs/agent/config-entries) for detailed schema documentation.
 
 ### Get
 
@@ -265,7 +262,7 @@ The details on each configuration are:
    in the Consul namespace `web-ns`. In the same vein, a `ServiceDefaults` custom resource with
    name `web` in Kubernetes namespace `web-ns` configures that same service.
 
-   This is configured with [`connectInject.consulNamespaces`](/docs/k8s/helm#v-connectinject-consulnamespaces):
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
 
    <CodeBlockConfig highlight="6-7">
 
@@ -286,7 +283,7 @@ The details on each configuration are:
    in the Consul namespace `k8s-web-ns`. In the same vein, a `ServiceDefaults` custom resource with
    name `web` in Kubernetes namespace `web-ns` configures that same service.
 
-   This is configured with [`connectInject.consulNamespaces`](/docs/k8s/helm#v-connectinject-consulnamespaces):
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
 
    <CodeBlockConfig highlight="8">
 
@@ -313,7 +310,7 @@ The details on each configuration are:
    service is running in Kubernetes namespace `web-ns` because the `ServiceDefaults`
    resource ends up registered into the same Consul namespace `my-ns`.
 
-   This is configured with [`connectInject.consulNamespaces`](/docs/k8s/helm#v-connectinject-consulnamespaces):
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
 
    <CodeBlockConfig highlight="7">
 

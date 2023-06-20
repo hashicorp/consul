@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: Add support for cluster peering `.service` and `.node` DNS queries.
+```

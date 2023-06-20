@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -12,12 +16,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/consul"
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -177,7 +182,7 @@ func TestDNS_Over_TCP(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -239,7 +244,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -332,7 +337,7 @@ func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -368,7 +373,7 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -412,7 +417,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -541,7 +546,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -596,7 +601,7 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -646,7 +651,7 @@ func TestDNS_NodeLookup_TXT_DontSuppress(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -695,7 +700,7 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -740,7 +745,7 @@ func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -785,7 +790,7 @@ func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
 	}
 
 	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	m := new(dns.Msg)
 	m.SetQuestion("bar.node.consul.", dns.TypeA)
@@ -824,7 +829,7 @@ func TestDNS_EDNS0(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -874,7 +879,7 @@ func TestDNS_EDNS0_ECS(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Register an equivalent prepared query.
@@ -890,7 +895,7 @@ func TestDNS_EDNS0_ECS(t *testing.T) {
 				},
 			},
 		}
-		require.NoError(t, a.RPC("PreparedQuery.Apply", args, &id))
+		require.NoError(t, a.RPC(context.Background(), "PreparedQuery.Apply", args, &id))
 	}
 
 	cases := []struct {
@@ -963,7 +968,7 @@ func TestDNS_ReverseLookup(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1009,7 +1014,7 @@ func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1053,7 +1058,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1104,7 +1109,7 @@ func TestDNS_ServiceReverseLookup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1156,7 +1161,7 @@ func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1210,7 +1215,7 @@ func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1299,7 +1304,7 @@ func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1350,7 +1355,7 @@ func TestDNS_ServiceLookupNoMultiCNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Register a second node node with the same service.
@@ -1367,7 +1372,7 @@ func TestDNS_ServiceLookupNoMultiCNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1409,7 +1414,7 @@ func TestDNS_ServiceLookupPreferNoCNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Register a second node node with the same service.
@@ -1426,7 +1431,7 @@ func TestDNS_ServiceLookupPreferNoCNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1471,7 +1476,7 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Register a second node node with the same service.
@@ -1488,7 +1493,7 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1507,7 +1512,7 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1549,7 +1554,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1567,7 +1572,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -1678,7 +1683,7 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1730,7 +1735,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 		args.Service.Address = ""
 		args.Service.Port = 12345
 		var out struct{}
-		require.Nil(t, a.RPC("Catalog.Register", args, &out))
+		require.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Look up the service
@@ -1791,7 +1796,7 @@ func TestDNS_VirtualIPLookup(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		var out struct{}
-		require.Nil(t, a.RPC("Catalog.Register", tc.reg, &out))
+		require.Nil(t, a.RPC(context.Background(), "Catalog.Register", tc.reg, &out))
 
 		m := new(dns.Msg)
 		m.SetQuestion(tc.question, dns.TypeA)
@@ -1869,7 +1874,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 	{
 		args := structs.TestRegisterIngressGateway(t)
 		var out struct{}
-		require.Nil(t, a.RPC("Catalog.Register", args, &out))
+		require.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Register db service
@@ -1886,7 +1891,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 		}
 
 		var out struct{}
-		require.Nil(t, a.RPC("Catalog.Register", args, &out))
+		require.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Register proxy-defaults with 'http' protocol
@@ -1904,7 +1909,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out bool
-		require.Nil(t, a.RPC("ConfigEntry.Apply", req, &out))
+		require.Nil(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &out))
 		require.True(t, out)
 	}
 
@@ -1931,7 +1936,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 			Entry:      args,
 		}
 		var out bool
-		require.Nil(t, a.RPC("ConfigEntry.Apply", req, &out))
+		require.Nil(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &out))
 		require.True(t, out)
 	}
 
@@ -1984,7 +1989,7 @@ func TestDNS_ExternalServiceLookup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2051,7 +2056,7 @@ func TestDNS_InifiniteRecursion(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2108,7 +2113,7 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2126,7 +2131,7 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2395,7 +2400,7 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2413,7 +2418,7 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2431,7 +2436,7 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2526,7 +2531,7 @@ func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2544,7 +2549,7 @@ func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2625,7 +2630,7 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddress_A(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2643,7 +2648,7 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddress_A(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2737,25 +2742,28 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
 
 	// Register an equivalent prepared query.
+	// Specify prepared query name containing "." to test
+	// since that is technically supported (though atypical).
 	var id string
+	preparedQueryName := "query.name.with.dots"
 	{
 		args := &structs.PreparedQueryRequest{
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
-				Name: "test",
+				Name: preparedQueryName,
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2764,6 +2772,9 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	questions := []string{
 		"db.service.consul.",
 		id + ".query.consul.",
+		preparedQueryName + ".query.consul.",
+		fmt.Sprintf("_%s._tcp.query.consul.", id),
+		fmt.Sprintf("_%s._tcp.query.consul.", preparedQueryName),
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)
@@ -2838,7 +2849,7 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2856,7 +2867,7 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2937,7 +2948,7 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -2955,7 +2966,7 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -3056,7 +3067,7 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 				},
 			},
 		}
-		require.NoError(t, a2.RPC("PreparedQuery.Apply", args, &id))
+		require.NoError(t, a2.RPC(context.Background(), "PreparedQuery.Apply", args, &id))
 	}
 
 	type testCase struct {
@@ -3178,7 +3189,7 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 				}
 
 				var out struct{}
-				require.NoError(t, a2.RPC("Catalog.Register", args, &out))
+				require.NoError(r, a2.RPC(context.Background(), "Catalog.Register", args, &out))
 			})
 
 			// Look up the SRV record via service and prepared query.
@@ -3249,7 +3260,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 				},
 			},
 		}
-		require.NoError(t, a.RPC("PreparedQuery.Apply", args, &id))
+		require.NoError(t, a.RPC(context.Background(), "PreparedQuery.Apply", args, &id))
 	}
 
 	type testCase struct {
@@ -3335,7 +3346,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 			}
 
 			var out struct{}
-			require.NoError(t, a.RPC("Catalog.Register", args, &out))
+			require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 			// Look up the SRV record via service and prepared query.
 			questions := []string{
@@ -3461,7 +3472,7 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 				}
 
 				var out struct{}
-				if err := a.RPC("Catalog.Register", args, &out); err != nil {
+				if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 					t.Fatalf("err: %v", err)
 				}
 			}
@@ -3479,7 +3490,7 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 						},
 					},
 				}
-				if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+				if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 					t.Fatalf("err: %v", err)
 				}
 			}
@@ -3506,11 +3517,11 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 				retry.Run(t, func(r *retry.R) {
 					in, _, err := c.Exchange(m, a.DNSAddr())
 					if err != nil {
-						t.Fatalf("err: %v", err)
+						r.Fatalf("err: %v", err)
 					}
 
 					if len(in.Answer) != 1 {
-						t.Fatalf("question %v, empty lookup: %#v", question, in)
+						r.Fatalf("question %v, empty lookup: %#v", question, in)
 					}
 				})
 			}
@@ -3541,7 +3552,7 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -3630,7 +3641,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		}
 
 		var out struct{}
-		err := a.RPC("Catalog.Register", args, &out)
+		err := a.RPC(context.Background(), "Catalog.Register", args, &out)
 		require.NoError(t, err)
 
 		// Send coordinate updates
@@ -3639,7 +3650,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 			Node:       cfg.name,
 			Coord:      cfg.coord,
 		}
-		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		err = a.RPC(context.Background(), "Coordinate.Update", &coordArgs, &out)
 		require.NoError(t, err)
 
 		added += 1
@@ -3656,7 +3667,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		}
 
 		var out struct{}
-		err := a.RPC("Catalog.Register", args, &out)
+		err := a.RPC(context.Background(), "Catalog.Register", args, &out)
 		require.NoError(t, err)
 
 		// Send coordinate updates for a few nodes.
@@ -3665,7 +3676,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 			Node:       "bar",
 			Coord:      ipCoord,
 		}
-		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		err = a.RPC(context.Background(), "Coordinate.Update", &coordArgs, &out)
 		require.NoError(t, err)
 	}
 
@@ -3684,7 +3695,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		}
 
 		var id string
-		err := a.RPC("PreparedQuery.Apply", args, &id)
+		err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id)
 		require.NoError(t, err)
 	}
 	retry.Run(t, func(r *retry.R) {
@@ -3761,7 +3772,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		}
 
 		var out struct{}
-		err := a.RPC("Catalog.Register", args, &out)
+		err := a.RPC(context.Background(), "Catalog.Register", args, &out)
 		require.NoError(t, err)
 
 		// Send coordinate updates
@@ -3770,7 +3781,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 			Node:       cfg.name,
 			Coord:      cfg.coord,
 		}
-		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		err = a.RPC(context.Background(), "Coordinate.Update", &coordArgs, &out)
 		require.NoError(t, err)
 
 		added += 1
@@ -3787,7 +3798,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		}
 
 		var out struct{}
-		err := a.RPC("Catalog.Register", args, &out)
+		err := a.RPC(context.Background(), "Catalog.Register", args, &out)
 		require.NoError(t, err)
 
 		// Send coordinate updates for a few nodes.
@@ -3796,7 +3807,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 			Node:       "bar",
 			Coord:      ipCoord,
 		}
-		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		err = a.RPC(context.Background(), "Coordinate.Update", &coordArgs, &out)
 		require.NoError(t, err)
 	}
 
@@ -3815,7 +3826,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		}
 
 		var id string
-		err := a.RPC("PreparedQuery.Apply", args, &id)
+		err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id)
 		require.NoError(t, err)
 	}
 
@@ -3868,7 +3879,7 @@ func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -3887,7 +3898,7 @@ func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 		}
 
 		var id string
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -3952,7 +3963,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -3967,7 +3978,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 				Port:    12345,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -3982,7 +3993,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 				Port:    12346,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4000,7 +4011,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4059,7 +4070,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4074,7 +4085,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 				Port:    12345,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4089,7 +4100,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 				Port:    12346,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4107,7 +4118,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4328,7 +4339,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4347,7 +4358,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 				Status:  api.HealthCritical,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args2, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args2, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4367,7 +4378,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 				Status:    api.HealthCritical,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args3, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args3, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4381,7 +4392,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 				Port:    12345,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args4, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args4, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4401,7 +4412,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 				Status:    api.HealthWarning,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args5, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args5, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4419,7 +4430,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4488,7 +4499,7 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4507,7 +4518,7 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 				Status:  api.HealthCritical,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args2, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args2, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4527,7 +4538,7 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 				Status:    api.HealthCritical,
 			},
 		}
-		if err := a.RPC("Catalog.Register", args3, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args3, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4545,7 +4556,7 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4610,7 +4621,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4631,7 +4642,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 			},
 		}
 
-		if err := a.RPC("Catalog.Register", args2, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args2, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4652,7 +4663,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 			},
 		}
 
-		if err := a.RPC("Catalog.Register", args3, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args3, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4671,7 +4682,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4746,7 +4757,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4764,7 +4775,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -4876,21 +4887,26 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 	services := []string{"normal", "truncated"}
 	for index, service := range services {
 		numServices := (index * 5000) + 2
+		var eg errgroup.Group
 		for i := 1; i < numServices; i++ {
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       fmt.Sprintf("%s-%d.acme.com", service, i),
-				Address:    fmt.Sprintf("127.%d.%d.%d", 0, (i / 255), i%255),
-				Service: &structs.NodeService{
-					Service: service,
-					Port:    8000,
-				},
-			}
+			j := i
+			eg.Go(func() error {
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       fmt.Sprintf("%s-%d.acme.com", service, j),
+					Address:    fmt.Sprintf("127.%d.%d.%d", 0, (j / 255), j%255),
+					Service: &structs.NodeService{
+						Service: service,
+						Port:    8000,
+					},
+				}
 
-			var out struct{}
-			if err := a.RPC("Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+				var out struct{}
+				return a.RPC(context.Background(), "Catalog.Register", args, &out)
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			t.Fatalf("error registering: %v", err)
 		}
 
 		// Register an equivalent prepared query.
@@ -4906,7 +4922,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 					},
 				},
 			}
-			if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 		}
@@ -4995,7 +5011,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5013,7 +5029,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5071,7 +5087,7 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5090,7 +5106,7 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 			},
 		}
 		var id string
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5162,9 +5178,10 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+	choices := perfectlyRandomChoices(generateNumNodes, pctNodesWithIPv6)
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if rand.Float64() < pctNodesWithIPv6 {
+		if choices[i] {
 			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
 		}
 		args := &structs.RegisterRequest{
@@ -5178,7 +5195,7 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
 	}
@@ -5195,7 +5212,7 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 			},
 		}
 
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
 	}
@@ -5240,8 +5257,14 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 	return true, nil
 }
 
-func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType uint16,
-	expectedResultsCount int, udpSize uint16) error {
+func checkDNSService(
+	t *testing.T,
+	generateNumNodes int,
+	aRecordLimit int,
+	qType uint16,
+	expectedResultsCount int,
+	udpSize uint16,
+) {
 	a := NewTestAgent(t, `
 		node_name = "test-node"
 		dns_config {
@@ -5249,12 +5272,12 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 			udp_answer_limit = `+fmt.Sprintf("%d", aRecordLimit)+`
 		}
 	`)
-	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+	choices := perfectlyRandomChoices(generateNumNodes, pctNodesWithIPv6)
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if rand.Float64() < pctNodesWithIPv6 {
+		if choices[i] {
 			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
 		}
 		args := &structs.RegisterRequest{
@@ -5268,9 +5291,7 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
-			return fmt.Errorf("err: %v", err)
-		}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 	var id string
 	{
@@ -5285,9 +5306,7 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 			},
 		}
 
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			return fmt.Errorf("err: %v", err)
-		}
+		require.NoError(t, a.RPC(context.Background(), "PreparedQuery.Apply", args, &id))
 	}
 
 	// Look up the service directly and via prepared query.
@@ -5297,28 +5316,29 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 		id + ".query.consul.",
 	}
 	for _, question := range questions {
-		m := new(dns.Msg)
+		question := question
+		t.Run("question: "+question, func(t *testing.T) {
 
-		m.SetQuestion(question, qType)
-		protocol := "tcp"
-		if udpSize > 0 {
-			protocol = "udp"
-		}
-		if udpSize > 512 {
-			m.SetEdns0(udpSize, true)
-		}
-		c := &dns.Client{Net: protocol, UDPSize: 8192}
-		in, _, err := c.Exchange(m, a.DNSAddr())
-		t.Logf("DNS Response for %+v - %+v", m, in)
-		if err != nil {
-			return fmt.Errorf("err: %v", err)
-		}
-		if len(in.Answer) != expectedResultsCount {
-			return fmt.Errorf("%d/%d answers received for type %v for %s (%s)", len(in.Answer), expectedResultsCount, qType, question, protocol)
-		}
+			m := new(dns.Msg)
+
+			m.SetQuestion(question, qType)
+			protocol := "tcp"
+			if udpSize > 0 {
+				protocol = "udp"
+			}
+			if udpSize > 512 {
+				m.SetEdns0(udpSize, true)
+			}
+			c := &dns.Client{Net: protocol, UDPSize: 8192}
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			require.NoError(t, err)
+
+			t.Logf("DNS Response for %+v - %+v", m, in)
+
+			require.Equal(t, expectedResultsCount, len(in.Answer),
+				"%d/%d answers received for type %v for %s (%s)", len(in.Answer), expectedResultsCount, qType, question, protocol)
+		})
 	}
-
-	return nil
 }
 
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
@@ -5328,77 +5348,81 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 
 	t.Parallel()
 	tests := []struct {
-		name                string
-		aRecordLimit        int
-		expectedAResults    int
-		expectedAAAAResults int
-		expectedSRVResults  int
-		numNodesTotal       int
-		udpSize             uint16
-		udpAnswerLimit      int
+		name                   string
+		aRecordLimit           int
+		expectedAResults       int
+		expectedAAAAResults    int
+		expectedANYResults     int
+		expectedSRVResults     int
+		numNodesTotal          int
+		udpSize                uint16
+		_unused_udpAnswerLimit int // NOTE: this field is not used
 	}{
 		// UDP + EDNS
-		{"udp-edns-1", 1, 1, 1, 30, 30, 8192, 3},
-		{"udp-edns-2", 2, 2, 1, 30, 30, 8192, 3},
-		{"udp-edns-3", 3, 3, 1, 30, 30, 8192, 3},
-		{"udp-edns-4", 4, 4, 1, 30, 30, 8192, 3},
-		{"udp-edns-5", 5, 5, 1, 30, 30, 8192, 3},
-		{"udp-edns-6", 6, 6, 1, 30, 30, 8192, 3},
-		{"udp-edns-max", 6, 3, 3, 3, 3, 8192, 3},
+		{"udp-edns-1", 1, 1, 1, 1, 30, 30, 8192, 3},
+		{"udp-edns-2", 2, 2, 2, 2, 30, 30, 8192, 3},
+		{"udp-edns-3", 3, 3, 3, 3, 30, 30, 8192, 3},
+		{"udp-edns-4", 4, 4, 4, 4, 30, 30, 8192, 3},
+		{"udp-edns-5", 5, 5, 5, 5, 30, 30, 8192, 3},
+		{"udp-edns-6", 6, 6, 6, 6, 30, 30, 8192, 3},
+		{"udp-edns-max", 6, 2, 1, 3, 3, 3, 8192, 3},
 		// All UDP without EDNS have a limit of 2 answers due to udpAnswerLimit
 		// Even SRV records are limit to 2 records
-		{"udp-limit-1", 1, 1, 1, 1, 1, 512, 2},
-		{"udp-limit-2", 2, 2, 2, 2, 2, 512, 2},
+		{"udp-limit-1", 1, 1, 0, 1, 1, 1, 512, 2},
+		{"udp-limit-2", 2, 1, 1, 2, 2, 2, 512, 2},
 		// AAAA results limited by size of payload
-		{"udp-limit-3", 3, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-4", 4, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-5", 5, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-6", 6, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-max", 6, 2, 2, 2, 2, 512, 2},
+		{"udp-limit-3", 3, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-4", 4, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-5", 5, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-6", 6, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-max", 6, 1, 1, 2, 2, 2, 512, 2},
 		// All UDP without EDNS and no udpAnswerLimit
 		// Size of records is limited by UDP payload
-		{"udp-1", 1, 1, 1, 1, 1, 512, 0},
-		{"udp-2", 2, 2, 2, 2, 2, 512, 0},
-		{"udp-3", 3, 2, 2, 2, 2, 512, 0},
-		{"udp-4", 4, 2, 2, 2, 2, 512, 0},
-		{"udp-5", 5, 2, 2, 2, 2, 512, 0},
-		{"udp-6", 6, 2, 2, 2, 2, 512, 0},
+		{"udp-1", 1, 1, 0, 1, 1, 1, 512, 0},
+		{"udp-2", 2, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-3", 3, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-4", 4, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-5", 5, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-6", 6, 1, 1, 2, 2, 2, 512, 0},
 		// Only 3 A and 3 SRV records on 512 bytes
-		{"udp-max", 6, 2, 2, 2, 2, 512, 0},
+		{"udp-max", 6, 1, 1, 2, 2, 2, 512, 0},
 
-		{"tcp-1", 1, 1, 1, 30, 30, 0, 0},
-		{"tcp-2", 2, 2, 2, 30, 30, 0, 0},
-		{"tcp-3", 3, 3, 3, 30, 30, 0, 0},
-		{"tcp-4", 4, 4, 4, 30, 30, 0, 0},
-		{"tcp-5", 5, 5, 5, 30, 30, 0, 0},
-		{"tcp-6", 6, 6, 5, 30, 30, 0, 0},
-		{"tcp-max", 6, 2, 2, 2, 2, 0, 0},
+		{"tcp-1", 1, 1, 1, 1, 30, 30, 0, 0},
+		{"tcp-2", 2, 2, 2, 2, 30, 30, 0, 0},
+		{"tcp-3", 3, 3, 3, 3, 30, 30, 0, 0},
+		{"tcp-4", 4, 4, 4, 4, 30, 30, 0, 0},
+		{"tcp-5", 5, 5, 5, 5, 30, 30, 0, 0},
+		{"tcp-6", 6, 6, 6, 6, 30, 30, 0, 0},
+		{"tcp-max", 6, 1, 1, 2, 2, 2, 0, 0},
 	}
 	for _, test := range tests {
 		test := test // capture loop var
 
-		queriesLimited := []uint16{
-			dns.TypeA,
-			dns.TypeAAAA,
-			dns.TypeANY,
-		}
-		// All those queries should have at max queriesLimited elements
-		for idx, qType := range queriesLimited {
-			t.Run(fmt.Sprintf("ARecordLimit %d qType: %d", idx, qType), func(t *testing.T) {
-				t.Parallel()
-				err := checkDNSService(t, test.numNodesTotal, test.aRecordLimit, qType, test.expectedAResults, test.udpSize)
-				if err != nil {
-					t.Fatalf("Expected lookup %s to pass: %v", test.name, err)
-				}
-			})
-		}
-		// No limits but the size of records for SRV records, since not subject to randomization issues
-		t.Run("SRV lookup limitARecord", func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			err := checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize)
-			if err != nil {
-				t.Fatalf("Expected service SRV lookup %s to pass: %v", test.name, err)
-			}
+
+			// All those queries should have at max queriesLimited elements
+
+			t.Run("A", func(t *testing.T) {
+				t.Parallel()
+				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeA, test.expectedAResults, test.udpSize)
+			})
+
+			t.Run("AAAA", func(t *testing.T) {
+				t.Parallel()
+				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeAAAA, test.expectedAAAAResults, test.udpSize)
+			})
+
+			t.Run("ANY", func(t *testing.T) {
+				t.Parallel()
+				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeANY, test.expectedANYResults, test.udpSize)
+			})
+
+			// No limits but the size of records for SRV records, since not subject to randomization issues
+			t.Run("SRV", func(t *testing.T) {
+				t.Parallel()
+				checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize)
+			})
 		})
 	}
 }
@@ -5506,7 +5530,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5524,7 +5548,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5608,7 +5632,7 @@ func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5626,7 +5650,7 @@ func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5709,7 +5733,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -5743,7 +5767,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 		Node:       "bar",
 		Address:    "::4242:4242",
 	}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -5777,7 +5801,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 		Node:       "google",
 		Address:    "www.google.com",
 	}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -5841,7 +5865,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -5924,7 +5948,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		// Register prepared query without TTL and with TTL
@@ -5941,7 +5965,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 			}
 
 			var id string
-			if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 			queryTTL := fmt.Sprintf("%s-ttl", service)
@@ -5959,7 +5983,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 				},
 			}
 
-			if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 		}
@@ -6063,7 +6087,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a2.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a2.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			r.Fatalf("err: %v", err)
 		}
 	})
@@ -6084,7 +6108,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 			},
 		}
 		var id string
-		if err := a1.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a1.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -6151,7 +6175,7 @@ func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -6230,7 +6254,7 @@ func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -6330,7 +6354,7 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 				WriteRequest: structs.WriteRequest{Token: "root"},
 			}
 			var out struct{}
-			if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 
@@ -6373,7 +6397,7 @@ func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -6424,7 +6448,7 @@ func TestDNS_ServiceLookup_SuppressTXT(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -6740,7 +6764,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -6754,7 +6778,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			},
 		}
 
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -6773,7 +6797,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 		}
 
 		var id string
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -6788,7 +6812,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			},
 		}
 
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -6884,7 +6908,7 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -7880,7 +7904,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -7898,7 +7922,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 				},
 			},
 		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -7964,7 +7988,7 @@ func TestDNS_Compression_ReverseLookup(t *testing.T) {
 		Address:    "127.0.0.2",
 	}
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -8270,4 +8294,73 @@ func TestECSNotGlobalError(t *testing.T) {
 		require.False(t, errors.Is(e, fmt.Errorf("some other error")))
 		require.Equal(t, errNameNotFound, errors.Unwrap(e))
 	})
+}
+
+// perfectlyRandomChoices assigns exactly the provided fraction of size items a
+// true value, and then presents a random permutation of those boolean values.
+func perfectlyRandomChoices(size int, frac float64) []bool {
+	out := make([]bool, size)
+
+	max := int(float64(size) * frac)
+	for i := 0; i < max; i++ {
+		out[i] = true
+	}
+
+	rand.Shuffle(size, func(i, j int) {
+		out[i], out[j] = out[j], out[i]
+	})
+	return out
+}
+
+func TestPerfectlyRandomChoices(t *testing.T) {
+	count := func(got []bool) int {
+		var x int
+		for _, v := range got {
+			if v {
+				x++
+			}
+		}
+		return x
+	}
+
+	type testcase struct {
+		size   int
+		frac   float64
+		expect int
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		got := perfectlyRandomChoices(tc.size, tc.frac)
+		require.Equal(t, tc.expect, count(got))
+	}
+
+	cases := []testcase{
+		// 100%
+		{0, 1, 0},
+		{1, 1, 1},
+		{2, 1, 2},
+		{3, 1, 3},
+		{5, 1, 5},
+		// 50%
+		{0, 0.5, 0},
+		{1, 0.5, 0},
+		{2, 0.5, 1},
+		{3, 0.5, 1},
+		{5, 0.5, 2},
+		// 10%
+		{0, 0.1, 0},
+		{1, 0.1, 0},
+		{2, 0.1, 0},
+		{3, 0.1, 0},
+		{5, 0.1, 0},
+		{10, 0.1, 1},
+		{11, 0.1, 1},
+		{15, 0.1, 1},
+	}
+
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("size=%d frac=%g", tc.size, tc.frac), func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }

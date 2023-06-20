@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -9,10 +12,9 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -560,10 +562,23 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 
 	testVault := ca.NewTestVaultServer(t)
 
-	newConfig := func(keyType string, keyBits int) map[string]interface{} {
-		return map[string]interface{}{
+	token1 := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-primary",
+		ConsulManaged:    true,
+		WithSudo:         true,
+	})
+
+	token2 := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
+
+	newConfig := func(token string, keyType string, keyBits int) map[string]any {
+		return map[string]any{
 			"Address":             testVault.Addr,
-			"Token":               testVault.RootToken,
+			"Token":               token,
 			"RootPKIPath":         "pki-root/",
 			"IntermediatePKIPath": "pki-intermediate/",
 			"PrivateKeyType":      keyType,
@@ -574,7 +589,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
-			Config:   newConfig(connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits),
+			Config:   newConfig(token1, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits),
 		}
 	})
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
@@ -592,7 +607,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
 					Provider:                 "vault",
-					Config:                   newConfig("rsa", 4096),
+					Config:                   newConfig(token2, "rsa", 4096),
 					ForceWithoutCrossSigning: true,
 				}
 			},
@@ -602,7 +617,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
 					Provider:                 "vault",
-					Config:                   newConfig("rsa", 2048),
+					Config:                   newConfig(token2, "rsa", 2048),
 					ForceWithoutCrossSigning: true,
 				}
 			},
@@ -613,7 +628,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
 					Provider:                 "vault",
-					Config:                   newConfig("ec", 256),
+					Config:                   newConfig(token2, "ec", 256),
 					ForceWithoutCrossSigning: true,
 				}
 			},
@@ -624,7 +639,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			configFn: func() *structs.CAConfiguration {
 				return &structs.CAConfiguration{
 					Provider:                 "vault",
-					Config:                   newConfig("rsa", 4096),
+					Config:                   newConfig(token2, "rsa", 4096),
 					ForceWithoutCrossSigning: true,
 				}
 			},
@@ -632,7 +647,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 	}
 
 	for _, tc := range testSteps {
-		t.Run(tc.name, func(t *testing.T) {
+		testutil.RunStep(t, tc.name, func(t *testing.T) {
 			args := &structs.CARequest{
 				Datacenter: "dc1",
 				Config:     tc.configFn(),

@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <StateChart @src={{chart}} as |State Guard ChartAction dispatch state|>
   {{#let
     (hash State=State Guard=Guard Action=ChartAction dispatch=dispatch state=state)
@@ -49,12 +54,12 @@
         {{! this belongs to the outer StateChart but we need }}
         {{! to understand validation state }}
         <State @matches='idle'>
-          <Action
-            {{disabled (or (lt this.partition.length 1) (state-matches state 'error'))}}
+          <Hds::Button
+            type='submit'
+            @text='Choose provider'
+            disabled={{or (lt this.partition.length 1) (state-matches state 'error')}}
             {{on 'click' (fn dispatch 'LOAD')}}
-          >
-            Choose provider
-          </Action>
+          />
         </State>
 
       </StateChart>
@@ -105,10 +110,12 @@
               </:option>
             </OptionInput>
 
-            <Action @type='button' {{disabled @disabled}} {{on 'click' (fn @onchange item)}}>
-              Log in
-            </Action>
-
+          <Hds::Button
+            @color='primary'
+            @text='Log in'
+            disabled={{@disabled}}
+            {{on 'click' (fn @onchange item)}}
+          />
           {{/let}}
         {{/if}}
       </State>

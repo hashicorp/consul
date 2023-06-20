@@ -1,0 +1,3 @@
+```release-note:bug
+peering: Fix bug where services were incorrectly imported as connect-enabled.
+```

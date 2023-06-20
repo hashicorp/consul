@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -160,6 +163,7 @@ func TestStateStore_Usage_ServiceUsageEmpty(t *testing.T) {
 	for k := range usage.ConnectServiceInstances {
 		require.Equal(t, 0, usage.ConnectServiceInstances[k])
 	}
+	require.Equal(t, 0, usage.BillableServiceInstances)
 }
 
 func TestStateStore_Usage_ServiceUsage(t *testing.T) {
@@ -175,15 +179,25 @@ func TestStateStore_Usage_ServiceUsage(t *testing.T) {
 	testRegisterConnectNativeService(t, s, 13, "node1", "service-native")
 	testRegisterConnectNativeService(t, s, 14, "node2", "service-native")
 	testRegisterConnectNativeService(t, s, 15, "node2", "service-native-1")
+	testRegisterIngressService(t, s, 16, "node1", "ingress")
+	testRegisterMeshService(t, s, 17, "node1", "mesh")
+	testRegisterTerminatingService(t, s, 18, "node1", "terminating")
+	testRegisterAPIService(t, s, 19, "node1", "api")
+	testRegisterAPIService(t, s, 20, "node2", "api")
 
 	ws := memdb.NewWatchSet()
 	idx, usage, err := s.ServiceUsage(ws)
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(15))
-	require.Equal(t, 5, usage.Services)
-	require.Equal(t, 8, usage.ServiceInstances)
+	require.Equal(t, idx, uint64(20))
+	require.Equal(t, 9, usage.Services)
+	require.Equal(t, 13, usage.ServiceInstances)
 	require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 	require.Equal(t, 3, usage.ConnectServiceInstances[connectNativeInstancesTable])
+	require.Equal(t, 6, usage.BillableServiceInstances)
+	require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindAPIGateway)])
+	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindIngressGateway)])
+	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindTerminatingGateway)])
+	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindMeshGateway)])
 
 	testRegisterSidecarProxy(t, s, 16, "node2", "service2")
 
@@ -225,6 +239,7 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 	require.Equal(t, 4, usage.ServiceInstances)
 	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 	require.Equal(t, 1, usage.ConnectServiceInstances[connectNativeInstancesTable])
+	require.Equal(t, 3, usage.BillableServiceInstances)
 
 	require.NoError(t, s.DeleteNode(4, "node1", nil, ""))
 
@@ -236,6 +251,7 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 	for k := range usage.ConnectServiceInstances {
 		require.Equal(t, 0, usage.ConnectServiceInstances[k])
 	}
+	require.Equal(t, 0, usage.BillableServiceInstances)
 }
 
 // Test that services from remote peers aren't counted in writes or deletes.
@@ -263,6 +279,7 @@ func TestStateStore_Usage_ServiceUsagePeering(t *testing.T) {
 		require.Equal(t, 3, usage.ServiceInstances)
 		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 		require.Equal(t, 1, usage.ConnectServiceInstances[connectNativeInstancesTable])
+		require.Equal(t, 2, usage.BillableServiceInstances)
 	})
 
 	testutil.RunStep(t, "deletes", func(t *testing.T) {
@@ -275,6 +292,7 @@ func TestStateStore_Usage_ServiceUsagePeering(t *testing.T) {
 		require.Equal(t, 0, usage.ServiceInstances)
 		require.Equal(t, 0, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 		require.Equal(t, 0, usage.ConnectServiceInstances[connectNativeInstancesTable])
+		require.Equal(t, 0, usage.BillableServiceInstances)
 	})
 }
 
@@ -311,6 +329,7 @@ func TestStateStore_Usage_Restore(t *testing.T) {
 	require.Equal(t, idx, uint64(9))
 	require.Equal(t, usage.Services, 1)
 	require.Equal(t, usage.ServiceInstances, 2)
+	require.Equal(t, usage.BillableServiceInstances, 2)
 }
 
 func TestStateStore_Usage_updateUsage_Underflow(t *testing.T) {
@@ -411,6 +430,7 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 		require.Equal(t, idx, uint64(2))
 		require.Equal(t, usage.Services, 1)
 		require.Equal(t, usage.ServiceInstances, 1)
+		require.Equal(t, usage.BillableServiceInstances, 1)
 	})
 
 	t.Run("update service to be connect native", func(t *testing.T) {
@@ -432,6 +452,7 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 		require.Equal(t, usage.Services, 1)
 		require.Equal(t, usage.ServiceInstances, 1)
 		require.Equal(t, 1, usage.ConnectServiceInstances[connectNativeInstancesTable])
+		require.Equal(t, 1, usage.BillableServiceInstances)
 	})
 
 	t.Run("update service to not be connect native", func(t *testing.T) {
@@ -453,6 +474,7 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 		require.Equal(t, usage.Services, 1)
 		require.Equal(t, usage.ServiceInstances, 1)
 		require.Equal(t, 0, usage.ConnectServiceInstances[connectNativeInstancesTable])
+		require.Equal(t, 1, usage.BillableServiceInstances)
 	})
 
 	t.Run("rename service with a multiple instances", func(t *testing.T) {
@@ -484,6 +506,7 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 		require.Equal(t, usage.Services, 2)
 		require.Equal(t, usage.ServiceInstances, 3)
 		require.Equal(t, 2, usage.ConnectServiceInstances[connectNativeInstancesTable])
+		require.Equal(t, 3, usage.BillableServiceInstances)
 
 		update := &structs.NodeService{
 			ID:      "service2",
@@ -502,6 +525,7 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 		require.Equal(t, usage.Services, 3)
 		require.Equal(t, usage.ServiceInstances, 3)
 		require.Equal(t, 2, usage.ConnectServiceInstances[connectNativeInstancesTable])
+		require.Equal(t, 3, usage.BillableServiceInstances)
 
 	})
 }
@@ -528,6 +552,7 @@ func TestStateStore_Usage_ServiceUsage_updatingConnectProxy(t *testing.T) {
 		require.Equal(t, usage.Services, 1)
 		require.Equal(t, usage.ServiceInstances, 1)
 		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+		require.Equal(t, 0, usage.BillableServiceInstances)
 	})
 
 	t.Run("rename service with a multiple instances", func(t *testing.T) {
@@ -554,6 +579,7 @@ func TestStateStore_Usage_ServiceUsage_updatingConnectProxy(t *testing.T) {
 		require.Equal(t, usage.Services, 2)
 		require.Equal(t, usage.ServiceInstances, 3)
 		require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+		require.Equal(t, 1, usage.BillableServiceInstances)
 
 		update := &structs.NodeService{
 			ID:      "service3",
@@ -569,6 +595,7 @@ func TestStateStore_Usage_ServiceUsage_updatingConnectProxy(t *testing.T) {
 		require.Equal(t, usage.Services, 3)
 		require.Equal(t, usage.ServiceInstances, 3)
 		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+		require.Equal(t, 2, usage.BillableServiceInstances)
 	})
 }
 

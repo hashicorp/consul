@@ -15,7 +15,7 @@ provide security mechanisms which should be used to enable confidentiality, inte
 
 Using defense in depth is crucial for Consul security, and deployment requirements may differ drastically depending on
 your use case. Some security features for multi-tenant deployments are offered exclusively in the
-[Enterprise](/docs/enterprise) version. This documentation may need to be adapted to your
+[Enterprise](/consul/docs/enterprise) version. This documentation may need to be adapted to your
 environment, but the general mechanisms for a secure Consul deployment revolve around:
 
 - **mTLS** - Mutual authentication of both the TLS server and client x509 certificates prevents internal abuse from
@@ -23,7 +23,7 @@ environment, but the general mechanisms for a secure Consul deployment revolve a
 
 - **ACLs** - Enable role-based access controls for authenticated connections by granting capabilities for an individual
   human, or machine operator identity via an ACL token to authorize actions within a cluster. Optionally, custom
-  [authentication methods](/docs/security/acl/auth-methods) can be used to enable trusted external parties to authorize
+  [authentication methods](/consul/docs/security/acl/auth-methods) can be used to enable trusted external parties to authorize
   ACL token creation.
 
 - **Namespaces** <EnterpriseAlert inline /> - Read and write operations can be scoped to a logical namespace to restrict
@@ -72,51 +72,51 @@ environment and adapt these configurations accordingly.
 - **mTLS** - Mutual authentication of both the TLS server and client x509 certificates prevents internal abuse through
   unauthorized access to Consul agents within the cluster.
 
-  - [`tls.defaults.verify_incoming`](/docs/agent/config/config-files#tls_defaults_verify_incoming) - By default this is false, and
+  - [`tls.defaults.verify_incoming`](/consul/docs/agent/config/config-files#tls_defaults_verify_incoming) - By default this is false, and
     should almost always be set to true to require TLS verification for incoming client connections. This applies to the
     internal RPC, HTTPS and gRPC APIs.
 
-  - [`tls.https.verify_incoming`](/docs/agent/config/config-files#tls_https_verify_incoming) - By default this is false, and should
+  - [`tls.https.verify_incoming`](/consul/docs/agent/config/config-files#tls_https_verify_incoming) - By default this is false, and should
     be set to true to require clients to provide a valid TLS certificate when the Consul HTTPS API is enabled. TLS for
     the API may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
 
-  - [`tls.internal_rpc.verify_incoming`](/docs/agent/config/config-files#tls_internal_rpc_verify_incoming) - By default this is false,
+  - [`tls.internal_rpc.verify_incoming`](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_incoming) - By default this is false,
     and should almost always be set to true to require clients to provide a valid TLS certificate for Consul agent RPCs.
 
-  - [`tls.grpc.verify_incoming`](/docs/agent/config/config-files#tls_grpc_verify_incoming) - By default this is false, and should
+  - [`tls.grpc.verify_incoming`](/consul/docs/agent/config/config-files#tls_grpc_verify_incoming) - By default this is false, and should
     be set to true to require clients to provide a valid TLS certificate when the Consul gRPC API is enabled. TLS for
     the API may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
 
-  - [`tls.internal_rpc.verify_outgoing`](/docs/agent/config/config-files#tls_internal_rpc_verify_outgoing) - By default this is false,
+  - [`tls.internal_rpc.verify_outgoing`](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_outgoing) - By default this is false,
     and should be set to true to require TLS for outgoing connections from server or client agents. Servers that specify
     `verify_outgoing = true` will always talk to other servers over TLS, but they still accept non-TLS connections to allow
     for a transition of all clients to TLS. Currently the only way to enforce that no client can communicate with a server
     unencrypted is to also enable `verify_incoming` which requires client certificates too.
 
-  - [`enable_agent_tls_for_checks`](/docs/agent/config/config-files#enable_agent_tls_for_checks) - By default this is false, and
+  - [`enable_agent_tls_for_checks`](/consul/docs/agent/config/config-files#enable_agent_tls_for_checks) - By default this is false, and
     should almost always be set to true to require mTLS to set up the client for HTTP or gRPC health checks. This was
     added in Consul 1.0.1.
 
-  - [`tls.internal_rpc.verify_server_hostname`](/docs/agent/config/config-files#tls_internal_rpc_verify_server_hostname) - By default
+  - [`tls.internal_rpc.verify_server_hostname`](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_server_hostname) - By default
     this is false, and should be set to true to require that the TLS certificate presented by the servers matches
     `server.<datacenter>.<domain>` hostname for outgoing TLS connections. The default configuration does not verify the
     hostname of the certificate, only that it is signed by a trusted CA. This setting is critical to prevent a
     compromised client agent from being restarted as a server and having all cluster state including all ACL tokens and
-    Connect CA root keys replicated to it. This setting was introduced in 0.5.1. From version 0.5.1 to 1.4.0 we
+    service mesh CA root keys replicated to it. This setting was introduced in 0.5.1. From version 0.5.1 to 1.4.0 we
     documented that `verify_server_hostname` being true implied verify_outgoing however due to a bug this was not the
     case so setting only `verify_server_hostname` results in plaintext communication between client and server. See
     [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653) for more details. This is fixed
     in 1.4.1.
 
-  - [`auto_encrypt`](/docs/agent/config/config-files#auto_encrypt) - Enables automated TLS certificate distribution for client
-    agent RPC communication using the Connect CA. Using this configuration a [`ca_file`](/docs/agent/config/config-files#tls_defaults_ca_file)
+  - [`auto_encrypt`](/consul/docs/agent/config/config-files#auto_encrypt) - Enables automated TLS certificate distribution for client
+    agent RPC communication using the service mesh CA. Using this configuration a [`ca_file`](/consul/docs/agent/config/config-files#tls_defaults_ca_file)
     and ACL token would still need to be distributed to client agents.
 
-    - [`allow_tls`](/docs/agent/config/config-files#allow_tls) - By default this is false, and should be set to true on server
-      agents to allow certificates to be automatically generated and distributed from the Connect CA to client agents.
+    - [`allow_tls`](/consul/docs/agent/config/config-files#allow_tls) - By default this is false, and should be set to true on server
+      agents to allow certificates to be automatically generated and distributed from the service mesh CA to client agents.
 
-    - [`tls`](/docs/agent/config/config-files#tls) - By default this is false, and should be set to true on client agents to
-      automatically request a client TLS certificate from the server's Connect CA.
+    - [`tls`](/consul/docs/agent/config/config-files#tls) - By default this is false, and should be set to true on client agents to
+      automatically request a client TLS certificate from the server's service mesh CA.
 
     **Example Server Agent TLS Configuration**
 
@@ -160,7 +160,7 @@ environment and adapt these configurations accordingly.
       }
     ```
 
-  -> **Note**: The client agent TLS configuration from above sets [`verify_incoming`](/docs/agent/config/config-files#tls_defaults_verify_incoming)
+  -> **Note**: The client agent TLS configuration from above sets [`verify_incoming`](/consul/docs/agent/config/config-files#tls_defaults_verify_incoming)
     to false which assumes all incoming traffic is restricted to `localhost`. The primary benefit for this configuration
     would be to avoid provisioning client TLS certificates (in addition to ACL tokens) for all tools or applications
     using the local Consul agent. In this case ACLs should be enabled to provide authorization and only ACL tokens would
@@ -168,9 +168,9 @@ environment and adapt these configurations accordingly.
 
 - **ACLs** - The access control list (ACL) system provides a security mechanism for Consul administrators to grant
   capabilities tied to an individual human, or machine operator identity. To ultimately secure the ACL system,
-  administrators should configure the [`default_policy`](/docs/agent/config/config-files#acl_default_policy) to "deny".
+  administrators should configure the [`default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) to "deny".
 
-  The [system](/docs/security/acl) is comprised of five major components:
+  The [system](/consul/docs/security/acl) is comprised of five major components:
 
   - **🗝 Token** - API key associated with policies, roles, or service identities.
 
@@ -185,20 +185,20 @@ environment and adapt these configurations accordingly.
     enable multi-tenant environments. Consul OSS clusters always operate within the “default” namespace.
 
 - **Gossip Encryption** - A shared, base64-encoded 32-byte symmetric key is required to [encrypt Serf gossip
-  communication](https://learn.hashicorp.com/tutorials/consul/gossip-encryption-secure?utm_source=consul.io&utm_medium=docs) within a cluster using
+  communication](/consul/tutorials/security/gossip-encryption-secure?utm_source=consul.io&utm_medium=docs) within a cluster using
   AES GCM. The key size determines which AES encryption types to use; 16, 24, or 32 bytes to select AES-128, AES-192,
   or AES-256 respectively. 32-byte keys are ultimately preferable and is the default size generated by the
-  [`keygen`](/commands/keygen) command. This key should be
+  [`keygen`](/consul/commands/keygen) command. This key should be
   [regularly rotated](https://support.hashicorp.com/hc/en-us/articles/360044051754-Consul-Gossip-Key-Rotation) using
-  the builtin [keyring management](/commands/keyring) features of Consul.
+  the builtin [keyring management](/consul/commands/keyring) features of Consul.
 
   Two optional gossip encryption options enable Consul servers without gossip encryption to safely upgrade. After
   upgrading, the verification options should be enabled, or removed to set them to their default state:
 
-  - [`encrypt_verify_incoming`](/docs/agent/config/config-files#encrypt_verify_incoming) - By default this is true to enforce
+  - [`encrypt_verify_incoming`](/consul/docs/agent/config/config-files#encrypt_verify_incoming) - By default this is true to enforce
     encryption on _incoming_ gossip communications.
 
-  - [`encrypt_verify_outgoing`](/docs/agent/config/config-files#encrypt_verify_outgoing) - By default this is true to enforce
+  - [`encrypt_verify_outgoing`](/consul/docs/agent/config/config-files#encrypt_verify_outgoing) - By default this is true to enforce
     encryption on _outgoing_ gossip communications.
 
 - **Namespaces** <EnterpriseAlert inline /> - Read and write operations should be scoped to logical namespaces to
@@ -239,16 +239,16 @@ environment and adapt these configurations accordingly.
 - **Linux Security Modules** - Use of security modules that can be directly integrated into operating systems such as
   AppArmor, SElinux, and Seccomp on Consul agent hosts.
 
-- **Customize TLS Settings** - TLS settings such as the [available cipher suites](/docs/agent/config/config-files#tls_defaults_tls_cipher_suites),
+- **Customize TLS Settings** - TLS settings such as the [available cipher suites](/consul/docs/agent/config/config-files#tls_defaults_tls_cipher_suites),
   should be tuned to fit the needs of your environment.
 
-  - [`tls_min_version`](/docs/agent/config/config-files#tls_defaults_tls_min_version) - Used to specify the minimum TLS version to use.
+  - [`tls_min_version`](/consul/docs/agent/config/config-files#tls_defaults_tls_min_version) - Used to specify the minimum TLS version to use.
 
-  - [`tls_cipher_suites`](/docs/agent/config/config-files#tls_defaults_tls_cipher_suites) - Used to specify which TLS cipher suites are allowed.
+  - [`tls_cipher_suites`](/consul/docs/agent/config/config-files#tls_defaults_tls_cipher_suites) - Used to specify which TLS cipher suites are allowed.
 
 - **Customize HTTP Response Headers** - Additional security headers, such as
   [`X-XSS-Protection`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection), can be
-  [configured](/docs/agent/config/config-files#response_headers) for HTTP API responses.
+  [configured](/consul/docs/agent/config/config-files#response_headers) for HTTP API responses.
 
   ```hcl
   http_config {
@@ -261,48 +261,48 @@ environment and adapt these configurations accordingly.
 - **Customize Default Limits** - Consul has a number of builtin features with default connection limits that should be
   tuned to fit your environment.
 
-  - [`http_max_conns_per_client`](/docs/agent/config/config-files#http_max_conns_per_client) - Used to limit concurrent access from
+  - [`http_max_conns_per_client`](/consul/docs/agent/config/config-files#http_max_conns_per_client) - Used to limit concurrent access from
     a single client to the HTTP(S) endpoint on Consul agents.
 
-  - [`https_handshake_timeout`](/docs/agent/config/config-files#https_handshake_timeout) - Used to timeout TLS connection for the
+  - [`https_handshake_timeout`](/consul/docs/agent/config/config-files#https_handshake_timeout) - Used to timeout TLS connection for the
     HTTP(S) endpoint for Consul agents.
 
-  - [`rpc_handshake_timeout`](/docs/agent/config/config-files#rpc_handshake_timeout) - Used to timeout TLS connections for the RPC
+  - [`rpc_handshake_timeout`](/consul/docs/agent/config/config-files#rpc_handshake_timeout) - Used to timeout TLS connections for the RPC
     endpoint for Consul agents.
 
-  - [`rpc_max_conns_per_client`](/docs/agent/config/config-files#rpc_max_conns_per_client) - Used to limit concurrent access from a
+  - [`rpc_max_conns_per_client`](/consul/docs/agent/config/config-files#rpc_max_conns_per_client) - Used to limit concurrent access from a
     single client to the RPC endpoint on Consul agents.
 
-  - [`rpc_rate`](/docs/agent/config/config-files#rpc_rate) - Disabled by default, this is used to limit (requests/second) for client
+  - [`rpc_rate`](/consul/docs/agent/config/config-files#rpc_rate) - Disabled by default, this is used to limit (requests/second) for client
     agents making RPC calls to server agents.
 
-  - [`rpc_max_burst`](/docs/agent/config/config-files#rpc_max_burst) - Used as the token bucket size for client agents making RPC
+  - [`rpc_max_burst`](/consul/docs/agent/config/config-files#rpc_max_burst) - Used as the token bucket size for client agents making RPC
     calls to server agents.
 
-  - [`kv_max_value_size`](/docs/agent/config/config-files#kv_max_value_size) - Used to configure the max number of bytes in a
+  - [`kv_max_value_size`](/consul/docs/agent/config/config-files#kv_max_value_size) - Used to configure the max number of bytes in a
     key-value API request.
 
-  - [`txn_max_req_len`](/docs/agent/config/config-files#txn_max_req_len) - Used to configure the max number of bytes in a
+  - [`txn_max_req_len`](/consul/docs/agent/config/config-files#txn_max_req_len) - Used to configure the max number of bytes in a
     transaction API request.
 
 - **Secure UI Access** - Access to Consul's builtin UI can be secured in various ways:
 
   - **mTLS** - Enabling the HTTPS with mutual TLS authentication is recommended, but requires extra tooling to terminate
     the mTLS connection, preferably on an operator's local machine using a proxy script. To do this, follow the tutorial on
-    [Configuring the Consul UI for HTTPS](https://learn.hashicorp.com/tutorials/consul/tls-encryption-openssl-secure#configure-the-consul-ui-for-https)
+    [Configuring the Consul UI for HTTPS](/consul/tutorials/security-operations/tls-encryption-openssl-secure#configure-the-consul-ui-for-https)
     and in Step 2 use "Option 1: add a client certificate to your browser".
 
   - **TLS** - Enabling the HTTPS is recommended where mTLS may not be required for UI access, such as when ACLs are
     configured with a default deny. To do this, follow the tutorial on
-    [Configuring the Consul UI for HTTPS](https://learn.hashicorp.com/tutorials/consul/tls-encryption-openssl-secure#configure-the-consul-ui-for-https)
+    [Configuring the Consul UI for HTTPS](/consul/tutorials/security-operations/tls-encryption-openssl-secure#configure-the-consul-ui-for-https)
     and in Step 2 use "Option 2: verify_incoming_rpc".
 
   - **ACL** - ACLs with a default deny policy enables safer UI access by preventing unauthorized access to sensitive
     components within the cluster. To do this, follow the tutorial on
-    [Securing Consul with Access Control Lists (ACLs)](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production),
-    which includes a section on [creating ACL tokens that provide a desired level UI access](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#consul-ui-token).
+    [Securing Consul with Access Control Lists (ACLs)](/consul/tutorials/security/access-control-setup-production),
+    which includes a section on [creating ACL tokens that provide a desired level UI access](/consul/tutorials/security/access-control-setup-production#consul-ui-token).
 
-  - **Restrict HTTP Writes** - Using the [`allow_write_http_from`](/docs/agent/config/config-files#allow_write_http_from)
+  - **Restrict HTTP Writes** - Using the [`allow_write_http_from`](/consul/docs/agent/config/config-files#allow_write_http_from)
     configuration option to restrict write access for agent endpoints to hosts on the specified list of CIDRs.
 
     **Example Agent Configuration**
@@ -321,7 +321,7 @@ The following are parts of the core Consul threat model:
   This requires transport encryption to be enabled on the cluster and covers both TCP and UDP traffic.
 
 - **Consul agent-to-CA communication** - Communication between the Consul server and the configured certificate
-  authority provider for Connect is always encrypted.
+  authority provider for service mesh is always encrypted.
 
 - **Tampering of data in transit** - Any tampering should be detectable and cause Consul to avoid processing
   the request.
@@ -338,13 +338,13 @@ The following are parts of the core Consul threat model:
 - **Denial of Service against a node** - DoS attacks against a node should not compromise the security stance of
   the software.
 
-- **Connect-based Service-to-Service communication** - Communications between two Connect-enabled services (natively or
-  by proxy) should be secure from eavesdropping and provide authentication. This is achieved via mutual TLS.
+- **Communication between mesh services** - Communications between two mesh-enabled services (natively or
+  by sidecar proxy) should be secure from eavesdropping and provide authentication. This is achieved via mutual TLS.
 
 The following are not part of the threat model for server agents:
 
 - **Access (read or write) to the Consul data directory** - All Consul servers, including non-leaders, persist the full
-  set of Consul state to this directory. The data includes all KV, service registrations, ACL tokens, Connect CA
+  set of Consul state to this directory. The data includes all KV, service registrations, ACL tokens, service mesh CA
   configuration, and more. Any read or write to this directory allows an attacker to access and tamper with that data.
 
 - **Access (read or write) to the Consul configuration directory** - Consul configuration can enable or disable the ACL
@@ -353,14 +353,14 @@ The following are not part of the threat model for server agents:
 
 - **Memory access to a running Consul server agent** - If an attacker is able to inspect the memory state of a running
   Consul server agent the confidentiality of almost all Consul data may be compromised. If you're using an external
-  Connect CA, the root private key material is never available to the Consul process and can be considered safe. Service
-  Connect TLS certificates should be considered compromised; they are never persisted by server agents but do exist
+  service mesh CA, the root private key material is never available to the Consul process and can be considered safe. Service
+  service mesh TLS certificates should be considered compromised; they are never persisted by server agents but do exist
   in-memory during at least the duration of a Sign request.
 
 The following are not part of the threat model for client agents:
 
 - **Access (read or write) to the Consul data directory** - Consul clients will use the data directory to cache local
-  state. This includes local services, associated ACL tokens, Connect TLS certificates, and more. Read or write access
+  state. This includes local services, associated ACL tokens, service mesh TLS certificates, and more. Read or write access
   to this directory will allow an attacker to access this data. This data is typically a smaller subset of the full data
   of the cluster.
 - **Access (read or write) to the Consul configuration directory** - Consul client configuration files contain the
@@ -371,18 +371,18 @@ The following are not part of the threat model for client agents:
 
 - **Memory access to a running Consul client agent** - The blast radius of this is much smaller than a server agent but
   the confidentiality of a subset of data can still be compromised. Particularly, any data requested against the agent's
-  API including services, KV, and Connect information may be compromised. If a particular set of data on the server was
+  API including services, KV, and service mesh information may be compromised. If a particular set of data on the server was
   never requested by the agent, it never enters the agent's memory since replication only exists between servers. An
   attacker could also potentially extract ACL tokens used for service registration on this agent, since the tokens must
   be stored in-memory alongside the registered service.
 
-- **Network access to a local Connect proxy or service** - Communications between a service and a Connect-aware proxy
+- **Network access to a local service mesh proxy or service** - Communications between a service and a mesh-aware proxy
   are generally unencrypted and must happen over a trusted network. This is typically a loopback device. This requires
   that other processes on the same machine are trusted, or more complex isolation mechanisms are used such as network
-  namespaces. This also requires that external processes cannot communicate to the Connect service or proxy (except on
-  the inbound port). Therefore, non-native Connect applications should only bind to non-public addresses.
+  namespaces. This also requires that external processes cannot communicate to the mesh service or sidecar proxy (except on
+  the inbound port). Therefore, non-native service mesh applications should only bind to non-public addresses.
 
-- **Improperly Implemented Connect proxy or service** - A Connect proxy or natively integrated service must correctly
+- **Improperly Implemented service mesh proxy or service** - A service mesh proxy or natively integrated service must correctly
   serve a valid leaf certificate, verify the inbound TLS client certificate, and call the Consul agent-local authorized
   endpoint. If any of this isn't performed correctly, the proxy or service may allow unauthenticated or unauthorized
   connections.
@@ -423,9 +423,9 @@ The following are not part of the threat model for client agents:
   TLS certificates or ACL tokens. Access to the Consul agent directory is explicitly outside the scope of Consul's
   threat model and should only be exposed to authenticated and authorized users.
 
-- **Gateways** - Consul supports a variety of [gateways](/docs/connect/gateways) to allow traffic in-and-out of the
+- **Gateways** - Consul supports a variety of [gateways](/consul/docs/connect/gateways) to allow traffic in-and-out of the
   service mesh to support a variety of workloads. When using an internet-exposed gateway, you should be sure to harden
   your Consul agent and host configurations. In most configurations, ACLS, gossip encryption, and mTLS should be
-  enforced. If an [escape hatch override](/docs/connect/proxies/envoy#escape-hatch-overrides) is
+  enforced. If an [escape hatch override](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) is
   required, the proxy configuration should be audited to ensure security configurations remain intact, and do not
   violate Consul's security model.

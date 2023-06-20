@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %main-header-horizontal::before {
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-hashicorp-brand);
 }

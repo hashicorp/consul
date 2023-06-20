@@ -7,7 +7,7 @@ description: >-
 
 # Architecture
 
-This topic describes the architecture, components, and resources associated with Consul deployments to Kubernetes. Consul employs the same architectural design on Kubernetes as it does with other platforms, but Kubernetes provides additional benefits that make operating a Consul cluster easier. Refer to [Consul Architecture](/docs/architecture) for more general information on Consul's architecture.
+This topic describes the architecture, components, and resources associated with Consul deployments to Kubernetes. Consul employs the same architectural design on Kubernetes as it does with other platforms, but Kubernetes provides additional benefits that make operating a Consul cluster easier. Refer to [Consul Architecture](/consul/docs/architecture) for more general information on Consul's architecture.
 
 > **For more specific guidance:**
 > - For guidance on datacenter design, refer to [Consul and Kubernetes Reference Architecture](/consul/tutorials/kubernetes-production/kubernetes-reference-architecture).
@@ -18,7 +18,7 @@ This topic describes the architecture, components, and resources associated with
 
 The server agents are deployed as a `StatefulSet` and use persistent volume
 claims to store the server state. This also ensures that the
-[node ID](/docs/agent/config/config-files#node_id) is persisted so that servers
+[node ID](/consul/docs/agent/config/config-files#node_id) is persisted so that servers
 can be rescheduled onto new IP addresses without causing issues. The server agents
 are configured with
 [anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
@@ -39,10 +39,10 @@ so this must done manually when removing servers.
 
 ## Consul Dataplane
 
-By default, Consul on Kubernetes uses an alternate service mesh configuration that injects sidecars without client agents. _Consul Dataplane_ manages Envoy proxies and leaves responsibility for other functions to the orchestrator, which removes the need to run client agents on every pod.
+By default, Consul on Kubernetes uses an alternate service mesh configuration that injects sidecars without client agents. _Consul Dataplane_ manages Envoy proxies and leaves responsibility for other functions to the orchestrator, which removes the need to run client agents on every node.
 
-![Diagram of Consul Dataplanes in Kubernetes deployment](/img/dataplanes-diagram.png)
+![Diagram of Consul Dataplanes in Kubernetes deployment](/img/k8s-dataplanes-architecture.png)
 
-Refer to [Simplified Service Mesh with Consul Dataplanes](/docs/connect/dataplane/index) for more information.
+Refer to [Simplified Service Mesh with Consul Dataplanes](/consul/docs/connect/dataplane) for more information.
 
-Consul Dataplane is the default proxy manager in Consul on Kubernetes 1.14 and later. If you are on Consul 1.13 or older, refer to [upgrading to Consul Dataplane](/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for specific upgrade instructions.
+Consul Dataplane is the default proxy manager in Consul on Kubernetes 1.14 and later. If you are on Consul 1.13 or older, refer to [upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for specific upgrade instructions.

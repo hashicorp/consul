@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package helpers
 
 import (
@@ -821,6 +824,7 @@ func TestParseConfigEntry(t *testing.T) {
 						  partition                = "chard"
 						  prefix_rewrite           = "/alternate"
 						  request_timeout          = "99s"
+						  idle_timeout             = "99s"
 						  num_retries              = 12345
 						  retry_on_connect_failure = true
 						  retry_on_status_codes    = [401, 209]
@@ -906,6 +910,7 @@ func TestParseConfigEntry(t *testing.T) {
 						  Partition             = "chard"
 						  PrefixRewrite         = "/alternate"
 						  RequestTimeout        = "99s"
+						  IdleTimeout           = "99s"
 						  NumRetries            = 12345
 						  RetryOnConnectFailure = true
 						  RetryOnStatusCodes    = [401, 209]
@@ -992,6 +997,7 @@ func TestParseConfigEntry(t *testing.T) {
 							"partition": "chard",
 							"prefix_rewrite": "/alternate",
 							"request_timeout": "99s",
+							"idle_timeout": "99s",
 							"num_retries": 12345,
 							"retry_on_connect_failure": true,
 							"retry_on_status_codes": [
@@ -1085,6 +1091,7 @@ func TestParseConfigEntry(t *testing.T) {
 							"Partition": "chard",
 							"PrefixRewrite": "/alternate",
 							"RequestTimeout": "99s",
+							"IdleTimeout": "99s",
 							"NumRetries": 12345,
 							"RetryOnConnectFailure": true,
 							"RetryOnStatusCodes": [
@@ -1177,6 +1184,7 @@ func TestParseConfigEntry(t *testing.T) {
 							Partition:             "chard",
 							PrefixRewrite:         "/alternate",
 							RequestTimeout:        99 * time.Second,
+							IdleTimeout:           99 * time.Second,
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
@@ -3029,6 +3037,190 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "api-gateway",
+			snake: `
+				kind = "api-gateway"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "api-gateway"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "api-gateway",
+				"name": "main",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "api-gateway",
+				"Name": "main",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}`,
+			expect: &api.APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "inline-certificate",
+			snake: `
+				kind = "inline-certificate"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "inline-certificate"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "inline-certificate",
+				"name": "main",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "inline-certificate",
+				"Name": "main",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}`,
+			expect: &api.InlineCertificateConfigEntry{
+				Kind: "inline-certificate",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "http-route",
+			snake: `
+				kind = "http-route"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "http-route"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "http-route",
+				"name": "main",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "http-route",
+				"Name": "main",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}`,
+			expect: &api.HTTPRouteConfigEntry{
+				Kind: "http-route",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "tcp-route",
+			snake: `
+				kind = "tcp-route"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "tcp-route"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "tcp-route",
+				"name": "main",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "tcp-route",
+				"Name": "main",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}`,
+			expect: &api.TCPRouteConfigEntry{
+				Kind: "tcp-route",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
 				},
 			},
 		},

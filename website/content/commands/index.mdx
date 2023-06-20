@@ -31,13 +31,13 @@ Available commands are:
     acl            Interact with Consul's ACLs
     agent          Runs a Consul agent
     catalog        Interact with the catalog
-    connect        Interact with Consul Connect
+    connect        Interact with service mesh functionality
     debug          Records a debugging archive for operators
     event          Fire a new event
     exec           Executes a command on Consul nodes
     force-leave    Forces a member of the cluster to enter the "left" state
     info           Provides debugging information for operators.
-    intention      Interact with Connect service intentions
+    intention      Interact with service mesh intentions
     join           Tell Consul agent to join cluster
     keygen         Generates a new encryption key
     keyring        Manages gossip layer encryption keys
@@ -56,6 +56,7 @@ Available commands are:
     services       Interact with services
     snapshot       Saves, restores and inspects snapshots of Consul server state
     tls            Builtin helpers for creating CAs and certificates
+    troubleshoot   Provides tools to troubleshoot Consul's service mesh configuration
     validate       Validate config files/directories
     version        Prints the Consul version
     watch          Watch for changes in Consul
@@ -94,8 +95,8 @@ Command Options
 
 ## Authentication
 
-When the [ACL system is enabled](/docs/agent/config/config-files#acl) the Consul CLI will
-require an [ACL token](/docs/security/acl#tokens) to perform API requests.
+When the [ACL system is enabled](/consul/docs/agent/config/config-files#acl) the Consul CLI will
+require an [ACL token](/consul/docs/security/acl#tokens) to perform API requests.
 
 The ACL token can be provided directly on the command line using the `-token` command line flag,
 from a file using the `-token-file` command line flag, or from the
@@ -123,7 +124,7 @@ list-peers   remove-peer
 ## Arguments with URL-Invalid Characters
 
 The CLI automatically URL-encodes arguments, which are then
-[URL-decoded by the underlying HTTP API endpoints](/api-docs/api-structure#url-encoded-resource-names).
+[URL-decoded by the underlying HTTP API endpoints](/consul/api-docs/api-structure#url-encoded-resource-names).
 To avoid double-encoding arguments, do not URL-encode arguments passed to the CLI.
 
 ## Environment Variables
@@ -241,8 +242,8 @@ CONSUL_TLS_SERVER_NAME=consulserver.domain
 
 Like [`CONSUL_HTTP_ADDR`](#consul_http_addr) but configures the address the
 local agent is listening for gRPC requests. Currently gRPC is only used for
-integrating [Envoy proxy](/docs/connect/proxies/envoy) and must be [enabled
-explicitly](/docs/agent/config/config-files#grpc_port) in agent configuration.
+integrating [Envoy proxy](/consul/docs/connect/proxies/envoy) and must be [enabled
+explicitly](/consul/docs/agent/config/config-files#grpc_port) in agent configuration.
 
 ```
 CONSUL_GRPC_ADDR=127.0.0.1:8502
@@ -255,7 +256,7 @@ CONSUL_GRPC_ADDR=unix://var/run/consul_grpc.sock
 ```
 
 If the agent is [configured with TLS
-certificates](/docs/security/encryption#rpc-encryption-with-tls), then the
+certificates](/consul/docs/security/encryption#rpc-encryption-with-tls), then the
 gRPC listener will require TLS and present the same certificate as the https
 listener. As with `CONSUL_HTTP_ADDR`, if TLS is enabled either the `https://`
 scheme should be used, or `CONSUL_HTTP_SSL` set.

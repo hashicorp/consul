@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <App class='hashicorp-consul' ...attributes>
 
   <:notifications as |app|>
@@ -7,66 +12,58 @@
           {{{flash.dom}}}
         {{else}}
           {{#let (lowercase flash.type) (lowercase flash.action) as |status type|}}
-            <Notice
-              role='alert'
-              class={{concat status ' notification-' type}}
+            <Hds::Toast
+              @color={{if (eq status 'error') 'critical' status}}
               data-notification
-              @type={{status}}
-              as |notice|
-            >
-              <notice.Header>
-                <strong>
-                  {{capitalize status}}!
-                </strong>
-              </notice.Header>
-              <notice.Body>
-                <p>
-                  {{#if (eq type 'logout')}}
-                    {{#if (eq status 'success')}}
-                      You are now logged out.
-                    {{else}}
-                      There was an error logging out.
-                    {{/if}}
-                  {{else if (eq type 'authorize')}}
-                    {{#if (eq status 'success')}}
-                      You are now logged in.
-                    {{else}}
-                      There was an error, please check your SecretID/Token
-                    {{/if}}
+              as |T|>
+              <T.Title>{{capitalize status}}!</T.Title>
+              <T.Description>
+                {{#if (eq type 'logout')}}
+                  {{#if (eq status 'success')}}
+                    You are now logged out.
                   {{else}}
-                    {{#if (or (eq type 'use') (eq flash.model 'token'))}}
-                      <Consul::Token::Notifications
-                        @type={{type}}
-                        @status={{status}}
-                        @item={{flash.item}}
-                        @error={{flash.error}}
-                      />
-                    {{else if (eq flash.model 'intention')}}
-                      <Consul::Intention::Notifications
-                        @type={{type}}
-                        @status={{status}}
-                        @item={{flash.item}}
-                        @error={{flash.error}}
-                      />
-                    {{else if (eq flash.model 'role')}}
-                      <Consul::Role::Notifications
-                        @type={{type}}
-                        @status={{status}}
-                        @item={{flash.item}}
-                        @error={{flash.error}}
-                      />
-                    {{else if (eq flash.model 'policy')}}
-                      <Consul::Policy::Notifications
-                        @type={{type}}
-                        @status={{status}}
-                        @item={{flash.item}}
-                        @error={{flash.error}}
-                      />
-                    {{/if}}
+                    There was an error logging out.
                   {{/if}}
-                </p>
-              </notice.Body>
-            </Notice>
+                {{else if (eq type 'authorize')}}
+                  {{#if (eq status 'success')}}
+                    You are now logged in.
+                  {{else}}
+                    There was an error, please check your SecretID/Token
+                  {{/if}}
+                {{else}}
+                  {{#if (or (eq type 'use') (eq flash.model 'token'))}}
+                    <Consul::Token::Notifications
+                      @type={{type}}
+                      @status={{status}}
+                      @item={{flash.item}}
+                      @error={{flash.error}}
+                    />
+                  {{else if (eq flash.model 'intention')}}
+                    <Consul::Intention::Notifications
+                      @type={{type}}
+                      @status={{status}}
+                      @item={{flash.item}}
+                      @error={{flash.error}}
+                    />
+                  {{else if (eq flash.model 'role')}}
+                    <Consul::Role::Notifications
+                      @type={{type}}
+                      @status={{status}}
+                      @item={{flash.item}}
+                      @error={{flash.error}}
+                    />
+                  {{else if (eq flash.model 'policy')}}
+                    <Consul::Policy::Notifications
+                      @type={{type}}
+                      @status={{status}}
+                      @item={{flash.item}}
+                      @error={{flash.error}}
+                    />
+                  {{/if}}
+                {{/if}}
+              </T.Description>
+            </Hds::Toast>
+
           {{/let}}
         {{/if}}
       </app.Notification>

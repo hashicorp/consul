@@ -9,15 +9,14 @@ description: The /query endpoints manage and execute prepared queries in Consul.
 The `/query` endpoints create, update, destroy, and execute prepared queries.
 
 Prepared queries allow you to register a complex service query and then execute
-it later via its ID or name to get a set of healthy nodes that provide a given
-service. This is particularly useful in combination with Consul's
-[DNS Interface](/docs/discovery/dns#prepared-query-lookups) as it allows for much richer queries than
-would be possible given the limited entry points exposed by DNS.
+it later by specifying the query ID or name. Consul returns a set of healthy nodes that provide a given
+service. Refer to
+[Enable Dynamic DNS Queries](/consul/docs/services/discovery/dns-dynamic-lookups) for additional information.
 
-Check the [Geo Failover tutorial](https://learn.hashicorp.com/tutorials/consul/automate-geo-failover) for details and
+Check the [Geo Failover tutorial](/consul/tutorials/developer-discovery/automate-geo-failover) for details and
 examples for using prepared queries to implement geo failover for services.
 
-Check the [prepared query rules](/docs/security/acl/acl-rules#prepared-query-rules)
+Check the [prepared query rules](/consul/docs/security/acl/acl-rules#prepared-query-rules)
 section of the agent ACL documentation for more details about how prepared
 queries work with Consul's ACL system.
 
@@ -141,10 +140,10 @@ successfully.
 | `POST` | `/query` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
@@ -178,17 +177,26 @@ The table below shows this endpoint's support for
   - `Service` `(string: <required>)` - Specifies the name of the service to
     query.
 
-  - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul namespace
-    to query. If not provided the query will use Consul default namespace for resolution.
+  - `SamenessGroup` `(string: "")` <EnterpriseAlert inline /> - Specifies a Sameness group to forward the
+  query to. The `SamenessGroup` will forward to its members in the order defined, returning on the first
+  healthy query. `SamenessGroup` is mutually exclusive with `Failover` as `SamenessGroup` members will be used
+  in place of a defined list of failovers.
 
-  - `Failover` contains two fields, both of which are optional, and determine
-    what happens if no healthy nodes are available in the local datacenter when
+  - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul namespace
+    to query. If not provided the query will use Consul default namespace for resolution. When combined with
+  `SamenessGroup` this will specify the namespaces in which the `SamenessGroup` will resolve all members listed.
+
+  - `Partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul partition
+  to query. If not provided the query will use Consul's default partition for resolution. When combined with
+  `SamenessGroup`, this will specify the partition where the `SamenessGroup` exists.
+
+  - `Failover` Determines what happens if no healthy nodes are available in the local datacenter when
     the query is executed. It allows the use of nodes in other datacenters with
-    very little configuration.
+    very little configuration. This field is mutually exclusive with `SamenessGroup`.
 
     - `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up
       to `NearestN` other datacenters based on their estimated network round
-      trip time using [Network Coordinates](/docs/architecture/coordinates)
+      trip time using [Network Coordinates](/consul/docs/architecture/coordinates)
       from the WAN gossip pool. The median round trip time from the server
       handling the query to the servers in the remote datacenter is used to
       determine the priority.
@@ -207,11 +215,17 @@ The table below shows this endpoint's support for
       service instances in the local datacenter.
       This option cannot be used with `NearestN` or `Datacenters`.
 
-      - `Peer` `(string: "")` - Specifies a [cluster peer](/docs/connect/cluster-peering) to use for
+      - `Peer` `(string: "")` - Specifies a [cluster peer](/consul/docs/connect/cluster-peering) to use for
         failover.
 
       - `Datacenter` `(string: "")` - Specifies a WAN federated datacenter to forward the
         query to.
+
+      - `Partition` `(string: "")` <EnterpriseAlert inline /> - Specifies a Partition to forward the
+      query to.
+
+      - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies a Namespace to forward the
+      query to.
 
   - `IgnoreCheckIDs` `(array<string>: nil)` - Specifies a list of check IDs that
     should be ignored when filtering unhealthy instances. This is mostly useful
@@ -226,7 +240,7 @@ The table below shows this endpoint's support for
     true, only nodes with checks in the passing state will be returned.
 
   - `Near` `(string: "")` - Specifies a node to sort near based on distance
-    sorting using [Network Coordinates](/docs/architecture/coordinates). The
+    sorting using [Network Coordinates](/consul/docs/architecture/coordinates). The
     nearest instance to the specified node will be returned first, and subsequent
     nodes in the response will be sorted in ascending order of estimated
     round-trip times. If the node given does not exist, the nodes in the response
@@ -252,12 +266,12 @@ The table below shows this endpoint's support for
   key/value pairs that will be used for filtering the query results to services
   with the given metadata values present.
 
-* `Connect` `(bool: false)` - If true, only [Connect-capable](/docs/connect) services
+* `Connect` `(bool: false)` - If true, only [mesh-capable](/consul/docs/connect) services
   for the specified service name will be returned. This includes both
   natively integrated services and proxies. For proxies, the proxy name
   may not match `Service`, because the proxy destination will. Any
-  constrains beyond the service name such as `Near`, `Tags`, and `NodeMeta`
-  are applied to Connect-capable service.
+  constraints beyond the service name such as `Near`, `Tags`, and `NodeMeta`
+  are applied to mesh-capable service.
 
 * `DNS` `(DNS: nil)` - Specifies DNS configuration
 
@@ -318,10 +332,10 @@ This endpoint returns a list of all prepared queries.
 | `GET`  | `/query` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -380,10 +394,10 @@ given ID, an error is returned.
 | `PUT`  | `/query/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
@@ -420,10 +434,10 @@ given ID, an error is returned.
 | `GET`  | `/query/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -460,10 +474,10 @@ given ID, an error is returned.
 | `DELETE` | `/query/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
@@ -493,17 +507,17 @@ given ID, an error is returned.
 
 The HTTP response includes the `X-Consul-Results-Filtered-By-ACLs: true` header
 if the [`Nodes`](#nodes) response array excludes results due to ACL policy configuration.
-Refer to the [HTTP API documentation](/api-docs/api-structure#results-filtered-by-acls) for more information.
+Refer to the [HTTP API documentation](/consul/api-docs/api-structure#results-filtered-by-acls) for more information.
 
 | Method | Path                   | Produces           |
 | ------ | ---------------------- | ------------------ |
 | `GET`  | `/query/:uuid/execute` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required          |
 | ---------------- | ----------------- | ------------- | --------------------- |
@@ -536,8 +550,8 @@ be used.
   This is applied after any sorting or shuffling.
 
 - `connect` `(bool: false)` - If true, limit results to nodes that are
-  Connect-capable only. This parameter can also be specified directly on the template
-  itself to force all executions of a query to be Connect-only. See the
+  mesh-capable only. This parameter can also be specified directly on the template
+  itself to force all executions of a query to be mesh-only. See the
   template documentation for more information.
 
 ### Sample Request
@@ -629,10 +643,10 @@ interpolation.
 | `GET`  | `/query/:uuid/explain` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |

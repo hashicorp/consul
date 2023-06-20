@@ -7,18 +7,18 @@ description: >-
 
 # Service Mesh Certificate Authority Overview
 
-Certificate management in Connect is done centrally through the Consul
-servers using the configured CA (Certificate Authority) provider. A CA provider
+Service mesh certificate management is done centrally through the Consul
+servers using the configured service mesh CA (Certificate Authority) provider. A CA provider
 manages root and intermediate certificates and performs certificate signing
 operations. The Consul leader orchestrates CA provider operations as necessary,
 such as when a service needs a new certificate or during CA rotation events.
 
 The CA provider abstraction enables Consul to support multiple systems for
 storing and signing certificates. Consul ships with a
-[built-in CA](/docs/connect/ca/consul) which generates and stores the
+[built-in CA](/consul/docs/connect/ca/consul) which generates and stores the
 root certificate and private key on the Consul servers. Consul also has
 support for using
-[Vault as a CA](/docs/connect/ca/vault). With Vault, the root certificate
+[Vault as a CA](/consul/docs/connect/ca/vault). With Vault, the root certificate
 and private key material remain with the Vault cluster.
 
 ### CA and Certificate relationship
@@ -42,27 +42,27 @@ datacenter.
 
 CA initialization happens automatically when a new Consul leader is elected
 as long as
-[Connect is enabled](/docs/connect/configuration#agent-configuration),
+[service mesh is enabled](/consul/docs/connect/configuration#agent-configuration),
 and the CA system has not already been initialized. This initialization process
 will generate the initial root certificates and setup the internal Consul server
 state.
 
 For the initial bootstrap, the CA provider can be configured through the
-[Agent configuration](/docs/agent/config/config-files#connect_ca_config). After
+[Agent configuration](/consul/docs/agent/config/config-files#connect_ca_config). After
 initialization, the CA can only be updated through the
-[Update CA Configuration API endpoint](/api-docs/connect/ca#update-ca-configuration).
+[Update CA Configuration API endpoint](/consul/api-docs/connect/ca#update-ca-configuration).
 If a CA is already initialized, any changes to the CA configuration in the
 agent configuration file (including removing the configuration completely)
 will have no effect.
 
-If no specific provider is configured when Connect is enabled, the built-in
+If no specific provider is configured when service mesh is enabled, the built-in
 Consul CA provider will be used and a private key and root certificate will
 be generated automatically.
 
 ## Viewing Root Certificates
 
 Root certificates can be queried with the
-[list CA Roots endpoint](/api-docs/connect/ca#list-ca-root-certificates).
+[list CA Roots endpoint](/consul/api-docs/connect/ca#list-ca-root-certificates).
 With this endpoint, you can see the list of currently trusted root certificates.
 When a cluster first initializes, this will only list one trusted root. Multiple
 roots may appear as part of
@@ -97,7 +97,7 @@ $ curl http://localhost:8500/v1/connect/ca/roots
 ## CA Configuration
 
 After initialization, the CA provider configuration can be viewed with the
-[Get CA Configuration API endpoint](/api-docs/connect/ca#get-ca-configuration).
+[Get CA Configuration API endpoint](/consul/api-docs/connect/ca#get-ca-configuration).
 Consul will filter sensitive values from this endpoint depending on the
 provider in use, so the configuration may not be complete.
 
@@ -115,7 +115,7 @@ $ curl http://localhost:8500/v1/connect/ca/configuration
 ```
 
 The CA provider can be reconfigured using the
-[Update CA Configuration API endpoint](/api-docs/connect/ca#update-ca-configuration).
+[Update CA Configuration API endpoint](/consul/api-docs/connect/ca#update-ca-configuration).
 Specific options for reconfiguration can be found in the specific
 CA provider documentation in the sidebar to the left.
 
@@ -133,7 +133,7 @@ Cross-Signing](#forced-rotation-without-cross-signing).
 This also automatically occurs when a completely different CA provider is
 configured (since this changes the root key). Therefore, this automatic rotation
 process can also be used to cleanly transition between CA providers. For example,
-updating Connect to use Vault instead of the built-in CA.
+updating the service mesh to use Vault instead of the built-in CA.
 
 During rotation, an intermediate CA certificate is requested from the new root,
 which is then cross-signed by the old root. This cross-signed certificate is
@@ -148,7 +148,7 @@ certificate or CA provider has been set up, the new root becomes the active one
 and is immediately used for signing any new incoming certificate requests.
 
 If we check the [list CA roots
-endpoint](/api-docs/connect/ca#list-ca-root-certificates) after updating the
+endpoint](/consul/api-docs/connect/ca#list-ca-root-certificates) after updating the
 configuration with a new root certificate, we can see both the old and new root
 certificates are present, and the currently active root has an intermediate
 certificate which has been generated and cross-signed automatically by the old
@@ -231,7 +231,7 @@ to.
 ### Recovering From Expired Certificates
 If the built-in CA provider is misconfigured or unavailable, Consul service mesh requests eventually
 stop functioning due to expiration of intermediate and root certificates. To recover manually, use the
-[CLI helper](/commands/tls/ca#consul-tls-ca-create) to generate CA certificates.
+[CLI helper](/consul/commands/tls/ca#consul-tls-ca-create) to generate CA certificates.
 
 
 #### Example - Regenerating the built in CA
@@ -242,9 +242,9 @@ $ consul tls ca create -cluster-id test -common-name "Consul Agent CA" -days=365
 ```
 The example above generates a new CA with a validity of 365 days. The cluster-id argument is specific
 to each cluster and can be looked up by examining the `TrustDomain` field in
-the [List CA Roots](/api-docs/connect/ca#list-ca-root-certificates) endpoint.
+the [List CA Roots](/consul/api-docs/connect/ca#list-ca-root-certificates) endpoint.
 
 The contents of the generated cert and private key files from the above step should then be used with
-the [Update CA Configuration](/api-docs/connect/ca#update-ca-configuration) endpoint. Once the CA configuration is
+the [Update CA Configuration](/consul/api-docs/connect/ca#update-ca-configuration) endpoint. Once the CA configuration is
 updated on the primary datacenter, all secondary datacenters will pick up the changes and regenerate their intermediate
 and leaf certificates, after which any new requests that require certificate verification will succeed.

@@ -9,19 +9,19 @@ description: >-
 
 -> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
 
-~> This topic is part of a [low-level API](/api-docs/discovery-chain)
-primarily targeted at developers building external [Connect proxy
-integrations](/docs/connect/proxies/integrate).
+~> This topic is part of a [low-level API](/consul/api-docs/discovery-chain)
+primarily targeted at developers building external [Consul service mesh proxy
+integrations](/consul/docs/connect/proxies/integrate).
 
 The service discovery process can be modeled as a "discovery chain" which
 passes through three distinct stages: routing, splitting, and resolution. Each
 of these stages is controlled by a set of [configuration
-entries](/docs/agent/config-entries). By configuring different phases of
+entries](/consul/docs/agent/config-entries). By configuring different phases of
 the discovery chain a user can control how proxy upstreams are ultimately
 resolved to specific instances for load balancing.
 
 -> **Note:** The discovery chain is currently only used to discover
-[Connect](/docs/connect) proxy upstreams.
+[service mesh](/consul/docs/connect) proxy upstreams.
 
 ## Configuration
 
@@ -29,39 +29,39 @@ The configuration entries used in the discovery chain are designed to be simple
 to read and modify for narrowly tailored changes, but at discovery-time the
 various configuration entries interact in more complex ways. For example:
 
-- If a [`service-resolver`](/docs/connect/config-entries/service-resolver)
+- If a [`service-resolver`](/consul/docs/connect/config-entries/service-resolver)
   is created with a [service
-  redirect](/docs/connect/config-entries/service-resolver#service) defined,
+  redirect](/consul/docs/connect/config-entries/service-resolver#service) defined,
   then all references made to the original service in any other configuration
   entry is replaced with the redirect destination.
 
-- If a [`service-resolver`](/docs/connect/config-entries/service-resolver)
+- If a [`service-resolver`](/consul/docs/connect/config-entries/service-resolver)
   is created with a [default
-  subset](/docs/connect/config-entries/service-resolver#defaultsubset)
+  subset](/consul/docs/connect/config-entries/service-resolver#defaultsubset)
   defined then all references made to the original service in any other
   configuration entry that did not specify a subset will be replaced with the
   default.
 
-- If a [`service-splitter`](/docs/connect/config-entries/service-splitter)
+- If a [`service-splitter`](/consul/docs/connect/config-entries/service-splitter)
   is created with a [service
-  split](/docs/connect/config-entries/service-splitter#splits), and the target service has its
+  split](/consul/docs/connect/config-entries/service-splitter#splits), and the target service has its
   own `service-splitter` then the overall effect is flattened and only a single
   aggregate traffic split is ultimately configured in the proxy.
 
-- [`service-resolver`](/docs/connect/config-entries/service-resolver)
+- [`service-resolver`](/consul/docs/connect/config-entries/service-resolver)
   redirect loops must be rejected as invalid.
 
-- [`service-router`](/docs/connect/config-entries/service-router) and
-  [`service-splitter`](/docs/connect/config-entries/service-splitter)
+- [`service-router`](/consul/docs/connect/config-entries/service-router) and
+  [`service-splitter`](/consul/docs/connect/config-entries/service-splitter)
   configuration entries require an L7 compatible protocol be set for the
   service via either a
-  [`service-defaults`](/docs/connect/config-entries/service-defaults) or
-  [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) config
+  [`service-defaults`](/consul/docs/connect/config-entries/service-defaults) or
+  [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) config
   entry. Violations must be rejected as invalid.
 
 - If an [upstream
-  configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
-  [`datacenter`](/docs/connect/registration/service-registration#datacenter)
+  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
+  [`datacenter`](/consul/docs/connect/registration/service-registration#datacenter)
   parameter is defined then any configuration entry that does not explicitly
   refer to a desired datacenter should use that value from the upstream.
 
@@ -69,10 +69,10 @@ various configuration entries interact in more complex ways. For example:
 
 To correctly interpret a collection of configuration entries as a valid
 discovery chain, we first compile them into a form more directly usable by the
-layers responsible for configuring Connect sidecar proxies.
+layers responsible for configuring service mesh sidecar proxies.
 
 You can interact with the compiler directly using the [discovery-chain
-API](/api-docs/discovery-chain).
+API](/consul/api-docs/discovery-chain).
 
 ### Compilation Parameters
 
@@ -80,9 +80,9 @@ API](/api-docs/discovery-chain).
 - **Datacenter** - The datacenter to use as the basis of compilation.
 - **Overrides** - Discovery-time tweaks to apply when compiling. These should
   be derived from either the
-  [proxy](/docs/connect/registration/service-registration#complete-configuration-example)
+  [proxy](/consul/docs/connect/registration/service-registration#complete-configuration-example)
   or
-  [upstream](/docs/connect/registration/service-registration#upstream-configuration-reference)
+  [upstream](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
   configurations if either are set.
 
 ### Compilation Results
@@ -100,7 +100,7 @@ The response is a single wrapped `CompiledDiscoveryChain` field:
 The chain encodes a digraph of [nodes](#discoverygraphnode) and
 [targets](#discoverytarget). Nodes are the compiled representation of various
 discovery chain stages and targets are instructions on how to use the [health
-API](/api-docs/health#list-nodes-for-connect-capable-service) to retrieve
+API](/consul/api-docs/health#list-nodes-for-mesh-capable-service) to retrieve
 relevant service instance lists.
 
 You should traverse the nodes starting with [`StartNode`](#startnode). The
@@ -157,7 +157,7 @@ A single node in the compiled discovery chain.
 
   - `Definition` `(ServiceRoute)` - Relevant portion of underlying
     `service-router`
-    [route](/docs/connect/config-entries/service-router#routes).
+    [route](/consul/docs/connect/config-entries/service-router#routes).
 
   - `NextNode` `(string)` - The name of the next node in the chain in [`Nodes`](#nodes).
 
@@ -165,7 +165,7 @@ A single node in the compiled discovery chain.
   splits.
 
   - `Weight` `(float32)` - Copy of underlying `service-splitter`
-    [`weight`](/docs/connect/config-entries/service-splitter#weight) field.
+    [`weight`](/consul/docs/connect/config-entries/service-splitter#weight) field.
 
   - `NextNode` `(string)` - The name of the next node in the chain in [`Nodes`](#nodes).
 
@@ -176,21 +176,21 @@ A single node in the compiled discovery chain.
     defined for this node and the default was synthesized.
 
   - `ConnectTimeout` `(duration)` - Copy of the underlying `service-resolver`
-    [`ConnectTimeout`](/docs/connect/config-entries/service-resolver#connecttimeout)
+    [`ConnectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
     field. If one is not defined the default of `5s` is returned.
 
   - `Target` `(string)` - The name of the target to use found in [`Targets`](#targets).
 
   - `Failover` `(DiscoveryFailover: <optional>)` - Compiled form of the
     underlying `service-resolver`
-    [`Failover`](/docs/connect/config-entries/service-resolver#failover)
+    [`Failover`](/consul/docs/connect/config-entries/service-resolver#failover)
     definition to use for this request.
 
     - `Targets` `(array<string>)` - List of targets found in
       [`Targets`](#targets) to failover to in order of preference.
 
   - `LoadBalancer` `(LoadBalancer: <optional>`) - Copy of the underlying `service-resolver`
-    [`LoadBalancer`](/docs/connect/config-entries/service-resolver#loadbalancer) field.
+    [`LoadBalancer`](/consul/docs/connect/config-entries/service-resolver#loadbalancer) field.
 
     If a `service-splitter` splits between services with differing `LoadBalancer` configuration
     the first hash-based load balancing policy is copied.
@@ -202,7 +202,7 @@ A single node in the compiled discovery chain.
 - `Service` `(string)` - The service to query when resolving a list of service instances.
 
 - `ServiceSubset` `(string: <optional>)` - The
-  [subset](/docs/connect/config-entries/service-resolver#service-subsets) of
+  [subset](/consul/docs/connect/config-entries/service-resolver#service-subsets) of
   the service to resolve.
 
 - `Partition` `(string)` - The partition to use when resolving a list of service instances.
@@ -213,11 +213,11 @@ A single node in the compiled discovery chain.
 
 - `Subset` `(ServiceResolverSubset)` - Copy of the underlying
   `service-resolver`
-  [`Subsets`](/docs/connect/config-entries/service-resolver#subsets)
+  [`Subsets`](/consul/docs/connect/config-entries/service-resolver#subsets)
   definition for this target.
 
   - `Filter` `(string: "")` - The
-    [filter expression](/api-docs/features/filtering) to be used for selecting
+    [filter expression](/consul/api-docs/features/filtering) to be used for selecting
     instances of the requested service. If empty all healthy instances are
     returned.
 
@@ -228,7 +228,7 @@ A single node in the compiled discovery chain.
     be considered healthy.
 
 - `MeshGateway` `(MeshGatewayConfig)` - The [mesh gateway
-  configuration](/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
+  configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration)
   to use when connecting to this target's service instances.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
@@ -236,7 +236,7 @@ A single node in the compiled discovery chain.
 - `External` `(bool: false)` - True if this target is outside of this consul cluster.
 
 - `ConnectTimeout` `(duration)` - Copy of the underlying `service-resolver`
-  [`ConnectTimeout`](/docs/connect/config-entries/service-resolver#connecttimeout)
+  [`ConnectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
   field. If one is not defined the default of `5s` is returned.
 
 - `SNI` `(string)` - This value should be used as the
@@ -246,4 +246,4 @@ A single node in the compiled discovery chain.
 - `Name` `(string)` - The unique name for this target for use when generating
   load balancer objects. This has a structure similar to [SNI](#sni), but will
   not be affected by SNI customizations such as
-  [`ExternalSNI`](/docs/connect/config-entries/service-defaults#externalsni).
+  [`ExternalSNI`](/consul/docs/connect/config-entries/service-defaults#externalsni).

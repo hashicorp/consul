@@ -11,7 +11,7 @@ This topic describes how to configure Vault and Consul in order to share secrets
 
 ## Prerequisites
 
-Before you set up the data integration between Vault and Consul on Kubernetes, read and complete the steps in the [Systems Integration](/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
+Before you set up the data integration between Vault and Consul on Kubernetes, read and complete the steps in the [Systems Integration](/consul/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/consul/docs/k8s/deployment-configurations/vault).
 
 ## General integration steps
 
@@ -20,7 +20,7 @@ For each secret you want to store in Vault, you must complete two multi-step pro
 Complete the following steps once:
   1. Store the secret in Vault.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
-  
+
 Repeat the following steps for each datacenter in the cluster:
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Update the Consul on Kubernetes Helm chart.
@@ -37,15 +37,15 @@ It includes things like terminating gateways, ingress gateways, etc.)
 
 | Secret | Service Account For | Configurable Role in Consul k8s Helm |
 | ------ | ------------------- | ------------------------------------ |
-|[ACL Bootstrap token](/docs/k8s/deployment-configurations/vault/data-integration/bootstrap-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
-|[ACL Partition token](/docs/k8s/deployment-configurations/vault/data-integration/partition-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
-|[ACL Replication token](/docs/k8s/deployment-configurations/vault/data-integration/replication-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
-|[Enterprise license](/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
-|[Gossip encryption key](/docs/k8s/deployment-configurations/vault/data-integration/gossip) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
-|[Snapshot Agent config](/docs/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config) | Consul snapshot agent | [`global.secretsBackend.vault.consulSnapshotAgentRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulsnapshotagentrole)|
-|[Server TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
-|[Service Mesh and Consul client TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
-|[Webhook TLS certificates for controller and connect inject](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul controllers<br/>Consul connect inject | [`global.secretsBackend.vault.controllerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)<br />[`global.secretsBackend.vault.connectInjectRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)|
+|[ACL Bootstrap token](/consul/docs/k8s/deployment-configurations/vault/data-integration/bootstrap-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
+|[ACL Partition token](/consul/docs/k8s/deployment-configurations/vault/data-integration/partition-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
+|[ACL Replication token](/consul/docs/k8s/deployment-configurations/vault/data-integration/replication-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
+|[Enterprise license](/consul/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
+|[Gossip encryption key](/consul/docs/k8s/deployment-configurations/vault/data-integration/gossip) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
+|[Snapshot Agent config](/consul/docs/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
+|[Server TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
+|[Service Mesh and Consul client TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
+|[Webhook TLS certificates for controller and connect inject](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul controllers<br/>Consul connect inject | [`global.secretsBackend.vault.controllerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)<br />[`global.secretsBackend.vault.connectInjectRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)|
 
 ### Secondary datacenters
 
@@ -57,20 +57,20 @@ The mapping for secondary data centers is similar with the following differences
 
 | Secret | Service Account For | Configurable Role in Consul k8s Helm |
 | ------ | ------------------- | ------------------------------------ |
-|[ACL Partition token](/docs/k8s/deployment-configurations/vault/data-integration/partition-token) | Consul server-acl-init job<br/>Consul partition-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)<br/>[`global.secretsBackend.vault.adminPartitionsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-adminpartitionsrole)|
-|[ACL Replication token](/docs/k8s/deployment-configurations/vault/data-integration/replication-token) | Consul server-acl-init job<br/>Consul servers | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)<br/>[`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
-|[Enterprise license](/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
-|[Gossip encryption key](/docs/k8s/deployment-configurations/vault/data-integration/gossip) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
-|[Snapshot Agent config](/docs/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config) | Consul snapshot agent | [`global.secretsBackend.vault.consulSnapshotAgentRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulsnapshotagentrole)|
-|[Server TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
-|[Service Mesh and Consul client TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
-|[Webhook TLS certificates for controller and connect inject](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul controllers<br/>Consul connect inject | [`global.secretsBackend.vault.controllerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)<br />[`global.secretsBackend.vault.connectInjectRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)|
+|[ACL Partition token](/consul/docs/k8s/deployment-configurations/vault/data-integration/partition-token) | Consul server-acl-init job<br/>Consul partition-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)<br/>[`global.secretsBackend.vault.adminPartitionsRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-adminpartitionsrole)|
+|[ACL Replication token](/consul/docs/k8s/deployment-configurations/vault/data-integration/replication-token) | Consul server-acl-init job<br/>Consul servers | [`global.secretsBackend.vault.manageSystemACLsRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)<br/>[`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
+|[Enterprise license](/consul/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
+|[Gossip encryption key](/consul/docs/k8s/deployment-configurations/vault/data-integration/gossip) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
+|[Snapshot Agent config](/consul/docs/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
+|[Server TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
+|[Service Mesh and Consul client TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
+|[Webhook TLS certificates for controller and connect inject](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul controllers<br/>Consul connect inject | [`global.secretsBackend.vault.controllerRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)<br />[`global.secretsBackend.vault.connectInjectRole`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)|
 
 ### Combining policies within roles
 
-As you can see in the table above, depending upon your needs, a Consul on Kubernetes service account could have the need to request more than one secret.  In these cases, you will want to create one role for the Consul on Kubernetes service account that is mapped to multiple policies, each of which allows it access to a given secret.  
+Depending upon your needs, a Consul on Kubernetes service account may need to request more than one secret.  To request multiple secrets, create one role for the Consul on Kubernetes service account that is mapped to multiple policies associated with the required secrets.
 
-For example, if your Consul on Kubernetes servers need access to [Consul Server TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/server-tls) and an [Enterprise license](/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license):
+For example, if your Consul on Kubernetes servers need access to [Consul Server TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/server-tls) and an [Enterprise license](/consul/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license):
 
 1. Create a policy for each secret.
 
@@ -119,18 +119,18 @@ For example, if your Consul on Kubernetes servers need access to [Consul Server 
 
 The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
 
-- [ACL Bootstrap token](/docs/k8s/deployment-configurations/vault/data-integration/bootstrap-token)
-- [ACL Partition token](/docs/k8s/deployment-configurations/vault/data-integration/partition-token)
-- [ACL Replication token](/docs/k8s/deployment-configurations/vault/data-integration/replication-token)
-- [Enterprise license](/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license)
-- [Gossip encryption key](/docs/k8s/deployment-configurations/vault/data-integration/gossip)
-- [Snapshot Agent config](/docs/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config)
+- [ACL Bootstrap token](/consul/docs/k8s/deployment-configurations/vault/data-integration/bootstrap-token)
+- [ACL Partition token](/consul/docs/k8s/deployment-configurations/vault/data-integration/partition-token)
+- [ACL Replication token](/consul/docs/k8s/deployment-configurations/vault/data-integration/replication-token)
+- [Enterprise license](/consul/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license)
+- [Gossip encryption key](/consul/docs/k8s/deployment-configurations/vault/data-integration/gossip)
+- [Snapshot Agent config](/consul/docs/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config)
 
 The following TLS certificates and keys can generated and managed by Vault the Vault PKI Engine, which is meant to handle things like certificate expiration and rotation:
 
-- [Server TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/server-tls)
-- [Service Mesh and Consul client TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca)
-- [Vault as the Webhook Certificate Provider for Consul Controller and Connect Inject on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/webhook-certs)
+- [Server TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/server-tls)
+- [Service Mesh and Consul client TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca)
+- [Vault as the Webhook Certificate Provider for Consul Controller and Connect Inject on Kubernetes](/consul/docs/k8s/deployment-configurations/vault/data-integration/webhook-certs)
 
 ## Secrets-to-service account mapping
 

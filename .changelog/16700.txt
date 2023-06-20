@@ -1,0 +1,3 @@
+```release-note:bug
+audit-logging: (Enterprise only) Fix a bug where `/agent/monitor` and `/agent/metrics` endpoints return a `Streaming not supported` error when audit logs are enabled. This also fixes the delay receiving logs when running `consul monitor` against an agent with audit logs enabled.
+```

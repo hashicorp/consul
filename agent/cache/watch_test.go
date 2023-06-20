@@ -1,15 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cache
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Test that a type registered with a periodic refresh can be watched.
@@ -400,4 +406,45 @@ OUT:
 	// Check the number of RPCs as a sanity check too
 	actual := atomic.LoadUint32(&retries)
 	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
+}
+
+func Test_isEqual(t *testing.T) {
+	s1 := time.Now()
+	s2 := s1
+
+	var pb1 proto.Message = timestamppb.New(s1)
+	var pb2 proto.Message = &timestamppb.Timestamp{}
+
+	// Marshal and unmarshal the proto object
+	b, err := proto.Marshal(pb1)
+	require.NoError(t, err)
+	require.NoError(t, proto.Unmarshal(b, pb2))
+
+	// Sanity-check that protobuf comparisons fail reflect.DeepEqual
+	require.False(t, reflect.DeepEqual(pb1, pb2))
+
+	tests := []struct {
+		equal bool
+		v1    interface{}
+		v2    interface{}
+	}{
+		// Test protobuf message comparisons work.
+		{true, nil, nil},
+		{true, pb1, pb2},
+		{false, nil, pb2},
+		{false, pb1, nil},
+		{false, pb1, timestamppb.New(s1.Add(time.Second))},
+		// Test normal struct comparisons
+		{true, s1, s2},
+		{true, &s1, &s2},
+		{false, s1, nil},
+		{false, &s1, nil},
+		{false, nil, s2},
+		{false, nil, &s2},
+		{false, s1, s1.Add(time.Second)},
+	}
+
+	for _, tc := range tests {
+		require.Equal(t, tc.equal, isEqual(tc.v1, tc.v2))
+	}
 }

@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -10,6 +14,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
+)
+
+const (
+	wildcardPrefix = "*."
 )
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -43,6 +51,10 @@ type IngressServiceConfig struct {
 	MaxConnections        uint32
 	MaxPendingRequests    uint32
 	MaxConcurrentRequests uint32
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 }
 
 type IngressListener struct {
@@ -102,6 +114,10 @@ type IngressService struct {
 	MaxConnections        uint32 `json:",omitempty" alias:"max_connections"`
 	MaxPendingRequests    uint32 `json:",omitempty" alias:"max_pending_requests"`
 	MaxConcurrentRequests uint32 `json:",omitempty" alias:"max_concurrent_requests"`
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -363,7 +379,6 @@ func validateHost(tlsEnabled bool, host string) error {
 		return nil
 	}
 
-	wildcardPrefix := "*."
 	if _, ok := dns.IsDomainName(host); !ok {
 		return fmt.Errorf("Host %q must be a valid DNS hostname", host)
 	}
@@ -679,3 +694,458 @@ func (g *GatewayService) Clone() *GatewayService {
 		ServiceKind:  g.ServiceKind,
 	}
 }
+
+// APIGatewayConfigEntry manages the configuration for an API gateway service
+// with the given name.
+type APIGatewayConfigEntry struct {
+	// Kind of the config entry. This will be set to structs.APIGateway.
+	Kind string
+
+	// Name is used to match the config entry with its associated API gateway
+	// service. This should match the name provided in the service definition.
+	Name string
+
+	// Listeners is the set of listener configuration to which an API Gateway
+	// might bind.
+	Listeners []APIGatewayListener
+
+	// Status is the asynchronous status which an APIGateway propagates to the user.
+	Status Status
+
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	RaftIndex
+}
+
+func (e *APIGatewayConfigEntry) GetKind() string                        { return APIGateway }
+func (e *APIGatewayConfigEntry) GetName() string                        { return e.Name }
+func (e *APIGatewayConfigEntry) GetMeta() map[string]string             { return e.Meta }
+func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex               { return &e.RaftIndex }
+func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta { return &e.EnterpriseMeta }
+
+var _ ControlledConfigEntry = (*APIGatewayConfigEntry)(nil)
+
+func (e *APIGatewayConfigEntry) GetStatus() Status       { return e.Status }
+func (e *APIGatewayConfigEntry) SetStatus(status Status) { e.Status = status }
+func (e *APIGatewayConfigEntry) DefaultStatus() Status   { return Status{} }
+
+func (e *APIGatewayConfigEntry) ListenerIsReady(name string) bool {
+	for _, condition := range e.Status.Conditions {
+		if !condition.Resource.IsSame(&ResourceReference{
+			Kind:           APIGateway,
+			SectionName:    name,
+			Name:           e.Name,
+			EnterpriseMeta: e.EnterpriseMeta,
+		}) {
+			continue
+		}
+
+		if condition.Type == "Conflicted" && condition.Status == "True" {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (e *APIGatewayConfigEntry) Normalize() error {
+	for i, listener := range e.Listeners {
+		protocol := strings.ToLower(string(listener.Protocol))
+		listener.Protocol = APIGatewayListenerProtocol(protocol)
+		e.Listeners[i] = listener
+
+		for i, cert := range listener.TLS.Certificates {
+			if cert.Kind == "" {
+				cert.Kind = InlineCertificate
+			}
+			cert.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
+			cert.EnterpriseMeta.Normalize()
+
+			listener.TLS.Certificates[i] = cert
+		}
+	}
+
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if len(e.Listeners) == 0 {
+		return fmt.Errorf("api gateway must have at least one listener")
+	}
+	if err := e.validateListenerNames(); err != nil {
+		return err
+	}
+	if err := e.validateMergedListeners(); err != nil {
+		return err
+	}
+
+	return e.validateListeners()
+}
+
+var listenerNameRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+
+func (e *APIGatewayConfigEntry) validateListenerNames() error {
+	listeners := make(map[string]struct{})
+	for _, listener := range e.Listeners {
+		if len(listener.Name) < 1 || !listenerNameRegex.MatchString(listener.Name) {
+			return fmt.Errorf("listener name %q is invalid, must be at least 1 character and contain only letters, numbers, or dashes", listener.Name)
+		}
+		if _, found := listeners[listener.Name]; found {
+			return fmt.Errorf("found multiple listeners with the name %q", listener.Name)
+		}
+		listeners[listener.Name] = struct{}{}
+	}
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) validateMergedListeners() error {
+	listeners := make(map[int]APIGatewayListener)
+	for _, listener := range e.Listeners {
+		merged, found := listeners[listener.Port]
+		if found && (merged.Hostname != listener.Hostname || merged.Protocol != listener.Protocol) {
+			return fmt.Errorf("listeners %q and %q cannot be merged", merged.Name, listener.Name)
+		}
+		listeners[listener.Port] = listener
+	}
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) validateListeners() error {
+	validProtocols := map[APIGatewayListenerProtocol]bool{
+		ListenerProtocolHTTP: true,
+		ListenerProtocolTCP:  true,
+	}
+	allowedCertificateKinds := map[string]bool{
+		InlineCertificate: true,
+	}
+
+	for _, listener := range e.Listeners {
+		if !validProtocols[listener.Protocol] {
+			return fmt.Errorf("unsupported listener protocol %q, must be one of 'tcp', or 'http'", listener.Protocol)
+		}
+		if listener.Protocol == ListenerProtocolTCP && listener.Hostname != "" {
+			// TODO: once we have SNI matching we should be able to implement this
+			return fmt.Errorf("hostname specification is not supported when using TCP")
+		}
+		if listener.Port <= 0 || listener.Port > 65535 {
+			return fmt.Errorf("listener port %d not in the range 1-65535", listener.Port)
+		}
+		if strings.ContainsRune(strings.TrimPrefix(listener.Hostname, wildcardPrefix), '*') {
+			return fmt.Errorf("host %q is not valid, a wildcard specifier is only allowed as the left-most label", listener.Hostname)
+		}
+		for _, certificate := range listener.TLS.Certificates {
+			if !allowedCertificateKinds[certificate.Kind] {
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
+			}
+			if certificate.Name == "" {
+				return fmt.Errorf("certificate reference must have a name")
+			}
+		}
+		if err := validateTLSConfig(listener.TLS.MinVersion, listener.TLS.MaxVersion, listener.TLS.CipherSuites); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
+}
+
+func (e *APIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
+}
+
+// APIGatewayListenerProtocol is the protocol that an APIGateway listener uses
+type APIGatewayListenerProtocol string
+
+const (
+	ListenerProtocolHTTP APIGatewayListenerProtocol = "http"
+	ListenerProtocolTCP  APIGatewayListenerProtocol = "tcp"
+)
+
+// APIGatewayListener represents an individual listener for an APIGateway
+type APIGatewayListener struct {
+	// Name is the name of the listener in a given gateway. This must be
+	// unique within a gateway.
+	Name string
+	// Hostname is the host name that a listener should be bound to. If
+	// unspecified, the listener accepts requests for all hostnames.
+	Hostname string
+	// Port is the port at which this listener should bind.
+	Port int
+	// Protocol is the protocol that a listener should use. It must
+	// either be http or tcp.
+	Protocol APIGatewayListenerProtocol
+	// TLS is the TLS settings for the listener.
+	TLS APIGatewayTLSConfiguration
+}
+
+func (l APIGatewayListener) GetHostname() string {
+	if l.Hostname != "" {
+		return l.Hostname
+	}
+	return "*"
+}
+
+// APIGatewayTLSConfiguration specifies the configuration of a listener’s
+// TLS settings.
+type APIGatewayTLSConfiguration struct {
+	// Certificates is a set of references to certificates
+	// that a gateway listener uses for TLS termination.
+	Certificates []ResourceReference
+	// MaxVersion is the maximum TLS version that the listener
+	// should support.
+	MaxVersion types.TLSVersion
+	// MinVersion is the minimum TLS version that the listener
+	// should support.
+	MinVersion types.TLSVersion
+	// CipherSuites is the cipher suites that the listener should support.
+	CipherSuites []types.TLSCipherSuite
+}
+
+// IsEmpty returns true if all values in the struct are nil or empty.
+func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
+	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
+}
+
+// BoundAPIGatewayConfigEntry manages the configuration for a bound API
+// gateway with the given name. This type is never written from the client.
+// It is only written by the controller in order to represent an API gateway
+// and the resources that are bound to it.
+type BoundAPIGatewayConfigEntry struct {
+	// Kind of the config entry. This will be set to structs.BoundAPIGateway.
+	Kind string
+
+	// Name is used to match the config entry with its associated API gateway
+	// service. This should match the name provided in the corresponding API
+	// gateway service definition.
+	Name string
+
+	// Listeners are the valid listeners of an APIGateway with information about
+	// what certificates and routes have successfully bound to it.
+	Listeners []BoundAPIGatewayListener
+
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	RaftIndex
+}
+
+func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) bool {
+	listeners := map[string]BoundAPIGatewayListener{}
+	for _, listener := range e.Listeners {
+		listeners[listener.Name] = listener
+	}
+
+	otherListeners := map[string]BoundAPIGatewayListener{}
+	for _, listener := range other.Listeners {
+		otherListeners[listener.Name] = listener
+	}
+
+	if len(listeners) != len(otherListeners) {
+		return false
+	}
+
+	for name, listener := range listeners {
+		otherListener, found := otherListeners[name]
+		if !found {
+			return false
+		}
+		if !listener.IsSame(otherListener) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// IsInitializedForGateway returns whether or not this bound api gateway is initialized with the given api gateway
+// including having corresponding listener entries for the gateway.
+func (e *BoundAPIGatewayConfigEntry) IsInitializedForGateway(gateway *APIGatewayConfigEntry) bool {
+	if e.Name != gateway.Name || !e.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
+		return false
+	}
+
+	// ensure that this has the same listener data (i.e. it's been reconciled)
+	if len(gateway.Listeners) != len(e.Listeners) {
+		return false
+	}
+
+	for i, listener := range e.Listeners {
+		if listener.Name != gateway.Listeners[i].Name {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetKind() string            { return BoundAPIGateway }
+func (e *BoundAPIGatewayConfigEntry) GetName() string            { return e.Name }
+func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *BoundAPIGatewayConfigEntry) Normalize() error {
+	for i, listener := range e.Listeners {
+		for j, route := range listener.Routes {
+			route.EnterpriseMeta.Merge(&e.EnterpriseMeta)
+			route.EnterpriseMeta.Normalize()
+
+			listener.Routes[j] = route
+		}
+		for j, cert := range listener.Certificates {
+			cert.EnterpriseMeta.Merge(&e.EnterpriseMeta)
+			cert.EnterpriseMeta.Normalize()
+
+			listener.Certificates[j] = cert
+		}
+
+		e.Listeners[i] = listener
+	}
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) Validate() error {
+	allowedCertificateKinds := map[string]bool{
+		InlineCertificate: true,
+	}
+	allowedRouteKinds := map[string]bool{
+		HTTPRoute: true,
+		TCPRoute:  true,
+	}
+
+	// These should already be validated by upstream validation
+	// logic in the gateways/routes, but just in case we validate
+	// here as well.
+	for _, listener := range e.Listeners {
+		for _, certificate := range listener.Certificates {
+			if !allowedCertificateKinds[certificate.Kind] {
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
+			}
+			if certificate.Name == "" {
+				return fmt.Errorf("certificate reference must have a name")
+			}
+		}
+		for _, route := range listener.Routes {
+			if !allowedRouteKinds[route.Kind] {
+				return fmt.Errorf("unsupported route kind: %q, must be one of 'http-route', or 'tcp-route'", route.Kind)
+			}
+			if route.Name == "" {
+				return fmt.Errorf("route reference must have a name")
+			}
+		}
+	}
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
+}
+
+func (e *BoundAPIGatewayConfigEntry) CanWrite(_ acl.Authorizer) error {
+	return acl.PermissionDenied("only writeable by controller")
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
+	if e == nil {
+		return &RaftIndex{}
+	}
+	return &e.RaftIndex
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
+	if e == nil {
+		return nil
+	}
+	return &e.EnterpriseMeta
+}
+
+// BoundAPIGatewayListener is an API gateway listener with information
+// about the routes and certificates that have successfully bound to it.
+type BoundAPIGatewayListener struct {
+	Name         string
+	Routes       []ResourceReference
+	Certificates []ResourceReference
+}
+
+func sameResources(first, second []ResourceReference) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for _, firstRef := range first {
+		found := false
+		for _, secondRef := range second {
+			if firstRef.IsSame(&secondRef) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func (l BoundAPIGatewayListener) IsSame(other BoundAPIGatewayListener) bool {
+	if l.Name != other.Name {
+		return false
+	}
+	if !sameResources(l.Certificates, other.Certificates) {
+		return false
+	}
+	return sameResources(l.Routes, other.Routes)
+}
+
+// BindRoute is used to create or update a route on the listener.
+// It returns true if the route was able to be bound to the listener.
+// Routes should only bind to listeners with their same section name
+// and protocol. Be sure to check both of these before attempting
+// to bind a route to the listener.
+func (l *BoundAPIGatewayListener) BindRoute(routeRef ResourceReference) bool {
+	// If the listener has no routes, create a new slice of routes with the given route.
+	if l.Routes == nil {
+		l.Routes = []ResourceReference{routeRef}
+		return true
+	}
+
+	// If the route matches an existing route, update it and return.
+	for i, listenerRoute := range l.Routes {
+		if listenerRoute.Kind == routeRef.Kind && listenerRoute.Name == routeRef.Name && listenerRoute.EnterpriseMeta.IsSame(&routeRef.EnterpriseMeta) {
+			l.Routes[i] = routeRef
+			return true
+		}
+	}
+
+	// If the route is new to the listener, append it.
+	l.Routes = append(l.Routes, routeRef)
+
+	return true
+}
+
+func (l *BoundAPIGatewayListener) UnbindRoute(route ResourceReference) bool {
+	if l == nil {
+		return false
+	}
+
+	for i, listenerRoute := range l.Routes {
+		if listenerRoute.Kind == route.Kind && listenerRoute.Name == route.Name && listenerRoute.EnterpriseMeta.IsSame(&route.EnterpriseMeta) {
+			l.Routes = append(l.Routes[:i], l.Routes[i+1:]...)
+			return true
+		}
+	}
+
+	return false
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetStatus() Status       { return Status{} }
+func (e *BoundAPIGatewayConfigEntry) SetStatus(status Status) {}
+func (e *BoundAPIGatewayConfigEntry) DefaultStatus() Status   { return Status{} }

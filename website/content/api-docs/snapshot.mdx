@@ -10,7 +10,7 @@ description: |-
 
 The `/snapshot` endpoints save and restore the state of the Consul
 servers for disaster recovery. Snapshots include all state managed by Consul's
-Raft [consensus protocol](/docs/architecture/consensus).
+Raft [consensus protocol](/consul/docs/architecture/consensus).
 
 ## Generate Snapshot
 
@@ -30,16 +30,16 @@ restore.
 | `GET`  | `/snapshot` | `200 application/x-gzip` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `default,stale`   | `none`        | `management` |
 
-The corresponding CLI command is [`consul snapshot save`](/commands/snapshot/save).
+The corresponding CLI command is [`consul snapshot save`](/consul/commands/snapshot/save).
 
 ### Query Parameters
 
@@ -84,16 +84,16 @@ version as the cluster that originally took the snapshot.
 | `PUT`  | `/snapshot` | `200 text/plain (empty body)` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `management` |
 
-The corresponding CLI command is [`consul snapshot restore`](/commands/snapshot/restore).
+The corresponding CLI command is [`consul snapshot restore`](/consul/commands/snapshot/restore).
 
 ### Query Parameters
 

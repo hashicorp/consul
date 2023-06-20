@@ -1,0 +1,3 @@
+```release-note:bug
+acl: avoid debug log spam in secondary datacenter servers due to management token not being initialized.
+```

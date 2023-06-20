@@ -6,11 +6,6 @@ description: The /peering endpoints allow for managing cluster peerings.
 
 # Cluster Peering - HTTP API
 
-~> **Cluster peering is currently in technical preview:** Functionality associated
-with cluster peering is subject to change. You should never use the technical
-preview release in secure environments or production scenarios. Features in
-technical preview may have performance issues, scaling issues, and limited support.
-
 The functionality described here is available only in
 [Consul](https://www.hashicorp.com/products/consul/) version 1.13.0 and later.
 
@@ -23,10 +18,10 @@ This endpoint generates a peering token.
 | `POST`  | `/peering/token`     | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
@@ -34,16 +29,15 @@ The table below shows this endpoint's support for
 
 ### JSON Request Body Schema
 
-- `Peer` `(string: <required>)` - The name assigned to the peer cluster.
-  The `Peer` is used to reference the peer cluster in service discovery queries
+- `PeerName` `(string: <required>)` - The name assigned to the peer cluster.
+  The `PeerName` is used to reference the peer cluster in service discovery queries
   and configuration entries such as `service-intentions`. This field must be a
   valid DNS hostname label.
 
 - `Partition` `(string: "")` - <EnterpriseAlert inline /> The admin partition that the
   peering token is generated from. Uses `default` when not specified.
 
-- `ServerExternalAddresses` `([]string: <optional>)` - A list of addresses to put
-into the generated token. Addresses are the form of `{host or IP}:port`.
+- `ServerExternalAddresses` `([]string: <optional>)` - The addresses for the cluster that generates the peering token. Addresses take the form `{host or IP}:port`.
 You can specify one or more load balancers or external IPs that route external traffic to this cluster's Consul servers.
 
 - `Meta` `(map<string|string>: <optional>)` - Specifies KV metadata to associate with
@@ -54,7 +48,7 @@ You can specify one or more load balancers or external IPs that route external t
 
 ```json
 {
-  "Peer": "cluster-02",
+  "PeerName": "cluster-02",
   "Meta": {
     "env": "production"
   }
@@ -90,10 +84,10 @@ This endpoint returns no data. Success or failure is indicated by the status
 code returned.
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
@@ -101,8 +95,8 @@ The table below shows this endpoint's support for
 
 ### JSON Request Body Schema
 
-- `Peer` `(string: <required>)` - The name assigned to the peer cluster.
-  The `Peer` is used to reference the peer cluster in service discovery queries
+- `PeerName` `(string: <required>)` - The name assigned to the peer cluster.
+  The `PeerName` is used to reference the peer cluster in service discovery queries
   and configuration entries such as `service-intentions`. This field must be a
   valid DNS hostname label.
 
@@ -121,7 +115,7 @@ The table below shows this endpoint's support for
 
 ```json
 {
-  "Peer": "cluster-01",
+  "PeerName": "cluster-01",
   "PeeringToken": "eyJDQSI6bnVsbCwiU2V...",
   "Meta": {
     "env": "production"
@@ -153,14 +147,14 @@ This endpoint returns information about a peering connection for the specified p
 | `GET`  | `/peering/:name`   | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
-| `NO`             | `consistent`      | `none`        | `peering:read` |
+| `YES`            | `consistent`      | `none`        | `peering:read` |
 
 ### Path Parameters
 
@@ -209,10 +203,10 @@ This endpoint returns no data. Success or failure is indicated by the status
 code returned.
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
@@ -264,14 +258,14 @@ This endpoint lists all the peerings.
 | `GET`  | `/peerings`   | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
-| ---------------- | ----------------- | ------------- | -------------- |
-| `NO`             | `consistent`      | `none`        | `peering:read` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required   |
+| ---------------- | ----------------- | -------------------- | -------------- |
+| `YES`            | `consistent`      | `background refresh` | `peering:read` |
 
 ### Query Parameters
 

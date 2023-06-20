@@ -16,8 +16,8 @@ Feature: dc / peers / delete: Deleting items with confirmations, success and err
     And I click delete on the peers
     And I click confirmDelete on the peers
     Then a DELETE request was made to "/v1/peering/peer-name"
-    And "[data-notification]" has the "notification-delete" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: Deleting a peer from the peer listing page with error
     Given 1 peer model from yaml
     ---
@@ -32,8 +32,8 @@ Feature: dc / peers / delete: Deleting items with confirmations, success and err
     And I click actions on the peers
     And I click delete on the peers
     And I click confirmDelete on the peers
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "error" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-critical" class
   Scenario: A Peer currently deleting cannot be deleted
     Given 1 peer model from yaml
     ---

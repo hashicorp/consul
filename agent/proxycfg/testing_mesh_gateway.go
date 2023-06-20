@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -8,10 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -182,6 +187,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 						Kind:           structs.ServiceResolver,
 						Name:           "bar",
 						ConnectTimeout: 10 * time.Second,
+						RequestTimeout: 10 * time.Second,
 						Subsets: map[string]structs.ServiceResolverSubset{
 							"v1": {
 								Filter: "Service.Meta.Version == 1",
@@ -473,6 +479,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		discoChains = make(map[structs.ServiceName]*structs.CompiledDiscoveryChain)
 		endpoints   = make(map[structs.ServiceName]structs.CheckServiceNodes)
 		entries     []structs.ConfigEntry
+		// This portion of the test is not currently enterprise-aware, but we need this to satisfy a function call.
+		entMeta = *acl.DefaultEnterpriseMeta()
 	)
 
 	switch variant {
@@ -587,14 +595,16 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		entries = append(entries, proxyDefaults)
 		fallthrough // to-case: "default-services-tcp"
 	case "default-services-tcp":
+		set := configentry.NewDiscoveryChainSet()
+		set.AddEntries(entries...)
 		var (
 			fooSN = structs.NewServiceName("foo", nil)
 			barSN = structs.NewServiceName("bar", nil)
 			girSN = structs.NewServiceName("gir", nil)
 
-			fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
-			barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
-			girChain = discoverychain.TestCompileConfigEntries(t, "gir", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+			fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+			barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+			girChain = discoverychain.TestCompileConfigEntries(t, "gir", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
 		)
 
 		assert.True(t, fooChain.Default)
@@ -659,8 +669,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: "peering-connect-service:peer-a:db",
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: structs.CheckServiceNodes{
-						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "peer-a", "10.40.1.1", false),
-						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "peer-a", "10.40.1.2", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.1", false, entMeta),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.2", false, entMeta),
 					},
 				},
 			},
@@ -668,8 +678,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: "peering-connect-service:peer-b:alt",
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: structs.CheckServiceNodes{
-						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "peer-b", "10.40.2.1", false),
-						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "peer-b", "10.40.2.2", true),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.1", false, entMeta),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.2", true, entMeta),
 					},
 				},
 			},
@@ -687,6 +697,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ServiceResolverConfigEntry{
 				Kind: structs.ServiceResolver,
@@ -737,11 +748,14 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 			require.NoError(t, entry.Validate())
 		}
 
+		set := configentry.NewDiscoveryChainSet()
+		set.AddEntries(entries...)
+
 		var (
 			dbSN  = structs.NewServiceName("db", nil)
 			altSN = structs.NewServiceName("alt", nil)
 
-			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
 		)
 
 		needPeerA = true
@@ -792,14 +806,13 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: peerServersWatchID,
 				Result: &pbpeering.PeeringListResponse{
 					Peerings: []*pbpeering.Peering{
-						// Not active
+						// Empty state should be included. This could result from a query being served by a follower.
 						{
 							Name:           "peer-a",
 							PeerServerName: connect.PeeringServerSAN("dc2", "f3f41279-001d-42bb-912e-f6103fb036b8"),
 							PeerServerAddresses: []string{
 								"1.2.3.4:5200",
 							},
-							State:       pbpeering.PeeringState_TERMINATED,
 							ModifyIndex: 2,
 						},
 						// No server addresses, so this should only be accepting connections

@@ -1,6 +1,8 @@
 ---
 layout: commands
 page_title: 'Commands: Snapshot Agent'
+description: |
+  The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers in Consul Enterprise. It can capture server state once or it can run as daemon that captures snapshots at defined intervals.
 ---
 
 # Consul Snapshot Agent
@@ -9,9 +11,9 @@ Command: `consul snapshot agent`
 
 <EnterpriseAlert />
 
-~> The [`agent`](/commands/snapshot/agent) subcommand described here is
+~> The [`agent`](/consul/commands/snapshot/agent) subcommand described here is
 available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
-version 0.7.1 and later. All other [snapshot subcommands](/commands/snapshot)
+version 0.7.1 and later. All other [snapshot subcommands](/consul/commands/snapshot)
 are available in the open source version of Consul.
 
 The `snapshot agent` subcommand starts a process that takes snapshots of the
@@ -48,8 +50,8 @@ in the file name when using local storage, or in the object key when using
 remote storage.
 
 Snapshots can be restored using the
-[`consul snapshot restore`](/commands/snapshot/restore) command, or
-the [HTTP API](/api-docs/snapshot).
+[`consul snapshot restore`](/consul/commands/snapshot/restore) command, or
+the [HTTP API](/consul/api-docs/snapshot).
 
 ## ACL permissions
 
@@ -170,6 +172,12 @@ Usage: `consul snapshot agent [options]`
     "aws_storage": {
       "access_key_id": "",
       "secret_access_key": "",
+      "session_token": "",
+      "iam_endpoint": "",
+      "role_arn": "",
+      "role_session_name": "",
+      "web_identity_token_file": "",
+      "sts_endpoint": "",
       "s3_region": "",
       "s3_bucket": "",
       "s3_key_prefix": "consul-snapshot",
@@ -265,15 +273,29 @@ if desired.
 
 Note that despite the AWS references, any S3-compatible endpoint can be specified with `-aws-s3-endpoint`.
 
-- `-aws-access-key-id` and `-aws-secret-access-key` - These arguments supply
+- `-aws-access-key-id`, `-aws-secret-access-key` and `-aws-session-token` - These arguments supply static
   authentication information for connecting to S3. These may also be supplied using
   the following alternative methods:<br />
 
-  - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables
+  - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` environment variables
   - A credentials file (`~/.aws/credentials` or the file at the path specified by the
     `AWS_SHARED_CREDENTIALS_FILE` environment variable)
   - ECS task role metadata (container-specific)
   - EC2 instance role metadata
+
+- `-aws-iam-endpoint` - IAM endpoint to use when authenticating with static credentials.
+  Default is to use the global IAM endpoint.
+
+- `-aws-role-arn`, `-aws-role-session-name`, and `-aws-web-identity-token-file` - These arguments are
+  used to obtain temporary credentials by assuming an IAM role. These may also be supplied using
+  the following alternative methods:<br />
+
+  - `AWS_ROLE_ARN`, `AWS_ROLE_SESSION_NAME`, and `AWS_WEB_IDENTITY_TOKEN_FILE` environment variables.
+  - A credentials file (~/.aws/credentials or the file at the path specified by the
+    `AWS_SHARED_CREDENTIALS_FILE` environment variable)
+
+- `-aws-sts-endpoint` - STS endpoint to use for obtaining temporary credentials.
+  Default is to use the global STS endpoint.
 
 - `-aws-s3-bucket` - S3 bucket to use. Required for S3 storage, and setting this
   disables local storage. This should be only the bucket name without any
@@ -284,8 +306,8 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 
 - `-aws-s3-region` - S3 region to use. Required for S3 storage.
 
-- `-aws-s3-endpoint` - Optional S3 endpoint to use. Can also be specified using the
-  AWS_S3_ENDPOINT environment variable.
+- `-aws-s3-endpoint` - S3 endpoint to use. Can also be specified using the
+  `AWS_S3_ENDPOINT` environment variable. Defaults to the regional S3 endpoint.
 
 - `-aws-s3-server-side-encryption` - Enables saving snapshots to S3 using server side encryption with [Amazon S3-Managed Encryption Keys](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
 
@@ -393,7 +415,7 @@ leader election or service registration:
 $ consul snapshot agent -interval=0
 ```
 
-Please see the [HTTP API](/api-docs/snapshot) documentation for
+Please see the [HTTP API](/consul/api-docs/snapshot) documentation for
 more details about snapshot internals.
 
 ## Licensing
@@ -411,5 +433,5 @@ then the order of precedence is as follows:
 3. `license_path` configuration.
 
 The ability to load licenses from the configuration or environment was added in v1.10.0,
-v1.9.7 and v1.8.13. See the [licensing documentation](/docs/enterprise/license/overview) for
+v1.9.7 and v1.8.13. See the [licensing documentation](/consul/docs/enterprise/license/overview) for
 more information about Consul Enterprise license management.

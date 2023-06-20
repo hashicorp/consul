@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -68,7 +72,7 @@ func resolveTokenAsync(r *ACLResolver, token string, ch chan *asyncResolutionRes
 	ch <- &asyncResolutionResult{authz: authz, err: err}
 }
 
-func resolveToken(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
+func resolveTokenSecret(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
 	t.Helper()
 	authz, err := r.ResolveToken(token)
 	require.NoError(t, err)
@@ -212,7 +216,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "acl-ro",
 			Description: "acl-ro",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -223,7 +226,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "acl-wr",
 			Description: "acl-wr",
 			Rules:       `acl = "write"`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -234,7 +236,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "service-ro",
 			Description: "service-ro",
 			Rules:       `service_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -245,7 +246,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "service-wr",
 			Description: "service-wr",
 			Rules:       `service_prefix "" { policy = "write" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -256,7 +256,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "node-wr",
 			Description: "node-wr",
 			Rules:       `node_prefix "" { policy = "write"}`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
@@ -268,7 +267,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "dc2-key-wr",
 			Description: "dc2-key-wr",
 			Rules:       `key_prefix "" { policy = "write"}`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc2"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
@@ -671,7 +669,7 @@ func (d *ACLResolverTestDelegate) ResolveRoleFromID(roleID string) (bool, *struc
 	return testRoleForID(roleID)
 }
 
-func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply interface{}) error {
+func (d *ACLResolverTestDelegate) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	switch method {
 	case "ACL.TokenRead":
 		atomic.AddInt32(&d.remoteTokenResolutions, 1)
@@ -692,7 +690,7 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 		}
 		panic("Bad Test Implementation: should provide a roleResolveFn to the ACLResolverTestDelegate")
 	}
-	if handled, err := d.EnterpriseACLResolverTestDelegate.RPC(method, args, reply); handled {
+	if handled, err := d.EnterpriseACLResolverTestDelegate.RPC(context.Background(), method, args, reply); handled {
 		return err
 	}
 	panic("Bad Test Implementation: Was the ACLResolver updated to use new RPC methods")
@@ -1698,11 +1696,10 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "missing-policy")
+		authz := resolveTokenSecret(t, r, "missing-policy")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1732,11 +1729,10 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "missing-role")
+		authz := resolveTokenSecret(t, r, "missing-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1767,11 +1763,10 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "missing-policy-on-role")
+		authz := resolveTokenSecret(t, r, "missing-policy-on-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1792,7 +1787,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1801,12 +1795,11 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "found")
+		authz := resolveTokenSecret(t, r, "found")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1835,7 +1828,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1844,12 +1836,11 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "found-role")
+		authz := resolveTokenSecret(t, r, "found-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1873,7 +1864,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1882,7 +1872,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1900,11 +1889,10 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "service-ro",
 				Description: "service-ro",
 				Rules:       `service_prefix "" { policy = "read" }`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "found-policy-and-role")
+		authz := resolveTokenSecret(t, r, "found-policy-and-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1936,7 +1924,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				},
 			},
 		})
-		authz := resolveToken(t, r, "found-role-node-identity")
+		authz := resolveTokenSecret(t, r, "found-role-node-identity")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.NodeWrite("test-node", nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
@@ -2071,7 +2059,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -2097,7 +2084,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "ixn-write",
 				Description: "ixn-write",
 				Rules:       `service_prefix "" { policy = "write" intentions = "write" }`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %icon-definition {
   @extend %horizontal-kv-list;
 }
@@ -8,32 +13,32 @@
 %icon-definition.passing dt::before,
 %composite-row-header .passing dd::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %icon-definition.warning dt::before,
 %composite-row-header .warning dd::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
-  color: rgb(var(--tone-orange-500));
+  color: var(--token-color-foreground-warning);
 }
 %icon-definition.critical dt::before,
 %composite-row-header .critical dd::before {
   @extend %with-cancel-square-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %icon-definition.empty dt::before,
 %composite-row-header .empty dd::before {
   @extend %with-minus-square-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %icon-definition.unknown dt::before,
 %composite-row-header .unknown dd::before {
   @extend %with-help-circle-outline-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 
 %composite-row-header [rel='me'] dd::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
 }
 
 %icon-definition.node dt::before {

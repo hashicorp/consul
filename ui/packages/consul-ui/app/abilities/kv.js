@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import BaseAbility, { ACCESS_LIST } from './base';
 
 export default class KVAbility extends BaseAbility {

@@ -2,7 +2,7 @@ ${[0].map(
   () => {
     let prevKind;
     let name;
-    const gateways = ['mesh-gateway', 'ingress-gateway', 'terminating-gateway'];
+    const gateways = ['mesh-gateway', 'ingress-gateway', 'terminating-gateway', 'api-gateway'];
     return `
 [
   ${

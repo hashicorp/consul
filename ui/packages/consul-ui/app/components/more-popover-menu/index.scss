@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 .more-popover-menu {
   @extend %more-popover-menu;
 }
@@ -14,7 +19,7 @@
   padding: 7px;
 }
 %more-popover-menu-trigger > * {
-  background-color: var(--transparent);
+  background-color: transparent;
   border-radius: var(--decor-radius-100);
   width: 30px;
   height: 30px;
@@ -22,7 +27,7 @@
 }
 %more-popover-menu-trigger > *::after {
   --icon-name: icon-more-horizontal;
-  --icon-color: rgb(var(--tone-gray-900));
+  --icon-color: var(--token-color-foreground-strong);
   --icon-size: icon-300;
   content: '';
   position: absolute;
@@ -32,9 +37,9 @@
   margin-left: -8px;
 }
 %more-popover-menu-trigger > *:active {
-  background-color: rgb(var(--tone-gray-100));
+  background-color: var(--token-color-surface-strong);
 }
 %more-popover-menu-trigger > *:hover,
 %more-popover-menu-trigger > *:focus {
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
 }

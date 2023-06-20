@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // package oidcauth bundles up an opinionated approach to authentication using
 // both the OIDC authorization code workflow and simple JWT decoding (via
 // static keys, JWKS, and OIDC discovery).

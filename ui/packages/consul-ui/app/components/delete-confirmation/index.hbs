@@ -1,7 +1,21 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <p>
   {{message}}
 </p>
-<button type="button" class="type-delete" onclick={{action execute}}>
-  Confirm Delete
-</button>
-<button type="button" class="type-cancel" onclick={{action cancel}}>Cancel</button>
+<Hds::ButtonSet>
+  <Hds::Button
+    @text='Confirm Delete'
+    data-test-delete
+    @color='critical'
+    onclick={{action execute}}
+  />
+  <Hds::Button
+    @text='Cancel'
+    @color='secondary'
+    onclick={{action cancel}}
+  />
+</Hds::ButtonSet>

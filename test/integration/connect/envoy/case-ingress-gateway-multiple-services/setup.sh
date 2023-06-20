@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 set -euo pipefail
 
@@ -17,6 +20,11 @@ Defaults {
   MaxConnections        = 10
   MaxPendingRequests    = 20
   MaxConcurrentRequests = 30
+
+  PassiveHealthCheck {
+    MaxFailures  = 10
+    Interval     = 5000000000
+  }
 }
 listeners = [
   {
@@ -38,6 +46,9 @@ listeners = [
         MaxConnections        = 100
         MaxPendingRequests    = 200
         MaxConcurrentRequests = 300
+        PassiveHealthCheck {
+          MaxFailures  = 15
+        }
       }
     ]
   }

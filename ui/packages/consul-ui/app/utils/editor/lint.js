@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 /*global CodeMirror*/
 
 // CodeMirror doesn't seem to have anyway to hook into whether a mode

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Serializer from '@ember-data/serializer/rest';
 
 export default class HttpSerializer extends Serializer {

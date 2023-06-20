@@ -1,5 +1,10 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %auth-form em {
-  @extend %p3;
-  color: rgb(var(--tone-gray-500));
+  @extend %body-100-regular;
+  color: var(--token-color-foreground-faint);
   font-style: normal;
 }

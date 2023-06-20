@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import comparators from 'consul-ui/sort/comparators/service';
 import { properties } from 'consul-ui/services/sort';
 import { module, test } from 'qunit';

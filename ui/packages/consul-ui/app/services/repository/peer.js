@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import RepositoryService from 'consul-ui/services/repository';
 import dataSource from 'consul-ui/decorators/data-source';
 import { inject as service } from '@ember/service';
@@ -44,8 +49,11 @@ export default class PeerService extends RepositoryService {
     });
   }
 
-  @dataSource('/:partition/:ns/:dc/peering/token-for/:name')
-  async fetchToken({ dc, ns, partition, name }, configuration, request) {
+  @dataSource('/:partition/:ns/:dc/peering/token-for/:name/:externalAddresses')
+  async fetchToken({ dc, ns, partition, name, externalAddresses }, configuration, request) {
+    const ServerExternalAddresses =
+      externalAddresses?.length > 0 ? externalAddresses.split(',') : [];
+
     return (
       await request`
       POST /v1/peering/token
@@ -53,6 +61,7 @@ export default class PeerService extends RepositoryService {
       ${{
         PeerName: name,
         Partition: partition || undefined,
+        ServerExternalAddresses,
       }}
     `
     )((headers, body, cache) => body);

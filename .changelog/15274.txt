@@ -1,0 +1,3 @@
+```release-note: bug
+cli: fix ACL token processing unexpected precedence
+```

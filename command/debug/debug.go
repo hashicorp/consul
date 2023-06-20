@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package debug
 
 import (
@@ -32,7 +35,7 @@ const (
 
 	// debugDuration is the total duration that debug runs before being
 	// shut down
-	debugDuration = 2 * time.Minute
+	debugDuration = 5 * time.Minute
 
 	// debugDurationGrace is a period of time added to the specified
 	// duration to allow intervals to capture within that time
@@ -270,7 +273,8 @@ func (c *cmd) prepare() (version string, err error) {
 	// If none are specified we will collect information from
 	// all by default
 	if len(c.capture) == 0 {
-		c.capture = defaultTargets
+		c.capture = make([]string, len(defaultTargets))
+		copy(c.capture, defaultTargets)
 	}
 
 	// If EnableDebug is not true, skip collecting pprof
@@ -499,7 +503,7 @@ func (c *cmd) captureHeap(outputDir string) error {
 }
 
 func (c *cmd) captureLogs(ctx context.Context) error {
-	logCh, err := c.client.Agent().Monitor("DEBUG", ctx.Done(), nil)
+	logCh, err := c.client.Agent().Monitor("TRACE", ctx.Done(), nil)
 	if err != nil {
 		return err
 	}

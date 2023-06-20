@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -7,13 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -54,21 +58,20 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	roots, leaf := TestCerts(t)
 
 	dbDefaultChain := func() *structs.CompiledDiscoveryChain {
+		set := configentry.NewDiscoveryChainSet()
+		set.AddEntries(&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "db",
+		})
 		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", func(req *discoverychain.CompileRequest) {
 			// This is because structs.TestUpstreams uses an opaque config
 			// to override connect timeouts.
 			req.OverrideConnectTimeout = 1 * time.Second
-		}, &structs.ServiceResolverConfigEntry{
-			Kind: structs.ServiceResolver,
-			Name: "db",
-		})
+		}, set)
 	}
 	dbSplitChain := func() *structs.CompiledDiscoveryChain {
-		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", func(req *discoverychain.CompileRequest) {
-			// This is because structs.TestUpstreams uses an opaque config
-			// to override connect timeouts.
-			req.OverrideConnectTimeout = 1 * time.Second
-		}, &structs.ProxyConfigEntry{
+		set := configentry.NewDiscoveryChainSet()
+		set.AddEntries(&structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
 			Name: structs.ProxyConfigGlobal,
 			Config: map[string]interface{}{
@@ -93,9 +96,14 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				{Weight: 40, ServiceSubset: "v2"},
 			},
 		})
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", func(req *discoverychain.CompileRequest) {
+			// This is because structs.TestUpstreams uses an opaque config
+			// to override connect timeouts.
+			req.OverrideConnectTimeout = 1 * time.Second
+		}, set)
 	}
 
-	upstreams := structs.TestUpstreams(t)
+	upstreams := structs.TestUpstreams(t, false)
 	for i := range upstreams {
 		upstreams[i].DestinationNamespace = structs.IntentionDefaultNamespace
 		upstreams[i].DestinationPartition = api.PartitionDefaultName
@@ -122,7 +130,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Datacenter:   "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token"},
 	}
-	leafReq := &cachetype.ConnectCALeafRequest{
+	leafReq := &leafcert.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Token:      "my-token",
 		Service:    "web",
@@ -350,7 +358,7 @@ func testManager_BasicLifecycle(
 	t *testing.T,
 	dataSources *TestDataSources,
 	rootsReq *structs.DCSpecificRequest,
-	leafReq *cachetype.ConnectCALeafRequest,
+	leafReq *leafcert.ConnectCALeafRequest,
 	roots *structs.IndexedCARoots,
 	webProxy *structs.NodeService,
 	expectSnap *ConfigSnapshot,
@@ -635,7 +643,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// update the intentions
 	notifyCH <- UpdateEvent{
 		CorrelationID: intentionsWatchID,
-		Result:        structs.Intentions{},
+		Result:        structs.SimplifiedIntentions{},
 		Err:           nil,
 	}
 

@@ -1,3 +1,8 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+//go:build !fips
+// +build !fips
+
 package tlsutil
 
 import (
@@ -906,7 +911,7 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 
 	_, err = wrap("dc1", "bob", "foo", client)
 	require.Error(t, err)
-	_, ok := err.(x509.HostnameError)
+	_, ok := err.(*tls.CertificateVerificationError)
 	require.True(t, ok)
 	client.Close()
 

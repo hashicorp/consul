@@ -5,8 +5,8 @@ package pbcommon
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
-	duration "github.com/golang/protobuf/ptypes/duration"
+	proto "google.golang.org/protobuf/proto"
+	duration "google.golang.org/protobuf/types/known/durationpb"
 	math "math"
 )
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package aclfilter
 
 import (
@@ -28,7 +31,7 @@ func TestACL_filterImported_IndexedHealthChecks(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -99,7 +102,7 @@ func TestACL_filterImported_IndexedNodes(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -172,7 +175,7 @@ func TestACL_filterImported_IndexedNodeServices(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -253,7 +256,7 @@ func TestACL_filterImported_IndexedNodeServiceList(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -333,7 +336,7 @@ func TestACL_filterImported_IndexedServiceNodes(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -402,7 +405,7 @@ func TestACL_filterImported_CheckServiceNode(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -505,10 +508,16 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
+			service_prefix "foo" {
+			  policy = "read"
+			}
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+			node_prefix "node1" {
+			  policy = "read"
+			}
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -527,7 +536,10 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+			service_prefix "foo" {
+			  policy = "read"
+			}
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -546,7 +558,10 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+			node_prefix "node1" {
+			  policy = "read"
+			}
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -604,7 +619,10 @@ func TestACL_filterIntentions(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+			service_prefix "foo" {
+			  policy = "read"
+			}
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -675,7 +693,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -694,7 +712,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -758,7 +776,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -777,7 +795,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -796,7 +814,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -855,7 +873,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -874,7 +892,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -893,7 +911,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -936,7 +954,7 @@ func TestACL_filterGatewayServices(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -996,7 +1014,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1015,7 +1033,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1034,7 +1052,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1094,7 +1112,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1113,7 +1131,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1132,7 +1150,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1231,7 +1249,7 @@ node "node1" {
 service "foo" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -1259,7 +1277,7 @@ node "node2" {
 service "bar" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -1293,7 +1311,7 @@ node "node2" {
 service "bar" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -1344,7 +1362,7 @@ func TestACL_filterCoordinates(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1396,7 +1414,7 @@ func TestACL_filterSessions(t *testing.T) {
 			session "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1500,7 +1518,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1520,7 +1538,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1549,7 +1567,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1587,7 +1605,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 			service "" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1607,8 +1625,11 @@ func TestACL_filterNodeDump(t *testing.T) {
 				policy, err := acl.NewPolicyFromSource(`
 			node "" {
 			  policy = "read"
+			},
+			node_prefix "" {
+			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1640,11 +1661,17 @@ func TestACL_filterNodeDump(t *testing.T) {
 				policy, err := acl.NewPolicyFromSource(`
 			service "" {
 			  policy = "read"
+			},
+            service_prefix "" {
+			  policy = "read"
 			}
 			node "" {
 			  policy = "read"
+			},
+            node_prefix "" {
+			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1813,7 +1840,7 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1877,7 +1904,7 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 			service "bar" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1903,7 +1930,7 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 			service "bar" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1928,7 +1955,7 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 				require.NoError(t, err)
 
 				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2022,7 +2049,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 			service_prefix "bar" {
 			  policy = "read"
 			}
-		`, acl.SyntaxCurrent, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2044,7 +2071,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 			service_prefix "bar" {
 			  policy = "read"
 			}
-		`, acl.SyntaxCurrent, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2067,7 +2094,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 			service "foo-gateway" {
 			  policy = "read"
 			}
-		`, acl.SyntaxCurrent, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2089,7 +2116,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, acl.SyntaxCurrent, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2164,7 +2191,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 			service_prefix "" {
 			  policy = "read"
 			}
-		`, acl.SyntaxCurrent, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2184,7 +2211,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 			service_prefix "" {
 			  policy = "read"
 			}
-		`, acl.SyntaxCurrent, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2203,7 +2230,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 			node_prefix "" {
 			  policy = "read"
 			}
-		`, acl.SyntaxCurrent, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2360,7 +2387,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 			query "query-with-a-token" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2432,7 +2459,7 @@ func TestACL_unhandledFilterType(t *testing.T) {
 func policy(t *testing.T, hcl string) acl.Authorizer {
 	t.Helper()
 
-	policy, err := acl.NewPolicyFromSource(hcl, acl.SyntaxCurrent, nil, nil)
+	policy, err := acl.NewPolicyFromSource(hcl, nil, nil)
 	require.NoError(t, err)
 
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

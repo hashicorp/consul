@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { get as httpGet } from 'consul-ui/tests/helpers/api';
 import { getProperties, set } from '@ember/object';
 import measure from 'consul-ui/tests/helpers/measure';

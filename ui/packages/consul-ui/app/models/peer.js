@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Model, { attr } from '@ember-data/model';
 import { nullValue } from 'consul-ui/decorators/replace';
 
@@ -17,6 +22,8 @@ export default class Peer extends Model {
   @attr('string') Name;
   @attr('string') State;
   @attr('string') ID;
+  @attr('string') ServerExternalAddresses;
+  @nullValue([]) @attr() ServerExternalAddresses;
 
   // only the side that establishes will hold this property
   @attr('string') PeerID;

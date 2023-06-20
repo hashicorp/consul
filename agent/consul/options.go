@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -35,6 +38,8 @@ type Deps struct {
 
 	// HCP contains the dependencies required when integrating with the HashiCorp Cloud Platform
 	HCP hcp.Deps
+
+	Experiments []string
 
 	EnterpriseDeps
 }

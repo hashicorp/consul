@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 // RaftServer has information about a server in the Raft configuration.
@@ -25,6 +28,9 @@ type RaftServer struct {
 	// it's a non-voting server, which will be added in a future release of
 	// Consul.
 	Voter bool
+
+	// LastIndex is the last log index this server has a record of in its Raft log.
+	LastIndex uint64
 }
 
 // RaftConfiguration is returned when querying for the current Raft configuration.

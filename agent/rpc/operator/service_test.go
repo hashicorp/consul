@@ -1,18 +1,23 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package operator
 
 import (
 	"context"
 	"fmt"
+	"testing"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pboperator"
-	"github.com/hashicorp/go-hclog"
-	"github.com/stretchr/testify/mock"
-	"google.golang.org/grpc"
-	"testing"
-
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/proto/private/pboperator"
 )
 
 type MockBackend struct {
@@ -40,7 +45,7 @@ func TestLeaderTransfer_ACL_Deny(t *testing.T) {
 
 	_, err := server.TransferLeader(context.Background(), &pboperator.TransferLeaderRequest{})
 	require.Error(t, err)
-	require.Equal(t, "Permission denied: provided token lacks permission 'operator:write'", err.Error())
+	require.Equal(t, "Permission denied: token with AccessorID '' lacks permission 'operator:write'", err.Error())
 }
 
 func TestLeaderTransfer_ACL_Allowed(t *testing.T) {

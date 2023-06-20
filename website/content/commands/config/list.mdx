@@ -1,20 +1,22 @@
 ---
 layout: commands
 page_title: 'Commands: Config List'
+description: >-
+  The `consul config list` command lists all configuration entries for each config entry kind.
 ---
 
 # Consul Config List
 
 Command: `consul config list`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/config/:kind](/api-docs/config#list-configurations)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/config/:kind](/consul/api-docs/config#list-configurations)
 
 The `config list` command lists all given config entries of the given kind.
-See the [configuration entries docs](/docs/agent/config-entries) for more
+See the [configuration entries docs](/consul/docs/agent/config-entries) for more
 details about configuration entries.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required<sup>1</sup>              |
@@ -25,6 +27,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 | Config Entry Kind   | Required ACL      |
 | ------------------- | ----------------- |
+| api-gateway         | `mesh:read`       |
 | ingress-gateway     | `service:read`    |
 | proxy-defaults      | `<none>`          |
 | service-defaults    | `service:read`    |
@@ -41,6 +44,7 @@ Usage: `consul config list [options]`
 #### Command Options
 
 - `-kind` - Specifies the kind of the config entry to list.
+- `-filter` - Specifies an expression to use for filtering the results.
 
 #### Enterprise Options
 
@@ -54,7 +58,16 @@ Usage: `consul config list [options]`
 
 ## Examples
 
+To list all service-defaults config entries:
+
     $ consul config list -kind service-defaults
     billing
     db
     web
+
+The following lists service-defaults with a filter expression:
+
+    $ consul config list -kind service-defaults -filter 'MutualTLSMode == "permissive"'
+    db
+    web
+

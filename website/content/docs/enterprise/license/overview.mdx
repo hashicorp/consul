@@ -23,12 +23,12 @@ when it is started.
 Consul Enterprise 1.14.0, when running on Kubernetes, removed client agents and replaced these with virtual agents.
 Virtual agents are nodes that Consul service mesh services run on. HashiCorp uses virtual agents to determine license entitlements for customers on per-node licensing and pricing agreements.
 
--> Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
+-> Visit the [Enterprise License Tutorial](/nomad/tutorials/enterprise/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
 
 ### Applying a License
 
 For Consul Enterprise 1.10.0 or greater, a license must be available at the time the agent starts.
-For server agents this means that they must either have the [`license_path`](/docs/agent/config/config-files#license_path)
+For server agents this means that they must either have the [`license_path`](/consul/docs/agent/config/config-files#license_path)
 configuration set or have a license configured in the servers environment with the `CONSUL_LICENSE` or
 `CONSUL_LICENSE_PATH` environment variables. Both the configuration item and the `CONSUL_LICENSE_PATH`
 environment variable point to a file containing the license whereas the `CONSUL_LICENSE` environment
@@ -39,7 +39,7 @@ the following order of precedence applies:
 2. `CONSUL_LICENSE_PATH` environment variable
 3. `license_path` configuration item.
 
-Client agents and [snapshot agents](/docs/enterprise/backups)
+Client agents and [snapshot agents](/consul/docs/enterprise/backups)
 may also be licensed in the very same manner.
 However, to avoid the need to configure the license on many client agents and snapshot agents,
 those agents have the capability to retrieve the license automatically under the conditions described below.
@@ -48,19 +48,19 @@ Virtual agents do not need the license to run.
 
 Updating the license for an agent depends on the method you used to apply the license.
 - **If you used the `CONSUL_LICENSE`
-environment variable**: After updating the environment variable, restart the affected agents. 
+environment variable**: After updating the environment variable, restart the affected agents.
 - **If you used the
-`CONSUL_LICENSE_PATH` environment variable**: Update the license file first. Then, restart the affected agents. 
-- **If you used the `license_path` configuration item**: Update the license file first. Then, run [`consul reload`](/commands/reload) for the affected agents.
+`CONSUL_LICENSE_PATH` environment variable**: Update the license file first. Then, restart the affected agents.
+- **If you used the `license_path` configuration item**: Update the license file first. Then, run [`consul reload`](/consul/commands/reload) for the affected agents.
 
 #### Client Agent License Retrieval
 
 When a client agent starts without a license in its configuration or environment, it will try to retrieve the
 license from the servers via RPCs. That RPC always requires a valid non-anonymous ACL token to authorize the
 request but the token doesn't need any particular permissions. As the license is required before the client
-actually joins the cluster, where to make those RPC requests to is inferred from the [`start_join`](/docs/agent/config/config-files#start_join)
-or [`retry_join`](/docs/agent/config/config-files#retry_join) configurations. If those are both unset or no
-[`agent` token](/docs/agent/config/config-files#acl_tokens_agent) is set then the client agent will immediately shut itself down.
+actually joins the cluster, where to make those RPC requests to is inferred from the
+[`retry_join`](/consul/docs/agent/config/config-files#retry_join) configuration. If `retry_join` is unset or no
+[`agent` token](/consul/docs/agent/config/config-files#acl_tokens_agent) is set then the client agent will immediately shut itself down.
 
 If all preliminary checks pass the client agent will attempt to reach out to any server on its RPC port to
 request the license. These requests will be retried for up to 5 minutes and if it is unable to retrieve a

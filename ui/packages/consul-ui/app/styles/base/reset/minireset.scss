@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 html,
 body,
 p,
@@ -12,24 +17,9 @@ figure,
 fieldset,
 legend,
 textarea,
-pre,
 iframe,
-hr,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+hr {
   @extend %reset-box;
-}
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  @extend %reset-typo;
 }
 
 ul {

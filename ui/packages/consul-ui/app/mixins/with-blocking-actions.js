@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
 import { set, get } from '@ember/object';
@@ -75,7 +80,9 @@ export default Mixin.create({
       // do the same as an update, or override
       return this.afterUpdate(...arguments);
     },
-    create: function (item) {
+    create: function (item, event) {
+      event.preventDefault();
+
       return this.feedback.execute(
         () => {
           return this.repo.persist(item).then((item) => {
@@ -88,7 +95,9 @@ export default Mixin.create({
         }
       );
     },
-    update: function (item) {
+    update: function (item, event) {
+      event.preventDefault();
+
       return this.feedback.execute(
         () => {
           return this.repo.persist(item).then(() => {

@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
@@ -44,6 +47,25 @@ function retry_default {
 
 function retry_long {
   retry 30 1 "$@"
+}
+
+# assert_upstream_message asserts both the returned code
+# and message from upstream service
+function assert_upstream_message {
+  local HOSTPORT=$1
+  run curl -s -d hello localhost:$HOSTPORT
+
+  if [ "$status" -ne 0 ]; then
+    echo "Command failed"
+    return 1
+  fi
+
+  if (echo $output | grep 'hello'); then
+    return 0
+  fi
+
+  echo "expected message not found in $output"
+  return 1
 }
 
 function is_set {
@@ -128,6 +150,20 @@ function assert_cert_signed_by_ca {
   echo "$CERT" | grep 'Verify return code: 0 (ok)'
 }
 
+function assert_cert_has_cn {
+  local HOSTPORT=$1
+  local CN=$2
+  local SERVER_NAME=${3:-$CN}
+
+  CERT=$(openssl s_client -connect $HOSTPORT -servername $SERVER_NAME -showcerts </dev/null 2>/dev/null)
+
+  echo "WANT CN: ${CN} (SNI: ${SERVER_NAME})"
+  echo "GOT CERT:"
+  echo "$CERT"
+
+  echo "$CERT" | grep "CN = ${CN}"
+}
+
 function assert_envoy_version {
   local ADMINPORT=$1
   run retry_default curl -f -s localhost:$ADMINPORT/server_info
@@ -192,6 +228,13 @@ function get_envoy_expose_checks_listener_once {
   echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("exposed_path_"))'
 }
 
+function get_envoy_public_listener_once {
+  local HOSTPORT=$1
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("public_listener:"))'
+}
+
 function assert_envoy_http_rbac_policy_count {
   local HOSTPORT=$1
   local EXPECT_COUNT=$2
@@ -222,6 +265,14 @@ function get_envoy_network_rbac_once {
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
+}
+
+function get_envoy_http_filter {
+  local HOSTPORT=$1
+  local FILTER_NAME=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"${FILTER_NAME}\")"
 }
 
 function get_envoy_listener_filters {
@@ -318,6 +369,49 @@ function get_envoy_metrics {
   get_all_envoy_metrics $HOSTPORT | grep "$METRICS"
 }
 
+function get_upstream_endpoint {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+.cluster_statuses[]
+| select(.name|startswith(\"${CLUSTER_NAME}\"))"
+}
+
+function get_upstream_endpoint_port {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+.cluster_statuses[]
+| select(.name|startswith(\"${CLUSTER_NAME}\"))
+| [.host_statuses[].address.socket_address.port_value]
+| [select(.[] == ${PORT_VALUE})]
+| length"
+}
+
+function assert_upstream_has_endpoint_port_once {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+
+  GOT_COUNT=$(get_upstream_endpoint_port $HOSTPORT $CLUSTER_NAME $PORT_VALUE)
+
+  [ "$GOT_COUNT" -eq 1 ]
+}
+
+function assert_upstream_has_endpoint_port {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+
+  run retry_long assert_upstream_has_endpoint_port_once $HOSTPORT $CLUSTER_NAME $PORT_VALUE
+  [ "$status" -eq 0 ]
+}
+
 function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
@@ -340,7 +434,27 @@ function assert_upstream_has_endpoints_in_status_once {
 
   GOT_COUNT=$(get_upstream_endpoint_in_status_count $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS)
 
+  echo "GOT: $GOT_COUNT"
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+}
+
+function assert_upstream_missing_once {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  
+  run get_upstream_endpoint $HOSTPORT $CLUSTER_NAME
+  [ "$status" -eq 0 ]
+  echo "$output"
+  [ "" == "$output" ]
+}
+
+function assert_upstream_missing {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run retry_long assert_upstream_missing_once $HOSTPORT $CLUSTER_NAME
+  echo "OUTPUT: $output $status"
+
+  [ "$status" -eq 0 ]
 }
 
 function assert_upstream_has_endpoints_in_status {
@@ -349,6 +463,8 @@ function assert_upstream_has_endpoints_in_status {
   local HEALTH_STATUS=$3
   local EXPECT_COUNT=$4
   run retry_long assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT
+  echo "$output"
+
   [ "$status" -eq 0 ]
 }
 
@@ -533,7 +649,7 @@ function docker_consul_for_proxy_bootstrap {
 function docker_wget {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.9 wget "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.17 wget "$@"
 }
 
 function docker_curl {
@@ -761,6 +877,21 @@ function upsert_config_entry {
   echo "$BODY" | docker_consul "$DC" config write -
 }
 
+function assert_config_entry_status {
+  local TYPE="$1"
+  local STATUS="$2"
+  local REASON="$3"
+  local DC="$4"
+  local KIND="$5"
+  local NAME="$6"
+  local NS=${7:-}
+  local AP=${8:-}
+  local PEER=${9:-}
+
+  status=$(curl -s -f "consul-${DC}-client:8500/v1/config/${KIND}/${NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER}" | jq ".Status.Conditions[] | select(.Type == \"$TYPE\" and .Status == \"$STATUS\" and .Reason == \"$REASON\")")
+  [ -n "$status" ]
+}
+
 function delete_config_entry {
   local KIND=$1
   local NAME=$2
@@ -936,15 +1067,30 @@ function create_peering {
   run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}-client:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
+
+  sleep 1
+  run curl -s -f "http://consul-${GENERATE_PEER}-client:8500/v1/peering/${GENERATE_PEER}-to-${ESTABLISH_PEER}"
+  state="$(echo "$output" | jq --raw-output .State)"
+
+  if [ "$state" != "ACTIVE" ]; then
+    echo "fail to peering: $output"
+    return 1
+  fi
 }
 
-function get_lambda_envoy_http_filter {
-  local HOSTPORT=$1
-  local NAME_PREFIX=$2
-  run retry_default curl -s -f $HOSTPORT/config_dump
-  [ "$status" -eq 0 ]
-  # get the full http filter object so the individual fields can be validated.
-  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"envoy.filters.http.aws_lambda\") | .typed_config"
+function assert_service_has_imported {
+  local DC=${1:-primary}
+  local SERVICE_NAME=$2
+  local PEER_NAME=$3
+
+  run curl -s -f "http://consul-${DC}-client:8500/v1/peering/${PEER_NAME}"
+  [ "$status" == 0 ]
+
+  echo "$output" | jq --raw-output '.StreamStatus.ImportedServices' | grep -e "${SERVICE_NAME}"
+  if [ $? -ne 0 ]; then
+    echo "Error finding service: ${SERVICE_NAME}"
+    return 1
+  fi
 }
 
 function register_lambdas {
@@ -974,13 +1120,12 @@ function assert_lambda_envoy_dynamic_cluster_exists {
 
 function assert_lambda_envoy_dynamic_http_filter_exists {
   local HOSTPORT=$1
-  local NAME_PREFIX=$2
-  local ARN=$3
+  local ARN=$2
 
-  local FILTER=$(get_lambda_envoy_http_filter $HOSTPORT $NAME_PREFIX)
+  local FILTER=$(get_envoy_http_filter $HOSTPORT 'envoy.filters.http.aws_lambda')
   [ -n "$FILTER" ]
 
-  [ "$(echo $FILTER | jq -r '.arn')" == "$ARN" ]
+  [ "$(echo $FILTER | jq -r '.typed_config | .arn')" == "$ARN" ]
 }
 
 function varsub {

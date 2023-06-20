@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package catalog
 
 import (
@@ -10,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -44,11 +48,22 @@ func NewConfigSource(cfg Config) *ConfigSource {
 
 // Watch wraps the underlying proxycfg.Manager and dynamically registers
 // services from the catalog with it when requested by the xDS server.
-func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error) {
+func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
 	// If the service is registered to the local agent, use the LocalConfigSource
 	// rather than trying to configure it from the catalog.
 	if nodeName == m.NodeName && m.LocalState.ServiceExists(serviceID) {
 		return m.LocalConfigSource.Watch(serviceID, nodeName, token)
+	}
+
+	// Begin a session with the xDS session concurrency limiter.
+	//
+	// We do this here rather than in the xDS server because we don't want to apply
+	// the limit to services from the LocalConfigSource.
+	//
+	// See: https://github.com/hashicorp/consul/issues/15753
+	session, err := m.SessionLimiter.BeginSession()
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	proxyID := proxycfg.ProxyID{
@@ -66,6 +81,7 @@ func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, token
 		cancelOnce.Do(func() {
 			cancelWatch()
 			m.cleanup(proxyID)
+			session.End()
 		})
 	}
 
@@ -82,11 +98,12 @@ func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, token
 		if err := m.startSync(w.closeCh, proxyID); err != nil {
 			delete(m.watches, proxyID)
 			cancelWatch()
-			return nil, nil, err
+			session.End()
+			return nil, nil, nil, err
 		}
 	}
 
-	return snapCh, cancel, nil
+	return snapCh, session.Terminated(), cancel, nil
 }
 
 func (m *ConfigSource) Shutdown() {
@@ -252,6 +269,9 @@ type Config struct {
 
 	// Logger will be used to write log messages.
 	Logger hclog.Logger
+
+	// SessionLimiter is used to enforce xDS concurrency limits.
+	SessionLimiter SessionLimiter
 }
 
 //go:generate mockery --name ConfigManager --inpackage
@@ -269,5 +289,10 @@ type Store interface {
 
 //go:generate mockery --name Watcher --inpackage
 type Watcher interface {
-	Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error)
+	Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error)
+}
+
+//go:generate mockery --name SessionLimiter --inpackage
+type SessionLimiter interface {
+	BeginSession() (limiter.Session, error)
 }

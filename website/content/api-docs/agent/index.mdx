@@ -12,7 +12,7 @@ The `/agent` endpoints are used to interact with the local Consul agent.
 Usually, services and checks are registered with an agent which then takes on
 the burden of keeping that data synchronized with the cluster. For example, the
 agent registers services and checks with the Catalog and performs
-[anti-entropy](/docs/architecture/anti-entropy) to recover from outages.
+[anti-entropy](/consul/docs/architecture/anti-entropy) to recover from outages.
 
 In addition to these endpoints, additional endpoints are grouped in the
 navigation for `Checks` and `Services`.
@@ -31,10 +31,10 @@ GitHub issue to discuss your use case.
 | `GET`  | `/agent/host`    | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -206,6 +206,24 @@ $ curl \
 }
 ```
 
+## Retrieve version information
+
+This endpoint returns version information about Consul.
+
+| Method | Path             | Produces           |
+| ------ | ---------------- | ------------------ |
+| `GET`  | `/agent/version` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
+
 ## List Members
 
 This endpoint returns the members the agent sees in the cluster gossip pool. Due
@@ -220,16 +238,16 @@ by agent. The strongly consistent view of nodes is instead provided by
 | `GET`  | `/agent/members` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `node:read`  |
 
-The corresponding CLI command is [`consul members`](/commands/members).
+The corresponding CLI command is [`consul members`](/consul/commands/members).
 
 ### Query Parameters
 
@@ -288,10 +306,10 @@ to change without notice or deprecation.
 | `GET`  | `/agent/self` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -360,7 +378,7 @@ This endpoint instructs the agent to reload its configuration. Any errors
 encountered during this process are returned.
 
 Not all configuration options are reloadable. See the
-[Reloadable Configuration](/docs/agent/config#reloadable-configuration)
+[Reloadable Configuration](/consul/docs/agent/config#reloadable-configuration)
 section on the agent options page for details on which options are supported.
 
 | Method | Path            | Produces           |
@@ -368,16 +386,16 @@ section on the agent options page for details on which options are supported.
 | `PUT`  | `/agent/reload` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
 
-The corresponding CLI command is [`consul reload`](/commands/reload).
+The corresponding CLI command is [`consul reload`](/consul/commands/reload).
 
 ### Sample Request
 
@@ -401,16 +419,16 @@ restart.
 | `PUT`  | `/agent/maintenance` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `node:write` |
 
-The corresponding CLI command is [`consul maint`](/commands/maint).
+The corresponding CLI command is [`consul maint`](/consul/commands/maint).
 
 ### Query Parameters
 
@@ -433,25 +451,25 @@ $ curl \
 ## View Metrics
 
 This endpoint will dump the metrics for the most recent finished interval.
-For more information about metrics, see the [telemetry](/docs/agent/telemetry)
+For more information about metrics, see the [telemetry](/consul/docs/agent/telemetry)
 page.
 
 In order to enable [Prometheus](https://prometheus.io/) support, you need to use the
 configuration directive
-[`prometheus_retention_time`](/docs/agent/config/config-files#telemetry-prometheus_retention_time).
+[`prometheus_retention_time`](/consul/docs/agent/config/config-files#telemetry-prometheus_retention_time).
 
-Since Consul 1.7.2 this endpoint will also automatically switch output format if 
-the request contains an `Accept` header with a compatible MIME type such as 
+Since Consul 1.7.2 this endpoint will also automatically switch output format if
+the request contains an `Accept` header with a compatible MIME type such as
 `application/openmetrics-text`. Prometheus v2.5.0 and newer pass this header in scraping
-queries, and so will get a compatible format by default. Older versions of Prometheus may 
-work by default as several previously used MIME types are also detected, but the `?format` 
+queries, and so will get a compatible format by default. Older versions of Prometheus may
+work by default as several previously used MIME types are also detected, but the `?format`
 query parameter may also be used to specify the output format manually if needed.
 simplifying scrape configuration.
 
-Note: If using the default format and your metric includes labels that use the same key 
-name multiple times (i.e. tag=tag2 and tag=tag1), only the sorted last value (tag=tag2) 
-will be visible on this endpoint due to a display issue. The complete label set is correctly 
-applied and passed to external metrics providers even though it is not visible through this 
+Note: If using the default format and your metric includes labels that use the same key
+name multiple times (i.e. tag=tag2 and tag=tag1), only the sorted last value (tag=tag2)
+will be visible on this endpoint due to a display issue. The complete label set is correctly
+applied and passed to external metrics providers even though it is not visible through this
 endpoint.
 
 | Method | Path                               | Produces                                   |
@@ -460,10 +478,10 @@ endpoint.
 | `GET`  | `/agent/metrics?format=prometheus` | `text/plain; version=0.0.4; charset=utf-8` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -582,10 +600,10 @@ This endpoint streams logs from the local agent until the connection is closed.
 | `GET`  | `/agent/monitor` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -627,16 +645,16 @@ This endpoint instructs the agent to attempt to connect to a given address.
 | `PUT`  | `/agent/join/:address` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
 
-The corresponding CLI command is [`consul join`](/commands/join).
+The corresponding CLI command is [`consul join`](/consul/commands/join).
 
 ### Path Parameters
 
@@ -669,16 +687,16 @@ can affect cluster availability.
 | `PUT`  | `/agent/leave` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
 
-The corresponding CLI command is [`consul leave`](/commands/leave).
+The corresponding CLI command is [`consul leave`](/consul/commands/leave).
 
 ### Sample Request
 
@@ -708,16 +726,16 @@ the list of members entirely.
 | `PUT`  | `/agent/force-leave/:node_name?prune` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul force-leave`](/commands/force-leave).
+The corresponding CLI command is [`consul force-leave`](/consul/commands/force-leave).
 
 ### Path Parameters
 
@@ -726,7 +744,7 @@ The corresponding CLI command is [`consul force-leave`](/commands/force-leave).
 ### Query Parameters
 
 - `prune` `(bool: false)` - Specifies whether to forcibly remove the node from the list of members.
-  Pruning a node in the `left` or `failed` state removes it from the list altogether. 
+  Pruning a node in the `left` or `failed` state removes it from the list altogether.
   Added in Consul 1.6.2.
 
 - `wan` `(bool: false)` - Specifies the node should only be removed from the WAN
@@ -745,21 +763,23 @@ $ curl \
 This endpoint updates the ACL tokens currently in use by the agent. It can be
 used to introduce ACL tokens to the agent for the first time, or to update
 tokens that were initially loaded from the agent's configuration. Tokens will be persisted
-only if the [`acl.enable_token_persistence`](/docs/agent/config/config-files#acl_enable_token_persistence)
+only if the [`acl.enable_token_persistence`](/consul/docs/agent/config/config-files#acl_enable_token_persistence)
 configuration is `true`. When not being persisted, they will need to be reset if the agent
 is restarted.
 
-| Method | Path                          | Produces           |
-| ------ | ----------------------------- | ------------------ |
-| `PUT`  | `/agent/token/default`        | `application/json` |
-| `PUT`  | `/agent/token/agent`          | `application/json` |
-| `PUT`  | `/agent/token/agent_recovery` | `application/json` |
-| `PUT`  | `/agent/token/replication`    | `application/json` |
+| Method | Path                                            | Produces           |
+| ------ | -----------------------------                   | ------------------ |
+| `PUT`  | `/agent/token/default`                          | `application/json` |
+| `PUT`  | `/agent/token/agent`                            | `application/json` |
+| `PUT`  | `/agent/token/agent_recovery`                   | `application/json` |
+| `PUT`  | `/agent/token/config_file_service_registration` | `application/json` |
+| `PUT`  | `/agent/token/replication`                      | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
-[`default`](/docs/agent/config/config-files#acl_tokens_default), [`agent`](/docs/agent/config/config-files#acl_tokens_agent),
-[`agent_recovery`](/docs/agent/config/config-files#acl_tokens_agent_recovery), and
-[`replication`](/docs/agent/config/config-files#acl_tokens_replication).
+[`default`](/consul/docs/agent/config/config-files#acl_tokens_default), [`agent`](/consul/docs/agent/config/config-files#acl_tokens_agent),
+[`agent_recovery`](/consul/docs/agent/config/config-files#acl_tokens_agent_recovery),
+[`config_file_service_registration`](/consul/docs/agent/config/config-files#acl_tokens_config_file_service_registration),
+and [`replication`](/consul/docs/agent/config/config-files#acl_tokens_replication).
 
 -> **Deprecation Note:** The following paths were deprecated in version 1.11
 
@@ -768,7 +788,7 @@ The paths above correspond to the token names as found in the agent configuratio
 | `PUT`  | `/agent/token/agent_master` | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
-[`agent_master`](/docs/agent/config/config-files#acl_tokens_agent_master).
+[`agent_master`](/consul/docs/agent/config/config-files#acl_tokens_agent_master).
 
 -> **Deprecation Note:** The following paths were deprecated in version 1.4.3
 
@@ -780,21 +800,21 @@ The paths above correspond to the token names as found in the agent configuratio
 | `PUT`  | `/agent/token/acl_replication_token`  | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
-[`acl_token`](/docs/agent/config/config-files#acl_token_legacy), [`acl_agent_token`](/docs/agent/config/config-files#acl_agent_token_legacy),
-[`acl_agent_master_token`](/docs/agent/config/config-files#acl_agent_master_token_legacy), and
-[`acl_replication_token`](/docs/agent/config/config-files#acl_replication_token_legacy).
+[`acl_token`](/consul/docs/agent/config/config-files#acl_token_legacy), [`acl_agent_token`](/consul/docs/agent/config/config-files#acl_agent_token_legacy),
+[`acl_agent_master_token`](/consul/docs/agent/config/config-files#acl_agent_master_token_legacy), and
+[`acl_replication_token`](/consul/docs/agent/config/config-files#acl_replication_token_legacy).
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
 
-The corresponding CLI command is [`consul acl set-agent-token`](/commands/acl/set-agent-token).
+The corresponding CLI command is [`consul acl set-agent-token`](/consul/commands/acl/set-agent-token).
 
 ### JSON Request Body Schema
 

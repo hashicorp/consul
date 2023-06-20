@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
@@ -17,6 +22,8 @@ module('Integration | Serializer | oidc-provider', function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`respondForQuery returns the correct data for list endpoint when the nspace is ${nspace}`, function (assert) {
+      assert.expect(1);
+
       const serializer = this.owner.lookup('serializer:oidc-provider');
       const request = {
         url: `/v1/internal/ui/oidc-auth-methods?dc=${dc}`,
@@ -50,6 +57,8 @@ module('Integration | Serializer | oidc-provider', function (hooks) {
       });
     });
     test(`respondForQueryRecord returns the correct data for item endpoint when the nspace is ${nspace}`, function (assert) {
+      assert.expect(1);
+
       const serializer = this.owner.lookup('serializer:oidc-provider');
       const dc = 'dc-1';
       const id = 'slug';

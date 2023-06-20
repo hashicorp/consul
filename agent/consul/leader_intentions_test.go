@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -140,7 +144,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 			IntentionID:  ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		require.NoError(r, s2.RPC("Intention.Get", req, &resp), "ID=%q", ixn.Intention.ID)
+		require.NoError(r, s2.RPC(context.Background(), "Intention.Get", req, &resp), "ID=%q", ixn.Intention.ID)
 		require.Len(r, resp.Intentions, 1)
 
 		actual := resp.Intentions[0]
@@ -171,7 +175,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 			IntentionID:  ixn.Intention.ID,
 		}
 
-		require.NoError(r, s2.RPC("Intention.Get", req, &resp), "ID=%q", ixn.Intention.ID)
+		require.NoError(r, s2.RPC(context.Background(), "Intention.Get", req, &resp), "ID=%q", ixn.Intention.ID)
 		require.Len(r, resp.Intentions, 1)
 		require.Equal(r, "*", resp.Intentions[0].SourceName)
 	})
@@ -205,7 +209,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 			IntentionID:  ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		err := s2.RPC("Intention.Get", req, &resp)
+		err := s2.RPC(context.Background(), "Intention.Get", req, &resp)
 		require.Error(r, err)
 		if !strings.Contains(err.Error(), ErrIntentionNotFound.Error()) {
 			r.Fatalf("expected intention not found, got: %v", err)
@@ -519,7 +523,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 
 	// Wait until the migration routine is complete.
 	retry.Run(t, func(r *retry.R) {
-		intentionFormat, err := s1.getSystemMetadata(structs.SystemMetadataIntentionFormatKey)
+		intentionFormat, err := s1.GetSystemMetadata(structs.SystemMetadataIntentionFormatKey)
 		require.NoError(r, err)
 		if intentionFormat != structs.SystemMetadataIntentionFormatConfigValue {
 			r.Fatal("intention migration is not yet complete")

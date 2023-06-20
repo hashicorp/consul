@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Add field for fallback server addresses to peer token generation form 
+```

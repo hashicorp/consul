@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
@@ -15,6 +20,8 @@ module('Integration | Serializer | service-instance', function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
+      assert.expect(1);
+
       const serializer = this.owner.lookup('serializer:service-instance');
       const id = 'service-name';
       const node = 'node-0';

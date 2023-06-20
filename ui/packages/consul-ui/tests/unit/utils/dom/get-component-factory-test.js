@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import getComponentFactory from 'consul-ui/utils/dom/get-component-factory';
 import { module, test } from 'qunit';
 

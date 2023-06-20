@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # This workflow sends a reminder comment to PRs that have labels starting with
 # `backport/` to check that the backport has run successfully.
 

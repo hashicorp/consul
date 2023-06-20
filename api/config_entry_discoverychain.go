@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -69,6 +72,7 @@ type ServiceRouteDestination struct {
 	Partition             string               `json:",omitempty"`
 	PrefixRewrite         string               `json:",omitempty" alias:"prefix_rewrite"`
 	RequestTimeout        time.Duration        `json:",omitempty" alias:"request_timeout"`
+	IdleTimeout           time.Duration        `json:",omitempty" alias:"idle_timeout"`
 	NumRetries            uint32               `json:",omitempty" alias:"num_retries"`
 	RetryOnConnectFailure bool                 `json:",omitempty" alias:"retry_on_connect_failure"`
 	RetryOnStatusCodes    []uint32             `json:",omitempty" alias:"retry_on_status_codes"`
@@ -81,13 +85,18 @@ func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
 	type Alias ServiceRouteDestination
 	exported := &struct {
 		RequestTimeout string `json:",omitempty"`
+		IdleTimeout    string `json:",omitempty"`
 		*Alias
 	}{
 		RequestTimeout: e.RequestTimeout.String(),
+		IdleTimeout:    e.IdleTimeout.String(),
 		Alias:          (*Alias)(e),
 	}
 	if e.RequestTimeout == 0 {
 		exported.RequestTimeout = ""
+	}
+	if e.IdleTimeout == 0 {
+		exported.IdleTimeout = ""
 	}
 
 	return json.Marshal(exported)
@@ -97,6 +106,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 	type Alias ServiceRouteDestination
 	aux := &struct {
 		RequestTimeout string
+		IdleTimeout    string
 		*Alias
 	}{
 		Alias: (*Alias)(e),
@@ -107,6 +117,11 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 	var err error
 	if aux.RequestTimeout != "" {
 		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
+			return err
+		}
+	}
+	if aux.IdleTimeout != "" {
+		if e.IdleTimeout, err = time.ParseDuration(aux.IdleTimeout); err != nil {
 			return err
 		}
 	}
@@ -155,6 +170,11 @@ type ServiceResolverConfigEntry struct {
 	Redirect       *ServiceResolverRedirect           `json:",omitempty"`
 	Failover       map[string]ServiceResolverFailover `json:",omitempty"`
 	ConnectTimeout time.Duration                      `json:",omitempty" alias:"connect_timeout"`
+	RequestTimeout time.Duration                      `json:",omitempty" alias:"request_timeout"`
+
+	// PrioritizeByLocality controls whether the locality of services within the
+	// local partition will be used to prioritize connectivity.
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	// LoadBalancer determines the load balancing policy and configuration for services
 	// issuing requests to this upstream service.
@@ -221,15 +241,18 @@ type ServiceResolverRedirect struct {
 	Partition     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
 	Peer          string `json:",omitempty"`
+	SamenessGroup string `json:",omitempty" alias:"sameness_group"`
 }
 
 type ServiceResolverFailover struct {
 	Service       string `json:",omitempty"`
 	ServiceSubset string `json:",omitempty" alias:"service_subset"`
 	// Referencing other partitions is not supported.
-	Namespace   string                          `json:",omitempty"`
-	Datacenters []string                        `json:",omitempty"`
-	Targets     []ServiceResolverFailoverTarget `json:",omitempty"`
+	Namespace     string                          `json:",omitempty"`
+	Datacenters   []string                        `json:",omitempty"`
+	Targets       []ServiceResolverFailoverTarget `json:",omitempty"`
+	Policy        *ServiceResolverFailoverPolicy  `json:",omitempty"`
+	SamenessGroup string                          `json:",omitempty" alias:"sameness_group"`
 }
 
 type ServiceResolverFailoverTarget struct {
@@ -239,6 +262,20 @@ type ServiceResolverFailoverTarget struct {
 	Namespace     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
 	Peer          string `json:",omitempty"`
+}
+
+type ServiceResolverFailoverPolicy struct {
+	// Mode specifies the type of failover that will be performed. Valid values are
+	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
+	Mode    string   `json:",omitempty"`
+	Regions []string `json:",omitempty"`
+}
+
+type ServiceResolverPrioritizeByLocality struct {
+	// Mode specifies the type of prioritization that will be performed
+	// when selecting nodes in the local partition.
+	// Valid values are: "" (default "none"), "none", and "failover".
+	Mode string `json:",omitempty"`
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services

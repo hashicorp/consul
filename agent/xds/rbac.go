@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xds
 
 import (
@@ -8,6 +11,7 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_http_header_to_meta_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/header_to_metadata/v3"
 	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
@@ -15,11 +19,11 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 func makeRBACNetworkFilter(
-	intentions structs.Intentions,
+	intentions structs.SimplifiedIntentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
@@ -34,7 +38,7 @@ func makeRBACNetworkFilter(
 }
 
 func makeRBACHTTPFilter(
-	intentions structs.Intentions,
+	intentions structs.SimplifiedIntentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
@@ -48,7 +52,7 @@ func makeRBACHTTPFilter(
 }
 
 func intentionListToIntermediateRBACForm(
-	intentions structs.Intentions,
+	intentions structs.SimplifiedIntentions,
 	localInfo rbacLocalInfo,
 	isHTTP bool,
 	trustBundlesByPeer map[string]*pbpeering.PeeringTrustBundle,
@@ -228,16 +232,40 @@ func intentionToIntermediateRBACForm(
 		rixn.Source.TrustDomain = bundle.TrustDomain
 	}
 
+	if isHTTP && ixn.JWT != nil {
+		var c []*JWTInfo
+		for _, prov := range ixn.JWT.Providers {
+			if len(prov.VerifyClaims) > 0 {
+				c = append(c, makeJWTInfos(prov, nil, 0))
+			}
+		}
+		if len(c) > 0 {
+			rixn.jwtInfos = c
+		}
+	}
+
 	if len(ixn.Permissions) > 0 {
 		if isHTTP {
 			rixn.Action = intentionActionLayer7
 			rixn.Permissions = make([]*rbacPermission, 0, len(ixn.Permissions))
-			for _, perm := range ixn.Permissions {
-				rixn.Permissions = append(rixn.Permissions, &rbacPermission{
+			for k, perm := range ixn.Permissions {
+				rbacPerm := rbacPermission{
 					Definition: perm,
 					Action:     intentionActionFromString(perm.Action),
 					Perm:       convertPermission(perm),
-				})
+				}
+				if perm.JWT != nil {
+					var c []*JWTInfo
+					for _, prov := range perm.JWT.Providers {
+						if len(prov.VerifyClaims) > 0 {
+							c = append(c, makeJWTInfos(prov, perm, k))
+						}
+					}
+					if len(c) > 0 {
+						rbacPerm.jwtInfos = c
+					}
+				}
+				rixn.Permissions = append(rixn.Permissions, &rbacPerm)
 			}
 		} else {
 			// In case L7 intentions slip through to here, treat them as deny intentions.
@@ -250,7 +278,16 @@ func intentionToIntermediateRBACForm(
 	return rixn
 }
 
+func makeJWTInfos(p *structs.IntentionJWTProvider, perm *structs.IntentionPermission, permKey int) *JWTInfo {
+	return &JWTInfo{Claims: p.VerifyClaims, MetadataPayloadKey: buildPayloadInMetadataKey(p.Name, perm, permKey)}
+}
+
 type intentionAction int
+
+type JWTInfo struct {
+	Claims             []*structs.IntentionJWTClaimVerification
+	MetadataPayloadKey string
+}
 
 const (
 	intentionActionDeny intentionAction = iota
@@ -289,6 +326,11 @@ type rbacIntention struct {
 	Action      intentionAction
 	Permissions []*rbacPermission
 	Precedence  int
+
+	// JWTInfo is used to track intentions' JWT information
+	// This information is used to update HTTP filters for
+	// JWT Payload & claims validation
+	jwtInfos []*JWTInfo
 
 	// Skip is field used to indicate that this intention can be deleted in the
 	// final pass. Items marked as true should generally not escape the method
@@ -361,6 +403,11 @@ type rbacPermission struct {
 	Action   intentionAction
 	Perm     *envoy_rbac_v3.Permission
 	NotPerms []*envoy_rbac_v3.Permission
+
+	// JWTInfo is used to track intentions' JWT information
+	// This information is used to update HTTP filters for
+	// JWT Payload & claims validation
+	jwtInfos []*JWTInfo
 
 	// Skip is field used to indicate that this permission can be deleted in
 	// the final pass. Items marked as true should generally not escape the
@@ -474,7 +521,7 @@ type rbacLocalInfo struct {
 //
 // Which really is just an allow-list of [A, C AND NOT(B)]
 func makeRBACRules(
-	intentions structs.Intentions,
+	intentions structs.SimplifiedIntentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	isHTTP bool,
@@ -527,6 +574,10 @@ func makeRBACRules(
 
 	var principalsL4 []*envoy_rbac_v3.Principal
 	for i, rbacIxn := range rbacIxns {
+		var infos []*JWTInfo
+		if isHTTP {
+			infos = collectJWTInfos(rbacIxn)
+		}
 		if rbacIxn.Action == intentionActionLayer7 {
 			if len(rbacIxn.Permissions) == 0 {
 				panic("invalid state: L7 intention has no permissions")
@@ -535,9 +586,14 @@ func makeRBACRules(
 				panic("invalid state: L7 permissions present for TCP service")
 			}
 
+			rbacPrincipals := optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal})
+			if len(infos) > 0 {
+				claimsPrincipal := jwtInfosToPrincipals(infos)
+				rbacPrincipals = combineBasePrincipalWithJWTPrincipals(rbacPrincipals, claimsPrincipal)
+			}
 			// For L7: we should generate one Policy per Principal and list all of the Permissions
 			policy := &envoy_rbac_v3.Policy{
-				Principals:  optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal}),
+				Principals:  rbacPrincipals,
 				Permissions: make([]*envoy_rbac_v3.Permission, 0, len(rbacIxn.Permissions)),
 			}
 			for _, perm := range rbacIxn.Permissions {
@@ -547,6 +603,11 @@ func makeRBACRules(
 		} else {
 			// For L4: we should generate one big Policy listing all Principals
 			principalsL4 = append(principalsL4, rbacIxn.ComputedPrincipal)
+			// Append JWT principals to list of principals
+			if len(infos) > 0 {
+				claimsPrincipal := jwtInfosToPrincipals(infos)
+				principalsL4 = combineBasePrincipalWithJWTPrincipals(principalsL4, claimsPrincipal)
+			}
 		}
 	}
 	if len(principalsL4) > 0 {
@@ -560,6 +621,109 @@ func makeRBACRules(
 		rbac.Policies = nil
 	}
 	return rbac
+}
+
+// combineBasePrincipalWithJWTPrincipals ensure each RBAC/Network principal is associated with
+// the JWT principal
+func combineBasePrincipalWithJWTPrincipals(p []*envoy_rbac_v3.Principal, cp *envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {
+	res := make([]*envoy_rbac_v3.Principal, 0)
+
+	for _, principal := range p {
+		if principal != nil && cp != nil {
+			p := andPrincipals([]*envoy_rbac_v3.Principal{principal, cp})
+			res = append(res, p)
+		}
+	}
+	return res
+}
+
+// collectJWTInfos extracts all the collected JWTInfos top level infos
+// and permission level infos and returns them as a single array
+func collectJWTInfos(rbacIxn *rbacIntention) []*JWTInfo {
+	infos := make([]*JWTInfo, 0, len(rbacIxn.jwtInfos))
+
+	if len(rbacIxn.jwtInfos) > 0 {
+		infos = append(infos, rbacIxn.jwtInfos...)
+	}
+	for _, perm := range rbacIxn.Permissions {
+		infos = append(infos, perm.jwtInfos...)
+	}
+
+	return infos
+}
+
+func jwtInfosToPrincipals(c []*JWTInfo) *envoy_rbac_v3.Principal {
+	ps := make([]*envoy_rbac_v3.Principal, 0)
+
+	for _, jwtInfo := range c {
+		if jwtInfo != nil {
+			for _, claim := range jwtInfo.Claims {
+				ps = append(ps, jwtClaimToPrincipal(claim, jwtInfo.MetadataPayloadKey))
+			}
+		}
+	}
+	return orPrincipals(ps)
+}
+
+// jwtClaimToPrincipal takes in a payloadkey which is the metadata key. This key is generated by using provider name,
+// permission index with a jwt_payload prefix. See buildPayloadInMetadataKey in agent/xds/jwt_authn.go
+//
+// This uniquely generated payloadKey is the first segment in the path to validate the JWT claims. The subsequent segments
+// come from the Path included in the IntentionJWTClaimVerification param.
+func jwtClaimToPrincipal(c *structs.IntentionJWTClaimVerification, payloadKey string) *envoy_rbac_v3.Principal {
+	segments := pathToSegments(c.Path, payloadKey)
+
+	return &envoy_rbac_v3.Principal{
+		Identifier: &envoy_rbac_v3.Principal_Metadata{
+			Metadata: &envoy_matcher_v3.MetadataMatcher{
+				Filter: jwtEnvoyFilter,
+				Path:   segments,
+				Value: &envoy_matcher_v3.ValueMatcher{
+					MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
+						StringMatch: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+								Exact: c.Value,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// pathToSegments generates an array of MetadataMatcher_PathSegment that starts with the payloadkey
+// and is followed by all existing strings in the path.
+//
+// eg. calling: pathToSegments([]string{"perms", "roles"}, "jwt_payload_okta") should return the following:
+//
+//	[]*envoy_matcher_v3.MetadataMatcher_PathSegment{
+//		{
+//			Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "jwt_payload_okta"},
+//		},
+//		{
+//			Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "perms"},
+//		},
+//		{
+//			Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "roles"},
+//		},
+//	},
+func pathToSegments(paths []string, payloadKey string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
+
+	segments := make([]*envoy_matcher_v3.MetadataMatcher_PathSegment, 0, len(paths))
+	segments = append(segments, makeSegment(payloadKey))
+
+	for _, p := range paths {
+		segments = append(segments, makeSegment(p))
+	}
+
+	return segments
+}
+
+func makeSegment(key string) *envoy_matcher_v3.MetadataMatcher_PathSegment {
+	return &envoy_matcher_v3.MetadataMatcher_PathSegment{
+		Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: key},
+	}
 }
 
 func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {
@@ -586,13 +750,13 @@ func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Princi
 //
 // (backend/* -> default/*) was dropped because it is already known that any service
 // in the backend namespace can target default/web.
-func removeSameSourceIntentions(intentions structs.Intentions) structs.Intentions {
+func removeSameSourceIntentions(intentions structs.SimplifiedIntentions) structs.SimplifiedIntentions {
 	if len(intentions) < 2 {
 		return intentions
 	}
 
 	var (
-		out        = make(structs.Intentions, 0, len(intentions))
+		out        = make(structs.SimplifiedIntentions, 0, len(intentions))
 		changed    = false
 		seenSource = make(map[structs.PeeredServiceName]struct{})
 	)
@@ -753,6 +917,90 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 }
 
 const anyPath = `[^/]+`
+const trustDomain = anyPath + "." + anyPath
+
+// downstreamServiceIdentityMatcher needs to match XFCC headers in two cases:
+// 1. Requests to cluster peered services through a mesh gateway. In this case, the XFCC header looks like the following (I added a new line after each ; for readability)
+// By=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/gateway/mesh/dc/alpha;
+// Hash=...;
+// Cert=...;
+// Chain=...;
+// Subject="";
+// URI=spiffe://c7e1d24a-eed8-10a3-286a-52bdb6b6a6fd.consul/ns/default/dc/primary/svc/s1,By=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/ns/default/dc/alpha/svc/s2;
+// Hash=...;
+// Cert=...;
+// Chain=...;
+// Subject="";
+// URI=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/gateway/mesh/dc/alpha
+//
+// 2. Requests directly to another service
+// By=spiffe://ae9dbea8-c1dd-7356-b211-c564f7917100.consul/ns/default/dc/primary/svc/s2;
+// Hash=396218588ebc1655d32a49b68cedd6b66b9de7b3d69d0c0451bc5818132377d0;
+// Cert=...;
+// Chain=...;
+// Subject="";
+// URI=spiffe://ae9dbea8-c1dd-7356-b211-c564f7917100.consul/ns/default/dc/primary/svc/s1
+//
+// In either case, the regex matches the downstream service's spiffe id because mesh gateways use a different spiffe id format.
+// Envoy requires us to include the trailing and leading .* to properly extract the properly submatch.
+const downstreamServiceIdentityMatcher = ".*URI=spiffe://(" + trustDomain +
+	")(?:/ap/(" + anyPath +
+	"))?/ns/(" + anyPath +
+	")/dc/(" + anyPath +
+	")/svc/([^/;,]+).*"
+
+func parseXFCCToDynamicMetaHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
+	var rules []*envoy_http_header_to_meta_v3.Config_Rule
+
+	fields := []struct {
+		name string
+		sub  string
+	}{
+		{
+			name: "trust-domain",
+			sub:  `\1`,
+		},
+		{
+			name: "partition",
+			sub:  `\2`,
+		},
+		{
+			name: "namespace",
+			sub:  `\3`,
+		},
+		{
+			name: "datacenter",
+			sub:  `\4`,
+		},
+		{
+			name: "service",
+			sub:  `\5`,
+		},
+	}
+
+	for _, f := range fields {
+		rules = append(rules, &envoy_http_header_to_meta_v3.Config_Rule{
+			Header: "x-forwarded-client-cert",
+			OnHeaderPresent: &envoy_http_header_to_meta_v3.Config_KeyValuePair{
+				MetadataNamespace: "consul",
+				Key:               f.name,
+				RegexValueRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
+					Pattern: &envoy_matcher_v3.RegexMatcher{
+						Regex: downstreamServiceIdentityMatcher,
+						EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
+							GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},
+						},
+					},
+					Substitution: f.sub,
+				},
+			},
+		})
+	}
+
+	cfg := &envoy_http_header_to_meta_v3.Config{RequestRules: rules}
+
+	return makeEnvoyHTTPFilter("envoy.filters.http.header_to_metadata", cfg)
+}
 
 func makeSpiffePattern(src rbacService) string {
 	var (

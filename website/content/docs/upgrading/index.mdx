@@ -17,7 +17,7 @@ keep in mind when using Consul.
 
 This page documents how to upgrade Consul when a new version is released.
 
--> **Tip:** For Consul Enterprise, see the [Automated Upgrades documentation](/docs/enterprise/upgrades).
+-> **Tip:** For Consul Enterprise, see the [Automated Upgrades documentation](/consul/docs/enterprise/upgrades).
 
 ## Standard Upgrades
 
@@ -25,12 +25,12 @@ For upgrades we strive to ensure backwards compatibility. To support this,
 nodes gossip their protocol version and builds. This enables clients and
 servers to intelligently enable new features when available, or to gracefully
 fallback to a backward compatible mode of operation otherwise.
-Visit the [General Upgrade Process](/docs/upgrading/instructions/general-process) for a detailed upgrade guide.
+Visit the [General Upgrade Process](/consul/docs/upgrading/instructions/general-process) for a detailed upgrade guide.
 
 For most upgrades, the process is simple. Assuming the current version of
 Consul is A, and version B is released.
 
-1. Check the [version's upgrade notes](/docs/upgrading/upgrade-specific) to ensure
+1. Check the [version's upgrade notes](/consul/docs/upgrading/upgrade-specific) to ensure
    there are no compatibility issues that will affect your workload. If there
    are plan accordingly before continuing.
 
@@ -44,7 +44,7 @@ Consul is A, and version B is released.
    the same process.
 
    -> **Upgrade Envoy proxies:** If a client agent has associated Envoy proxies (e.g., sidecars, gateways),
-      install a [compatible Envoy version](/docs/connect/proxies/envoy#supported-versions)
+      install a [compatible Envoy version](/consul/docs/connect/proxies/envoy#supported-versions)
       for Consul version B.
       After stopping client agent version A,
       stop its associated Envoy proxies.
@@ -62,7 +62,7 @@ version can increase the risk incurred during upgrades. We encourage our users t
 remain no more than two major versions behind (i.e., if 1.8.x is the current release,
 do not use versions older than 1.6.x). If you find yourself in a situation where you
 are many major versions behind, and need to upgrade, please review our
-[Upgrade Instructions page](/docs/upgrading/instructions) for information on
+[Upgrade Instructions page](/consul/docs/upgrading/instructions) for information on
 how to perform those upgrades.
 
 ## Backward Incompatible Upgrades
@@ -89,7 +89,7 @@ version B comes out.
    You can verify this is the case by running `consul members` to
    make sure all members are speaking the same, latest protocol version.
 
-The key to making this work is the [protocol compatibility](/docs/upgrading/compatibility)
+The key to making this work is the [protocol compatibility](/consul/docs/upgrading/compatibility)
 of Consul. The protocol version system is discussed below.
 
 ## Protocol Versions
@@ -132,10 +132,10 @@ your cluster so that you can run the latest protocol version.
 
 ## Upgrading on Kubernetes
 
-See the dedicated [Upgrading Consul on Kubernetes](/docs/k8s/upgrade) page.
+See the dedicated [Upgrading Consul on Kubernetes](/consul/docs/k8s/upgrade) page.
 
 ## Upgrading federated datacenters
 
 If you need to upgrade a federated environment with multiple datacenters you can
-refer to the [Upgrade Multiple Federated Consul Datacenters](https://learn.hashicorp.com/tutorials/consul/upgrade-federated-environment)
+refer to the [Upgrade Multiple Federated Consul Datacenters](/consul/tutorials/datacenter-operations/upgrade-federated-environment)
 tutorial.

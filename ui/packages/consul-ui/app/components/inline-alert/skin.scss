@@ -1,6 +1,11 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %inline-alert {
   font-style: normal;
-  font-weight: normal;
+  font-weight: var(--token-typography-font-weight-regular);
 }
 %inline-alert-success,
 %inline-alert-info,
@@ -12,25 +17,25 @@
   color: inherit;
 }
 %inline-alert-error {
-  color: rgb(var(--color-failure));
+  color: var(--token-color-foreground-critical);
 }
 %inline-alert::before {
-  font-size: 14px;
+  @extend %body-200-regular;
 }
 %inline-alert::before {
   @extend %as-pseudo;
 }
 %inline-alert-success::before {
   @extend %with-check-circle-fill-mask;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %inline-alert-error::before {
   @extend %with-cancel-square-fill-mask;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %inline-alert-warning::before {
   @extend %with-alert-triangle-mask;
-  color: rgb(var(--tone-orange-500));
+  color: var(--token-color-foreground-warning);
   /* the warning triangle always looks */
   /* too low just because its a triangle */
   /* this tweak make it look better */
@@ -38,5 +43,5 @@
 }
 %inline-alert-info::before {
   @extend %with-info-circle-fill-mask;
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
 }

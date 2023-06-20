@@ -1,38 +1,59 @@
-<div
-  class={{class-map
-    'consul-peer-form-generate-fieldsets'
-  }}
-  ...attributes
->
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
+<div class={{class-map "consul-peer-form-generate-fieldsets"}} ...attributes>
   <StateMachine
-    @src={{require '/machines/validate.xstate' from="/components/consul/peer/form/generate/fieldsets"}}
-  as |fsm|>
+    @src={{require
+      "/machines/validate.xstate"
+      from="/components/consul/peer/form/generate/fieldsets"
+    }}
+    as |fsm|
+  >
     {{#let
       (hash
         help=(concat
-          (t 'common.validations.dns-hostname.help')
-          (t 'common.validations.immutable.help')
+          (t "common.validations.dns-hostname.help")
+          (t "common.validations.immutable.help")
         )
         Name=(array
           (hash
-            test=(t 'common.validations.dns-hostname.test')
-            error=(t 'common.validations.dns-hostname.error' name="Name")
+            test=(t "common.validations.dns-hostname.test")
+            error=(t "common.validations.dns-hostname.error" name="Name")
           )
         )
       )
-    as |Name|}}
+      as |Name|
+    }}
       <fieldset>
         <TextInput
-          @label="Name of peer"
+          @label={{t "components.consul.peer.generate.name"}}
           @name="Name"
           @item={{@item}}
           @validations={{Name}}
           @chart={{fsm}}
-          @oninput={{pick 'target.value' (set @item 'Name')}}
+          @oninput={{pick "target.value" (set @item "Name")}}
         />
-        {{yield (hash
-          valid=(not (state-matches fsm.state 'error'))
-        )}}
+        {{yield (hash valid=(not (state-matches fsm.state "error")))}}
+      </fieldset>
+
+    {{/let}}
+
+    {{#let
+      (hash help=(t "common.validations.server-external-addresses.help"))
+      as |ServerExternalAddresses|
+    }}
+      <fieldset>
+        <TextInput
+          @label={{t "components.consul.peer.generate.addresses"}}
+          @name="ServerExternalAddresses"
+          @item={{@item}}
+          @chart={{fsm}}
+          @validations={{ServerExternalAddresses}}
+          @oninput={{pick "target.value" this.onInput}}
+        />
+        {{yield (hash valid=(not (state-matches fsm.state "error")))}}
       </fieldset>
 
     {{/let}}

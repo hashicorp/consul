@@ -1,0 +1,4 @@
+```release-note:improvement
+partitiion: **(Consul Enterprise only)** when loading service from on-disk config file or sending API request to agent endpoint,
+if the partition is unspecified, consul will default the partition in the request to agent's partition
+```

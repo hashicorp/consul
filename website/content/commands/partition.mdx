@@ -73,7 +73,7 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:write` |
-| Corresponding HTTP API endpoint | [\[PUT\] /v1/partition](/api-docs/admin-partitions#create-a-partition) |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/partition](/consul/api-docs/admin-partitions#create-a-partition) |
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
@@ -105,7 +105,7 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:write` |
-| Corresponding HTTP API endpoint | [\[PUT\] /v1/partition/:name](/api-docs/admin-partitions#update-a-partition) |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/partition/:name](/consul/api-docs/admin-partitions#update-a-partition) |
 
 Use the following syntax to write from file:
 
@@ -149,7 +149,7 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:read`; however, a non-anonymous token can always read its own partition |
-| Corresponding HTTP API endpoint | [\[GET\] /v1/partition/:name](/api-docs/admin-partitions#read-a-partition) |
+| Corresponding HTTP API endpoint | [\[GET\] /v1/partition/:name](/consul/api-docs/admin-partitions#read-a-partition) |
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
@@ -178,7 +178,7 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:read` |
-| Corresponding HTTP API endpoint | [\[GET\] /v1/partitions](/api-docs/admin-partitions#list-all-partitions) |
+| Corresponding HTTP API endpoint | [\[GET\] /v1/partitions](/consul/api-docs/admin-partitions#list-all-partitions) |
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
@@ -221,7 +221,7 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:write` |
-| Corresponding HTTP API endpoint | [\[DELETE\] /v1/partitions](/api-docs/admin-partitions#delete-a-partition) |
+| Corresponding HTTP API endpoint | [\[DELETE\] /v1/partitions](/consul/api-docs/admin-partitions#delete-a-partition) |
 
 In the following example, the `webdev-bu` partition is deleted:
 

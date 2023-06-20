@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import domEventSourceCallable from 'consul-ui/utils/dom/event-source/callable';
 import EventTarget from 'consul-ui/utils/dom/event-target/rsvp';
 

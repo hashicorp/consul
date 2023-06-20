@@ -1,41 +1,46 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %modal-dialog.warning header {
-  background-color: rgb(var(--tone-yellow-050));
-  border-color: rgb(var(--tone-yellow-500));
-  color: rgb(var(--tone-yellow-800));
+  background-color: var(--token-color-vault-gradient-faint-start);
+  border-color: var(--token-color-vault-brand);
+  color: var(--token-color-vault-foreground);
 }
 %modal-dialog.warning header > *:not(label) {
-  font-size: var(--typo-size-500);
-  font-weight: var(--typo-weight-semibold);
+  @extend %display-300-semibold;
 }
 %modal-dialog.warning header::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
-  color: rgb(var(--tone-yellow-500));
+  color: var(--token-color-vault-brand);
   float: left;
   margin-top: 2px;
   margin-right: 3px;
 }
 %modal-dialog-overlay {
-  background-color: rgb(var(--tone-gray-000) / 90%);
+  background-color: var(--token-color-surface-interactive);
+  opacity: 0.9;
 }
 %modal-window {
-  box-shadow: var(--decor-elevation-800);
+  box-shadow: var(--token-elevation-overlay-box-shadow);
 }
 %modal-window {
   /*%frame-gray-000*/
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
 }
 %modal-window > footer,
 %modal-window > header {
   @extend %frame-gray-800;
 }
-%modal-window > header > * {
-  @extend %h200;
+%modal-window > header > *:not(button) {
+  @extend %display-400-semibold;
 }
 
 .modal-dialog-body,
 %modal-window > footer,
 %modal-window > header {
-  border-color: rgb(var(--tone-gray-300));
+  border-color: var(--token-color-palette-neutral-300);
 }
 .modal-dialog-body {
   border-style: solid;
@@ -45,18 +50,4 @@
 %modal-window > footer,
 %modal-window > header {
   border-width: 1px;
-}
-
-%modal-window > header button {
-  cursor: pointer;
-  border: var(--decor-border-100);
-  /*%frame-gray-050??*/
-  background-color: rgb(var(--tone-gray-050));
-  border-color: rgb(var(--tone-gray-300));
-  border-radius: var(--decor-radius-100);
-}
-%modal-window > header button::before {
-  @extend %with-cancel-plain-icon, %as-pseudo;
-  margin-left: -7px;
-  margin-top: -3px;
 }

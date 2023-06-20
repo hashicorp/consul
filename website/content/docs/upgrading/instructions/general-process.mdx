@@ -12,7 +12,7 @@ description: >-
 
 This document describes some best practices that you should follow when
 upgrading Consul. Some versions also have steps that are specific to that
-version, so make sure you also review the [upgrade instructions](/docs/upgrading/instructions)
+version, so make sure you also review the [upgrade instructions](/consul/docs/upgrading/instructions)
 for the version you are on.
 
 ## Download the New Version
@@ -39,7 +39,7 @@ Docker containers are available at these locations:
 <Tab heading="Kubernetes">
 
 If you are using Kubernetes, then please review our documentation for
-[Upgrading Consul on Kubernetes](/docs/k8s/upgrade).
+[Upgrading Consul on Kubernetes](/consul/docs/k8s/upgrade).
 
 </Tab>
 </Tabs>
@@ -71,10 +71,10 @@ Version      1
 This will ensure you have a safe fallback option in case something goes wrong. Store
 this snapshot somewhere safe. More documentation on snapshot usage is available here:
 
-- [consul.io/commands/snapshot](/commands/snapshot)
-- [Backup Consul Data and State tutorial](https://learn.hashicorp.com/tutorials/consul/backup-and-restore)
+- [consul.io/commands/snapshot](/consul/commands/snapshot)
+- [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore)
 
-**2.** Temporarily modify your Consul configuration so that its [log_level](/docs/agent/config/cli-flags#_log_level)
+**2.** Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
 is set to `debug`. After doing this, issue the following command on your servers to
 reload the configuration:
 
@@ -107,13 +107,7 @@ Take note of which agent is the leader.
 binary with the new one.
 
 **3.** The following steps must be done in order on the server agents, leaving the leader
-agent for last. First force the server agent to leave the cluster with the following command:
-
-```
-consul leave
-```
-
-Then, use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If
+agent for last. First, use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If
 you are not using a service management system, you must restart the agent manually.
 
 To validate that the agent has rejoined the cluster and is in sync with the leader, issue the
@@ -173,7 +167,7 @@ all of your servers attempting to kick off leadership elections endlessly withou
 reaching a quorum and electing a leader.
 
 Most of these problems can be solved by following the steps outlined in our
-[Outage Recovery](https://learn.hashicorp.com/tutorials/consul/recovery-outage) document.
+[Disaster recovery for Consul clusters](/consul/tutorials/datacenter-operations/recovery-outage) document.
 If you are still having trouble after trying the recovery steps outlined there,
 then the following options for further assistance are available:
 
@@ -183,7 +177,7 @@ then the following options for further assistance are available:
 When contacting Hashicorp Support, please include the following information in your ticket:
 
 - Consul version you were upgrading FROM and TO.
-- [Debug level logs](/docs/agent/config/cli-flags#_log_level) from all servers in the cluster
+- [Debug level logs](/consul/docs/agent/config/cli-flags#_log_level) from all servers in the cluster
   that you are having trouble with. These should include logs from prior to the upgrade attempt
   up through the current time. If your logs were not set at debug level prior to the
   upgrade, please include those logs as well. Also, update your config to use debug logs,

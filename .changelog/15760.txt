@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix issue where DialedDirectly configuration was not used by Consul Dataplane.
+```

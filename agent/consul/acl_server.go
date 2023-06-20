@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -87,7 +90,7 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 }
 
 func (s *Server) InPrimaryDatacenter() bool {
-	return s.config.PrimaryDatacenter == "" || s.config.Datacenter == s.config.PrimaryDatacenter
+	return s.config.InPrimaryDatacenter()
 }
 
 func (s *Server) LocalTokensEnabled() bool {
@@ -110,13 +113,12 @@ type serverACLResolverBackend struct {
 }
 
 func (s *serverACLResolverBackend) IsServerManagementToken(token string) bool {
-	mgmt, err := s.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+	mgmt, err := s.GetSystemMetadata(structs.ServerManagementTokenAccessorID)
 	if err != nil {
 		s.logger.Debug("failed to fetch server management token: %w", err)
 		return false
 	}
 	if mgmt == "" {
-		s.logger.Debug("server management token has not been initialized")
 		return false
 	}
 	return subtle.ConstantTimeCompare([]byte(mgmt), []byte(token)) == 1
@@ -143,15 +145,29 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	if !s.InPrimaryDatacenter() && !s.config.ACLTokenReplication {
 		return false, nil, nil
 	}
-
 	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token, nil)
 	if err != nil {
 		return true, nil, err
 	} else if aclToken != nil && !aclToken.IsExpired(time.Now()) {
 		return true, aclToken, nil
 	}
+	if aclToken == nil && token == acl.AnonymousTokenSecret && s.InPrimaryDatacenter() {
+		// synthesize the anonymous token for early use, bootstrapping has not completed
+		s.insertAnonymousToken()
+		fallbackId := structs.ACLToken{
+			AccessorID:  acl.AnonymousTokenID,
+			SecretID:    acl.AnonymousTokenSecret,
+			Description: "synthesized anonymous token",
+		}
+		return true, &fallbackId, nil
+	}
 
-	return s.InPrimaryDatacenter() || index > 0, nil, acl.ErrNotFound
+	defaultErr := acl.ErrNotFound
+	canBootstrap, _, _ := s.fsm.State().CanBootstrapACLToken()
+	if canBootstrap {
+		defaultErr = fmt.Errorf("ACL system must be bootstrapped before making any requests that require authorization: %w", defaultErr)
+	}
+	return s.InPrimaryDatacenter() || index > 0, nil, defaultErr
 }
 
 func (s *serverACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {

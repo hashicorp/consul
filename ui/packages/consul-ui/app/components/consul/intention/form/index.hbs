@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <div
   class="consul-intention"
   ...attributes
@@ -16,42 +21,32 @@ as |api|>
 
     <BlockSlot @name="error" as |after|>
 {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
-      <Notice
-        {{notification
-          after=(action after)
-        }}
-        class="notification-update"
-        @type="error"
-      as |notice|>
-        <notice.Header>
-          <strong>Intention exists!</strong>
-        </notice.Header>
-        <notice.Body>
-          <p>
-            An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
-          </p>
-        </notice.Body>
-      </Notice>
+  <Hds::Toast
+    @color='critical'
+    {{notification
+      after=(action after)
+    }}
+    as |T|>
+    <T.Title>Intention exists!</T.Title>
+    <T.Description>
+      An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
+    </T.Description>
+  </Hds::Toast>
 {{else}}
-      <Notice
-        {{notification
-          after=(action after)
-        }}
-        class="notification-update"
-        @type="error"
-      as |notice|>
-        <notice.Header>
-          <strong>Error!</strong>
-        </notice.Header>
-        <notice.Body>
-          <p>
-            There was an error saving your intention.
-          {{#if (and api.error.status api.error.detail)}}
-            <br />{{api.error.status}}: {{api.error.detail}}
-          {{/if}}
-          </p>
-        </notice.Body>
-      </Notice>
+  <Hds::Toast
+    @color='critical'
+    {{notification
+      after=(action after)
+    }}
+    as |T|>
+    <T.Title>Error!</T.Title>
+    <T.Description>
+      There was an error saving your intention.
+      {{#if (and api.error.status api.error.detail)}}
+        <br />{{api.error.status}}: {{api.error.detail}}
+      {{/if}}
+    </T.Description>
+  </Hds::Toast>
   {{/if}}
     </BlockSlot>
 
@@ -80,22 +75,20 @@ as |item readonly|}}
           </p>
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>
-          <button
-            data-test-action-warning-confirm
-            type="button"
-            class="dangerous"
-            {{on 'click' api.submit}}
-          >
-            Set to {{capitalize newAction}}
-          </button>
-          <button
-            data-test-action-warning-cancel
-            type="button"
-            class="type-cancel"
-            onclick={{close}}
-          >
-            No, Cancel
-          </button>
+          <Hds::ButtonSet>
+            <Hds::Button
+              data-test-action-warning-confirm
+              @text='Set to {{capitalize newAction}}'
+              @color='critical'
+              {{on 'click' api.submit}}
+            />
+            <Hds::Button
+              data-test-action-warning-cancel
+              @text='No, Cancel'
+              @color='secondary'
+              onclick={{close}}
+            />
+          </Hds::ButtonSet>
         </BlockSlot>
       </ModalDialog>
   {{/let}}
@@ -135,20 +128,10 @@ as |item readonly|}}
 
     {{#if api.isCreate}}
       {{#if (and (can 'use partitions') (not (can 'choose partitions' dc=@dc)))}}
-        <Notice
-          @type="info"
-        as |notice|>
-          <notice.Header>
-            <h3>
-              Cross-partition communication not supported
-            </h3>
-          </notice.Header>
-          <notice.Body>
-            <p>
-              Cross-partition communication is not supported outside of the primary datacenter. You will only be able to select namespaces for source and destination services.
-            </p>
-          </notice.Body>
-        </Notice>
+        <Hds::Alert @type='inline' class='mb-3 mt-2' as |A|>
+          <A.Title>Cross-partition communication not supported</A.Title>
+          <A.Description>Cross-partition communication is not supported outside of the primary datacenter. You will only be able to select namespaces for source and destination services.</A.Description>
+        </Hds::Alert>
       {{/if}}
       {{#if this.isManagedByCRDs}}
         <Consul::Intention::Notice::CustomResource @type="warning" />
@@ -174,32 +157,30 @@ as |item readonly|}}
           @onchange={{api.change}}
         />
         <div>
-          <button
-            type="submit"
-            disabled={{or item.isInvalid api.disabled}}
-          >
-            Save
-          </button>
-          <button
-            type="reset"
-            disabled={{api.disabled}}
-            {{on 'click' (fn this.oncancel item)}}
-          >
-            Cancel
-          </button>
+          <Hds::ButtonSet>
+            <Hds::Button
+              @text='Save'
+              type='submit'
+              disabled={{or item.isInvalid api.disabled}}
+            />
+            <Hds::Button
+              @text='Cancel'
+              @color='secondary'
+              type="reset"
+              disabled={{api.disabled}}
+              {{on 'click' (fn this.oncancel item)}}
+            />
 {{#if (not api.isCreate)}}
   {{#if (not-eq item.ID 'anonymous') }}
           <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
             <BlockSlot @name="action" as |confirm|>
-              <button
-                data-test-delete
-                type="button"
-                class="type-delete"
+              <Hds::Button
+                @text='Delete'
+                @color='critical'
                 disabled={{api.disabled}}
                 {{on 'click' (fn confirm api.delete)}}
-              >
-                Delete
-              </button>
+                data-test-delete
+              />
             </BlockSlot>
             <BlockSlot @name="dialog" as |execute cancel message|>
               <DeleteConfirmation
@@ -211,31 +192,20 @@ as |item readonly|}}
           </ConfirmationDialog>
   {{/if}}
 {{/if}}
+          </Hds::ButtonSet>
         </div>
       </form>
   {{else}}
 
     {{#if item.IsManagedByCRD}}
-      <Notice
-        class="crd"
-        @type="warning"
-      as |notice|>
-        <notice.Header>
-          <h3>
-            Intention Custom Resource
-          </h3>
-        </notice.Header>
-        <notice.Body>
-          <p>
-            This Intention is view only because it is managed through an Intention Custom Resource in your Kubernetes cluster.
-          </p>
-        </notice.Body>
-        <notice.Footer>
-          <p>
-            <a href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds" target="_blank" rel="noopener noreferrer">Learn more about CRDs</a>
-          </p>
-        </notice.Footer>
-      </Notice>
+      <Hds::Alert @type="inline" class='mb-3 mt-2' as |A|>
+        <A.Title>Intention Custom Resource</A.Title>
+        <A.Description>This Intention is view only because it is managed through an Intention Custom Resource in your Kubernetes cluster.</A.Description>
+        <A.Link::Standalone @text='Learn more about CRDs'
+                            @href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds"
+                            @icon='docs-link'
+                            @iconPosition='trailing' />
+      </Hds::Alert>
     {{/if}}
 
     <Consul::Intention::View
