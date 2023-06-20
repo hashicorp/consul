@@ -959,13 +959,13 @@ The following `envoy` metrics can be used to track jwt authentication details.
 ~> **Note:** Envoy does not currently provide any documentation on these metrics.
 
 ```yaml
-http.ingress_http.jwt_authn.allowed
-http.ingress_http.jwt_authn.cors_preflight_bypassed
-http.ingress_http.jwt_authn.denied
-http.ingress_http.jwt_authn.jwks_fetch_failed
-http.ingress_http.jwt_authn.jwks_fetch_success
-http.ingress_http.jwt_authn.jwt_cache_hit
-http.ingress_http.jwt_authn.jwt_cache_miss
+http.public_listener.jwt_authn.allowed
+http.public_listener.jwt_authn.cors_preflight_bypassed
+http.public_listener.jwt_authn.denied
+http.public_listener.jwt_authn.jwks_fetch_failed
+http.public_listener.jwt_authn.jwks_fetch_success
+http.public_listener.jwt_authn.jwt_cache_hit
+http.public_listener.jwt_authn.jwt_cache_miss
 ```
 
 ## Examples
