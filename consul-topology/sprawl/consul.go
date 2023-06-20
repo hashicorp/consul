@@ -7,9 +7,9 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul-topology/sprawl/internal/secrets"
-	"github.com/hashicorp/consul-topology/topology"
-	"github.com/hashicorp/consul-topology/util"
+	"github.com/hashicorp/consul/consul-topology/sprawl/internal/secrets"
+	"github.com/hashicorp/consul/consul-topology/topology"
+	"github.com/hashicorp/consul/consul-topology/util"
 )
 
 func getLeader(client *api.Client) (string, error) {

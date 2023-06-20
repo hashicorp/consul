@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/consul-topology/topology"
 )
 
 func (s *Sprawl) populateInitialConfigEntries(cluster *topology.Cluster) error {

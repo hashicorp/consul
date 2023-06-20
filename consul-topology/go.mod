@@ -1,4 +1,4 @@
-module github.com/hashicorp/consul-topology
+module github.com/hashicorp/consul/consul-topology
 
 go 1.20
 

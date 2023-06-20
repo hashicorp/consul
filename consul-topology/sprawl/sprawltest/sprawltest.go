@@ -15,9 +15,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul-topology/sprawl"
-	"github.com/hashicorp/consul-topology/sprawl/internal/runner"
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/consul-topology/sprawl"
+	"github.com/hashicorp/consul/consul-topology/sprawl/internal/runner"
+	"github.com/hashicorp/consul/consul-topology/topology"
 )
 
 // TODO(rb): move comments to doc.go

@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hclwrite"
 
-	"github.com/hashicorp/consul-topology/sprawl/internal/secrets"
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/consul-topology/sprawl/internal/secrets"
+	"github.com/hashicorp/consul/consul-topology/topology"
 )
 
 func (g *Generator) generateAgentHCL(step Step, node *topology.Node) (string, error) {

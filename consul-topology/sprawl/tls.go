@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/consul-topology/topology"
 )
 
 const (

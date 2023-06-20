@@ -13,10 +13,10 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul-topology/sprawl/internal/runner"
-	"github.com/hashicorp/consul-topology/sprawl/internal/secrets"
-	"github.com/hashicorp/consul-topology/topology"
-	"github.com/hashicorp/consul-topology/util"
+	"github.com/hashicorp/consul/consul-topology/sprawl/internal/runner"
+	"github.com/hashicorp/consul/consul-topology/sprawl/internal/secrets"
+	"github.com/hashicorp/consul/consul-topology/topology"
+	"github.com/hashicorp/consul/consul-topology/util"
 )
 
 type Generator struct {
