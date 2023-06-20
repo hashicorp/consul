@@ -15,7 +15,7 @@ Remote debugging integration tests allows you to attach your debugger to the con
 
 ### How it works
 The `dev-docker-dbg` Make target will build consul docker container that has the following:
-- [delver (dlv) debugger](https://github.com/go-delve/delve) installed.
+- [delve (dlv) debugger](https://github.com/go-delve/delve) installed.
 - a port exposed on the container that allows a debugger from your development environment to connect and attach to the consul process and debug it remotely.
 - logs out the host and port information so that you have the information needed to connect to the port.
 
@@ -71,3 +71,8 @@ To run/debug integration tests locally, the following tools are required on your
 - The remote debugging session should stop on the breakpoint, and you can freely debug the code path.
 
   <img src="./util/test_debug_breakpoint_hit.png" alt="isolated" width="550"/>
+
+#### Remote debugging using VSCode
+(For additional information, see [VSCode's documentation on remote debugging](https://github.com/golang/vscode-go/blob/master/docs/debugging.md#remote-debugging).)
+
+[comment]: <> (TODO: Openly looking for someone to add VSCode specific instructions.)
