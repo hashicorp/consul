@@ -652,7 +652,10 @@ func (t *Target) validate() error {
 		addr := strings.Split(t.URI, ":")
 		if len(addr) == 2 {
 			t.host = addr[0]
-			if t.host != "localhost" && t.host != "127.0.0.1" {
+			if t.host == "localhost" || t.host == "127.0.0.1" {
+				// Always use the IP address form.
+				t.host = "127.0.0.1"
+			} else {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("invalid host for Target.URI %q: expected 'localhost' or '127.0.0.1'", t.URI))
 			}
 			if t.port, err = strconv.Atoi(addr[1]); err != nil {

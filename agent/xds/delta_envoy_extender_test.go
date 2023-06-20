@@ -12,7 +12,7 @@ import (
 )
 
 func makeExtAuthzEnvoyExtension(svc string, opts ...string) []structs.EnvoyExtension {
-	target := map[string]any{"URI": "127.0.0.1:9191"}
+	target := map[string]any{"URI": "localhost:9191"}
 	insertOptions := map[string]any{}
 	required := false
 	ent := false
