@@ -23,9 +23,9 @@ Add Envoy extension configurations to a proxy defaults or service defaults confi
 - When you configure Envoy extensions on proxy defaults, they apply to every service.
 - When you configure Envoy extensions on service defaults, they apply to a specific service.
 
-Consul applies Envoy extensions configured in proxy defaults before it applies extensions in service defaults. As a result, the Envoy extension configuration in service defaults may  override configurations in proxy defaults.
+Consul applies Envoy extensions configured in proxy defaults before it applies extensions in service defaults. As a result, the Envoy extension configuration in service defaults may override configurations in proxy defaults.
 
-In the following service defaults configuration entry example, Consul adds a new `/upstream_connection_options/tcp_keepalive/keepalive_probes-5` field to each of the proxy's cluster configuration for the outbound `db`service upstream. The configuration applies to all `connect-proxy` proxies with services configured to communicate over HTTP:
+In the following proxy defaults configuration entry example, Consul sets the `/respect_dns_ttl` field on the `api` service proxy's cluster configuration for the `other-svc` upstream service:
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -33,7 +33,7 @@ In the following service defaults configuration entry example, Consul adds a new
 
 ```hcl
 Kind     = "service-defaults"
-Name     = "global"
+Name     = "api"
 Protocol = "http"
 EnvoyExtensions = [ 
   {
@@ -50,8 +50,8 @@ EnvoyExtensions = [
             }]
           }
           Op    = "add"
-          Path  = "/upstream_connection_options/tcp_keepalive/keepalive_probes"
-          Value = 5
+          Path  = "/respect_dns_ttl"
+          Value = true
         }
       ]
     }
@@ -66,9 +66,9 @@ EnvoyExtensions = [
 
 ```json
 "kind": "service-defaults",
-"name": "global",
+"name": "api",
 "protocol": "http",
-"envoy_extensions": [{
+"envoyExtensions": [{
   "name": "builtin/property-override",
   "arguments": {
     "proxyType": "connect-proxy",
@@ -76,11 +76,11 @@ EnvoyExtensions = [
       "resourceFilter": {
         "resourceType": "cluster", 
         "trafficDirection": "outbound",
-        "services": [{ "name":  "other-svc" }],
-        "op": "add",
-        "path": "/upstream_connection_options/tcp_keepalive/keepalive_probes",
-        "value": 5
-       }
+        "services": [{ "name":  "other-svc" }]
+      },
+      "op": "add",
+      "path": "/respect_dns_ttl",
+      "value": true
     }]
   }
 }]
@@ -88,13 +88,13 @@ EnvoyExtensions = [
 </CodeBlockConfig>
 </Tab>
 <Tab heading="Kubernetes" group="kubernetes">
-<CodeBlockConfig filename="property-override-extension-proxy-defaults.yaml">
+<CodeBlockConfig filename="property-override-extension-service-defaults.yaml">
 
 ```yaml
 apiversion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
-  name: global
+  name: api
 spec:
   protocol: http
   envoyExtensions:
@@ -108,8 +108,8 @@ spec:
           services: 
             - name:  "other-svc"
         op: "add"
-        path: "/upstream_connection_options/tcp_keepalive/keepalive_probes",
-        value: 5
+        path: "/respect_dns_ttl",
+        value: true
 ```
 
 </CodeBlockConfig>
@@ -136,6 +136,7 @@ EnvoyExtensions = [
   {
     Name = "builtin/property-override"
     Arguments = {
+      Debug = true
       ProxyType = "connect-proxy"
       Patches = [
         {
@@ -146,7 +147,7 @@ EnvoyExtensions = [
           Op = "add"
           Path =  ""
           Value =  5
-         }
+        }
       ]
     }
   }
@@ -157,19 +158,23 @@ After applying the configuration entry, Consul prints a message that includes th
 
 ```shell-session
 $ consul config write api.hcl
-non-empty, non-root Path is required. available cluster fields:
-/outlier_detection
-/outlier_detection/enforcing_consecutive_5xx
-/outlier_detection/failure_percentage_request_volume
-/round_robin_lb_config
-/round_robin_lb_config/slow_start_config
+non-empty, non-root Path is required;
+available envoy.config.cluster.v3.Cluster fields:
+transport_socket_matches
+name
+alt_stat_name
+type
+cluster_type
+eds_cluster_config
+connect_timeout
+...
 ```
 
 You can use the output to help you construct the appropriate value for the `Path` field. For example:
 
 ```shell-session
-$ consul config write api.hcl | grep round_robin
-/round_robin_lb_config
+$ consul config write api.hcl 2>&1 | grep round_robin
+round_robin_lb_config
 ```
 
 
