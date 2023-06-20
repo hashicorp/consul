@@ -634,6 +634,12 @@ func validateProposedConfigEntryInGraph(
 	case structs.TCPRoute:
 	case structs.RateLimitIPConfig:
 	case structs.JWTProvider:
+		if newEntry == nil && existingEntry != nil {
+			err := validateJWTProviderIsReferenced(tx, kindName, existingEntry)
+			if err != nil {
+				return err
+			}
+		}
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -702,6 +708,66 @@ func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs
 	}
 
 	return providerNames
+}
+
+// validateJWTProviderIsReferenced iterates over intentions to determine if the provider being
+// deleted is referenced by any intention.
+//
+// This could be an expensive operation based on the number of intentions. We purposely set this to only
+// run on delete and don't expect this to be called often.
+func validateJWTProviderIsReferenced(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
+	meta := acl.NewEnterpriseMetaWithPartition(
+		kn.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
+	entry, ok := ce.(*structs.JWTProviderConfigEntry)
+	if !ok {
+		return fmt.Errorf("invalid jwt provider config entry: %T", entry)
+	}
+
+	_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, &meta)
+	if err != nil {
+		return err
+	}
+
+	err = findJWTProviderNameReferences(ixnEntries, entry.Name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func findJWTProviderNameReferences(entries []structs.ConfigEntry, pName string) error {
+	errMsg := "cannot delete jwt provider config entry referenced by an intention. Provider name: %s, intention name: %s"
+	for _, entry := range entries {
+		ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+		if !ok {
+			return fmt.Errorf("type %T is not a service intentions config entry", entry)
+		}
+
+		if ixn.JWT != nil {
+			for _, prov := range ixn.JWT.Providers {
+				if prov.Name == pName {
+					return fmt.Errorf(errMsg, pName, ixn.Name)
+				}
+			}
+		}
+
+		for _, s := range ixn.Sources {
+			for _, perm := range s.Permissions {
+				if perm.JWT == nil {
+					continue
+				}
+				for _, prov := range perm.JWT.Providers {
+					if prov.Name == pName {
+						return fmt.Errorf(errMsg, pName, ixn.Name)
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // This fetches all the jwt-providers config entries and iterates over them

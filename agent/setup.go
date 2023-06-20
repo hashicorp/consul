@@ -138,7 +138,10 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	var extraSinks []metrics.MetricSink
 	if cfg.IsCloudEnabled() {
-		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"), cfg.NodeID)
+		// This values is set late within newNodeIDFromConfig above
+		cfg.Cloud.NodeID = cfg.NodeID
+
+		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"))
 		if err != nil {
 			return d, err
 		}

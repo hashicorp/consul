@@ -134,7 +134,9 @@
         "ManagementToken": "hidden",
         "ResourceID": "cluster1",
         "ScadaAddress": "",
-        "TLSConfig": null
+        "TLSConfig": null,
+        "NodeID": "",
+        "NodeName": ""
     },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
