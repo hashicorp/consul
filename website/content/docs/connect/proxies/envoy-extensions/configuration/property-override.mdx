@@ -118,7 +118,7 @@ The following table describes how to configure a `ResourceFilter`:
 
 Specifies the JSON Patch operation to perform when the `ResourceFilter` matches a local Envoy proxy configuration. You can specify one of the following values for each patch:
 
-- `add`: Replaces a property or message specified by [`Path`](#patches-path) with the given value. The JSON patch format does not merge objects. To emulate merges, you must configure discrete `add` operations for each changed field. Consul returns an error if the target field does not exist in the corresponding schema.
+- `add`: Replaces a property or message specified by [`Path`](#patches-path) with the given value. The JSON Patch `add` operation does not merge objects. To emulate merges, you must configure discrete `add` operations for each changed field. Consul returns an error if the target field does not exist in the corresponding schema.
 - `remove`: Unsets the value of the field specified by [`Path`](#patches-path). If the field is not set, no changes are made. Consul returns an error if the target field does not exist in the corresponding schema.
 
 #### Values
@@ -135,7 +135,7 @@ Specifies where the extension performs the associated operation on the specified
 
 The `Path` field does not support addressing array elements or protobuf map field entries. Refer to [Constructing paths](/consul/docs/connect/proxies/envoy-extensions/usage/property-override#constructing-paths) for information about how to construct paths. 
 
-When setting fields, the extension sets any unset intermediate fields to their default values. A a single operation on a nested field can set multiple intermediate fields. Because Consul sets the intermediate fields to their default values, you may need to configure subsequent patches to satisfy Envoy or Consul validation. 
+When setting fields, the extension sets any unset intermediate fields to their default values. A single operation on a nested field can set multiple intermediate fields. Because Consul sets the intermediate fields to their default values, you may need to configure subsequent patches to satisfy Envoy or Consul validation. 
 
 #### Values
 
@@ -145,9 +145,10 @@ When setting fields, the extension sets any unset intermediate fields to their d
 
 ### `Patches[].Value{}`
 
-Defines a value to set at the specified [path](#patches-path) if the [operation](#patches-op) is set to `add`.  You can specify either a scalar or enum value or define a map that contains string keys and values corresponding to scalar or enum child fields. Refer to the [example configurations](#examples) for additional guidance and to the [Envoy API documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/api) for additional information about Envoy proxy interfaces.
+Defines a value to set at the specified [path](#patches-path) if the [operation](#patches-op) is set to `add`. You can specify either a scalar or enum value, an array of scalar or enum values (for repeated fields), or define a map that contains string keys and values corresponding to scalar or enum child fields. Single and repeated scalar and enum values are supported. Refer to the [example configurations](#examples) for additional guidance and to the [Envoy API documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/api) for additional information about Envoy proxy interfaces.
 
 If Envoy specifies a wrapper as the target field type, the extension automatically coerces simple values to the wrapped type when patching. For example, the value `32768` is allowed when targeting a cluster's `per_connection_buffer_limit_bytes`, which is a `UInt32Value` field. Refer to the [protobuf documentation](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/wrappers.proto) for additional information about wrappers.
+
 #### Values
 
 - Default: None
