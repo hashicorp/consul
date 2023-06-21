@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -4290,7 +4291,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 
 	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
 
-	a.config.EnableDebug = newCfg.EnableDebug
+	a.config.EnableDebug = atomic.Bool{}
+	a.config.EnableDebug.Store(newCfg.EnableDebug.Load())
 
 	return nil
 }

@@ -2621,7 +2621,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 
 			// Now fetch the API handler to run requests against
 			h := a.srv.handler()
-			a.config.EnableDebug = true
+			a.config.EnableDebug = atomic.Bool{}
+			a.config.EnableDebug.Store(true)
 
 			req := httptest.NewRequest("GET", tc.path, nil)
 			rec := httptest.NewRecorder()
