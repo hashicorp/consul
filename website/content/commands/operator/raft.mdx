@@ -73,10 +73,6 @@ configuration.
   we recommend setting this option to `true`.
   Default is `false`.
 
-- `-detailed` - Outputs additional information 'commit_index' which is
-the index of the server's last committed Raft log entry.
-Default is `false`.
-
 ## remove-peer
 
 Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/raft/peer](/consul/api-docs/operator/raft#delete-raft-peer)
@@ -113,7 +109,7 @@ The return code will indicate success or failure.
 
 Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/consul/api-docs/operator/raft#transfer-raft-leadership)
 
-This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id. 
+This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id.
 
 Use this command to change leadership without restarting the leader node, which maintains quorum and workload capacity.
 
