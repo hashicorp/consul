@@ -1,4 +1,4 @@
-FROM docker:24.0-windowsservercore-1809
+FROM hashicorppreview/consul-k8s-control-plane:1.0.0-alpha1-windows as windows
 ARG VERSION=1.13.3
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
