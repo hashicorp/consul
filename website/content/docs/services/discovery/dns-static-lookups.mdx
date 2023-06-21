@@ -100,7 +100,7 @@ Consul randomizes DNS SRV records and ignores weights specified in service confi
 To perform standard service lookups, specify tags, the name of the service, datacenter, and domain using the following syntax to query for service providers:
 
 ```text
-[<tag>.]<service>.service[.<datacenter>].dc.<domain>
+[<tag>.]<service>.service[.<datacenter>.dc].<domain>
 ```
 
 The `tag` subdomain is optional. It filters responses so that only service providers containing the tag appear.  
