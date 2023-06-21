@@ -50,6 +50,13 @@ func makeExtAuthzEnvoyExtension(svc string, opts ...string) []structs.EnvoyExten
 						"FilterName": filterName,
 					}
 				}
+			case "target-uri":
+				target = map[string]any{"URI": v}
+				configMap = map[string]any{
+					serviceKey: map[string]any{
+						"Target": target,
+					},
+				}
 			case "config-type":
 				if v == "full" {
 					target["Timeout"] = "2s"
