@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  GOPRIVATE: github.com/hashicorp
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   setup:
