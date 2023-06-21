@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if @peering.State}}
   <div class="peerings-badge {{lowercase @peering.State}}" {{tooltip this.tooltip}}>
     <Peerings::Badge::Icon @state="{{@peering.State}}" />

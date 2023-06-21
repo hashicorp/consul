@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 // workaround bulma's sweeping box-sizing
 
 %viewport-container {
@@ -11,8 +16,8 @@
   max-width: 1260px;
 }
 %viewport-container {
-  padding-left: 25px;
-  padding-right: 25px;
+  padding-left: 48px;
+  padding-right: 48px;
 }
 
 fieldset [role='group'] {
@@ -26,7 +31,7 @@ fieldset [role='group'] {
 [role='group'] fieldset:not(:first-of-type) {
   padding-left: 20px;
   border-left: 1px solid;
-  border-left: rgb(var(--tone-gray-500));
+  border-left: var(--token-color-foreground-faint);
 }
 [role='group'] fieldset:not(:last-of-type) {
   padding-right: 20px;

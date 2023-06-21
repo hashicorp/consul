@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -47,7 +50,7 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 		}
 
 		var reply structs.ConfigEntryResponse
-		if err := s.agent.RPC("ConfigEntry.Get", &args, &reply); err != nil {
+		if err := s.agent.RPC(req.Context(), "ConfigEntry.Get", &args, &reply); err != nil {
 			return nil, err
 		}
 		setMeta(resp, &reply.QueryMeta)
@@ -65,7 +68,7 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 		args.Kind = pathArgs[0]
 
 		var reply structs.IndexedConfigEntries
-		if err := s.agent.RPC("ConfigEntry.List", &args, &reply); err != nil {
+		if err := s.agent.RPC(req.Context(), "ConfigEntry.List", &args, &reply); err != nil {
 			return nil, err
 		}
 		setMeta(resp, &reply.QueryMeta)
@@ -111,7 +114,7 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 	}
 
 	var reply structs.ConfigEntryDeleteResponse
-	if err := s.agent.RPC("ConfigEntry.Delete", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "ConfigEntry.Delete", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -160,7 +163,7 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	var reply bool
-	if err := s.agent.RPC("ConfigEntry.Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "ConfigEntry.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 

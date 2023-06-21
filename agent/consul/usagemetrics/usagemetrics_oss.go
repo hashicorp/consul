@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -9,6 +12,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func (u *UsageMetricsReporter) emitNodeUsage(nodeUsage state.NodeUsage) {
@@ -74,7 +78,7 @@ func (u *UsageMetricsReporter) emitMemberUsage(members []serf.Member) {
 	)
 }
 
-func (u *UsageMetricsReporter) emitServiceUsage(serviceUsage state.ServiceUsage) {
+func (u *UsageMetricsReporter) emitServiceUsage(serviceUsage structs.ServiceUsage) {
 	metrics.SetGaugeWithLabels(
 		[]string{"consul", "state", "services"},
 		float32(serviceUsage.Services),
@@ -94,6 +98,11 @@ func (u *UsageMetricsReporter) emitServiceUsage(serviceUsage state.ServiceUsage)
 	metrics.SetGaugeWithLabels(
 		[]string{"state", "service_instances"},
 		float32(serviceUsage.ServiceInstances),
+		u.metricLabels,
+	)
+	metrics.SetGaugeWithLabels(
+		[]string{"state", "billable_service_instances"},
+		float32(serviceUsage.BillableServiceInstances),
 		u.metricLabels,
 	)
 

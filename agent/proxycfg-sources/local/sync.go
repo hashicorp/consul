@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package local
 
 import (
 	"context"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -10,6 +14,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 )
+
+const resyncFrequency = 30 * time.Second
 
 const source proxycfg.ProxySource = "local"
 
@@ -30,6 +36,10 @@ type SyncConfig struct {
 
 	// Logger will be used to write log messages.
 	Logger hclog.Logger
+
+	// ResyncFrequency is how often to do a resync and recreate any terminated
+	// watches.
+	ResyncFrequency time.Duration
 }
 
 // Sync watches the agent's local state and registers/deregisters services with
@@ -50,12 +60,19 @@ func Sync(ctx context.Context, cfg SyncConfig) {
 	cfg.State.Notify(stateCh)
 	defer cfg.State.StopNotify(stateCh)
 
+	var resyncCh <-chan time.Time
 	for {
 		sync(cfg)
+
+		if resyncCh == nil && cfg.ResyncFrequency > 0 {
+			resyncCh = time.After(cfg.ResyncFrequency)
+		}
 
 		select {
 		case <-stateCh:
 			// Wait for a state change.
+		case <-resyncCh:
+			resyncCh = nil
 		case <-ctx.Done():
 			return
 		}

@@ -5,15 +5,15 @@ description: >-
   Troubleshoot issues based on the error message. Common errors result from failed actions, timeouts, multiple entries, bad and expired certificates, invalid characters, syntax parsing, malformed responses, and exceeded deadlines.
 ---
 
-# Common Error Messages
+# Common error messages
 
-When installing and running Consul, there are some common messages you might see. Usually they indicate an issue in your network or in your server's configuration. Some of the more common errors and their solutions are listed below.
+This topic describes common messages that may appear when installing and running Consul. Errors usually they indicate an issue in your network or in your server's configuration. Refer to the [Troubleshooting Guide][troubleshooting] for help resolving error messages that do not appear on this page.
 
-If you are getting an error message you don't see listed on this page, please consider following our general [Troubleshooting Guide][troubleshooting].
-
-For common errors messages related to Kubernetes, please go to [Common errors on Kubernetes](#common-errors-on-kubernetes).
+For common errors messages related to Kubernetes, refer to [Common errors on Kubernetes](#common-errors-on-kubernetes).
 
 ## Configuration file errors
+
+The following errors are related to misconfigured files.
 
 ### Multiple network interfaces
 
@@ -100,7 +100,7 @@ If a host does not properly implement half-close you may see an error message `[
 
 This has been a [known issue](https://github.com/docker/libnetwork/issues/1204) in Docker, but may manifest in other environments as well.
 
-## ACL Not Found
+## ACL not found
 
 ```text
 RPC error making call: rpc error making call: ACL not found
@@ -108,7 +108,9 @@ RPC error making call: rpc error making call: ACL not found
 
 This indicates that you have ACL enabled in your cluster, but you aren't passing a valid token. Make sure that when creating your tokens that they have the correct permissions set. In addition, you would want to make sure that an agent token is provided on each call.
 
-## TLS and Certificates
+## TLS and certificates
+
+The follow errors are related to TLS and certificate issues.
 
 ### Incorrect certificate or certificate name
 
@@ -150,7 +152,19 @@ You have installed an Enterprise version of Consul. If you are an Enterprise cus
 
 -> **Note:** Enterprise binaries can be identified on our [download site][releases] by the `+ent` suffix.
 
+## Rate limit reached on the server
+
+You may receive a `RESOURCE_EXHAUSTED` error from the Consul server if the maximum number of read or write requests per second have been reached. Refer to [Set a global limit on traffic rates](/consul/docs/agent/limits/set-global-traffic-rate-limits) for additional information. You can retry another server unless the number of retries is exhausted. If the number of retries is exhausted, you should implement an exponential backoff.
+
+The RESOURCE_EXHAUSTED RPC response is translated into a `429 Too Many Requests` error code on the HTTP interface. 
+
+The server may respond as `UNAVAILABLE` if it is the leader node and the global write request rate limit is reached. The solution is to apply an exponential backoff until the leader has capacity to serve those requests. 
+
+The `UNAVAILABLE` RPC response is translated into a `503 Service Unavailable` error code on the  RPC requests sent through HTTP interface.
+
 ## Common errors on Kubernetes
+
+The following error messages are specific to Kubernetes issues.
 
 ### Unable to connect to the Consul client on the same host
 
@@ -184,7 +198,7 @@ Get http://10.0.0.10:8500/v1/status/leader: dial tcp 10.0.0.10:8500: i/o timeout
 The IP `10.0.0.10` above refers to the IP of the host where the Consul client pods are running.
 
 To work around this issue,
-enable [`hostNetwork`](/docs/k8s/helm#v-client-hostnetwork) in your Helm values.
+enable [`hostNetwork`](/consul/docs/k8s/helm#v-client-hostnetwork) in your Helm values.
 Using the host network will enable the pod to use the host's network namespace without
 the need for CNI to support port mappings between containers and the host.
 
@@ -199,15 +213,65 @@ as doing so gives the Consul client unnecessary access to all network traffic on
 We recommend raising an issue with the CNI you're using to add support for `hostPort`
 and switching back to `hostPort` eventually.
 
-[troubleshooting]: https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/troubleshooting
-[node_name]: /docs/agent/config/config-files#node_name
-[retry_join]: /docs/agent/config/cli-flags#retry-join
-[license]: /commands/license
+### consul-server-connection-manager: ACL auth method login failed: error="rpc error: code = PermissionDenied desc = Permission denied"
+
+If you see this error in the init container logs of service mesh pods, check that the pod has a service account name that matches its Service.
+For example, this deployment:
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      serviceAccountName: does-not-match
+```
+
+Will fail because the `serviceAccountName` is `does-not-match` instead of `static-server`.
+
+[troubleshooting]: /consul/tutorials/datacenter-operations/troubleshooting
+[node_name]: /consul/docs/agent/config/config-files#node_name
+[retry_join]: /consul/docs/agent/config/cli-flags#retry-join
+[license]: /consul/commands/license
 [releases]: https://releases.hashicorp.com/consul/
 [files]: https://easyengine.io/tutorials/linux/increase-open-files-limit
-[certificates]: https://learn.hashicorp.com/consul/advanced/day-1-operations/certificates
-[systemd]: https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide#configure-systemd
-[monitoring]: https://learn.hashicorp.com/consul/advanced/day-1-operations/monitoring
-[bind]: /docs/agent/config/cli-flags#_bind
+[certificates]: /consul/tutorials/security/tls-encryption-secure
+[systemd]: /consul/tutorials/production-deploy/deployment-guide#configure-systemd
+[monitoring]: /consul/tutorials/day-2-operations/monitor-datacenter-health
+[bind]: /consul/docs/agent/config/cli-flags#_bind
 [jq]: https://stedolan.github.io/jq/
 [go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template

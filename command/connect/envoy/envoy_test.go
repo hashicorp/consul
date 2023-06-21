@@ -1,24 +1,30 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package envoy
 
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -111,15 +117,19 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 type generateConfigTestCase struct {
 	Name              string
 	TLSServer         bool
+	ACLEnabled        bool
 	Flags             []string
 	Env               []string
 	Files             map[string]string
 	ProxyConfig       map[string]interface{}
+	ProxyDefaults     api.ProxyConfigEntry
 	NamespacesEnabled bool
-	XDSPorts          agent.GRPCPorts // only used for testing custom-configured grpc port
+	XDSPorts          agent.GRPCPorts // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
 	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
+	GRPCDisabled      bool
 	WantArgs          BootstrapTplArgs
 	WantErr           string
+	WantWarn          string
 }
 
 // This tests the args we use to generate the template directly because they
@@ -138,6 +148,12 @@ func TestGenerateConfig(t *testing.T) {
 			Name:    "node-name without proxy-id",
 			Flags:   []string{"-node-name", "test-node"},
 			WantErr: "'-node-name' requires '-proxy-id'",
+		},
+		{
+			Name:         "gRPC disabled",
+			Flags:        []string{"-proxy-id", "test-proxy"},
+			GRPCDisabled: true,
+			WantErr:      "agent has grpc disabled",
 		},
 		{
 			Name:  "defaults",
@@ -179,6 +195,29 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:  "telemetry-collector",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			ProxyConfig: map[string]interface{}{
+				"envoy_telemetry_collector_bind_socket_dir": "/tmp/consul/telemetry-collector",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
@@ -446,6 +485,26 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name: "grpc-addr-unix-with-tls",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-grpc-ca-file", "../../../test/ca/root.cer",
+				"-grpc-addr", "unix:///var/run/consul.sock"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				GRPC: GRPC{
+					AgentSocket: "/var/run/consul.sock",
+					AgentTLS:    true,
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
 			Name:     "xds-addr-config",
 			Flags:    []string{"-proxy-id", "test-proxy"},
 			XDSPorts: agent.GRPCPorts{Plaintext: 9999, TLS: 0},
@@ -521,8 +580,9 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "access-log-path",
-			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
+			Name:     "access-log-path",
+			Flags:    []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
+			WantWarn: "-admin-access-log-path is deprecated",
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -544,22 +604,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "missing-ca-file",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
-			WantArgs: BootstrapTplArgs{
-				ProxyCluster: "test-proxy",
-				ProxyID:      "test-proxy",
-				// We don't know this til after the lookup so it will be empty in the
-				// initial args call we are testing here.
-				ProxySourceService: "",
-				// Should resolve IP, note this might not resolve the same way
-				// everywhere which might make this test brittle but not sure what else
-				// to do.
-				GRPC: GRPC{
-					AgentAddress: "127.0.0.1",
-					AgentPort:    "8502",
-				},
-			},
+			Name:    "missing-ca-file",
+			Flags:   []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
 			WantErr: "Error loading CA File: open some/path: no such file or directory",
 		},
 		{
@@ -590,22 +636,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "missing-ca-path",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
-			WantArgs: BootstrapTplArgs{
-				ProxyCluster: "test-proxy",
-				ProxyID:      "test-proxy",
-				// We don't know this til after the lookup so it will be empty in the
-				// initial args call we are testing here.
-				ProxySourceService: "",
-				// Should resolve IP, note this might not resolve the same way
-				// everywhere which might make this test brittle but not sure what else
-				// to do.
-				GRPC: GRPC{
-					AgentAddress: "127.0.0.1",
-					AgentPort:    "8502",
-				},
-			},
+			Name:    "missing-ca-path",
+			Flags:   []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
 			WantErr: "lstat some/path: no such file or directory",
 		},
 		{
@@ -989,6 +1021,28 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name: "envoy-readiness-probe",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-envoy-ready-bind-address", "127.0.0.1", "-envoy-ready-bind-port", "21000"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
 			Name:  "ingress-gateway-address-specified",
 			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
 			WantArgs: BootstrapTplArgs{
@@ -1060,6 +1114,104 @@ func TestGenerateConfig(t *testing.T) {
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
+		{
+			Name:  "access-logs-enabled",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:       "test-proxy",
+				ProxyID:            "test-proxy",
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+			ProxyDefaults: api.ProxyConfigEntry{
+				AccessLogs: &api.AccessLogsConfig{
+					Enabled: true,
+				},
+			},
+		},
+		{
+			Name:  "access-logs-enabled-custom",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:       "test-proxy",
+				ProxyID:            "test-proxy",
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+			ProxyDefaults: api.ProxyConfigEntry{
+				AccessLogs: &api.AccessLogsConfig{
+					Enabled:             true,
+					DisableListenerLogs: true, // Should have no effect here
+					Type:                api.FileLogSinkType,
+					Path:                "/var/log/consul.log",
+					TextFormat:          "MY START TIME %START_TIME%",
+				},
+			},
+		},
+		{
+			Name:       "acl-enabled-but-no-token",
+			Flags:      []string{"-proxy-id", "test-proxy"},
+			ACLEnabled: true,
+			WantWarn:   "No ACL token was provided to Envoy.",
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:       "acl-enabled-and-token",
+			Flags:      []string{"-proxy-id", "test-proxy", "-token", "foo"},
+			ACLEnabled: true,
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				Token:                 "foo",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
 	}
 
 	cases = append(cases, enterpriseGenerateConfigTestCases()...)
@@ -1084,6 +1236,11 @@ func TestGenerateConfig(t *testing.T) {
 				}
 			}
 
+			// Default the ports
+			if tc.XDSPorts.TLS == 0 && tc.XDSPorts.Plaintext == 0 {
+				tc.XDSPorts.Plaintext = 8502
+			}
+
 			// Run a mock agent API that just always returns the proxy config in the
 			// test.
 			var srv *httptest.Server
@@ -1106,18 +1263,26 @@ func TestGenerateConfig(t *testing.T) {
 			// explicitly set the client to one which can connect to the httptest.Server
 			c.client = client
 
+			c.dialFunc = func(_, _ string) (net.Conn, error) {
+				return nil, nil
+			}
+
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
 
 			require.NoError(t, c.flags.Parse(args))
 			code := c.run(c.flags.Args())
-			if tc.WantErr == "" {
-				require.Equal(t, 0, code, ui.ErrorWriter.String())
-			} else {
+			if tc.WantErr != "" {
 				require.Equal(t, 1, code, ui.ErrorWriter.String())
 				require.Contains(t, ui.ErrorWriter.String(), tc.WantErr)
 				return
+			} else if tc.WantWarn != "" {
+				require.Equal(t, 0, code, ui.ErrorWriter.String())
+				require.Contains(t, ui.ErrorWriter.String(), tc.WantWarn)
+			} else {
+				require.Equal(t, 0, code, ui.ErrorWriter.String())
+				require.Empty(t, ui.ErrorWriter.String())
 			}
 
 			// Verify we handled the env and flags right first to get correct template
@@ -1246,9 +1411,13 @@ func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
 		case strings.Contains(r.URL.Path, "/agent/service"):
 			testMockAgentProxyConfig(tc.ProxyConfig, tc.NamespacesEnabled)(w, r)
 		case strings.Contains(r.URL.Path, "/agent/self"):
-			testMockAgentSelf(tc.XDSPorts, tc.AgentSelf110)(w, r)
+			testMockAgentSelf(tc.XDSPorts, tc.AgentSelf110, tc.GRPCDisabled)(w, r)
 		case strings.Contains(r.URL.Path, "/catalog/node-services"):
 			testMockCatalogNodeServiceList()(w, r)
+		case strings.Contains(r.URL.Path, "/config/proxy-defaults/global"):
+			testMockConfigProxyDefaults(tc.ProxyDefaults)(w, r)
+		case strings.Contains(r.URL.Path, "/acl/token/self"):
+			testMockTokenReadSelf(tc.ACLEnabled, tc.Flags)(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1297,6 +1466,9 @@ func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 func namespaceFromQuery(r *http.Request) string {
 	// Use the namespace in the request if there is one, otherwise
 	// use-default.
+	if queryNamespace := r.URL.Query().Get("namespace"); queryNamespace != "" {
+		return queryNamespace
+	}
 	if queryNs := r.URL.Query().Get("ns"); queryNs != "" {
 		return queryNs
 	}
@@ -1306,8 +1478,11 @@ func namespaceFromQuery(r *http.Request) string {
 func partitionFromQuery(r *http.Request) string {
 	// Use the partition in the request if there is one, otherwise
 	// use-default.
-	if queryAP := r.URL.Query().Get("partition"); queryAP != "" {
-		return queryAP
+	if queryPartition := r.URL.Query().Get("partition"); queryPartition != "" {
+		return queryPartition
+	}
+	if queryAp := r.URL.Query().Get("ap"); queryAp != "" {
+		return queryAp
 	}
 	return "default"
 }
@@ -1388,6 +1563,33 @@ func testMockCatalogNodeServiceList() http.HandlerFunc {
 	}
 }
 
+func testMockConfigProxyDefaults(entry api.ProxyConfigEntry) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cfgJSON, err := json.Marshal(entry)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(cfgJSON)
+	}
+}
+
+func testMockTokenReadSelf(aclEnabled bool, flags []string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if aclEnabled {
+			for _, f := range flags {
+				if f == "-token" {
+					w.WriteHeader(200)
+					return
+				}
+			}
+			w.WriteHeader(403)
+			w.Write([]byte(acl.ErrNotFound.Error()))
+			return
+		}
+	}
+}
 func TestEnvoyCommand_canBindInternal(t *testing.T) {
 	t.Parallel()
 	type testCheck struct {
@@ -1486,7 +1688,11 @@ func TestEnvoyCommand_canBindInternal(t *testing.T) {
 
 // testMockAgentSelf returns an empty /v1/agent/self response except GRPC
 // port is filled in to match the given wantXDSPort argument.
-func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.HandlerFunc {
+func testMockAgentSelf(
+	wantXDSPorts agent.GRPCPorts,
+	agentSelf110 bool,
+	grpcDisabled bool,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp := agent.Self{
 			Config: map[string]interface{}{
@@ -1498,6 +1704,12 @@ func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.Han
 			resp.DebugConfig = map[string]interface{}{
 				"GRPCPort": wantXDSPorts.Plaintext,
 			}
+		} else if grpcDisabled {
+			resp.DebugConfig = map[string]interface{}{
+				"GRPCPort": -1,
+			}
+			// the real agent does not populate XDS if grpc or
+			// grpc-tls ports are < 0
 		} else {
 			resp.XDS = &agent.XDSSelf{
 				// The deprecated Port field should default to TLS if it's available.
@@ -1517,4 +1729,99 @@ func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.Han
 		}
 		w.Write(selfJSON)
 	}
+}
+
+func TestCheckEnvoyVersionCompatibility(t *testing.T) {
+	tests := []struct {
+		name            string
+		envoyVersion    string
+		unsupportedList []string
+		expectedCompat  envoyCompat
+		isErrorExpected bool
+	}{
+		{
+			name:            "supported-using-proxy-support-defined",
+			envoyVersion:    xdscommon.EnvoyVersions[1],
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
+		},
+		{
+			name:            "supported-at-max",
+			envoyVersion:    xdscommon.GetMaxEnvoyMinorVersion(),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
+		},
+		{
+			name:            "supported-patch-higher",
+			envoyVersion:    addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
+		},
+		{
+			name:            "not-supported-minor-higher",
+			envoyVersion:    addNMinorVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: replacePatchVersionWithX(addNMinorVersion(xdscommon.EnvoyVersions[0], 1)),
+			},
+		},
+		{
+			name:            "not-supported-minor-lower",
+			envoyVersion:    addNMinorVersion(xdscommon.EnvoyVersions[len(xdscommon.EnvoyVersions)-1], -1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: replacePatchVersionWithX(addNMinorVersion(xdscommon.EnvoyVersions[len(xdscommon.EnvoyVersions)-1], -1)),
+			},
+		},
+		{
+			name:            "not-supported-explicitly-unsupported-version",
+			envoyVersion:    addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: []string{"1.23.1", addNPatchVersion(xdscommon.EnvoyVersions[0], 1)},
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			},
+		},
+		{
+			name:            "error-bad-input",
+			envoyVersion:    "1.abc.3",
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat:  envoyCompat{},
+			isErrorExpected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := checkEnvoyVersionCompatibility(tc.envoyVersion, tc.unsupportedList)
+			if tc.isErrorExpected {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tc.expectedCompat, actual)
+		})
+	}
+}
+
+func addNPatchVersion(s string, n int) string {
+	splitS := strings.Split(s, ".")
+	minor, _ := strconv.Atoi(splitS[2])
+	minor += n
+	return fmt.Sprintf("%s.%s.%d", splitS[0], splitS[1], minor)
+}
+
+func addNMinorVersion(s string, n int) string {
+	splitS := strings.Split(s, ".")
+	major, _ := strconv.Atoi(splitS[1])
+	major += n
+	return fmt.Sprintf("%s.%d.%s", splitS[0], major, splitS[2])
 }

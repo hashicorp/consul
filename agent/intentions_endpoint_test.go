@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -58,7 +62,7 @@ func TestIntentionList(t *testing.T) {
 			}
 
 			var reply string
-			require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+			require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 			ids = append(ids, reply)
 		}
 
@@ -162,7 +166,7 @@ func TestIntentionMatch(t *testing.T) {
 
 			// Create
 			var reply string
-			require.NoError(t, a.RPC("Intention.Apply", &ixn, &reply))
+			require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &ixn, &reply))
 		}
 	}
 
@@ -302,7 +306,7 @@ func TestIntentionCheck(t *testing.T) {
 
 			// Create
 			var reply string
-			require.NoError(t, a.RPC("Intention.Apply", &ixn, &reply))
+			require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &ixn, &reply))
 		}
 	}
 
@@ -510,7 +514,7 @@ func TestIntentionPutExact(t *testing.T) {
 			}
 
 			var resp structs.IndexedIntentions
-			require.NoError(t, a.RPC("Intention.Get", req, &resp))
+			require.NoError(t, a.RPC(context.Background(), "Intention.Get", req, &resp))
 			require.Len(t, resp.Intentions, 1)
 			actual := resp.Intentions[0]
 			require.Equal(t, "foo", actual.SourceName)
@@ -557,7 +561,7 @@ func TestIntentionCreate(t *testing.T) {
 				IntentionID: value.ID,
 			}
 			var resp structs.IndexedIntentions
-			require.NoError(t, a.RPC("Intention.Get", req, &resp))
+			require.NoError(t, a.RPC(context.Background(), "Intention.Get", req, &resp))
 			require.Len(t, resp.Intentions, 1)
 			actual := resp.Intentions[0]
 			require.Equal(t, "foo", actual.SourceName)
@@ -607,7 +611,7 @@ func TestIntentionSpecificGet(t *testing.T) {
 			Op:         structs.IntentionOpCreate,
 			Intention:  ixn,
 		}
-		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	t.Run("invalid id", func(t *testing.T) {
@@ -662,7 +666,7 @@ func TestIntentionSpecificUpdate(t *testing.T) {
 			Op:         structs.IntentionOpCreate,
 			Intention:  ixn,
 		}
-		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	// Update the intention
@@ -683,7 +687,7 @@ func TestIntentionSpecificUpdate(t *testing.T) {
 			IntentionID: reply,
 		}
 		var resp structs.IndexedIntentions
-		require.NoError(t, a.RPC("Intention.Get", req, &resp))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Get", req, &resp))
 		require.Len(t, resp.Intentions, 1)
 		actual := resp.Intentions[0]
 		require.Equal(t, "bar", actual.SourceName)
@@ -745,7 +749,7 @@ func TestIntentionDeleteExact(t *testing.T) {
 			Intention:  ixn,
 		}
 		var ignored string
-		require.NoError(t, a.RPC("Intention.Apply", &req, &ignored))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &ignored))
 	}
 
 	// Sanity check that the intention exists
@@ -755,7 +759,7 @@ func TestIntentionDeleteExact(t *testing.T) {
 			Exact:      exact,
 		}
 		var resp structs.IndexedIntentions
-		require.NoError(t, a.RPC("Intention.Get", req, &resp))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Get", req, &resp))
 		require.Len(t, resp.Intentions, 1)
 		actual := resp.Intentions[0]
 		require.Equal(t, "foo", actual.SourceName)
@@ -799,7 +803,7 @@ func TestIntentionDeleteExact(t *testing.T) {
 				Exact:      exact,
 			}
 			var resp structs.IndexedIntentions
-			err := a.RPC("Intention.Get", req, &resp)
+			err := a.RPC(context.Background(), "Intention.Get", req, &resp)
 			testutil.RequireErrorContains(t, err, "not found")
 		}
 	})
@@ -840,7 +844,7 @@ func TestIntentionSpecificDelete(t *testing.T) {
 			Op:         structs.IntentionOpCreate,
 			Intention:  ixn,
 		}
-		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	// Sanity check that the intention exists
@@ -850,7 +854,7 @@ func TestIntentionSpecificDelete(t *testing.T) {
 			IntentionID: reply,
 		}
 		var resp structs.IndexedIntentions
-		require.NoError(t, a.RPC("Intention.Get", req, &resp))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Get", req, &resp))
 		require.Len(t, resp.Intentions, 1)
 		actual := resp.Intentions[0]
 		require.Equal(t, "foo", actual.SourceName)
@@ -870,7 +874,7 @@ func TestIntentionSpecificDelete(t *testing.T) {
 			IntentionID: reply,
 		}
 		var resp structs.IndexedIntentions
-		err := a.RPC("Intention.Get", req, &resp)
+		err := a.RPC(context.Background(), "Intention.Get", req, &resp)
 		testutil.RequireErrorContains(t, err, "not found")
 	}
 }

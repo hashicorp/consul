@@ -37,7 +37,8 @@ As a result, small deployments require fewer resources overall. For deployments 
 
 **Simplified set up**: Because there are no client agents to engage in gossip, you do not have to generate and distribute a gossip encryption key to agents during the initial bootstrapping process. Securing agent communication also becomes simpler, with fewer tokens to track, distribute, and rotate.
 
-**Additional environment and runtime support**: Current Consul on Kubernetes deployments require using `hostPorts` and `DaemonSets` for client agents, which limits Consul’s ability to be deployed in environments where those features are not supported. As a result, Consul Dataplane supports AWS Fargate and GKE Autopilot.
+**Additional environment and runtime support**: Consul on Kubernetes versions *prior* to 1.0 (Consul 1.14) require using hostPorts and DaemonSets for client agents, which limits Consul’s ability to be deployed in environments where those features are not supported.
+As of Consul on Kubernetes version 1.0 (Consul 1.14) with the new Consul Dataplane, `hostPorts` are no longer required and Consul now supports AWS Fargate and GKE Autopilot.
 
 **Easier upgrades**: With Consul Dataplane, updating Consul to a new version no longer requires upgrading client agents. Consul Dataplane also has better compatibility across Consul server versions, so the process to upgrade Consul servers becomes easier.
 
@@ -45,13 +46,13 @@ As a result, small deployments require fewer resources overall. For deployments 
 
 To get started with Consul Dataplane, use the following reference resources:
 
-- For `consul-dataplane` commands and usage examples, including required flags for startup, refer to the [`consul-dataplane` CLI reference](/docs/connect/dataplane/consul-dataplane).
-- For Helm chart information, refer to the [Helm Chart reference](/docs/k8s/helm).
-- For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/docs/connect/proxies/envoy).
+- For `consul-dataplane` commands and usage examples, including required flags for startup, refer to the [`consul-dataplane` CLI reference](/consul/docs/connect/dataplane/consul-dataplane).
+- For Helm chart information, refer to the [Helm Chart reference](/consul/docs/k8s/helm).
+- For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/consul/docs/connect/proxies/envoy).
 
 ### Installation
 
-To install Consul Dataplane, set `VERSION` to `1.0.0` and then follow the instructions to install a specific version of Consul [with the Helm Chart](/docs/k8s/installation/install#install-consul) or [with the Consul-k8s CLI](/docs/k8s/installation/install-cli#install-a-previous-version).
+To install Consul Dataplane, set `VERSION` to `1.0.0` and then follow the instructions to install a specific version of Consul [with the Helm Chart](/consul/docs/k8s/installation/install#install-consul) or [with the Consul-k8s CLI](/consul/docs/k8s/installation/install-cli#install-a-previous-version).
 
 #### Helm
 
@@ -69,7 +70,7 @@ $ export VERSION=1.0.0 && \
 
 ### Upgrading
 
-Before you upgrade Consul to a version that uses Consul Dataplane, you must edit your Helm chart so that client agents are removed from your deployments. Refer to [upgrading to Consul Dataplane](/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for more information.
+Before you upgrade Consul to a version that uses Consul Dataplane, you must edit your Helm chart so that client agents are removed from your deployments. Refer to [upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for more information.
 
 ## Feature support
 

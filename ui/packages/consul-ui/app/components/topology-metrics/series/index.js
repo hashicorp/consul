@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Component from '@ember/component';
 import dayjs from 'dayjs';
 import Calendar from 'dayjs/plugin/calendar';

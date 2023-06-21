@@ -20,16 +20,16 @@ This endpoint triggers a new user event.
 | `PUT`  | `/event/fire/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `event:write` |
 
-The corresponding CLI command is [`consul event`](/commands/event).
+The corresponding CLI command is [`consul event`](/consul/commands/event).
 
 ### Path Parameters
 
@@ -86,9 +86,9 @@ $ curl \
 ## List Events
 
 This endpoint returns the most recent events (up to 256) known by the agent. As a
-consequence of how the [event command](/commands/event) works, each
+consequence of how the [event command](/consul/commands/event) works, each
 agent may have a different view of the events. Events are broadcast using the
-[gossip protocol](/docs/architecture/gossip), so they have no global ordering
+[gossip protocol](/consul/docs/architecture/gossip), so they have no global ordering
 nor do they make a promise of delivery.
 
 @include 'http_api_results_filtered_by_acls.mdx'
@@ -98,10 +98,10 @@ nor do they make a promise of delivery.
 | `GET`  | `/event/list` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -146,7 +146,7 @@ $ curl \
 The semantics of this endpoint's blocking queries are slightly different. Most
 blocking queries provide a monotonic index and block until a newer index is
 available. This can be supported as a consequence of the total ordering of the
-[consensus protocol](/docs/architecture/consensus). With gossip, there is no
+[consensus protocol](/consul/docs/architecture/consensus). With gossip, there is no
 ordering, and instead `X-Consul-Index` maps to the newest event that matches the
 query.
 

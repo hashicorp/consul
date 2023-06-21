@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build example
 // +build example
 
@@ -36,21 +39,6 @@ type ExampleQueryMeta struct {
 type ExampleDatacenter struct {
 	Value      string
 	Datacenter string
-}
-
-// @consul-rpc-glue: ReadTODO
-type ExampleReadTODO struct {
-	Value string
-}
-
-// @consul-rpc-glue: LeaderReadTODO
-type ExampleLeaderReadTODO struct {
-	Value string
-}
-
-// @consul-rpc-glue: WriteTODO
-type ExampleWriteTODO struct {
-	Value string
 }
 
 // @consul-rpc-glue: WriteRequest=AltWriteRequest

@@ -9,7 +9,7 @@ description: >-
 
 ## Release Highlights
 
-- **Transparent Proxy:** Simplifies deploying applications into the service mesh by using iptables to redirect traffic from applications running in virtual machines or Kubernetes through the Envoy proxy. [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) now provides a CLI interface for applying traffic redirection `iptables` rules to redirect traffic through an inbound and outbound listener on the Envoy sidecar. More information on how to utilize Transparent Proxy for Consul on Kubernetes could be found on [Transparent Proxy](/docs/connect/transparent-proxy).
+- **Transparent Proxy:** Simplifies deploying applications into the service mesh by using iptables to redirect traffic from applications running in virtual machines or Kubernetes through the Envoy proxy. [`consul connect redirect-traffic`](/consul/commands/connect/redirect-traffic) now provides a CLI interface for applying traffic redirection `iptables` rules to redirect traffic through an inbound and outbound listener on the Envoy sidecar. More information on how to utilize Transparent Proxy for Consul on Kubernetes could be found on [Transparent Proxy](/consul/docs/connect/transparent-proxy).
 
 - **Support for xDS v3 and Incremental xDS:** Consul 1.10 will default to using xDS version 3 and Incremental xDS for all supported Envoy proxy versions bootstrapped by the Consul 1.10 CLI. This is driven by the fact that xDS v2 was deprecated in Envoy 1.15 and disabled in Envoy 1.17. Envoy proxies bootstrapped with older Consul CLI binaries will continue to use the xDS v2 state-of-the-world API.
 
@@ -26,7 +26,7 @@ description: >-
 
 ## Upgrading
 
-For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-10-0) and the changelogs.
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific#consul-1-10-0) and the changelogs.
 
 ## Changelogs
 

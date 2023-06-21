@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %healthcheck-output {
   border-width: 1px;
 }
@@ -15,11 +20,11 @@
   }
 }
 %healthcheck-output header > * {
-  @extend %h300;
+  @extend %display-300-semibold;
 }
 %healthcheck-output dd em {
   @extend %pill;
-  background-color: rgb(var(--tone-gray-100));
+  background-color: var(--token-color-surface-strong);
   /*TODO: Should this be merged into %pill? */
   cursor: default;
   font-style: normal;
@@ -28,41 +33,41 @@
 }
 %healthcheck-output.passing::before {
   @extend %with-check-circle-fill-mask;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %healthcheck-output.warning::before {
   @extend %with-alert-triangle-mask;
-  color: rgb(var(--tone-orange-500));
+  color: var(--token-color-foreground-warning);
 }
 %healthcheck-output.critical::before {
   @extend %with-cancel-square-fill-mask;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %healthcheck-output,
 %healthcheck-output pre {
   border-radius: var(--decor-radius-100);
 }
 %healthcheck-output dd:first-of-type {
-  color: rgb(var(--tone-gray-400));
+  color: var(--token-color-foreground-disabled);
 }
 %healthcheck-output pre {
-  background-color: rgb(var(--tone-gray-050));
-  color: rgb(var(--tone-gray-600));
+  background-color: var(--token-color-surface-strong);
+  color: var(--token-color-foreground-faint);
 }
 %healthcheck-output {
   /* TODO: this should be a frame-gray */
-  color: rgb(var(--tone-gray-900));
-  border-color: rgb(var(--tone-gray-200));
+  color: var(--token-color-foreground-strong);
+  border-color: var(--token-color-surface-interactive-active);
   border-style: solid;
 
   border-left-width: 4px;
 }
 %healthcheck-output.passing {
-  border-left-color: rgb(var(--tone-green-500));
+  border-left-color: var(--token-color-foreground-success);
 }
 %healthcheck-output.warning {
-  border-left-color: rgb(var(--tone-yellow-500));
+  border-left-color: var(--token-color-vault-brand);
 }
 %healthcheck-output.critical {
-  border-left-color: rgb(var(--tone-red-500));
+  border-left-color: var(--token-color-foreground-critical);
 }

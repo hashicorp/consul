@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/binding-rule';
 import dataSource from 'consul-ui/decorators/data-source';

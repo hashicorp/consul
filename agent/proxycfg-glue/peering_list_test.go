@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfgglue
 
 import (
@@ -10,7 +13,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -45,7 +48,7 @@ func TestServerPeeringList(t *testing.T) {
 		result := getEventResult[*pbpeering.PeeringListResponse](t, eventCh)
 		require.Len(t, result.Peerings, 1)
 		require.Equal(t, "peer-01", result.Peerings[0].Name)
-		require.Equal(t, index, result.Index)
+		require.Equal(t, index, result.OBSOLETE_Index)
 	})
 
 	testutil.RunStep(t, "add peering", func(t *testing.T) {
@@ -60,7 +63,7 @@ func TestServerPeeringList(t *testing.T) {
 		result := getEventResult[*pbpeering.PeeringListResponse](t, eventCh)
 		require.Len(t, result.Peerings, 2)
 		require.Equal(t, "peer-02", result.Peerings[1].Name)
-		require.Equal(t, index+1, result.Index)
+		require.Equal(t, index+1, result.OBSOLETE_Index)
 	})
 }
 
@@ -97,7 +100,7 @@ func TestServerPeeringList_ACLEnforcement(t *testing.T) {
 		result := getEventResult[*pbpeering.PeeringListResponse](t, eventCh)
 		require.Len(t, result.Peerings, 1)
 		require.Equal(t, "peer-01", result.Peerings[0].Name)
-		require.Equal(t, index, result.Index)
+		require.Equal(t, index, result.OBSOLETE_Index)
 	})
 
 	testutil.RunStep(t, "can't read", func(t *testing.T) {
@@ -114,6 +117,6 @@ func TestServerPeeringList_ACLEnforcement(t *testing.T) {
 		require.NoError(t, err)
 
 		err = getEventError(t, eventCh)
-		require.Contains(t, err.Error(), "provided token lacks permission 'peering:read'")
+		require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'peering:read'")
 	})
 }

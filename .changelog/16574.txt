@@ -1,0 +1,3 @@
+```release-note:bug
+ui: fix rendering issues on Overview and empty-states by addressing isHTMLSafe errors
+```

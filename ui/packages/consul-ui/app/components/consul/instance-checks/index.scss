@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 .consul-instance-checks {
   & {
     @extend %horizontal-kv-list;
@@ -7,18 +12,18 @@
   }
   &.passing dt::before {
     @extend %with-check-circle-fill-mask;
-    color: rgb(var(--tone-green-500));
+    color: var(--token-color-foreground-success);
   }
   &.warning dt::before {
     @extend %with-alert-triangle-mask;
-    color: rgb(var(--tone-orange-500));
+    color: var(--token-color-foreground-warning);
   }
   &.critical dt::before {
     @extend %with-cancel-square-fill-mask;
-    color: rgb(var(--tone-red-500));
+    color: var(--token-color-foreground-critical);
   }
   &.empty dt::before {
     @extend %with-minus-square-fill-mask;
-    color: rgb(var(--tone-gray-500));
+    color: var(--token-color-foreground-faint);
   }
 }

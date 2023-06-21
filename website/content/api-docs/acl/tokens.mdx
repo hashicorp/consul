@@ -6,13 +6,11 @@ description: The /acl/token endpoints manage Consul's ACL Tokens.
 
 # ACL Token HTTP API
 
--> **1.4.0+:** The APIs are available in Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api-docs/acl/legacy).
-
 The `/acl/token` endpoints [create](#create-a-token), [read](#read-a-token),
 [update](#update-a-token), [list](#list-tokens), [clone](#clone-a-token) and [delete](#delete-a-token) ACL tokens in Consul.
 
 For more information on how to setup ACLs, please check
-the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
 
 ## Create a Token
 
@@ -23,16 +21,16 @@ This endpoint creates a new ACL token.
 | `PUT`  | `/acl/token` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl token create`](/commands/acl/token/create).
+The corresponding CLI command is [`consul acl token create`](/consul/commands/acl/token/create).
 
 ### Query Parameters
 
@@ -67,7 +65,7 @@ The corresponding CLI command is [`consul acl token create`](/commands/acl/token
   enables role renaming without breaking tokens. Added in Consul 1.5.0.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/security/acl#service-identities) that should be
+  identities](/consul/docs/security/acl#service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -81,7 +79,7 @@ The corresponding CLI command is [`consul acl token create`](/commands/acl/token
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/security/acl#node-identities) that should be
+  identities](/consul/docs/security/acl#node-identities) that should be
   applied to the token. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -169,16 +167,16 @@ This endpoint reads an ACL token with the given Accessor ID.
 | `GET`  | `/acl/token/:AccessorID` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl token read`](/commands/acl/token/read).
+The corresponding CLI command is [`consul acl token read`](/consul/commands/acl/token/read).
 
 ### Path Parameters
 
@@ -325,10 +323,10 @@ specified with the `X-Consul-Token` header or the `token` query parameter.
 | `GET`  | `/acl/token/self` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -337,7 +335,7 @@ The table below shows this endpoint's support for
 -> **Note** - This endpoint requires no specific privileges as it is just
 retrieving the data for a token that you must already possess its secret.
 
-The corresponding CLI command is [`consul acl token read -self`](/commands/acl/token/read#self).
+The corresponding CLI command is [`consul acl token read -self`](/consul/commands/acl/token/read#self).
 
 ### Sample Request
 
@@ -380,16 +378,16 @@ This endpoint updates an existing ACL token.
 | `PUT`  | `/acl/token/:AccessorID` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl token update`](/commands/acl/token/update).
+The corresponding CLI command is [`consul acl token update`](/consul/commands/acl/token/update).
 
 ### Path Parameters
 
@@ -429,7 +427,7 @@ The corresponding CLI command is [`consul acl token update`](/commands/acl/token
   enables role renaming without breaking tokens.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/security/acl#service-identities) that should be
+  identities](/consul/docs/security/acl#service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -443,7 +441,7 @@ The corresponding CLI command is [`consul acl token update`](/commands/acl/token
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/security/acl#node-identities) that should be
+  identities](/consul/docs/security/acl#node-identities) that should be
   applied to the token. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -538,16 +536,16 @@ This endpoint clones an existing ACL token.
 | `PUT`  | `/acl/token/:AccessorID/clone` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl token clone`](/commands/acl/token/clone).
+The corresponding CLI command is [`consul acl token clone`](/consul/commands/acl/token/clone).
 
 ### Path Parameters
 
@@ -623,16 +621,16 @@ Even though the return type is application/json, the value is either true or
 false, indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl token delete`](/commands/acl/token/delete).
+The corresponding CLI command is [`consul acl token delete`](/consul/commands/acl/token/delete).
 
 ### Path Parameters
 
@@ -665,18 +663,18 @@ This endpoint lists all the ACL tokens.
 | `GET`  | `/acl/tokens` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl token list`](/commands/acl/token/list).
+The corresponding CLI command is [`consul acl token list`](/consul/commands/acl/token/list).
 
-## Query Parameters
+### Query Parameters
 
 - `policy` `(string: "")` - Filters the token list to those tokens that are
   linked with this specific policy ID.
@@ -695,7 +693,7 @@ The corresponding CLI command is [`consul acl token list`](/commands/acl/token/l
   The namespace may be specified as '\*' to return results for all namespaces.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-## Sample Request
+### Sample Request
 
 ```shell-session
 $ curl --request GET http://127.0.0.1:8500/v1/acl/tokens

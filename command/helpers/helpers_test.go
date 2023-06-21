@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package helpers
 
 import (
@@ -3034,6 +3037,190 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "api-gateway",
+			snake: `
+				kind = "api-gateway"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "api-gateway"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "api-gateway",
+				"name": "main",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "api-gateway",
+				"Name": "main",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}`,
+			expect: &api.APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "inline-certificate",
+			snake: `
+				kind = "inline-certificate"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "inline-certificate"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "inline-certificate",
+				"name": "main",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "inline-certificate",
+				"Name": "main",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}`,
+			expect: &api.InlineCertificateConfigEntry{
+				Kind: "inline-certificate",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "http-route",
+			snake: `
+				kind = "http-route"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "http-route"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "http-route",
+				"name": "main",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "http-route",
+				"Name": "main",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}`,
+			expect: &api.HTTPRouteConfigEntry{
+				Kind: "http-route",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "tcp-route",
+			snake: `
+				kind = "tcp-route"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "tcp-route"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "tcp-route",
+				"name": "main",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "tcp-route",
+				"Name": "main",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				}
+			}`,
+			expect: &api.TCPRouteConfigEntry{
+				Kind: "tcp-route",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
 				},
 			},
 		},

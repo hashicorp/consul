@@ -1,0 +1,68 @@
+---
+layout: commands
+page_title: 'Commands: Troubleshoot Proxy'
+description: >-
+  The `consul troubleshoot proxy` diagnoses Consul service mesh configuration and network issues to an upstream.
+---
+
+# Consul Troubleshoot Proxy
+
+Command: `consul troubleshoot proxy`
+
+The `troubleshoot proxy` command diagnoses Consul service mesh configuration and network issues to an upstream. For additional information about using the `troubleshoot proxy` command, including explanations, requirements, usage instructions, refer to the [service-to-service troubleshooting overview](/consul/docs/troubleshoot/troubleshoot-services).
+
+## Usage
+
+Usage: `consul troubleshoot proxy (-upstream-ip <ip>|-upstream-envoy-id <envoy-id>) [options]`
+This command requires `-envoy-admin-endpoint` or `-upstream-ip` to specify the upstream.
+
+#### Command Options
+
+- `-envoy-admin-endpoint=<value>` - Envoy admin endpoint address for the local Envoy instance.
+Defaults to `127.0.0.1:19000`.
+
+- `-upstream-ip=<value>` -  The IP address of the upstream service; Use when the upstream is reached via a transparent proxy DNS address (KubeDNS or Consul DNS)
+
+- `-upstream-envoy-id=<value>` - The Envoy identifier of the upstream service; Use when the upstream is explicitly configured on the downstream service.
+
+## Examples
+
+The following example illustrates how to troubleshoot Consul service mesh configuration and network issues to an upstream from a source proxy.
+
+  ```shell-session
+  $ consul troubleshoot proxy -upstream-ip 10.4.6.160
+
+  ==> Validation
+   ✓ Certificates are valid
+   ✓ Envoy has 0 rejected configurations
+   ✓ Envoy has detected 0 connection failure(s)
+   ✓ Listener for upstream "backend" found
+   ✓ Route for upstream "backend" found
+   ✓ Cluster "backend.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
+   ✓ Healthy endpoints for cluster "backend.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
+   ✓ Cluster "backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
+   ! No healthy endpoints for cluster "backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
+     -> Check that your upstream service is healthy and running
+     -> Check that your upstream service is registered with Consul
+     -> Check that the upstream proxy is healthy and running
+     -> If you are explicitly configuring upstreams, ensure the name of the upstream is correct
+  ```
+
+The following example troubleshoots Consul service mesh configuration and network issues from the local Envoy instance to the given upstream.
+
+  ```shell-session
+  $ consul-k8s troubleshoot proxy -upstream-envoy-id db
+
+  ==> Validation
+   ✓ Certificates are valid
+   ✓ Envoy has 0 rejected configurations
+   ✓ Envoy has detected 0 connection failure(s)
+   ✓ Listener for upstream "db" found
+   ✓ Route for upstream "db" found
+   ✓ Cluster "db.default.dc1.internal.e08fa6d6-e91e-dfe0.consul" for upstream "db" found
+   ✓ Healthy endpoints for cluster "db.default.dc1.internal.e08fa6d6-e91e-dfe0.consul" for upstream "db" found
+
+  If you are still experiencing issues, you can:
+  -> Check intentions to ensure the upstream allows traffic from this source
+  -> If using transparent proxy, ensure DNS resolution is to the same IP you have verified here
+  ```

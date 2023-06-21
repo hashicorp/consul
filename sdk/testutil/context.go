@@ -1,11 +1,18 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package testutil
 
 import (
 	"context"
-	"testing"
 )
 
-func TestContext(t *testing.T) context.Context {
+type CleanerT interface {
+	Helper()
+	Cleanup(func())
+}
+
+func TestContext(t CleanerT) context.Context {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)

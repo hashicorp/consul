@@ -1,15 +1,20 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 .freetext-filter {
   & {
     border: var(--decor-border-100);
     border-radius: var(--decor-radius-100);
 
-    background-color: rgb(var(--tone-gray-000));
-    border-color: rgb(var(--tone-gray-200));
-    color: rgb(var(--tone-gray-400));
+    background-color: var(--token-color-surface-primary);
+    border-color: var(--token-color-surface-interactive-active);
+    color: var(--token-color-foreground-disabled);
   }
   &:hover,
   &:hover * {
-    border-color: rgb(var(--tone-gray-400));
+    border-color: var(--token-color-foreground-disabled);
   }
   & *,
   &_input::placeholder {
@@ -35,14 +40,14 @@
     margin-top: -8px;
   }
   .popover-menu {
-    background-color: rgb(var(--tone-gray-050));
-    color: rgb(var(--tone-gray-800));
+    background-color: var(--token-color-surface-strong);
+    color: var(--token-color-foreground-primary);
   }
   .popover-menu {
     border-left: 1px solid;
     border-color: inherit;
   }
   .popover-menu > [type='checkbox']:checked + label button {
-    background-color: rgb(var(--tone-gray-200));
+    background-color: var(--token-color-surface-interactive-active);
   }
 }

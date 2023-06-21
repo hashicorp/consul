@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 /*eslint ember/no-jquery: "off", ember/no-global-jquery: "off"*/
 'use strict';
 const path = require('path');

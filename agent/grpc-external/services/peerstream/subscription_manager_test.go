@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package peerstream
 
 import (
@@ -18,11 +21,11 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommon"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
-	"github.com/hashicorp/consul/proto/pbservice"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -472,15 +475,40 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 		Node:    &structs.Node{Node: "foo", Address: "10.0.0.1"},
 		Service: &structs.NodeService{ID: "mysql-1", Service: "mysql", Port: 5000},
 	}
+	mysqlSidecar := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "mysql-sidecar-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "mysql",
+		},
+	}
 	backend.ensureNode(t, mysql.Node)
 	backend.ensureService(t, "foo", mysql.Service)
+	backend.ensureService(t, "foo", &mysqlSidecar)
 
 	mongo := &structs.CheckServiceNode{
-		Node:    &structs.Node{Node: "zip", Address: "10.0.0.3"},
-		Service: &structs.NodeService{ID: "mongo-1", Service: "mongo", Port: 5000},
+		Node: &structs.Node{Node: "zip", Address: "10.0.0.3"},
+		Service: &structs.NodeService{
+			ID:      "mongo-1",
+			Service: "mongo",
+			Port:    5000,
+		},
+	}
+	mongoSidecar := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "mongo-sidecar-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "mongo",
+		},
 	}
 	backend.ensureNode(t, mongo.Node)
 	backend.ensureService(t, "zip", mongo.Service)
+	backend.ensureService(t, "zip", &mongoSidecar)
+
+	backend.ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "chain",
+	})
 
 	var (
 		mysqlCorrID = subExportedService + structs.NewServiceName("mysql", nil).String()

@@ -1,11 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resolver
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
-	"time"
 
 	"google.golang.org/grpc/resolver"
 
@@ -17,54 +18,49 @@ import (
 // ServerResolvers updated when changes occur.
 type ServerResolverBuilder struct {
 	cfg Config
+
 	// leaderResolver is used to track the address of the leader in the local DC.
 	leaderResolver leaderResolver
+
 	// servers is an index of Servers by area and Server.ID. The map contains server IDs
 	// for all datacenters.
 	servers map[types.AreaID]map[string]*metadata.Server
+
 	// resolvers is an index of connections to the serverResolver which manages
 	// addresses of servers for that connection.
+	//
+	// this is only applicable for non-leader conn types
 	resolvers map[resolver.ClientConn]*serverResolver
+
 	// lock for all stateful fields (excludes config which is immutable).
 	lock sync.RWMutex
 }
 
 type Config struct {
+	// Datacenter is the datacenter of this agent.
+	Datacenter string
+
+	// AgentType is either 'server' or 'client' and is required.
+	AgentType string
+
 	// Authority used to query the server. Defaults to "". Used to support
 	// parallel testing because gRPC registers resolvers globally.
 	Authority string
 }
 
 func NewServerResolverBuilder(cfg Config) *ServerResolverBuilder {
+	if cfg.Datacenter == "" {
+		panic("ServerResolverBuilder needs Config.Datacenter to be nonempty")
+	}
+	switch cfg.AgentType {
+	case "server", "client":
+	default:
+		panic("ServerResolverBuilder needs Config.AgentType to be either server or client")
+	}
 	return &ServerResolverBuilder{
 		cfg:       cfg,
 		servers:   make(map[types.AreaID]map[string]*metadata.Server),
 		resolvers: make(map[resolver.ClientConn]*serverResolver),
-	}
-}
-
-// NewRebalancer returns a function which shuffles the server list for resolvers
-// in all datacenters.
-func (s *ServerResolverBuilder) NewRebalancer(dc string) func() {
-	shuffler := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return func() {
-		s.lock.RLock()
-		defer s.lock.RUnlock()
-
-		for _, resolver := range s.resolvers {
-			if resolver.datacenter != dc {
-				continue
-			}
-			// Shuffle the list of addresses using the last list given to the resolver.
-			resolver.addrLock.Lock()
-			addrs := resolver.addrs
-			shuffler.Shuffle(len(addrs), func(i, j int) {
-				addrs[i], addrs[j] = addrs[j], addrs[i]
-			})
-			// Pass the shuffled list to the resolver.
-			resolver.updateAddrsLocked(addrs)
-			resolver.addrLock.Unlock()
-		}
 	}
 }
 
@@ -80,6 +76,7 @@ func (s *ServerResolverBuilder) ServerForGlobalAddr(globalAddr string) (*metadat
 			}
 		}
 	}
+
 	return nil, fmt.Errorf("failed to find Consul server for global address %q", globalAddr)
 }
 
@@ -91,15 +88,15 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 
 	// If there's already a resolver for this connection, return it.
 	// TODO(streaming): how would this happen since we already cache connections in ClientConnPool?
-	if resolver, ok := s.resolvers[cc]; ok {
-		return resolver, nil
-	}
 	if cc == s.leaderResolver.clientConn {
 		return s.leaderResolver, nil
 	}
+	if resolver, ok := s.resolvers[cc]; ok {
+		return resolver, nil
+	}
 
 	//nolint:staticcheck
-	serverType, datacenter, err := parseEndpoint(target.Endpoint)
+	serverType, datacenter, err := parseEndpoint(target.Endpoint())
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +140,10 @@ func (s *ServerResolverBuilder) Authority() string {
 
 // AddServer updates the resolvers' states to include the new server's address.
 func (s *ServerResolverBuilder) AddServer(areaID types.AreaID, server *metadata.Server) {
+	if s.shouldIgnoreServer(areaID, server) {
+		return
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -179,6 +180,10 @@ func DCPrefix(datacenter, suffix string) string {
 
 // RemoveServer updates the resolvers' states with the given server removed.
 func (s *ServerResolverBuilder) RemoveServer(areaID types.AreaID, server *metadata.Server) {
+	if s.shouldIgnoreServer(areaID, server) {
+		return
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -200,14 +205,48 @@ func (s *ServerResolverBuilder) RemoveServer(areaID types.AreaID, server *metada
 	}
 }
 
+// shouldIgnoreServer is used to contextually decide if a particular kind of
+// server should be accepted into a given area.
+//
+// On client agents it's pretty easy: clients only participate in the standard
+// LAN, so we only accept servers from the LAN.
+//
+// On server agents it's a little less obvious. This resolver is ultimately
+// used to have servers dial other servers. If a server is going to cross
+// between datacenters (using traditional federation) then we want to use the
+// WAN addresses for them, but if a server is going to dial a sibling server in
+// the same datacenter we want it to use the LAN addresses always. To achieve
+// that here we simply never allow WAN servers for our current datacenter to be
+// added into the resolver, letting only the LAN instances through.
+func (s *ServerResolverBuilder) shouldIgnoreServer(areaID types.AreaID, server *metadata.Server) bool {
+	if s.cfg.AgentType == "client" && areaID != types.AreaLAN {
+		return true
+	}
+
+	if s.cfg.AgentType == "server" &&
+		server.Datacenter == s.cfg.Datacenter &&
+		areaID != types.AreaLAN {
+		return true
+	}
+
+	return false
+}
+
 // getDCAddrs returns a list of the server addresses for the given datacenter.
 // This method requires that lock is held for reads.
 func (s *ServerResolverBuilder) getDCAddrs(dc string) []resolver.Address {
+	lanRequest := (s.cfg.Datacenter == dc)
+
 	var (
 		addrs         []resolver.Address
 		keptServerIDs = make(map[string]struct{})
 	)
-	for _, areaServers := range s.servers {
+	for areaID, areaServers := range s.servers {
+		if (areaID == types.AreaLAN) != lanRequest {
+			// LAN requests only look at LAN data. WAN requests only look at
+			// WAN data.
+			continue
+		}
 		for _, server := range areaServers {
 			if server.Datacenter != dc {
 				continue
@@ -265,27 +304,8 @@ var _ resolver.Resolver = (*serverResolver)(nil)
 func (r *serverResolver) updateAddrs(addrs []resolver.Address) {
 	r.addrLock.Lock()
 	defer r.addrLock.Unlock()
-	r.updateAddrsLocked(addrs)
-}
 
-// updateAddrsLocked updates this serverResolver's ClientConn to use the given
-// set of addrs. addrLock must be held by caller.
-func (r *serverResolver) updateAddrsLocked(addrs []resolver.Address) {
-	// Only pass the first address initially, which will cause the
-	// balancer to spin down the connection for its previous first address
-	// if it is different. If we don't do this, it will keep using the old
-	// first address as long as it is still in the list, making it impossible to
-	// rebalance until that address is removed.
-	var firstAddr []resolver.Address
-	if len(addrs) > 0 {
-		firstAddr = []resolver.Address{addrs[0]}
-	}
-	r.clientConn.UpdateState(resolver.State{Addresses: firstAddr})
-
-	// Call UpdateState again with the entire list of addrs in case we need them
-	// for failover.
 	r.clientConn.UpdateState(resolver.State{Addresses: addrs})
-
 	r.addrs = addrs
 }
 

@@ -1,13 +1,17 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cachetype
 
 import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestIntentionMatch(t *testing.T) {
@@ -18,13 +22,13 @@ func TestIntentionMatch(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedIntentionMatches
-	rpc.On("RPC", "Intention.Match", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "Intention.Match", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(1).(*structs.IntentionQueryRequest)
+			req := args.Get(2).(*structs.IntentionQueryRequest)
 			require.Equal(t, uint64(24), req.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.MaxQueryTime)
 
-			reply := args.Get(2).(*structs.IndexedIntentionMatches)
+			reply := args.Get(3).(*structs.IndexedIntentionMatches)
 			reply.Index = 48
 			resp = reply
 		})

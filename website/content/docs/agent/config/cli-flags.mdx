@@ -7,13 +7,13 @@ description: >-
 
 # Agents Command-line Reference ((#commandline_options))
 
--> **Note:** Some CLI arguments may be different from HCL keys. See [Configuration Key Reference](/docs/agent/config/config-files#config_key_reference) for equivalent HCL Keys.
+-> **Note:** Some CLI arguments may be different from HCL keys. See [Configuration Key Reference](/consul/docs/agent/config/config-files#config_key_reference) for equivalent HCL Keys.
 
 This topic describes the available command-line options for the Consul agent.
 
 ## Usage
 
-See [Agent Overview](/docs/agent#starting-the-consul-agent) for examples of how to use flags with the `consul agent` CLI.
+See [Agent Overview](/consul/docs/agent#starting-the-consul-agent) for examples of how to use flags with the `consul agent` CLI.
 
 ## Environment Variables
 
@@ -21,19 +21,19 @@ Environment variables **cannot** be used to configure the Consul client. They
 _can_ be used when running other `consul` CLI commands that connect with a
 running agent, e.g. `CONSUL_HTTP_ADDR=192.168.0.1:8500 consul members`.
 
-See [Consul Commands](/commands#environment-variables) for more
+See [Consul Commands](/consul/commands#environment-variables) for more
 information.
 
 ## General
 
-- `-auto-reload-config` ((#\_auto_reload_config)) - This option directs Consul to automatically reload the [reloadable configuration options](/docs/agent/config#reloadable-configuration) when configuration files change.
+- `-auto-reload-config` ((#\_auto_reload_config)) - This option directs Consul to automatically reload the [reloadable configuration options](/consul/docs/agent/config#reloadable-configuration) when configuration files change.
   Consul also watches the certificate and key files specified with the `cert_file` and `key_file` parameters and reloads the configuration if the files are updated.
 
 - `-check_output_max_size` - Override the default
   limit of 4k for maximum size of checks, this is a positive value. By limiting this
   size, it allows to put less pressure on Consul servers when many checks are having
   a very large output in their checks. In order to completely disable check output
-  capture, it is possible to use [`discard_check_output`](/docs/agent/config/config-files#discard_check_output).
+  capture, it is possible to use [`discard_check_output`](/consul/docs/agent/config/config-files#discard_check_output).
 
 - `-client` ((#\_client)) - The address to which Consul will bind client
   interfaces, including the HTTP and DNS servers. By default, this is "127.0.0.1",
@@ -82,7 +82,7 @@ information.
 - `-dev` ((#\_dev)) - Enable development server mode. This is useful for
   quickly starting a Consul agent with all persistence options turned off, enabling
   an in-memory server which can be used for rapid prototyping or developing against
-  the API. In this mode, [Connect is enabled](/docs/connect/configuration) and
+  the API. In this mode, [service mesh is enabled](/consul/docs/connect/configuration) and
   will by default create a new root CA certificate on startup. This mode is **not**
   intended for production use as it does not write any data to disk. The gRPC port
   is also defaulted to `8502` in this mode.
@@ -92,7 +92,7 @@ information.
   only the given `-encrypt` key will be available on startup. This defaults to false.
 
 - `-enable-script-checks` ((#\_enable_script_checks)) This controls whether
-  [health checks that execute scripts](/docs/discovery/checks) are enabled on this
+  [health checks that execute scripts](/consul/docs/services/usage/checks) are enabled on this
   agent, and defaults to `false` so operators must opt-in to allowing these. This
   was added in Consul 0.9.0.
 
@@ -109,7 +109,7 @@ information.
 
 - `-encrypt` ((#\_encrypt)) - Specifies the secret key to use for encryption
   of Consul network traffic. This key must be 32-bytes that are Base64-encoded. The
-  easiest way to create an encryption key is to use [`consul keygen`](/commands/keygen).
+  easiest way to create an encryption key is to use [`consul keygen`](/consul/commands/keygen).
   All nodes within a cluster must share the same encryption key to communicate. The
   provided key is automatically persisted to the data directory and loaded automatically
   whenever the agent is restarted. This means that to encrypt Consul's gossip protocol,
@@ -118,7 +118,7 @@ information.
   the provided key is ignored and a warning will be displayed.
 
 - `-grpc-port` ((#\_grpc_port)) - the gRPC API port to listen on. Default
-  -1 (gRPC disabled). See [ports](/docs/agent/config#ports-used) documentation for more detail.
+  -1 (gRPC disabled). See [ports](/consul/docs/agent/config#ports-used) documentation for more detail.
 
 - `-hcl` ((#\_hcl)) - A HCL configuration fragment. This HCL configuration
   fragment is appended to the configuration and allows to specify the full range
@@ -131,7 +131,7 @@ information.
   allowing you to set the port directly via a Procfile.
 
 - `-https-port` ((#\_https_port)) - the HTTPS API port to listen on. Default
-  -1 (https disabled). See [ports](/docs/agent/config#ports-used) documentation for more detail.
+  -1 (https disabled). See [ports](/consul/docs/agent/config#ports-used) documentation for more detail.
 
 - `-default-query-time` ((#\_default_query_time)) - This flag controls the
   amount of time a blocking query will wait before Consul will force a response.
@@ -148,21 +148,21 @@ information.
   to close the agent or `SIGHUP` to update check definitions) to the agent.
 
 - `-protocol` ((#\_protocol)) - The Consul protocol version to use. Consul
-  agents speak protocol 2 by default, however agents will automatically use protocol > 2 when speaking to compatible agents. This should be set only when [upgrading](/docs/upgrading). You can view the protocol versions supported by Consul by running `consul version`.
+  agents speak protocol 2 by default, however agents will automatically use protocol > 2 when speaking to compatible agents. This should be set only when [upgrading](/consul/docs/upgrading). You can view the protocol versions supported by Consul by running `consul version`.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
   of the Raft consensus protocol used for server communications. This must be set
-  to 3 in order to gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](/docs/agent/config/config-files#cleanup_dead_servers). Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See [Raft Protocol Version Compatibility](/docs/upgrading/upgrade-specific#raft-protocol-version-compatibility) for more details.
+  to 3 in order to gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](/consul/docs/agent/config/config-files#cleanup_dead_servers). Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See [Raft Protocol Version Compatibility](/consul/docs/upgrading/upgrade-specific#raft-protocol-version-compatibility) for more details.
 
 - `-segment` ((#\_segment)) <EnterpriseAlert inline /> - This flag is used to set
   the name of the network segment the agent belongs to. An agent can only join and
   communicate with other agents within its network segment. Ensure the [join
-  operation uses the correct port for this segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
-  Review the [Network Segments documentation](/docs/enterprise/network-segments)
+  operation uses the correct port for this segment](/consul/docs/enterprise/network-segments/create-network-segment#configure-clients-to-join-segments).
+  Review the [Network Segments documentation](/consul/docs/enterprise/network-segments/create-network-segment)
   for more details. By default, this is an empty string, which is the `<default>`
   network segment.
 
-  ~> **Warning:** The `segment` flag cannot be used with the [`partition`](/docs/agent/config/config-files#partition-1) option.
+  ~> **Warning:** The `segment` flag cannot be used with the [`partition`](/consul/docs/agent/config/config-files#partition-1) option.
 
 ## Advertise Address Options
 
@@ -184,13 +184,13 @@ information.
 
 - `-advertise-wan` ((#\_advertise-wan)) - The advertise WAN address is used
   to change the address that we advertise to server nodes joining through the WAN.
-  This can also be set on client agents when used in combination with the [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs) configuration option. By default, the [`-advertise`](#_advertise) address
+  This can also be set on client agents when used in combination with the [`translate_wan_addrs`](/consul/docs/agent/config/config-files#translate_wan_addrs) configuration option. By default, the [`-advertise`](#_advertise) address
   is advertised. However, in some cases all members of all datacenters cannot be
   on the same physical or virtual network, especially on hybrid setups mixing cloud
   and private datacenters. This flag enables server nodes gossiping through the public
   network for the WAN while using private VLANs for gossiping to each other and their
   client agents, and it allows client agents to be reached at this address when being
-  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs). In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](/consul/docs/agent/config/config-files#translate_wan_addrs). In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that is resolved at runtime.
 
 ## Address Bind Options
@@ -264,7 +264,7 @@ information.
 ## Configuration File Options
 
 - `-config-file` ((#\_config_file)) - A configuration file to load. For
-  more information on the format of this file, read the [Configuration Files](/docs/agent/config/config-files)
+  more information on the format of this file, read the [Configuration Files](/consul/docs/agent/config/config-files)
   section. This option can be specified multiple times to load multiple configuration
   files. If it is specified multiple times, configuration files loaded later will
   merge with configuration files loaded earlier. During a config merge, single-value
@@ -277,7 +277,7 @@ information.
   the [`config-file`](#_config_file) option above. This option can be specified multiple
   times to load multiple directories. Sub-directories of the config directory are
   not loaded. For more information on the format of the configuration files, see
-  the [Configuration Files](/docs/agent/config/config-files) section.
+  the [Configuration Files](/consul/docs/agent/config/config-files) section.
 
 - `-config-format` ((#\_config_format)) - The format of the configuration
   files to load. Normally, Consul detects the format of the config files from the
@@ -304,44 +304,26 @@ information.
 
 - `-recursor` ((#\_recursor)) - Specifies the address of an upstream DNS
   server. This option may be provided multiple times, and is functionally equivalent
-  to the [`recursors` configuration option](/docs/agent/config/config-files#recursors).
+  to the [`recursors` configuration option](/consul/docs/agent/config/config-files#recursors).
 
-## Join Options
+- `-join` ((#\_join)) - **Deprecated in Consul 1.15. This flag will be removed in a future version of Consul. Use the `-retry-join` flag instead.**
+  This is an alias of [`-retry-join`](#_retry_join).
 
-- `-join` ((#\_join)) - Address of another agent to join upon starting up.
-  This can be specified multiple times to specify multiple agents to join. If Consul
-  is unable to join with any of the specified addresses, agent startup will fail.
-  By default, the agent won't join any nodes when it starts up. Note that using [`-retry-join`](#_retry_join) could be more appropriate to help mitigate node startup race conditions when automating
-  a Consul cluster deployment.
+- `-retry-join` ((#\_retry_join)) - Address of another agent to join upon starting up. Joining is
+  retried until success. Once the agent joins successfully as a member, it will not attempt to join
+  again. After joining, the agent solely maintains its membership via gossip. This option can be
+  specified multiple times to specify multiple agents to join. By default, the agent won't join any
+  nodes when it starts up. The value can contain IPv4, IPv6, or DNS addresses. Literal IPv6
+  addresses must be enclosed in square brackets. If multiple values are given, they are tried and
+  retried in the order listed until the first succeeds.
 
-  In Consul 1.1.0 and later this can be dynamically defined with a
-  [go-sockaddr]
-  template that is resolved at runtime.
+  This supports [Cloud Auto-Joining](#cloud-auto-joining).
 
-  If using Enterprise network segments, see [additional documentation on
-  joining a client to a segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
+  This can be dynamically defined with a [go-sockaddr] template that is resolved at runtime.
 
-- `-retry-join` ((#\_retry_join)) - Similar to [`-join`](#_join) but allows retrying a join until
-  it is successful. Once it joins successfully to a member in a list of members
-  it will never attempt to join again. Agents will then solely maintain their
-  membership via gossip. This is useful for cases where you know the address will
-  eventually be available. This option can be specified multiple times to
-  specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
-  addresses. IPv6 must use the "bracketed" syntax. If multiple values
-  are given, they are tried and retried in the order listed until the first
-  succeeds.
+  If Consul is running on a non-default Serf LAN port, you must specify the port number in the address when using the `-retry-join` flag. Alternatively, you can specify the custom port number as the default in the agent's [`ports.serf_lan`](/consul/docs/agent/config/config-files#serf_lan_port) configuration or with the [`-serf-lan-port`](#_serf_lan_port) command line flag when starting the agent.
 
-  In Consul 1.1.0 and later this can be dynamically defined with a
-  [go-sockaddr]
-  template that is resolved at runtime.
-
-  If Consul is running on the non-default Serf LAN port, the port must
-  be specified in the join address, or configured as the agent's default Serf port
-  using the [`ports.serf_lan`](/docs/agent/config/config-files#serf_lan_port) configuration option or
-  [`-serf-lan-port`](#_serf_lan_port) command line flag.
-
-  If using network segments (Enterprise), see [additional documentation on
-  joining a client to a segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
+  If your network contains network segments, refer to the [network segments documentation](/consul/docs/enterprise/network-segments/create-network-segment) for additional information.
 
   Here are some examples of using `-retry-join`:
 
@@ -387,10 +369,10 @@ information.
 
   ### Cloud Auto-Joining
 
-  As of Consul 0.9.1, `retry-join` accepts a unified interface using the
+  The `-retry-join` option accepts a unified interface using the
   [go-discover](https://github.com/hashicorp/go-discover) library for doing
   automatic cluster joining using cloud metadata. For more information, see
-  the [Cloud Auto-join page](/docs/install/cloud-auto-join).
+  the [Cloud Auto-join page](/consul/docs/install/cloud-auto-join).
 
   <CodeBlockConfig heading="Using Cloud Auto-Joining">
 
@@ -407,22 +389,17 @@ information.
   [`-retry-join`](#_retry_join) before exiting with return code 1. By default, this is set
   to 0 which is interpreted as infinite retries.
 
-- `-join-wan` ((#\_join_wan)) - Address of another wan agent to join upon
-  starting up. This can be specified multiple times to specify multiple WAN agents
-  to join. If Consul is unable to join with any of the specified addresses, agent
-  startup will fail. By default, the agent won't [`-join-wan`](#_join_wan) any nodes
-  when it starts up.
+- `-join-wan` ((#\_join_wan)) - **Deprecated in Consul 1.15. This flag will be removed in a future version of Consul. Use the `-retry-join-wan` flag instead.**
+  This is an alias of [`-retry-join-wan`](#_retry_join_wan)
 
-  In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
-  template that is resolved at runtime.
+- `-retry-join-wan` ((#\_retry_join_wan)) - Address of another WAN agent to join upon starting up.
+  WAN joining is retried until success. This can be specified multiple times to specify multiple WAN
+  agents to join. If multiple values are given, they are tried and retried in the order listed
+  until the first succeeds. By default, the agent won't WAN join any nodes when it starts up.
 
-- `-retry-join-wan` ((#\_retry_join_wan)) - Similar to [`-retry-join`](#_retry_join)
-  but allows retrying a wan join if the first attempt fails. This is useful for cases
-  where we know the address will become available eventually. As of Consul 0.9.3
-  [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
+  This supports [Cloud Auto-Joining](#cloud-auto-joining).
 
-  In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
-  template that is resolved at runtime.
+  This can be dynamically defined with a [go-sockaddr] template that is resolved at runtime.
 
 - `-primary-gateway` ((#\_primary_gateway)) - Similar to [`-retry-join-wan`](#_retry_join_wan)
   but allows retrying discovery of fallback addresses for the mesh gateways in the
@@ -432,9 +409,9 @@ information.
   templates. This was added in Consul 1.8.0.
 
 - `-retry-interval-wan` ((#\_retry_interval_wan)) - Time to wait between
-  [`-join-wan`](#_join_wan) attempts. Defaults to 30s.
+  [`-retry-join-wan`](#_retry_join_wan) attempts. Defaults to 30s.
 
-- `-retry-max-wan` ((#\_retry_max_wan)) - The maximum number of [`-join-wan`](#_join_wan)
+- `-retry-max-wan` ((#\_retry_max_wan)) - The maximum number of [`-retry-join-wan`](#_join_wan)
   attempts to be made before exiting with return code 1. By default, this is set
   to 0 which is interpreted as infinite retries.
 
@@ -469,7 +446,7 @@ information.
 - `-log-level` ((#\_log_level)) - The level of logging to show after the
   Consul agent has started. This defaults to "info". The available log levels are
   "trace", "debug", "info", "warn", and "error". You can always connect to an agent
-  via [`consul monitor`](/commands/monitor) and use any log level. Also,
+  via [`consul monitor`](/consul/commands/monitor) and use any log level. Also,
   the log level can be changed during a config reload.
 
 - `-log-json` ((#\_log_json)) - This flag enables the agent to output logs
@@ -513,7 +490,7 @@ information.
   the data directory. This is useful when running multiple Consul agents on the same
   host for testing. This defaults to false in Consul prior to version 0.8.5 and in
   0.8.5 and later defaults to true, so you must opt-in for host-based IDs. Host-based
-  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/tree/master/v3/host), which
+  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/), which
   is shared with HashiCorp's [Nomad](https://www.nomadproject.io/), so if you opt-in
   to host-based IDs then Consul and Nomad will use information on the host to automatically
   assign the same ID in both systems.

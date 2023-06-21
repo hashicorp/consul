@@ -9,10 +9,10 @@ description: >-
 
 -> 1.9.0+: This feature is available in Consul versions 1.9.0 and higher
 
-~> This topic requires familiarity with [Ingress Gateways](/docs/connect/gateways/ingress-gateway).
+~> This topic requires familiarity with [Ingress Gateways](/consul/docs/connect/gateways/ingress-gateway).
 
-This page describes how to enable external access to Connect Service Mesh services running inside Kubernetes using Consul ingress gateways.
-See [Ingress Gateways](/docs/connect/gateways/ingress-gateway) for more information on use-cases and how it works.
+This page describes how to enable external access through Consul ingress gateways to mesh services running inside Kubernetes.
+See [Ingress Gateways](/consul/docs/connect/gateways/ingress-gateway) for more information on use-cases and how it works.
 
 Adding an ingress gateway is a multi-step process that consists of the following steps:
 
@@ -47,25 +47,31 @@ ingressGateways:
 ~> **Note:** this will create a public unauthenticated LoadBalancer in your cluster, please take appropriate security considerations.
 
 The YAML snippet is the launching point for a valid configuration that must be supplied when installing using the [official consul-helm chart](https://hub.helm.sh/charts/hashicorp/consul).
-Information on additional options can be found in the [Helm reference](/docs/k8s/helm).
-Configuration options for ingress gateways reside under the [ingressGateways](/docs/k8s/helm#v-ingressgateways) entry.
+Information on additional options can be found in the [Helm reference](/consul/docs/k8s/helm).
+Configuration options for ingress gateways reside under the [ingressGateways](/consul/docs/k8s/helm#v-ingressgateways) entry.
 
 The gateways stanza is where you will define and configure the set of ingress gateways you want deployed to your environment.
 The only required field for each entry is `name`, though entries may contain any of the fields found in the `defaults` stanza.
 Values in this section override the values from the defaults stanza for the given ingress gateway with one exception:
 the annotations from the defaults stanza will be _appended_ to any user-defined annotations defined in the gateways stanza rather than being overridden.
-Please refer to the ingress gateway configuration [documentation](/docs/k8s/helm#v-ingressgateways-defaults) for a detailed explanation of each option.
+Please refer to the ingress gateway configuration [documentation](/consul/docs/k8s/helm#v-ingressgateways-defaults) for a detailed explanation of each option.
 
 ## Deploying the Helm chart
 
 Ensure you have the latest consul-helm chart and install Consul via helm using the following
-[guide](/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
+[guide](/consul/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
 as previously discussed.
+
+The following example installs Consul 1.0.4 using the `values.yaml` configuration: 
+
+```shell-session
+$ helm install consul -f values.yaml hashicorp/consul --version 1.0.4 --wait --debug
+```
 
 ## Configuring the gateway
 
 Now that Consul has been installed with ingress gateways enabled,
-you can configure the gateways via the [`IngressGateway`](/docs/connect/config-entries/ingress-gateway) custom resource.
+you can configure the gateways via the [`IngressGateway`](/consul/docs/connect/config-entries/ingress-gateway) custom resource.
 
 Here is an example `IngressGateway` resource:
 
@@ -88,7 +94,7 @@ spec:
 
 ~> **Note:** The 'name' field for the IngressGateway resource must match the name
 specified when creating the gateway in the Helm chart. In the above example, the
-name "ingress-gateway" is the [default name](/docs/k8s/helm#v-ingressgateways-gateways-name)
+name "ingress-gateway" is the [default name](/consul/docs/k8s/helm#v-ingressgateways-gateways-name)
 used by the Helm chart when enabling ingress gateways.
 
 Apply the `IngressGateway` resource with `kubectl apply`:
@@ -99,7 +105,7 @@ ingressgateway.consul.hashicorp.com/ingress-gateway created
 ```
 
 Since we're using `protocol: http`, we also need to set the protocol of our service
-`static-server` to http. To do that, we create a [`ServiceDefaults`](/docs/connect/config-entries/service-defaults) custom resource:
+`static-server` to http. To do that, we create a [`ServiceDefaults`](/consul/docs/connect/config-entries/service-defaults) custom resource:
 
 <CodeBlockConfig filename="service-defaults.yaml">
 
@@ -138,7 +144,7 @@ ingress-gateway   True     13m
 You can confirm the ingress gateways have been configured as expected by viewing the ingress-gateway service instances
 in the Consul UI.
 
-To view the UI, use the `kubectl port-forward` command. See [Viewing The Consul UI](/docs/k8s/installation/install#viewing-the-consul-ui)
+To view the UI, use the `kubectl port-forward` command. See [Viewing The Consul UI](/consul/docs/k8s/installation/install#viewing-the-consul-ui)
 for full instructions.
 
 Once you've port-forwarded to the UI, navigate to the Ingress Gateway instances: [http://localhost:8500/ui/dc1/services/ingress-gateway/instances](http://localhost:8500/ui/dc1/services/ingress-gateway/instances)
@@ -147,10 +153,10 @@ If TLS is enabled, use [https://localhost:8501/ui/dc1/services/ingress-gateway/i
 
 ## Defining an Intention
 
-If ACLs are enabled (via the `global.acls.manageSystemACLs` setting), you must define an [intention](/docs/connect/intentions)
+If ACLs are enabled (via the `global.acls.manageSystemACLs` setting), you must define an [intention](/consul/docs/connect/intentions)
 to allow the ingress gateway to route to the upstream services defined in the `IngressGateway` resource (in the example above the upstream service is `static-server`).
 
-To create an intention that allows the ingress gateway to route to the service `static-server`, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions)
+To create an intention that allows the ingress gateway to route to the service `static-server`, create a [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions)
 resource:
 
 <CodeBlockConfig filename="service-intentions.yaml">
@@ -177,7 +183,7 @@ $ kubectl apply --filename service-intentions.yaml
 serviceintentions.consul.hashicorp.com/ingress-gateway created
 ```
 
-For detailed instructions on how to configure zero-trust networking with intentions please refer to this [guide](https://learn.hashicorp.com/tutorials/consul/service-mesh-zero-trust-network?utm_source=docs).
+For detailed instructions on how to configure zero-trust networking with intentions please refer to this [guide](/consul/tutorials/kubernetes-features/service-mesh-zero-trust-network?utm_source=docs).
 
 ## Deploying your application to Kubernetes
 

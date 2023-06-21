@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if @regenerate}}
         <p>
           Token regenerated! Here’s what’s next:
@@ -27,11 +32,11 @@
           </li>
         </ol>
 {{#if (not @regenerate)}}
-        <Action
-          @type="reset"
-          {{on "click" @onclick}}
-        >
-          Generate another token
-        </Action>
+  <Hds::Button
+    @text='Generate another token'
+    type='reset'
+    @color='secondary'
+    {{on "click" @onclick}}
+  />
 {{/if}}
 

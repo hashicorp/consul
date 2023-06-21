@@ -1,0 +1,76 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.internal.config;
+
+message Config {
+  string Datacenter = 1;
+  string PrimaryDatacenter = 2;
+  string NodeName = 3;
+  string SegmentName = 4;
+  string Partition = 9;
+  ACL ACL = 5;
+  AutoEncrypt AutoEncrypt = 6;
+  Gossip Gossip = 7;
+  TLS TLS = 8;
+}
+
+message Gossip {
+  GossipEncryption Encryption = 1;
+  repeated string RetryJoinLAN = 2;
+}
+
+message GossipEncryption {
+  string Key = 1;
+  bool VerifyIncoming = 2;
+  bool VerifyOutgoing = 3;
+}
+
+message TLS {
+  bool VerifyOutgoing = 1;
+  bool VerifyServerHostname = 2;
+  string CipherSuites = 3;
+  string MinVersion = 4;
+  // Deprecated_PreferServerCipherSuites is deprecated. It is no longer
+  // populated and should be ignored by clients.
+  bool Deprecated_PreferServerCipherSuites = 5 [deprecated = true];
+}
+
+message ACL {
+  bool Enabled = 1;
+  string PolicyTTL = 2;
+  string RoleTTL = 3;
+  string TokenTTL = 4;
+  string DownPolicy = 5;
+  string DefaultPolicy = 6;
+  bool EnableKeyListPolicy = 7;
+  ACLTokens Tokens = 8;
+  // Deprecated_DisabledTTL is deprecated. It is no longer populated and should
+  // be ignored by clients.
+  string Deprecated_DisabledTTL = 9 [deprecated = true];
+  bool EnableTokenPersistence = 10;
+  bool MSPDisableBootstrap = 11;
+}
+
+message ACLTokens {
+  string InitialManagement = 1;
+  string Replication = 2;
+  string AgentRecovery = 3;
+  string Default = 4;
+  string Agent = 5;
+  repeated ACLServiceProviderToken ManagedServiceProvider = 6;
+}
+
+message ACLServiceProviderToken {
+  string AccessorID = 1;
+  string SecretID = 2;
+}
+
+message AutoEncrypt {
+  bool TLS = 1;
+  repeated string DNSSAN = 2;
+  repeated string IPSAN = 3;
+  bool AllowTLS = 4;
+}

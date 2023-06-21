@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package acl
 
 import (
@@ -17,6 +20,7 @@ func TestPermissionDeniedError(t *testing.T) {
 	}
 
 	auth1 := MockAuthorizer{}
+	auth2 := AllowAuthorizer{nil, AnonymousTokenID}
 
 	cases := []testCase{
 		{
@@ -29,11 +33,15 @@ func TestPermissionDeniedError(t *testing.T) {
 		},
 		{
 			err:      PermissionDeniedByACL(&auth1, nil, ResourceService, AccessRead, "foobar"),
-			expected: "Permission denied: provided token lacks permission 'service:read' on \"foobar\"",
+			expected: "Permission denied: token with AccessorID '' lacks permission 'service:read' on \"foobar\"",
 		},
 		{
 			err:      PermissionDeniedByACLUnnamed(&auth1, nil, ResourceService, AccessRead),
-			expected: "Permission denied: provided token lacks permission 'service:read'",
+			expected: "Permission denied: token with AccessorID '' lacks permission 'service:read'",
+		},
+		{
+			err:      PermissionDeniedByACLUnnamed(auth2, nil, ResourceService, AccessRead),
+			expected: "Permission denied: anonymous token lacks permission 'service:read'. The anonymous token is used implicitly when a request does not specify a token.",
 		},
 	}
 

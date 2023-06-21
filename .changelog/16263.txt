@@ -1,0 +1,4 @@
+```release-note:security
+Upgrade to use Go 1.20.1. 
+This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`.
+```

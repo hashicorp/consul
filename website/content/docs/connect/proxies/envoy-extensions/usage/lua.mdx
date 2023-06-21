@@ -1,0 +1,225 @@
+---
+layout: docs
+page_title: Lua Envoy Extension
+description: >-
+  Learn how the `lua` Envoy extension enables Consul to run Lua scripts during Envoy requests and responses from Consul-generated Envoy resources.
+---
+
+# Run Lua scripts in Envoy proxy
+
+The Lua Envoy extension enables the [HTTP Lua filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter) in your Consul Envoy proxies, letting you run Lua scripts when requests and responses pass through Consul-generated Envoy resources.
+
+Envoy filters support setting and getting dynamic metadata, allowing a filter to share state information with subsequent filters. To set dynamic metadata, configure the HTTP Lua filter. Users can call `streamInfo:dynamicMetadata()` from Lua scripts to get the request's dynamic metadata. 
+
+## Configuration specifications
+
+To use the Lua Envoy extension, configure the following arguments in the `EnvoyExtensions` block:
+
+- `ProxyType`: string | `connect-proxy` - Determines the proxy type the extension applies to. The only supported value is `connect-proxy`.
+- `ListenerType`: string | required - Specifies if the extension is applied to the `inbound` or `outbound` listener.
+- `Script`: string | required - The Lua script that is configured to run by the HTTP Lua filter.
+
+## Workflow
+
+There are two steps to configure the Lua Envoy extension:
+
+1. Configure EnvoyExtensions through `service-defaults` or `proxy-defaults`. 
+1. Apply the configuration entry.
+
+### Configure `EnvoyExtensions`
+
+To use Envoy extensions, you must configure and apply a `proxy-defaults` or `service-defaults` configuration entry with the Envoy extension.
+
+- When you configure Envoy extensions on `proxy-defaults`, they apply to every service.
+- When you configure Envoy extensions on `service-defaults`, they apply to a specific service.
+
+Consul applies Envoy extensions configured in `proxy-defaults` before it applies extensions in `service-defaults`. As a result, the Envoy extension configuration in `service-defaults` may  override configurations in `proxy-defaults`.
+
+The following example configures the Lua Envoy extension on every service by using the `proxy-defaults`.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+<CodeBlockConfig filename="lua-envoy-extension-proxy-defaults.hcl">
+
+```hcl
+Kind     = "proxy-defaults"
+Name     = "global"
+Protocol = "http"
+EnvoyExtensions {
+  Name = "builtin/lua"
+  Arguments = {
+    ProxyType = "connect-proxy"
+    Listener  = "inbound"
+    Script    = <<-EOS
+function envoy_on_request(request_handle)
+  meta = request_handle:streamInfo():dynamicMetadata()
+  m = meta:get("consul")
+  request_handle:headers():add("x-consul-service", m["service"])
+  request_handle:headers():add("x-consul-namespace", m["namespace"])
+  request_handle:headers():add("x-consul-datacenter", m["datacenter"])
+  request_handle:headers():add("x-consul-trust-domain", m["trust-domain"])
+end
+EOS
+  }
+}
+```
+
+</CodeBlockConfig>
+</Tab>
+<Tab heading="JSON" group="json">
+<CodeBlockConfig filename="lua-envoy-extension-proxy-defaults.json">
+
+```hcl
+{
+  "kind": "proxy-defaults",
+  "name": "global",
+  "protocol": "http",
+  "envoy_extensions": [{
+    "name": "builtin/lua",
+    "arguments": {
+      "proxy_type": "connect-proxy",
+      "listener": "inbound",
+      "script": "function envoy_on_request(request_handle)\nmeta = request_handle:streamInfo():dynamicMetadata()\nm = \nmeta:get("consul")\nrequest_handle:headers():add("x-consul-service", m["service"])\nrequest_handle:headers():add("x-consul-namespace", m["namespace"])\nrequest_handle:headers():add("x-consul-datacenter", m["datacenter"])\nrequest_handle:headers():add("x-consul-trust-domain", m["trust-domain"])\nend"
+    }
+  }]
+}
+```
+
+</CodeBlockConfig>
+</Tab>
+<Tab heading="Kubernetes" group="kubernetes">
+<CodeBlockConfig filename="lua-envoy-extension-proxy-defaults.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  protocol: http
+  envoyExtensions:
+    name = "builtin/lua"
+    arguments:
+      proxyType: "connect-proxy"
+      listener: "inbound"
+      script: |-
+function envoy_on_request(request_handle)
+  meta = request_handle:streamInfo():dynamicMetadata()
+  m = meta:get("consul")
+  request_handle:headers():add("x-consul-service", m["service"])
+  request_handle:headers():add("x-consul-namespace", m["namespace"])
+  request_handle:headers():add("x-consul-datacenter", m["datacenter"])
+  request_handle:headers():add("x-consul-trust-domain", m["trust-domain"])
+end
+```
+
+</CodeBlockConfig>
+</Tab>
+</Tabs>
+
+For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) and [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) configuration entries reference documentation.
+
+!> **Warning:** Applying `EnvoyExtensions` to `ProxyDefaults` may produce unintended consequences. We recommend enabling `EnvoyExtensions` with `ServiceDefaults` in most cases.
+
+Refer to [Configuration specification](#configuration-specification) section to find a full list of arguments for the Lua Envoy extension.
+
+### Apply the configuration entry
+
+Apply the `proxy-defaults` or `service-defaults` configuration entry.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
+```shell-session
+$ consul config write lua-envoy-extension-proxy-defaults.hcl
+```
+
+</Tab>
+<Tab heading="JSON" group="json">
+
+```shell-session
+$ consul config write lua-envoy-extension-proxy-defaults.json
+
+```
+
+</Tab>
+<Tab heading="Kubernetes" group="kubernetes">
+
+```shell-session
+$ kubectl apply lua-envoy-extension-proxy-defaults.yaml
+```
+
+</Tab>
+</Tabs>
+
+## Examples
+
+In the following example, the `service-defaults` configure the Lua Envoy extension to insert the HTTP Lua filter for service `myservice` and add the Consul service name to the`x-consul-service` header for all inbound requests. The `ListenerType` makes it so that the extension applies only on the inbound listener of the service's connect proxy.
+
+<CodeBlockConfig filename="lua-envoy-extension.hcl">
+
+```hcl
+Kind = "service-defaults"
+Name = "myservice"
+EnvoyExtensions = [
+  {
+    Name = "builtin/lua"
+    
+    Arguments = {
+      ProxyType = "connect-proxy"
+      Listener  = "inbound"
+      Script    = <<EOF
+  function envoy_on_request(request_handle)
+    local service = request_handle:streamInfo():dynamicMetadata():get("consul")["service"]
+    request_handle:headers():add("x-consul-service", service)
+  end
+  EOF
+    }
+  }
+]
+```
+
+</CodeBlockConfig>
+
+Alternatively, you can apply the same extension configuration to [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) configuration entries.
+
+You can also specify multiple Lua filters through the Envoy extensions. They will not override each other.
+
+<CodeBlockConfig filename="lua-envoy-extension.hcl">
+
+```hcl
+Kind = "service-defaults"
+Name = "myservice"
+EnvoyExtensions = [
+  {
+    Name = "builtin/lua",
+    Arguments = {
+      ProxyType = "connect-proxy"
+      Listener  = "inbound"
+      Script    = <<-EOF
+function envoy_on_request(request_handle)
+  meta = request_handle:streamInfo():dynamicMetadata()
+  m = meta:get("consul")
+  request_handle:headers():add("x-consul-datacenter", m["datacenter1"])
+end
+      EOF
+    }
+  },
+  {
+    Name = "builtin/lua",
+    Arguments = {
+      ProxyType = "connect-proxy"
+      Listener  = "inbound"
+      Script    = <<-EOF
+function envoy_on_request(request_handle)
+  meta = request_handle:streamInfo():dynamicMetadata()
+  m = meta:get("consul")
+  request_handle:headers():add("x-consul-datacenter", m["datacenter2"])
+end
+      EOF
+    }
+  }
+]
+```
+
+</CodeBlockConfig>

@@ -1,14 +1,16 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
 	"bytes"
 	"crypto"
-	crand "crypto/rand"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/url"
 	"os"
@@ -24,10 +26,10 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/proto/pbautoconf"
-	"github.com/hashicorp/consul/proto/pbconfig"
-	"github.com/hashicorp/consul/proto/pbconnect"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbconfig"
+	"github.com/hashicorp/consul/proto/private/pbconnect"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -884,7 +886,7 @@ func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
 	// customizations to allow for better unit testing.
 	createCSR := func(tmpl *x509.CertificateRequest, privateKey crypto.Signer) (string, error) {
 		connect.HackSANExtensionForCSR(tmpl)
-		bs, err := x509.CreateCertificateRequest(crand.Reader, tmpl, privateKey)
+		bs, err := x509.CreateCertificateRequest(rand.Reader, tmpl, privateKey)
 		require.NoError(t, err)
 		var csrBuf bytes.Buffer
 		err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})

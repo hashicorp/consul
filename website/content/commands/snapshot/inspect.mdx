@@ -1,6 +1,8 @@
 ---
 layout: commands
 page_title: 'Commands: Snapshot Inspect'
+description: |
+  The `consul snapshot inspect` command outputs an atomic, point-in-time snapshot of the state of the Consul servers. Output includes key/value entries, registered services in the catalog, prepared queries, sessions, and ACLs.
 ---
 
 # Consul Snapshot Inspect
@@ -13,8 +15,8 @@ service catalog, prepared queries, sessions, and ACLs. The snapshot is read
 from the given file.
 
 -> Typically this is used with Consul self-contained Snapshot files obtained
-using the [`consul snapshot`](/commands/snapshot) command or [Snapshot
-API](/api-docs/snapshot#generate-snapshot). If the file provided is named
+using the [`consul snapshot`](/consul/commands/snapshot) command or [Snapshot
+API](/consul/api-docs/snapshot#generate-snapshot). If the file provided is named
 `state.bin` however, the command will assume it is a raw raft snapshot in a
 Consul server data directory and will attempt to read it directly. The
 `state.bin` file must still be in the same directory as it's associated
@@ -129,7 +131,7 @@ $ consul snapshot inspect -kvdetails -kvdepth 3 -kvfilter vault/core backup.snap
  Total                                   5.9KB
 ```
 
-Please see the [HTTP API](/api-docs/snapshot) documentation for
+Please see the [HTTP API](/consul/api-docs/snapshot) documentation for
 more details about snapshot internals.
 
 To inspect an internal snapshot directly from a Consul server data directory:

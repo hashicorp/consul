@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package discoverychain
 
 import (
@@ -9,6 +12,8 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type compileTestCase struct {
@@ -40,6 +45,8 @@ func TestCompile(t *testing.T) {
 		"service and subset redirect":                      testcase_ServiceAndSubsetRedirect(),
 		"datacenter redirect":                              testcase_DatacenterRedirect(),
 		"redirect to cluster peer":                         testcase_PeerRedirect(),
+		"redirect to cluster peer http proxy-defaults":     testcase_PeerRedirectProxyDefHTTP(),
+		"redirect to cluster peer http service-defaults":   testcase_PeerRedirectSvcDefHTTP(),
 		"datacenter redirect with mesh gateways":           testcase_DatacenterRedirect_WithMeshGateways(),
 		"service failover":                                 testcase_ServiceFailover(),
 		"service failover through redirect":                testcase_ServiceFailoverThroughRedirect(),
@@ -56,6 +63,7 @@ func TestCompile(t *testing.T) {
 		"loadbalancer splitter and resolver":               testcase_LBSplitterAndResolver(),
 		"loadbalancer resolver":                            testcase_LBResolver(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
+		"extensions":                            testcase_Extensions(),
 		"service meta projection":               testcase_ServiceMetaProjection(),
 		"service meta projection with redirect": testcase_ServiceMetaProjectionWithRedirect(),
 
@@ -82,6 +90,11 @@ func TestCompile(t *testing.T) {
 		// circular references
 		"circular resolver redirect": testcase_Resolver_CircularRedirect(),
 		"circular split":             testcase_CircularSplit(),
+
+		// tproxy
+		"tproxy service defaults only":     testcase_ServiceDefaultsTProxy(),
+		"tproxy proxy defaults only":       testcase_ProxyDefaultsTProxy(),
+		"tproxy service defaults override": testcase_ServiceDefaultsOverrideTProxy(),
 	}
 
 	for name, tc := range cases {
@@ -1126,6 +1139,102 @@ func testcase_PeerRedirect() compileTestCase {
 	return compileTestCase{entries: entries, expect: expect}
 }
 
+func testcase_PeerRedirectProxyDefHTTP() compileTestCase {
+	entries := newEntries()
+	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"Protocol": "http",
+		},
+	})
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+				Peer:    "cluster-01",
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http",
+		StartNode: "resolver:other.default.default.external.cluster-01",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other.default.default.external.cluster-01": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other.default.default.external.cluster-01",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "other.default.default.external.cluster-01",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"other.default.default.external.cluster-01": newTarget(structs.DiscoveryTargetOpts{
+				Service: "other",
+				Peer:    "cluster-01",
+			}, func(t *structs.DiscoveryTarget) {
+				t.SNI = ""
+				t.Name = ""
+				t.Datacenter = ""
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_PeerRedirectSvcDefHTTP() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "main",
+			Protocol: "http",
+		},
+	)
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+				Peer:    "cluster-01",
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http",
+		StartNode: "resolver:other.default.default.external.cluster-01",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other.default.default.external.cluster-01": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other.default.default.external.cluster-01",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "other.default.default.external.cluster-01",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"other.default.default.external.cluster-01": newTarget(structs.DiscoveryTargetOpts{
+				Service: "other",
+				Peer:    "cluster-01",
+			}, func(t *structs.DiscoveryTarget) {
+				t.SNI = ""
+				t.Name = ""
+				t.Datacenter = ""
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
 func testcase_DatacenterRedirect_WithMeshGateways() compileTestCase {
 	entries := newEntries()
 	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
@@ -1474,7 +1583,20 @@ func testcase_Failover_Targets() compileTestCase {
 						{Datacenter: "dc3"},
 						{Service: "new-main"},
 						{Peer: "cluster-01"},
+						{Peer: "cluster-02"},
 					},
+				},
+			},
+		},
+	)
+
+	entries.AddPeers(
+		&pbpeering.Peering{
+			Name: "cluster-01",
+			Remote: &pbpeering.RemoteInfo{
+				Locality: &pbcommon.Locality{
+					Region: "us-west-1",
+					Zone:   "us-west-1a",
 				},
 			},
 		},
@@ -1495,6 +1617,7 @@ func testcase_Failover_Targets() compileTestCase {
 							"main.default.default.dc3",
 							"new-main.default.default.dc1",
 							"main.default.default.external.cluster-01",
+							"main.default.default.external.cluster-02",
 						},
 					},
 				},
@@ -1522,6 +1645,21 @@ func testcase_Failover_Targets() compileTestCase {
 			"main.default.default.external.cluster-01": newTarget(structs.DiscoveryTargetOpts{
 				Service: "main",
 				Peer:    "cluster-01",
+			}, func(t *structs.DiscoveryTarget) {
+				t.SNI = ""
+				t.Name = ""
+				t.Datacenter = ""
+				t.MeshGateway = structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeRemote,
+				}
+				t.Locality = &structs.Locality{
+					Region: "us-west-1",
+					Zone:   "us-west-1a",
+				}
+			}),
+			"main.default.default.external.cluster-02": newTarget(structs.DiscoveryTargetOpts{
+				Service: "main",
+				Peer:    "cluster-02",
 			}, func(t *structs.DiscoveryTarget) {
 				t.SNI = ""
 				t.Name = ""
@@ -1663,6 +1801,59 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 			}),
 		},
 	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_Extensions() compileTestCase {
+	entries := newEntries()
+	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		EnvoyExtensions: []structs.EnvoyExtension{
+			{
+				Name: "ext1",
+			},
+		},
+	})
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "main",
+			EnvoyExtensions: []structs.EnvoyExtension{
+				{
+					Name: "ext2",
+				},
+			},
+		},
+	)
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "tcp",
+		Default:  true,
+		EnvoyExtensions: []structs.EnvoyExtension{
+			{
+				Name: "ext1",
+			},
+			{
+				Name: "ext2",
+			},
+		},
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, nil),
+		},
+	}
+
 	return compileTestCase{entries: entries, expect: expect}
 }
 
@@ -2942,6 +3133,119 @@ func testcase_LBResolver() compileTestCase {
 	return compileTestCase{entries: entries, expect: expect}
 }
 
+func testcase_ServiceDefaultsTProxy() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "main",
+			TransparentProxy: structs.TransparentProxyConfig{
+				DialedDirectly: true,
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		Default:   true,
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, func(t *structs.DiscoveryTarget) {
+				t.TransparentProxy.DialedDirectly = true
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_ProxyDefaultsTProxy() compileTestCase {
+	entries := newEntries()
+	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		TransparentProxy: structs.TransparentProxyConfig{
+			DialedDirectly: true,
+		},
+	})
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		Default:   true,
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, func(t *structs.DiscoveryTarget) {
+				t.TransparentProxy.DialedDirectly = true
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_ServiceDefaultsOverrideTProxy() compileTestCase {
+	entries := newEntries()
+	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		TransparentProxy: structs.TransparentProxyConfig{
+			DialedDirectly: false,
+		},
+	})
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "main",
+			TransparentProxy: structs.TransparentProxyConfig{
+				DialedDirectly: true,
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		Default:   true,
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, func(t *structs.DiscoveryTarget) {
+				t.TransparentProxy.DialedDirectly = true
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
 func newSimpleRoute(name string, muts ...func(*structs.ServiceRoute)) structs.ServiceRoute {
 	r := structs.ServiceRoute{
 		Match: &structs.ServiceRouteMatch{
@@ -2997,6 +3301,7 @@ func newTarget(opts structs.DiscoveryTargetOpts, modFn func(t *structs.Discovery
 	t.SNI = connect.TargetSNI(t, "trustdomain.consul")
 	t.Name = t.SNI
 	t.ConnectTimeout = 5 * time.Second // default
+	t.PrioritizeByLocality = opts.PrioritizeByLocality
 	if modFn != nil {
 		modFn(t)
 	}

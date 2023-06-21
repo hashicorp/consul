@@ -1,0 +1,38 @@
+name: check-go-mod
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: true
+        type: string
+      repository-name:
+        required: true
+        type: string
+    secrets:
+      elevated-github-token:
+        required: true
+jobs:
+  check-go-mod:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+
+    steps:
+    - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        go-version-file: 'go.mod'
+    - run: go mod tidy
+    - run: |
+        if [[ -n $(git status -s) ]]; then
+          echo "Git directory has changes"
+          git status -s
+          exit 1
+        fi
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh

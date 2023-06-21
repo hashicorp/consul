@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -10,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const sidecarIDSuffix = "-sidecar-proxy"
+const sidecarIDSuffix = structs.SidecarProxySuffix
 
 func sidecarIDFromServiceID(serviceID string) string {
 	return serviceID + sidecarIDSuffix
@@ -93,7 +96,7 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 		sidecar.Kind = structs.ServiceKindConnectProxy
 	}
 	if sidecar.Service == "" {
-		sidecar.Service = ns.Service + "-sidecar-proxy"
+		sidecar.Service = ns.Service + structs.SidecarProxySuffix
 	}
 	if sidecar.Address == "" {
 		// Inherit address from the service if it's provided

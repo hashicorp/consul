@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cert
 
 import (
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/command/flags"
 )
 
 func New() *cmd {
@@ -25,7 +29,7 @@ func (c *cmd) Help() string {
 
 const synopsis = `Helpers for certificates`
 const help = `
-Usage: consul tls cert <subcommand> [options] [filename-prefix]
+Usage: consul tls cert <subcommand> [options]
 
   This command has subcommands for interacting with certificates
 

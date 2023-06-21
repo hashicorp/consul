@@ -1,27 +1,24 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func configSort(configs []structs.ConfigEntry) {
-	sort.SliceStable(configs, func(i, j int) bool {
-		return cmpConfigLess(configs[i], configs[j])
-	})
-}
-
 func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry, lastRemoteIndex uint64) ([]structs.ConfigEntry, []structs.ConfigEntry) {
-	configSort(local)
-	configSort(remote)
+	configentry.SortSlice(local)
+	configentry.SortSlice(remote)
 
 	var (
 		deletions []structs.ConfigEntry
@@ -30,7 +27,7 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 		remoteIdx int
 	)
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
-		if configSameID(local[localIdx], remote[remoteIdx]) {
+		if configentry.EqualID(local[localIdx], remote[remoteIdx]) {
 			// config is in both the local and remote state - need to check raft indices
 			if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
 				updates = append(updates, remote[remoteIdx])
@@ -38,7 +35,7 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 			// increment both indices when equal
 			localIdx += 1
 			remoteIdx += 1
-		} else if cmpConfigLess(local[localIdx], remote[remoteIdx]) {
+		} else if configentry.Less(local[localIdx], remote[remoteIdx]) {
 			// config no longer in remoted state - needs deleting
 			deletions = append(deletions, local[localIdx])
 
@@ -62,30 +59,6 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 	}
 
 	return deletions, updates
-}
-
-func cmpConfigLess(first structs.ConfigEntry, second structs.ConfigEntry) bool {
-	if first.GetKind() < second.GetKind() {
-		return true
-	}
-	if first.GetKind() > second.GetKind() {
-		return false
-	}
-
-	if first.GetEnterpriseMeta().LessThan(second.GetEnterpriseMeta()) {
-		return true
-	}
-	if second.GetEnterpriseMeta().LessThan(first.GetEnterpriseMeta()) {
-		return false
-	}
-
-	return first.GetName() < second.GetName()
-}
-
-func configSameID(e1, e2 structs.ConfigEntry) bool {
-	return e1.GetKind() == e2.GetKind() &&
-		e1.GetEnterpriseMeta().IsSame(e2.GetEnterpriseMeta()) &&
-		e1.GetName() == e2.GetName()
 }
 
 func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.ConfigEntry, op structs.ConfigEntryOp) (bool, error) {
@@ -142,7 +115,7 @@ func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGen
 	}
 
 	var response structs.IndexedGenericConfigEntries
-	if err := s.RPC("ConfigEntry.ListAll", &req, &response); err != nil {
+	if err := s.RPC(context.Background(), "ConfigEntry.ListAll", &req, &response); err != nil {
 		return nil, err
 	}
 

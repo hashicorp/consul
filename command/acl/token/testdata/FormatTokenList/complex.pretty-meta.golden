@@ -6,7 +6,6 @@ Local:            false
 Auth Method:      bar (Namespace: baz)
 Create Time:      2020-05-22 18:52:31 +0000 UTC
 Expiration Time:  2020-05-22 19:52:31 +0000 UTC
-Legacy:           false
 Hash:             6162636465666768
 Create Index:     5
 Modify Index:     10

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -6,7 +9,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"net/http/httptest"
 	"path/filepath"
@@ -31,10 +33,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/tlsutil"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano()) // seed random number generator
-}
 
 // TestAgent encapsulates an Agent with a default configuration and
 // startup procedure suitable for testing. It panics if there are errors
@@ -216,9 +214,9 @@ func (a *TestAgent) Start(t *testing.T) error {
 			} else {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
-			// Lower the maximum backoff period of a cache refresh just for
-			// tests see #14956 for more.
-			result.RuntimeConfig.Cache.CacheRefreshMaxWait = 1 * time.Second
+
+			// Lower the resync interval for tests.
+			result.RuntimeConfig.LocalProxyConfigResyncInterval = 250 * time.Millisecond
 		}
 		return result, err
 	}
@@ -296,7 +294,7 @@ func (a *TestAgent) waitForUp() error {
 					MaxQueryTime:  25 * time.Millisecond,
 				},
 			}
-			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
+			if err := a.RPC(context.Background(), "Catalog.ListNodes", args, &out); err != nil {
 				retErr = fmt.Errorf("Catalog.ListNodes failed: %v", err)
 				continue // fail, try again
 			}

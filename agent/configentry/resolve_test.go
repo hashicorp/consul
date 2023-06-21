@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package configentry
 
 import (
@@ -12,21 +15,23 @@ import (
 
 func Test_ComputeResolvedServiceConfig(t *testing.T) {
 	type args struct {
-		scReq       *structs.ServiceConfigRequest
-		upstreamIDs []structs.ServiceID
-		entries     *ResolvedServiceConfigSet
+		scReq   *structs.ServiceConfigRequest
+		entries *ResolvedServiceConfigSet
 	}
 
 	sid := structs.ServiceID{
 		ID:             "sid",
 		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 	}
-	uid := structs.ServiceID{
-		ID:             "upstream1",
-		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+	uid := structs.PeeredServiceName{
+		ServiceName: structs.NewServiceName("upstream1", acl.DefaultEnterpriseMeta()),
 	}
-	uids := []structs.ServiceID{uid}
-	wildcard := structs.NewServiceID(structs.WildcardSpecifier, acl.WildcardEnterpriseMeta())
+
+	uids := []structs.PeeredServiceName{uid}
+
+	wildcard := structs.PeeredServiceName{
+		ServiceName: structs.NewServiceName(structs.WildcardSpecifier, acl.WildcardEnterpriseMeta()),
+	}
 
 	localMeshGW := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal}
 	remoteMeshGW := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote}
@@ -105,10 +110,9 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			name: "proxy upstream mesh-gateway inherits proxy-defaults",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
-					Name:        "sid",
-					UpstreamIDs: uids,
+					Name:                 "sid",
+					UpstreamServiceNames: uids,
 				},
-				upstreamIDs: uids,
 				entries: &ResolvedServiceConfigSet{
 					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
 						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
@@ -119,7 +123,86 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 			want: &structs.ServiceConfigResponse{
 				MeshGateway: remoteMeshGW,
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeRemote,
+							},
+						},
+					},
+					{
+						Upstream: uid,
+						Config: map[string]interface{}{
+							"mesh_gateway": remoteMeshGW,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "proxy inherits kitchen sink from proxy-defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name:                 "sid",
+					UpstreamServiceNames: uids,
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							Config: map[string]interface{}{
+								"foo": "bar",
+							},
+							Expose: structs.ExposeConfig{
+								Checks: true,
+								Paths:  []structs.ExposePath{},
+							},
+							Mode:        structs.ProxyModeTransparent,
+							MeshGateway: remoteMeshGW,
+							TransparentProxy: structs.TransparentProxyConfig{
+								OutboundListenerPort: 6666,
+								DialedDirectly:       true,
+							},
+							AccessLogs: structs.AccessLogsConfig{
+								Enabled:             true,
+								DisableListenerLogs: true,
+								Type:                structs.FileLogSinkType,
+								Path:                "/tmp/accesslog.txt",
+								JSONFormat:          "{ \"custom_start_time\": \"%START_TIME%\" }",
+							},
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{
+					"foo": "bar",
+				},
+				Expose: structs.ExposeConfig{
+					Checks: true,
+					Paths:  []structs.ExposePath{},
+				},
+				Mode:        structs.ProxyModeTransparent,
+				MeshGateway: remoteMeshGW,
+				TransparentProxy: structs.TransparentProxyConfig{
+					OutboundListenerPort: 6666,
+					DialedDirectly:       true,
+				},
+				AccessLogs: structs.AccessLogsConfig{
+					Enabled:             true,
+					DisableListenerLogs: true,
+					Type:                structs.FileLogSinkType,
+					Path:                "/tmp/accesslog.txt",
+					JSONFormat:          "{ \"custom_start_time\": \"%START_TIME%\" }",
+				},
+				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": remoteMeshGW,
+						},
+					},
 					{
 						Upstream: uid,
 						Config: map[string]interface{}{
@@ -133,10 +216,9 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			name: "proxy upstream mesh-gateway inherits service-defaults",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
-					Name:        "sid",
-					UpstreamIDs: uids,
+					Name:                 "sid",
+					UpstreamServiceNames: uids,
 				},
-				upstreamIDs: uids,
 				entries: &ResolvedServiceConfigSet{
 					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
 						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
@@ -152,7 +234,13 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 			want: &structs.ServiceConfigResponse{
 				MeshGateway: noneMeshGW, // service-defaults has a higher precedence.
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": noneMeshGW,
+						},
+					},
 					{
 						Upstream: uid,
 						Config: map[string]interface{}{
@@ -188,7 +276,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 			want: &structs.ServiceConfigResponse{
 				MeshGateway: localMeshGW,
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,
 						Config: map[string]interface{}{
@@ -203,10 +291,9 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			name: "proxy upstream mesh-gateway inherits upstream defaults",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
-					Name:        "sid",
-					UpstreamIDs: uids,
+					Name:                 "sid",
+					UpstreamServiceNames: uids,
 				},
-				upstreamIDs: uids,
 				entries: &ResolvedServiceConfigSet{
 					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
 						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
@@ -227,7 +314,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 			want: &structs.ServiceConfigResponse{
 				MeshGateway: noneMeshGW, // Merged from proxy-defaults + service-defaults
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,
 						Config: map[string]interface{}{
@@ -249,13 +336,12 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			name: "proxy upstream mesh-gateway inherits value from node-service",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
-					Name:        "sid",
-					UpstreamIDs: uids,
+					Name:                 "sid",
+					UpstreamServiceNames: uids,
 
 					// MeshGateway from NodeService is received in the request
 					MeshGateway: remoteMeshGW,
 				},
-				upstreamIDs: uids,
 				entries: &ResolvedServiceConfigSet{
 					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
 						sid: {
@@ -269,7 +355,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				},
 			},
 			want: &structs.ServiceConfigResponse{
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,
 						Config: map[string]interface{}{
@@ -291,11 +377,10 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			name: "proxy upstream mesh-gateway inherits value from service-defaults override",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
-					Name:        "sid",
-					UpstreamIDs: uids,
-					MeshGateway: localMeshGW, // applied 2nd
+					Name:                 "sid",
+					UpstreamServiceNames: uids,
+					MeshGateway:          localMeshGW, // applied 2nd
 				},
-				upstreamIDs: uids,
 				entries: &ResolvedServiceConfigSet{
 					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
 						sid: {
@@ -305,7 +390,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 								},
 								Overrides: []*structs.UpstreamConfig{
 									{
-										Name:        uid.ID,
+										Name:        uid.ServiceName.Name,
 										MeshGateway: remoteMeshGW, // applied 3rd
 									},
 								},
@@ -315,7 +400,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				},
 			},
 			want: &structs.ServiceConfigResponse{
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,
 						Config: map[string]interface{}{
@@ -333,15 +418,134 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "servicedefaults envoy extension",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							EnvoyExtensions: []structs.EnvoyExtension{
+								{
+									Name:      "sd-ext",
+									Required:  false,
+									Arguments: map[string]interface{}{"arg": "val"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				EnvoyExtensions: []structs.EnvoyExtension{
+					{
+						Name:      "sd-ext",
+						Required:  false,
+						Arguments: map[string]interface{}{"arg": "val"},
+					},
+				},
+			},
+		},
+		{
+			name: "proxydefaults envoy extension appended to servicedefaults extension",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							EnvoyExtensions: []structs.EnvoyExtension{
+								{
+									Name:      "pd-ext",
+									Required:  false,
+									Arguments: map[string]interface{}{"arg": "val"},
+								},
+							},
+						},
+					},
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							EnvoyExtensions: []structs.EnvoyExtension{
+								{
+									Name:      "sd-ext",
+									Required:  false,
+									Arguments: map[string]interface{}{"arg": "val"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				EnvoyExtensions: []structs.EnvoyExtension{
+					{
+						Name:      "pd-ext",
+						Required:  false,
+						Arguments: map[string]interface{}{"arg": "val"},
+					},
+					{
+						Name:      "sd-ext",
+						Required:  false,
+						Arguments: map[string]interface{}{"arg": "val"},
+					},
+				},
+			},
+		},
+		{
+			name: "service-defaults inherits mutual_tls_mode from proxy-defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							MutualTLSMode: structs.MutualTLSModePermissive,
+						},
+					},
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				MutualTLSMode: structs.MutualTLSModePermissive,
+			},
+		},
+		{
+			name: "service-defaults overrides mutual_tls_mode in proxy-defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							MutualTLSMode: structs.MutualTLSModeStrict,
+						},
+					},
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							MutualTLSMode: structs.MutualTLSModePermissive,
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				MutualTLSMode: structs.MutualTLSModePermissive,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ComputeResolvedServiceConfig(tt.args.scReq, tt.args.upstreamIDs,
-				false, tt.args.entries, nil)
+			got, err := ComputeResolvedServiceConfig(tt.args.scReq, tt.args.entries, nil)
 			require.NoError(t, err)
 			// This is needed because map iteration is random and determines the order of some outputs.
-			sort.Slice(got.UpstreamIDConfigs, func(i, j int) bool {
-				return got.UpstreamIDConfigs[i].Upstream.ID < got.UpstreamIDConfigs[j].Upstream.ID
+			sort.Slice(got.UpstreamConfigs, func(i, j int) bool {
+				return got.UpstreamConfigs[i].Upstream.ServiceName.Name < got.UpstreamConfigs[j].Upstream.ServiceName.Name
 			})
 			require.Equal(t, tt.want, got)
 		})

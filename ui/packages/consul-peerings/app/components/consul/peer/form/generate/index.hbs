@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <div class={{class-map "consul-peer-form-generate"}} ...attributes>
   <StateMachine
     @src={{require
@@ -13,14 +18,10 @@
 
         <fsm.State @matches={{array "idle" "error"}}>
           <fsm.State @matches={{"error"}}>
-            <Notice @type="error" role="alert" as |notice|>
-              <notice.Body>
-                <p>
-                  <strong>Error</strong><br />
-                  {{fsm.state.context.error.message}}
-                </p>
-              </notice.Body>
-            </Notice>
+            <Hds::Alert @color='critical' class='mb-3 mt-2' as |A|>
+              <A.Title>Error</A.Title>
+              <A.Description>{{fsm.state.context.error.message}}</A.Description>
+            </Hds::Alert>
           </fsm.State>
           {{yield
             (hash

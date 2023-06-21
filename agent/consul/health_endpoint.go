@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -226,10 +229,8 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	// If we're doing a connect or ingress query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect || args.Ingress {
-		// TODO(acl-error-enhancements) Look for ways to percolate this information up to give any feedback to the user.
 		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-			// Just return nil, which will return an empty response (tested)
-			return nil
+			return acl.ErrPermissionDenied
 		}
 	}
 

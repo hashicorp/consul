@@ -8,14 +8,14 @@ description: >-
 # Consul on Kubernetes
 
 Consul has many integrations with Kubernetes. You can deploy Consul
-to Kubernetes using the [Helm chart](/docs/k8s/installation/install#helm-chart-installation) or [Consul K8s CLI](/docs/k8s/installation/install-cli#consul-k8s-cli-installation), sync services between Consul and
+to Kubernetes using the [Helm chart](/consul/docs/k8s/installation/install#helm-chart-installation) or [Consul K8s CLI](/consul/docs/k8s/installation/install-cli#consul-k8s-cli-installation), sync services between Consul and
 Kubernetes, run Consul Service Mesh, and more.
 This section documents the official integrations between Consul and Kubernetes.
 
 ## Use Cases
 
 **Consul Service Mesh**: 
-Consul can automatically inject the [Consul Service Mesh](/docs/connect)
+Consul can automatically inject the [Consul Service Mesh](/consul/docs/connect)
 sidecar into pods so that they can accept and establish encrypted
 and authorized network connections with mutual TLS. And because Consul Service Mesh
 can run anywhere, pods and external services can communicate with each other over a fully encrypted connection.
@@ -36,7 +36,7 @@ There are several ways to try Consul with Kubernetes in different environments.
 
 ### Tutorials
 
-- The [Service Mesh on Kubernetes collection](/consul/tutorials/kubernetes?utm_source=docs)
+- The [Getting Started with Consul Service Mesh track](/consul/tutorials/get-started-kubernetes)
   provides guidance for installing Consul as service mesh for Kubernetes using the Helm
   chart, deploying services in the service mesh, and using intentions to secure service
   communications.
@@ -59,7 +59,7 @@ There are several ways to try Consul with Kubernetes in different environments.
 
 - The [Consul and Kubernetes Deployment](/consul/tutorials/kubernetes/kubernetes-deployment-guide?utm_source=docs) tutorial covers the necessary steps to install and configure a new Consul cluster on Kubernetes in production.
 
-- The [Secure Consul and Registered Services on Kubernetes](consul/tutorials/kubernetes/kubernetes-secure-agents?utm_source=docs) tutorial covers
+- The [Secure Consul and Registered Services on Kubernetes](/consul/tutorials/kubernetes/kubernetes-secure-agents?utm_source=docs) tutorial covers
   the necessary steps to secure a Consul cluster running on Kubernetes in production.
 
 - The [Layer 7 Observability with Consul Service Mesh](/consul/tutorials/kubernetes/kubernetes-layer7-observability) tutorial covers monitoring a
@@ -67,5 +67,5 @@ There are several ways to try Consul with Kubernetes in different environments.
 
 ### Documentation
 
-- [Installing Consul](/docs/k8s/installation/install) covers how to install Consul using the Helm chart.
-- [Helm Chart Reference](/docs/k8s/helm) describes the different options for configuring the Helm chart.
+- [Installing Consul](/consul/docs/k8s/installation/install) covers how to install Consul using the Helm chart.
+- [Helm Chart Reference](/consul/docs/k8s/helm) describes the different options for configuring the Helm chart.

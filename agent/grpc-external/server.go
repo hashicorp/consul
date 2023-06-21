@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package external
 
 import (
@@ -10,6 +13,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/hashicorp/consul/agent/consul/rate"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -23,7 +27,7 @@ var (
 
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
-func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics, tls *tlsutil.Configurator) *grpc.Server {
+func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics, tls *tlsutil.Configurator, limiter rate.RequestLimitsHandler) *grpc.Server {
 	if metricsObj == nil {
 		metricsObj = metrics.Default()
 	}
@@ -48,6 +52,7 @@ func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics, tls *
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 		grpc.MaxRecvMsgSize(50 * 1024 * 1024),
+		grpc.InTapHandle(agentmiddleware.ServerRateLimiterMiddleware(limiter, agentmiddleware.NewPanicHandler(logger), logger)),
 		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(unaryInterceptors...),
 		middleware.WithStreamServerChain(streamInterceptors...),

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Serializer from './application';
 import { EmbeddedRecordsMixin } from '@ember-data/serializer/rest';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/node';

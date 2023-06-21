@@ -1,0 +1,3 @@
+```release-note:bug
+gateway: **(Enterprise only)** Fix bug where parent refs and service refs for a route in the same namespace as the route would fallback to the default namespace if the namespace was not specified in the configuration rather than falling back to the routes namespace.
+```

@@ -24,8 +24,8 @@ Feature: dc / acls / roles / create
         Description: [Description]
     ---
     Then the url should be /datacenter/acls/roles
-    And "[data-notification]" has the "notification-create" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
     Where:
       ---------------------------
       | Description             |
@@ -45,6 +45,5 @@ Feature: dc / acls / roles / create
       - Namespace
     ---
     Then the url should be /datacenter/acls/roles
-    And "[data-notification]" has the "notification-create" class
-    And "[data-notification]" has the "success" class
-
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class

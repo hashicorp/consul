@@ -7,9 +7,7 @@ description: >-
 
 # Exported Services Configuration Entry
 
-This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/docs/connect/cluster-peering) and [Admin Partitions](/docs/enterprise/admin-partitions).
-
--> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
+This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/consul/docs/connect/cluster-peering) and [Admin Partitions](/consul/docs/enterprise/admin-partitions).
 
 ## Introduction
 
@@ -18,17 +16,15 @@ To configure Consul to export services contained in a Consul Enterprise admin pa
 You can configure the settings defined in the `exported-services` configuration entry to apply to all namespaces in a Consul Enterprise admin partition.
 
 ## Requirements
-
-- A 1.11.0+ Consul Enterprise binary or a 1.13.0+ Consul OSS binary.
 - **Enterprise Only**: A corresponding partition that the configuration entry can export from. For example, the `exported-services` configuration entry for a partition named `frontend` requires an existing `frontend` partition.
 
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
-1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
+1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/consul/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
 1. Apply the configuration using one of the following methods:
-   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
-   - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
+   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/k8s/crds) documentation for details.
+   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
 
 ## Configuration
 
@@ -219,6 +215,9 @@ an exported service. Each item in the `Consumers` list must contain exactly one 
 A asterisk wildcard (`*`) cannot be specified as the `Peer`. Added in Consul 1.13.0.
 - `Partition`: <EnterpriseAlert inline /> Specifies an admin partition in the datacenter to export the service to.
 A asterisk wildcard (`*`) cannot be specified as the `Partition`.
+- `SamenessGroup`: <EnterpriseAlert inline /> Specifies as sameness group to export the service to.
+A asterisk wildcard (`*`) cannot be specified as the `SamennessGroup`.
+
 
 ## Examples
 
@@ -661,7 +660,7 @@ The following example queries the `finance` peer for the imported `payments` ser
 ```shell-session
 $ curl 'localhost:8500/v1/health/service/payments?peer=finance'
 ```
-An ACL token with either of the following permissions is required in the cluster where the query is made: 
+An ACL token with either of the following permissions is required in the cluster where the query is made:
 - `service:write` permissions for any service.
 - `service:read` and `node:read` for all services and nodes, respectively.
 
@@ -695,7 +694,7 @@ node_prefix "" {
   }
 }
 
-## OR 
+## OR
 
 {
   "service_prefix": {
@@ -724,7 +723,7 @@ The following example queries the `finance` partition for the imported `payments
 $ curl 'localhost:8500/v1/health/service/payments?partition=finance'
 ```
 
-An ACL token with either of the following permissions is required in the cluster where the query is made: 
+An ACL token with either of the following permissions is required in the cluster where the query is made:
 - `service:write` permissions for any service in the partition where the query is made.
 - `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
 
@@ -775,7 +774,7 @@ partition "frontend" {
   }
 }
 
-## OR 
+## OR
 
 {
   "partition": {
@@ -812,7 +811,7 @@ The following example queries the `finance` peer for the imported `payments` ser
 $ curl 'localhost:8500/v1/health/service/payments?peer=finance'
 ```
 
-An ACL token with either of the following permissions is required in the cluster where the query is made: 
+An ACL token with either of the following permissions is required in the cluster where the query is made:
 - `service:write` permissions for any service in the partition where the query is made.
 - `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
 
@@ -863,7 +862,7 @@ partition "frontend" {
   }
 }
 
-## OR 
+## OR
 
 {
   "partition": {
@@ -893,4 +892,4 @@ partition "frontend" {
 </Tab>
 </Tabs>
 
-For additional information, refer to [Health HTTP Endpoint](/api-docs/health).
+For additional information, refer to [Health HTTP Endpoint](/consul/api-docs/health).

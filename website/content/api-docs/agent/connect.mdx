@@ -2,18 +2,18 @@
 layout: api
 page_title: Connect - Agent - HTTP API
 description: >-
-  The /agent/connect endpoints interact with Connect with agent-local
+  The /agent/connect endpoints interact with agent-local service mesh
   operations.
 ---
 
 # Connect - Agent HTTP API
 
-The `/agent/connect` endpoints interact with [Connect](/docs/connect)
-with agent-local operations.
+The `/agent/connect` endpoints interact with
+with agent-local [service mesh](/consul/docs/connect) operations.
 
-These endpoints may mirror the [non-agent Connect endpoints](/api-docs/connect)
-in some cases. Almost all agent-local Connect endpoints perform local caching
-to optimize performance of Connect without having to make requests to the server.
+These endpoints may mirror the [non-agent service mesh endpoints](/consul/api-docs/connect)
+in some cases. Almost all agent-local service mesh endpoints perform local caching
+to optimize performance of the mesh without having to make requests to the server.
 
 ## Authorize
 
@@ -22,14 +22,14 @@ defined as _deny_ intentions during evaluation, as this endpoint is only suited
 for networking layer 4 (e.g. TCP) integration.
 For performance and reliability reasons it is desirable to implement intention
 enforcement by listing [intentions that match the
-destination](/api-docs/connect/intentions#list-matching-intentions) and representing
+destination](/consul/api-docs/connect/intentions#list-matching-intentions) and representing
 them in the native configuration of the proxy itself (such as RBAC for Envoy).
 
 This endpoint tests whether a connection attempt is authorized between
 two services. This is the primary API that must be implemented by
-[proxies](/docs/connect/proxies) or
-[native integrations](/docs/connect/native)
-that wish to integrate with Connect. Prior to calling this API, it is expected
+[proxies](/consul/docs/connect/proxies) or
+[native integrations](/consul/docs/connect/native)
+that wish to integrate with the service mesh. Prior to calling this API, it is expected
 that the client TLS certificate has been properly verified against the
 current CA roots.
 
@@ -43,10 +43,10 @@ connection attempt.
 | `POST` | `/agent/connect/authorize` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
 | ---------------- | ----------------- | -------------------- | --------------- |
@@ -104,11 +104,11 @@ $ curl \
 ## Certificate Authority (CA) Roots
 
 This endpoint returns the trusted certificate authority (CA) root certificates.
-This is used by [proxies](/docs/connect/proxies) or
-[native integrations](/docs/connect/native) to verify served client
+This is used by [proxies](/consul/docs/connect/proxies) or
+[native integrations](/consul/docs/connect/native) to verify served client
 or server certificates are valid.
 
-This is equivalent to the [non-Agent Connect endpoint](/api-docs/connect),
+This is equivalent to the [non-Agent service mesh endpoint](/consul/api-docs/connect),
 but the response of this request is cached locally at the agent. This allows
 for very fast response times and for fail open behavior if the server is
 unavailable. This endpoint should be used by proxies and native integrations.
@@ -118,10 +118,10 @@ unavailable. This endpoint should be used by proxies and native integrations.
 | `GET`  | `/agent/connect/ca/roots` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required |
 | ---------------- | ----------------- | -------------------- | ------------ |
@@ -168,7 +168,7 @@ connections and is also used as the client certificate for establishing
 outbound connections to other services.
 
 The agent generates a CSR locally and calls the
-[CA sign API](/api-docs/connect/ca) to sign it. The resulting certificate
+[CA sign API](/consul/api-docs/connect/ca) to sign it. The resulting certificate
 is cached and returned by this API until it is near expiry or the root
 certificates change.
 
@@ -186,10 +186,10 @@ wait for certificate rotations.
 | `GET`  | `/agent/connect/ca/leaf/:service` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
 | ---------------- | ----------------- | -------------------- | --------------- |
@@ -248,7 +248,7 @@ $ curl \
 
 ## Methods to Specify Namespace <EnterpriseAlert inline />
 
-Local agent connect endpoints
+Local agent service mesh endpoints
 support several methods for specifying the namespace of resources
 with the following order of precedence:
 1. `Namespace` field of the JSON request body -

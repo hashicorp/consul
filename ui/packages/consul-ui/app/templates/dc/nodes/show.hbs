@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Route
   @name={{routeName}}
 as |route|>
@@ -29,56 +34,32 @@ as |route|>
 
     <BlockSlot @name="disconnected" as |after|>
       {{#if (eq loader.error.status "404")}}
-        <Notice
+        <Hds::Toast
+          @color='warning'
           {{notification
             sticky=true
-          }}
-          class="notification-update"
-          @type="warning"
-        as |notice|>
-          <notice.Header>
-            <strong>Warning!</strong>
-          </notice.Header>
-          <notice.Body>
-            <p>
-              This node no longer exists in the catalog.
-            </p>
-          </notice.Body>
-        </Notice>
+          }} as |T|>
+          <T.Title>Warning!</T.Title>
+          <T.Description>This node no longer exists in the catalog.</T.Description>
+        </Hds::Toast>
       {{else if (eq loader.error.status "403")}}
-        <Notice
+        <Hds::Toast
+          @color='critical'
           {{notification
             sticky=true
-          }}
-          class="notification-update"
-          @type="error"
-        as |notice|>
-          <notice.Header>
-            <strong>Error!</strong>
-          </notice.Header>
-          <notice.Body>
-            <p>
-              You no longer have access to this node
-            </p>
-          </notice.Body>
-        </Notice>
+          }} as |T|>
+          <T.Title>Error!</T.Title>
+          <T.Description>You no longer have access to this node.</T.Description>
+        </Hds::Toast>
       {{else}}
-        <Notice
+        <Hds::Toast
+          @color='warning'
           {{notification
             sticky=true
-          }}
-          class="notification-update"
-          @type="warning"
-        as |notice|>
-          <notice.Header>
-            <strong>Warning!</strong>
-          </notice.Header>
-          <notice.Body>
-            <p>
-              An error was returned whilst loading this data, refresh to try again.
-            </p>
-          </notice.Body>
-        </Notice>
+          }} as |T|>
+          <T.Title>Warning!</T.Title>
+          <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
+        </Hds::Toast>
       {{/if}}
     </BlockSlot>
     <BlockSlot @name="loaded">

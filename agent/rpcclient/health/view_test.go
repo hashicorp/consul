@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package health
 
 import (
@@ -17,10 +20,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/pbcommon"
-	"github.com/hashicorp/consul/proto/pbservice"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -940,4 +943,49 @@ func TestNewFilterEvaluator(t *testing.T) {
 			fn(t, tc)
 		})
 	}
+}
+
+func TestHealthView_SkipFilteringTerminatingGateways(t *testing.T) {
+	view, err := NewHealthView(structs.ServiceSpecificRequest{
+		ServiceName: "name",
+		Connect:     true,
+		QueryOptions: structs.QueryOptions{
+			Filter: "Service.Meta.version == \"v1\"",
+		},
+	})
+	require.NoError(t, err)
+
+	err = view.Update([]*pbsubscribe.Event{{
+		Index: 1,
+		Payload: &pbsubscribe.Event_ServiceHealth{
+			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
+				Op: pbsubscribe.CatalogOp_Register,
+				CheckServiceNode: &pbservice.CheckServiceNode{
+					Service: &pbservice.NodeService{
+						Kind:    structs.TerminatingGateway,
+						Service: "name",
+						Address: "127.0.0.1",
+						Port:    8443,
+					},
+				},
+			},
+		},
+	}})
+	require.NoError(t, err)
+
+	node, ok := (view.Result(1)).(*structs.IndexedCheckServiceNodes)
+	require.True(t, ok)
+
+	require.Len(t, node.Nodes, 1)
+	require.Equal(t, "127.0.0.1", node.Nodes[0].Service.Address)
+	require.Equal(t, 8443, node.Nodes[0].Service.Port)
+}
+
+func TestConfigEntryListView_Reset(t *testing.T) {
+	emptyMap := make(map[string]structs.CheckServiceNode)
+	view := &HealthView{state: map[string]structs.CheckServiceNode{
+		"test": {},
+	}}
+	view.Reset()
+	require.Equal(t, emptyMap, view.state)
 }

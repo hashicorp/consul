@@ -9,11 +9,11 @@ description: |-
 # Intentions - Connect HTTP API
 
 The `/connect/intentions` endpoint provide tools for managing
-[intentions](/docs/connect/intentions).
+[intentions](/consul/docs/connect/intentions).
 
 -> **1.9.0 and later:** Reading and writing intentions has been
 migrated to the
-[`service-intentions`](/docs/connect/config-entries/service-intentions)
+[`service-intentions`](/consul/docs/connect/config-entries/service-intentions)
 config entry kind.
 
 ## Upsert Intention by Name ((#upsert-intention-by-name))
@@ -36,37 +36,28 @@ be persisted using this endpoint and will require editing the enclosing
 | `PUT`  | `/connect/intentions/exact` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
 | ---------------- | ----------------- | ------------- | ------------------------------ |
-| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
+| `NO`             | `none`            | `none`        | `intentions:write` <p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention create -replace`](/commands/intention/create#replace).
+The corresponding CLI command is [`consul intention create -replace`](/consul/commands/intention/create#replace).
 
 ### Query Parameters
 
 - `source` `(string: <required>)` - Specifies the source service
-  according to the [source naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [source naming conventions](/consul/commands/intention#source-and-destination-naming).
 
 - `destination` `(string: <required>)` - Specifies the destination service
-  according to the [destination naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [destination naming conventions](/consul/commands/intention#source-and-destination-naming).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
   to use when `source` or `destination` query parameters do not include a namespace
-  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### JSON Request Body Schema
@@ -83,7 +74,7 @@ The corresponding CLI command is [`consul intention create -replace`](/commands/
   the `Permissions` field.
 
 - `Permissions` `(array<IntentionPermission>)` - The list of all [additional L7
-  attributes](/docs/connect/config-entries/service-intentions#intentionpermission)
+  attributes](/consul/docs/connect/config-entries/service-intentions#intentionpermission)
   that extend the intention match criteria.
 
   Permission precedence is applied top to bottom. For any given request the
@@ -91,7 +82,7 @@ The corresponding CLI command is [`consul intention create -replace`](/commands/
   evaluation. As with L4 intentions, traffic that fails to match any of the
   provided permissions in this intention will be subject to the default
   intention behavior is defined by the default [ACL
-  policy](/docs/agent/config/config-files#acl_default_policy).
+  policy](/consul/docs/agent/config/config-files#acl_default_policy).
 
   This should be omitted for an L4 intention as it is mutually exclusive with
   the `Action` field.
@@ -127,7 +118,7 @@ true
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [upserting by name](#upsert-intention-by-name) or editing the
-[`service-intentions`](/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
 entry for the destination.
 
 This endpoint creates a new intention and returns its ID if it was created
@@ -142,31 +133,22 @@ existing intention or delete it prior to creating a new one.
 | `POST` | `/connect/intentions` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
 | ---------------- | ----------------- | ------------- | ------------------------------ |
-| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
+| `NO`             | `none`            | `none`        | `intentions:write` <p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention create`](/commands/intention/create).
+The corresponding CLI command is [`consul intention create`](/consul/commands/intention/create).
 
 ### Query Parameters
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
   to use when `SourceNS` or `DestinationNS` request body parameters do not include a namespace
-  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### JSON Request Body Schema
@@ -229,7 +211,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [upserting by name](#upsert-intention-by-name) or editing the
-[`service-intentions`](/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
 entry for the destination.
 
 This endpoint updates an intention with the given values.
@@ -239,23 +221,14 @@ This endpoint updates an intention with the given values.
 | `PUT`  | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
 | ---------------- | ----------------- | ------------- | ------------------------------ |
-| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
-
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
+| `NO`             | `none`            | `none`        | `intentions:write`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
 This endpoint supports the same parameters as the [create an intention](#create-intention-with-id) endpoint.
 Additional parameters unique to this endpoint include:
@@ -293,37 +266,28 @@ This endpoint reads a specific intention by its unique source and destination.
 | `GET`  | `/connect/intentions/exact` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
 | ---------------- | ----------------- | ------------- | ----------------------------- |
-| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
+| `YES`            | `all`             | `none`        | `intentions:read`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention get`](/commands/intention/get).
+The corresponding CLI command is [`consul intention get`](/consul/commands/intention/get).
 
 ### Query Parameters
 
 - `source` `(string: <required>)` - Specifies the source service
-  according to the [source naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [source naming conventions](/consul/commands/intention#source-and-destination-naming).
 
 - `destination` `(string: <required>)` - Specifies the destination service
-  according to the [destination naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [destination naming conventions](/consul/commands/intention#source-and-destination-naming).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
   to use when `source` or `destination` query parameters do not include a namespace
-  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
@@ -355,7 +319,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [reading by name](#read-specific-intention-by-name) or by viewing the
-[`service-intentions`](/docs/connect/config-entries/service-intentions)
+[`service-intentions`](/consul/docs/connect/config-entries/service-intentions)
 config entry for the destination.
 
 This endpoint reads a specific intention.
@@ -365,25 +329,16 @@ This endpoint reads a specific intention.
 | `GET`  | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
 | ---------------- | ----------------- | ------------- | ----------------------------- |
-| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
+| `YES`            | `all`             | `none`        | `intentions:read`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention get`](/commands/intention/get).
+The corresponding CLI command is [`consul intention get`](/consul/commands/intention/get).
 
 ### Path Parameters
 
@@ -428,25 +383,16 @@ This endpoint lists all intentions.
 | `GET`  | `/connect/intentions` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
 | ---------------- | ----------------- | ------------- | ----------------------------- |
-| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
+| `YES`            | `all`             | `none`        | `intentions:read`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention list`](/commands/intention/list).
+The corresponding CLI command is [`consul intention list`](/consul/commands/intention/list).
 
 ### Query Parameters
 
@@ -515,37 +461,28 @@ This endpoint deletes a specific intention by its unique source and destination.
 | `DELETE` | `/connect/intentions/exact` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
 | ---------------- | ----------------- | ------------- | ------------------------------ |
-| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
+| `NO`             | `none`            | `none`        | `intentions:write`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention delete`](/commands/intention/delete).
+The corresponding CLI command is [`consul intention delete`](/consul/commands/intention/delete).
 
 ### Query Parameters
 
 - `source` `(string: <required>)` - Specifies the source service
-  according to the [source naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [source naming conventions](/consul/commands/intention#source-and-destination-naming).
 
 - `destination` `(string: <required>)` - Specifies the destination service
-  according to the [destination naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [destination naming conventions](/consul/commands/intention#source-and-destination-naming).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
   to use when `source` or `destination` query parameters do not include a namespace
-  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
@@ -560,7 +497,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [deleting by name](#delete-intention-by-name) or editing the
-[`service-intentions`](/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
 entry for the destination.
 
 This endpoint deletes a specific intention.
@@ -570,25 +507,16 @@ This endpoint deletes a specific intention.
 | `DELETE` | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
 | ---------------- | ----------------- | ------------- | ------------------------------ |
-| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
+| `NO`             | `none`            | `none`        | `intentions:write`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention delete`](/commands/intention/delete).
+The corresponding CLI command is [`consul intention delete`](/consul/commands/intention/delete).
 
 ### Path Parameters
 
@@ -608,13 +536,11 @@ This endpoint evaluates the intentions for a specific source and destination
 and returns whether the connection would be authorized or not given the current
 Consul configuration and set of intentions.
 
--> **Note:** This endpoint will always evaluate intentions with `Permissions`
-defined as _deny_ intentions during. This endpoint is only suited for
-networking layer 4 (e.g. TCP) integration.
+-> **Note:** This endpoint will always evaluate matching intentions with L7 `Permissions` defined as _deny_ intentions because there is no request to check against.
 
 For performance and reliability reasons it is desirable to implement intention
 enforcement by listing [intentions that match the
-destination](/api-docs/connect/intentions#list-matching-intentions) and representing
+destination](/consul/api-docs/connect/intentions#list-matching-intentions) and representing
 them in the native configuration of the proxy itself (such as RBAC for Envoy).
 
 This endpoint will work even if the destination service has
@@ -626,37 +552,28 @@ does not contain any information about the intention itself.
 | `GET`  | `/connect/intentions/check` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
 | ---------------- | ----------------- | ------------- | ----------------------------- |
-| `NO`             | `none`            | `none`        | `intentions:read`<sup>1</sup> |
+| `NO`             | `none`            | `none`        | `intentions:read`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention check`](/commands/intention/check).
+The corresponding CLI command is [`consul intention check`](/consul/commands/intention/check).
 
 ### Query Parameters
 
 - `source` `(string: <required>)` - Specifies the source service
-  according to the [source naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [source naming conventions](/consul/commands/intention#source-and-destination-naming).
 
 - `destination` `(string: <required>)` - Specifies the destination service
-  according to the [destination naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [destination naming conventions](/consul/commands/intention#source-and-destination-naming).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
   to use when `source` or `destination` query parameters do not include a namespace
-  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
@@ -686,25 +603,16 @@ The intentions in the response are in evaluation order.
 | `GET`  | `/connect/intentions/match` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required                  |
 | ---------------- | ----------------- | -------------------- | ----------------------------- |
-| `YES`            | `all`             | `background refresh` | `intentions:read`<sup>1</sup> |
+| `YES`            | `all`             | `background refresh` | `intentions:read`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
-
-The corresponding CLI command is [`consul intention match`](/commands/intention/match).
+The corresponding CLI command is [`consul intention match`](/consul/commands/intention/match).
 
 ### Query Parameters
 
@@ -712,12 +620,12 @@ The corresponding CLI command is [`consul intention match`](/commands/intention/
   by "source" or "destination".
 
 - `name` `(string: <required>)` - Specifies a name to match
-  according to the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  according to the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can repeat this parameter for batching multiple matches.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
   to use when the `name` query parameter does not include a namespace
-  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
@@ -762,7 +670,7 @@ $ curl \
 
 ## Methods to Specify Namespace <EnterpriseAlert inline />
 
-Connect intention endpoints
+Intention endpoints
 support several methods for specifying the namespace of intention resources
 with the following order of precedence:
 1. `ns` query parameter

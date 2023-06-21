@@ -11,7 +11,7 @@ This topic describes how to invoke AWS Lambda functions from the Consul service 
 
 ## Overview
 
-You can invoke Lambda functions from the Consul service mesh through terminating gateways (recommended) or directly from connect proxies.
+You can invoke Lambda functions from the Consul service mesh through terminating gateways (recommended) or directly from service mesh proxies.
 
 
 ### Terminating Gateway
@@ -19,7 +19,7 @@ You can invoke Lambda functions from the Consul service mesh through terminating
 We recommend invoking Lambda functions through terminating gateways. This method supports cross-datacenter communication, transparent
 proxies, intentions, and all other Consul service mesh features.
 
-The terminating gateway must have [the appropriate IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy)
+The terminating gateway must have [the appropriate IAM permissions](/consul/docs/lambda/registration#configure-iam-permissions-for-envoy)
 to invoke the function.
 
 The following diagram shows the invocation procedure:
@@ -30,13 +30,13 @@ The following diagram shows the invocation procedure:
 
 </ImageConfig>
 
-1. Make an HTTP request to the local Connect proxy.
-1. The Connect proxy forwards the request to the terminating gateway.
+1. Make an HTTP request to the local service mesh proxy.
+1. The service mesh proxy forwards the request to the terminating gateway.
 1. The terminating gateway invokes the function.
 
-### Connect Proxy
+### Service Mesh Proxy
 
-You can invoke Lambda functions directly from a service's Connect proxy.
+You can invoke Lambda functions directly from a service's mesh sidecar proxy.
 This method has the following limitations:
 - Intentions are unsupported. Consul enforces intentions by validating the client certificates presented when a connection is received. Lambda does not support client certificate validation, which prevents Consul from supporting intentions using this method.
 - Transparent proxies are unsupported. This is because Lambda services are not
@@ -50,17 +50,17 @@ The following diagram shows the invocation procedure:
 
 <ImageConfig width={400}>
 
-![Connect Proxy to Lambda](/img/connect_proxy_to_lambda.svg)
+![Service Mesh Proxy to Lambda](/img/connect_proxy_to_lambda.svg)
 
 </ImageConfig>
 
-1. Make an HTTP request to the local Connect proxy.
-2. The Connect proxy invokes the Lambda.
+1. Make an HTTP request to the local service mesh proxy.
+2. The service mesh proxy invokes the Lambda.
 
 ## Invoke a Lambda Function
 Before you can invoke a Lambda function, register the service used to invoke
 the Lambda function and the service running in Lambda with
-Consul (refer to [registration](/docs/lambda/registration) for
+Consul (refer to [registration](/consul/docs/lambda/registration) for
 instructions). The service used to invoke the function must be deployed to the
 service mesh.
 

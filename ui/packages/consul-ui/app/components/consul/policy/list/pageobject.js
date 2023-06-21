@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 export default (collection, clickable, attribute, text, actions) => () => {
   return collection('.consul-policy-list [data-test-list-row]', {
     name: attribute('data-test-policy', '[data-test-policy]'),

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 /* TODO: Maybe move this to reset? */
 %sliding-toggle label span {
   cursor: pointer;
@@ -15,16 +20,16 @@
   @extend %sliding-toggle-negative;
 }
 %sliding-toggle label span {
-  color: rgb(var(--tone-gray-900));
+  color: var(--token-color-foreground-strong);
 }
 %sliding-toggle label span::after {
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
 }
 %sliding-toggle label input:checked + span::before,
 %sliding-toggle-negative label input + span::before {
-  background-color: rgb(var(--tone-blue-500));
+  background-color: var(--token-color-foreground-action);
 }
 %sliding-toggle label span::before,
 %sliding-toggle-negative label input:checked + span::before {
-  background-color: rgb(var(--tone-gray-300));
+  background-color: var(--token-color-palette-neutral-300);
 }

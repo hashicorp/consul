@@ -1,9 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -19,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -3617,4 +3620,110 @@ func testUUID() string {
 		buf[6:8],
 		buf[8:10],
 		buf[10:16])
+}
+
+func TestInternal_AssignManualServiceVIPs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Set up web service with no manual IPs, and an existing service with manual IPs set.
+	registerReq := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "web",
+			Service: "web",
+			Port:    8888,
+			Connect: structs.ServiceConnect{Native: true},
+		},
+	}
+	var out struct{}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &registerReq, &out))
+
+	registerReq2 := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "existing",
+			Service: "existing",
+			Port:    9999,
+			Connect: structs.ServiceConnect{Native: true},
+		},
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &registerReq2, &out))
+
+	req := structs.AssignServiceManualVIPsRequest{
+		Service:    "existing",
+		ManualVIPs: []string{"8.8.8.8", "9.9.9.9"},
+	}
+	var resp structs.AssignServiceManualVIPsResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.AssignManualServiceVIPs", req, &resp))
+
+	type testcase struct {
+		name      string
+		req       structs.AssignServiceManualVIPsRequest
+		expect    structs.AssignServiceManualVIPsResponse
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		var resp structs.AssignServiceManualVIPsResponse
+		err := msgpackrpc.CallWithCodec(codec, "Internal.AssignManualServiceVIPs", tc.req, &resp)
+		if tc.expectErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectErr)
+			return
+		}
+		require.Equal(t, tc.expect, resp)
+	}
+	tcs := []testcase{
+		{
+			name: "successful manual ip assignment",
+			req: structs.AssignServiceManualVIPsRequest{
+				Service:    "web",
+				ManualVIPs: []string{"1.1.1.1", "2.2.2.2"},
+			},
+			expect: structs.AssignServiceManualVIPsResponse{Found: true},
+		},
+		{
+			name: "reassign existing ip",
+			req: structs.AssignServiceManualVIPsRequest{
+				Service:    "web",
+				ManualVIPs: []string{"8.8.8.8"},
+			},
+			expect: structs.AssignServiceManualVIPsResponse{
+				Found: true,
+				UnassignedFrom: []structs.PeeredServiceName{
+					{
+						ServiceName: structs.ServiceNameFromString("existing"),
+					},
+				},
+			},
+		},
+		{
+			name: "invalid ip",
+			req: structs.AssignServiceManualVIPsRequest{
+				Service:    "web",
+				ManualVIPs: []string{"3.3.3.3", "invalid"},
+			},
+			expect:    structs.AssignServiceManualVIPsResponse{},
+			expectErr: "not a valid",
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }

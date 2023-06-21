@@ -11,7 +11,7 @@ description: >-
 
 This feature requires
 HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
-Refer to the [enterprise feature matrix](/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
 
 </EnterpriseAlert>
 
@@ -22,12 +22,12 @@ to provide self-service through delegation of administrative privileges.
 
 For more information on how to use namespaces with Consul Enterprise please review the following tutorials:
 
-- [Register and Discover Services within Namespaces](https://learn.hashicorp.com/tutorials/consul/namespaces-share-datacenter-access?utm_source=docs) - Register multiple services within different namespaces in Consul.
-- [Setup Secure Namespaces](https://learn.hashicorp.com/tutorials/consul/namespaces-secure-shared-access?utm_source=docs) - Secure resources within a namespace and delegate namespace ACL rights via ACL tokens.
+- [Register and Discover Services within Namespaces](/consul/tutorials/namespaces/namespaces-share-datacenter-access?utm_source=docs) - Register multiple services within different namespaces in Consul.
+- [Setup Secure Namespaces](/consul/tutorials/namespaces/namespaces-secure-shared-access?utm_source=docs) - Secure resources within a namespace and delegate namespace ACL rights via ACL tokens.
 
 ## Namespace Definition
 
-Namespaces are managed exclusively through the [HTTP API](/api-docs/namespaces) and the [Consul CLI](/commands/namespace).
+Namespaces are managed exclusively through the [HTTP API](/consul/api-docs/namespaces) and the [Consul CLI](/consul/commands/namespace).
 The HTTP API accepts only JSON formatted definitions while the CLI will parse either JSON or HCL.
 
 An example namespace definition looks like the following:
@@ -105,14 +105,14 @@ Meta {
     policies ID is omitted Consul will resolve the name to an ID before writing the namespace
     definition internally. Note that all policies linked in a namespace definition must be defined
     within the `default` namespace, and the ACL token used to create or edit the
-    namespace must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules) to the linked policy.
+    namespace must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules) to the linked policy.
 
   - `RoleDefaults` `(array<ACLLink>)` - A list of default roles to be applied to all tokens
     created in this namespace. The ACLLink object can contain an `ID` and/or `Name` field. When the
     roles' ID is omitted Consul will resolve the name to an ID before writing the namespace
     definition internally. Note that all roles linked in a namespace definition must be defined
     within the `default` namespace, and the ACL token used to create or edit the
-    namespace must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules) to the linked role.
+    namespace must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules) to the linked role.
 
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata to associate with
   this namespace.

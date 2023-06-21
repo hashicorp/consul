@@ -18,11 +18,11 @@ communication is disrupted, the child process is terminated.
 
 The number of lock holders is configurable with the `-n` flag. By default,
 a single holder is allowed, and a lock is used for mutual exclusion. This
-uses the [leader election algorithm](https://learn.hashicorp.com/tutorials/consul/application-leader-elections).
+uses the [leader election algorithm](/consul/tutorials/developer-configuration/application-leader-elections).
 
 If the lock holder count is more than one, then a semaphore is used instead.
 A semaphore allows more than a single holder, but this is less efficient than
-a simple lock. This follows the [semaphore algorithm](https://learn.hashicorp.com/consul/developer-configuration/semaphore).
+a simple lock. This follows the [semaphore algorithm](/consul/tutorials/developer-configuration/distributed-semaphore).
 
 To apply a lock to a remote WAN federated datacenter, run the command with the `-datacenter=<name>` flag on a server agent. You cannot use the command with `-datacenter` on client agents because they are unavailable to the remote datacenter.
 

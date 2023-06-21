@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import FormComponent from '../form-component/index';
 import { get, set } from '@ember/object';
 

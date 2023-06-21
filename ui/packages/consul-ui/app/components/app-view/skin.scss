@@ -1,6 +1,8 @@
-%app-view-title-left-container > *:first-child {
-  @extend %h100;
-}
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %app-view-title {
   border-bottom: var(--decor-border-100);
 }
@@ -8,15 +10,15 @@
   border-bottom: var(--decor-border-200);
 }
 %app-view-header h1 > em {
-  color: rgb(var(--tone-gray-600));
+  color: var(--token-color-foreground-faint);
 }
 %app-view-header dd > a {
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-hashicorp-brand);
 }
 %app-view-content div > dl > dd {
-  color: rgb(var(--tone-gray-400));
+  color: var(--token-color-foreground-disabled);
 }
 %app-view-title,
 %app-view-content form:not(.filter-bar) fieldset {
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
 }

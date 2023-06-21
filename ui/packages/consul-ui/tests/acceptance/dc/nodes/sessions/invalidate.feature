@@ -27,12 +27,12 @@ Feature: dc / nodes / sessions / invalidate: Invalidate Lock Sessions
     And I click confirmDelete on the sessions
     Then a PUT request was made to "/v1/session/destroy/7bbbd8bb-fff3-4292-b6e3-cfedd788546a?dc=dc1&ns=@!namespace"
     Then the url should be /dc1/nodes/node-0/lock-sessions
-    And "[data-notification]" has the "notification-delete" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: Invalidating a lock session and receiving an error
     Given the url "/v1/session/destroy/7bbbd8bb-fff3-4292-b6e3-cfedd788546a?dc=dc1&ns=@namespace" responds with a 500 status
     And I click delete on the sessions
     And I click confirmDelete on the sessions
     Then the url should be /dc1/nodes/node-0/lock-sessions
-    And "[data-notification]" has the "notification-delete" class
-    And "[data-notification]" has the "error" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-critical" class

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package peerstream
 
 import (
@@ -10,19 +13,19 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
 
 type BidirectionalStream interface {
@@ -316,7 +319,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	logger := s.Logger.Named("stream").
 		With("peer_name", streamReq.PeerName).
 		With("peer_id", streamReq.LocalID).
-		With("dailer", !streamReq.IsAcceptor())
+		With("dialer", !streamReq.IsAcceptor())
 	logger.Trace("handling stream for peer")
 
 	// handleStreamCtx is local to this function.
@@ -765,12 +768,15 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 		pbToLog = clone
 	}
 
-	m := jsonpb.Marshaler{
+	m := protojson.MarshalOptions{
 		Indent: "  ",
 	}
-	out, err := m.MarshalToString(pbToLog)
+	out := ""
+	outBytes, err := m.Marshal(pbToLog)
 	if err != nil {
 		out = "<ERROR: " + err.Error() + ">"
+	} else {
+		out = string(outBytes)
 	}
 
 	logger.Trace("replication message", "direction", dir, "protobuf", out)

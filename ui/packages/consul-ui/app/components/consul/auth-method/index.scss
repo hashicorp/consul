@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 // List
 .consul-auth-method-list ul {
   .locality::before {
@@ -10,24 +15,22 @@
 .consul-auth-method-view {
   margin-bottom: 32px;
   section {
-    @extend %p1;
+    @extend %body-200-regular;
     width: 100%;
     position: relative;
     overflow-y: auto;
     h2 {
-      @extend %h200;
+      @extend %display-400-semibold;
       padding-bottom: 12px;
     }
     table {
       thead td {
-        color: rgb(var(--tone-gray-500));
-        font-weight: var(--typo-weight-semibold);
-        font-size: var(--typo-size-700);
+        @extend %body-200-semibold;
+        color: var(--token-color-foreground-faint);
       }
       tbody {
         td {
-          font-size: var(--typo-size-600);
-          color: rgb(var(--tone-gray-999));
+          color: var(--token-color-hashicorp-brand);
         }
         tr {
           cursor: default;
@@ -56,14 +59,14 @@
     margin-bottom: 4px !important;
   }
   h2 {
-    @extend %h200;
+    @extend %display-400-semibold;
     padding-bottom: 12px;
   }
   dl {
     @extend %tabular-dl;
   }
   code {
-    background-color: rgb(var(--tone-gray-050));
+    background-color: var(--token-color-surface-strong);
     padding: 0 12px;
   }
 }
@@ -72,15 +75,13 @@
 .consul-auth-method-nspace-list {
   thead {
     td {
-      color: rgb(var(--tone-gray-500)) !important;
-      font-weight: var(--typo-weight-semibold) !important;
-      font-size: var(--typo-size-700) !important;
+      @extend %body-200-semibold;
+      color: var(--token-color-foreground-faint) !important;
     }
   }
   tbody {
     td {
-      font-size: var(--typo-size-600);
-      color: rgb(var(--tone-gray-999));
+      color: var(--token-color-hashicorp-brand);
     }
     tr {
       cursor: default;

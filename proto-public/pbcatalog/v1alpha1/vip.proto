@@ -1,0 +1,20 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+message VirtualIPs {
+  repeated IP ips = 1;
+}
+
+message IP {
+  // address is the string IPv4 address.
+  // This could also store IPv6 in the future.
+  string address = 1;
+
+  // generated indicates whether Consul generated or it is user-provided
+  // (e.g. a ClusterIP of the Kubernetes service).
+  bool generated = 2;
+}

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import domSibling from 'consul-ui/utils/dom/sibling';
 import { module, test } from 'qunit';
 

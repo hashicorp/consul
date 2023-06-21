@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{yield}}
 <div
   class="empty-state"
@@ -17,7 +22,9 @@
     <div>
       {{yield}}
       {{#if login}}
-        <Action
+        <Hds::Button
+          @color='primary'
+          @text={{if token.AccessorID 'Log in with a different token' 'Log in'}}
           data-test-empty-state-login
           {{on "click" login}}
         >
@@ -25,12 +32,7 @@
             @src={{uri 'settings://consul:token'}}
             @onchange={{action (mut token) value="data"}}
           />
-          {{#if token.AccessorID}}
-            Log in with a different token
-          {{else}}
-            Log in
-          {{/if}}
-        </Action>
+        </Hds::Button>
       {{/if}}
     </div>
   {{/yield-slot}}

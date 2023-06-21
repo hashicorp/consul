@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import templatize from 'consul-ui/utils/templatize';
 import { module, test } from 'qunit';
 

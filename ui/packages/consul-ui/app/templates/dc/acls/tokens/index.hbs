@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Route
   @name={{routeName}}
 as |route|>
@@ -59,7 +64,11 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="actions">
   {{#if (can "create tokens")}}
-          <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
+    <Hds::Button
+      @text='Create'
+      @route='dc.acls.tokens.create'
+      data-test-create
+    />
   {{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">
@@ -76,16 +85,14 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="content">
     {{#if (token/is-legacy items)}}
-        <Notice
-          @type="info"
-        as |notice|>
-          <notice.Header>
-            <h2>Update</h2>
-          </notice.Header>
-          <notice.Body>
-            <p data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
-          </notice.Body>
-        </Notice>
+      <Hds::Alert @type='inline' class='mb-3 mt-3' as |A|>
+        <A.Title>Update</A.Title>
+        <A.Description data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens.</A.Description>
+        <A.Link::Standalone @text='Learn more'
+                            @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html"
+                            @icon='docs-link'
+                            @iconPosition='trailing' />
+      </Hds::Alert>
     {{/if}}
         <DataCollection
           @type="token"

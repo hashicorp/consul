@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 function tag_release {
    # Arguments:
    #   $1 - Path to top level consul source

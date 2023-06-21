@@ -7,20 +7,16 @@ description: >-
 
 # Register a Service Mesh Proxy in a Service Registration
 
-Connect proxies are typically deployed as "sidecars" that run on the same node
-as the single service instance that they handle traffic for. They might be on
-the same VM or running as a separate container in the same network namespace.
+This topic describes how to declare a proxy as a _sidecar_ proxy. 
+Sidecar proxies run on the same node as the single service instance that they handle traffic for. 
+They may be on the same VM or running as a separate container in the same network namespace.
 
-To simplify the configuration experience when deploying a sidecar for a service
-instance, Consul 1.3 introduced a new field in the Connect block of the [service
-definition](/docs/discovery/services).
+## Configuration
 
-The `connect.sidecar_service` field is a complete nested service definition on
-which almost any regular service definition field can be set. The exceptions are
-[noted below](#limitations). If used, the service definition is treated
-identically to another top-level service definition. The value of the nested
-definition is that _all fields are optional_ with some opinionated defaults
-applied that make setting up a sidecar proxy much simpler.
+Add the `connect.sidecar_service` block to your service definition file and specify the parameters to configure sidecar proxy behavior. The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies. 
+
+Consul treats sidecar proxy service definitions as a root-level service definition. All fields are optional in nested
+definitions, which default to opinionated settings that are intended to reduce burden of setting up a sidecar proxy.
 
 ## Minimal Example
 
@@ -37,7 +33,7 @@ To register a service instance with a sidecar, all that's needed is:
 ```
 
 This will register the `web` service as normal, but will also register another
-[proxy service](/docs/connect/proxies) with defaults values used.
+[proxy service](/consul/docs/connect/proxies) with defaults values used.
 
 The above expands out to be equivalent to the following explicit service
 definitions:
@@ -110,9 +106,9 @@ overridden to customize the proxy configuration.
 ```
 
 This example customizes the [proxy
-upstreams](/docs/connect/registration/service-registration#upstream-configuration-reference)
+upstreams](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
 and some [built-in proxy
-configuration](/docs/connect/proxies/built-in).
+configuration](/consul/docs/connect/proxies/built-in).
 
 ## Sidecar Service Defaults
 
@@ -129,12 +125,12 @@ proxy.
 - `tags` - Defaults to the tags of the parent service.
 - `meta` - Defaults to the service metadata of the parent service.
 - `port` - Defaults to being auto-assigned from a configurable
-  range specified by [`sidecar_min_port`](/docs/agent/config/config-files#sidecar_min_port)
-  and [`sidecar_max_port`](/docs/agent/config/config-files#sidecar_max_port).
+  range specified by [`sidecar_min_port`](/consul/docs/agent/config/config-files#sidecar_min_port)
+  and [`sidecar_max_port`](/consul/docs/agent/config/config-files#sidecar_max_port).
 - `kind` - Defaults to `connect-proxy`. This can't be overridden currently.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
-  check](/docs/discovery/checks#alias) for the parent service. If either
+  check](/consul/docs/services/usage/checks#alias-checks) for the parent service. If either
   `check` or `checks` fields are set, only the provided checks are registered.
 - `proxy.destination_service_name` - Defaults to the parent service name.
 - `proxy.destination_service_id` - Defaults to the parent service ID.
@@ -143,8 +139,7 @@ proxy.
 
 ## Limitations
 
-Almost all fields in a [service definition](/docs/discovery/services) may be
-set on the `connect.sidecar_service` except for the following:
+The following fields are not supported in the `connect.sidecar_service` block:
 
 - `id` - Sidecar services get an ID assigned and it is an error to override
   this. This ensures the agent can correctly deregister the sidecar service
@@ -153,11 +148,8 @@ set on the `connect.sidecar_service` except for the following:
   unset this to make the registration be for a regular non-connect-proxy
   service.
 - `connect.sidecar_service` - Service definitions can't be nested recursively.
-- `connect.proxy` - (Deprecated) [Managed
-  proxies](/docs/connect/proxies/managed-deprecated) can't be defined on a
-  sidecar.
 - `connect.native` - Currently the `kind` is fixed to `connect-proxy` and it's
-  an error to register a `connect-proxy` that is also Connect-native.
+  an error to register a `connect-proxy` that is also service mesh-native.
 
 ## Lifecycle
 

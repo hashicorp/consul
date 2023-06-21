@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package dataplane
 
 import (
@@ -6,10 +9,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	acl "github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
-	structs "github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/version"
 )
 
 func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdataplane.GetSupportedDataplaneFeaturesRequest) (*pbdataplane.GetSupportedDataplaneFeaturesResponse, error) {
@@ -18,20 +20,12 @@ func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdatap
 	logger.Trace("Started processing request")
 	defer logger.Trace("Finished processing request")
 
-	// Require the given ACL token to have `service:write` on any service
 	options, err := external.QueryOptionsFromContext(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-
-	var authzContext acl.AuthorizerContext
-	entMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzContext)
-	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, err.Error())
-	}
-	if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzContext); err != nil {
-		return nil, status.Error(codes.PermissionDenied, err.Error())
+	if err := external.RequireAnyValidACLToken(s.ACLResolver, options.Token); err != nil {
+		return nil, err
 	}
 
 	supportedFeatures := []*pbdataplane.DataplaneFeatureSupport{
@@ -46,6 +40,10 @@ func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdatap
 		{
 			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION,
 			Supported:   true,
+		},
+		{
+			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_FIPS,
+			Supported:   version.IsFIPS(),
 		},
 	}
 

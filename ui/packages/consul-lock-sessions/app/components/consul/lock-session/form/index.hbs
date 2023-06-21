@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <div
   class="consul-lock-session-form"
   data-test-session={{@item.ID}}
@@ -47,11 +52,14 @@
             <dd>{{@item.ID}}</dd>
             <dt>Node</dt>
             <dd>
-                <a
-                  href={{href-to 'dc.nodes.show' @item.Node}}
-                >
-                  {{@item.Node}}
-                </a>
+              <Hds::Button
+                @text={{@item.Node}}
+                @icon='git-commit'
+                @href={{href-to 'dc.nodes.show' @item.Node}}
+                @isHrefExternal={{false}}
+                @size='small'
+                @color='tertiary'
+              />
             </dd>
             <dt>Delay</dt>
             <dd>{{duration-from @item.LockDelay}}</dd>
@@ -74,30 +82,30 @@
   {{#if (can 'delete session' item=@item)}}
         <ConfirmationDialog @message="Are you sure you want to invalidate this Lock Session?">
           <BlockSlot @name="action" as |confirm|>
-            <Action
+            <Hds::Button
+              @text='Invalidate Session'
+              @color='critical'
               data-test-delete
-              class="type-delete"
               {{on 'click' (fn confirm (fn writer.delete @item))}}
-            >
-              Invalidate Session
-            </Action>
+            />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
             <p>
               {{message}}
             </p>
-            <Action
-              class="type-delete"
-              {{on 'click' (fn execute)}}
-            >
-              Confirm Invalidation
-            </Action>
-            <Action
-              class="type-cancel"
-              {{on 'click' (fn cancel)}}
-            >
-              Cancel
-            </Action>
+            <Hds::ButtonSet>
+              <Hds::Button
+                @text='Confirm Invalidation'
+                @color='critical'
+                data-test-delete
+                {{on 'click' (fn execute)}}
+              />
+              <Hds::Button
+                @text='Cancel'
+                @color='secondary'
+                {{on 'click' (fn cancel)}}
+              />
+            </Hds::ButtonSet>
           </BlockSlot>
         </ConfirmationDialog>
   {{/if}}

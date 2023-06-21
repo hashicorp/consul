@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package peerstream
 
 import (
@@ -11,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
 
 type MockClient struct {
@@ -144,6 +147,16 @@ func (t *incrementalTime) Now() time.Time {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.next++
+
+	dur := time.Duration(t.next) * time.Second
+
+	return t.base.Add(dur)
+}
+
+// StaticNow returns the current internal clock without advancing it.
+func (t *incrementalTime) StaticNow() time.Time {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	dur := time.Duration(t.next) * time.Second
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -6,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -32,12 +36,15 @@ const (
 	serviceResolversWatchID            = "service-resolvers"
 	gatewayServicesWatchID             = "gateway-services"
 	gatewayConfigWatchID               = "gateway-config"
+	inlineCertificateConfigWatchID     = "inline-certificate-config"
+	routeConfigWatchID                 = "route-config"
 	externalServiceIDPrefix            = "external-service:"
 	serviceLeafIDPrefix                = "service-leaf:"
 	serviceConfigIDPrefix              = "service-config:"
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	jwtProviderID                      = "jwt-provider"
 	peerServersWatchID                 = "peer-servers"
 	peeredUpstreamsID                  = "peered-upstreams"
 	intentionUpstreamsDestinationID    = "intention-upstreams-destination"
@@ -80,8 +87,18 @@ type state struct {
 	ch     chan UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
+	doneCh chan struct{}
 
 	rateLimiter *rate.Limiter
+}
+
+func (s *state) stoppedRunning() bool {
+	select {
+	case <-s.doneCh:
+		return true
+	default:
+		return false
+	}
 }
 
 // failed returns whether run exited because a data source is in an
@@ -179,6 +196,7 @@ func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token str
 		ch:              ch,
 		snapCh:          make(chan ConfigSnapshot, 1),
 		reqCh:           make(chan chan *ConfigSnapshot, 1),
+		doneCh:          make(chan struct{}),
 		rateLimiter:     rateLimiter,
 	}, nil
 }
@@ -198,6 +216,8 @@ func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) 
 		handler = &handlerMeshGateway{handlerState: h}
 	case structs.ServiceKindIngressGateway:
 		handler = &handlerIngressGateway{handlerState: h}
+	case structs.ServiceKindAPIGateway:
+		handler = &handlerAPIGateway{handlerState: h}
 	default:
 		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
 	}
@@ -260,6 +280,9 @@ func (s *state) Watch() (<-chan ConfigSnapshot, error) {
 
 // Close discards the state and stops any long-running watches.
 func (s *state) Close(failed bool) error {
+	if s.stoppedRunning() {
+		return nil
+	}
 	if s.cancel != nil {
 		s.cancel()
 	}
@@ -294,6 +317,24 @@ func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig)
 }
 
 func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
+	// Add a recover here so than any panics do not make their way up
+	// into the server / agent.
+	defer func() {
+		if r := recover(); r != nil {
+			s.logger.Error("unexpected panic while running proxycfg",
+				"node", s.serviceInstance.proxyID.NodeName,
+				"service", s.serviceInstance.proxyID.ServiceID,
+				"message", r,
+				"stacktrace", string(debug.Stack()))
+		}
+	}()
+	s.unsafeRun(ctx, snap)
+}
+
+func (s *state) unsafeRun(ctx context.Context, snap *ConfigSnapshot) {
+	// Closing the done channel signals that this entire state is no longer
+	// going to be updated.
+	defer close(s.doneCh)
 	// Close the channel we return from Watch when we stop so consumers can stop
 	// watching and clean up their goroutines. It's important we do this here and
 	// not in Close since this routine sends on this chan and so might panic if it
@@ -409,9 +450,20 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 func (s *state) CurrentSnapshot() *ConfigSnapshot {
 	// Make a chan for the response to be sent on
 	ch := make(chan *ConfigSnapshot, 1)
-	s.reqCh <- ch
+
+	select {
+	case <-s.doneCh:
+		return nil
+	case s.reqCh <- ch:
+	}
+
 	// Wait for the response
-	return <-ch
+	select {
+	case <-s.doneCh:
+		return nil
+	case resp := <-ch:
+		return resp
+	}
 }
 
 // Changed returns whether or not the passed NodeService has had any of the

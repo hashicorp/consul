@@ -10,9 +10,9 @@ description: |-
 
 The `/config` endpoints create, update, delete and query central configuration
 entries registered with Consul. See the
-[agent configuration](/docs/agent/config/config-files#enable_central_service_config)
+[agent configuration](/consul/docs/agent/config/config-files#enable_central_service_config)
 for more information on how to enable this functionality for centrally
-configuring services and [configuration entries docs](/docs/agent/config-entries) for a description
+configuring services and [configuration entries docs](/consul/docs/agent/config-entries) for a description
 of the configuration entries content.
 
 ## Apply Configuration
@@ -24,31 +24,38 @@ This endpoint creates or updates the given config entry.
 | `PUT`  | `/config` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                                      |
 | ---------------- | ----------------- | ------------- | ------------------------------------------------- |
-| `NO`             | `none`            | `none`        | `service:write`<br />`operator:write`<sup>1</sup> |
+| `NO`             | `none`            | `none`        | Refer to [Permissions](#permissions)              |
 
-<p>
-  <sup>1</sup> The ACL required depends on the config entry kind being updated:
-</p>
+The corresponding CLI command is [`consul config write`](/consul/commands/config/write).
 
-| Config Entry Kind   | Required ACL       |
-| ------------------- | ------------------ |
-| ingress-gateway     | `operator:write`   |
-| proxy-defaults      | `operator:write`   |
-| service-defaults    | `service:write`    |
-| service-intentions  | `intentions:write` |
-| service-resolver    | `service:write`    |
-| service-router      | `service:write`    |
-| service-splitter    | `service:write`    |
-| terminating-gateway | `operator:write`   |
+### Permissions
 
-The corresponding CLI command is [`consul config write`](/commands/config/write).
+The ACL required depends on the config entry being written:
+
+| Config Entry Kind   | Required ACLs                    |
+| ------------------- | -------------------------------- |
+| api-gateway         | `mesh:write` or `operator:write` |
+| bound-api-gateway   | Not writable.                    |
+| exported-services   | `mesh:write` or `operator:write` |
+| http-route          | `mesh:write` or `operator:write` |
+| ingress-gateway     | `mesh:write` or `operator:write` |
+| inline-certificate  | `mesh:write` or `operator:write` |
+| mesh                | `mesh:write` or `operator:write` |
+| proxy-defaults      | `mesh:write` or `operator:write` |
+| service-defaults    | `service:write`                  |
+| service-intentions  | `intentions:write`               |
+| service-resolver    | `service:write`                  |
+| service-router      | `service:write`                  |
+| service-splitter    | `service:write`                  |
+| tcp-route           | `mesh:write` or `operator:write` |
+| terminating-gateway | `mesh:write` or `operator:write` |
 
 ### Query Parameters
 
@@ -91,29 +98,39 @@ This endpoint returns a specific config entry.
 | `GET`  | `/config/:kind/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
-| ---------------- | ----------------- | ------------- | -------------------------- |
-| `YES`            | `all`             | `none`        | `service:read`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                           |
+| ---------------- | ----------------- | ------------- | -------------------------------------- |
+| `YES`            | `all`             | `none`        | Refer to [Permissions](#permissions-1) |
 
-<sup>1</sup> The ACL required depends on the config entry kind being read:
 
-| Config Entry Kind   | Required ACL      |
-| ------------------- | ----------------- |
-| ingress-gateway     | `service:read`    |
-| proxy-defaults      | `<none>`          |
-| service-defaults    | `service:read`    |
-| service-intentions  | `intentions:read` |
-| service-resolver    | `service:read`    |
-| service-router      | `service:read`    |
-| service-splitter    | `service:read`    |
-| terminating-gateway | `service:read`    |
+The corresponding CLI command is [`consul config read`](/consul/commands/config/read).
 
-The corresponding CLI command is [`consul config read`](/commands/config/read).
+### Permissions
+
+The ACL required depends on the config entry kind being read:
+
+| Config Entry Kind   | Required ACLs                    |
+| ------------------- | -------------------------------- |
+| api-gateway         | `service:read`                   |
+| bound-api-gateway   | `service:read`                   |
+| exported-services   | `mesh:read` or `operator:read`   |
+| http-route          | `mesh:read` or `operator:read`   |
+| ingress-gateway     | `service:read`                   |
+| inline-certificate  | `mesh:read` or `operator:read`   |
+| mesh                | No ACL required                  |
+| proxy-defaults      | No ACL required                  |
+| service-defaults    | `service:read`                   |
+| service-intentions  | `intentions:read`                |
+| service-resolver    | `service:read`                   |
+| service-router      | `service:read`                   |
+| service-splitter    | `service:read`                   |
+| tcp-route           | `mesh:read` or `operator:read`   |
+| terminating-gateway | `service:read`                   |
 
 ### Path Parameters
 
@@ -162,33 +179,43 @@ This endpoint returns all config entries of the given kind.
 | `GET`  | `/config/:kind` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
-| ---------------- | ----------------- | ------------- | -------------------------- |
-| `YES`            | `all`             | `none`        | `service:read`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                           |
+| ---------------- | ----------------- | ------------- | -------------------------------------- |
+| `YES`            | `all`             | `none`        | Refer to [Permissions](#permissions-2) |
 
-<sup>1</sup> The ACL required depends on the config entry kind being read:
+### Permissions
 
-| Config Entry Kind   | Required ACL      |
-| ------------------- | ----------------- |
-| ingress-gateway     | `service:read`    |
-| proxy-defaults      | `<none>`          |
-| service-defaults    | `service:read`    |
-| service-intentions  | `intentions:read` |
-| service-resolver    | `service:read`    |
-| service-router      | `service:read`    |
-| service-splitter    | `service:read`    |
-| terminating-gateway | `service:read`    |
+The ACL required depends on the config entry kind being read:
 
-The corresponding CLI command is [`consul config list`](/commands/config/list).
+| Config Entry Kind   | Required ACLs                    |
+| ------------------- | -------------------------------- |
+| api-gateway         | `service:read`                   |
+| bound-api-gateway   | `service:read`                   |
+| exported-services   | `mesh:read` or `operator:read`   |
+| http-route          | `mesh:read` or `operator:read`   |
+| ingress-gateway     | `service:read`                   |
+| inline-certificate  | `mesh:read` or `operator:read`   |
+| mesh                | No ACL required                  |
+| proxy-defaults      | No ACL required                  |
+| service-defaults    | `service:read`                   |
+| service-intentions  | `intentions:read`                |
+| service-resolver    | `service:read`                   |
+| service-router      | `service:read`                   |
+| service-splitter    | `service:read`                   |
+| tcp-route           | `mesh:read` or `operator:read`   |
+| terminating-gateway | `service:read`                   |
+
+The corresponding CLI command is [`consul config list`](/consul/commands/config/list).
 
 ### Path Parameters
 
 - `kind` `(string: <required>)` - Specifies the kind of the entry to list.
+- `filter` `(string: "")` - Specifies an expression to use for filtering the results.
 
 ### Query Parameters
 
@@ -236,29 +263,38 @@ This endpoint deletes the given config entry.
 | `DELETE` | `/config/:kind/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                                      |
 | ---------------- | ----------------- | ------------- | ------------------------------------------------- |
-| `NO`             | `none`            | `none`        | `service:write`<br />`operator:write`<sup>1</sup> |
+| `NO`             | `none`            | `none`        | Refer to [Permissions](#permissions-3)            |
 
-<sup>1</sup> The ACL required depends on the config entry kind being deleted:
+### Permissions
 
-| Config Entry Kind   | Required ACL       |
-| ------------------- | ------------------ |
-| ingress-gateway     | `operator:write`   |
-| proxy-defaults      | `operator:write`   |
-| service-defaults    | `service:write`    |
-| service-intentions  | `intentions:write` |
-| service-resolver    | `service:write`    |
-| service-router      | `service:write`    |
-| service-splitter    | `service:write`    |
-| terminating-gateway | `operator:write `  |
+The ACL required depends on the config entry kind being deleted:
 
-The corresponding CLI command is [`consul config delete`](/commands/config/delete).
+| Config Entry Kind   | Required ACLs                    |
+| ------------------- | -------------------------------- |
+| api-gateway         | `mesh:write` or `operator:write` |
+| bound-api-gateway   | Not writable.                    |
+| exported-services   | `mesh:write` or `operator:write` |
+| http-route          | `mesh:write` or `operator:write` |
+| ingress-gateway     | `mesh:write` or `operator:write` |
+| inline-certificate  | `mesh:write` or `operator:write` |
+| mesh                | `mesh:write` or `operator:write` |
+| proxy-defaults      | `mesh:write` or `operator:write` |
+| service-defaults    | `service:write`                  |
+| service-intentions  | `intentions:write`               |
+| service-resolver    | `service:write`                  |
+| service-router      | `service:write`                  |
+| service-splitter    | `service:write`                  |
+| tcp-route           | `mesh:write` or `operator:write` |
+| terminating-gateway | `mesh:write` or `operator:write` |
+
+The corresponding CLI command is [`consul config delete`](/consul/commands/config/delete).
 
 ### Path Parameters
 

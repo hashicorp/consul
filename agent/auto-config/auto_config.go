@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package autoconf
 
 import (
@@ -14,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
 )
 
 // AutoConfig is all the state necessary for being able to parse a configuration

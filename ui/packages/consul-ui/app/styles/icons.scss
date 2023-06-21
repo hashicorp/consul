@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 :root {
   --icon-loading: icon-loading-motion;
 }
@@ -10,18 +15,6 @@
   }
 }
 
-%theme-light {
-  --icon-aws: icon-aws-color;
-  --icon-vault: icon-vault;
-  --color-vault-500: rgb(var(--black));
-}
-%theme-dark {
-  --icon-aws: icon-aws;
-  --icon-vault: icon-vault;
-  --color-aws-500: rgb(var(--white));
-  --color-vault-500: rgb(var(--tone-lemon-500));
-}
-
 %with-vault-100,
 %with-vault-300 {
   --icon-name: icon-vault;
@@ -29,7 +22,7 @@
 }
 %with-aws-100,
 %with-aws-300 {
-  --icon-name: var(--icon-aws);
+  --icon-name: icon-aws-color;
   content: '';
 }
 %with-allow-100,
@@ -47,12 +40,12 @@
 %with-allow-300,
 %with-allow-500 {
   --icon-name: icon-arrow-right;
-  --icon-color: rgb(var(--tone-green-500));
+  --icon-color: var(--token-color-foreground-success-on-surface);
 }
 %with-deny-300,
 %with-deny-500 {
   --icon-name: icon-skip;
-  --icon-color: rgb(var(--tone-red-500));
+  --icon-color: var(--token-color-foreground-critical-on-surface);
 }
 %with-l7-300,
 %with-l7-500 {
@@ -61,7 +54,7 @@
 %with-allow-500,
 %with-deny-500,
 %with-l7-500 {
-  --icon-resolution: .5;
+  --icon-resolution: 0.5;
 }
 %with-allow-300,
 %with-allow-500,

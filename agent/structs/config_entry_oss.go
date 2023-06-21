@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -42,5 +45,9 @@ func validateExportedServicesName(name string) error {
 	if name != "default" {
 		return fmt.Errorf(`exported-services Name must be "default"`)
 	}
+	return nil
+}
+
+func makeEnterpriseConfigEntry(kind, name string) ConfigEntry {
 	return nil
 }

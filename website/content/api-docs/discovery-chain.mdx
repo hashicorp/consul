@@ -9,17 +9,17 @@ description: The /discovery-chain endpoints are for interacting with the discove
 -> **1.6.0+:** The discovery chain API is available in Consul versions 1.6.0 and newer.
 
 ~> This is a low-level API primarily targeted at developers building external
-[Connect proxy integrations](/docs/connect/proxies/integrate). Future
+[service mesh proxy integrations](/consul/docs/connect/proxies/integrate). Future
 high-level proxy integration APIs may obviate the need for this API over time.
 
 The `/discovery-chain` endpoint returns the compiled [discovery
-chain](/docs/connect/l7-traffic/discovery-chain) for a service.
+chain](/consul/docs/connect/l7-traffic/discovery-chain) for a service.
 
 This will fetch all related [configuration
-entries](/docs/agent/config-entries) and render them into a form suitable
-for use by a [connect proxy](/docs/connect/proxies) implementation. This
+entries](/consul/docs/agent/config-entries) and render them into a form suitable
+for use by a [service mesh proxy](/consul/docs/connect/proxies) implementation. This
 is a key component of [L7 Traffic
-Management](/docs/connect/l7-traffic).
+Management](/consul/docs/connect/l7-traffic).
 
 ## Read Compiled Discovery Chain
 
@@ -38,10 +38,10 @@ the `POST` method must be used, otherwise `GET` is sufficient.
 </p>
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required   |
 | ---------------- | ----------------- | -------------------- | -------------- |
@@ -58,8 +58,8 @@ The table below shows this endpoint's support for
   compilation. This will default to the datacenter of the agent being queried.
 
   This value comes from an [upstream
-  configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
-  [`datacenter`](/docs/connect/registration/service-registration#datacenter)
+  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
+  [`datacenter`](/consul/docs/connect/registration/service-registration#datacenter)
   parameter.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the source namespace you use as the basis of compilation.
@@ -68,17 +68,17 @@ The table below shows this endpoint's support for
 ### JSON Request Body Schema
 
 - `OverrideConnectTimeout` `(duration: 0s)` - Overrides the final [connect
-  timeout](/docs/connect/config-entries/service-resolver#connecttimeout) for
+  timeout](/consul/docs/connect/config-entries/service-resolver#connecttimeout) for
   any service resolved in the compiled chain.
 
   This value comes from the `connect_timeout_ms` key in an [upstream
-  configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
+  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
   opaque
-  [`config`](/docs/connect/registration/service-registration#config-1)
+  [`config`](/consul/docs/connect/registration/service-registration#config-1)
   parameter.
 
 - `OverrideProtocol` `(string: "")` - Overrides the final
-  [protocol](/docs/connect/config-entries/service-defaults#protocol) used in
+  [protocol](/consul/docs/connect/config-entries/service-defaults#protocol) used in
   the compiled discovery chain.
 
   If the chain ordinarily would be TCP and an L7 protocol is passed here the
@@ -87,21 +87,21 @@ The table below shows this endpoint's support for
   Splitters.
 
   This value comes from the `protocol` key in an [upstream
-  configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
+  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
   opaque
-  [`config`](/docs/connect/registration/service-registration#config-1)
+  [`config`](/consul/docs/connect/registration/service-registration#config-1)
   parameter.
 
 - `OverrideMeshGateway` `(MeshGatewayConfig: <optional>)` - Overrides the final
-  [mesh gateway configuration](/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
+  [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
   for this any service resolved in the compiled chain.
 
   This value comes from either the [proxy
-  configuration](/docs/connect/registration/service-registration#complete-configuration-example)
-  [`mesh_gateway`](/docs/connect/registration/service-registration#mesh_gateway)
+  configuration](/consul/docs/connect/registration/service-registration#complete-configuration-example)
+  [`mesh_gateway`](/consul/docs/connect/registration/service-registration#mesh_gateway)
   parameter or an [upstream
-  configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
-  [`mesh_gateway`](/docs/connect/registration/service-registration#mesh_gateway-1)
+  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
+  [`mesh_gateway`](/consul/docs/connect/registration/service-registration#mesh_gateway-1)
   parameter. If both are present the value defined on the upstream is used.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
@@ -109,7 +109,7 @@ The table below shows this endpoint's support for
 ### Sample Compilations
 
 Full documentation for the output fields is found on the [discovery chain
-internals](/docs/connect/l7-traffic/discovery-chain#compileddiscoverychain)
+internals](/consul/docs/connect/l7-traffic/discovery-chain#compileddiscoverychain)
 page.
 
 #### Multi-Datacenter Failover

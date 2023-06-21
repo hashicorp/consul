@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 export default (submitable, cancelable, policySelector) => () => {
   return {
     // this should probably be settable

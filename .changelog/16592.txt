@@ -1,0 +1,3 @@
+```release-note:bug
+ca: Fixes a bug where updating Vault CA Provider config would cause TLS issues in the service mesh
+```

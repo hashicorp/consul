@@ -9,7 +9,7 @@ description: >-
 
 Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes using the [Consul Terraform Sync](https://github.com/hashicorp/consul-terraform-sync) (`consul-terraform-sync`) daemon. This daemon uses Consul's catalog to monitor networking information about services along with [Terraform](https://www.terraform.io/)'s provider ecosystem to apply relevant changes to network infrastructure.
 
-The [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=docs) 
+The [Secure Consul-Terraform-Sync for Production](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure?utm_source=docs) 
 tutorial contains a checklist of best practices to secure your 
 Consul-Terraform-Sync installation for a production environment.
 
@@ -76,12 +76,12 @@ security concerns accordingly.
 - **Run without Root** - The NIA daemon does not require root or other administrative privileges to operate.
 
 - **Protect NIA Daemon API Endpoint** - Any network endpoints provided by, or exposed to the NIA Daemon should be
-  protected using Consul Connect and appropriate firewall rules.
+  protected using Consul service mesh and appropriate firewall rules.
 
 - **Use a centralized logging solution** - Export log entries within [syslog](https://en.wikipedia.org/wiki/Syslog)
   generated from `consul-terraform-sync` to a centralized logging solution.
 
-- **Audit used Terraform providers** - [Terraform providers](https://www.terraform.io/language/providers) that
+- **Audit used Terraform providers** - [Terraform providers](/terraform/language/providers) that
   are configured with the NIA daemon should be audited to ensure you're only using providers from sources that
   you trust.
 

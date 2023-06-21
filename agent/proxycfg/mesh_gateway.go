@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -9,15 +12,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type handlerMeshGateway struct {
@@ -389,7 +393,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		if hasExports && snap.MeshGateway.LeafCertWatchCancel == nil {
 			// no watch and we need one
 			ctx, cancel := context.WithCancel(ctx)
-			err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+			err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
 				Datacenter:     s.source.Datacenter,
 				Token:          s.token,
 				Kind:           structs.ServiceKindMeshGateway,
@@ -612,9 +616,11 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 		peerServers := make(map[string]PeerServersValue)
 		for _, peering := range resp.Peerings {
-			// We only need to keep track of outbound establish connections
-			// for mesh gateway.
-			if !peering.ShouldDial() || !peering.IsActive() {
+			// We only need to keep track of outbound establish connections for mesh gateway.
+			// We could also check for the peering status, but this requires a response from the leader
+			// which holds the peerstream information. We want to allow stale reads so there could be peerings in
+			// a deleting or terminating state.
+			if !peering.ShouldDial() {
 				continue
 			}
 

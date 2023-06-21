@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import tickerIndex from 'consul-ui/utils/ticker/index';
 import { module, skip } from 'qunit';
 

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
@@ -11,6 +16,8 @@ module(`Integration | Service | service`, function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`findGatewayBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
+      assert.expect(5);
+
       const subject = this.owner.lookup('service:repository/service');
       subject.store.serializerFor('service').timestamp = function () {
         return now;

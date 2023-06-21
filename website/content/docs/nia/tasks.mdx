@@ -24,15 +24,15 @@ task {
 }
 ```
 
-In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/docs/nia/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `module` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `condition "services"` block. This service-level information is retrieved by CTS which watches Consul catalog for changes.
+In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/consul/docs/nia/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `module` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `condition "services"` block. This service-level information is retrieved by CTS which watches Consul catalog for changes.
 
-See [task configuration](/docs/nia/configuration#task) for more details on how to configure a task.
+See [task configuration](/consul/docs/nia/configuration#task) for more details on how to configure a task.
 
-A task can be either enabled or disabled using the [task cli](/docs/nia/cli/task). When enabled, tasks are executed and automated as described in sections below. However, disabled tasks do not execute when changes are detected from Consul catalog. Since disabled tasks do not execute, they also do not store [events](/docs/nia/tasks#event) until re-enabled.
+A task can be either enabled or disabled using the [task cli](/consul/docs/nia/cli/task). When enabled, tasks are executed and automated as described in sections below. However, disabled tasks do not execute when changes are detected from Consul catalog. Since disabled tasks do not execute, they also do not store [events](/consul/docs/nia/tasks#event) until re-enabled.
 
 ## Task Execution
 
-An enabled task can be configured to monitor and execute on different types of conditions, such as changes to services ([services condition](/docs/nia/tasks#services-condition)) or service registration and deregistration ([catalog-services condition](/docs/nia/tasks#catalog-services-condition)).
+An enabled task can be configured to monitor and execute on different types of conditions, such as changes to services ([services condition](/consul/docs/nia/tasks#services-condition)) or service registration and deregistration ([catalog-services condition](/consul/docs/nia/tasks#catalog-services-condition)).
 
 A task can also monitor, but not execute on, other variables that provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes and additionally monitor service instances for IP information.
 
@@ -43,10 +43,10 @@ All configured monitored information, regardless if it's used for execution or n
 Tasks with the services condition monitor and execute on either changes to a list of configured services or changes to any services that match a given regex.
 
 There are two ways to configure a task with a services condition. Only one of the two options below can be configured for a single task:
-1. Configure a task's [`services`](/docs/nia/configuration#services) field (deprecated) to specify the list of services to trigger the task
-1. Configure a task's `condition` block with the [services condition](/docs/nia/configuration#services-condition) type to specify services to trigger the task.
+1. Configure a task's [`services`](/consul/docs/nia/configuration#services) field (deprecated) to specify the list of services to trigger the task
+1. Configure a task's `condition` block with the [services condition](/consul/docs/nia/configuration#services-condition) type to specify services to trigger the task.
 
-The services condition operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and executing the task on any change of information for services configured. These changes include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
+The services condition operates by monitoring the [Health List Nodes For Service API](/consul/api-docs/health#list-nodes-for-service) and executing the task on any change of information for services configured. These changes include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
 
 | Attribute               | Description                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
@@ -81,7 +81,7 @@ task {
 }
 ```
 
-The services condition can provide input for the [`services` input variable](/docs/nia/terraform-modules#services-variable) that is required for each CTS module. This can be provided depending on how the services condition is configured:
+The services condition can provide input for the [`services` input variable](/consul/docs/nia/terraform-modules#services-variable) that is required for each CTS module. This can be provided depending on how the services condition is configured:
 - task's `services` field (deprecated): services object is automatically passed as module input
 - task's `condition "services"` block: users can configure the `use_as_module_input` field to optionally use the condition's services object as module input
   - Field was previously named `source_includes_var` (deprecated)
@@ -90,7 +90,7 @@ The services condition can provide input for the [`services` input variable](/do
 
 Tasks with a catalog-services condition monitor and execute on service registration changes for services that satisfy the condition configuration. 'Service registration changes' specifically refers to service registration and deregistration where service registration occurs on the first service instance registration, and service deregistration occurs on the last service instance registration. Tasks with a catalog-services condition may, depending on the module, additionally monitor but not execute on service instance information.
 
-The catalog-services condition operates by monitoring the [Catalog List Services API](/api-docs/catalog#list-services) and executing the task when services are added or removed in the list of registered services. Note, the task does not execute on changes to the tags of the list of services. This is similar to how changes to service instance information, mentioned above, also does not execute a task.
+The catalog-services condition operates by monitoring the [Catalog List Services API](/consul/api-docs/catalog#list-services) and executing the task when services are added or removed in the list of registered services. Note, the task does not execute on changes to the tags of the list of services. This is similar to how changes to service instance information, mentioned above, also does not execute a task.
 
 Below is an example configuration for a task that will execute when a service with a name that matches the "web.*" regular expression in datacenter "dc1" has a registration change. It additionally monitors but does not execute on service instance changes to "web-api" in datacenter "dc2".
 
@@ -113,13 +113,13 @@ task {
 }
 ```
 
-Using the condition block's `use_as_module_input` field, users can configure CTS to use the condition's object as module input for the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable). Users can refer to the configured module's documentation on how to set `use_as_module_input`.
+Using the condition block's `use_as_module_input` field, users can configure CTS to use the condition's object as module input for the [`catalog_services` input variable](/consul/docs/nia/terraform-modules#catalog-services-variable). Users can refer to the configured module's documentation on how to set `use_as_module_input`.
 
-See the [Catalog-Services Condition](/docs/nia/configuration#catalog-services-condition) configuration section for further details and additional configuration options.
+See the [Catalog-Services Condition](/consul/docs/nia/configuration#catalog-services-condition) configuration section for further details and additional configuration options.
 
 ### Consul KV Condition
 
-Tasks with a consul-kv condition monitor and execute on Consul KV changes for KV pairs that satisfy the condition configuration. The consul-kv condition operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and executing the task when a configured KV entry is created, deleted, or updated.
+Tasks with a consul-kv condition monitor and execute on Consul KV changes for KV pairs that satisfy the condition configuration. The consul-kv condition operates by monitoring the [Consul KV API](/consul/api-docs/kv#read-key) and executing the task when a configured KV entry is created, deleted, or updated.
 
 Based on the `recurse` option, the condition either monitors a single Consul KV pair for a given path or monitors all pairs that are prefixed by that path. In the example below, because `recurse` is set to true, the `path` option is treated as a prefix. Changes to an entry with the key `my-key` and an entry with the key `my-key/another-key` would both trigger the task. If `recurse` were set to false, then only changes to `my-key` would trigger the task.
 
@@ -140,15 +140,15 @@ task {
 }
 ```
 
-Using the condition block's `use_as_module_input` field, users can configure CTS to use the condition's object as module input for the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). Users can refer to the configured module's documentation on how to set `use_as_module_input`.
+Using the condition block's `use_as_module_input` field, users can configure CTS to use the condition's object as module input for the [`consul_kv` input variable](/consul/docs/nia/terraform-modules#consul-kv-variable). Users can refer to the configured module's documentation on how to set `use_as_module_input`.
 
-See the [Consul-KV Condition](/docs/nia/configuration#consul-kv-condition) configuration section for more details and additional configuration options.
+See the [Consul-KV Condition](/consul/docs/nia/configuration#consul-kv-condition) configuration section for more details and additional configuration options.
 
 ### Schedule Condition
 
-All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure module input. As a result, inputs must be configured separately. You can configure [`module_input` blocks](/docs/nia/configuration#module_input) to define the module inputs.
+All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/consul/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure module input. As a result, inputs must be configured separately. You can configure [`module_input` blocks](/consul/docs/nia/configuration#module_input) to define the module inputs.
 
-Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition's [`cron`](/docs/nia/configuration#cron) configuration. The module input is defined by the `module_input` block. When the task is triggered on Monday, it will retrieve the latest information on "web" and "db" from Consul and provide this to the module's input variables.
+Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition's [`cron`](/consul/docs/nia/configuration#cron) configuration. The module input is defined by the `module_input` block. When the task is triggered on Monday, it will retrieve the latest information on "web" and "db" from Consul and provide this to the module's input variables.
 
 ```hcl
 task {
@@ -167,25 +167,25 @@ task {
 
 Below are the available options for module input types and how to configure them:
 
-- [Services module input](/docs/nia/terraform-modules/#services-module-input):
-  - [`task.services`](/docs/nia/configuration#services) field (deprecated)
-  - [`module_input "services"`](/docs/nia/configuration#services-configure-input) block
+- [Services module input](/consul/docs/nia/terraform-modules/#services-module-input):
+  - [`task.services`](/consul/docs/nia/configuration#services) field (deprecated)
+  - [`module_input "services"`](/consul/docs/nia/configuration#services-configure-input) block
     - Block was previously named `source_input "services"` (deprecated)
-- [Consul KV module input](/docs/nia/terraform-modules/#consul-kv-module-input):
-  - [`module_input "consul-kv"`](/docs/nia/configuration#consul-kv-module-input)
+- [Consul KV module input](/consul/docs/nia/terraform-modules/#consul-kv-module-input):
+  - [`module_input "consul-kv"`](/consul/docs/nia/configuration#consul-kv-module-input)
     - Block was previously named `source_input "consul-kv"` (deprecated)
 
 #### Running Behavior
 
 Scheduled tasks generally run on schedule, but they can be triggered on demand when running CTS in the following ways:
 
-- [Long-running mode](/docs/nia/cli#long-running-mode): At the beginning of the long-running mode, CTS first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase. This behavior also applies to tasks that are not scheduled. After once-mode has completed, scheduled tasks subsequently trigger on schedule.
+- [Long-running mode](/consul/docs/nia/cli#long-running-mode): At the beginning of the long-running mode, CTS first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase. This behavior also applies to tasks that are not scheduled. After once-mode has completed, scheduled tasks subsequently trigger on schedule.
 
-- [Inspect mode](/docs/nia/cli#inspect-mode): When running in inspect mode, the terminal will output a plan of proposed updates that would be made if the tasks were to trigger at that moment and then exit. No changes are applied in this mode. The outputted plan for a scheduled task is also the proposed updates that would be made if the task was triggered at that moment, even if off-schedule.
+- [Inspect mode](/consul/docs/nia/cli#inspect-mode): When running in inspect mode, the terminal will output a plan of proposed updates that would be made if the tasks were to trigger at that moment and then exit. No changes are applied in this mode. The outputted plan for a scheduled task is also the proposed updates that would be made if the task was triggered at that moment, even if off-schedule.
 
-- [Once mode](/docs/nia/cli#once-mode): During the once mode, all tasks are only triggered one time. Scheduled tasks will execute during once mode even if not on the schedule.
+- [Once mode](/consul/docs/nia/cli#once-mode): During the once mode, all tasks are only triggered one time. Scheduled tasks will execute during once mode even if not on the schedule.
 
-- [Enable CLI](/docs/nia/cli/task#task-enable): When a task is enabled through the CLI, any type of task, including scheduled tasks, will be triggered at that time.
+- [Enable CLI](/consul/docs/nia/cli/task#task-enable): When a task is enabled through the CLI, any type of task, including scheduled tasks, will be triggered at that time.
 
 #### Buffer Period
 
@@ -199,11 +199,11 @@ Because scheduled tasks trigger on a configured cadence, buffer periods are disa
 
 CTS will attempt to execute each enabled task once upon startup to synchronize infrastructure with the current state of Consul. The daemon will stop and exit if any error occurs while preparing the automation environment or executing a task for the first time. This helps ensure tasks have proper configuration and are executable before the daemon transitions into running tasks in full automation as service changes are discovered over time. As a result, it is not recommended to configure a task as disabled from the start. After all tasks have successfully executed once, task failures during automation will be logged and retried or attempted again after a subsequent change.
 
-Tasks are executed near-real time when service changes are detected. For services or environments that are prone to flapping, it may be useful to configure a [buffer period](/docs/nia/configuration#buffer_period-1) for a task to accumulate changes before it is executed. The buffer period would reduce the number of consecutive network calls to infrastructure by batching changes for a task over a short duration of time.
+Tasks are executed near-real time when service changes are detected. For services or environments that are prone to flapping, it may be useful to configure a [buffer period](/consul/docs/nia/configuration#buffer_period-1) for a task to accumulate changes before it is executed. The buffer period would reduce the number of consecutive network calls to infrastructure by batching changes for a task over a short duration of time.
 
 ## Status Information
 
-Status-related information is collected and offered via [status API](/docs/nia/api#status) to provide visibility into what and how the tasks are running. Information is offered in three-levels (lowest to highest):
+Status-related information is collected and offered via [status API](/consul/docs/nia/api#status) to provide visibility into what and how the tasks are running. Information is offered in three-levels (lowest to highest):
 
 - Event data
 - Task status
@@ -233,7 +233,7 @@ Sample event:
 }
 ```
 
-For complete information on the event structure, see [events in our API documentation](/docs/nia/api#event). Event information can be retrieved by using the [`include=events` parameter](/docs/nia/api#include) with the [task status API](/docs/nia/api#task-status).
+For complete information on the event structure, see [events in our API documentation](/consul/docs/nia/api#event). Event information can be retrieved by using the [`include=events` parameter](/consul/docs/nia/api#include) with the [task status API](/consul/docs/nia/api#task-status).
 
 ### Task Status
 
@@ -251,7 +251,7 @@ Sample task status:
 }
 ```
 
-Task status information can be retrieved with [task status API](/docs/nia/api#task-status). The API documentation includes details on what health statuses are available and how it is calculated based on events' success/failure information.
+Task status information can be retrieved with [task status API](/consul/docs/nia/api#task-status). The API documentation includes details on what health statuses are available and how it is calculated based on events' success/failure information.
 
 ### Overall Status
 
@@ -269,4 +269,4 @@ Sample overall status:
 }
 ```
 
-Overall status information can be retrieved with [overall status API](/docs/nia/api#overall-status). The API documentation includes details on what health statuses are available and how it is calculated based on task statuses' health status information.
+Overall status information can be retrieved with [overall status API](/consul/docs/nia/api#overall-status). The API documentation includes details on what health statuses are available and how it is calculated based on task statuses' health status information.

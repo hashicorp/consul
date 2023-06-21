@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %tabular-details-toggle-button::before {
   @extend %with-chevron-down-icon, %as-pseudo;
 }
@@ -6,22 +11,22 @@
   border: 0;
 }
 %tabular-detail {
-  border: 1px solid rgb(var(--tone-gray-300));
+  border: 1px solid var(--token-color-palette-neutral-300);
   border-radius: var(--decor-radius-100);
-  box-shadow: var(--decor-elevation-600);
+  box-shadow: var(--token-surface-high-box-shadow);
   margin-bottom: 20px;
 }
 %tabular-detail::before,
 %tabular-detail > div,
 %tabular-detail > label {
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
 }
 %tabular-detail > label::before {
   transform: rotate(180deg);
 }
 // this is here as its a fake border
 %tabular-detail::before {
-  background: rgb(var(--tone-gray-200));
+  background: var(--token-color-surface-interactive-active);
   content: '';
   display: block;
   height: 1px;
