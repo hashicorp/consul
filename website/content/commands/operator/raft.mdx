@@ -46,10 +46,10 @@ Usage: `consul operator raft list-peers -stale=[true|false]`
 The output looks like this:
 
 ```text
-Node     ID              Address         State     Voter  RaftProtocol
-alice    127.0.0.1:8300  127.0.0.1:8300  follower  true   2
-bob      127.0.0.2:8300  127.0.0.2:8300  leader    true   3
-carol    127.0.0.3:8300  127.0.0.3:8300  follower  true   2
+Node     ID              Address         State     Voter  RaftProtocol  Commit Index Trails Leader By
+alice    127.0.0.1:8300  127.0.0.1:8300  follower  true   2             1167         0 commits
+bob      127.0.0.2:8300  127.0.0.2:8300  leader    true   3             1167         -
+carol    127.0.0.3:8300  127.0.0.3:8300  follower  true   2             1159         8 commits
 ```
 
 `Node` is the node name of the server, as known to Consul, or "(unknown)" if
@@ -66,11 +66,15 @@ Raft configuration.
 `Voter` is "true" or "false", indicating if the server has a vote in the Raft
 configuration.
 
+`Commit Index` is the last log index the server has a record of in its Raft log.
+
+`Trails Leader By` is the difference in commit index the server has from the leader.
+
 #### Command Options
 
 - `-stale` - Enables non-leader servers to provide cluster state information.
   If the cluster is in an outage state without a leader,
-  we recommend setting this option to `true.
+  we recommend setting this option to `true`.
   Default is `false`.
 
 ## remove-peer
