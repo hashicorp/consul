@@ -11,11 +11,11 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       version=${VERSION}
 
-RUN ["powershell", "Set-ExecutionPolicy", "Bypass", "-Scope", "Process", "-Force;"]
-RUN ["powershell", "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"]
+#RUN ["powershell", "Set-ExecutionPolicy", "Bypass", "-Scope", "Process", "-Force;"]
+#RUN ["powershell", "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"]
 
-RUN choco install git.install -yf
-RUN SETX /M path "%PATH%;C:\Program Files\Git\bin"
+#RUN choco install git.install -yf
+#RUN SETX /M path "%PATH%;C:\Program Files\Git\bin"
 
 RUN mkdir C:\\consul
 RUN mkdir C:\\consul\\data
