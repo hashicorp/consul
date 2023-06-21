@@ -27,6 +27,8 @@ type targetInfo struct {
 	// Region is the region from the failover target's Locality. nil means the
 	// target is in the local Consul cluster.
 	Region *string
+
+	PrioritizeByLocality *structs.DiscoveryPrioritizeByLocality
 }
 
 type discoChainTargetGroup struct {
@@ -87,7 +89,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 		var sni, rootPEMs string
 		var spiffeIDs []string
 		targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
-		ti := targetInfo{TargetID: tid}
+		ti := targetInfo{TargetID: tid, PrioritizeByLocality: target.PrioritizeByLocality}
 
 		configureTLS := true
 		if forMeshGateway {

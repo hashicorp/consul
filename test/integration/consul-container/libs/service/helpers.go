@@ -46,6 +46,7 @@ type ServiceOpts struct {
 	Checks       Checks
 	Connect      SidecarService
 	Namespace    string
+	Locality     *api.Locality
 }
 
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
@@ -119,6 +120,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		Namespace: serviceOpts.Namespace,
 		Meta:      serviceOpts.Meta,
 		Check:     &agentCheck,
+		Locality:  serviceOpts.Locality,
 	}
 	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, req, containerArgs...)
 }

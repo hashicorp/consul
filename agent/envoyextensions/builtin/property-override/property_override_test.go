@@ -63,6 +63,7 @@ func TestConstructor(t *testing.T) {
 		expected      propertyOverride
 		ok            bool
 		errMsg        string
+		errFunc       func(*testing.T, error)
 	}
 
 	validTestCase := func(o Op, d extensioncommon.TrafficDirection, t ResourceType) testCase {
@@ -216,6 +217,50 @@ func TestConstructor(t *testing.T) {
 			ok:     false,
 			errMsg: fmt.Sprintf("field Value is not supported for %s operation", OpRemove),
 		},
+		"multiple patches includes indexed errors": {
+			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
+				makePatch(map[string]any{
+					"Op":    OpRemove,
+					"Value": 0,
+				}),
+				makePatch(map[string]any{
+					"Op":    OpAdd,
+					"Value": nil,
+				}),
+				makePatch(map[string]any{
+					"Op":   OpAdd,
+					"Path": "/foo",
+				}),
+			}}),
+			ok: false,
+			errFunc: func(t *testing.T, err error) {
+				require.ErrorContains(t, err, "invalid Patches[0]: field Value is not supported for remove operation")
+				require.ErrorContains(t, err, "invalid Patches[1]: non-nil Value is required")
+				require.ErrorContains(t, err, "invalid Patches[2]: no match for field 'foo'")
+			},
+		},
+		"multiple patches single error contains correct index": {
+			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
+				makePatch(map[string]any{
+					"Op":    OpAdd,
+					"Value": "foo",
+				}),
+				makePatch(map[string]any{
+					"Op":    OpRemove,
+					"Value": 1,
+				}),
+				makePatch(map[string]any{
+					"Op":    OpAdd,
+					"Value": "bar",
+				}),
+			}}),
+			ok: false,
+			errFunc: func(t *testing.T, err error) {
+				require.ErrorContains(t, err, "invalid Patches[1]: field Value is not supported for remove operation")
+				require.NotContains(t, err.Error(), "invalid Patches[0]")
+				require.NotContains(t, err.Error(), "invalid Patches[2]")
+			},
+		},
 		"empty service name": {
 			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
 				makePatch(map[string]any{
@@ -229,6 +274,20 @@ func TestConstructor(t *testing.T) {
 			ok:     false,
 			errMsg: "service name is required",
 		},
+		"non-empty services with invalid traffic direction": {
+			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
+				makePatch(map[string]any{
+					"ResourceFilter": makeResourceFilter(map[string]any{
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
+						"Services": []map[string]any{
+							{"Name:": "foo"},
+						},
+					}),
+				}),
+			}}),
+			ok:     false,
+			errMsg: "patch contains non-empty ResourceFilter.Services but ResourceFilter.TrafficDirection is not \"outbound\"",
+		},
 		// See decode.HookWeakDecodeFromSlice for more details. In practice, we can end up
 		// with a "Patches" field decoded to the single "Patch" value contained in the
 		// serialized slice (raised from the containing slice). Using WeakDecode solves
@@ -236,7 +295,7 @@ func TestConstructor(t *testing.T) {
 		// enforces expected behavior until we do. Multi-member slices should be unaffected
 		// by WeakDecode as it is a more-permissive version of the default behavior.
 		"single value Patches decoded as map construction succeeds": {
-			arguments: makeArguments(map[string]any{"Patches": makePatch(map[string]any{})}),
+			arguments: makeArguments(map[string]any{"Patches": makePatch(map[string]any{}), "ProxyType": nil}),
 			expected:  validTestCase(OpAdd, extensioncommon.TrafficDirectionOutbound, ResourceTypeRoute).expected,
 			ok:        true,
 		},
@@ -333,7 +392,13 @@ func TestConstructor(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, &extensioncommon.BasicEnvoyExtender{Extension: &tc.expected}, e)
 			} else {
-				require.ErrorContains(t, err, tc.errMsg)
+				require.Error(t, err)
+				if tc.errMsg != "" {
+					require.ErrorContains(t, err, tc.errMsg)
+				}
+				if tc.errFunc != nil {
+					tc.errFunc(t, err)
+				}
 			}
 		})
 	}

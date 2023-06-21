@@ -415,6 +415,19 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 						Kind: structs.HTTPRoute,
 						Name: "route",
 						Rules: []structs.HTTPRouteRule{{
+							Filters: structs.HTTPFilters{
+								Headers: []structs.HTTPHeaderFilter{
+									{
+										Add: map[string]string{
+											"X-Header-Add": "added",
+										},
+										Set: map[string]string{
+											"X-Header-Set": "set",
+										},
+										Remove: []string{"X-Header-Remove"},
+									},
+								},
+							},
 							Services: []structs.HTTPService{{
 								Name: "service",
 							}},

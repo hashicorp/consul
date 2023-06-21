@@ -10,7 +10,7 @@ This topic describes how to configure service defaults configuration entries. Th
 
 ## Configuration model
 
-The following outline shows how to format the service splitter configuration entry. Click on a property name to view details about the configuration.
+The following outline shows how to format the service defaults configuration entry. Click on a property name to view details about the configuration.
 
 <Tabs>
 <Tab heading="HCL and JSON" group="hcl">
@@ -58,6 +58,7 @@ The following outline shows how to format the service splitter configuration ent
 - [`TransparentProxy`](#transparentproxy): map | no default
   - [`OutboundListenerPort`](#transparentproxy): integer | `15001`
   - [`DialedDirectly`](#transparentproxy  ): boolean | `false`
+- [`MutualTLSMode`](#mutualtlsmode): string | `""`
 - [`EnvoyExtensions`](#envoyextensions): list | no default
   - [`Name`](#envoyextensions): string | `""`
   - [`Required`](#envoyextensions): string | `""`
@@ -126,6 +127,7 @@ The following outline shows how to format the service splitter configuration ent
   - [`transparentProxy`](#transparentproxy): map | no default
     - [`outboundListenerPort`](#transparentproxy): integer | `15001`
     - [`dialedDirectly`](#transparentproxy): boolean | `false`
+  - [`mutualTLSMode`](#mutualtlsmode): string | `""`
   - [`envoyExtensions`](#envoyextensions): list | no default
     - [`name`](#envoyextensions): string | `""`
     - [`required`](#envoyextensions): string | `""`
@@ -152,7 +154,7 @@ The following outline shows how to format the service splitter configuration ent
 
 ## Complete configuration
 
-When every field is defined, a service splitter configuration entry has the following form: 
+When every field is defined, a service-defaults configuration entry has the following form:
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -213,6 +215,7 @@ TransparentProxy = {
   OutboundListenerPort = 15002
   DialedDirectly       = true
 }
+MutualTLSMode = "strict"
 Destination = {
   Addresses = [
     "First IP address",
@@ -288,6 +291,7 @@ spec:
   transparentProxy:
     outboundListenerPort: 15001
     dialedDirectly: false
+  mutualTLSMode: strict
   destination:
     addresses:
     - <First hostname or IP address>
@@ -370,6 +374,7 @@ spec:
       "outboundListenerPort": 15001,
       "dialedDirectly": false
     },
+    "mutualTLSMode": "strict",
     "destination": {
       "addresses": [
         "<First hostname or IP address>",
@@ -696,6 +701,19 @@ You can configure the following parameters in the `TransparentProxy` block:
 | ---   | ---         | ---       | ---     |
 | `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
 | `DialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
+
+### `MutualTLSMode`
+
+Controls whether mutual TLS is required for incoming connections to this service. This setting is
+only supported for services with transparent proxy enabled. We recommend only using `permissive`
+mode if necessary while onboarding services to the service mesh.
+
+You can specify the following string values for the `MutualTLSMode` field:
+
+- `""`: When this field is empty, the value is inherited from the `proxy-defaults` config entry.
+- `strict`: The sidecar proxy requires mutual TLS for incoming traffic.
+- `permissive`: The sidecar proxy accepts mutual TLS traffic on the sidecar proxy service port,
+  and accepts any traffic on the destination service's port.
 
 ### `EnvoyExtensions`
 
@@ -1089,6 +1107,21 @@ You can configure the following parameters in the `TransparentProxy` block:
 | `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
 | `dialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
 
+### `spec.mutualTLSMode`
+
+Controls whether mutual TLS is required for incoming connections to this service. This setting is
+only supported for services with transparent proxy enabled. We recommend only using `permissive`
+mode if necessary while onboarding services to the service mesh.
+
+#### Values
+
+You can specify the following string values for the `MutualTLSMode` field:
+
+- `""`: When this field is empty, the value is inherited from the `proxy-defaults` config entry.
+- `strict`: The sidecar proxy requires mutual TLS for incoming traffic.
+- `permissive`: The sidecar proxy accepts mutual TLS traffic on the sidecar proxy service port,
+  and accepts any traffic on the destination service's port.
+
 ### `spec.envoyExtensions`
 
 List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
@@ -1452,7 +1485,7 @@ represents a location outside the Consul cluster. Services can dial destinations
   {
     "Kind": "service-defaults",
     "Name": "test-destination",
-    "Protocol": "http",
+    "Protocol": "tcp",
     "Destination": {
       "Addresses": ["test.com","test.org"],
       "Port": 443

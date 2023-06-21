@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"github.com/testcontainers/testcontainers-go"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/api"
 
@@ -36,6 +37,7 @@ type Agent interface {
 	Upgrade(ctx context.Context, config Config) error
 	Exec(ctx context.Context, cmd []string) (string, error)
 	DataDir() string
+	GetGRPCConn() *grpc.ClientConn
 }
 
 // Config is a set of configurations required to create a Agent
