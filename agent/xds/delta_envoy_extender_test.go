@@ -12,7 +12,7 @@ import (
 )
 
 func makeExtAuthzEnvoyExtension(svc string, opts ...string) []structs.EnvoyExtension {
-	target := map[string]any{"URI": "localhost:9191"}
+	target := map[string]any{"URI": "127.0.0.1:9191"}
 	insertOptions := map[string]any{}
 	required := false
 	ent := false
@@ -49,6 +49,13 @@ func makeExtAuthzEnvoyExtension(svc string, opts ...string) []structs.EnvoyExten
 						"Location":   location,
 						"FilterName": filterName,
 					}
+				}
+			case "target-uri":
+				target = map[string]any{"URI": v}
+				configMap = map[string]any{
+					serviceKey: map[string]any{
+						"Target": target,
+					},
 				}
 			case "config-type":
 				if v == "full" {

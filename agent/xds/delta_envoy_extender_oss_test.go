@@ -676,6 +676,7 @@ end`,
 					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
 						"http",
 						"dest=local",
+						"target-uri=localhost:9191",
 						"insert=AfterLastMatch:envoy.filters.http.header_to_metadata",
 					)
 				}, nil)
