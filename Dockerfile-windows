@@ -1,6 +1,8 @@
 FROM docker:24.0-windowsservercore-1809
 ARG VERSION=1.13.3
 
+ENV chocolateyVersion=1.4.0
+
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
       org.opencontainers.image.documentation="https://www.consul.io/docs" \
