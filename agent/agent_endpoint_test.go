@@ -17,6 +17,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -6008,6 +6009,8 @@ func TestAgent_Monitor(t *testing.T) {
 			cancelCtx, cancelFunc := context.WithCancel(context.Background())
 			req = req.WithContext(cancelCtx)
 
+			a.config.EnableDebug = atomic.Bool{}
+			a.config.EnableDebug.Store(true)
 			resp := httptest.NewRecorder()
 			handler := a.srv.handler()
 			go handler.ServeHTTP(resp, req)

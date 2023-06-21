@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
@@ -1010,7 +1011,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DiscoveryMaxStale:          b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:    boolVal(c.EnableAgentTLSForChecks),
 		EnableCentralServiceConfig: boolVal(c.EnableCentralServiceConfig),
-		EnableDebug:                boolVal(c.EnableDebug),
+		EnableDebug:                *atomicBoolVal(c.EnableDebug),
 		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),
@@ -1940,6 +1941,21 @@ func boolValWithDefault(v *bool, defaultVal bool) bool {
 		return defaultVal
 	}
 	return *v
+}
+
+func atomicBool(v bool) *atomic.Bool {
+	atomicBool := atomic.Bool{}
+	atomicBool.Store(v)
+	return &atomicBool
+}
+
+func atomicBoolVal(v *bool) *atomic.Bool {
+	if v == nil {
+		return &atomic.Bool{}
+	}
+	atomicBool := atomic.Bool{}
+	atomicBool.Store(*v)
+	return &atomicBool
 }
 
 func boolVal(v *bool) bool {
