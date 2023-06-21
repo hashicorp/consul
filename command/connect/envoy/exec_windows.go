@@ -6,26 +6,23 @@ package envoy
 import (
 	"errors"
 	"fmt"
+	"github.com/edsrzf/mmap-go"
 	"os"
 	"os/exec"
-
 	"path/filepath"
-
 	"time"
-
-	"github.com/go-mmap/mmap"
 )
 
 func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
 	tempFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
 
-	f, err := mmap.Open(tempFile)
+	f, err := mmap.Map(tempFile)
 	if err != nil {
 		return tempFile, err
 	}
 
-	defer f.Close()
+	defer f.UnMap()
 	f.Write(bootstrapJSON)
 	f.Sync()
 
