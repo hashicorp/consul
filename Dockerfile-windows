@@ -1,4 +1,4 @@
-FROM docker.mirror.hashicorp.services/windows/servercore:1809
+FROM docker:24.0-windowsservercore-1809
 ARG VERSION=1.13.3
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
