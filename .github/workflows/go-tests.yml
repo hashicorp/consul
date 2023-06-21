@@ -51,7 +51,7 @@ jobs:
   check-generated-protobuf:
     needs: 
     - setup   
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
     - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
