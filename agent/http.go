@@ -213,13 +213,8 @@ func (s *HTTPHandlers) handler() http.Handler {
 
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 
-			if s.checkACLDisabled() {
-				resp.WriteHeader(http.StatusForbidden)
-				return
-			}
-
 			// If enableDebug register wrapped pprof handlers
-			if !s.agent.enableDebug.Load() {
+			if !s.agent.enableDebug.Load() && s.checkACLDisabled() {
 				resp.WriteHeader(http.StatusNotFound)
 				return
 			}
