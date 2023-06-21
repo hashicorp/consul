@@ -1473,7 +1473,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 				return err
 			}
 		case structs.VaultCAProvider:
-			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
+			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig, rt.PrimaryDatacenter == rt.Datacenter); err != nil {
 				return err
 			}
 		case structs.AWSCAProvider:
