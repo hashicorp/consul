@@ -66,6 +66,10 @@ Raft configuration.
 `Voter` is "true" or "false", indicating if the server has a vote in the Raft
 configuration.
 
+`Commit Index` is the last log index the server has a record of in its Raft log.
+
+`Trails Leader By` is the difference in commit index the server has from the leader.
+
 #### Command Options
 
 - `-stale` - Enables non-leader servers to provide cluster state information.
