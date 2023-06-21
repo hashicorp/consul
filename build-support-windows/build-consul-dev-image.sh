@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 cd ../
-#rm -rf dist
+rm -rf dist
 
 export GOOS=windows GOARCH=amd64
 VERSION=1.13.3
