@@ -1,4 +1,4 @@
-[![GoDoc](https://pkg.go.dev/badge/github.com/hashicorp/consul-topology)](https://pkg.go.dev/github.com/hashicorp/consul-topology)
+[![GoDoc](https://pkg.go.dev/badge/github.com/hashicorp/consul/consul-topology)](https://pkg.go.dev/github.com/hashicorp/consul/consul-topology)
 
 ## Summary
 
