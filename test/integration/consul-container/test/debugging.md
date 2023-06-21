@@ -19,7 +19,7 @@ The `dev-docker-dbg` Make target will build consul docker container that has the
 - a port exposed on the container that allows a debugger from your development environment to connect and attach to the consul process and debug it remotely.
 - logs out the host and port information so that you have the information needed to connect to the port.
 
-The integration tests have been modified to expose the `--debug` flag that will switch the test from using a `consul:local` image that can be built using `make dev-docker` to using the `consul-dbg:local` image that was build from `make dev-docker-dbg`.
+The integration tests have been modified to expose the `--debug` flag that will switch the test from using a `consul:local` image that can be built using `make dev-docker` to using the `consul-dbg:local` image that was built from `make dev-docker-dbg`.
 
 The test is run in debug mode with a breakpoint set to just after the cluster is created and you can retrieve the port information.  From there, you can set up a remote debugging session that connects to this port.
 
@@ -38,7 +38,7 @@ To run/debug integration tests locally, the following tools are required on your
   ```
 - Build a consul-envoy container image from the consul root directory that is required for testing but not for debugging. 
   ```
-  docker build consul-envoy:target-version --build-arg CONSUL_IMAGE=consul:local --build-arg ENVOY_VERSION=1.24.6 -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+  docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=consul:local --build-arg ENVOY_VERSION=1.24.6 -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
   ```
 
 #### Remote debugging using GoLand
