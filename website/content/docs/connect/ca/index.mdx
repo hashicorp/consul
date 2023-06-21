@@ -48,8 +48,8 @@ may not have a reachable Vault cluster. The pros and cons of both providers are 
 |            | Consul built-in                    | Vault                                                                             |
 |------------|------------------------------------|-----------------------------------------------------------------------------------|
 | Security   | CA private keys are stored on disk | CA private keys are stored in Vault and are never exposed to Consul server agents |
-| Resiliency | No dependency on external systems; if Consul is available, it can sign certs | Dependent on Vault availability         |
-| Latency    | Certs are signed locally           | Cert signing operations require a network call to Vault                           |
+| Resiliency | No dependency on external systems. If Consul is available, it can sign certificates | Dependent on Vault availability         |
+| Latency    | Consul signs certificates locally           | A network call to Vault is required to sign certificates                           |
 
 ## CA Bootstrapping
 
