@@ -142,7 +142,7 @@
     {
       "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name":  "local_ext_authz",
-      "type":  "STATIC",
+      "type":  "STRICT_DNS",
       "loadAssignment":  {
         "clusterName":  "local_ext_authz",
         "endpoints":  [
@@ -152,7 +152,7 @@
                 "endpoint":  {
                   "address":  {
                     "socketAddress":  {
-                      "address":  "127.0.0.1",
+                      "address":  "localhost",
                       "portValue":  9191
                     }
                   }
