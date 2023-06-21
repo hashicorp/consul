@@ -46,10 +46,10 @@ Usage: `consul operator raft list-peers -stale=[true|false]`
 The output looks like this:
 
 ```text
-Node     ID              Address         State     Voter  RaftProtocol
-alice    127.0.0.1:8300  127.0.0.1:8300  follower  true   2
-bob      127.0.0.2:8300  127.0.0.2:8300  leader    true   3
-carol    127.0.0.3:8300  127.0.0.3:8300  follower  true   2
+Node     ID              Address         State     Voter  RaftProtocol  Commit Index Trails Leader By
+alice    127.0.0.1:8300  127.0.0.1:8300  follower  true   2             1167         0 commits
+bob      127.0.0.2:8300  127.0.0.2:8300  leader    true   3             1167         -
+carol    127.0.0.3:8300  127.0.0.3:8300  follower  true   2             1159         8 commits
 ```
 
 `Node` is the node name of the server, as known to Consul, or "(unknown)" if
@@ -74,7 +74,7 @@ configuration.
 
 - `-stale` - Enables non-leader servers to provide cluster state information.
   If the cluster is in an outage state without a leader,
-  we recommend setting this option to `true.
+  we recommend setting this option to `true`.
   Default is `false`.
 
 - `-detailed` - Outputs additional information 'commit_index' which is
@@ -117,7 +117,7 @@ The return code will indicate success or failure.
 
 Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/consul/api-docs/operator/raft#transfer-raft-leadership)
 
-This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id. 
+This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id.
 
 Use this command to change leadership without restarting the leader node, which maintains quorum and workload capacity.
 

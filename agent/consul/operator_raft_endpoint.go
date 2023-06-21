@@ -48,6 +48,12 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 		serverMap[raft.ServerAddress(addr)] = member
 	}
 
+	serverIDLastIndexMap := make(map[raft.ServerID]uint64)
+
+	for _, serverState := range op.srv.autopilot.GetState().Servers {
+		serverIDLastIndexMap[serverState.Server.ID] = serverState.Stats.LastIndex
+	}
+
 	// Fill out the reply.
 	leader := op.srv.raft.Leader()
 	reply.Index = future.Index()
@@ -66,6 +72,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 			Leader:          server.Address == leader,
 			Voter:           server.Suffrage == raft.Voter,
 			ProtocolVersion: raftProtocolVersion,
+			LastIndex:       serverIDLastIndexMap[server.ID],
 		}
 		reply.Servers = append(reply.Servers, entry)
 	}
