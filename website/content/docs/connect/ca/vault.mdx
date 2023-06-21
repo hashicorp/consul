@@ -7,7 +7,7 @@ description: >-
 
 # Vault as a Service Mesh Certificate Authority
 
-You can configure Consul to use [Vault](https://www.vaultproject.io/) as the certificate authority (CA) so that Vault can manage and sign certificates distributed to services in the mesh.
+You can configure Consul to use [Vault](/vault) as the certificate authority (CA) so that Vault can manage and sign certificates distributed to services in the mesh.
 The Vault CA provider uses the [Vault PKI secrets engine](/vault/docs/secrets/pki) to generate and sign certificates.
 This page describes how configure the Vault CA provider.
 
@@ -25,8 +25,9 @@ This page describes how configure the Vault CA provider.
 
 - For best performance and resiliency, every datacenter should have a Vault cluster local to its Consul cluster.
 
-- In WAN-federated environments, Vault Enterprise users using [performance secondaries](/vault/docs/enterprise/replication#performance-replication) in their secondary datacenters
-  are recommended to use [`local`](/vault/docs/enterprise/replication#local) mounts for their [`intermediate_pki_path`](/consul/docs/connect/ca/vault#intermediatepkipath).
+- If your Consul datacenters are WAN-federated and the secondary datacenter uses Vault Enterprise
+  [performance secondaries](/vault/docs/enterprise/replication#performance-replication), we recommend
+  configuring [`local`](/vault/docs/enterprise/replication#local) mounts for their [`intermediate_pki_path`](/consul/docs/connect/ca/vault#intermediatepkipath).
 
 ## Enable Vault as the CA
 
