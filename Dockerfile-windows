@@ -17,7 +17,7 @@ RUN ["powershell", "Set-ExecutionPolicy", "Bypass", "-Scope", "Process", "-Force
 RUN ["powershell", "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"]
 
 RUN choco install git.install -yf
-RUN SETX /M PATH "%PATH%;C:\'Program Files'\Git\bin"
+RUN SETX /M PATH "%PATH%;C:\Program Files\Git\bin;"
 
 RUN mkdir C:\\consul
 RUN mkdir C:\\consul\\data
