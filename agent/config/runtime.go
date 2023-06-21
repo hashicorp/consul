@@ -8,7 +8,6 @@ import (
 	"net"
 	"reflect"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-uuid"
@@ -652,7 +651,7 @@ type RuntimeConfig struct {
 	// EnableDebug is used to enable various debugging features.
 	//
 	// hcl: enable_debug = (true|false)
-	EnableDebug atomic.Bool
+	EnableDebug bool
 
 	// EnableLocalScriptChecks controls whether health checks declared from the local
 	// config file which execute scripts are enabled. This includes regular script
