@@ -39,9 +39,10 @@ EXPOSE 8500 8600 8600/udp
 ENV CONSUL_URL=https://releases.hashicorp.com/consul/${VERSION}/consul_${VERSION}_windows_amd64.zip
 RUN curl %CONSUL_URL% -L -o consul.zip
 RUN tar -xf consul.zip -C consul
+RUN SETX /M PATH "%PATH%;C:\\consul;"
 
-COPY .release/docker/docker-entrypoint-windows.sh C:\\docker-entrypoint-windows.sh
-ENTRYPOINT ["bash.exe", "docker-entrypoint-windows.sh"]
+#COPY .release/docker/docker-entrypoint-windows.sh C:\\docker-entrypoint-windows.sh
+ENTRYPOINT ["consul.exe"]
 
 # By default you'll get an insecure single-node development server that stores
 # everything in RAM, exposes a web UI and HTTP endpoints, and bootstraps itself.
