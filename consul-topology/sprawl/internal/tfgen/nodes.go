@@ -84,7 +84,7 @@ func (g *Generator) generateNodeContainers(
 	)
 
 	if node.IsAgent() {
-		agentHCL, err := g.generateAgentHCL(step, node)
+		agentHCL, err := g.generateAgentHCL(node)
 		if err != nil {
 			return nil, err
 		}

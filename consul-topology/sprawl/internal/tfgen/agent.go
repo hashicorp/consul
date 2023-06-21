@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/consul-topology/topology"
 )
 
-func (g *Generator) generateAgentHCL(step Step, node *topology.Node) (string, error) {
+func (g *Generator) generateAgentHCL(node *topology.Node) (string, error) {
 	if !node.IsAgent() {
 		return "", fmt.Errorf("not an agent")
 	}

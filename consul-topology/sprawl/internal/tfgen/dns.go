@@ -63,7 +63,6 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 
 		var (
 			clusterDNSName = cluster.Name + "-consulcluster.lan"
-			discoveryName  = "server." + clusterDNSName
 		)
 
 		corefilePath := filepath.Join(rootdir, "Corefile")
@@ -90,7 +89,6 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 			g.logger,
 			generateCoreDNSZoneFile(
 				dnsIPAddress,
-				discoveryName,
 				clusterDNSName,
 				addrs,
 			),
@@ -152,7 +150,6 @@ consul:53 {
 
 func generateCoreDNSZoneFile(
 	dnsIPAddress string,
-	discoveryName string,
 	clusterDNSName string,
 	addrs []string,
 ) []byte {

@@ -23,7 +23,7 @@ func getLeader(client *api.Client) (string, error) {
 	return leaderAdd, nil
 }
 
-func (s *Sprawl) waitForLeader(cluster *topology.Cluster) *topology.Node {
+func (s *Sprawl) waitForLeader(cluster *topology.Cluster) {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -32,7 +32,7 @@ func (s *Sprawl) waitForLeader(cluster *topology.Cluster) *topology.Node {
 		leader, err := client.Status().Leader()
 		if leader != "" && err == nil {
 			logger.Info("cluster has leader", "leader_addr", leader)
-			return cluster.ServerByAddr(leader)
+			cluster.ServerByAddr(leader)
 		}
 		logger.Info("cluster has no leader yet", "error", err)
 		time.Sleep(500 * time.Millisecond)

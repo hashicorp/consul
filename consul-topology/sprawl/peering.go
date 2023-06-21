@@ -95,7 +95,7 @@ func (s *Sprawl) initPeerings() error {
 	return nil
 }
 
-func (s *Sprawl) waitForPeeringEstablishment(peering *topology.Peering) error {
+func (s *Sprawl) waitForPeeringEstablishment() error {
 	var (
 		logger = s.logger.Named("peering")
 	)
