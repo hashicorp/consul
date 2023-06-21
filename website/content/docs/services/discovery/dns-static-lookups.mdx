@@ -117,9 +117,9 @@ Services that fail their health check or that fail a node system check are omitt
 The following example retrieves the SRV records for any `redis` service registered in Consul.
 
 ```shell-session
-$ dig @127.0.0.1 -p 8600 consul.service.consul SRV
+$ dig @127.0.0.1 -p 8600 redis.service.consul SRV
 
-; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.consul ANY
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 redis.service.consul ANY
 ; (1 server found)
 ;; global options: +cmd
 ;; Got answer:
@@ -128,10 +128,10 @@ $ dig @127.0.0.1 -p 8600 consul.service.consul SRV
 ;; WARNING: recursion requested but not available
 
 ;; QUESTION SECTION:
-;consul.service.consul.   IN  SRV
+;redis.service.consul.   IN  SRV
 
 ;; ANSWER SECTION:
-consul.service.consul.  0 IN  SRV 1 1 8300 foobar.node.dc1.consul.
+redis.service.consul.  0 IN  SRV 1 1 8300 foobar.node.dc1.consul.
 
 ;; ADDITIONAL SECTION:
 foobar.node.dc1.consul. 0 IN  A 10.1.10.12
