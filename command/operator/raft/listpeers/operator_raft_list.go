@@ -28,9 +28,6 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.BoolVar(&c.detailed, "detailed", false,
-		"Outputs additional information 'commit_index' which is "+
-			"the index of the server's last committed Raft log entry.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
