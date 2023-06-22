@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+source helpers.bash
+
 set -euo pipefail
 
 upsert_config_entry alpha '

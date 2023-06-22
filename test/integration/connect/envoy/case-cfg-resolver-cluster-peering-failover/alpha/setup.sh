@@ -5,6 +5,8 @@
 
 set -euo pipefail
 
+source helpers.bash
+
 upsert_config_entry alpha '
 kind = "proxy-defaults"
 name = "global"

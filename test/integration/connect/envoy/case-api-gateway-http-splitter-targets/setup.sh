@@ -5,6 +5,9 @@
 
 set -euo pipefail
 
+source helpers.bash
+
+
 upsert_config_entry primary '
 kind = "api-gateway"
 name = "api-gateway"

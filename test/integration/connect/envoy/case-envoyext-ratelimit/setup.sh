@@ -5,6 +5,9 @@
 
 set -eEuo pipefail
 
+source helpers.bash
+
+
 upsert_config_entry primary '
 Kind = "service-defaults"
 Name = "s2"
