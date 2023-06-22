@@ -1045,7 +1045,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 			require.Equal(r, mongo.Service.CompoundServiceName().String(), msg.GetResponse().ResourceID)
 
 			var nodes pbpeerstream.ExportedService
-			require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
+			require.NoError(r, msg.GetResponse().Resource.UnmarshalTo(&nodes))
 			require.Len(r, nodes.Nodes, 1)
 		})
 	})
@@ -1074,12 +1074,12 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 			msg, err := client.RecvWithTimeout(100 * time.Millisecond)
 			require.NoError(r, err)
 			require.Equal(r, pbpeerstream.TypeURLExportedServiceList, msg.GetResponse().ResourceURL)
-			require.Equal(t, subExportedServiceList, msg.GetResponse().ResourceID)
-			require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
+			require.Equal(r, subExportedServiceList, msg.GetResponse().ResourceID)
+			require.Equal(r, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
 			var exportedServices pbpeerstream.ExportedServiceList
-			require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
-			require.Equal(t, []string{structs.ServiceName{Name: "mongo"}.String()}, exportedServices.Services)
+			require.NoError(r, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
+			require.Equal(r, []string{structs.ServiceName{Name: "mongo"}.String()}, exportedServices.Services)
 		})
 	})
 
@@ -1091,12 +1091,12 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 			msg, err := client.RecvWithTimeout(100 * time.Millisecond)
 			require.NoError(r, err)
 			require.Equal(r, pbpeerstream.TypeURLExportedServiceList, msg.GetResponse().ResourceURL)
-			require.Equal(t, subExportedServiceList, msg.GetResponse().ResourceID)
-			require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
+			require.Equal(r, subExportedServiceList, msg.GetResponse().ResourceID)
+			require.Equal(r, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
 			var exportedServices pbpeerstream.ExportedServiceList
-			require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
-			require.Len(t, exportedServices.Services, 0)
+			require.NoError(r, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
+			require.Len(r, exportedServices.Services, 0)
 		})
 	})
 }

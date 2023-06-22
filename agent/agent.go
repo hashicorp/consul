@@ -4542,13 +4542,13 @@ func (a *Agent) persistServerMetadata() {
 
 			f, err := consul.OpenServerMetadata(file)
 			if err != nil {
-				a.logger.Error("failed to open existing server metadata: %w", err)
+				a.logger.Error("failed to open existing server metadata", "error", err)
 				continue
 			}
 
 			if err := consul.WriteServerMetadata(f); err != nil {
 				f.Close()
-				a.logger.Error("failed to write server metadata: %w", err)
+				a.logger.Error("failed to write server metadata", "error", err)
 				continue
 			}
 
