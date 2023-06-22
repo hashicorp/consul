@@ -240,6 +240,19 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		return err
 	}
 
+	// set each listener as having valid certs, then overwrite that status condition
+	// if there are any certificate errors
+	meta.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
+		listenerRef := structs.ResourceReference{
+			Kind:           structs.APIGateway,
+			Name:           meta.BoundGateway.Name,
+			SectionName:    bound.Name,
+			EnterpriseMeta: meta.BoundGateway.EnterpriseMeta,
+		}
+		updater.SetCondition(conditions.validCertificate(listenerRef))
+		return nil
+	})
+
 	for ref, err := range certificateErrors {
 		updater.SetCondition(conditions.invalidCertificate(ref, err))
 	}
@@ -744,8 +757,14 @@ func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.Resourc
 			if err != nil {
 				return err
 			}
+			listenerRef := structs.ResourceReference{
+				Kind:           structs.APIGateway,
+				Name:           g.BoundGateway.Name,
+				SectionName:    bound.Name,
+				EnterpriseMeta: g.BoundGateway.EnterpriseMeta,
+			}
 			if certificate == nil {
-				certificateErrors[ref] = errors.New("certificate not found")
+				certificateErrors[listenerRef] = fmt.Errorf("certificate %q not found", ref.Name)
 			} else {
 				bound.Certificates = append(bound.Certificates, ref)
 			}
@@ -855,10 +874,21 @@ func newGatewayConditionGenerator() *gatewayConditionGenerator {
 // to a given APIGateway listener.
 func (g *gatewayConditionGenerator) invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.Condition{
-		Type:               "Accepted",
+		Type:               "ResolvedRefs",
 		Status:             "False",
 		Reason:             "InvalidCertificate",
 		Message:            err.Error(),
+		Resource:           pointerTo(ref),
+		LastTransitionTime: g.now,
+	}
+}
+
+func (g *gatewayConditionGenerator) validCertificate(ref structs.ResourceReference) structs.Condition {
+	return structs.Condition{
+		Type:               "ResolvedRefs",
+		Status:             "True",
+		Reason:             "ResolvedRefs",
+		Message:            "resolved refs",
 		Resource:           pointerTo(ref),
 		LastTransitionTime: g.now,
 	}
