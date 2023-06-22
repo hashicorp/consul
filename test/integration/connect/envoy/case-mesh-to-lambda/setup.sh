@@ -8,7 +8,12 @@ set -eEuo pipefail
 # Copy lambda config files into the register dir
 find ${CASE_DIR} -maxdepth 1 -name '*_l*.json' -type f -exec cp -f {} workdir/${CLUSTER}/register \;
 
-source helpers.bash
+function upsert_config_entry {
+  local DC="$1"
+  local BODY="$2"
+
+  echo "$BODY" | docker_consul "$DC" config write -
+}
 
 upsert_config_entry primary '
 kind = "terminating-gateway"

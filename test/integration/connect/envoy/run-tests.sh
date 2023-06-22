@@ -26,7 +26,12 @@ if [ ! -z "$DEBUG" ] ; then
   set -x
 fi
 
-source helpers.bash
+function upsert_config_entry {
+  local DC="$1"
+  local BODY="$2"
+
+  echo "$BODY" | docker_consul "$DC" config write -
+}
 
 function command_error {
   echo "ERR: command exited with status $1" 1>&2
