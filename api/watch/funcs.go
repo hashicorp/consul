@@ -172,11 +172,14 @@ func checksWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
-	var service, state string
+	var service, state, filter string
 	if err := assignValue(params, "service", &service); err != nil {
 		return nil, err
 	}
 	if err := assignValue(params, "state", &state); err != nil {
+		return nil, err
+	}
+	if err := assignValue(params, "filter", &filter); err != nil {
 		return nil, err
 	}
 	if service != "" && state != "" {
@@ -186,13 +189,6 @@ func checksWatch(params map[string]interface{}) (WatcherFunc, error) {
 		state = "any"
 	}
 
-	var (
-		tags []string
-	)
-	if err := assignValueStringSlice(params, "tag", &tags); err != nil {
-		return nil, err
-	}
-
 	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
@@ -200,15 +196,17 @@ func checksWatch(params map[string]interface{}) (WatcherFunc, error) {
 		var checks []*consulapi.HealthCheck
 		var meta *consulapi.QueryMeta
 		var err error
+		if filter != "" {
+			opts.Filter = filter
+		}
 		if state != "" {
-			checks, meta, err = health.StateTags(state, tags, &opts)
+			checks, meta, err = health.State(state, &opts)
 		} else {
-			checks, meta, err = health.ChecksTags(service, tags, &opts)
+			checks, meta, err = health.Checks(service, &opts)
 		}
 		if err != nil {
 			return nil, nil, err
 		}
-
 		return WaitIndexVal(meta.LastIndex), checks, err
 	}
 	return fn, nil
