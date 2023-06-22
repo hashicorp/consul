@@ -55,7 +55,6 @@ func TestEnvoy(t *testing.T) {
 	}
 }
 
-
 func runCmdLinux(t *testing.T, c string, env ...string) {
 	t.Helper()
 
