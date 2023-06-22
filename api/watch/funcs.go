@@ -92,13 +92,20 @@ func keyPrefixWatch(params map[string]interface{}) (WatcherFunc, error) {
 // servicesWatch is used to watch the list of available services
 func servicesWatch(params map[string]interface{}) (WatcherFunc, error) {
 	stale := false
+	filter := ""
 	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+	if err := assignValue(params, "filter", &filter); err != nil {
 		return nil, err
 	}
 
 	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		catalog := p.client.Catalog()
 		opts := makeQueryOptionsWithContext(p, stale)
+		if filter != "" {
+			opts.Filter = filter
+		}
 		defer p.cancelFunc()
 		services, meta, err := catalog.Services(&opts)
 		if err != nil {
@@ -112,13 +119,20 @@ func servicesWatch(params map[string]interface{}) (WatcherFunc, error) {
 // nodesWatch is used to watch the list of available nodes
 func nodesWatch(params map[string]interface{}) (WatcherFunc, error) {
 	stale := false
+	filter := ""
 	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+	if err := assignValue(params, "filter", &filter); err != nil {
 		return nil, err
 	}
 
 	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		catalog := p.client.Catalog()
 		opts := makeQueryOptionsWithContext(p, stale)
+		if filter != "" {
+			opts.Filter = filter
+		}
 		defer p.cancelFunc()
 		nodes, meta, err := catalog.Nodes(&opts)
 		if err != nil {
@@ -132,7 +146,11 @@ func nodesWatch(params map[string]interface{}) (WatcherFunc, error) {
 // serviceWatch is used to watch a specific service for changes
 func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 	stale := false
+	filter := ""
 	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+	if err := assignValue(params, "filter", &filter); err != nil {
 		return nil, err
 	}
 
@@ -158,6 +176,9 @@ func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
+		if filter != "" {
+			opts.Filter = filter
+		}
 		defer p.cancelFunc()
 		nodes, meta, err := health.ServiceMultipleTags(service, tags, passingOnly, &opts)
 		if err != nil {
