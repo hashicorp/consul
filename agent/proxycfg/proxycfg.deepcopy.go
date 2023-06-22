@@ -13,6 +13,10 @@ import (
 // DeepCopy generates a deep copy of *ConfigSnapshot
 func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 	var cp ConfigSnapshot = *o
+	if o.ServiceLocality != nil {
+		cp.ServiceLocality = new(structs.Locality)
+		*cp.ServiceLocality = *o.ServiceLocality
+	}
 	if o.ServiceMeta != nil {
 		cp.ServiceMeta = make(map[string]string, len(o.ServiceMeta))
 		for k2, v2 := range o.ServiceMeta {

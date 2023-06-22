@@ -21,6 +21,7 @@ permissions:
 
 env:
   TEST_RESULTS: /tmp/test-results
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   setup:

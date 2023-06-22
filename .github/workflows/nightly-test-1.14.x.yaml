@@ -8,9 +8,10 @@ on:
   workflow_dispatch: {}
 
 env:
-  EMBER_PARTITION_TOTAL: 4      # Has to be changed in tandem with the matrix.partition
+  EMBER_PARTITION_TOTAL: 4        # Has to be changed in tandem with the matrix.partition
   BRANCH: "release/1.14.x"
-  BRANCH_NAME: "release-1.14.x" # Used for naming artifacts
+  BRANCH_NAME: "release-1.14.x"   # Used for naming artifacts
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   frontend-test-workspace-node:
