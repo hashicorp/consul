@@ -442,6 +442,8 @@ function wipe_volumes {
 # Windows containers does not allow cp command while running.
 function stop_and_copy_files {
     # Create CMD file to execute within the container
+    echo "icalcs C:\workdir_bak /Grant Users:f" > copy.cmd
+    echo "icalcs C:\workdir /Grant Users:f" > copy.cmd
     echo "XCOPY C:\workdir_bak C:\workdir /e /h /c /i /y" > copy.cmd
     # Stop dummy container to copy local workdir to container's workdir_bak
     docker.exe stop envoy_workdir_1 > /dev/null
