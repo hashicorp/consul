@@ -44,20 +44,6 @@ func TestUpstreamConfigSourceLimitations(t *testing.T) {
 			ok:     false,
 			errMsg: fmt.Sprintf("%q extension applied as local config but is sourced from an upstream of the local service", api.BuiltinLuaExtension),
 		},
-		"list extender upstream config": {
-			extender: &ListEnvoyExtender{},
-			config: &RuntimeConfig{
-				Kind:                  api.ServiceKindConnectProxy,
-				ServiceName:           api.CompoundServiceName{Name: "api"},
-				Upstreams:             map[api.CompoundServiceName]*UpstreamData{},
-				IsSourcedFromUpstream: true,
-				EnvoyExtension: api.EnvoyExtension{
-					Name: api.BuiltinLuaExtension,
-				},
-			},
-			ok:     false,
-			errMsg: fmt.Sprintf("%q extension applied as local config but is sourced from an upstream of the local service", api.BuiltinLuaExtension),
-		},
 	}
 
 	for n, tc := range cases {

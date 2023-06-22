@@ -73,7 +73,7 @@ func ValidateHealthStatus(res *pbresource.Resource) error {
 			Wrapped: resource.ErrMissing,
 		})
 	} else if !resource.EqualType(res.Owner.Type, WorkloadType) && !resource.EqualType(res.Owner.Type, NodeType) {
-		err = multierror.Append(err, resource.ErrOwnerInvalid{ResourceType: res.Id.Type, OwnerType: res.Owner.Type})
+		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{ResourceType: res.Id.Type, OwnerType: res.Owner.Type})
 	}
 
 	return err

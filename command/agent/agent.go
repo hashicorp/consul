@@ -21,8 +21,8 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/hcp"
 	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -169,7 +169,7 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 	if res.RuntimeConfig.IsCloudEnabled() {
-		client, err := hcp.NewClient(res.RuntimeConfig.Cloud)
+		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
 		if err != nil {
 			ui.Error("error building HCP HTTP client: " + err.Error())
 			return 1
@@ -231,6 +231,9 @@ func (c *cmd) run(args []string) int {
 	ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
 	ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
+	if config.ServerMode {
+		ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
+	}
 	ui.Info(fmt.Sprintf("ACL Default Policy: %s", config.ACLResolverSettings.ACLDefaultPolicy))
 	ui.Info(fmt.Sprintf("         HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
 		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))

@@ -224,19 +224,17 @@ If you upgrade Consul from a version that uses client agents to a version the us
   ```yaml filename="values.yaml"
   client:
       enabled: true
-      updateStrategy:
+      updateStrategy: |
         type: OnDelete
   ```
 
-1. Add `consul.hashicorp.com/consul-k8s-version: 1.0.0` to the annotations for each pod you upgrade.
-
-1. Follow our [recommended procedures to upgrade servers](#upgrading-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
+1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
 
 1. Run `kubectl rollout restart` to restart your service mesh applications. Restarting service mesh application causes Kubernetes to re-inject them with the webhook for dataplanes.
 
 1. Restart all gateways in your service mesh.
 
-1. Disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false`.
+1. Disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false` and running a `consul-k8s` or Helm upgrade.
 
 ## Configuring TLS on an existing cluster
 

@@ -6,6 +6,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -465,9 +466,8 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	// If this is a resolver/router/splitter, attempt to delete the virtual IP associated
-	// with this service.
-	if kind == structs.ServiceResolver || kind == structs.ServiceRouter || kind == structs.ServiceSplitter {
+	// Attempt to delete the virtual IP associated with this service, if applicable.
+	if configEntryHasVirtualIP(c) {
 		psn := structs.PeeredServiceName{ServiceName: sn}
 		if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
 			return fmt.Errorf("failed to clean up virtual IP for %q: %v", psn.String(), err)
@@ -519,11 +519,14 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		if err != nil {
 			return err
 		}
-	case structs.ServiceResolver:
-		fallthrough
-	case structs.ServiceRouter:
-		fallthrough
-	case structs.ServiceSplitter:
+	}
+
+	// Assign virtual-ips, if needed
+	supported, err := virtualIPsSupported(tx, nil)
+	if err != nil {
+		return err
+	}
+	if supported && configEntryHasVirtualIP(conf) {
 		psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(conf.GetName(), conf.GetEnterpriseMeta())}
 		if _, err := assignServiceVirtualIP(tx, idx, psn); err != nil {
 			return err
@@ -539,6 +542,28 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	}
 
 	return nil
+}
+
+func configEntryHasVirtualIP(c structs.ConfigEntry) bool {
+	if c == nil || c.GetName() == "" {
+		return false
+	}
+	switch c.GetKind() {
+	case structs.ServiceRouter:
+		return true
+	case structs.ServiceResolver:
+		return true
+	case structs.ServiceSplitter:
+		return true
+	case structs.ServiceDefaults:
+		return true
+	case structs.ServiceIntentions:
+		entMeta := c.GetEnterpriseMeta()
+		return !strings.Contains(c.GetName(), "*") &&
+			!strings.Contains(entMeta.NamespaceOrDefault(), "*") &&
+			!strings.Contains(entMeta.PartitionOrDefault(), "*")
+	}
+	return false
 }
 
 // validateProposedConfigEntryInGraph can be used to verify graph integrity for
@@ -609,6 +634,12 @@ func validateProposedConfigEntryInGraph(
 	case structs.TCPRoute:
 	case structs.RateLimitIPConfig:
 	case structs.JWTProvider:
+		if newEntry == nil && existingEntry != nil {
+			err := validateJWTProviderIsReferenced(tx, kindName, existingEntry)
+			if err != nil {
+				return err
+			}
+		}
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -677,6 +708,66 @@ func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs
 	}
 
 	return providerNames
+}
+
+// validateJWTProviderIsReferenced iterates over intentions to determine if the provider being
+// deleted is referenced by any intention.
+//
+// This could be an expensive operation based on the number of intentions. We purposely set this to only
+// run on delete and don't expect this to be called often.
+func validateJWTProviderIsReferenced(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
+	meta := acl.NewEnterpriseMetaWithPartition(
+		kn.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
+	entry, ok := ce.(*structs.JWTProviderConfigEntry)
+	if !ok {
+		return fmt.Errorf("invalid jwt provider config entry: %T", entry)
+	}
+
+	_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, &meta)
+	if err != nil {
+		return err
+	}
+
+	err = findJWTProviderNameReferences(ixnEntries, entry.Name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func findJWTProviderNameReferences(entries []structs.ConfigEntry, pName string) error {
+	errMsg := "cannot delete jwt provider config entry referenced by an intention. Provider name: %s, intention name: %s"
+	for _, entry := range entries {
+		ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+		if !ok {
+			return fmt.Errorf("type %T is not a service intentions config entry", entry)
+		}
+
+		if ixn.JWT != nil {
+			for _, prov := range ixn.JWT.Providers {
+				if prov.Name == pName {
+					return fmt.Errorf(errMsg, pName, ixn.Name)
+				}
+			}
+		}
+
+		for _, s := range ixn.Sources {
+			for _, perm := range s.Permissions {
+				if perm.JWT == nil {
+					continue
+				}
+				for _, prov := range perm.JWT.Providers {
+					if prov.Name == pName {
+						return fmt.Errorf(errMsg, pName, ixn.Name)
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // This fetches all the jwt-providers config entries and iterates over them

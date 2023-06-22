@@ -30,8 +30,46 @@ func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     ServiceEndpointsV1Alpha1Type,
 		Proto:    &pbcatalog.ServiceEndpoints{},
-		Validate: nil,
+		Validate: ValidateServiceEndpoints,
+		Mutate:   MutateServiceEndpoints,
 	})
+}
+
+func MutateServiceEndpoints(res *pbresource.Resource) error {
+	if res.Owner == nil {
+		res.Owner = &pbresource.ID{
+			Type:    ServiceV1Alpha1Type,
+			Tenancy: res.Id.Tenancy,
+			Name:    res.Id.Name,
+		}
+	}
+
+	var err error
+	if !resource.EqualType(res.Owner.Type, ServiceV1Alpha1Type) {
+		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{
+			ResourceType: ServiceEndpointsV1Alpha1Type,
+			OwnerType:    res.Owner.Type,
+		})
+	}
+
+	if !resource.EqualTenancy(res.Owner.Tenancy, res.Id.Tenancy) {
+		err = multierror.Append(err, resource.ErrOwnerTenantInvalid{
+			ResourceTenancy: res.Id.Tenancy,
+			OwnerTenancy:    res.Owner.Tenancy,
+		})
+	}
+
+	if res.Owner.Name != res.Id.Name {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name: "name",
+			Wrapped: errInvalidEndpointsOwnerName{
+				Name:      res.Id.Name,
+				OwnerName: res.Owner.Name,
+			},
+		})
+	}
+
+	return err
 }
 
 func ValidateServiceEndpoints(res *pbresource.Resource) error {

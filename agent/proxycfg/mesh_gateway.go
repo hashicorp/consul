@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
-
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
@@ -393,7 +393,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		if hasExports && snap.MeshGateway.LeafCertWatchCancel == nil {
 			// no watch and we need one
 			ctx, cancel := context.WithCancel(ctx)
-			err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+			err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
 				Datacenter:     s.source.Datacenter,
 				Token:          s.token,
 				Kind:           structs.ServiceKindMeshGateway,

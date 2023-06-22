@@ -45,6 +45,18 @@ func TestValidateService_Ok(t *testing.T) {
 				VirtualPort: 42,
 				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 			},
+			{
+				TargetPort: "other",
+				// leaving VirtualPort unset to verify that seeing
+				// a zero virtual port multiple times is fine.
+				Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2,
+			},
+			{
+				TargetPort: "other2",
+				// leaving VirtualPort unset to verify that seeing
+				// a zero virtual port multiple times is fine.
+				Protocol: pbcatalog.Protocol_PROTOCOL_GRPC,
+			},
 		},
 		VirtualIps: []string{"198.18.0.1"},
 	}

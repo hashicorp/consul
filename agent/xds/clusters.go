@@ -34,7 +34,6 @@ import (
 
 const (
 	meshGatewayExportedClusterNamePrefix = "exported~"
-	failoverClusterNamePrefix            = "failover-target~"
 )
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters" in the snapshot.
@@ -1915,7 +1914,7 @@ func (s *ResourceGenerator) getTargetClusterName(upstreamsSnapshot *proxycfg.Con
 	}
 	clusterName = CustomizeClusterName(clusterName, chain)
 	if failover {
-		clusterName = failoverClusterNamePrefix + clusterName
+		clusterName = xdscommon.FailoverClusterNamePrefix + clusterName
 	}
 	if forMeshGateway {
 		clusterName = meshGatewayExportedClusterNamePrefix + clusterName

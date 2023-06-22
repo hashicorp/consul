@@ -87,7 +87,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip 
 				// the cluster SNIs configured on this proxy, not just the upstream being validated. This means the
 				// PatchCluster function in the Validate plugin will be run on all clusters, but errors will only
 				// surface for clusters related to the upstream being validated.
-				SNI:     snis,
+				SNIs:    snis,
 				EnvoyID: envoyID,
 			},
 		},
