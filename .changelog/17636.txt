@@ -1,0 +1,3 @@
+```release-note:bug
+cache: fix a few minor goroutine leaks in leaf certs and the agent cache
+```
