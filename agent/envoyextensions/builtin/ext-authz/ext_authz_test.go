@@ -59,7 +59,7 @@ func TestConstructor(t *testing.T) {
 					},
 				},
 			},
-			errMsg: `invalid host for Target.URI "foo.bar.com:9191": expected 'localhost' or '127.0.0.1'`,
+			errMsg: `invalid host for Target.URI "foo.bar.com:9191": expected "localhost", "127.0.0.1", or "::1"`,
 		},
 		"non-loopback address": {
 			args: map[string]any{
@@ -72,7 +72,34 @@ func TestConstructor(t *testing.T) {
 					},
 				},
 			},
-			errMsg: `invalid host for Target.URI "10.0.0.1:9191": expected 'localhost' or '127.0.0.1'`,
+			errMsg: `invalid host for Target.URI "10.0.0.1:9191": expected "localhost", "127.0.0.1", or "::1"`,
+		},
+		"invalid target port": {
+			args: map[string]any{
+				"ProxyType": "connect-proxy",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{
+							"URI": "localhost:zero",
+						},
+					},
+				},
+			},
+			errMsg: `invalid format for Target.URI "localhost:zero": expected host:port`,
+		},
+		"invalid target timeout": {
+			args: map[string]any{
+				"ProxyType": "connect-proxy",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{
+							"URI":     "localhost:9191",
+							"Timeout": "one",
+						},
+					},
+				},
+			},
+			errMsg: `failed to parse Target.Timeout "one" as a duration`,
 		},
 		"no uri or service target": {
 			args: map[string]any{

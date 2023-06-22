@@ -348,7 +348,7 @@ The following table describes how to configure parameters for the `Service` fiel
 
 ### `Arguments.Config.GrpcService.Target.Uri`
 
-Specifies the URI of the external authorization service. Configure this field when you must provide an explicit URI to the external authorization service, such as cases in which the authorization service is running on the same host or pod. If set, the value of this field must be either `localhost:<port>` or `127.0.0.1:<port>`
+Specifies the URI of the external authorization service. Configure this field when you must provide an explicit URI to the external authorization service, such as cases in which the authorization service is running on the same host or pod. If set, the value of this field must be one of `localhost:<port>`, `127.0.0.1:<port>`, or `::1:<port>`.
 
 Configure either the `Uri` field or the [`Service`](#arguments-config-grpcservice-target-service) field, but not both. 
  
@@ -434,7 +434,7 @@ The following table describes how to configure parameters for the `Service` fiel
 
 ### `Arguments{}.Config{}.HttpService{}.Target{}.Uri`
 
-Specifies the URI of the external authorization service. Configure this field when you must provide an explicit URI to the external authorization service, such as cases in which the authorization service is running on the same host or pod. 
+Specifies the URI of the external authorization service. Configure this field when you must provide an explicit URI to the external authorization service, such as cases in which the authorization service is running on the same host or pod. If set, the value of this field must be one of `localhost:<port>`, `127.0.0.1:<port>`, or `::1:<port>`.
 
 Configure either the `Uri` field or the [`Service`](#arguments-config-httpservice-target-service) field, but not both. 
  
