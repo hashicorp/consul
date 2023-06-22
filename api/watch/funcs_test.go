@@ -378,6 +378,82 @@ func TestServicesWatch(t *testing.T) {
 
 }
 
+func TestServicesWatch_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	var (
+		wakeups  []map[string][]string
+		notifyCh = make(chan struct{})
+	)
+
+	plan := mustParse(t, `{"type":"services", "filter":"b in ServiceTags and a in ServiceTags"}`)
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.(map[string][]string)
+		if !ok {
+			return // ignore
+		}
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
+	}
+
+	// Register some services
+	{
+		agent := c.Agent()
+
+		// we don't want to find this
+		reg := &api.AgentServiceRegistration{
+			ID:   "foo",
+			Name: "foo",
+			Tags: []string{"b"},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// // we want to find this
+		reg = &api.AgentServiceRegistration{
+			ID:   "bar",
+			Name: "bar",
+			Tags: []string{"a", "b"},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Errorf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for second wakeup.
+	<-notifyCh
+
+	plan.Stop()
+	wg.Wait()
+
+	require.Len(t, wakeups, 1)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 1)
+		_, ok := v["bar"]
+		require.True(t, ok)
+	}
+}
+
 func TestNodesWatch(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -450,6 +526,82 @@ func TestNodesWatch(t *testing.T) {
 		} else {
 			require.Equal(t, "foobar", v[0].Node)
 		}
+	}
+}
+
+func TestNodesWatch_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t) // wait for AE to sync
+
+	var (
+		wakeups  [][]*api.Node
+		notifyCh = make(chan struct{})
+	)
+
+	plan := mustParse(t, `{"type":"nodes", "filter":"Node == foo"}`)
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.([]*api.Node)
+		if !ok {
+			return // ignore
+		}
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
+	}
+
+	// Register 2 nodes
+	{
+		catalog := c.Catalog()
+
+		// we want to find this node
+		reg := &api.CatalogRegistration{
+			Node:       "foo",
+			Address:    "1.1.1.1",
+			Datacenter: "dc1",
+		}
+		if _, err := catalog.Register(reg, nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// we don't want to find this node
+		reg = &api.CatalogRegistration{
+			Node:       "bar",
+			Address:    "2.2.2.2",
+			Datacenter: "dc1",
+		}
+		if _, err := catalog.Register(reg, nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	// Start the watch nodes plan
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Errorf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for first wakeup.
+	<-notifyCh
+
+	plan.Stop()
+	wg.Wait()
+
+	require.Len(t, wakeups, 1)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 1)
+		require.Equal(t, "foo", v[0].Node)
 	}
 }
 
@@ -609,6 +761,94 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 	}
 	{
 		v := wakeups[1]
+		require.Len(t, v, 1)
+
+		require.Equal(t, "foobarbuzzbiff", v[0].Service.ID)
+		require.ElementsMatch(t, []string{"bar", "buzz", "biff"}, v[0].Service.Tags)
+	}
+}
+
+func TestServiceWatch_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	var (
+		wakeups  [][]*api.ServiceEntry
+		notifyCh = make(chan struct{})
+	)
+
+	plan := mustParse(t, `{"type":"service", "service":"foo", "filter":"bar in Service.Tags and buzz in Service.Tags"}`)
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.([]*api.ServiceEntry)
+		if !ok {
+			return // ignore
+		}
+
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
+	}
+
+	// register some services
+	{
+		agent := c.Agent()
+
+		// we do not want to find this one.
+		reg := &api.AgentServiceRegistration{
+			ID:   "foobarbiff",
+			Name: "foo",
+			Tags: []string{"bar", "biff"},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// we do not want to find this one.
+		reg = &api.AgentServiceRegistration{
+			ID:   "foobuzzbiff",
+			Name: "foo",
+			Tags: []string{"buzz", "biff"},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// we want to find this one
+		reg = &api.AgentServiceRegistration{
+			ID:   "foobarbuzzbiff",
+			Name: "foo",
+			Tags: []string{"bar", "buzz", "biff"},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Errorf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for second wakeup.
+	<-notifyCh
+
+	plan.Stop()
+	wg.Wait()
+
+	require.Len(t, wakeups, 1)
+
+	{
+		v := wakeups[0]
 		require.Len(t, v, 1)
 
 		require.Equal(t, "foobarbuzzbiff", v[0].Service.ID)
