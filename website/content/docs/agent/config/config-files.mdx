@@ -472,8 +472,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   that match a registering service instance. If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any affected service registrations.
   This defaults to `false` in versions of Consul prior to 1.9.0, and defaults to `true` in Consul 1.9.0 and later.
 
-- `enable_debug` When set, enables some additional debugging features. Currently, this is only used to
-  access runtime profiling HTTP endpoints, which are available with an `operator:read` ACL regardless of the value of `enable_debug`.
+- `enable_debug` (Defaults to `false`) When set, enables some additional debugging features. Currently, this is only used to
+  capture runtime profiling (pprof) data. This setting is only required for clusters without ACL [enabled](#acl_enabled), and requires agent restart.
 
 - `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/docs/agent/config/cli-flags#_enable_script_checks).
 
