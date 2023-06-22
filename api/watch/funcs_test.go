@@ -769,7 +769,7 @@ func TestChecksWatch_Service(t *testing.T) {
 	}
 }
 
-func TestChecksWatch_Service_Tag(t *testing.T) {
+func TestChecksWatch_Service_Filter(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -781,7 +781,7 @@ func TestChecksWatch_Service_Tag(t *testing.T) {
 		notifyCh = make(chan struct{})
 	)
 
-	plan := mustParse(t, `{"type":"checks", "service":"foobar", "tag":["b", "a"]}`)
+	plan := mustParse(t, `{"type":"checks", "filter":"b in ServiceTags and a in ServiceTags"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
@@ -808,8 +808,6 @@ func TestChecksWatch_Service_Tag(t *testing.T) {
 	<-notifyCh
 	{
 		catalog := c.Catalog()
-
-		// we want to find this one
 		reg := &api.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
@@ -821,28 +819,6 @@ func TestChecksWatch_Service_Tag(t *testing.T) {
 			},
 			Check: &api.AgentCheck{
 				Node:      "foobar",
-				CheckID:   "foobar",
-				Name:      "foobar",
-				Status:    api.HealthPassing,
-				ServiceID: "foobar",
-			},
-		}
-		if _, err := catalog.Register(reg, nil); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		// we don't want to find this one
-		reg = &api.CatalogRegistration{
-			Node:       "bar",
-			Address:    "2.2.2.2",
-			Datacenter: "dc1",
-			Service: &api.AgentService{
-				ID:      "foobar",
-				Service: "foobar",
-				Tags:    []string{"a"},
-			},
-			Check: &api.AgentCheck{
-				Node:      "bar",
 				CheckID:   "foobar",
 				Name:      "foobar",
 				Status:    api.HealthPassing,
@@ -873,7 +849,7 @@ func TestChecksWatch_Service_Tag(t *testing.T) {
 	}
 }
 
-func TestChecksWatch_Tag(t *testing.T) {
+func TestChecksWatch_Filter(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -885,7 +861,7 @@ func TestChecksWatch_Tag(t *testing.T) {
 		notifyCh = make(chan struct{})
 	)
 
-	plan := mustParse(t, `{"type":"checks", "tag":["b", "a"]}`)
+	plan := mustParse(t, `{"type":"checks", "filter":"b in ServiceTags and a in ServiceTags"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
