@@ -68,7 +68,7 @@ configuration.
 
 `Commit Index` is the last log index the server has a record of in its Raft log.
 
-`Trails Leader By` is the difference in commit index the server has from the leader.
+`Trails Leader By` is the number of commits a follower trails the leader by.
 
 #### Command Options
 
@@ -113,7 +113,7 @@ The return code will indicate success or failure.
 
 Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/consul/api-docs/operator/raft#transfer-raft-leadership)
 
-This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id. 
+This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id.
 
 Use this command to change leadership without restarting the leader node, which maintains quorum and workload capacity.
 

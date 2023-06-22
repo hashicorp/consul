@@ -2095,6 +2095,18 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 	return acl.Allow
 }
 
+func (csn *CheckServiceNode) Locality() *Locality {
+	if csn.Service != nil && csn.Service.Locality != nil {
+		return csn.Service.Locality
+	}
+
+	if csn.Node != nil && csn.Node.Locality != nil {
+		return csn.Node.Locality
+	}
+
+	return nil
+}
+
 type CheckServiceNodes []CheckServiceNode
 
 func (csns CheckServiceNodes) DeepCopy() CheckServiceNodes {

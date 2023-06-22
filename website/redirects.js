@@ -38,19 +38,26 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/v1.16.x/connect/transparent-proxy',
-    destination: '/consul/docs/v1.16.x/k8s/connect/transparent-proxy',
+    source: '/consul/docs/connect/transparent-proxy',
+    destination: '/consul/docs/k8s/connect/transparent-proxy',
     permanent: true,
   },
   {
-    source: '/consul/docs/1.16.x/agent/limits/init-rate-limits',
-    destination: '/consul/docs/1.16.x/agent/limits/usage/init-rate-limits',
+    source: '/consul/docs/agent/limits/init-rate-limits',
+    destination: '/consul/docs/agent/limits/usage/init-rate-limits',
     permanent: true,
   },
   {
-    source: '/consul/docs/1.16.x/agent/limits/set-global-traffic-rate-limits',
+    source: '/consul/docs/agent/limits/set-global-traffic-rate-limits',
     destination:
-      '/consul/docs/1.16.x/agent/limits/usage/set-global-traffic-rate-limits',
+      '/consul/docs/agent/limits/usage/set-global-traffic-rate-limits',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers',
+    destination:
+      '/consul/docs/connect/cluster-peering/usage/establish-cluster-peering',
     permanent: true,
   },
 ]

@@ -5,6 +5,9 @@ package catalog
 
 import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers"
+	"github.com/hashicorp/consul/internal/catalog/internal/controllers/endpoints"
+	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
@@ -40,6 +43,21 @@ var (
 	HealthStatusV1Alpha1Type     = types.HealthStatusV1Alpha1Type
 	HealthChecksV1Alpha1Type     = types.HealthChecksV1Alpha1Type
 	DNSPolicyV1Alpha1Type        = types.DNSPolicyV1Alpha1Type
+
+	// Controller Statuses
+	NodeHealthStatusKey              = nodehealth.StatusKey
+	NodeHealthStatusConditionHealthy = nodehealth.StatusConditionHealthy
+	NodeHealthConditions             = nodehealth.Conditions
+
+	WorkloadHealthStatusKey              = workloadhealth.StatusKey
+	WorkloadHealthStatusConditionHealthy = workloadhealth.StatusConditionHealthy
+	WorkloadHealthConditions             = workloadhealth.WorkloadConditions
+	WorkloadAndNodeHealthConditions      = workloadhealth.NodeAndWorkloadConditions
+
+	EndpointsStatusKey                       = endpoints.StatusKey
+	EndpointsStatusConditionEndpointsManaged = endpoints.StatusConditionEndpointsManaged
+	EndpointsStatusConditionManaged          = endpoints.ConditionManaged
+	EndpointsStatusConditionUnmanaged        = endpoints.ConditionUnmanaged
 )
 
 // RegisterTypes adds all resource types within the "catalog" API group
