@@ -194,6 +194,7 @@ dev-docker: linux dev-build
 		--label version=$(CONSUL_VERSION) \
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
+	docker tag 'consul:local'  '$(CONSUL_COMPAT_TEST_IMAGE):local'
 
 check-remote-dev-image-env:
 ifndef REMOTE_DEV_IMAGE
