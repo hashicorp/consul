@@ -228,17 +228,17 @@ If you upgrade Consul from a version that uses client agents to a version the us
         type: OnDelete
   ```
 
-1. Update the `connect-injector` to not log out on restart.
-We need to do it to make sure that the ACL tokens that existing services are using are still valid while we are migrating them to `consul-dataplane`.
-Note that this token will need to be cleaned up manually.
+1. Update the `connect-injector` to not log out on restart
+to make sure that the ACL tokens used by existing services are still valid during the migration to `consul-dataplane`.
+Note that you must remove the token manually after completing the migration.
+
+The following command triggers the deployment rollout. Wait for the rollout to complete before proceeding to next step.
 
     ```bash
     kubectl config set-context --current --namespace=<consul installation namespace>
     INJECTOR_DEPLOYMENT=$(kg deploy -l "component=connect-injector" -o=jsonpath='{.items[0].metadata.name}')
     kubectl patch deploy $INJECTOR_DEPLOYMENT --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/lifecycle"}]'
     ```
-
-This will trigger the deployment rollout. We need to wait for the rollout to complete before proceeding to next step.
 
 1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
 
