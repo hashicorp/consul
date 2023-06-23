@@ -219,7 +219,7 @@ In earlier versions, Consul on Kubernetes used client agents in its deployments.
 
 If you upgrade Consul from a version that uses client agents to a version the uses dataplanes, complete the following steps to upgrade your deployment safely and without downtime.
 
-1. Before you upgrade, edit your Helm chart to enable Consul client agents by setting `client.enabled` and `client.updateStrategy`:
+1. Before you upgrade, edit your Helm chart configuration to enable Consul client agents by setting `client.enabled` and `client.updateStrategy`:
 
   ```yaml filename="values.yaml"
   client:
@@ -227,6 +227,18 @@ If you upgrade Consul from a version that uses client agents to a version the us
       updateStrategy: |
         type: OnDelete
   ```
+
+1. Update the `connect-injector` to not log out on restart.
+We need to do it to make sure that the ACL tokens that existing services are using are still valid while we are migrating them to `consul-dataplane`.
+Note that this token will need to be cleaned up manually.
+
+    ```bash
+    kubectl config set-context --current --namespace=<consul installation namespace>
+    INJECTOR_DEPLOYMENT=$(kg deploy -l "component=connect-injector" -o=jsonpath='{.items[0].metadata.name}')
+    kubectl patch deploy $INJECTOR_DEPLOYMENT --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/lifecycle"}]'
+    ```
+
+This will trigger the deployment rollout. We need to wait for the rollout to complete before proceeding to next step.
 
 1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
 
