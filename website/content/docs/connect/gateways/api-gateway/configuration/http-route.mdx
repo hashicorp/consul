@@ -533,9 +533,10 @@ Specifies the HTTP method to match.
 
 Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
 
--> **Note:** Prefix matching uses simple string matching when comparing to the path. This differs slightly from the
-[Kubernetes Gateway API specification](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.PathMatchType)
-which declares that path prefix matching is done on a path element by element basis.
+If set to `prefix`, Consul uses simple string matching to identify incoming request prefixes. For example, if the route is configured to match incoming requests to services prefixed with `/dev`, then the gateway would match requests to `/dev-` and `/deviate` and route to the upstream.  
+
+This deviates from the
+[Kubernetes Gateway API specification](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.PathMatchType), which matches on full path elements. In the previous example, _only_ requests to `/dev` or `/dev/` would match. 
 
 #### Values
 
