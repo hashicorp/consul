@@ -134,7 +134,7 @@ func isBound(conditions []api.Condition) bool {
 
 func conditionStatusIsValue(typeName string, statusValue string, conditions []api.Condition) bool {
 	for _, c := range conditions {
-		if c.Type == typeName && c.Status == statusValue {
+		if c.Type == typeName && string(c.Status) == statusValue {
 			return true
 		}
 	}
