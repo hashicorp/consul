@@ -533,6 +533,10 @@ Specifies the HTTP method to match.
 
 Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
 
+-> **Note:** Prefix matching uses simple string matching when comparing to the path. This differs slightly from the
+[Kubernetes Gateway API specification](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.PathMatchType)
+which declares that path prefix matching is done on a path element by element basis.
+
 #### Values
 
 - Default: none
