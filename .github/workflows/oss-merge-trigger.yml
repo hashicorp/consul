@@ -8,7 +8,7 @@ on:
       - closed
     branches:
       - main
-      - 'release/*.*.x'
+      - release/**
 
 jobs:
   trigger-oss-merge:
