@@ -556,17 +556,17 @@ function suite_setup {
   # Cleanup from any previous unclean runs.
   suite_teardown
 
-  docker.exe network create -d "nat" envoy-tests &>/dev/null
+  docker.exe network create -d "nat" envoy-tests
 
   # Start the volume container
   #
   # This is a dummy container that we use to create volume and keep it
   # accessible while other containers are down.
-  docker.exe volume create envoy_workdir &>/dev/null
+  docker.exe volume create envoy_workdir
   docker.exe run -d --name envoy_workdir_1 \
       $WORKDIR_SNIPPET \
       --net=none \
-      "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause" &>/dev/null
+      "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause"
 
   # pre-build the consul+envoy container
   echo "Rebuilding 'windows/consul:local' image with envoy $ENVOY_VERSION..."
