@@ -1,3 +1,32 @@
+## 1.15.4 (June 26, 2023)
+FEATURES:
+
+* cli: `consul operator raft list-peers` command shows the number of commits each follower is trailing the leader by to aid in troubleshooting. [[GH-17582](https://github.com/hashicorp/consul/issues/17582)]
+* server: **(Enterprise Only)** allow automatic license utilization reporting. [[GH-5102](https://github.com/hashicorp/consul/issues/5102)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy versions to 1.22.11, 1.23.9, 1.24.7, 1.25.6 [[GH-17545](https://github.com/hashicorp/consul/issues/17545)]
+* debug: change default setting of consul debug command. now default duration is 5ms and default log level is 'TRACE' [[GH-17596](https://github.com/hashicorp/consul/issues/17596)]
+* fix metric names in /docs/agent/telemetry [[GH-17577](https://github.com/hashicorp/consul/issues/17577)]
+* gateway: Change status condition reason for invalid certificate on a listener from "Accepted" to "ResolvedRefs". [[GH-17115](https://github.com/hashicorp/consul/issues/17115)]
+* systemd: set service type to notify. [[GH-16845](https://github.com/hashicorp/consul/issues/16845)]
+
+BUG FIXES:
+
+* cache: fix a few minor goroutine leaks in leaf certs and the agent cache [[GH-17636](https://github.com/hashicorp/consul/issues/17636)]
+* docs: fix list of telemetry metrics [[GH-17593](https://github.com/hashicorp/consul/issues/17593)]
+* gateways: **(Enterprise only)** Fixed a bug in API gateways where gateway configuration objects in non-default partitions did not reconcile properly. [[GH-17581](https://github.com/hashicorp/consul/issues/17581)]
+* gateways: Fixed a bug in API gateways where binding a route that only targets a service imported from a peer results
+  in the programmed gateway having no routes. [[GH-17609](https://github.com/hashicorp/consul/issues/17609)]
+* gateways: Fixed a bug where API gateways were not being taken into account in determining xDS rate limits. [[GH-17631](https://github.com/hashicorp/consul/issues/17631)]
+* http: fixed API endpoint `PUT /acl/token/:AccessorID` (update token), no longer requires `AccessorID` in the request body. Web UI can now update tokens. [[GH-17739](https://github.com/hashicorp/consul/issues/17739)]
+* namespaces: **(Enterprise only)** fixes a bug where agent health checks stop syncing for all services on a node if the namespace of any service has been removed from the server.
+* namespaces: **(Enterprise only)** fixes a bug where namespaces are stuck in a deferred deletion state indefinitely under some conditions.
+  Also fixes the Consul query metadata present in the HTTP headers of the namespace read and list endpoints.
+* peering: Fix a bug that caused server agents to continue cleaning up peering resources even after loss of leadership. [[GH-17483](https://github.com/hashicorp/consul/issues/17483)]
+* xds: Fixed a bug where modifying ACLs on a token being actively used for an xDS connection caused all xDS updates to fail. [[GH-17566](https://github.com/hashicorp/consul/issues/17566)]
+
 ## 1.15.3 (June 1, 2023)
 
 BREAKING CHANGES:
