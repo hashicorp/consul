@@ -247,7 +247,7 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 			SectionName:    bound.Name,
 			EnterpriseMeta: meta.BoundGateway.EnterpriseMeta,
 		}
-		updater.SetCondition(conditions.validCertificate(listenerRef))
+		updater.SetCondition(validCertificate(listenerRef))
 		return nil
 	})
 
@@ -856,29 +856,30 @@ func gatewayAccepted() structs.Condition {
 	)
 }
 
+// validCertificate returns a condition used when a gateway references a
+// certificate that does exist. It takes a ref used to scope the condition
+// to a given APIGateway listener.
+func validCertificate(ref structs.ResourceReference) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionResolvedRefs,
+		api.ConditionStatusTrue,
+		api.GatewayReasonResolvedRefs,
+		"resolved refs",
+		ref,
+	)
+}
+
 // invalidCertificate returns a condition used when a gateway references a
 // certificate that does not exist. It takes a ref used to scope the condition
 // to a given APIGateway listener.
-func (g *gatewayConditionGenerator) invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
-	return structs.Condition{
-		Type:               "ResolvedRefs",
-		Status:             "False",
-		Reason:             "InvalidCertificate",
-		Message:            err.Error(),
-		Resource:           pointerTo(ref),
-		LastTransitionTime: g.now,
-	}
-}
-
-func (g *gatewayConditionGenerator) validCertificate(ref structs.ResourceReference) structs.Condition {
-	return structs.Condition{
-		Type:               "ResolvedRefs",
-		Status:             "True",
-		Reason:             "ResolvedRefs",
-		Message:            "resolved refs",
-		Resource:           pointerTo(ref),
-		LastTransitionTime: g.now,
-	}
+func invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionResolvedRefs,
+		api.ConditionStatusFalse,
+		api.GatewayListenerReasonInvalidCertificateRef,
+		err.Error(),
+		ref,
+	)
 }
 
 // invalidCertificates is used to set the overall condition of the APIGateway
