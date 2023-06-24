@@ -68,9 +68,17 @@ type TypeRegistry struct {
 }
 
 func NewRegistry() Registry {
-	return &TypeRegistry{
-		registrations: make(map[string]Registration),
-	}
+	registry := &TypeRegistry{registrations: make(map[string]Registration)}
+	// Tombstone is an implicitly registered type since it is used to implement
+	// the cascading deletion of resources. ACLs end up being defaulted to
+	// operator:<read,write>. It is useful to note that tombstone creation
+	// does not get routed through the resource service and bypasses ACLs
+	// as part of the Delete endpoint.
+	registry.Register(Registration{
+		Type:  TypeV1Tombstone,
+		Proto: &pbresource.Tombstone{},
+	})
+	return registry
 }
 
 func (r *TypeRegistry) Register(registration Registration) {

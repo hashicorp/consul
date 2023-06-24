@@ -7,8 +7,8 @@ description: >-
 
 # Service Mesh Certificate Authority Overview
 
-Certificate management in Connect is done centrally through the Consul
-servers using the configured CA (Certificate Authority) provider. A CA provider
+Service mesh certificate management is done centrally through the Consul
+servers using the configured service mesh CA (Certificate Authority) provider. A CA provider
 manages root and intermediate certificates and performs certificate signing
 operations. The Consul leader orchestrates CA provider operations as necessary,
 such as when a service needs a new certificate or during CA rotation events.
@@ -21,7 +21,7 @@ support for using
 [Vault as a CA](/consul/docs/connect/ca/vault). With Vault, the root certificate
 and private key material remain with the Vault cluster.
 
-### CA and Certificate relationship
+## CA and Certificate relationship
 
 This diagram shows the relationship between the CA certificates in a Consul primary datacenter and a
 secondary Consul datacenter.
@@ -34,15 +34,28 @@ services.
 - the Leaf Cert Client Agent is created by auto-encrypt and auto-config. It is used by
 client agents for HTTP API TLS, and for mTLS for RPC requests to servers.
 
-Any secondary datacenters receive an intermediate certificate, signed by the Primary Root
-CA, which is used as the CA certificate to sign leaf certificates in the secondary
-datacenter.
+Any secondary datacenters use their CA provider to generate an intermediate certificate
+signing request (CSR) to be signed by the primary root CA. They receive an intermediate
+CA certificate, which is used to sign leaf certificates in the secondary datacenter.
+
+You can use different providers across primary and secondary datacenters.
+For example, an operator may use a Vault CA provider for extra security in the primary
+datacenter but choose to use the built-in CA provider in the secondary datacenter, which
+may not have a reachable Vault cluster. The following table compares the built-in and Vault providers.
+
+## CA Provider Comparison
+
+|            | Consul built-in                    | Vault                                                                             |
+|------------|------------------------------------|-----------------------------------------------------------------------------------|
+| Security   | CA private keys are stored on disk | CA private keys are stored in Vault and are never exposed to Consul server agents |
+| Resiliency | No dependency on external systems. If Consul is available, it can sign certificates | Dependent on Vault availability  |
+| Latency    | Consul signs certificates locally  | A network call to Vault is required to sign certificates                          |
 
 ## CA Bootstrapping
 
 CA initialization happens automatically when a new Consul leader is elected
 as long as
-[Connect is enabled](/consul/docs/connect/configuration#agent-configuration),
+[service mesh is enabled](/consul/docs/connect/configuration#agent-configuration),
 and the CA system has not already been initialized. This initialization process
 will generate the initial root certificates and setup the internal Consul server
 state.
@@ -55,7 +68,7 @@ If a CA is already initialized, any changes to the CA configuration in the
 agent configuration file (including removing the configuration completely)
 will have no effect.
 
-If no specific provider is configured when Connect is enabled, the built-in
+If no specific provider is configured when service mesh is enabled, the built-in
 Consul CA provider will be used and a private key and root certificate will
 be generated automatically.
 
@@ -133,7 +146,7 @@ Cross-Signing](#forced-rotation-without-cross-signing).
 This also automatically occurs when a completely different CA provider is
 configured (since this changes the root key). Therefore, this automatic rotation
 process can also be used to cleanly transition between CA providers. For example,
-updating Connect to use Vault instead of the built-in CA.
+updating the service mesh to use Vault instead of the built-in CA.
 
 During rotation, an intermediate CA certificate is requested from the new root,
 which is then cross-signed by the old root. This cross-signed certificate is

@@ -28,6 +28,8 @@ $ consul-k8s <COMMAND> <OPTIONS>
 
 You can use the following commands with `consul-k8s`.
 
+  - [`config`](#config): Interact with helm configuration.
+      - [`config read`](#config-read): Read helm configuration of a Consul installation.
   - [`install`](#install): Install Consul on Kubernetes.
   - [`proxy`](#proxy): Inspect Envoy proxies managed by Consul.
       - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
@@ -38,6 +40,51 @@ You can use the following commands with `consul-k8s`.
   - [`uninstall`](#uninstall): Uninstall Consul deployment.
   - [`upgrade`](#upgrade): Upgrade Consul on Kubernetes from an existing installation.
   - [`version`](#version): Print the version of the Consul on Kubernetes CLI.
+
+### `config`
+
+The `config` command exposes the `read` subcommand that allows to read the helm configuration of a Consul installation.
+
+- [`config read`](#config-read): Read helm configuration of a Consul installation.
+
+### `config read`
+
+```shell-session
+$ consul-k8s config read <OPTIONS>
+```
+
+| Flag                                 | Description                                           | Default                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| <nobr>`-all-namespaces`, `-A`</nobr> | `Boolean` List pods in all Kubernetes namespaces.     | `false`                                                                                                                |
+| <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+
+Refer to the [Global Options](#global-options) for additional options that you can use
+when installing Consul on Kubernetes.
+
+#### Example Commands
+
+The following example command reads the Helm configuration in the `myNS` namespace.
+
+```shell-session
+$ consul-k8s config read -namespace=myNS
+```
+
+```
+global:
+  cloud:
+    clientId:
+      secretKey: client-id
+      secretName: consul-hcp-client-id
+    clientSecret:
+      secretKey: client-secret
+      secretName: consul-hcp-client-secret
+    enabled: true
+    resourceId:
+      secretKey: resource-id
+      secretName: consul-hcp-resource-id
+  image: hashicorp/consul:1.14.7
+  name: consul
+```
 
 ### `install`
 
@@ -794,7 +841,6 @@ $ consul-k8s troubleshoot upstreams -pod <pod> <OPTIONS>
 | Flag                                 | Description                                           | Default                                                                                                                |
 | ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
-| <nobr>`-envoy-admin-endpoint`</nobr> | `String` Envoy sidecar address and port               | `127.0.0.1:19000`                                                                                                      |
 
 #### Example Commands
 
@@ -839,7 +885,6 @@ $ consul-k8s troubleshoot proxy -pod <pod> -upstream-envoy-id <envoy-id> <OPTION
 | Flag                                 | Description                                           | Default                                                                                                                |
 | ------------------------------------ | ----------------------------------------------------------| ---------------------------------------------------------------------------------------------------------------------- |
 | <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in.     | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
-| <nobr>`-envoy-admin-endpoint`</nobr> | `String` Envoy sidecar address and port                   | `127.0.0.1:19000`                                                                                                               |
 | <nobr>`-upstream-ip`</nobr>          | `String` The IP address of the upstream transparent proxy |                                                                                                                |
 | <nobr>`-upstream-envoy-id`</nobr>    | `String` The Envoy identifier of the upstream             |                                                                                                                |
 

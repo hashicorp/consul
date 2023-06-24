@@ -78,8 +78,8 @@ type CatalogRegistration struct {
 	Check           *AgentCheck
 	Checks          HealthChecks
 	SkipNodeUpdate  bool
-	Partition       string `json:",omitempty"`
-	Locality        *Locality
+	Partition       string    `json:",omitempty"`
+	Locality        *Locality `json:",omitempty"`
 }
 
 type CatalogDeregistration struct {

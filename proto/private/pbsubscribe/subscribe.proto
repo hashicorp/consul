@@ -103,6 +103,9 @@ enum Topic {
 
   // SamenessGroup topic contains events for changes to Sameness Groups
   SamenessGroup = 15;
+
+  // JWTProvider topic contains events for changes to jwt-provider
+  JWTProvider = 16;
 }
 
 message NamedSubject {

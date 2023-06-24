@@ -27,9 +27,9 @@ func (_m *MockRequestLimitsHandler) Allow(op Operation) error {
 	return r0
 }
 
-// Register provides a mock function with given fields: leaderStatusProvider
-func (_m *MockRequestLimitsHandler) Register(leaderStatusProvider LeaderStatusProvider) {
-	_m.Called(leaderStatusProvider)
+// Register provides a mock function with given fields: serversStatusProvider
+func (_m *MockRequestLimitsHandler) Register(serversStatusProvider ServersStatusProvider) {
+	_m.Called(serversStatusProvider)
 }
 
 // Run provides a mock function with given fields: ctx

@@ -39,10 +39,16 @@ const (
 )
 
 const (
-	BuiltinAWSLambdaExtension      string = "builtin/aws/lambda"
-	BuiltinLuaExtension            string = "builtin/lua"
-	BuiltinLocalRatelimitExtension string = "builtin/http/localratelimit"
-	BuiltinWasmExtension           string = "builtin/wasm"
+	BuiltinAWSLambdaExtension        string = "builtin/aws/lambda"
+	BuiltinExtAuthzExtension         string = "builtin/ext-authz"
+	BuiltinLuaExtension              string = "builtin/lua"
+	BuiltinLocalRatelimitExtension   string = "builtin/http/localratelimit"
+	BuiltinPropertyOverrideExtension string = "builtin/property-override"
+	BuiltinWasmExtension             string = "builtin/wasm"
+	// BuiltinValidateExtension should not be exposed directly or accepted as a valid configured
+	// extension type, as it is only used indirectly via troubleshooting tools. It is included here
+	// for common reference alongside other builtin extensions.
+	BuiltinValidateExtension string = "builtin/proxy/validate"
 )
 
 type ConfigEntry interface {
@@ -138,9 +144,11 @@ type ExposeConfig struct {
 
 // EnvoyExtension has configuration for an extension that patches Envoy resources.
 type EnvoyExtension struct {
-	Name      string
-	Required  bool
-	Arguments map[string]interface{} `bexpr:"-"`
+	Name          string
+	Required      bool
+	Arguments     map[string]interface{} `bexpr:"-"`
+	ConsulVersion string
+	EnvoyVersion  string
 }
 
 type ExposePath struct {
@@ -277,6 +285,15 @@ type PassiveHealthCheck struct {
 	// when an outlier status is detected through consecutive 5xx.
 	// This setting can be used to disable ejection or to ramp it up slowly.
 	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
+
+	// The maximum % of an upstream cluster that can be ejected due to outlier detection.
+	// Defaults to 10% but will eject at least one host regardless of the value.
+	MaxEjectionPercent *uint32 `json:",omitempty" alias:"max_ejection_percent"`
+
+	// The base time that a host is ejected for. The real time is equal to the base time
+	// multiplied by the number of times the host has been ejected and is capped by
+	// max_ejection_time (Default 300s). Defaults to 30000ms or 30s.
+	BaseEjectionTime *time.Duration `json:",omitempty" alias:"base_ejection_time"`
 }
 
 // UpstreamLimits describes the limits that are associated with a specific

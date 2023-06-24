@@ -10,7 +10,7 @@ This topic describes how to configure service defaults configuration entries. Th
 
 ## Configuration model
 
-The following outline shows how to format the service splitter configuration entry. Click on a property name to view details about the configuration.
+The following outline shows how to format the service defaults configuration entry. Click on a property name to view details about the configuration.
 
 <Tabs>
 <Tab heading="HCL and JSON" group="hcl">
@@ -58,6 +58,7 @@ The following outline shows how to format the service splitter configuration ent
 - [`TransparentProxy`](#transparentproxy): map | no default
   - [`OutboundListenerPort`](#transparentproxy): integer | `15001`
   - [`DialedDirectly`](#transparentproxy  ): boolean | `false`
+- [`MutualTLSMode`](#mutualtlsmode): string | `""`
 - [`EnvoyExtensions`](#envoyextensions): list | no default
   - [`Name`](#envoyextensions): string | `""`
   - [`Required`](#envoyextensions): string | `""`
@@ -126,6 +127,7 @@ The following outline shows how to format the service splitter configuration ent
   - [`transparentProxy`](#transparentproxy): map | no default
     - [`outboundListenerPort`](#transparentproxy): integer | `15001`
     - [`dialedDirectly`](#transparentproxy): boolean | `false`
+  - [`mutualTLSMode`](#mutualtlsmode): string | `""`
   - [`envoyExtensions`](#envoyextensions): list | no default
     - [`name`](#envoyextensions): string | `""`
     - [`required`](#envoyextensions): string | `""`
@@ -152,7 +154,7 @@ The following outline shows how to format the service splitter configuration ent
 
 ## Complete configuration
 
-When every field is defined, a service splitter configuration entry has the following form: 
+When every field is defined, a service-defaults configuration entry has the following form:
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -213,6 +215,7 @@ TransparentProxy = {
   OutboundListenerPort = 15002
   DialedDirectly       = true
 }
+MutualTLSMode = "strict"
 Destination = {
   Addresses = [
     "First IP address",
@@ -288,6 +291,7 @@ spec:
   transparentProxy:
     outboundListenerPort: 15001
     dialedDirectly: false
+  mutualTLSMode: strict
   destination:
     addresses:
     - <First hostname or IP address>
@@ -370,6 +374,7 @@ spec:
       "outboundListenerPort": 15001,
       "dialedDirectly": false
     },
+    "mutualTLSMode": "strict",
     "destination": {
       "addresses": [
         "<First hostname or IP address>",
@@ -570,7 +575,7 @@ We recommend configuring the upstream timeout in the [`connection_timeout`](/con
 
 ### `UpstreamConfig.Overrides[].MeshGateway`
 
-Map that contains the default mesh gateway `mode` field for the upstream. Refer to [Connect Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration) in the mesh gateway documentation for additional information. 
+Map that contains the default mesh gateway `mode` field for the upstream. Refer to [Service Mesh Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration) in the mesh gateway documentation for additional information. 
 
 #### Values
 
@@ -651,7 +656,7 @@ For non-Kubernetes environments, we recommend configuring the upstream timeout i
 
 ### `UpstreamConfig.Defaults.MeshGateway`
 
-Specifies the default mesh gateway `mode` field for all upstreams. Refer to [Connect Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration) in the mesh gateway documentation for additional information. 
+Specifies the default mesh gateway `mode` field for all upstreams. Refer to [Service Mesh Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration) in the mesh gateway documentation for additional information. 
 
 You can specify the following string values for the `mode` field:
 
@@ -696,6 +701,19 @@ You can configure the following parameters in the `TransparentProxy` block:
 | ---   | ---         | ---       | ---     |
 | `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
 | `DialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
+
+### `MutualTLSMode`
+
+Controls whether mutual TLS is required for incoming connections to this service. This setting is
+only supported for services with transparent proxy enabled. We recommend only using `permissive`
+mode if necessary while onboarding services to the service mesh.
+
+You can specify the following string values for the `MutualTLSMode` field:
+
+- `""`: When this field is empty, the value is inherited from the `proxy-defaults` config entry.
+- `strict`: The sidecar proxy requires mutual TLS for incoming traffic.
+- `permissive`: The sidecar proxy accepts mutual TLS traffic on the sidecar proxy service port,
+  and accepts any traffic on the destination service's port.
 
 ### `EnvoyExtensions`
 
@@ -743,7 +761,7 @@ Specifies the timeout for HTTP requests to the local application instance. Appli
 
 ### `MeshGateway`
 
-Specifies the default mesh gateway `mode` field for the service. Refer to [Connect Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration) in the mesh gateway documentation for additional information. 
+Specifies the default mesh gateway `mode` field for the service. Refer to [Service Mesh Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration) in the mesh gateway documentation for additional information. 
 
 You can specify the following string values for the `mode` field:
 
@@ -1030,7 +1048,7 @@ We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/
 
 ### `spec.upstreamConfig.defaults.meshGateway.mode`
 
-Specifies the default mesh gateway `mode` field for all upstreams. Refer to [Connect Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration) in the mesh gateway documentation for additional information. 
+Specifies the default mesh gateway `mode` field for all upstreams. Refer to [Service Mesh Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration) in the mesh gateway documentation for additional information. 
 
 #### Values
 
@@ -1089,6 +1107,21 @@ You can configure the following parameters in the `TransparentProxy` block:
 | `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
 | `dialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
 
+### `spec.mutualTLSMode`
+
+Controls whether mutual TLS is required for incoming connections to this service. This setting is
+only supported for services with transparent proxy enabled. We recommend only using `permissive`
+mode if necessary while onboarding services to the service mesh.
+
+#### Values
+
+You can specify the following string values for the `MutualTLSMode` field:
+
+- `""`: When this field is empty, the value is inherited from the `proxy-defaults` config entry.
+- `strict`: The sidecar proxy requires mutual TLS for incoming traffic.
+- `permissive`: The sidecar proxy accepts mutual TLS traffic on the sidecar proxy service port,
+  and accepts any traffic on the destination service's port.
+
 ### `spec.envoyExtensions`
 
 List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
@@ -1144,7 +1177,7 @@ Specifies the timeout for HTTP requests to the local application instance. Appli
 - Data type: string
 
 ### `spec.meshGateway.mode` 
-Specifies the default mesh gateway `mode` field for the service. Refer to [Connect Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration) in the mesh gateway documentation for additional information. 
+Specifies the default mesh gateway `mode` field for the service. Refer to [Service Mesh Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration) in the mesh gateway documentation for additional information. 
 
 #### Values
 
@@ -1452,7 +1485,7 @@ represents a location outside the Consul cluster. Services can dial destinations
   {
     "Kind": "service-defaults",
     "Name": "test-destination",
-    "Protocol": "http",
+    "Protocol": "tcp",
     "Destination": {
       "Addresses": ["test.com","test.org"],
       "Port": 443
@@ -1532,7 +1565,7 @@ represents a location outside the Consul cluster. Services can dial destinations
       name: 'Protocol',
       type: `string: "tcp"`,
       description: `Sets the protocol of the service. This is used
-                      by Connect proxies for things like observability features and to unlock usage
+                      by service mesh proxies for things like observability features and to unlock usage
                       of the [\`service-splitter\`](/consul/docs/connect/config-entries/service-splitter) and
                       [\`service-router\`](/consul/docs/connect/config-entries/service-router) config entries
                       for a service. It also unlocks the ability to define L7 intentions via
@@ -1746,6 +1779,20 @@ represents a location outside the Consul cluster. Services can dial destinations
                        after a passive health check detects an outlier status through consecutive 5xx.`,
                   },
                 },
+                {
+                  name: 'MaxEjectionPercent',
+                  type: 'int: 10',
+                  description: `Measured in percent (%), the maximum percentage of hosts that can be ejected
+                    from a upstream cluster due to passive health check failures. If not specified, inherits 
+                    Envoy's default of 10% or at least one host.`,
+                },
+                {
+                  name: 'BaseEjectionTime',
+                  type: 'duration: 30s',
+                  description: `The base time that a host is ejected for. The real time is equal to the base
+                    time multiplied by the number of times the host has been ejected and is capped by 
+                    max_ejection_time (Default 300s). If not speficied, inherits Envoy's default value of 30s.`,
+                },
               ],
             },
           ],
@@ -1897,6 +1944,20 @@ represents a location outside the Consul cluster. Services can dial destinations
                        after a passive health check detects an outlier status through consecutive 5xx.`,
                   },
                 },
+                {
+                  name: 'MaxEjectionPercent',
+                  type: 'int: 10',
+                  description: `Measured in percent (%), the maximum percentage of hosts that can be ejected
+                    from a upstream cluster due to passive health check failures. If not specified, inherits 
+                    Envoy's default of 10% or at least one host.`,
+                },
+                {
+                  name: 'BaseEjectionTime',
+                  type: 'duration: 30s',
+                  description: `The base time that a host is ejected for. The real time is equal to the base
+                    time multiplied by the number of times the host has been ejected and is capped by 
+                    max_ejection_time (Default 300s). If not speficied, inherits Envoy's default value of 30s.`,
+                },
               ],
             },
           ],
@@ -1984,7 +2045,7 @@ represents a location outside the Consul cluster. Services can dial destinations
       type: 'string: ""',
       description: `This is an optional setting that allows for
                       the TLS [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) value to
-                      be changed to a non-connect value when federating with an external system.
+                      be changed to a non-mesh value when federating with an external system.
                       Added in v1.6.0.`,
     },
     {
@@ -1994,7 +2055,7 @@ represents a location outside the Consul cluster. Services can dial destinations
                       [expose path configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
                       for Envoy. Added in v1.6.2.<br><br>
                       Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
-                      non-Connect-enabled applications to contact an HTTP endpoint.
+                      non-mesh-enabled applications to contact an HTTP endpoint.
                       Some examples include: exposing a \`/metrics\` path for Prometheus or \`/healthz\` for kubelet liveness checks.`,
       children: [
         {

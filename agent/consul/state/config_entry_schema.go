@@ -17,6 +17,8 @@ const (
 	indexLink                 = "link"
 	indexIntentionLegacyID    = "intention-legacy-id"
 	indexSource               = "intention-source"
+	indexSourceSamenessGroup  = "intention-source-sameness-group"
+	indexSamenessGroupMember  = "sameness-group-member"
 	indexSamenessGroupDefault = "sameness-group-default-for-failover"
 )
 
@@ -53,6 +55,18 @@ func configTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer:      &ServiceIntentionSourceIndex{},
+			},
+			indexSourceSamenessGroup: {
+				Name:         indexSourceSamenessGroup,
+				AllowMissing: true,
+				Unique:       false,
+				Indexer:      &ServiceIntentionSourceSamenessGroupIndex{},
+			},
+			indexSamenessGroupMember: {
+				Name:         indexSamenessGroupMember,
+				AllowMissing: true,
+				Unique:       false,
+				Indexer:      &SamenessGroupMemberIndex{},
 			},
 			indexSamenessGroupDefault: {
 				Name:         indexSamenessGroupDefault,

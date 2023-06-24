@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,7 +21,9 @@ import (
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -860,6 +863,64 @@ func TestPeeringService_Read_ACLEnforcement(t *testing.T) {
 	}
 }
 
+func TestPeeringService_Read_Blocking(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, nil)
+
+	// insert peering directly to state store
+	lastIdx := uint64(10)
+	p := &pbpeering.Peering{
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_ESTABLISHING,
+		PeerCAPems:          nil,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
+	}
+	err := s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: p})
+	require.NoError(t, err)
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	// Setup blocking query
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	options := structs.QueryOptions{
+		MinQueryIndex: lastIdx,
+		MaxQueryTime:  1 * time.Second,
+	}
+	ctx, err = external.ContextWithQueryOptions(ctx, options)
+	require.NoError(t, err)
+
+	// Mutate the original peering
+	p = proto.Clone(p).(*pbpeering.Peering)
+	p.PeerServerAddresses = append(p.PeerServerAddresses, "addr2")
+
+	// Async change to trigger update
+	marker := time.Now()
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		lastIdx++
+		require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: p}))
+	}()
+
+	var header metadata.MD
+	resp, err := client.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "foo"}, gogrpc.Header(&header))
+	require.NoError(t, err)
+
+	// The query should return after the async change, but before the timeout
+	require.True(t, time.Since(marker) >= 100*time.Millisecond)
+	require.True(t, time.Since(marker) < 1*time.Second)
+
+	// Verify query results
+	meta, err := external.QueryMetaFromGRPCMeta(header)
+	require.NoError(t, err)
+	require.Equal(t, lastIdx, meta.Index)
+
+	prototest.AssertDeepEqual(t, p, resp.Peering)
+}
+
 func TestPeeringService_Delete(t *testing.T) {
 	tt := map[string]pbpeering.PeeringState{
 		"active peering":     pbpeering.PeeringState_ACTIVE,
@@ -992,6 +1053,7 @@ func TestPeeringService_List(t *testing.T) {
 	// Insert peerings directly to state store.
 	// Note that the state store holds reference to the underlying
 	// variables; do not modify them after writing.
+	lastIdx := uint64(10)
 	foo := &pbpeering.Peering{
 		ID:                  testUUID(t),
 		Name:                "foo",
@@ -1000,7 +1062,9 @@ func TestPeeringService_List(t *testing.T) {
 		PeerServerName:      "fooservername",
 		PeerServerAddresses: []string{"addr1"},
 	}
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: foo}))
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: foo}))
+
+	lastIdx++
 	bar := &pbpeering.Peering{
 		ID:                  testUUID(t),
 		Name:                "bar",
@@ -1009,21 +1073,78 @@ func TestPeeringService_List(t *testing.T) {
 		PeerServerName:      "barservername",
 		PeerServerAddresses: []string{"addr1"},
 	}
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, &pbpeering.PeeringWriteRequest{Peering: bar}))
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: bar}))
 
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	t.Cleanup(cancel)
+	t.Run("non-blocking query", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
 
-	resp, err := client.PeeringList(ctx, &pbpeering.PeeringListRequest{})
-	require.NoError(t, err)
+		var header metadata.MD
+		resp, err := client.PeeringList(ctx, &pbpeering.PeeringListRequest{}, gogrpc.Header(&header))
+		require.NoError(t, err)
 
-	expect := &pbpeering.PeeringListResponse{
-		Peerings: []*pbpeering.Peering{bar, foo},
-		Index:    15,
-	}
-	prototest.AssertDeepEqual(t, expect, resp)
+		meta, err := external.QueryMetaFromGRPCMeta(header)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, meta.Index)
+
+		expect := &pbpeering.PeeringListResponse{
+			Peerings:       []*pbpeering.Peering{bar, foo},
+			OBSOLETE_Index: lastIdx,
+		}
+		prototest.AssertDeepEqual(t, expect, resp)
+	})
+
+	t.Run("blocking query", func(t *testing.T) {
+		// Setup blocking query
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		marker := time.Now()
+		options := structs.QueryOptions{
+			MinQueryIndex: lastIdx,
+			MaxQueryTime:  1 * time.Second,
+		}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+
+		// Async change to trigger update
+		baz := &pbpeering.Peering{
+			ID:                  testUUID(t),
+			Name:                "baz",
+			State:               pbpeering.PeeringState_ACTIVE,
+			PeerCAPems:          nil,
+			PeerServerName:      "bazservername",
+			PeerServerAddresses: []string{"addr1"},
+		}
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+
+			lastIdx++
+			require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: baz}))
+		}()
+
+		// Make the blocking query
+		var header metadata.MD
+		resp, err := client.PeeringList(ctx, &pbpeering.PeeringListRequest{}, gogrpc.Header(&header))
+		require.NoError(t, err)
+
+		// The query should return after the async change, but before the timeout
+		require.True(t, time.Since(marker) >= 100*time.Millisecond)
+		require.True(t, time.Since(marker) < 1*time.Second)
+
+		// Verify query results
+		meta, err := external.QueryMetaFromGRPCMeta(header)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, meta.Index)
+
+		expect := &pbpeering.PeeringListResponse{
+			Peerings:       []*pbpeering.Peering{bar, baz, foo},
+			OBSOLETE_Index: lastIdx,
+		}
+		prototest.AssertDeepEqual(t, expect, resp)
+	})
 }
 
 func TestPeeringService_List_ACLEnforcement(t *testing.T) {
@@ -1086,8 +1207,8 @@ func TestPeeringService_List_ACLEnforcement(t *testing.T) {
 			name:  "read token grants permission",
 			token: testTokenPeeringReadSecret,
 			expect: &pbpeering.PeeringListResponse{
-				Peerings: []*pbpeering.Peering{bar, foo},
-				Index:    15,
+				Peerings:       []*pbpeering.Peering{bar, foo},
+				OBSOLETE_Index: 15,
 			},
 		},
 	}
@@ -1114,16 +1235,65 @@ func TestPeeringService_TrustBundleRead(t *testing.T) {
 	lastIdx++
 	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, bundle))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	t.Run("non-blocking query", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
 
-	resp, err := client.TrustBundleRead(ctx, &pbpeering.TrustBundleReadRequest{
-		Name: "my-peering",
+		resp, err := client.TrustBundleRead(ctx, &pbpeering.TrustBundleReadRequest{
+			Name: "my-peering",
+		})
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, resp.OBSOLETE_Index)
+		require.NotNil(t, resp.Bundle)
+		prototest.AssertDeepEqual(t, bundle, resp.Bundle)
 	})
-	require.NoError(t, err)
-	require.Equal(t, lastIdx, resp.Index)
-	require.NotNil(t, resp.Bundle)
-	prototest.AssertDeepEqual(t, bundle, resp.Bundle)
+
+	t.Run("blocking query", func(t *testing.T) {
+		// Set up the blocking query
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		marker := time.Now()
+		options := structs.QueryOptions{
+			MinQueryIndex: lastIdx,
+			MaxQueryTime:  1 * time.Second,
+		}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+
+		updatedBundle := &pbpeering.PeeringTrustBundle{
+			TrustDomain: "peer1.com",
+			PeerName:    "my-peering",
+			RootPEMs:    []string{"peer1-root-1", "peer1-root-2"}, // Adding a CA here
+		}
+
+		// Async change to trigger update
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			lastIdx++
+			require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, updatedBundle))
+		}()
+
+		// Make the blocking query
+		var header metadata.MD
+		resp, err := client.TrustBundleRead(ctx, &pbpeering.TrustBundleReadRequest{
+			Name: "my-peering",
+		}, gogrpc.Header(&header))
+		require.NoError(t, err)
+
+		// The query should return after the async change, but before the timeout
+		require.True(t, time.Since(marker) >= 100*time.Millisecond)
+		require.True(t, time.Since(marker) < 1*time.Second)
+
+		// Verify query results
+		meta, err := external.QueryMetaFromGRPCMeta(header)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, meta.Index)
+
+		require.Equal(t, lastIdx, resp.OBSOLETE_Index)
+		require.NotNil(t, resp.Bundle)
+		prototest.AssertDeepEqual(t, updatedBundle, resp.Bundle)
+	})
 }
 
 func TestPeeringService_TrustBundleRead_ACLEnforcement(t *testing.T) {
@@ -1289,14 +1459,64 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
-	req := pbpeering.TrustBundleListByServiceRequest{
-		ServiceName: "api",
-	}
-	resp, err := client.TrustBundleListByService(context.Background(), &req)
-	require.NoError(t, err)
-	require.Len(t, resp.Bundles, 2)
-	require.Equal(t, []string{"bar-root-1"}, resp.Bundles[0].RootPEMs)
-	require.Equal(t, []string{"foo-root-1"}, resp.Bundles[1].RootPEMs)
+	t.Run("non-blocking query", func(t *testing.T) {
+		req := pbpeering.TrustBundleListByServiceRequest{
+			ServiceName: "api",
+		}
+		resp, err := client.TrustBundleListByService(context.Background(), &req)
+		require.NoError(t, err)
+		require.Len(t, resp.Bundles, 2)
+		require.Equal(t, []string{"bar-root-1"}, resp.Bundles[0].RootPEMs)
+		require.Equal(t, []string{"foo-root-1"}, resp.Bundles[1].RootPEMs)
+		require.Equal(t, uint64(17), resp.OBSOLETE_Index)
+	})
+
+	t.Run("blocking query", func(t *testing.T) {
+		// Setup blocking query
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		options := structs.QueryOptions{
+			MinQueryIndex: lastIdx,
+			MaxQueryTime:  1 * time.Second,
+		}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+
+		// Async change to trigger update
+		marker := time.Now()
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			lastIdx++
+			require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
+				TrustDomain: "bar.com",
+				PeerName:    "bar",
+				RootPEMs:    []string{"bar-root-1", "bar-root-2"}, // Appending new cert
+			}))
+		}()
+
+		// Make the blocking query
+		req := pbpeering.TrustBundleListByServiceRequest{
+			ServiceName: "api",
+		}
+		var header metadata.MD
+		resp, err := client.TrustBundleListByService(ctx, &req, gogrpc.Header(&header))
+		require.NoError(t, err)
+
+		// The query should return after the async change, but before the timeout
+		require.True(t, time.Since(marker) >= 100*time.Millisecond)
+		require.True(t, time.Since(marker) < 1*time.Second)
+
+		// Verify query results
+		meta, err := external.QueryMetaFromGRPCMeta(header)
+		require.NoError(t, err)
+		require.Equal(t, uint64(18), meta.Index)
+
+		require.Len(t, resp.Bundles, 2)
+		require.Equal(t, []string{"bar-root-1", "bar-root-2"}, resp.Bundles[0].RootPEMs)
+		require.Equal(t, []string{"foo-root-1"}, resp.Bundles[1].RootPEMs)
+		require.Equal(t, uint64(18), resp.OBSOLETE_Index)
+	})
 }
 
 func TestPeeringService_validatePeer(t *testing.T) {
@@ -1669,6 +1889,17 @@ type testingServer struct {
 	PublicGRPCAddr string
 }
 
+func newConfig(t *testing.T, dc, agentType string) resolver.Config {
+	n := t.Name()
+	s := strings.Replace(n, "/", "", -1)
+	s = strings.Replace(s, "_", "", -1)
+	return resolver.Config{
+		Datacenter: dc,
+		AgentType:  agentType,
+		Authority:  strings.ToLower(s),
+	}
+}
+
 // TODO(peering): remove duplication between this and agent/consul tests
 func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 	t.Helper()
@@ -1683,7 +1914,7 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 	require.NoError(t, err, "failed to create tls configuration")
 
 	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), nil)
-	builder := resolver.NewServerResolverBuilder(resolver.Config{})
+	builder := resolver.NewServerResolverBuilder(newConfig(t, c.Datacenter, "client"))
 	resolver.Register(builder)
 
 	connPool := &pool.ConnPool{

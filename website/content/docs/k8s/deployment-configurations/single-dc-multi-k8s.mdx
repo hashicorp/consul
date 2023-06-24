@@ -15,7 +15,8 @@ This example uses two Kubernetes clusters, but this approach could be extended t
 
 ## Requirements
 
-* Consul-Helm version `v1.0.0` or higher
+* `consul-k8s` v1.0.x or higher, and Consul 1.14.x or higher 
+* Kubernetes clusters must be able to communicate over LAN on a flat network.
 * Either the Helm release name for each Kubernetes cluster must be unique, or `global.name` for each Kubernetes cluster must be unique to prevent collisions of ACL resources with the same prefix.
 
 ## Prepare Helm release name ahead of installs

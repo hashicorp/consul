@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 )
 
 type discoChainTargets struct {
@@ -26,6 +27,8 @@ type targetInfo struct {
 	// Region is the region from the failover target's Locality. nil means the
 	// target is in the local Consul cluster.
 	Region *string
+
+	PrioritizeByLocality *structs.DiscoveryPrioritizeByLocality
 }
 
 type discoChainTargetGroup struct {
@@ -86,7 +89,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 		var sni, rootPEMs string
 		var spiffeIDs []string
 		targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
-		ti := targetInfo{TargetID: tid}
+		ti := targetInfo{TargetID: tid, PrioritizeByLocality: target.PrioritizeByLocality}
 
 		configureTLS := true
 		if forMeshGateway {
@@ -149,7 +152,7 @@ func (ft discoChainTargets) sequential() ([]discoChainTargetGroup, error) {
 	var targetGroups []discoChainTargetGroup
 	for i, t := range ft.targets {
 		targetGroups = append(targetGroups, discoChainTargetGroup{
-			ClusterName: fmt.Sprintf("%s%d~%s", failoverClusterNamePrefix, i, ft.baseClusterName),
+			ClusterName: fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, i, ft.baseClusterName),
 			Targets:     []targetInfo{t},
 		})
 	}

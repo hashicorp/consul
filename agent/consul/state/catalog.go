@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -915,7 +915,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		if err != nil {
 			return err
 		}
-		if supported {
+		if supported && sn.Name != "" {
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
 			vip, err := assignServiceVirtualIP(tx, idx, psn)
 			if err != nil {
@@ -1090,7 +1090,14 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 	return result.String(), nil
 }
 
-func (s *Store) AssignManualVirtualIPs(idx uint64, psn structs.PeeredServiceName, ips []string) error {
+// AssignManualServiceVIPs attempts to associate a list of manual virtual IP addresses with a given service name.
+// Any IP addresses given will be removed from other services in the same partition. This is done to ensure
+// that a manual VIP can only exist once for a given partition.
+// This function returns:
+// - a bool indicating whether the given service exists.
+// - a list of service names that had ip addresses removed from them.
+// - an error indicating success or failure of the call.
+func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceName, ips []string) (bool, []structs.PeeredServiceName, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -1099,10 +1106,11 @@ func (s *Store) AssignManualVirtualIPs(idx uint64, psn structs.PeeredServiceName
 	for _, ip := range ips {
 		assignedIPs[ip] = struct{}{}
 	}
+	modifiedEntries := make(map[structs.PeeredServiceName]struct{})
 	for ip := range assignedIPs {
 		entry, err := tx.First(tableServiceVirtualIPs, indexManualVIPs, psn.ServiceName.PartitionOrDefault(), ip)
 		if err != nil {
-			return fmt.Errorf("failed service virtual IP lookup: %s", err)
+			return false, nil, fmt.Errorf("failed service virtual IP lookup: %s", err)
 		}
 
 		if entry == nil {
@@ -1126,17 +1134,18 @@ func (s *Store) AssignManualVirtualIPs(idx uint64, psn structs.PeeredServiceName
 		newEntry.ManualIPs = filteredIPs
 		newEntry.ModifyIndex = idx
 		if err := tx.Insert(tableServiceVirtualIPs, newEntry); err != nil {
-			return fmt.Errorf("failed inserting service virtual IP entry: %s", err)
+			return false, nil, fmt.Errorf("failed inserting service virtual IP entry: %s", err)
 		}
+		modifiedEntries[newEntry.Service] = struct{}{}
 	}
 
 	entry, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
-		return fmt.Errorf("failed service virtual IP lookup: %s", err)
+		return false, nil, fmt.Errorf("failed service virtual IP lookup: %s", err)
 	}
 
 	if entry == nil {
-		return nil
+		return false, nil, nil
 	}
 
 	newEntry := entry.(ServiceVirtualIP)
@@ -1144,13 +1153,16 @@ func (s *Store) AssignManualVirtualIPs(idx uint64, psn structs.PeeredServiceName
 	newEntry.ModifyIndex = idx
 
 	if err := tx.Insert(tableServiceVirtualIPs, newEntry); err != nil {
-		return fmt.Errorf("failed inserting service virtual IP entry: %s", err)
+		return false, nil, fmt.Errorf("failed inserting service virtual IP entry: %s", err)
 	}
 	if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {
-		return err
+		return false, nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return false, nil, err
 	}
 
-	return tx.Commit()
+	return true, maps.SliceOfKeys(modifiedEntries), nil
 }
 
 func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName string) error {
@@ -2098,7 +2110,13 @@ func freeServiceVirtualIP(
 
 	// Don't deregister the virtual IP if at least one resolver/router/splitter config entry still
 	// references this service.
-	configEntryVIPKinds := []string{structs.ServiceResolver, structs.ServiceRouter, structs.ServiceSplitter}
+	configEntryVIPKinds := []string{
+		structs.ServiceResolver,
+		structs.ServiceRouter,
+		structs.ServiceSplitter,
+		structs.ServiceDefaults,
+		structs.ServiceIntentions,
+	}
 	for _, kind := range configEntryVIPKinds {
 		_, entry, err := configEntryTxn(tx, nil, kind, psn.ServiceName.Name, &psn.ServiceName.EnterpriseMeta)
 		if err != nil {
@@ -3032,25 +3050,22 @@ func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, erro
 		return "", nil
 	}
 
-	result, err := addIPOffset(startingVirtualIP, vip.(ServiceVirtualIP).IP)
-	if err != nil {
-		return "", err
-	}
-	return result.String(), nil
+	return vip.(ServiceVirtualIP).IPWithOffset()
 }
 
 func (s *Store) ServiceVirtualIPs() (uint64, []ServiceVirtualIP, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return servicesVirtualIPsTxn(tx)
+	return servicesVirtualIPsTxn(tx, nil)
 }
 
-func servicesVirtualIPsTxn(tx ReadTxn) (uint64, []ServiceVirtualIP, error) {
+func servicesVirtualIPsTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, []ServiceVirtualIP, error) {
 	iter, err := tx.Get(tableServiceVirtualIPs, indexID)
 	if err != nil {
 		return 0, nil, err
 	}
+	ws.Add(iter.WatchCh())
 
 	var vips []ServiceVirtualIP
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
@@ -3067,6 +3082,10 @@ func (s *Store) ServiceManualVIPs(psn structs.PeeredServiceName) (*ServiceVirtua
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return serviceVIPsTxn(tx, psn)
+}
+
+func serviceVIPsTxn(tx ReadTxn, psn structs.PeeredServiceName) (*ServiceVirtualIP, error) {
 	vip, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return nil, fmt.Errorf("failed service virtual IP lookup: %s", err)
@@ -4698,14 +4717,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 
 		var mapping *upstreamDownstream
 		if existing, ok := obj.(*upstreamDownstream); ok {
-			rawCopy, err := copystructure.Copy(existing)
-			if err != nil {
-				return fmt.Errorf("failed to copy existing topology mapping: %v", err)
-			}
-			mapping, ok = rawCopy.(*upstreamDownstream)
-			if !ok {
-				return fmt.Errorf("unexpected topology type %T", rawCopy)
-			}
+			mapping := existing.DeepCopy()
 			mapping.Refs[uid] = struct{}{}
 			mapping.ModifyIndex = idx
 
@@ -4771,14 +4783,7 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 
 	// Do the updates in a separate loop so we don't trash the iterator.
 	for _, m := range mappings {
-		rawCopy, err := copystructure.Copy(m)
-		if err != nil {
-			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
-		}
-		copy, ok := rawCopy.(*upstreamDownstream)
-		if !ok {
-			return fmt.Errorf("unexpected topology type %T", rawCopy)
-		}
+		copy := m.DeepCopy()
 
 		// Bail early if there's no reference to the proxy ID we're deleting
 		if _, ok := copy.Refs[uid]; !ok {

@@ -51,8 +51,16 @@ type ServiceQuery struct {
 	// Service is the service to query.
 	Service string
 
+	// SamenessGroup specifies a sameness group to query. The first member of the Sameness Group will
+	// be targeted first on PQ execution and subsequent members will be targeted during failover scenarios.
+	// This field is mutually exclusive with Failover.
+	SamenessGroup string `json:",omitempty"`
+
 	// Namespace of the service to query
 	Namespace string `json:",omitempty"`
+
+	// Partition of the service to query
+	Partition string `json:",omitempty"`
 
 	// Near allows baking in the name of a node to automatically distance-
 	// sort from. The magic "_agent" value is supported, which sorts near
@@ -61,7 +69,7 @@ type ServiceQuery struct {
 
 	// Failover controls what we do if there are no healthy nodes in the
 	// local datacenter.
-	Failover QueryFailoverOptions
+	Failover QueryFailoverOptions `json:",omitempty"`
 
 	// IgnoreCheckIDs is an optional list of health check IDs to ignore when
 	// considering which nodes are healthy. It is useful as an emergency measure

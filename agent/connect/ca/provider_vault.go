@@ -101,7 +101,7 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 // Configure sets up the provider using the given configuration.
 // Configure supports being called multiple times to re-configure the provider.
 func (v *VaultProvider) Configure(cfg ProviderConfig) error {
-	config, err := ParseVaultCAConfig(cfg.RawConfig)
+	config, err := ParseVaultCAConfig(cfg.RawConfig, v.isPrimary)
 	if err != nil {
 		return err
 	}
@@ -192,11 +192,11 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 }
 
 func (v *VaultProvider) ValidateConfigUpdate(prevRaw, nextRaw map[string]interface{}) error {
-	prev, err := ParseVaultCAConfig(prevRaw)
+	prev, err := ParseVaultCAConfig(prevRaw, v.isPrimary)
 	if err != nil {
 		return fmt.Errorf("failed to parse existing CA config: %w", err)
 	}
-	next, err := ParseVaultCAConfig(nextRaw)
+	next, err := ParseVaultCAConfig(nextRaw, v.isPrimary)
 	if err != nil {
 		return fmt.Errorf("failed to parse new CA config: %w", err)
 	}
@@ -437,6 +437,9 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 		"no_store":         true,
 		"require_cn":       false,
 	})
+
+	// enable auto-tidy with tidy_expired_issuers
+	v.autotidyIssuers(v.config.IntermediatePKIPath)
 
 	return err
 }
@@ -797,7 +800,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 	v.Stop()
 
 	if !providerTypeChange {
-		newConfig, err := ParseVaultCAConfig(otherConfig)
+		newConfig, err := ParseVaultCAConfig(otherConfig, v.isPrimary)
 		if err != nil {
 			return err
 		}
@@ -864,7 +867,40 @@ func (v *VaultProvider) setNamespace(namespace string) func() {
 	}
 }
 
-func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
+// autotidyIssuers sets Vault's auto-tidy to remove expired issuers
+// Returns a boolean on success for testing (as there is no post-facto way of
+// checking if it is set). Logs at info level on failure to set and why,
+// returning the log message for test purposes as well.
+func (v *VaultProvider) autotidyIssuers(path string) (bool, string) {
+	s, err := v.client.Logical().Write(path+"/config/auto-tidy",
+		map[string]interface{}{
+			"enabled":              true,
+			"tidy_expired_issuers": true,
+		})
+	var errStr string
+	if err != nil {
+		errStr = err.Error()
+		switch {
+		case strings.Contains(errStr, "404"):
+			errStr = "vault versions < 1.12 don't support auto-tidy"
+		case strings.Contains(errStr, "400"):
+			errStr = "vault versions < 1.13 don't support the tidy_expired_issuers field"
+		case strings.Contains(errStr, "403"):
+			errStr = "permission denied on auto-tidy path in vault"
+		}
+		v.logger.Info("Unable to enable Vault's auto-tidy feature for expired issuers", "reason", errStr, "path", path)
+	}
+	// return values for tests
+	tidySet := false
+	if s != nil {
+		if tei, ok := s.Data["tidy_expired_issuers"]; ok {
+			tidySet, _ = tei.(bool)
+		}
+	}
+	return tidySet, errStr
+}
+
+func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.VaultCAProviderConfig, error) {
 	config := structs.VaultCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
 	}
@@ -895,10 +931,10 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 		return nil, fmt.Errorf("only one of Vault token or Vault auth method can be provided, but not both")
 	}
 
-	if config.RootPKIPath == "" {
+	if isPrimary && config.RootPKIPath == "" {
 		return nil, fmt.Errorf("must provide a valid path to a root PKI backend")
 	}
-	if !strings.HasSuffix(config.RootPKIPath, "/") {
+	if config.RootPKIPath != "" && !strings.HasSuffix(config.RootPKIPath, "/") {
 		config.RootPKIPath += "/"
 	}
 

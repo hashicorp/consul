@@ -53,6 +53,7 @@ func New(logger hclog.Logger, r *raft.Raft) (*Snapshot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create snapshot file: %v", err)
 	}
+	logger.Debug("creating temporary file of snapshot", "path", archive.Name())
 
 	// If anything goes wrong after this point, we will attempt to clean up
 	// the temp file. The happy path will disarm this.
@@ -112,7 +113,7 @@ func (s *Snapshot) Read(p []byte) (n int, err error) {
 }
 
 // Close closes the snapshot and removes any temporary storage associated with
-// it. You must arrange to call this whenever NewSnapshot() has been called
+// it. You must arrange to call this whenever New() has been called
 // successfully. This is safe to call on a nil snapshot.
 func (s *Snapshot) Close() error {
 	if s == nil {

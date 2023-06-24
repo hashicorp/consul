@@ -31,7 +31,7 @@ Mesh gateways enable the following scenarios:
 - **Service-to-service communication across WAN-federated datacenters**. Refer to [Enabling Service-to-service Traffic Across Datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) for additional information.
 - **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployments called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Across Admin Partitions](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions) for additional information.
 - **Bridge multiple datacenters using Cluster Peering**. Since Consul 1.14.0, mesh gateways can be used to route peering control-plane traffic between peered Consul Servers. See [Mesh Gateways for Peering Control Plane Traffic](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) for more information.
-- **Service-to-service communication across peered datacenters**. Refer to [Mesh Gateways between Peered Clusters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers) for more information.
+- **Service-to-service communication across peered datacenters**. Refer to [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
 
 -> **Mesh gateway tutorial**: Follow the [mesh gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways) to learn concepts associated with mesh gateways.
 
@@ -64,7 +64,7 @@ Services outside the mesh do not have sidecar proxies or are not [integrated nat
 These may be services running on legacy infrastructure or managed cloud services running on
 infrastructure you do not control.
 
-Terminating gateways effectively act as egress proxies that can represent one or more services. They terminate Connect
+Terminating gateways effectively act as egress proxies that can represent one or more services. They terminate service mesh
 mTLS connections, enforce Consul intentions, and forward requests to the appropriate destination.
 
 These gateways also simplify authorization from dynamic service addresses. Consul's intentions determine whether

@@ -2097,6 +2097,7 @@ func disableLegacyIntentions(s *Store) error {
 
 func testConfigStateStore(t *testing.T) *Store {
 	s := testStateStore(t)
+	s.SystemMetadataSet(5, &structs.SystemMetadataEntry{Key: structs.SystemMetadataVirtualIPsEnabled, Value: "true"})
 	disableLegacyIntentions(s)
 	return s
 }
@@ -2651,6 +2652,7 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 
 func TestStore_IntentionTopology_Watches(t *testing.T) {
 	s := testConfigStateStore(t)
+	s.SystemMetadataSet(10, &structs.SystemMetadataEntry{Key: structs.SystemMetadataVirtualIPsEnabled, Value: "true"})
 
 	var i uint64 = 1
 	require.NoError(t, s.EnsureNode(i, &structs.Node{
@@ -2687,7 +2689,8 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), index)
-	require.Empty(t, got)
+	// Because API is a virtual service, it is included in this output.
+	require.Equal(t, structs.ServiceList{structs.NewServiceName("api", nil)}, got)
 
 	// Watch should not fire after unrelated intention changes
 	require.NoError(t, s.EnsureConfigEntry(i, &structs.ServiceIntentionsConfigEntry{
@@ -2701,7 +2704,6 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 		},
 	}))
 	i++
-
 	// TODO(freddy) Why is this firing?
 	// require.False(t, watchFired(ws))
 
@@ -2709,7 +2711,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), index)
-	require.Empty(t, got)
+	require.Equal(t, structs.ServiceList{structs.NewServiceName("api", nil)}, got)
 
 	// Watch should fire after service list changes
 	require.NoError(t, s.EnsureService(i, "foo", &structs.NodeService{

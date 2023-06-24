@@ -178,7 +178,7 @@ func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 	return cfg, err
 }
 
-// Return an envoy.OutlierDetection populated by the values from structs.PassiveHealthChec.
+// Return an envoy.OutlierDetection populated by the values from structs.PassiveHealthCheck.
 // If all values are zero a default empty OutlierDetection will be returned to
 // enable outlier detection with default values.
 //   - If override is not nil, it will overwrite the values from p, e.g., ingress gateway defaults
@@ -197,12 +197,19 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 		}
 
 		if p.EnforcingConsecutive5xx != nil {
-			// NOTE: EnforcingConsecutive5xx must be great than 0 for ingress-gateway
+			// NOTE: EnforcingConsecutive5xx must be greater than 0 for ingress-gateway
 			if *p.EnforcingConsecutive5xx != 0 {
 				od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
 			} else if allowZero {
 				od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
 			}
+		}
+
+		if p.MaxEjectionPercent != nil {
+			od.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: *p.MaxEjectionPercent}
+		}
+		if p.BaseEjectionTime != nil {
+			od.BaseEjectionTime = durationpb.New(*p.BaseEjectionTime)
 		}
 	}
 
@@ -225,6 +232,13 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 		} else if allowZero {
 			od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutive5xx}
 		}
+	}
+
+	if override.MaxEjectionPercent != nil {
+		od.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: *override.MaxEjectionPercent}
+	}
+	if override.BaseEjectionTime != nil {
+		od.BaseEjectionTime = durationpb.New(*override.BaseEjectionTime)
 	}
 
 	return od

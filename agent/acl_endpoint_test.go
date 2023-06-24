@@ -907,6 +907,48 @@ func TestACL_HTTP(t *testing.T) {
 			tokenMap[token.AccessorID] = token
 		})
 
+		t.Run("Update without AccessorID in request body", func(t *testing.T) {
+			originalToken := tokenMap[idMap["token-cloned"]]
+
+			// Secret will be filled in
+			tokenInput := &structs.ACLToken{
+				Description: "Even Better description for this cloned token",
+				Policies: []structs.ACLTokenPolicyLink{
+					{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "bar",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID, jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+
+			require.Equal(t, originalToken.AccessorID, token.AccessorID)
+			require.Equal(t, originalToken.SecretID, token.SecretID)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.Equal(t, tokenInput.NodeIdentities, token.NodeIdentities)
+			require.True(t, token.CreateIndex > 0)
+			require.True(t, token.CreateIndex < token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, token.Hash, originalToken.Hash)
+
+			tokenMap[token.AccessorID] = token
+		})
+
 		t.Run("CRUD Missing Token Accessor ID", func(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/v1/acl/token/", nil)
 			req.Header.Add("X-Consul-Token", "root")
