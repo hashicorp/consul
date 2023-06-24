@@ -4,6 +4,7 @@
 
 function docker_exec {
   if ! docker.exe exec -i "$@"; then
+    echo "$@"
     echo "Failed to execute: docker exec -i $@" 1>&2
     return 1
   fi
