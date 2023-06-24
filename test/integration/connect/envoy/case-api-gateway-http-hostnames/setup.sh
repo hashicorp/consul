@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 function docker_exec {
-  if ! C:/"Program Files"/Docker/Docker/resources/bin/docker.exe exec -i "$@"; then
+  if ! docker.exe exec -i "$@"; then
     echo "Failed to execute: docker exec -i $@" 1>&2
     return 1
   fi
@@ -19,7 +19,7 @@ function upsert_config_entry {
   local DC="$1"
   local BODY="$2"
 
-  echo "$BODY" | docker_consul "$DC" config write -
+  echo "$BODY" | docker_consul "$DC" consul config write -
 }
 
 set -euo pipefail
