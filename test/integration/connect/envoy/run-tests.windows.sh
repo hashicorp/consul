@@ -557,12 +557,14 @@ function suite_setup {
   suite_teardown
 
   docker.exe network create -d "nat" envoy-tests
+  echo "init"
 
   # Start the volume container
   #
   # This is a dummy container that we use to create volume and keep it
   # accessible while other containers are down.
-  docker.exe volume create envoy_workdir
+  docker.exe volume create envoy_workdir \
+      --opt file_mode=0777,dir_mode=0777 \
   docker.exe run -d --name envoy_workdir_1 \
       $WORKDIR_SNIPPET \
       --net=none \
@@ -570,13 +572,16 @@ function suite_setup {
 
   # pre-build the consul+envoy container
   echo "Rebuilding 'windows/consul:local' image with envoy $ENVOY_VERSION..."
+  echo "batman"
   retry_default docker.exe build -t windows/consul:local \
       --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
       -f Dockerfile-consul-envoy-windows .
 
+  echo "superman"
 
   local CONSUL_VERSION=$(docker image inspect --format='{{.ContainerConfig.Labels.version}}' \
                         windows/consul:local)
+  echo "heman"
   echo "Running Tests with Consul=$CONSUL_VERSION - Envoy=$ENVOY_VERSION - XDS_TARGET=$XDS_TARGET"
 }
 
