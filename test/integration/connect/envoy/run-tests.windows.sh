@@ -564,7 +564,7 @@ function suite_setup {
   # This is a dummy container that we use to create volume and keep it
   # accessible while other containers are down.
   docker.exe volume create envoy_workdir \
-      --opt file_mode=0777,dir_mode=0777 \
+      --opt file_mode=0777,dir_mode=0777
   docker.exe run -d --name envoy_workdir_1 \
       $WORKDIR_SNIPPET \
       --net=none \
