@@ -41,7 +41,7 @@ function command_error {
 
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
 
-readonly WORKDIR_SNIPPET="-v envoy_workdir:C:\workdir"
+readonly WORKDIR_SNIPPET="-v envoy_workdir:C:\workdir:z"
 
 function network_snippet {
     local DC="$1"
@@ -566,6 +566,7 @@ function suite_setup {
   docker.exe volume create envoy_workdir
   docker.exe run -d --name envoy_workdir_1 \
       $WORKDIR_SNIPPET \
+      --user ContainerAdministrator \
       --net=none \
       "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause"
 
