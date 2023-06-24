@@ -609,6 +609,30 @@ function run_containers {
  done
 }
 
+function common_run_container_gateway {
+  local name="$1"
+  local DC="$2"
+
+  # Hot restart breaks since both envoys seem to interact with each other
+  # despite separate containers that don't share IPC namespace. Not quite
+  # sure how this happens but may be due to unix socket being in some shared
+  # location?
+  docker run -d --name $(container_name_prev) \
+    $WORKDIR_SNIPPET \
+    $(network_snippet $DC) \
+    $(aws_snippet) \
+    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
+    envoy \
+    -c /workdir/${DC}/envoy/${name}-bootstrap.json \
+    -l trace \
+    --disable-hot-restart \
+    --drain-time-s 1 >/dev/null
+}
+
+function run_container_api-gateway-primary {
+  common_run_container_gateway api-gateway primary
+}
+
 function run_container {
   docker_kill_rm "$1"
   "run_container_$1"
