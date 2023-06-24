@@ -4,8 +4,6 @@
 
 function docker_exec {
   if ! docker.exe exec -i "$@"; then
-    echo "antoman"
-    echo "$@"
     echo "Failed to execute: docker exec -i $@" 1>&2
     return 1
   fi
@@ -21,7 +19,7 @@ function upsert_config_entry {
   local DC="$1"
   local BODY="$2"
 
-  echo "$BODY" | docker_consul "$DC" config write -
+  echo "%BODY%" | docker_consul "$DC" config write -
 }
 
 set -euo pipefail
