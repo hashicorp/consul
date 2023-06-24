@@ -46,7 +46,7 @@ function command_error {
 
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
 
-readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
+readonly WORKDIR_SNIPPET='-v envoy_workdir:\workdir'
 
 function network_snippet {
     local DC="$1"
