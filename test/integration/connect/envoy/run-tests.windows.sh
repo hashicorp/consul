@@ -528,8 +528,6 @@ function run_tests {
     pre_service_setup alpha
   fi
 
-  exit
-
   echo "Starting services"
   start_services
 
