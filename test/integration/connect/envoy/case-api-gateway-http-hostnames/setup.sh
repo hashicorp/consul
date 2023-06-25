@@ -185,7 +185,15 @@ function docker_consul_exec {
   docker_exec envoy_consul-${DC}_1 "$@"
 }
 
+function wait_for_leader {
+  echo "batman"
+  get_consul_hostname primary
+  retry_default docker_consul_exec "$1" bash -c "[[ $(curl --fail -sS http://${CONSUL_HOSTNAME}:8500/v1/status/leader) ]]"
+}
 
+function wait_for_leader {
+  retry_default docker_consul_exec "$1" sh -c '[[ $(curl --fail -sS http://127.0.0.1:8500/v1/status/leader) ]]'
+}
 
 function register_services {
   local DC=${1:-primary}
