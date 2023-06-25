@@ -1,4 +1,4 @@
-ARG VERSION=1.13.3
+ARG VERSION=1.14.3
 
 FROM windows/test-sds-server as test-sds-server
 FROM docker.mirror.hashicorp.services/windows/openzipkin as openzipkin

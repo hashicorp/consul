@@ -1,4 +1,4 @@
-ARG VERSION=1.13.3
+ARG VERSION=1.14.3
 
 FROM windows/consul:${VERSION}-local
 COPY ./dist/ C:\\consul
