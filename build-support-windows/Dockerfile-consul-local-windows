@@ -38,7 +38,7 @@ RUN tar -xf socat.zip -C socat --strip-components=1
 COPY --from=test-sds-server ["C:/go/src/", "C:/test-sds-server/"]
 
 # Copy openzipkin .jar file
-COPY --from=openzipkin ["C:/zipkin", "C:/zipkin"]
+# COPY --from=openzipkin ["C:/zipkin", "C:/zipkin"]
 
 EXPOSE 8300
 EXPOSE 8301 8301/udp 8302 8302/udp
