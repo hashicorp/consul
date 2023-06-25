@@ -314,6 +314,11 @@ function pre_service_setup {
   local CLUSTER=${1:-primary}
 
   # Run test case setup (e.g. generating Envoy bootstrap, starting containers)
+  echo "apoorv"
+  echo $CASE_DIR
+  echo $CLUSTER
+
+  exit
   if [ -f "${CASE_DIR}/${CLUSTER}/setup.sh" ]
   then
     source ${CASE_DIR}/${CLUSTER}/setup.sh
@@ -522,6 +527,8 @@ function run_tests {
     echo "Setting up the alpha peer"
     pre_service_setup alpha
   fi
+
+  exit
 
   echo "Starting services"
   start_services
