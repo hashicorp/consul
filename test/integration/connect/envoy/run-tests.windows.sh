@@ -352,7 +352,7 @@ function verify {
     -c "TINI_SUBREAPER=1 \
     ENVOY_VERSION=${ENVOY_VERSION} \
     XDS_TARGET=${XDS_TARGET} \
-    /c/Users/Administrator/bin/bats \
+    /c/bats/bin/bats \
     --pretty /c/workdir/${CLUSTER}/bats" ; then
     echo "✓ PASS"
   else
