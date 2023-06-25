@@ -318,7 +318,6 @@ function pre_service_setup {
   echo $CASE_DIR
   echo $CLUSTER
 
-  exit
   if [ -f "${CASE_DIR}/${CLUSTER}/setup.sh" ]
   then
     source ${CASE_DIR}/${CLUSTER}/setup.sh
