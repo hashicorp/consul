@@ -18,15 +18,30 @@ Instead of modifying Consul code, you can configure your services to use Envoy e
 
 ## Supported extensions
 
-Envoy extensions enable additional service mesh functionality in Consul by changing how the sidecar proxies behave. Extensions invoke custom code when traffic passes through an Envoy proxy. Consul supports the following extensions:
+Envoy extensions enable additional service mesh functionality in Consul by changing how the sidecar proxies behave. Extensions dynamically modify the configuration of Envoy proxies based on Consul configuration entries, enabling a wider set of use cases for the service mesh  traffic that passes through an Envoy proxy. Consul supports the following extensions:
 
+- External authorization
 - Lua
 - Lambda
+- Property override
+- WebAssembly (Wasm) 
 
-### Lua
+### External authorization
 
-The `lua` Envoy extension enables HTTP Lua filters in your Consul Envoy proxies. It allows you to run Lua scripts during Envoy requests and responses from Consul-generated Envoy resources. Refer to the [`lua`](/consul/docs/connect/proxies/envoy-extensions/usage/lua) documentation for more information.
+The `ext-authz` extension lets you configure external authorization filters for Envoy proxy so that you can route requests to external authorization systems. Refer to the [external authorization documentation](/consul/docs/connect/proxies/envoy-extensions/usage/ext-authz) for more information.
 
 ### Lambda
 
-The `lambda` Envoy extension enables services to make requests to AWS Lambda functions through the mesh as if they are a normal part of the Consul catalog. Refer to the [`lambda`](/consul/docs/connect/proxies/envoy-extensions/usage/lambda) documentation for more information.
+The `lambda` Envoy extension enables services to make requests to AWS Lambda functions through the mesh as if they are a normal part of the Consul catalog. Refer to the [Lambda extension documentation](/consul/docs/connect/proxies/envoy-extensions/usage/lambda) for more information.
+
+### Lua
+
+The `lua` Envoy extension enables HTTP Lua filters in your Consul Envoy proxies. It allows you to run Lua scripts during Envoy requests and responses from Consul-generated Envoy resources. Refer to the [Lua extension documentation](/consul/docs/connect/proxies/envoy-extensions/usage/lua) for more information.
+
+### Property override
+
+The `property-override` extension lets you set and unset individual properties pm the Envoy resources that Consul generates. Use the extension instead of [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) to enable advanced Envoy configuration. Refer to the [property override documentation](/consul/docs/connect/proxies/envoy-extensions/usage/property-override) for more information.
+
+### WebAssembly
+
+The `wasm` extension enables you to configure TCP and HTTP filters that invoke custom WebAssembly (Wasm) plugins. Refer to the [WebAssembly extenstion documentation](/consul/docs/connect/proxies/envoy-extensions/usage/wasm) for more information.

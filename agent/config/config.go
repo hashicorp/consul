@@ -183,6 +183,7 @@ type Config struct {
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
 	EncryptVerifyOutgoing            *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
+	Experiments                      []string            `mapstructure:"experiments" json:"experiments,omitempty"`
 	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config" json:"-"`
@@ -807,8 +808,9 @@ type ConfigEntries struct {
 
 // Audit allows us to enable and define destinations for auditing
 type Audit struct {
-	Enabled *bool                `mapstructure:"enabled"`
-	Sinks   map[string]AuditSink `mapstructure:"sink"`
+	Enabled    *bool                `mapstructure:"enabled"`
+	Sinks      map[string]AuditSink `mapstructure:"sink"`
+	RPCEnabled *bool                `mapstructure:"rpc_enabled"`
 }
 
 // AuditSink can be provided multiple times to define pipelines for auditing

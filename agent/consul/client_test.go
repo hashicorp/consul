@@ -179,7 +179,7 @@ func TestClient_LANReap(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		require.Len(r, c1.LANMembersInAgentPartition(), 1)
 		server := c1.router.FindLANServer()
-		require.Nil(t, server)
+		require.Nil(r, server)
 	})
 }
 

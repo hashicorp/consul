@@ -45,12 +45,12 @@ or otherwise.
 `Usage: consul debug [options]`
 
 By default, the debug command will capture an archive at the current path for
-all targets for 2 minutes.
+all targets for 5 minutes.
 
 #### Command Options
 
 - `-duration` - Optional, the total time to capture data for from the target agent. Must
-  be greater than the interval and longer than 10 seconds. Defaults to 2 minutes.
+  be greater than the interval and longer than 10 seconds. Defaults to 5 minutes.
 
 - `-interval` - Optional, the interval at which to capture dynamic data, such as heap
   and metrics. Must be longer than 5 seconds. Defaults to 30 seconds.

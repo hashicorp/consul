@@ -7,6 +7,7 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/proto"
@@ -73,7 +74,7 @@ func matchesResourceFilter[K proto.Message](rf ResourceFilter, resourceType Reso
 }
 
 type ServiceName struct {
-	api.CompoundServiceName
+	api.CompoundServiceName `mapstructure:",squash"`
 }
 
 // ResourceType is the type of Envoy resource being patched.
@@ -105,8 +106,8 @@ var Ops = extensioncommon.StringSet{string(OpAdd): {}, string(OpRemove): {}}
 
 // validProxyTypes is the set of supported proxy types for this extension.
 var validProxyTypes = extensioncommon.StringSet{
-	string(api.ServiceKindConnectProxy):       struct{}{},
-	string(api.ServiceKindTerminatingGateway): struct{}{},
+	// For now, we only support `connect-proxy`.
+	string(api.ServiceKindConnectProxy): struct{}{},
 }
 
 // Patch describes a single patch operation to modify the specific field of matching
@@ -190,6 +191,10 @@ func (f *ResourceFilter) validate() error {
 		return err
 	}
 
+	if len(f.Services) > 0 && f.TrafficDirection != extensioncommon.TrafficDirectionOutbound {
+		return fmt.Errorf("patch contains non-empty ResourceFilter.Services but ResourceFilter.TrafficDirection is not %q",
+			extensioncommon.TrafficDirectionOutbound)
+	}
 	for i := range f.Services {
 		sn := f.Services[i]
 		sn.normalize()
@@ -254,12 +259,15 @@ func (p *propertyOverride) validate() error {
 	}
 
 	var resultErr error
-	for _, patch := range p.Patches {
+	for i, patch := range p.Patches {
 		if err := patch.validate(p.Debug); err != nil {
-			resultErr = multierror.Append(resultErr, err)
+			resultErr = multierror.Append(resultErr, fmt.Errorf("invalid Patches[%d]: %w", i, err))
 		}
 	}
 
+	if p.ProxyType == "" {
+		p.ProxyType = api.ServiceKindConnectProxy
+	}
 	if err := validProxyTypes.CheckRequired(string(p.ProxyType), "ProxyType"); err != nil {
 		resultErr = multierror.Append(resultErr, err)
 	}
@@ -275,7 +283,21 @@ func Constructor(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) 
 	if name := ext.Name; name != api.BuiltinPropertyOverrideExtension {
 		return nil, fmt.Errorf("expected extension name %q but got %q", api.BuiltinPropertyOverrideExtension, name)
 	}
-	if err := mapstructure.WeakDecode(ext.Arguments, &p); err != nil {
+	// This avoids issues with decoding nested slices, which are error-prone
+	// due to slice<->map coercion by mapstructure. See HookWeakDecodeFromSlice
+	// and WeaklyTypedInput docs for more details.
+	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+		),
+		WeaklyTypedInput: true,
+		Result:           &p,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error configuring decoder: %v", err)
+	}
+	if err := d.Decode(ext.Arguments); err != nil {
 		return nil, fmt.Errorf("error decoding extension arguments: %v", err)
 	}
 	if err := p.validate(); err != nil {

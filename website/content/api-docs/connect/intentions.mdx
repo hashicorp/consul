@@ -536,9 +536,7 @@ This endpoint evaluates the intentions for a specific source and destination
 and returns whether the connection would be authorized or not given the current
 Consul configuration and set of intentions.
 
--> **Note:** This endpoint will always evaluate intentions with `Permissions`
-defined as _deny_ intentions during. This endpoint is only suited for
-networking layer 4 (e.g. TCP) integration.
+-> **Note:** This endpoint will always evaluate matching intentions with L7 `Permissions` defined as _deny_ intentions because there is no request to check against.
 
 For performance and reliability reasons it is desirable to implement intention
 enforcement by listing [intentions that match the

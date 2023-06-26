@@ -5,12 +5,19 @@ package resource
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+)
+
+var (
+	groupRegexp        = regexp.MustCompile(`^[a-z][a-z\d_]+$`)
+	groupVersionRegexp = regexp.MustCompile(`^v([a-z\d]+)?\d$`)
+	kindRegexp         = regexp.MustCompile(`^[A-Z][A-Za-z\d]+$`)
 )
 
 type Registry interface {
@@ -82,13 +89,22 @@ func NewRegistry() Registry {
 }
 
 func (r *TypeRegistry) Register(registration Registration) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	typ := registration.Type
 	if typ.Group == "" || typ.GroupVersion == "" || typ.Kind == "" {
 		panic("type field(s) cannot be empty")
 	}
+
+	switch {
+	case !groupRegexp.MatchString(typ.Group):
+		panic(fmt.Sprintf("Type.Group must be in snake_case. Got: %q", typ.Group))
+	case !groupVersionRegexp.MatchString(typ.GroupVersion):
+		panic(fmt.Sprintf("Type.GroupVersion must be lowercase, start with `v`, and end with a number (e.g. `v2` or `v1alpha1`). Got: %q", typ.Group))
+	case !kindRegexp.MatchString(typ.Kind):
+		panic(fmt.Sprintf("Type.Kind must be in PascalCase. Got: %q", typ.Kind))
+	}
+
+	r.lock.Lock()
+	defer r.lock.Unlock()
 
 	key := ToGVK(registration.Type)
 	if _, ok := r.registrations[key]; ok {

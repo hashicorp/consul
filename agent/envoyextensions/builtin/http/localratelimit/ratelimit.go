@@ -14,10 +14,10 @@ import (
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
@@ -59,6 +59,9 @@ func Constructor(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) 
 func (r *ratelimit) fromArguments(args map[string]interface{}) error {
 	if err := mapstructure.Decode(args, r); err != nil {
 		return fmt.Errorf("error decoding extension arguments: %v", err)
+	}
+	if r.ProxyType == "" {
+		r.ProxyType = string(api.ServiceKindConnectProxy)
 	}
 	return r.validate()
 }
@@ -125,7 +128,7 @@ func (r ratelimit) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener
 	tokenBucket := envoy_type_v3.TokenBucket{}
 
 	if r.TokensPerFill != nil {
-		tokenBucket.TokensPerFill = &wrappers.UInt32Value{
+		tokenBucket.TokensPerFill = &wrapperspb.UInt32Value{
 			Value: uint32(*r.TokensPerFill),
 		}
 	}
@@ -188,7 +191,7 @@ func (r ratelimit) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener
 }
 
 func validateProxyType(t string) error {
-	if t != "connect-proxy" {
+	if t != string(api.ServiceKindConnectProxy) {
 		return fmt.Errorf("unexpected ProxyType %q", t)
 	}
 

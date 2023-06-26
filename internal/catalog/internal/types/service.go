@@ -71,7 +71,7 @@ func ValidateService(res *pbresource.Resource) error {
 					},
 				},
 			})
-		} else {
+		} else if port.VirtualPort != 0 {
 			usedVirtualPorts[port.VirtualPort] = idx
 		}
 

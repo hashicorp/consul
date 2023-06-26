@@ -35,12 +35,14 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`ServiceSubset`](#redirect-servicesubset): string
   - [`Namespace`](#redirect-namespace): string <EnterpriseAlert inline />
   - [`Partition`](#redirect-partition): string | `default` <EnterpriseAlert inline />
+  - [`SamenessGroup`](#redirect-samenessgroup): string <EnterpriseAlert inline />
   - [`Datacenter`](#redirect-datacenter): list
   - [`Peer`](#redirect-peer): string
 - [`Failover`](#failover): map
   - [`Service`](#failover-service): string
   - [`ServiceSubset`](#failover-servicesubset): string
   - [`Namespace`](#failover-namespace): string <EnterpriseAlert inline />
+  - [`SamenessGroup`](#failover-samenessgroup): string <EnterpriseAlert inline />
   - [`Datacenters`](#failover-datacenters): list
   - [`Targets`](#failover-targets): list
     - [`Service`](#failover-targets-service): string
@@ -87,12 +89,14 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`serviceSubset`](#spec-redirect-servicesubset): string
     - [`namespace`](#spec-redirect-namespace): string <EnterpriseAlert inline />
     - [`partition`](#spec-redirect-partition): string <EnterpriseAlert inline />
+    - [`samenessGroup`](#spec-redirect-samenessgroup): string <EnterpriseAlert inline />
     - [`datacenter`](#spec-redirect-datacenter): string
     - [`peer`](#spec-redirect-peer): string
   - [`failover`](#spec-failover): map
     - [`service`](#spec-failover-service): string
     - [`serviceSubset`](#spec-failover-servicesubset): string
     - [`namespace`](#spec-failover-namespace): string <EnterpriseAlert inline />
+    - [`samenessGroup`](#spec-failover-samenessgroup): string <EnterpriseAlert inline />
     - [`datacenters`](#spec-failover-datacenters): string
     - [`targets`](#spec-failover-targets): list
       - [`service`](#spec-failover-targets-service): string
@@ -157,11 +161,12 @@ Redirect = {
  ServiceSubset = "<destination-subset>"
  Namespace     = "<destination-namespace>"
  Partition     = "<destination-partition>"
+ SamenessGroup = "<destination-sameness-group>"
  Datacenter    = "<destination-datacenter>"
  Peer          = "<destination-peer>"
 }
 
-Failover = {                   ## requires at least one of the following: Service, ServiceSubset, Namespace, Targets, Datacenters
+Failover = {                   ## requires at least one of the following: Service, ServiceSubset, Namespace, Targets, Datacenters, SamenessGroup
  <local-subset-name> = {
    Targets = [
      { Service = "<destination-service>" },
@@ -239,11 +244,12 @@ LoadBalancer = {
    "ServiceSubset":"<destination-subset>",
    "Namespace":"<destination-namespace>",
    "Partition":"<destination-partition>",
+   "SamenessGroup":"<destination-sameness-group>",
    "Datacenter":"<destination-datacenter>",
    "Peer":"<destination-peer>"
   },
 
-  "Failover":{                   // requires at least one of the following": Service, ServiceSubset, Namespace, Targets, Datacenters
+  "Failover":{                   // requires at least one of the following": Service, ServiceSubset, Namespace, Targets, Datacenters, SamenessGroup
    "<local=subset-name>":{
      "Targets":[
        {"Service":"<destination-service>"},
@@ -314,8 +320,9 @@ spec:
     servicesubset: <subsetName>
     namespace: <namespaceName>
     partition: <partitionName>
+    samenessGroup: <samenessGroupName>
     peer: <peerName>
-  failover:                         # requires at least one of the following: service, serviceSubset, namespace, targets, datacenters
+  failover:                         # requires at least one of the following: service, serviceSubset, namespace, targets, datacenters, samenessGroup
     <localSubsetName>: 
       targets:
       - service: <serviceName>
@@ -465,6 +472,7 @@ Specifies redirect instructions for local service traffic so that services deplo
   - [`ServiceSubset`](#redirect-servicesubset)
   - [`Namespace`](#redirect-namespace)
   - [`Partition`](#redirect-partition)
+  - [`SamenessGroup`](#redirect-samenessgroup)
   - [`Datacenter`](#redirect-datacenter)
   - [`Peer`](#redirect-peer)
 
@@ -504,6 +512,14 @@ Specifies the admin partition at the redirect’s destination that resolves loca
 - Default: None
 - Data type: String
 
+### `Redirect{}.SamenessGroup` <EnterpriseAlert inline />
+
+Specifies the sameness group at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `Redirect{}.Datacenter`
 
@@ -529,7 +545,7 @@ Specifies controls for rerouting traffic to an alternate pool of service instanc
 
 This parameter is a map, and its key is the name of the local service subset that resolves to another location when it fails. You can specify a `"*"` wildcard to apply failovers to any subset.
 
-`Service`, `ServiceSubset`, `Namespace`, `Targets`, and `Datacenters` cannot all be empty at the same time.
+`Service`, `ServiceSubset`, `Namespace`, `Targets`, `SamenessGroup`, and `Datacenters` cannot all be empty at the same time.
 
 #### Values
 
@@ -538,6 +554,7 @@ This parameter is a map, and its key is the name of the local service subset tha
   - [`Service`](#failover-service)
   - [`ServiceSubset`](#failover-servicesubset)
   - [`Namespace`](#failover-namespace)
+  - [`SamenessGroup`](#failover-samenessgroup)
   - [`Datacenters`](#failover-datacenters)
   - [`Targets`](#failover-targets)
   
@@ -562,6 +579,15 @@ Specifies the name of a subset of service instances to resolve at the failover l
 ### `Failover{}.Namespace` <EnterpriseAlert inline />
 
 Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.SamenessGroup` <EnterpriseAlert inline />
+
+Specifies the sameness group at the failover location where the failover services are deployed.
 
 #### Values
 
@@ -907,6 +933,7 @@ Specifies redirect instructions for local service traffic so that services deplo
   - [`serviceSubset`](#spec-redirect-servicesubset)
   - [`namespace`](#spec-redirect-namespace)
   - [`partition`](#spec-redirect-partition)
+  - [`samenessGroup`](#spec-redirect-samenessgroup)
   - [`datacenter`](#spec-redirect-datacenter)
   - [`peer`](#spec-redirect-peer)
 
@@ -946,6 +973,15 @@ Specifies the admin partition at the redirect’s destination that resolves loca
 - Default: None
 - Data type: String
 
+### `spec.redirect.samenessGroup` <EnterpriseAlert inline />
+
+Specifies the sameness group at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
 
 ### `spec.redirect.datacenter`
 
@@ -971,7 +1007,7 @@ Specifies controls for rerouting traffic to an alternate pool of service instanc
 
 This parameter is a map, and its key is the name of the local service subset that resolves to another location when it fails. You can specify a `"*"` wildcard to apply failovers to any subset.
 
-`service`, `serviceSubset`, `namespace`, `targets`, and `datacenters` cannot all be empty at the same time.
+`service`, `serviceSubset`, `namespace`, `targets`, `samenessGroup`, and `datacenters` cannot all be empty at the same time.
 
 #### Values
 
@@ -980,6 +1016,7 @@ This parameter is a map, and its key is the name of the local service subset tha
   - [`service`](#spec-failover-service)
   - [`serviceSubset`](#spec-failover-servicesubset)
   - [`namespace`](#spec-failover-namespace)
+  - [`samenessGroup`](#spec-failover-samenessgroup)
   - [`datacenters`](#spec-failover-datacenters)
   - [`targets`](#spec-failover-targets)
   
@@ -1004,6 +1041,15 @@ Specifies the name of a subset of service instances to resolve at the failover l
 ### `spec.failover.namespace` <EnterpriseAlert inline />
 
 Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.samenessGroup` <EnterpriseAlert inline />
+
+Specifies the sameness group at the failover location where the failover services are deployed.
 
 #### Values
 

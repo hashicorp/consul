@@ -121,12 +121,11 @@ func (s *DiscoveryGraphNode) MapKey() string {
 
 // compiled form of ServiceResolverConfigEntry
 type DiscoveryResolver struct {
-	Default              bool                           `json:",omitempty"`
-	ConnectTimeout       time.Duration                  `json:",omitempty"`
-	RequestTimeout       time.Duration                  `json:",omitempty"`
-	Target               string                         `json:",omitempty"`
-	Failover             *DiscoveryFailover             `json:",omitempty"`
-	PrioritizeByLocality *DiscoveryPrioritizeByLocality `json:",omitempty"`
+	Default        bool               `json:",omitempty"`
+	ConnectTimeout time.Duration      `json:",omitempty"`
+	RequestTimeout time.Duration      `json:",omitempty"`
+	Target         string             `json:",omitempty"`
+	Failover       *DiscoveryFailover `json:",omitempty"`
 }
 
 func (r *DiscoveryResolver) MarshalJSON() ([]byte, error) {
@@ -238,6 +237,8 @@ type DiscoveryTarget struct {
 	// balancer objects.  This has a structure similar to SNI, but will not be
 	// affected by SNI customizations.
 	Name string `json:",omitempty"`
+
+	PrioritizeByLocality *DiscoveryPrioritizeByLocality `json:",omitempty"`
 }
 
 func (t *DiscoveryTarget) MarshalJSON() ([]byte, error) {
@@ -277,12 +278,13 @@ func (t *DiscoveryTarget) UnmarshalJSON(data []byte) error {
 }
 
 type DiscoveryTargetOpts struct {
-	Service       string
-	ServiceSubset string
-	Namespace     string
-	Partition     string
-	Datacenter    string
-	Peer          string
+	Service              string
+	ServiceSubset        string
+	Namespace            string
+	Partition            string
+	Datacenter           string
+	Peer                 string
+	PrioritizeByLocality *DiscoveryPrioritizeByLocality
 }
 
 func MergeDiscoveryTargetOpts(opts ...DiscoveryTargetOpts) DiscoveryTargetOpts {

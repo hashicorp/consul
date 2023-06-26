@@ -325,6 +325,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
 			rt.EnableDebug = true
+			rt.Experiments = []string{"resource-apis"}
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
 			rt.Logging.LogLevel = "DEBUG"
@@ -618,6 +619,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeName = "a"
 			rt.TLS.NodeName = "a"
 			rt.DataDir = dataDir
+			rt.Cloud.NodeName = "a"
 		},
 	})
 	run(t, testCase{
@@ -629,6 +631,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.NodeID = "a"
 			rt.DataDir = dataDir
+			rt.Cloud.NodeID = "a"
 		},
 	})
 	run(t, testCase{
@@ -1034,6 +1037,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				return nil, fmt.Errorf("should not detect advertise_addr")
 			},
 		},
+	})
+	run(t, testCase{
+		desc:        "locality invalid",
+		args:        []string{`-data-dir=` + dataDir},
+		json:        []string{`{"locality": {"zone": "us-west-1a"}}`},
+		hcl:         []string{`locality { zone = "us-west-1a" }`},
+		expectedErr: "locality is invalid: zone cannot be set without region",
 	})
 	run(t, testCase{
 		desc: "client addr and ports == 0",
@@ -2318,6 +2328,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Cloud = hcpconfig.CloudConfig{
 				// ID is only populated from env if not populated from other sources.
 				ResourceID: "env-id",
+				NodeName:   "thehostname",
+				NodeID:     "",
 			}
 
 			// server things
@@ -2358,6 +2370,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Cloud = hcpconfig.CloudConfig{
 				// ID is only populated from env if not populated from other sources.
 				ResourceID: "file-id",
+				NodeName:   "thehostname",
 			}
 
 			// server things
@@ -6316,6 +6329,8 @@ func TestLoad_FullConfig(t *testing.T) {
 			Hostname:     "DH4bh7aC",
 			AuthURL:      "332nCdR2",
 			ScadaAddress: "aoeusth232",
+			NodeID:       types.NodeID("AsUIlw99"),
+			NodeName:     "otlLxGaI",
 		},
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
@@ -6355,6 +6370,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",
+		Experiments:                      []string{"foo"},
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,

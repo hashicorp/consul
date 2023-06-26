@@ -58,7 +58,7 @@ type workloadHealthReconciler struct {
 }
 
 func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
-	// The runtime is passed by value so replacing it here for the remaineder of this
+	// The runtime is passed by value so replacing it here for the remainder of this
 	// reconciliation request processing will not affect future invocations.
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
 
@@ -90,6 +90,12 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 	if workload.NodeName != "" {
 		nodeID := r.nodeMap.NodeIDFromWorkload(res, &workload)
 		r.nodeMap.TrackWorkload(res.Id, nodeID)
+
+		// It is important that getting the nodes health happens after tracking the
+		// Workload with the node mapper. If the order were reversed we could
+		// potentially miss events for data that changes after we read the node but
+		// before we configured the node mapper to map subsequent events to this
+		// workload.
 		nodeHealth, err = getNodeHealth(ctx, rt, nodeID)
 		if err != nil {
 			rt.Logger.Error("error looking up node health", "error", err, "node-id", nodeID)
@@ -114,33 +120,15 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 		health = workloadHealth
 	}
 
-	statusState := pbresource.Condition_STATE_TRUE
-	if health != pbcatalog.Health_HEALTH_PASSING {
-		statusState = pbresource.Condition_STATE_FALSE
-	}
-
-	message := WorkloadHealthyMessage
+	condition := WorkloadConditions[workloadHealth]
 	if workload.NodeName != "" {
-		message = NodeAndWorkloadHealthyMessage
-	}
-	switch {
-	case workloadHealth != pbcatalog.Health_HEALTH_PASSING && nodeHealth != pbcatalog.Health_HEALTH_PASSING:
-		message = NodeAndWorkloadUnhealthyMessage
-	case workloadHealth != pbcatalog.Health_HEALTH_PASSING:
-		message = WorkloadUnhealthyMessage
-	case nodeHealth != pbcatalog.Health_HEALTH_PASSING:
-		message = nodehealth.NodeUnhealthyMessage
+		condition = NodeAndWorkloadConditions[workloadHealth][nodeHealth]
 	}
 
 	newStatus := &pbresource.Status{
 		ObservedGeneration: res.Generation,
 		Conditions: []*pbresource.Condition{
-			{
-				Type:    StatusConditionHealthy,
-				State:   statusState,
-				Reason:  health.String(),
-				Message: message,
-			},
+			condition,
 		},
 	}
 
