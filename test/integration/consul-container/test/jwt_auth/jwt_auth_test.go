@@ -73,7 +73,7 @@ func TestJWTAuthConnectService(t *testing.T) {
 	libassert.AssertContainerState(t, clientService, "running")
 
 	headers := map[string][]string{
-		"Authorization": {fmt.Sprintf("Bearer %s", jwt)},
+		"Authorization ": {fmt.Sprintf("Bearer %s", jwt)},
 	}
 	doHTTPServiceEchoes(t, "localhost", clientPort, headers)
 
