@@ -15,8 +15,8 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_http_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/wasm/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_network_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/wasm/v3"
 	envoy_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/wasm/v3"
-	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -35,157 +35,121 @@ func TestHttpWasmExtension(t *testing.T) {
 	cases := map[string]struct {
 		extName         string
 		canApply        bool
-		args            func(bool) map[string]any
-		rtCfg           func(bool) *extensioncommon.RuntimeConfig
+		cfg             func(string, bool) *testWasmConfig
+		rtCfg           func(string, bool) *extensioncommon.RuntimeConfig
 		isInboundFilter bool
-		inputFilters    func() []*envoy_http_v3.HttpFilter
-		expFilters      func(tc testWasmConfig) []*envoy_http_v3.HttpFilter
-		expPatched      bool
 		errStr          string
 		debug           bool
 	}{
-		"http remote file": {
+		"remote file": {
 			extName:         api.BuiltinWasmExtension,
 			canApply:        true,
-			args:            func(ent bool) map[string]any { return makeTestWasmConfig(ent).toMap(t) },
-			rtCfg:           func(ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(ent) },
+			cfg:             func(proto string, ent bool) *testWasmConfig { return makeTestWasmConfig(proto, ent) },
+			rtCfg:           func(proto string, ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(proto, ent) },
 			isInboundFilter: true,
-			inputFilters:    makeTestHttpFilters,
-			expFilters: func(tc testWasmConfig) []*envoy_http_v3.HttpFilter {
-				return []*envoy_http_v3.HttpFilter{
-					{Name: "one"},
-					{Name: "two"},
-					{
-						Name: "envoy.filters.http.wasm",
-						ConfigType: &envoy_http_v3.HttpFilter_TypedConfig{
-							TypedConfig: makeAny(t,
-								&envoy_http_wasm_v3.Wasm{
-									Config: tc.toHttpWasmFilter(t),
-								}),
-						},
-					},
-					{Name: "envoy.filters.http.router"},
-					{Name: "three"},
-				}
-			},
-			expPatched: true,
 		},
 		"local file": {
 			extName:  api.BuiltinWasmExtension,
 			canApply: true,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
-				cfg.Protocol = "http"
+			cfg: func(proto string, ent bool) *testWasmConfig {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.ListenerType = "inbound"
 				cfg.PluginConfig.VmConfig.Code.Local.Filename = "plugin.wasm"
-				return cfg.toMap(t)
+				return cfg
 			},
-			rtCfg:           func(ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(ent) },
+			rtCfg:           func(proto string, ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(proto, ent) },
 			isInboundFilter: true,
-			inputFilters:    makeTestHttpFilters,
-			expFilters: func(tc testWasmConfig) []*envoy_http_v3.HttpFilter {
-				return []*envoy_http_v3.HttpFilter{
-					{Name: "one"},
-					{Name: "two"},
-					{
-						Name: "envoy.filters.http.wasm",
-						ConfigType: &envoy_http_v3.HttpFilter_TypedConfig{
-							TypedConfig: makeAny(t,
-								&envoy_http_wasm_v3.Wasm{
-									Config: tc.toHttpWasmFilter(t),
-								}),
-						},
-					},
-					{Name: "envoy.filters.http.router"},
-					{Name: "three"},
-				}
-			},
-			expPatched: true,
 		},
 		"inbound filters ignored": {
 			extName:         api.BuiltinWasmExtension,
 			canApply:        true,
-			args:            func(ent bool) map[string]any { return makeTestWasmConfig(ent).toMap(t) },
-			rtCfg:           func(ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(ent) },
+			cfg:             func(proto string, ent bool) *testWasmConfig { return makeTestWasmConfig(proto, ent) },
+			rtCfg:           func(proto string, ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(proto, ent) },
 			isInboundFilter: false,
-			inputFilters:    makeTestHttpFilters,
-			expFilters: func(tc testWasmConfig) []*envoy_http_v3.HttpFilter {
-				return []*envoy_http_v3.HttpFilter{
-					{Name: "one"},
-					{Name: "two"},
-					{Name: "envoy.filters.http.router"},
-					{Name: "three"},
-				}
-			},
-			expPatched: false,
 		},
 		"no cluster for remote file": {
 			extName:  api.BuiltinWasmExtension,
 			canApply: true,
-			args:     func(ent bool) map[string]any { return makeTestWasmConfig(ent).toMap(t) },
-			rtCfg: func(ent bool) *extensioncommon.RuntimeConfig {
-				rt := makeTestRuntimeConfig(ent)
+			cfg:      func(proto string, ent bool) *testWasmConfig { return makeTestWasmConfig(proto, ent) },
+			rtCfg: func(proto string, ent bool) *extensioncommon.RuntimeConfig {
+				rt := makeTestRuntimeConfig(proto, ent)
 				rt.Upstreams = nil
 				return rt
 			},
 			isInboundFilter: true,
-			inputFilters:    makeTestHttpFilters,
 			errStr:          "no upstream found for remote service",
-			expPatched:      false,
+		},
+		"protocol mismatch": {
+			extName:  api.BuiltinWasmExtension,
+			canApply: false,
+			cfg:      func(proto string, ent bool) *testWasmConfig { return makeTestWasmConfig(proto, ent) },
+			rtCfg: func(proto string, ent bool) *extensioncommon.RuntimeConfig {
+				rt := makeTestRuntimeConfig(proto, ent)
+				switch proto {
+				case "http":
+					rt.Protocol = "tcp"
+				case "tcp":
+					rt.Protocol = "http"
+				}
+				return rt
+			},
+			isInboundFilter: true,
 		},
 	}
 
 	for _, enterprise := range []bool{false, true} {
-
-		for name, c := range cases {
-			c := c
-			t.Run(fmt.Sprintf("%s_ent_%t", name, enterprise), func(t *testing.T) {
-				t.Parallel()
-				rtCfg := c.rtCfg(enterprise)
-				rtCfg.EnvoyExtension = api.EnvoyExtension{
-					Name:      c.extName,
-					Arguments: c.args(enterprise),
-				}
-
-				w, err := construct(rtCfg.EnvoyExtension)
-				require.NoError(t, err)
-				require.Equal(t, c.canApply, w.CanApply(rtCfg))
-				if !c.canApply {
-					return
-				}
-
-				route, patched, err := w.PatchRoute(c.rtCfg(enterprise), nil)
-				require.Nil(t, route)
-				require.False(t, patched)
-				require.NoError(t, err)
-
-				cluster, patched, err := w.PatchCluster(c.rtCfg(enterprise), nil)
-				require.Nil(t, cluster)
-				require.False(t, patched)
-				require.NoError(t, err)
-
-				inputHttpConMgr := makeHttpConMgr(t, c.inputFilters())
-				obsHttpConMgr, patched, err := w.PatchFilter(c.rtCfg(enterprise), inputHttpConMgr, c.isInboundFilter)
-				if c.errStr == "" {
-					require.NoError(t, err)
-					require.Equal(t, c.expPatched, patched)
-
-					cfg := testWasmConfigFromMap(t, c.args(enterprise))
-					expHttpConMgr := makeHttpConMgr(t, c.expFilters(cfg))
-
-					if c.debug {
-						t.Logf("cfg =\n%s\n\n", cfg.toJSON(t))
-						t.Logf("expFilterJSON =\n%s\n\n", protoToJSON(t, expHttpConMgr))
-						t.Logf("obsfilterJSON =\n%s\n\n", protoToJSON(t, obsHttpConMgr))
+		for _, protocol := range []string{"tcp", "http"} {
+			for name, c := range cases {
+				c := c
+				t.Run(fmt.Sprintf("%s_%s_ent_%t", name, protocol, enterprise), func(t *testing.T) {
+					cfg := c.cfg(protocol, enterprise)
+					rtCfg := c.rtCfg(protocol, enterprise)
+					rtCfg.EnvoyExtension = api.EnvoyExtension{
+						Name:      c.extName,
+						Arguments: cfg.toMap(t),
 					}
 
-					prototest.AssertDeepEqual(t, expHttpConMgr, obsHttpConMgr)
-				} else {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), c.errStr)
-				}
+					w, err := construct(rtCfg.EnvoyExtension)
+					require.NoError(t, err)
+					require.Equal(t, c.canApply, w.CanApply(rtCfg))
+					if !c.canApply {
+						return
+					}
 
-			})
+					var inputFilters []*envoy_listener_v3.Filter
+					if protocol == "http" {
+						inputFilters = append(inputFilters, makeHttpConMgr(t, makeTestHttpFilters()))
+					} else {
+						inputFilters = makeTestFilters()
+					}
+
+					obsFilters, err := w.PatchFilters(rtCfg, inputFilters, c.isInboundFilter)
+					if c.errStr == "" {
+						require.NoError(t, err)
+
+						expFilters := cfg.expFilters(t)
+						if !cfg.matchesDirection(c.isInboundFilter) {
+							// If the listener type does not match the filter direction then the
+							// filter should not be applied and the output should match the input.
+							expFilters = inputFilters
+						}
+
+						if c.debug {
+							t.Logf("cfg =\n%s\n\n", cfg.toJSON(t))
+							require.Equal(t, len(expFilters), len(obsFilters))
+							for idx, expFilter := range expFilters {
+								t.Logf("expFilterJSON[%d] =\n%s\n\n", idx, protoToJSON(t, expFilter))
+								t.Logf("obsfilterJSON[%d] =\n%s\n\n", idx, protoToJSON(t, obsFilters[idx]))
+							}
+						}
+
+						prototest.AssertDeepEqual(t, expFilters, obsFilters)
+					} else {
+						require.Error(t, err)
+						require.Contains(t, err.Error(), c.errStr)
+					}
+				})
+			}
 		}
 	}
 }
@@ -194,18 +158,18 @@ func TestWasmConstructor(t *testing.T) {
 	t.Parallel()
 	cases := map[string]struct {
 		name   string
-		args   func(bool) map[string]any
+		args   func(string, bool) map[string]any
 		errStr string
 	}{
 		"with no arguments": {
 			name:   api.BuiltinWasmExtension,
-			args:   func(_ bool) map[string]any { return nil },
+			args:   func(_ string, _ bool) map[string]any { return nil },
 			errStr: "VmConfig.Code must provide exactly one of Local or Remote data source",
 		},
 		"invalid protocol": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.Protocol = "invalid"
 				return cfg.toMap(t)
 			},
@@ -213,8 +177,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid proxy type": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.ProxyType = "invalid"
 				return cfg.toMap(t)
 			},
@@ -222,8 +186,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid listener type": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.ListenerType = "invalid"
 				return cfg.toMap(t)
 			},
@@ -231,8 +195,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid runtime": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Runtime = "invalid"
 				return cfg.toMap(t)
 			},
@@ -240,8 +204,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"both local and remote files": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Local.Filename = "plugin.wasm"
 				cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.Service.Name = "file-server"
 				cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.URI = "http://file-server/plugin.wasm"
@@ -251,8 +215,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"service and uri required for remote files": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.Service.Name = "file-server"
 				return cfg.toMap(t)
 			},
@@ -260,8 +224,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"no sha for remote file": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.Service.Name = "file-server"
 				cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.URI = "http://file-server/plugin.wasm"
 				return cfg.toMap(t)
@@ -270,8 +234,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid url for remote file": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.Service.Name = "file-server"
 				cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.URI = "://bogus.url.com/error"
 				return cfg.toMap(t)
@@ -280,8 +244,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"decoding error": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				a := makeTestWasmConfig(ent).toMap(t)
+			args: func(proto string, ent bool) map[string]any {
+				a := makeTestWasmConfig(proto, ent).toMap(t)
 				setField(a, "PluginConfig.VmConfig.Code.Remote.RetryPolicy.RetryBackOff.BaseInterval", 1000)
 				return a
 			},
@@ -289,8 +253,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid http timeout": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.Timeout = "invalid"
 				return cfg.toMap(t)
 			},
@@ -298,8 +262,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid num retries": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.RetryPolicy.NumRetries = -1
 				return cfg.toMap(t)
 			},
@@ -307,8 +271,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid base interval": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.RetryPolicy.RetryBackOff.BaseInterval = "0s"
 				return cfg.toMap(t)
 			},
@@ -316,8 +280,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid max interval": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.RetryPolicy.RetryBackOff.BaseInterval = "10s"
 				cfg.PluginConfig.VmConfig.Code.Remote.RetryPolicy.RetryBackOff.MaxInterval = "5s"
 				return cfg.toMap(t)
@@ -326,8 +290,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid base interval duration": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.RetryPolicy.RetryBackOff.BaseInterval = "invalid"
 				return cfg.toMap(t)
 			},
@@ -335,8 +299,8 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid max interval duration": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any {
-				cfg := newTestWasmConfig(ent)
+			args: func(proto string, ent bool) map[string]any {
+				cfg := newTestWasmConfig(proto, ent)
 				cfg.PluginConfig.VmConfig.Code.Remote.RetryPolicy.RetryBackOff.MaxInterval = "invalid"
 				return cfg.toMap(t)
 			},
@@ -344,39 +308,39 @@ func TestWasmConstructor(t *testing.T) {
 		},
 		"invalid extension name": {
 			name:   "invalid",
-			args:   func(ent bool) map[string]any { return newTestWasmConfig(ent).toMap(t) },
+			args:   func(proto string, ent bool) map[string]any { return newTestWasmConfig(proto, ent).toMap(t) },
 			errStr: `expected extension name "builtin/wasm" but got "invalid"`,
 		},
 		"valid configuration": {
 			name: api.BuiltinWasmExtension,
-			args: func(ent bool) map[string]any { return makeTestWasmConfig(ent).toMap(t) },
+			args: func(proto string, ent bool) map[string]any { return makeTestWasmConfig(proto, ent).toMap(t) },
 		},
 	}
 	for _, enterprise := range []bool{false, true} {
-		for name, c := range cases {
-			c := c
-			t.Run(fmt.Sprintf("%s_ent_%t", name, enterprise), func(t *testing.T) {
-				t.Parallel()
+		for _, protocol := range []string{"tcp", "http"} {
+			for name, c := range cases {
+				c := c
+				t.Run(fmt.Sprintf("%s_%s_ent_%t", name, protocol, enterprise), func(t *testing.T) {
+					svc := api.CompoundServiceName{Name: "svc"}
+					ext := extensioncommon.RuntimeConfig{
+						ServiceName: svc,
+						EnvoyExtension: api.EnvoyExtension{
+							Name:      c.name,
+							Arguments: c.args(protocol, enterprise),
+						},
+					}
 
-				svc := api.CompoundServiceName{Name: "svc"}
-				ext := extensioncommon.RuntimeConfig{
-					ServiceName: svc,
-					EnvoyExtension: api.EnvoyExtension{
-						Name:      c.name,
-						Arguments: c.args(enterprise),
-					},
-				}
+					e, err := Constructor(ext.EnvoyExtension)
 
-				e, err := Constructor(ext.EnvoyExtension)
-
-				if c.errStr == "" {
-					require.NoError(t, err)
-					require.NotNil(t, e)
-				} else {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), c.errStr)
-				}
-			})
+					if c.errStr == "" {
+						require.NoError(t, err)
+						require.NotNil(t, e)
+					} else {
+						require.Error(t, err)
+						require.Contains(t, err.Error(), c.errStr)
+					}
+				})
+			}
 		}
 	}
 }
@@ -425,13 +389,6 @@ type testWasmConfig struct {
 	}
 }
 
-func testWasmConfigFromMap(t *testing.T, m map[string]any) testWasmConfig {
-	t.Helper()
-	var cfg testWasmConfig
-	require.NoError(t, mapstructure.Decode(m, &cfg))
-	return cfg
-}
-
 func (c testWasmConfig) toMap(t *testing.T) map[string]any {
 	t.Helper()
 	var m map[string]any
@@ -446,7 +403,7 @@ func (c testWasmConfig) toJSON(t *testing.T) []byte {
 	return b
 }
 
-func (cfg testWasmConfig) toHttpWasmFilter(t *testing.T) *envoy_wasm_v3.PluginConfig {
+func (cfg testWasmConfig) toWasmPluginConfig(t *testing.T) *envoy_wasm_v3.PluginConfig {
 	t.Helper()
 	var code *envoy_core_v3.AsyncDataSource
 	if cfg.PluginConfig.VmConfig.Code.Local.Filename != "" {
@@ -543,6 +500,63 @@ func (cfg testWasmConfig) toHttpWasmFilter(t *testing.T) *envoy_wasm_v3.PluginCo
 	}
 }
 
+func (cfg testWasmConfig) toHttpFilter(t *testing.T) *envoy_http_v3.HttpFilter {
+	return &envoy_http_v3.HttpFilter{
+		Name: "envoy.filters.http.wasm",
+		ConfigType: &envoy_http_v3.HttpFilter_TypedConfig{
+			TypedConfig: makeAny(t,
+				&envoy_http_wasm_v3.Wasm{
+					Config: cfg.toWasmPluginConfig(t),
+				}),
+		},
+	}
+}
+
+func (cfg testWasmConfig) toNetworkFilter(t *testing.T) *envoy_listener_v3.Filter {
+	return &envoy_listener_v3.Filter{
+		Name: "envoy.filters.network.wasm",
+		ConfigType: &envoy_listener_v3.Filter_TypedConfig{
+			TypedConfig: makeAny(t,
+				&envoy_network_wasm_v3.Wasm{
+					Config: cfg.toWasmPluginConfig(t),
+				}),
+		},
+	}
+}
+
+func (cfg testWasmConfig) expFilters(t *testing.T) []*envoy_listener_v3.Filter {
+	if cfg.Protocol == "http" {
+		return []*envoy_listener_v3.Filter{makeHttpConMgr(t, cfg.expHttpFilters(t))}
+	} else {
+		return cfg.expNetworkFilters(t)
+	}
+}
+
+func (cfg testWasmConfig) expHttpFilters(t *testing.T) []*envoy_http_v3.HttpFilter {
+	return []*envoy_http_v3.HttpFilter{
+		{Name: "one"},
+		{Name: "two"},
+		cfg.toHttpFilter(t),
+		{Name: "envoy.filters.http.router"},
+		{Name: "three"},
+	}
+}
+
+func (cfg testWasmConfig) expNetworkFilters(t *testing.T) []*envoy_listener_v3.Filter {
+	return []*envoy_listener_v3.Filter{
+		{Name: "one"},
+		{Name: "two"},
+		cfg.toNetworkFilter(t),
+		{Name: "envoy.filters.network.tcp_proxy"},
+		{Name: "three"},
+	}
+}
+
+func (cfg testWasmConfig) matchesDirection(isInbound bool) bool {
+	return (isInbound && cfg.ListenerType == "inbound") ||
+		(!isInbound && cfg.ListenerType == "outbound")
+}
+
 func makeAny(t *testing.T, m proto.Message) *anypb.Any {
 	t.Helper()
 	v, err := anypb.New(m)
@@ -562,6 +576,15 @@ func makeHttpConMgr(t *testing.T, filters []*envoy_http_v3.HttpFilter) *envoy_li
 	}
 }
 
+func makeTestFilters() []*envoy_listener_v3.Filter {
+	return []*envoy_listener_v3.Filter{
+		{Name: "one"},
+		{Name: "two"},
+		{Name: "envoy.filters.network.tcp_proxy"},
+		{Name: "three"},
+	}
+}
+
 func makeTestHttpFilters() []*envoy_http_v3.HttpFilter {
 	return []*envoy_http_v3.HttpFilter{
 		{Name: "one"},
@@ -571,7 +594,7 @@ func makeTestHttpFilters() []*envoy_http_v3.HttpFilter {
 	}
 }
 
-func makeTestRuntimeConfig(enterprise bool) *extensioncommon.RuntimeConfig {
+func makeTestRuntimeConfig(protocol string, enterprise bool) *extensioncommon.RuntimeConfig {
 	var ns, ap string
 	if enterprise {
 		ns = "ns1"
@@ -586,17 +609,18 @@ func makeTestRuntimeConfig(enterprise bool) *extensioncommon.RuntimeConfig {
 				Namespace: acl.NamespaceOrDefault(ns),
 				Partition: acl.PartitionOrDefault(ap),
 			}: {
-				SNI:     map[string]struct{}{"test-file-server": {}},
+				SNIs:    map[string]struct{}{"test-file-server": {}},
 				EnvoyID: "test-file-server",
 			},
 		},
+		Protocol: protocol,
 	}
 }
 
-func makeTestWasmConfig(enterprise bool) *testWasmConfig {
-	cfg := newTestWasmConfig(enterprise)
+func makeTestWasmConfig(protocol string, enterprise bool) *testWasmConfig {
+	cfg := newTestWasmConfig(protocol, enterprise)
 	cfg.Required = false
-	cfg.Protocol = "http"
+	cfg.Protocol = protocol
 	cfg.ProxyType = "connect-proxy"
 	cfg.ListenerType = "inbound"
 	cfg.PluginConfig.Name = "test-plugin-name"
@@ -618,8 +642,8 @@ func makeTestWasmConfig(enterprise bool) *testWasmConfig {
 	return cfg
 }
 
-func newTestWasmConfig(enterprise bool) *testWasmConfig {
-	cfg := &testWasmConfig{}
+func newTestWasmConfig(protocol string, enterprise bool) *testWasmConfig {
+	cfg := &testWasmConfig{Protocol: protocol}
 	if enterprise {
 		cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.Service.Namespace = "ns1"
 		cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.Service.Partition = "ap1"

@@ -63,7 +63,7 @@ func TestErrorStrings(t *testing.T) {
 			Key:     "http",
 			Wrapped: fakeWrappedErr,
 		},
-		"ErrOwnerInvalid": ErrOwnerInvalid{
+		"ErrOwnerInvalid": ErrOwnerTypeInvalid{
 			ResourceType: &pbresource.Type{Group: "foo", GroupVersion: "v1", Kind: "bar"},
 			OwnerType:    &pbresource.Type{Group: "other", GroupVersion: "v2", Kind: "something"},
 		},

@@ -72,6 +72,10 @@ function main {
 
     status "Generated gRPC rate limit mapping file"
 
+    generate_protoset_file
+
+    status "Generated protoset file"
+
     return 0
 }
 
@@ -150,6 +154,12 @@ function generate_rate_limit_mappings {
         err "Failed to generate gRPC rate limit mappings"
         return 1
     }
+}
+
+function generate_protoset_file {
+  local pkg_dir="${SOURCE_DIR}/pkg"
+  mkdir -p "$pkg_dir"
+  print_run buf build -o "${pkg_dir}/consul.protoset"
 }
 
 main "$@"

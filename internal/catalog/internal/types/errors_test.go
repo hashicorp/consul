@@ -52,6 +52,10 @@ func TestErrorStrings(t *testing.T) {
 		"errTooMuchMesh": errTooMuchMesh{
 			Ports: []string{"http", "grpc"},
 		},
+		"errInvalidEndpointsOwnerName": errInvalidEndpointsOwnerName{
+			Name:      "foo",
+			OwnerName: "bar",
+		},
 		"errNotDNSLabel":                errNotDNSLabel,
 		"errNotIPAddress":               errNotIPAddress,
 		"errUnixSocketMultiport":        errUnixSocketMultiport,

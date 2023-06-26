@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -191,7 +190,7 @@ func TestController_String(t *testing.T) {
 		WithPlacement(controller.PlacementEachServer)
 
 	require.Equal(t,
-		`<Controller managed_type="demo.v2.artist", watched_types=["demo.v2.album"], backoff=<base="5s", max="1h0m0s">, placement="each-server">`,
+		`<Controller managed_type="demo.v2.Artist", watched_types=["demo.v2.Album"], backoff=<base="5s", max="1h0m0s">, placement="each-server">`,
 		ctrl.String(),
 	)
 }
@@ -202,7 +201,7 @@ func TestController_NoReconciler(t *testing.T) {
 
 	ctrl := controller.ForType(demo.TypeV2Artist)
 	require.PanicsWithValue(t,
-		`cannot register controller without a reconciler <Controller managed_type="demo.v2.artist", watched_types=[], backoff=<base="5ms", max="16m40s">, placement="singleton">`,
+		`cannot register controller without a reconciler <Controller managed_type="demo.v2.Artist", watched_types=[], backoff=<base="5ms", max="16m40s">, placement="singleton">`,
 		func() { mgr.Register(ctrl) })
 }
 
@@ -266,77 +265,4 @@ func testContext(t *testing.T) context.Context {
 	t.Cleanup(cancel)
 
 	return ctx
-}
-
-func resourceID(group string, version string, kind string, name string) *pbresource.ID {
-	return &pbresource.ID{
-		Type: &pbresource.Type{
-			Group:        group,
-			GroupVersion: version,
-			Kind:         kind,
-		},
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
-		Name: name,
-	}
-}
-
-func TestMapOwnerFiltered(t *testing.T) {
-	mapper := controller.MapOwnerFiltered(&pbresource.Type{
-		Group:        "foo",
-		GroupVersion: "v1",
-		Kind:         "bar",
-	})
-
-	type testCase struct {
-		owner   *pbresource.ID
-		matches bool
-	}
-
-	cases := map[string]testCase{
-		"nil-owner": {
-			owner:   nil,
-			matches: false,
-		},
-		"group-mismatch": {
-			owner:   resourceID("other", "v1", "bar", "irrelevant"),
-			matches: false,
-		},
-		"group-version-mismatch": {
-			owner:   resourceID("foo", "v2", "bar", "irrelevant"),
-			matches: false,
-		},
-		"kind-mismatch": {
-			owner:   resourceID("foo", "v1", "baz", "irrelevant"),
-			matches: false,
-		},
-		"match": {
-			owner:   resourceID("foo", "v1", "bar", "irrelevant"),
-			matches: true,
-		},
-	}
-
-	for name, tcase := range cases {
-		t.Run(name, func(t *testing.T) {
-			// the runtime is not used by the mapper so its fine to pass an empty struct
-			req, err := mapper(context.Background(), controller.Runtime{}, &pbresource.Resource{
-				Id:    resourceID("foo", "v1", "other", "x"),
-				Owner: tcase.owner,
-			})
-
-			// The mapper has no error paths at present
-			require.NoError(t, err)
-
-			if tcase.matches {
-				require.NotNil(t, req)
-				require.Len(t, req, 1)
-				prototest.AssertDeepEqual(t, req[0].ID, tcase.owner, cmpopts.EquateEmpty())
-			} else {
-				require.Nil(t, req)
-			}
-		})
-	}
 }

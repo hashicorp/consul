@@ -54,6 +54,15 @@ func TestConstructor(t *testing.T) {
 			arguments: makeArguments(map[string]interface{}{"Listener": "invalid"}),
 			ok:        false,
 		},
+		"default proxy type": {
+			arguments: makeArguments(map[string]interface{}{"ProxyType": ""}),
+			expected: lua{
+				ProxyType: "connect-proxy",
+				Listener:  "inbound",
+				Script:    "lua-script",
+			},
+			ok: true,
+		},
 		"valid everything": {
 			arguments: makeArguments(map[string]interface{}{}),
 			expected: lua{

@@ -39,10 +39,12 @@ const (
 )
 
 const (
-	BuiltinAWSLambdaExtension      string = "builtin/aws/lambda"
-	BuiltinLuaExtension            string = "builtin/lua"
-	BuiltinLocalRatelimitExtension string = "builtin/http/localratelimit"
-	BuiltinWasmExtension           string = "builtin/wasm"
+	BuiltinAWSLambdaExtension        string = "builtin/aws/lambda"
+	BuiltinExtAuthzExtension         string = "builtin/ext-authz"
+	BuiltinLuaExtension              string = "builtin/lua"
+	BuiltinLocalRatelimitExtension   string = "builtin/http/localratelimit"
+	BuiltinPropertyOverrideExtension string = "builtin/property-override"
+	BuiltinWasmExtension             string = "builtin/wasm"
 	// BuiltinValidateExtension should not be exposed directly or accepted as a valid configured
 	// extension type, as it is only used indirectly via troubleshooting tools. It is included here
 	// for common reference alongside other builtin extensions.
@@ -142,9 +144,11 @@ type ExposeConfig struct {
 
 // EnvoyExtension has configuration for an extension that patches Envoy resources.
 type EnvoyExtension struct {
-	Name      string
-	Required  bool
-	Arguments map[string]interface{} `bexpr:"-"`
+	Name          string
+	Required      bool
+	Arguments     map[string]interface{} `bexpr:"-"`
+	ConsulVersion string
+	EnvoyVersion  string
 }
 
 type ExposePath struct {

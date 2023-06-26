@@ -1,0 +1,3 @@
+```release-note:feature
+cli: (Enterprise only) Add a new `consul operator audit hash` command to retrieve and compare the hash of the data used by the audit log hash function and salt.
+```

@@ -71,7 +71,7 @@ func TestRead_TypeNotFound(t *testing.T) {
 	_, err = client.Read(context.Background(), &pbresource.ReadRequest{Id: artist.Id})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestRead_ResourceNotFound(t *testing.T) {

@@ -58,7 +58,7 @@ func TestList_TypeNotFound(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestList_Empty(t *testing.T) {
@@ -178,7 +178,7 @@ func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 
 	// allow list, deny read
 	authz := AuthorizerFrom(t, demo.ArtistV2ListPolicy,
-		`key_prefix "resource/demo.v2.artist/" { policy = "deny" }`)
+		`key_prefix "resource/demo.v2.Artist/" { policy = "deny" }`)
 	_, rsp, err := roundTripList(t, authz)
 
 	// verify resource filtered out by key:read denied hence no results

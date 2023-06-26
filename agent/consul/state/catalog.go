@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -916,7 +915,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		if err != nil {
 			return err
 		}
-		if supported {
+		if supported && sn.Name != "" {
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
 			vip, err := assignServiceVirtualIP(tx, idx, psn)
 			if err != nil {
@@ -2111,7 +2110,13 @@ func freeServiceVirtualIP(
 
 	// Don't deregister the virtual IP if at least one resolver/router/splitter config entry still
 	// references this service.
-	configEntryVIPKinds := []string{structs.ServiceResolver, structs.ServiceRouter, structs.ServiceSplitter}
+	configEntryVIPKinds := []string{
+		structs.ServiceResolver,
+		structs.ServiceRouter,
+		structs.ServiceSplitter,
+		structs.ServiceDefaults,
+		structs.ServiceIntentions,
+	}
 	for _, kind := range configEntryVIPKinds {
 		_, entry, err := configEntryTxn(tx, nil, kind, psn.ServiceName.Name, &psn.ServiceName.EnterpriseMeta)
 		if err != nil {
@@ -3052,14 +3057,15 @@ func (s *Store) ServiceVirtualIPs() (uint64, []ServiceVirtualIP, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return servicesVirtualIPsTxn(tx)
+	return servicesVirtualIPsTxn(tx, nil)
 }
 
-func servicesVirtualIPsTxn(tx ReadTxn) (uint64, []ServiceVirtualIP, error) {
+func servicesVirtualIPsTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, []ServiceVirtualIP, error) {
 	iter, err := tx.Get(tableServiceVirtualIPs, indexID)
 	if err != nil {
 		return 0, nil, err
 	}
+	ws.Add(iter.WatchCh())
 
 	var vips []ServiceVirtualIP
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
@@ -4711,14 +4717,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 
 		var mapping *upstreamDownstream
 		if existing, ok := obj.(*upstreamDownstream); ok {
-			rawCopy, err := copystructure.Copy(existing)
-			if err != nil {
-				return fmt.Errorf("failed to copy existing topology mapping: %v", err)
-			}
-			mapping, ok = rawCopy.(*upstreamDownstream)
-			if !ok {
-				return fmt.Errorf("unexpected topology type %T", rawCopy)
-			}
+			mapping := existing.DeepCopy()
 			mapping.Refs[uid] = struct{}{}
 			mapping.ModifyIndex = idx
 
@@ -4784,14 +4783,7 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 
 	// Do the updates in a separate loop so we don't trash the iterator.
 	for _, m := range mappings {
-		rawCopy, err := copystructure.Copy(m)
-		if err != nil {
-			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
-		}
-		copy, ok := rawCopy.(*upstreamDownstream)
-		if !ok {
-			return fmt.Errorf("unexpected topology type %T", rawCopy)
-		}
+		copy := m.DeepCopy()
 
 		// Bail early if there's no reference to the proxy ID we're deleting
 		if _, ok := copy.Refs[uid]; !ok {

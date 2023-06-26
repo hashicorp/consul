@@ -711,6 +711,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     servers in all federated datacenters must have this enabled before any client can use
     [`use_streaming_backend`](#use_streaming_backend).
 
+- `reporting`<EnterpriseAlert inline /> - This option allows options for HashiCorp reporting.
+    - `license` - The license object allows users to control automatic reporting of license utilization metrics to HashiCorp.
+      - `enabled`: (Defaults to `true`) Enables automatic license utilization reporting.
+
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/docs/agent/config/cli-flags#_segment).
 
   ~> **Warning:** The `segment` option cannot be used with the [`partition`](#partition-1) option.
@@ -1818,8 +1822,7 @@ subsystem that provides Consul's service mesh capabilities.
     geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
   - `disable_hostname` ((#telemetry-disable_hostname))
-    This controls whether or not to prepend runtime telemetry with the machine's
-    hostname, defaults to false.
+    Set to `true` to stop prepending the machine's hostname to gauge-type metrics. Default is `false`.
 
   - `dogstatsd_addr` ((#telemetry-dogstatsd_addr)) This provides the address
     of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible
@@ -1830,6 +1833,9 @@ subsystem that provides Consul's service mesh capabilities.
   - `dogstatsd_tags` ((#telemetry-dogstatsd_tags)) This provides a list
     of global tags that will be added to all telemetry packets sent to DogStatsD.
     It is a list of strings, where each string looks like "my_tag_name:my_tag_value".
+
+  - `enable_host_metrics` ((#telemetry-enable_host_metrics))
+    This enables reporting of host metrics about system resources, defaults to false.
 
   - `filter_default` ((#telemetry-filter_default))
     This controls whether to allow metrics that have not been specified by the filter.
