@@ -1,0 +1,12 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+FROM ubuntu:22.04
+RUN apt update && apt install -y software-properties-common curl
+RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
+ARG TARGETARCH
+RUN apt-add-repository "deb [arch=${TARGETARCH}] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+ARG PACKAGE=consul \
+ARG VERSION \
+ARG SUFFIX=1
+RUN apt-get update && apt-get install -y ${PACKAGE}=${VERSION}-${SUFFIX}
