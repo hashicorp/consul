@@ -573,3 +573,12 @@ help:
 .PHONY: all bin dev dist cov test test-internal cover lint ui tools
 .PHONY: docker-images go-build-image ui-build-image consul-docker ui-docker
 .PHONY: version test-envoy-integ
+
+.PHONY: format
+format:
+	goimports-reviser \
+	  -company-prefixes github.com/hashicorp \
+	  -rm-unused \
+	  -recursive \
+	  -project-name github.com/hashicorp/consul/ \
+	  agent
