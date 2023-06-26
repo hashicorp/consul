@@ -754,7 +754,7 @@ function gen_envoy_bootstrap {
     -grpc-addr envoy_consul-${DC}_1:8502 \
     -admin-access-log-path="C:/envoy/envoy.log" \
     -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} \
-    > /c/workdir/${DC}/envoy/${SERVICE}-bootstrap.json 2>&1"); then
+    > /c/workdir/${DC}/envoy/${SERVICE}-bootstrap.json"); then
     # All OK, write config to file
     echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json
   else

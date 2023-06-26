@@ -275,39 +275,6 @@ sources {
 }
 '
 
-function gen_envoy_bootstrap {
-  SERVICE=$1
-  ADMIN_PORT=$2
-  DC=${3:-primary}
-  IS_GW=${4:-0}
-  EXTRA_ENVOY_BS_ARGS="${5-}"
-  ADMIN_HOST="0.0.0.0"
-
-  PROXY_ID="$SERVICE"
-  if ! is_set "$IS_GW"; then
-    PROXY_ID="$SERVICE-sidecar-proxy"
-    ADMIN_HOST="127.0.0.1"
-  fi
-
-  if output=$(docker_consul_for_proxy_bootstrap $DC "consul connect envoy -bootstrap \
-    -proxy-id $PROXY_ID \
-    -envoy-version "$ENVOY_VERSION" \
-    -http-addr envoy_consul-${DC}_1:8500 \
-    -grpc-addr envoy_consul-${DC}_1:8502 \
-    -admin-access-log-path="C:/envoy/envoy.log" \
-    -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} \
-    > /c/workdir/${DC}/envoy/${SERVICE}-bootstrap.json 2>&1"); then
-    # All OK, write config to file
-    echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json
-  else
-    status=$?
-    # Command failed, instead of swallowing error (printed on stdout by docker
-    # it seems) by writing it to file, echo it
-    echo "$output"
-    return $status
-  fi
-}
-
 register_services primary
 
 gen_envoy_bootstrap api-gateway 20000 primary true
