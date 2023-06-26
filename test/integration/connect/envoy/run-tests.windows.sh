@@ -155,6 +155,7 @@ function start_consul {
     '-p=8502:8502'
     '-p=9411:9411'
     '-p=16686:16686'
+    '-p=5000:5000'
   )
   case "$DC" in
     secondary)
