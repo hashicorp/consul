@@ -13,10 +13,12 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/rate"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/consul/rate"
 )
 
 // obs holds all the things we want to assert on that we recorded correctly in our tests.

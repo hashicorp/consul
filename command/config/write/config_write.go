@@ -9,9 +9,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/config"

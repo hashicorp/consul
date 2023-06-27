@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"

@@ -8,12 +8,11 @@ import (
 	"net"
 	"testing"
 
-	"github.com/hashicorp/consul/connect"
-
 	"github.com/stretchr/testify/require"
 
 	agConnect "github.com/hashicorp/consul/agent/connect"
 	agMetrics "github.com/hashicorp/consul/agent/metrics"
+	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"

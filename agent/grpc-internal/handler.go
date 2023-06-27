@@ -9,15 +9,13 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-
-	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
-
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/agent/consul/rate"
+	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 )
 
 var (

@@ -7,9 +7,11 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestStore_SamenessGroup_checkSamenessGroup(t *testing.T) {

@@ -12,10 +12,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/go-bexpr"
 	"github.com/mitchellh/pointerstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-bexpr"
 
 	"github.com/hashicorp/consul/api"
 )

@@ -15,11 +15,13 @@ import (
 	"strconv"
 
 	"github.com/armon/circbuf"
-	"github.com/hashicorp/consul/agent/exec"
-	"github.com/hashicorp/consul/api/watch"
+	"golang.org/x/net/context"
+
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
-	"golang.org/x/net/context"
+
+	"github.com/hashicorp/consul/agent/exec"
+	"github.com/hashicorp/consul/api/watch"
 )
 
 const (

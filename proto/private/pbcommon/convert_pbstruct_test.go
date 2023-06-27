@@ -6,9 +6,10 @@ package pbcommon
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestEnvoyExtensionsToStructs(t *testing.T) {

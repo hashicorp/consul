@@ -9,8 +9,9 @@ package logging
 import (
 	"testing"
 
-	gsyslog "github.com/hashicorp/go-syslog"
 	"github.com/stretchr/testify/require"
+
+	gsyslog "github.com/hashicorp/go-syslog"
 )
 
 func TestSyslog_Unsupported(t *testing.T) {

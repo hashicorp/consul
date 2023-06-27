@@ -4,8 +4,9 @@
 package authmethod
 
 import (
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/command/flags"
 )
 
 func New() *cmd {

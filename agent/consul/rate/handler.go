@@ -8,16 +8,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/metadata"
 	"net"
 	"reflect"
 	"sync/atomic"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/consul/agent/metadata"
 )
 
 var (

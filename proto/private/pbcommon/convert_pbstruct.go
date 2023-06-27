@@ -4,8 +4,9 @@
 package pbcommon
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // ProtobufTypesStructToMapStringInterface converts a protobuf/structpb.Struct into a

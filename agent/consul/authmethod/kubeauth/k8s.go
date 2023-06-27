@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
 	"gopkg.in/square/go-jose.v2/jwt"
 	authv1 "k8s.io/api/authentication/v1"
 	client_metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +17,9 @@ import (
 	client_corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	client_rest "k8s.io/client-go/rest"
 	cert "k8s.io/client-go/util/cert"
+
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"

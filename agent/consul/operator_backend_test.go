@@ -8,17 +8,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	gogrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pboperator"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/stretchr/testify/require"
-	gogrpc "google.golang.org/grpc"
-
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
 

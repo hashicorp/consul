@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
+
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/awsutil"

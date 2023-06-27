@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"io/fs"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // ParseResourcesFromFilesystem will walk the filesystem at the given path

@@ -7,8 +7,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (

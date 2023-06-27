@@ -12,10 +12,11 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
-	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/reporting"

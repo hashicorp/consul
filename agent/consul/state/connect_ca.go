@@ -6,8 +6,9 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-memdb"
 	"github.com/pkg/errors"
+
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
 )

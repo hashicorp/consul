@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/api"
-
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 

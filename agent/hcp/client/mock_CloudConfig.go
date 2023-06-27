@@ -4,10 +4,11 @@ import (
 	"crypto/tls"
 	"net/url"
 
+	"golang.org/x/oauth2"
+
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/profile"
 	"github.com/hashicorp/hcp-sdk-go/resource"
-	"golang.org/x/oauth2"
 )
 
 const testResourceID = "organization/test-org/project/test-project/test-type/test-id"

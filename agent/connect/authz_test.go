@@ -4,9 +4,11 @@
 package connect
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestAuthorizeIntentionTarget(t *testing.T) {

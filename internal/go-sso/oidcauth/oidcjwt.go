@@ -14,10 +14,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/pointerstructure"
 	"golang.org/x/oauth2"
+
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/internal/strutil"
 )

@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"google.golang.org/grpc/grpclog"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestGRPCLogger(t *testing.T) {

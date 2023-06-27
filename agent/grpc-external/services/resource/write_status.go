@@ -8,11 +8,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/oklog/ulid/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/storage"

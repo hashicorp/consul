@@ -9,12 +9,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/consul/internal/catalog/catalogtest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/go-version"
 )
 
 var minCatalogResourceVersion = version.Must(version.NewVersion("v1.16.0"))

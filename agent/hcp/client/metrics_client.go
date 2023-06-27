@@ -8,15 +8,16 @@ import (
 	"net/http"
 	"time"
 
+	colmetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
+	"golang.org/x/oauth2"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-retryablehttp"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/resource"
-	colmetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
-	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
-	"golang.org/x/oauth2"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/version"
 )

@@ -7,9 +7,11 @@
 package structs
 
 import (
-	"github.com/hashicorp/hcl"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/hcl"
 )
 
 func TestDecodeConfigEntry_OSS(t *testing.T) {

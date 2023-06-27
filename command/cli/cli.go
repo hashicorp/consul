@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/olekukonko/tablewriter"
-
 	mcli "github.com/mitchellh/cli"
+	"github.com/olekukonko/tablewriter"
 )
 
 // Ui implements the mitchellh/cli.Ui interface, while exposing the underlying

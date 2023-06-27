@@ -6,11 +6,11 @@ package proxycfg
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 )
 

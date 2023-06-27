@@ -6,6 +6,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"

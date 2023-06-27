@@ -14,9 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-bexpr"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/go-bexpr"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"

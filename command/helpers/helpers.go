@@ -10,10 +10,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/decode"
-	"github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/mapstructure"
 )
 
 func loadFromFile(path string) (string, error) {

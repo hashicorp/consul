@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-uuid"
 
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_ClientTxn(t *testing.T) {

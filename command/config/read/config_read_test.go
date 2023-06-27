@@ -6,10 +6,11 @@ package read
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestConfigRead_noTabs(t *testing.T) {

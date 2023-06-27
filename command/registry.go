@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	mcli "github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
 	aclam "github.com/hashicorp/consul/command/acl/authmethod"
@@ -48,6 +50,7 @@ import (
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/config"
 	configdelete "github.com/hashicorp/consul/command/config/delete"
 	configlist "github.com/hashicorp/consul/command/config/list"
@@ -128,10 +131,6 @@ import (
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/command/watch"
-
-	mcli "github.com/mitchellh/cli"
-
-	"github.com/hashicorp/consul/command/cli"
 )
 
 // RegisteredCommands returns a realized mapping of available CLI commands in a format that

@@ -14,10 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/yamux"
-
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"github.com/hashicorp/yamux"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"

@@ -12,9 +12,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )

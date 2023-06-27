@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	"github.com/stretchr/testify/require"
 )
 
 func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Service, libservice.Service) {

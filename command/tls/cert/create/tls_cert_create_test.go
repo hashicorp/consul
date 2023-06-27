@@ -16,9 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/sdk/testutil"
-
 	caCreate "github.com/hashicorp/consul/command/tls/ca/create"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestValidateCommand_noTabs(t *testing.T) {

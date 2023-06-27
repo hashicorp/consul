@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // apiServers is a wrapper around errgroup.Group for managing go routines for

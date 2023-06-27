@@ -7,12 +7,11 @@ import (
 	"context"
 	"errors"
 
+	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/tap"
-
-	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 
 	"github.com/hashicorp/consul/agent/consul/rate"
 )

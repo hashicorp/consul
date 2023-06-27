@@ -13,14 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
+	"golang.org/x/crypto/blake2b"
+
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
-
-	"golang.org/x/crypto/blake2b"
 )
 
 const (

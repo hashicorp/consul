@@ -10,11 +10,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/miekg/dns"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/miekg/dns"
-	"github.com/stretchr/testify/require"
 )
 
 func TestDNS_OSS_PeeredServices(t *testing.T) {

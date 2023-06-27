@@ -7,9 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // QueryOptionsFromContext returns the query options in the gRPC metadata attached to the

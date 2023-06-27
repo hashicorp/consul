@@ -9,8 +9,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 // UpdateEvent is a struct summarizing an update to a cache entry

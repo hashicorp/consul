@@ -6,8 +6,9 @@ package state
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestStore_SystemMetadata(t *testing.T) {

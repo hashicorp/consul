@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -16,14 +15,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/serf/serf"
-
 	goretry "github.com/avast/retry-go"
 	"github.com/stretchr/testify/require"
 	"github.com/teris-io/shortid"
 	"github.com/testcontainers/testcontainers-go"
+
+	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster

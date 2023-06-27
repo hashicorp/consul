@@ -19,6 +19,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/go-raftchunking"
+	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/coordinate"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -29,11 +35,6 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-raftchunking"
-	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 func generateUUID() (ret string) {

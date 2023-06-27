@@ -16,9 +16,8 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"time"
-
 	"net/url"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 )

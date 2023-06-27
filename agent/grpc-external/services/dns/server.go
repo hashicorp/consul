@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/proto-public/pbdns"
 )

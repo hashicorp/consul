@@ -16,6 +16,7 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/hashicorp/consul-awsauth/iamauthtest"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"

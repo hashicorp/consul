@@ -11,9 +11,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
+
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
 	consulapi "github.com/hashicorp/consul/api"

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/consul/state"

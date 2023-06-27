@@ -10,8 +10,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/miekg/dns"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 // InlineCertificateConfigEntry manages the configuration for an inline certificate

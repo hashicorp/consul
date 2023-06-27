@@ -12,7 +12,6 @@ import (
 
 	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

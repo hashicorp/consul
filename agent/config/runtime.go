@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"

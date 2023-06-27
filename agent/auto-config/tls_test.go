@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 func newLeaf(t *testing.T, agentName, datacenter string, ca *structs.CARoot, idx uint64, expiration time.Duration) *structs.IssuedCert {

@@ -6,11 +6,12 @@ package consul
 import (
 	"context"
 
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/rpc/operator"
 	"github.com/hashicorp/consul/proto/private/pboperator"
-	"github.com/hashicorp/raft"
 )
 
 type OperatorBackend struct {

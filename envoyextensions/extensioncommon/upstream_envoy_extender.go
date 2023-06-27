@@ -5,13 +5,16 @@ package extensioncommon
 
 import (
 	"fmt"
+
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/go-multierror"
-	"google.golang.org/protobuf/proto"
 )
 
 // UpstreamEnvoyExtender facilitates uncommon scenarios in which an upstream service's extension needs to apply changes

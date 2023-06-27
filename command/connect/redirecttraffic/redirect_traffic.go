@@ -9,11 +9,12 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 )
 
 func New(ui cli.Ui) *cmd {

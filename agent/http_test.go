@@ -24,11 +24,12 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
+
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"

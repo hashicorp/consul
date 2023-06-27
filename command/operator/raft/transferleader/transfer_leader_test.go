@@ -4,10 +4,12 @@
 package transferleader
 
 import (
-	"github.com/hashicorp/consul/agent"
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/agent"
 )
 
 func TestOperatorRaftTransferLeaderCommand_noTabs(t *testing.T) {

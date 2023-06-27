@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
-
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 

@@ -8,11 +8,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStructs_ACLAuthMethod_Kubernetes_MsgpackEncodeDecode(t *testing.T) {

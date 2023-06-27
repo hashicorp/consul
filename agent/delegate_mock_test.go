@@ -7,8 +7,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"

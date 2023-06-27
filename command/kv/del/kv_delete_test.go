@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
 )
 
 func TestKVDeleteCommand_noTabs(t *testing.T) {

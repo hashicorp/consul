@@ -4,12 +4,11 @@
 package connect
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"testing"
 	"time"
-
-	"crypto/x509"
-	"encoding/pem"
 
 	"github.com/stretchr/testify/require"
 

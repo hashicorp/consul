@@ -18,6 +18,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 

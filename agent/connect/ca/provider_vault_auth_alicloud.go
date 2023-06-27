@@ -7,8 +7,10 @@ import (
 	"fmt"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers"
-	"github.com/hashicorp/consul/agent/structs"
+
 	"github.com/hashicorp/vault-plugin-auth-alicloud/tools"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func NewAliCloudAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, error) {

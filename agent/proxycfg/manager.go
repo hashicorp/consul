@@ -8,8 +8,9 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"

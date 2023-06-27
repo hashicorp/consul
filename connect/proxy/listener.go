@@ -13,6 +13,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/api"

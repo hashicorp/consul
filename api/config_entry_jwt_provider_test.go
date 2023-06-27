@@ -5,8 +5,9 @@ package api
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestAPI_ConfigEntries_JWTProvider(t *testing.T) {

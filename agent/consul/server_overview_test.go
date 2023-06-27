@@ -6,9 +6,10 @@ package consul
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCatalogOverview(t *testing.T) {

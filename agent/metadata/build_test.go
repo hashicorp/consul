@@ -6,9 +6,10 @@ package metadata
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBuild(t *testing.T) {

@@ -10,10 +10,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/hashicorp/consul/acl"
-
 	bexpr "github.com/hashicorp/go-bexpr"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/dns"

@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
-	memdb "github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
+
+	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"

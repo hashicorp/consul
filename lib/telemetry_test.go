@@ -9,11 +9,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/consul/logging"
-
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/logging"
 )
 
 func newCfg() TelemetryConfig {

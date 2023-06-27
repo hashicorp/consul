@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	"google.golang.org/protobuf/types/known/durationpb"
-
 	"github.com/mitchellh/mapstructure"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/structs"

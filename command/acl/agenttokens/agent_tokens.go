@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {

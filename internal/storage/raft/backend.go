@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	pbstorage "github.com/hashicorp/consul/proto/private/pbstorage"
 )
 

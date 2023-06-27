@@ -590,5 +590,5 @@ gci:
 	  --section default \
 	  --section "prefix(github.com/hashicorp/)" \
 	  --section "prefix(github.com/hashicorp/consul/)" \
-	  --skip-generated
+	  --skip-generated \
 	  .

@@ -6,8 +6,9 @@ package pbcommon
 import (
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // IsRead is always true for QueryOption

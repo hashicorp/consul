@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"fortio.org/fortio/fgrpc"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // GRPCPing sends a fgrpc.PingMessage to a fortio server at addr, analogous to

@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"

@@ -6,9 +6,10 @@ package peerstream
 import (
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"

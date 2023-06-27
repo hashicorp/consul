@@ -4,9 +4,8 @@
 package token
 
 import (
-	"sync"
-
 	"crypto/subtle"
+	"sync"
 )
 
 type TokenSource bool

@@ -19,8 +19,9 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
-	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"

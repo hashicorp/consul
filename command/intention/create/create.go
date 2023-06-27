@@ -10,10 +10,11 @@ import (
 	"io"
 	"os"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/intention"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {

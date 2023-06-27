@@ -7,10 +7,12 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/raft"
-	"github.com/stretchr/testify/assert"
 )
 
 type MockSink struct {

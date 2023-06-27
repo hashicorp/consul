@@ -9,11 +9,12 @@ import (
 	"net"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/proto-public/pbdns"

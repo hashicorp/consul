@@ -11,12 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/svc"
+
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"golang.org/x/sys/windows"
-	"golang.org/x/sys/windows/svc"
 )
 
 func TestCheck_OSService(t *testing.T) {
