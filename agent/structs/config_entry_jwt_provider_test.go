@@ -339,8 +339,14 @@ func TestJWTProviderConfigEntry_ACLs(t *testing.T) {
 					canWrite:   false,
 				},
 				{
-					name:       "jwt-provider: service write",
+					name:       "jwt-provider: any service write",
 					authorizer: newTestAuthz(t, `service "" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "jwt-provider: specific service write",
+					authorizer: newTestAuthz(t, `service "web" { policy = "write" }`),
 					canRead:    true,
 					canWrite:   false,
 				},
