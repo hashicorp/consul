@@ -236,7 +236,7 @@ Note that you must remove the token manually after completing the migration.
 
   ```bash
   kubectl config set-context --current --namespace=<consul installation namespace>
-  INJECTOR_DEPLOYMENT=$(kg deploy -l "component=connect-injector" -o=jsonpath='{.items[0].metadata.name}')
+  INJECTOR_DEPLOYMENT=$(kubectl get deploy -l "component=connect-injector" -o=jsonpath='{.items[0].metadata.name}')
   kubectl patch deploy $INJECTOR_DEPLOYMENT --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/lifecycle"}]'
   ```
 
