@@ -1,5 +1,7 @@
-FROM docker.mirror.hashicorp.services/windows/servercore:1809
+FROM mcr.microsoft.com/windows/servercore:ltsc2019
 ARG VERSION=1.13.3
+
+ENV chocolateyVersion=1.4.0
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
