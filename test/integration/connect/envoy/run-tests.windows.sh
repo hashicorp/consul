@@ -565,6 +565,7 @@ function suite_setup {
   docker.exe volume create envoy_workdir &>/dev/null
   docker.exe run -d --name envoy_workdir_1 \
       $WORKDIR_SNIPPET \
+      --user ContainerAdministrator \
       --net=none \
       "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause" &>/dev/null
 

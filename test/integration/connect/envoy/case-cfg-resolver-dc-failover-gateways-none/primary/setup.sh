@@ -27,5 +27,7 @@ wait_for_config_entry service-resolver s2 secondary
 
 register_services primary
 
+sleep 999
+
 gen_envoy_bootstrap s1 19000 primary
 gen_envoy_bootstrap s2 19001 primary

@@ -733,6 +733,13 @@ function must_fail_http_request {
   echo "$output" | grep "403 Forbidden"
 }
 
+function upsert_config_entry {
+  local DC="$1"
+  local BODY="$2"
+
+  echo "$BODY" | docker_consul "$DC" consul config write -
+}
+
 function gen_envoy_bootstrap {
   SERVICE=$1
   ADMIN_PORT=$2
@@ -753,16 +760,21 @@ function gen_envoy_bootstrap {
     -http-addr envoy_consul-${DC}_1:8500 \
     -grpc-addr envoy_consul-${DC}_1:8502 \
     -admin-access-log-path="C:/envoy/envoy.log" \
-    -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} "); then
+    -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} \
+    > /c/workdir/${DC}/envoy/${SERVICE}-bootstrap.json"); then
+
     # All OK, write config to file
-    echo "$output" > /c/workdir/${DC}/envoy/$SERVICE-bootstrap.json
+    echo $output
+    #echo "$output" > /c/workdir/${DC}/envoy/$SERVICE-bootstrap.json
   else
     status=$?
     # Command failed, instead of swallowing error (printed on stdout by docker
     # it seems) by writing it to file, echo it
     echo "$output"
-    return $status
+    #return $status
   fi
+
+
 }
 
 function read_config_entry {
@@ -770,7 +782,7 @@ function read_config_entry {
   local NAME=$2
   local DC=${3:-primary}
   get_consul_hostname $DC
-  docker_consul_exec "$DC" bash -c "consul config read -kind $KIND -name $NAME -http-addr="$CONSUL_HOSTNAME:8500""
+  docker_consul_exec "$DC" bash -c "consul config read -kind $KIND -name $NAME -http-addr=\"$CONSUL_HOSTNAME:8500\""
 }
 
 function wait_for_namespace {
@@ -781,7 +793,7 @@ function wait_for_namespace {
 }
 
 function wait_for_config_entry {
-  retry_default read_config_entry "$@" >/dev/null
+  retry_default read_config_entry "$@"
 }
 
 function delete_config_entry {
