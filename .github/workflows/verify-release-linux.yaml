@@ -20,14 +20,11 @@ on:
         required: true
         type: string
 
-env:
-  PACKAGE: ${{ inputs.packageName }}
-  VERSION: ${{ inputs.version }}
 jobs:
   verify-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: docker build with version
-        run: docker build --build-arg PACKAGE=${PACKAGE} --build-arg VERSION=${VERSION} -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
+        run: docker build --build-arg PACKAGE=${{ inputs.packageName }} --build-arg VERSION=${{ inputs.version }} -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
 
