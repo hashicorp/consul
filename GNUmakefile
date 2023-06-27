@@ -586,8 +586,9 @@ format:
 .PHONY: gci
 gci:
 	gci write \
-	  -s standard \
-	  -s default \
-	  -s "prefix(github.com/hashicorp/)" \
-	  -s "prefix(github.com/hashicorp/consul/)" \
+	  --section standard \
+	  --section default \
+	  --section "prefix(github.com/hashicorp/)" \
+	  --section "prefix(github.com/hashicorp/consul/)" \
+	  --skip-generated
 	  .
