@@ -20,7 +20,7 @@ on:
         type: string
 
 jobs:
-# DEBIAN / AMD64
+  # DEBIAN / AMD64
   verify-ubuntu-amd64:
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +45,7 @@ jobs:
           --build-arg TARGETARCH=amd64 \
           -f ./build-support/docker/Verify-Release-Debian.dockerfile .
             
-# DEBIAN / i386
+  # DEBIAN / i386
   verify-ubuntu-i386:
     runs-on: ubuntu-latest
     steps:
@@ -94,7 +94,7 @@ jobs:
   #         --build-arg TARGETARCH=arm64 \
   #         -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
 
-# RPM
+  # RPM
   verify-fedora:
     runs-on: ubuntu-latest
     steps:
