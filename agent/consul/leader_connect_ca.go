@@ -736,7 +736,7 @@ func shouldPersistNewRootAndConfig(newActiveRoot *structs.CARoot, oldConfig, new
 		return false
 	}
 
-	// Need not persist when the provider, old and new config is the same
+	// Do not persist if the new provider and config are the same as the old
 	return !(newConfig.Provider == oldConfig.Provider && reflect.DeepEqual(newConfig.Config, oldConfig.Config))
 }
 
