@@ -1,0 +1,78 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Verify Release - Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      packageName:
+        description: 'Name of consul release package (consul vs consul-enterprise)'
+        required: true
+        default: 'consul'
+        type: choice
+        options:
+        - consul
+        - consul-enterprise
+      version:
+        description: The x.y.z version (also need to specify applicable suffixes like +ent and -dev)'
+        required: true
+        type: string
+
+jobs:
+  verify-ubuntu-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build with version
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.packageName }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          --build-arg TARGETARCH=amd64 \
+          -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
+
+  verify-debian-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build with version
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.packageName }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          --build-arg TARGETARCH=amd64 \
+          -f ./build-support/docker/Verify-Release-Debian.dockerfile .
+
+  verify-fedora:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build with version
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.packageName }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          -f ./build-support/docker/Verify-Release-Fedora.dockerfile .
+
+  verify-centos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build with version
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.packageName }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          -f ./build-support/docker/Verify-Release-CentOS.dockerfile .
+
+  verify-amazon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build with version
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.packageName }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          -f ./build-support/docker/Verify-Release-Amazon.dockerfile .
