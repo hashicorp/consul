@@ -590,4 +590,4 @@ gci:
 	  -s default \
 	  -s "prefix(github.com/hashicorp/)" \
 	  -s "prefix(github.com/hashicorp/consul/)" \
-	  agent
+	  .
