@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Broken Link Check
+name: Verify Release - Linux
 
 on:
   push:
