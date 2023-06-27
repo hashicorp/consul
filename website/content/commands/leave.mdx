@@ -24,7 +24,7 @@ non-graceful leave can affect cluster availability.
 
 Depending on how many Consul servers are running, running `consul leave` on a server explicitly can reduce the quorum
 size (which is derived from the number of Consul servers, see
-[deployment_table](https://www.consul.io/docs/architecture/consensus#deployment_table)).
+[deployment_table](/consul/docs/architecture/consensus#deployment_table)).
 Even if the cluster used `bootstrap_expect` to set a number of servers and thus quorum size initially,
 issuing `consul leave` on a server will reconfigure the cluster to have fewer servers.
 This means you could end up with just one server that is still able to commit writes because the quorum size for
