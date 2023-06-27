@@ -22,8 +22,13 @@ For nodes in server mode, the node is removed from the Raft peer set
 in a graceful manner. This is critical, as in certain situations a
 non-graceful leave can affect cluster availability.
 
-Running `consul leave` on a server explicitly will reduce the quorum size. Even if the cluster used `bootstrap_expect` to set a quorum size initially, issuing `consul leave` on a server will reconfigure the cluster to have fewer servers.
-This means you could end up with just one server that is still able to commit writes because quorum is only 1, but those writes might be lost if that server fails before more are added.
+Depending on how many Consul servers are running, running `consul leave` on a server explicitly can reduce the quorum
+size (which is derived from the number of Consul servers, see
+[deployment_table](https://www.consul.io/docs/architecture/consensus#deployment_table)).
+Even if the cluster used `bootstrap_expect` to set a number of servers and thus quorum size initially,
+issuing `consul leave` on a server will reconfigure the cluster to have fewer servers.
+This means you could end up with just one server that is still able to commit writes because the quorum size for
+1-server setup is only 1, but those writes might be lost if that server fails before more are added.
 
 The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
 [blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
