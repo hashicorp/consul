@@ -97,5 +97,5 @@ jobs:
         run: |
           docker build \
           --build-arg PACKAGE=${{ inputs.packageName }} \
-          --build-arg VERSION=${{ inputs.version }} 
+          --build-arg VERSION=${{ inputs.version }} \
           -f ./build-support/docker/Verify-Release-Amazon.dockerfile .
