@@ -139,8 +139,10 @@ The key after the slash refers to the corresponding option name in the agent con
   path does not exist, Consul will attempt to mount and configure this
   automatically.
 
-  When WAN Federation is enabled, every secondary
-  datacenter must specify a unique `intermediate_pki_path`.
+  When WAN federation is enabled, every secondary datacenter that shares a common Vault cluster
+  must specify a unique `intermediate_pki_path`. If a Vault cluster is not used by more than one Consul datacenter,
+  then you do not need to specify a unique value for the `intermediate_pki_path`. We still recommend using a
+  unique `intermediate_pki_path` for each datacenter, however, to improve operational and diagnostic clarity.
 
 - `IntermediatePKINamespace` / `intermediate_pki_namespace` (`string: <optional>`) - The absolute namespace
   that the `IntermediatePKIPath` is in. Setting this parameter overrides the `Namespace` option for the `IntermediatePKIPath`. Introduced in 1.12.3.
