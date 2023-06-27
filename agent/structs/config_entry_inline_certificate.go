@@ -10,8 +10,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/miekg/dns"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 // InlineCertificateConfigEntry manages the configuration for an inline certificate
@@ -42,8 +43,13 @@ func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 }
 func (e *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex { return &e.RaftIndex }
 
+// Envoy will silently reject any keys that are less than 2048 bytes long
+// https://github.com/envoyproxy/envoy/blob/main/source/extensions/transport_sockets/tls/context_impl.cc#L238
+const MinKeyLength = 2048
+
 func (e *InlineCertificateConfigEntry) Validate() error {
-	if err := validateConfigEntryMeta(e.Meta); err != nil {
+	err := validateConfigEntryMeta(e.Meta)
+	if err != nil {
 		return err
 	}
 
@@ -52,13 +58,25 @@ func (e *InlineCertificateConfigEntry) Validate() error {
 		return errors.New("failed to parse private key PEM")
 	}
 
+	if privateKeyBlock.Type == "RSA PRIVATE KEY" {
+		key, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+		if err != nil {
+			return err
+		}
+
+		// ensure private key is of the correct length
+		if key.N.BitLen() < MinKeyLength {
+			return errors.New("key length must be at least 2048 bits")
+		}
+	}
+
 	certificateBlock, _ := pem.Decode([]byte(e.Certificate))
 	if certificateBlock == nil {
 		return errors.New("failed to parse certificate PEM")
 	}
 
 	// make sure we have a valid x509 certificate
-	_, err := x509.ParseCertificate(certificateBlock.Bytes)
+	_, err = x509.ParseCertificate(certificateBlock.Bytes)
 	if err != nil {
 		return fmt.Errorf("failed to parse certificate: %w", err)
 	}
