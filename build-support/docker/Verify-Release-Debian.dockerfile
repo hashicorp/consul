@@ -4,7 +4,7 @@
 FROM debian:bullseye
 RUN apt update && apt install -y software-properties-common curl gnupg
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 RUN apt-add-repository "deb [arch=${TARGETARCH}] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
 ARG PACKAGE=consul \
 ARG VERSION \
