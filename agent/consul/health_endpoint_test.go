@@ -1767,5 +1767,11 @@ func TestHealth_RPC_Filter(t *testing.T) {
 		out = new(structs.IndexedHealthChecks)
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
 		require.Len(t, out.HealthChecks, 1)
+
+		args.State = api.HealthAny
+		args.Filter = "connect in ServiceTags and v2 in ServiceTags"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 1)
 	})
 }

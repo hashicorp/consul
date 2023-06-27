@@ -65,6 +65,8 @@ If you are able to tolerate downtime for your applications, you should delete pr
   $ kubectl apply -f apigw-installation.yaml
   ```
 
+1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information.
+
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
 1. After updating all of your `gateway` configurations to use the new controller, you can complete the upgrade again and completely remove the `apiGateway` block to remove the old controller. 
@@ -98,6 +100,8 @@ If you are unable to tolerate any downtime, you can complete the following steps
   ```shell-session
   $ kubectl apply -f apigw-installation.yaml
   ```
+
+1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information.
 
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
