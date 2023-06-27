@@ -20,6 +20,7 @@ on:
         type: string
 
 jobs:
+# DEBIAN / AMD64
   verify-ubuntu-amd64:
     runs-on: ubuntu-latest
     steps:
@@ -30,17 +31,6 @@ jobs:
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
           --build-arg TARGETARCH=amd64 \
-          -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
-  verify-ubuntu-arm64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: docker build with version
-        run: |
-          docker build \
-          --build-arg PACKAGE=${{ inputs.packageName }} \
-          --build-arg VERSION=${{ inputs.version }} \
-          --build-arg TARGETARCH=arm64 \
           -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
 
   verify-debian-amd64:
@@ -54,8 +44,9 @@ jobs:
           --build-arg VERSION=${{ inputs.version }} \
           --build-arg TARGETARCH=amd64 \
           -f ./build-support/docker/Verify-Release-Debian.dockerfile .
-
-  verify-debian-ard64:
+            
+# DEBIAN / i386
+  verify-ubuntu-i386:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -64,9 +55,46 @@ jobs:
           docker build \
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
-          --build-arg TARGETARCH=arm64 \
+          --build-arg TARGETARCH=amd64 \
           -f ./build-support/docker/Verify-Release-Debian.dockerfile .
+  
+  verify-debian-i386:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build with version
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.packageName }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          --build-arg TARGETARCH=i386 \
+          -f ./build-support/docker/Verify-Release-Debian-i386.dockerfile .
 
+  # verify-debian-arm64:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+  #     - name: docker build with version
+  #       run: |
+  #         docker build \
+  #         --build-arg PACKAGE=${{ inputs.packageName }} \
+  #         --build-arg VERSION=${{ inputs.version }} \
+  #         --build-arg TARGETARCH=arm64 \
+  #         -f ./build-support/docker/Verify-Release-Debian.dockerfile .
+
+  # verify-ubuntu-arm64:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+  #     - name: docker build with version
+  #       run: |
+  #         docker build \
+  #         --build-arg PACKAGE=${{ inputs.packageName }} \
+  #         --build-arg VERSION=${{ inputs.version }} \
+  #         --build-arg TARGETARCH=arm64 \
+  #         -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
+
+# RPM
   verify-fedora:
     runs-on: ubuntu-latest
     steps:
