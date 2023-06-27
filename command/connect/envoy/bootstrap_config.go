@@ -844,7 +844,8 @@ func appendTelemetryCollectorConfig(args *BootstrapTplArgs, telemetryCollectorBi
 			"envoy_grpc": {
 			  "cluster_name": "consul_telemetry_collector_loopback"
 			}
-		  }
+		  },
+		  "emit_tags_as_labels": true
 		}
 	  }`
 
