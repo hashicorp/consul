@@ -582,3 +582,12 @@ format:
 	  -recursive \
 	  -project-name github.com/hashicorp/consul/ \
 	  agent
+
+.PHONY: gci
+gci:
+	gci write \
+	  -s standard \
+	  -s default \
+	  -s "prefix(github.com/hashicorp/)" \
+	  -s "prefix(github.com/hashicorp/consul/)" \
+	  agent
