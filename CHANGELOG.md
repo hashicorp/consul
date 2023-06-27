@@ -1,3 +1,34 @@
+## 1.13.9 (June 26, 2023)
+BREAKING CHANGES:
+
+* connect: Disable peering by default in connect proxies for Consul 1.13. This change was made to prevent inefficient polling
+  queries from having a negative impact on server performance. Peering in Consul 1.13 is an experimental feature and is not
+  recommended for use in production environments. If you still wish to use the experimental peering feature, ensure
+  [`peering.enabled = true`](https://developer.hashicorp.com/consul/docs/v1.13.x/agent/config/config-files#peering_enabled)
+  is set on all clients and servers. [[GH-17731](https://github.com/hashicorp/consul/issues/17731)]
+
+SECURITY:
+
+* Update to UBI base image to 9.2. [[GH-17513](https://github.com/hashicorp/consul/issues/17513)]
+
+FEATURES:
+
+* server: **(Enterprise Only)** allow automatic license utilization reporting. [[GH-5102](https://github.com/hashicorp/consul/issues/5102)]
+
+IMPROVEMENTS:
+
+* debug: change default setting of consul debug command. now default duration is 5ms and default log level is 'TRACE' [[GH-17596](https://github.com/hashicorp/consul/issues/17596)]
+* systemd: set service type to notify. [[GH-16845](https://github.com/hashicorp/consul/issues/16845)]
+
+BUG FIXES:
+
+* cache: fix a few minor goroutine leaks in leaf certs and the agent cache [[GH-17636](https://github.com/hashicorp/consul/issues/17636)]
+* namespaces: **(Enterprise only)** fixes a bug where namespaces are stuck in a deferred deletion state indefinitely under some conditions.
+  Also fixes the Consul query metadata present in the HTTP headers of the namespace read and list endpoints.
+* namespaces: adjusts the return type from HTTP list API to return the `api` module representation of a namespace.
+  This fixes an error with the `consul namespace list` command when a namespace has a deferred deletion timestamp.
+* peering: Fix a bug that caused server agents to continue cleaning up peering resources even after loss of leadership. [[GH-17483](https://github.com/hashicorp/consul/issues/17483)]
+
 ## 1.13.8 (May 16, 2023)
 
 SECURITY:
