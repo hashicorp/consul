@@ -753,10 +753,9 @@ function gen_envoy_bootstrap {
     -http-addr envoy_consul-${DC}_1:8500 \
     -grpc-addr envoy_consul-${DC}_1:8502 \
     -admin-access-log-path="C:/envoy/envoy.log" \
-    -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} \
-    > /c/workdir/${DC}/envoy/${SERVICE}-bootstrap.json 2>&1"); then
+    -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} "); then
     # All OK, write config to file
-    echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json
+    echo "$output" > /c/workdir/${DC}/envoy/$SERVICE-bootstrap.json
   else
     status=$?
     # Command failed, instead of swallowing error (printed on stdout by docker
