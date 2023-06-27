@@ -581,7 +581,7 @@ format:
 	  -rm-unused \
 	  -recursive \
 	  -project-name github.com/hashicorp/consul/ \
-	  agent
+	  .
 
 .PHONY: gci
 gci:
