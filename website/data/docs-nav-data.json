@@ -183,6 +183,10 @@
         "title": "Consul K8s",
         "routes": [
           {
+            "title": "v1.2.x",
+            "path": "release-notes/consul-k8s/v1_2_x"
+          },
+          {
             "title": "v1.1.x",
             "path": "release-notes/consul-k8s/v1_1_x"
           },
