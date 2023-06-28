@@ -3,7 +3,6 @@
 
 SHELL = bash
 
-
 GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-gen-rpc-glue/e2e" | sort)
 
 ###
@@ -73,7 +72,6 @@ CI_DEV_DOCKER_NAMESPACE?=hashicorpdev
 CI_DEV_DOCKER_IMAGE_NAME?=consul
 CI_DEV_DOCKER_WORKDIR?=bin/
 ################
-CONSUL_VERSION?=$(shell cat version/VERSION)
 
 TEST_MODCACHE?=1
 TEST_BUILDCACHE?=1
@@ -190,11 +188,8 @@ dev-docker: linux dev-build
 	@docker buildx use default && docker buildx build -t 'consul:local' -t '$(CONSUL_DEV_IMAGE)' \
        --platform linux/$(GOARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
-		--label org.opencontainers.image.version=$(CONSUL_VERSION) \
-		--label version=$(CONSUL_VERSION) \
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
-	docker tag 'consul:local'  '$(CONSUL_COMPAT_TEST_IMAGE):local'
 
 check-remote-dev-image-env:
 ifndef REMOTE_DEV_IMAGE
@@ -213,8 +208,6 @@ remote-docker: check-remote-dev-image-env
 	@docker buildx use consul-builder && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
-		--label org.opencontainers.image.version=$(CONSUL_VERSION) \
-		--label version=$(CONSUL_VERSION) \
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
@@ -358,17 +351,16 @@ lint/%:
 	@echo "--> Running enumcover ($*)"
 	@cd $* && GOWORK=off enumcover ./...
 
-# check that the test-container module only imports allowlisted packages
-# from the root consul module. Generally we don't want to allow these imports.
-# In a few specific instances though it is okay to import test definitions and
-# helpers from some of the packages in the root module.
 .PHONY: lint-container-test-deps
 lint-container-test-deps:
 	@echo "--> Checking container tests for bad dependencies"
-	@cd test/integration/consul-container && \
-		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
-			github.com/hashicorp/consul \
-			internal/catalog/catalogtest
+	@cd test/integration/consul-container && ( \
+		found="$$(go list -m all | grep -c '^github.com/hashicorp/consul ')" ; \
+		if [[ "$$found" != "0" ]]; then \
+			echo "test/integration/consul-container: This project should not depend on the root consul module" >&2 ; \
+			exit 1 ; \
+		fi \
+	)
 
 # Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 ui: ui-docker

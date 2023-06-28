@@ -128,69 +128,6 @@ func TestRunWith(t *testing.T) {
 	})
 }
 
-func TestCleanup(t *testing.T) {
-	t.Run("basic", func(t *testing.T) {
-		ft := &fakeT{}
-		cleanupsExecuted := 0
-		RunWith(&Counter{Count: 2, Wait: time.Millisecond}, ft, func(r *R) {
-			r.Cleanup(func() {
-				cleanupsExecuted += 1
-			})
-		})
-
-		require.Equal(t, 0, ft.fails)
-		require.Equal(t, 1, cleanupsExecuted)
-	})
-	t.Run("cleanup-panic-recovery", func(t *testing.T) {
-		ft := &fakeT{}
-		cleanupsExecuted := 0
-		RunWith(&Counter{Count: 2, Wait: time.Millisecond}, ft, func(r *R) {
-			r.Cleanup(func() {
-				cleanupsExecuted += 1
-			})
-
-			r.Cleanup(func() {
-				cleanupsExecuted += 1
-				panic(fmt.Errorf("fake test error"))
-			})
-
-			r.Cleanup(func() {
-				cleanupsExecuted += 1
-			})
-
-			// test is successful but should fail due to the cleanup panicing
-		})
-
-		require.Equal(t, 3, cleanupsExecuted)
-		require.Equal(t, 1, ft.fails)
-		require.Contains(t, ft.out[0], "fake test error")
-	})
-
-	t.Run("cleanup-per-retry", func(t *testing.T) {
-		ft := &fakeT{}
-		iter := 0
-		cleanupsExecuted := 0
-		RunWith(&Counter{Count: 3, Wait: time.Millisecond}, ft, func(r *R) {
-			if cleanupsExecuted != iter {
-				r.Stop(fmt.Errorf("cleanups not executed between retries"))
-				return
-			}
-			iter += 1
-
-			r.Cleanup(func() {
-				cleanupsExecuted += 1
-			})
-
-			r.FailNow()
-		})
-
-		require.Equal(t, 3, cleanupsExecuted)
-		// ensure that r.Stop hadn't been called. If it was then we would
-		// have log output
-		require.Len(t, ft.out, 0)
-	})
-}
-
 type fakeT struct {
 	fails int
 	out   []string

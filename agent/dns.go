@@ -1055,7 +1055,7 @@ func (d *DNSServer) trimDomain(query string) string {
 		longer, shorter = shorter, longer
 	}
 
-	if strings.HasSuffix(query, "."+strings.TrimLeft(longer, ".")) {
+	if strings.HasSuffix(query, longer) {
 		return strings.TrimSuffix(query, longer)
 	}
 	return strings.TrimSuffix(query, shorter)

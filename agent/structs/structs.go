@@ -1480,10 +1480,6 @@ func (s *NodeService) IsGateway() bool {
 func (s *NodeService) Validate() error {
 	var result error
 
-	if err := s.Locality.Validate(); err != nil {
-		result = multierror.Append(result, err)
-	}
-
 	if s.Kind == ServiceKindConnectProxy {
 		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
@@ -2093,18 +2089,6 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 		return acl.Deny
 	}
 	return acl.Allow
-}
-
-func (csn *CheckServiceNode) Locality() *Locality {
-	if csn.Service != nil && csn.Service.Locality != nil {
-		return csn.Service.Locality
-	}
-
-	if csn.Node != nil && csn.Node.Locality != nil {
-		return csn.Node.Locality
-	}
-
-	return nil
 }
 
 type CheckServiceNodes []CheckServiceNode
@@ -3126,16 +3110,4 @@ func (l *Locality) GetRegion() string {
 		return ""
 	}
 	return l.Region
-}
-
-func (l *Locality) Validate() error {
-	if l == nil {
-		return nil
-	}
-
-	if l.Region == "" && l.Zone != "" {
-		return fmt.Errorf("zone cannot be set without region")
-	}
-
-	return nil
 }

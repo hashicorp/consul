@@ -23,7 +23,6 @@ env:
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'consul' }}
-  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   setup:
@@ -36,7 +35,7 @@ jobs:
       compute-xl: ${{ steps.runners.outputs.compute-xl }}
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
@@ -63,13 +62,13 @@ jobs:
         nomad-version: ['v1.3.3', 'v1.2.10', 'v1.1.16']
     steps:
       - name: Checkout Nomad
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
         with:
           repository: hashicorp/nomad
           ref: ${{ matrix.nomad-version }}
 
       - name: Install Go
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
 
@@ -143,14 +142,14 @@ jobs:
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
 
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
 
@@ -233,7 +232,7 @@ jobs:
     outputs:
       envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
@@ -282,8 +281,8 @@ jobs:
       XDS_TARGET: ${{ matrix.xds-target }}
       AWS_LAMBDA_REGION: us-west-2
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
 
@@ -296,7 +295,7 @@ jobs:
         run: chmod +x ./bin/consul
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4b4e9c3e2d4531116a6f8ba8e71fc6e2cb6e6c8c # v2.5.0
+        uses: docker/setup-buildx-action@f03ac48505955848960e80bbb68046aa35c7b9e7 # v2.4.1
 
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
@@ -365,12 +364,8 @@ jobs:
     env:
       ENVOY_VERSION: "1.25.4"
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-      - name: Setup Git
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
       - run: go env
@@ -480,12 +475,8 @@ jobs:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       ENVOY_VERSION: "1.24.6"
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-      - name: Setup Git
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
       - run: go env

@@ -901,7 +901,6 @@ func IngressListenerKeyFromListener(l structs.IngressListener) IngressListenerKe
 type ConfigSnapshot struct {
 	Kind                  structs.ServiceKind
 	Service               string
-	ServiceLocality       *structs.Locality
 	ProxyID               ProxyID
 	Address               string
 	Port                  int

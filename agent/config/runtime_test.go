@@ -1039,13 +1039,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc:        "locality invalid",
-		args:        []string{`-data-dir=` + dataDir},
-		json:        []string{`{"locality": {"zone": "us-west-1a"}}`},
-		hcl:         []string{`locality { zone = "us-west-1a" }`},
-		expectedErr: "locality is invalid: zone cannot be set without region",
-	})
-	run(t, testCase{
 		desc: "client addr and ports == 0",
 		args: []string{`-data-dir=` + dataDir},
 		json: []string{`{

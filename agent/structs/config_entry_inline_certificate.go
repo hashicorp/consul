@@ -58,7 +58,6 @@ func (e *InlineCertificateConfigEntry) Validate() error {
 	if privateKeyBlock == nil {
 		return errors.New("failed to parse private key PEM")
 	}
-
 	err = validateKeyLength(privateKeyBlock)
 	if err != nil {
 		return err
