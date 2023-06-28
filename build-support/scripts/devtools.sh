@@ -25,6 +25,7 @@ Options:
     -protobuf                Just install tools for protobuf.
     -lint                    Just install tools for linting.
     -codegen                 Just install tools for codegen.
+    -pre-commit              Just install pre-commit.
     -h | --help              Print this help text.
 EOF
 }
@@ -49,6 +50,10 @@ function main {
                 ;;
             -codegen )
                 codegen_install
+                return 0
+                ;;
+            -pre-commit )
+                pre_commit_install
                 return 0
                 ;;
             -h | --help )
@@ -146,6 +151,12 @@ function lint_install {
         'github.com/golangci/golangci-lint' \
         "${golangci_lint_version}" \
         'github.com/golangci/golangci-lint/cmd/golangci-lint'
+
+    install_versioned_tool \
+        'gci' \
+        'github.com/daixiang0/gci' \
+        'v0.10.1' \
+        'github.com/daixiang0/gci'
 }
 
 function codegen_install {
@@ -159,11 +170,43 @@ function codegen_install {
         'github.com/globusdigital/deep-copy'
 }
 
-function tools_install {
+function pre_commit_install {
+    # if already installed make sure the hook is also installed
+    if command -v "pre-commit" &>/dev/null; then
+        # Not to be confused with installing the tool, this installs
+        # the git hook locally (.git/hooks/pre-commit) which pre-commit
+        # uses as a vector to run checks on `git commit`. This hook is
+        # generated based on the local environment hence not source
+        # controlled.
+        pre-commit install
+        return 0
+    fi
 
+    # Install options based on https://pre-commit.com/#installation
+    if command -v "brew" &>/dev/null; then
+        brew install pre-commit && pre-commit install
+        return 0
+    fi
+
+    if command -v "pip3" &>/dev/null; then
+        pip3 install pre-commit && pre-commit install
+        return 0
+    fi
+
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo "ERROR: Install homebrew from https://brew.sh/ so that pre-commit (https://pre-commit.com) can be installed."
+        return 1
+    fi
+
+    echo "ERROR: Install python3 and pip3 so that pre-commit (https://pre-commit.com) can be installed."
+    return 1
+}
+
+function tools_install {
     lint_install
     proto_tools_install
     codegen_install
+    pre_commit_install
 
     return 0
 }
