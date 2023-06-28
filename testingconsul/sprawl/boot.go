@@ -510,10 +510,10 @@ func newGossipKey() (string, error) {
 	key := make([]byte, 16)
 	n, err := rand.Reader.Read(key)
 	if err != nil {
-		return "", fmt.Errorf("Error reading random data: %s", err)
+		return "", fmt.Errorf("reading random data: %s", err)
 	}
 	if n != 16 {
-		return "", fmt.Errorf("Couldn't read enough entropy. Generate more entropy!")
+		return "", fmt.Errorf("need more entropy")
 	}
 	return base64.StdEncoding.EncodeToString(key), nil
 }
