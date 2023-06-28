@@ -58,7 +58,7 @@ We are pleased to announce the following Consul updates.
   - `v1/agent/connect/ca/leaf` - used by the SDK to get a leaf cert for a locally registered service
   - `v1/agent/connect/ca/roots` - use to retrieved cached CA roots form the local client agent
   
-  Currently both `v1/agent/connect/authorize` and `v1/agent/connect/ca/leaf` have corresponding gRPC APIs. Removal of these APIs will be dependent on delivering the gRPC API for `v1/agent/connect/ca/roots` and HTTP endpoints for all three APIs for easier consumption by users. 
+  The `v1/agent/connect/authorize` and `v1/agent/connect/ca/leaf` endpoints have corresponding gRPC APIs. We will remove these APIs when the gRPC API for `v1/agent/connect/ca/roots` and HTTP endpoints for all three APIs are available. 
 
 ## Upgrading
 
