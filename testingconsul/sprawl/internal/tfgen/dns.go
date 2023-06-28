@@ -8,12 +8,12 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/util"
 )
 
 func (g *Generator) getCoreDNSContainer(
-	net *topology.Network,
+	net *testingconsul.Network,
 	ipAddress string,
 	hashes []string,
 ) Resource {
@@ -36,7 +36,7 @@ func (g *Generator) getCoreDNSContainer(
 	return Eval(tfCorednsT, &coredns)
 }
 
-func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string) (bool, []string, error) {
+func (g *Generator) writeCoreDNSFiles(net *testingconsul.Network, dnsIPAddress string) (bool, []string, error) {
 	if net.IsPublic() {
 		return false, nil, fmt.Errorf("coredns only runs on local networks")
 	}
@@ -52,7 +52,7 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 		}
 		var addrs []string
 		for _, node := range cluster.SortedNodes() {
-			if node.Kind != topology.NodeKindServer || node.Disabled {
+			if node.Kind != testingconsul.NodeKindServer || node.Disabled {
 				continue
 			}
 			addr := node.AddressByNetwork(net.Name)

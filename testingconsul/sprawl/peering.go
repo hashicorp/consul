@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 )
 
 // TODO: this is definitely a grpc resolver/balancer issue to look into
@@ -130,7 +130,7 @@ func (s *Sprawl) waitForPeeringEstablishment() error {
 	return nil
 }
 
-func (s *Sprawl) checkPeeringDirection(logger hclog.Logger, client *api.Client, pc topology.PeerCluster, enterprise bool) {
+func (s *Sprawl) checkPeeringDirection(logger hclog.Logger, client *api.Client, pc testingconsul.PeerCluster, enterprise bool) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

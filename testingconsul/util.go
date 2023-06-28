@@ -1,4 +1,4 @@
-package topology
+package testingconsul
 
 func MergeSlices[V any](x, y []V) []V {
 	switch {

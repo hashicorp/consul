@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/util"
 )
 
 const proxyInternalPort = 80
 
-func (g *Generator) writeNginxConfig(net *topology.Network) (bool, string, error) {
+func (g *Generator) writeNginxConfig(net *testingconsul.Network) (bool, string, error) {
 	rootdir := filepath.Join(g.workdir, "terraform", "nginx-config-"+net.Name)
 	if err := os.MkdirAll(rootdir, 0755); err != nil {
 		return false, "", err
@@ -62,7 +62,7 @@ server {
 }
 
 func (g *Generator) getForwardProxyContainer(
-	net *topology.Network,
+	net *testingconsul.Network,
 	ipAddress string,
 	hash string,
 ) Resource {

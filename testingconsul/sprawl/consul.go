@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/util"
 )
 
@@ -23,7 +23,7 @@ func getLeader(client *api.Client) (string, error) {
 	return leaderAdd, nil
 }
 
-func (s *Sprawl) waitForLeader(cluster *topology.Cluster) {
+func (s *Sprawl) waitForLeader(cluster *testingconsul.Cluster) {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -50,7 +50,7 @@ func (s *Sprawl) rejoinAllConsulServers() error {
 	return nil
 }
 
-func (s *Sprawl) rejoinServers(cluster *topology.Cluster) error {
+func (s *Sprawl) rejoinServers(cluster *testingconsul.Cluster) error {
 	var (
 		// client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -89,8 +89,8 @@ func (s *Sprawl) rejoinServers(cluster *topology.Cluster) error {
 	return nil
 }
 
-func nodeSliceToNodeIDSlice(nodes []*topology.Node) []topology.NodeID {
-	var out []topology.NodeID
+func nodeSliceToNodeIDSlice(nodes []*testingconsul.Node) []testingconsul.NodeID {
+	var out []testingconsul.NodeID
 	for _, node := range nodes {
 		out = append(out, node.ID())
 	}

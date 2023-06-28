@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/util"
 )
 
@@ -29,7 +29,7 @@ func (s *Sprawl) registerAllServicesForDataplaneInstances() error {
 	return nil
 }
 
-func (s *Sprawl) registerServicesToAgents(cluster *topology.Cluster) error {
+func (s *Sprawl) registerServicesToAgents(cluster *testingconsul.Cluster) error {
 	for _, node := range cluster.Nodes {
 		if !node.RunsWorkloads() || len(node.Services) == 0 || node.Disabled {
 			continue
@@ -61,9 +61,9 @@ func (s *Sprawl) registerServicesToAgents(cluster *topology.Cluster) error {
 
 func (s *Sprawl) registerAgentService(
 	agentClient *api.Client,
-	cluster *topology.Cluster,
-	node *topology.Node,
-	svc *topology.Service,
+	cluster *testingconsul.Cluster,
+	node *testingconsul.Node,
+	svc *testingconsul.Service,
 ) error {
 	if !node.IsAgent() {
 		panic("called wrong method type")
@@ -160,7 +160,7 @@ RETRY:
 	return nil
 }
 
-func (s *Sprawl) registerServicesForDataplaneInstances(cluster *topology.Cluster) error {
+func (s *Sprawl) registerServicesForDataplaneInstances(cluster *testingconsul.Cluster) error {
 	for _, node := range cluster.Nodes {
 		if !node.RunsWorkloads() || len(node.Services) == 0 || node.Disabled {
 			continue
@@ -190,8 +190,8 @@ func (s *Sprawl) registerServicesForDataplaneInstances(cluster *topology.Cluster
 }
 
 func (s *Sprawl) registerCatalogNode(
-	cluster *topology.Cluster,
-	node *topology.Node,
+	cluster *testingconsul.Cluster,
+	node *testingconsul.Node,
 ) error {
 	if !node.IsDataplane() {
 		panic("called wrong method type")
@@ -231,9 +231,9 @@ RETRY:
 }
 
 func (s *Sprawl) registerCatalogService(
-	cluster *topology.Cluster,
-	node *topology.Node,
-	svc *topology.Service,
+	cluster *testingconsul.Cluster,
+	node *testingconsul.Node,
+	svc *testingconsul.Service,
 ) error {
 	if !node.IsDataplane() {
 		panic("called wrong method type")
@@ -264,9 +264,9 @@ RETRY:
 }
 
 func (s *Sprawl) registerCatalogSidecarService(
-	cluster *topology.Cluster,
-	node *topology.Node,
-	svc *topology.Service,
+	cluster *testingconsul.Cluster,
+	node *testingconsul.Node,
+	svc *testingconsul.Service,
 ) error {
 	if !node.IsDataplane() {
 		panic("called wrong method type")
@@ -299,9 +299,9 @@ RETRY:
 }
 
 func serviceToCatalogRegistration(
-	cluster *topology.Cluster,
-	node *topology.Node,
-	svc *topology.Service,
+	cluster *testingconsul.Cluster,
+	node *testingconsul.Node,
+	svc *testingconsul.Service,
 ) *api.CatalogRegistration {
 	reg := &api.CatalogRegistration{
 		Node:           node.PodName(),
@@ -355,10 +355,10 @@ func serviceToCatalogRegistration(
 }
 
 func serviceToSidecarCatalogRegistration(
-	cluster *topology.Cluster,
-	node *topology.Node,
-	svc *topology.Service,
-) (topology.ServiceID, *api.CatalogRegistration) {
+	cluster *testingconsul.Cluster,
+	node *testingconsul.Node,
+	svc *testingconsul.Service,
+) (testingconsul.ServiceID, *api.CatalogRegistration) {
 	pid := svc.ID
 	pid.Name += "-sidecar-proxy"
 	reg := &api.CatalogRegistration{

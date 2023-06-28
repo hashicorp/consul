@@ -5,7 +5,7 @@ import (
 )
 
 // digestOutputs takes the data extracted from terraform output variables and
-// updates various fields on the topology.Topology with that data.
+// updates various fields on the testingconsul.Topology with that data.
 func (g *Generator) digestOutputs(out *Outputs) error {
 	for clusterName, nodeMap := range out.Nodes {
 		cluster, ok := g.topology.Clusters[clusterName]

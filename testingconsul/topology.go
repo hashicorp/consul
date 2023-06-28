@@ -1,4 +1,4 @@
-package topology
+package testingconsul
 
 import (
 	"errors"

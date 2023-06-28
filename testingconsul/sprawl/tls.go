@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 )
 
 const (
@@ -15,18 +15,18 @@ const (
 	consulUserArg = consulUID + ":" + consulGID
 )
 
-func tlsPrefixFromNode(node *topology.Node) string {
+func tlsPrefixFromNode(node *testingconsul.Node) string {
 	switch node.Kind {
-	case topology.NodeKindServer:
+	case testingconsul.NodeKindServer:
 		return node.Partition + "." + node.Name + ".server"
-	case topology.NodeKindClient:
+	case testingconsul.NodeKindClient:
 		return node.Partition + "." + node.Name + ".client"
 	default:
 		return ""
 	}
 }
 
-func tlsCertCreateCommand(node *topology.Node) string {
+func tlsCertCreateCommand(node *testingconsul.Node) string {
 	if node.IsServer() {
 		return fmt.Sprintf(`consul tls cert create -server -dc=%s -node=%s`, node.Datacenter, node.PodName())
 	} else {

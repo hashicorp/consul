@@ -7,8 +7,8 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
-	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
 // TODO: fix this by checking that a token/policy works on ALL servers before
@@ -102,7 +102,7 @@ func (s *Sprawl) isACLBootstrapped(cluster string, client *api.Client) (bool, er
 	return policy != nil, nil
 }
 
-func (s *Sprawl) createAnonymousToken(cluster *topology.Cluster) error {
+func (s *Sprawl) createAnonymousToken(cluster *testingconsul.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -124,7 +124,7 @@ func (s *Sprawl) createAnonymousToken(cluster *topology.Cluster) error {
 	return nil
 }
 
-func (s *Sprawl) createAnonymousPolicy(cluster *topology.Cluster) error {
+func (s *Sprawl) createAnonymousPolicy(cluster *testingconsul.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -143,7 +143,7 @@ func (s *Sprawl) createAnonymousPolicy(cluster *topology.Cluster) error {
 	return nil
 }
 
-func (s *Sprawl) createAgentTokens(cluster *topology.Cluster) error {
+func (s *Sprawl) createAgentTokens(cluster *testingconsul.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -175,7 +175,7 @@ func (s *Sprawl) createAgentTokens(cluster *topology.Cluster) error {
 
 // Create a policy to allow super permissive catalog reads across namespace
 // boundaries.
-func (s *Sprawl) createCrossNamespaceCatalogReadPolicies(cluster *topology.Cluster, partition string) error {
+func (s *Sprawl) createCrossNamespaceCatalogReadPolicies(cluster *testingconsul.Cluster, partition string) error {
 	if !cluster.Enterprise {
 		return nil
 	}
@@ -208,13 +208,13 @@ func (s *Sprawl) createAllServiceTokens() error {
 	return nil
 }
 
-func (s *Sprawl) createServiceTokens(cluster *topology.Cluster) error {
+func (s *Sprawl) createServiceTokens(cluster *testingconsul.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
 	)
 
-	sids := make(map[topology.ServiceID]struct{})
+	sids := make(map[testingconsul.ServiceID]struct{})
 	for _, node := range cluster.Nodes {
 		if !node.RunsWorkloads() || len(node.Services) == 0 || node.Disabled {
 			continue

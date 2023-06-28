@@ -7,10 +7,10 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 )
 
-func (s *Sprawl) populateInitialConfigEntries(cluster *topology.Cluster) error {
+func (s *Sprawl) populateInitialConfigEntries(cluster *testingconsul.Cluster) error {
 	if len(cluster.InitialConfigEntries) == 0 {
 		return nil
 	}

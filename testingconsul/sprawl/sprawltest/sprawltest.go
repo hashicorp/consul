@@ -17,7 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/testingconsul/sprawl"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/runner"
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 )
 
 // TODO(rb): move comments to doc.go
@@ -87,7 +87,7 @@ func init() {
 //   - By default everything will be stopped and removed via
 //     (*testing.T).Cleanup. For failed tests, this can be skipped by setting the
 //     environment variable SKIP_TEARDOWN=1.
-func Launch(t *testing.T, cfg *topology.Config) *sprawl.Sprawl {
+func Launch(t *testing.T, cfg *testingconsul.Config) *sprawl.Sprawl {
 	SkipIfTerraformNotPresent(t)
 	sp, err := sprawl.Launch(
 		testutil.Logger(t),

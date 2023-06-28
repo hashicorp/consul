@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/runner"
-	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
 const dockerfileEnvoy = `
@@ -34,7 +34,7 @@ ENTRYPOINT []
 func DockerImages(
 	logger hclog.Logger,
 	run *runner.Runner,
-	t *topology.Topology,
+	t *testingconsul.Topology,
 ) error {
 	logw := logger.Named("docker").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Info})
 

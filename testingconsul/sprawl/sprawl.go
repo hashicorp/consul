@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/tfgen"
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/util"
 )
 
@@ -36,8 +36,8 @@ type Sprawl struct {
 	workdir string
 
 	// set during Run
-	config    *topology.Config
-	topology  *topology.Topology
+	config    *testingconsul.Config
+	topology  *testingconsul.Topology
 	generator *tfgen.Generator
 
 	clients map[string]*api.Client // one per cluster
@@ -45,11 +45,11 @@ type Sprawl struct {
 
 // Topology allows access to the topology that defines the resources. Do not
 // write to any of these fields.
-func (s *Sprawl) Topology() *topology.Topology {
+func (s *Sprawl) Topology() *testingconsul.Topology {
 	return s.topology
 }
 
-func (s *Sprawl) Config() *topology.Config {
+func (s *Sprawl) Config() *testingconsul.Config {
 	c2, err := copyConfig(s.config)
 	if err != nil {
 		panic(err)
@@ -82,7 +82,7 @@ func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) 
 //
 // Passing an empty token will assume the bootstrap token. If you want to
 // actually use the anonymous token say "-".
-func (s *Sprawl) APIClientForNode(clusterName string, nid topology.NodeID, token string) (*api.Client, error) {
+func (s *Sprawl) APIClientForNode(clusterName string, nid testingconsul.NodeID, token string) (*api.Client, error) {
 	cluster, ok := s.topology.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("no such cluster: %s", clusterName)
@@ -110,12 +110,12 @@ func (s *Sprawl) APIClientForNode(clusterName string, nid topology.NodeID, token
 	)
 }
 
-func copyConfig(cfg *topology.Config) (*topology.Config, error) {
+func copyConfig(cfg *testingconsul.Config) (*testingconsul.Config, error) {
 	dup, err := copystructure.Copy(cfg)
 	if err != nil {
 		return nil, err
 	}
-	return dup.(*topology.Config), nil
+	return dup.(*testingconsul.Config), nil
 }
 
 // Launch will create the topology defined by the provided configuration and
@@ -124,7 +124,7 @@ func copyConfig(cfg *topology.Config) (*topology.Config, error) {
 func Launch(
 	logger hclog.Logger,
 	workdir string,
-	cfg *topology.Config,
+	cfg *testingconsul.Config,
 ) (*Sprawl, error) {
 	if logger == nil {
 		panic("logger is required")
@@ -165,9 +165,9 @@ func Launch(
 		return nil, err
 	}
 
-	s.topology, err = topology.Compile(logger.Named("compile"), cfg)
+	s.topology, err = testingconsul.Compile(logger.Named("compile"), cfg)
 	if err != nil {
-		return nil, fmt.Errorf("topology.Compile: %w", err)
+		return nil, fmt.Errorf("testingconsul.Compile: %w", err)
 	}
 
 	s.logger.Info("compiled topology", "ct", jd(s.topology)) // TODO
@@ -186,7 +186,7 @@ func Launch(
 }
 
 func (s *Sprawl) Relaunch(
-	cfg *topology.Config,
+	cfg *testingconsul.Config,
 ) error {
 	// Copy this BEFORE compiling so we capture the original definition, without denorms.
 	var err error
@@ -195,9 +195,9 @@ func (s *Sprawl) Relaunch(
 		return err
 	}
 
-	newTopology, err := topology.Recompile(s.logger.Named("recompile"), cfg, s.topology)
+	newTopology, err := testingconsul.Recompile(s.logger.Named("recompile"), cfg, s.topology)
 	if err != nil {
-		return fmt.Errorf("topology.Compile: %w", err)
+		return fmt.Errorf("testingconsul.Compile: %w", err)
 	}
 
 	s.topology = newTopology
@@ -219,7 +219,7 @@ func (s *Sprawl) Relaunch(
 
 // Leader returns the cluster leader agent, or an error if no leader is
 // available.
-func (s *Sprawl) Leader(clusterName string) (*topology.Node, error) {
+func (s *Sprawl) Leader(clusterName string) (*testingconsul.Node, error) {
 	cluster, ok := s.topology.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("no such cluster: %s", clusterName)
@@ -248,7 +248,7 @@ func (s *Sprawl) Leader(clusterName string) (*topology.Node, error) {
 }
 
 // Followers returns the cluster following servers.
-func (s *Sprawl) Followers(clusterName string) ([]*topology.Node, error) {
+func (s *Sprawl) Followers(clusterName string) ([]*testingconsul.Node, error) {
 	cluster, ok := s.topology.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("no such cluster: %s", clusterName)
@@ -259,7 +259,7 @@ func (s *Sprawl) Followers(clusterName string) ([]*topology.Node, error) {
 		return nil, fmt.Errorf("could not determine leader: %w", err)
 	}
 
-	var followers []*topology.Node
+	var followers []*testingconsul.Node
 
 	for _, node := range cluster.Nodes {
 		if !node.IsServer() || node.Disabled {
@@ -273,13 +273,13 @@ func (s *Sprawl) Followers(clusterName string) ([]*topology.Node, error) {
 	return followers, nil
 }
 
-func (s *Sprawl) DisabledServers(clusterName string) ([]*topology.Node, error) {
+func (s *Sprawl) DisabledServers(clusterName string) ([]*testingconsul.Node, error) {
 	cluster, ok := s.topology.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("no such cluster: %s", clusterName)
 	}
 
-	var servers []*topology.Node
+	var servers []*testingconsul.Node
 
 	for _, node := range cluster.Nodes {
 		if !node.IsServer() || !node.Disabled {

@@ -13,16 +13,16 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/testingconsul"
+	"github.com/hashicorp/consul/testingconsul/internal/ipamutils"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
-	"github.com/hashicorp/consul/testingconsul/topology"
-	"github.com/hashicorp/consul/testingconsul/util"
 )
 
 type Generator struct {
 	logger   hclog.Logger
 	runner   *runner.Runner
-	topology *topology.Topology
+	topology *testingconsul.Topology
 	sec      *secrets.Store
 	workdir  string
 	license  string
@@ -38,7 +38,7 @@ type Generator struct {
 func NewGenerator(
 	logger hclog.Logger,
 	runner *runner.Runner,
-	topo *topology.Topology,
+	topo *testingconsul.Topology,
 	sec *secrets.Store,
 	workdir string,
 	license string,
@@ -81,7 +81,7 @@ func (g *Generator) MarkLaunched() {
 	g.launched = true
 }
 
-func (g *Generator) SetTopology(topo *topology.Topology) {
+func (g *Generator) SetTopology(topo *testingconsul.Topology) {
 	if topo == nil {
 		panic("topology is required")
 	}
@@ -417,29 +417,29 @@ func (g *Generator) terraformOutputs(ctx context.Context) (*Outputs, error) {
 	return out, nil
 }
 
-func extractNodeOutputKey(prefix, key string) (string, topology.NodeID, bool) {
+func extractNodeOutputKey(prefix, key string) (string, testingconsul.NodeID, bool) {
 	clusterNode := strings.TrimPrefix(key, prefix)
 
 	cluster, nodeid, ok := strings.Cut(clusterNode, "_")
 	if !ok {
-		return "", topology.NodeID{}, false
+		return "", testingconsul.NodeID{}, false
 	}
 
 	partition, node, ok := strings.Cut(nodeid, "_")
 	if !ok {
-		return "", topology.NodeID{}, false
+		return "", testingconsul.NodeID{}, false
 	}
 
-	nid := topology.NewNodeID(node, partition)
+	nid := testingconsul.NewNodeID(node, partition)
 	return cluster, nid, true
 }
 
 type Outputs struct {
-	ProxyPorts map[string]int                             // net -> exposed port
-	Nodes      map[string]map[topology.NodeID]*NodeOutput // clusterID -> node -> stuff
+	ProxyPorts map[string]int                                  // net -> exposed port
+	Nodes      map[string]map[testingconsul.NodeID]*NodeOutput // clusterID -> node -> stuff
 }
 
-func (o *Outputs) SetNodePorts(cluster string, nid topology.NodeID, ports map[int]int) {
+func (o *Outputs) SetNodePorts(cluster string, nid testingconsul.NodeID, ports map[int]int) {
 	nodeOut := o.getNode(cluster, nid)
 	nodeOut.Ports = ports
 }
@@ -451,13 +451,13 @@ func (o *Outputs) SetProxyPort(net string, port int) {
 	o.ProxyPorts[net] = port
 }
 
-func (o *Outputs) getNode(cluster string, nid topology.NodeID) *NodeOutput {
+func (o *Outputs) getNode(cluster string, nid testingconsul.NodeID) *NodeOutput {
 	if o.Nodes == nil {
-		o.Nodes = make(map[string]map[topology.NodeID]*NodeOutput)
+		o.Nodes = make(map[string]map[testingconsul.NodeID]*NodeOutput)
 	}
 	cnodes, ok := o.Nodes[cluster]
 	if !ok {
-		cnodes = make(map[topology.NodeID]*NodeOutput)
+		cnodes = make(map[testingconsul.NodeID]*NodeOutput)
 		o.Nodes[cluster] = cnodes
 	}
 

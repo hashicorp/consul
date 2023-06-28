@@ -6,11 +6,11 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hclwrite"
 
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
-	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
-func (g *Generator) generateAgentHCL(node *topology.Node) (string, error) {
+func (g *Generator) generateAgentHCL(node *testingconsul.Node) (string, error) {
 	if !node.IsAgent() {
 		return "", fmt.Errorf("not an agent")
 	}

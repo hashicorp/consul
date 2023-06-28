@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 )
 
 func policyForCrossNamespaceRead(partition string) *api.ACLPolicy {
@@ -63,7 +63,7 @@ service_prefix "" { policy = "read" }
 	return p
 }
 
-func tokenForNode(node *topology.Node, enterprise bool) *api.ACLToken {
+func tokenForNode(node *testingconsul.Node, enterprise bool) *api.ACLToken {
 	nid := node.ID()
 
 	tokenName := "agent--" + nid.ACLString()
@@ -83,7 +83,7 @@ func tokenForNode(node *topology.Node, enterprise bool) *api.ACLToken {
 	return token
 }
 
-func tokenForService(svc *topology.Service, overridePolicy *api.ACLPolicy, enterprise bool) *api.ACLToken {
+func tokenForService(svc *testingconsul.Service, overridePolicy *api.ACLPolicy, enterprise bool) *api.ACLToken {
 	token := &api.ACLToken{
 		Description: "service--" + svc.ID.ACLString(),
 		Local:       false,
@@ -104,7 +104,7 @@ func tokenForService(svc *topology.Service, overridePolicy *api.ACLPolicy, enter
 	return token
 }
 
-func policyForMeshGateway(svc *topology.Service, enterprise bool) *api.ACLPolicy {
+func policyForMeshGateway(svc *testingconsul.Service, enterprise bool) *api.ACLPolicy {
 	policyName := "mesh-gateway--" + svc.ID.ACLString()
 
 	policy := &api.ACLPolicy{

@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 )
 
 type terraformPod struct {
 	PodName           string
-	Node              *topology.Node
+	Node              *testingconsul.Node
 	Ports             []int
 	Labels            map[string]string
 	TLSVolumeName     string
@@ -30,7 +30,7 @@ type terraformConsulAgent struct {
 type terraformMeshGatewayService struct {
 	terraformPod
 	EnvoyImageResource string
-	Service            *topology.Service
+	Service            *testingconsul.Service
 	Command            []string
 }
 
@@ -39,7 +39,7 @@ type terraformService struct {
 	AppImageResource       string
 	EnvoyImageResource     string // agentful
 	DataplaneImageResource string // agentless
-	Service                *topology.Service
+	Service                *testingconsul.Service
 	Env                    []string
 	Command                []string
 	EnvoyCommand           []string // agentful
@@ -47,8 +47,8 @@ type terraformService struct {
 
 func (g *Generator) generateNodeContainers(
 	step Step,
-	cluster *topology.Cluster,
-	node *topology.Node,
+	cluster *testingconsul.Cluster,
+	node *testingconsul.Node,
 ) ([]Resource, error) {
 	if node.Disabled {
 		return nil, fmt.Errorf("cannot generate containers for a disabled node")
@@ -106,7 +106,7 @@ func (g *Generator) generateNodeContainers(
 
 	for _, svc := range node.SortedServices() {
 		if svc.IsMeshGateway {
-			if node.Kind == topology.NodeKindDataplane {
+			if node.Kind == testingconsul.NodeKindDataplane {
 				panic("NOT READY YET")
 			}
 			gw := terraformMeshGatewayService{

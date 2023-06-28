@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 )
 
 type Store struct {
@@ -25,19 +25,19 @@ func (s *Store) ReadGeneric(cluster, name string) string {
 	return s.read(encode(cluster, "generic", name))
 }
 
-func (s *Store) SaveAgentToken(cluster string, nid topology.NodeID, value string) {
+func (s *Store) SaveAgentToken(cluster string, nid testingconsul.NodeID, value string) {
 	s.save(encode(cluster, "agent", nid.String()), value)
 }
 
-func (s *Store) ReadAgentToken(cluster string, nid topology.NodeID) string {
+func (s *Store) ReadAgentToken(cluster string, nid testingconsul.NodeID) string {
 	return s.read(encode(cluster, "agent", nid.String()))
 }
 
-func (s *Store) SaveServiceToken(cluster string, sid topology.ServiceID, value string) {
+func (s *Store) SaveServiceToken(cluster string, sid testingconsul.ServiceID, value string) {
 	s.save(encode(cluster, "service", sid.String()), value)
 }
 
-func (s *Store) ReadServiceToken(cluster string, sid topology.ServiceID) string {
+func (s *Store) ReadServiceToken(cluster string, sid testingconsul.ServiceID) string {
 	return s.read(encode(cluster, "service", sid.String()))
 }
 

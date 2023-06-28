@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/build"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/tfgen"
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/util"
 )
 
@@ -399,7 +399,7 @@ func (s *Sprawl) postRegenTasks() error {
 	return nil
 }
 
-func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
+func (s *Sprawl) waitForLocalWrites(cluster *testingconsul.Cluster, token string) {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -452,7 +452,7 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 	}
 }
 
-func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
+func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *testingconsul.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -467,20 +467,20 @@ func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
 		// Enumerate all of the nodes that are currently in the catalog. This
 		// will overmatch including things like fake nodes for agentless but
 		// that's ok.
-		current := make(map[topology.NodeID]*api.Node)
+		current := make(map[testingconsul.NodeID]*api.Node)
 		for _, queryOpts := range queryOptionList {
 			nodes, _, err := cc.Nodes(queryOpts)
 			if err != nil {
 				return err
 			}
 			for _, node := range nodes {
-				nid := topology.NewNodeID(node.Node, node.Partition)
+				nid := testingconsul.NewNodeID(node.Node, node.Partition)
 				current[nid] = node
 			}
 		}
 
 		// See if we have them all.
-		var stragglers []topology.NodeID
+		var stragglers []testingconsul.NodeID
 		for _, node := range cluster.Nodes {
 			if !node.IsAgent() || node.Disabled {
 				continue

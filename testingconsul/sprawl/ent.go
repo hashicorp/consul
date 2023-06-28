@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul"
 )
 
 func (s *Sprawl) ensureLicense() error {
@@ -42,7 +42,7 @@ func readLicense() (string, error) {
 	return strings.TrimSpace(string(licenseBytes)), nil
 }
 
-func (s *Sprawl) initTenancies(cluster *topology.Cluster) error {
+func (s *Sprawl) initTenancies(cluster *testingconsul.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -121,7 +121,7 @@ func (s *Sprawl) initTenancies(cluster *topology.Cluster) error {
 	return nil
 }
 
-func (s *Sprawl) waitUntilPartitionedSerfIsReady(ctx context.Context, cluster *topology.Cluster, partitions []string) error {
+func (s *Sprawl) waitUntilPartitionedSerfIsReady(ctx context.Context, cluster *testingconsul.Cluster, partitions []string) error {
 	var (
 		logger = s.logger.With("cluster", cluster.Name)
 	)

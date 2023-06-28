@@ -10,7 +10,7 @@ provider to manage a fleet of local docker containers and networks.
 
 ### Configuration
 
-The complete topology of Consul clusters is defined using a topology.Config
+The complete topology of Consul clusters is defined using a testingconsul.Config
 which allows you to define a set of networks and reference those networks when
 assigning nodes and services to clusters. Both Consul clients and
 `consul-dataplane` instances are supported.
@@ -18,30 +18,30 @@ assigning nodes and services to clusters. Both Consul clients and
 Here is an example configuration with two peered clusters:
 
 ```
-cfg := &topology.Config{
-    Networks: []*topology.Network{
+cfg := &testingconsul.Config{
+    Networks: []*testingconsul.Network{
         {Name: "dc1"},
         {Name: "dc2"},
         {Name: "wan", Type: "wan"},
     },
-    Clusters: []*topology.Cluster{
+    Clusters: []*testingconsul.Cluster{
         {
             Name: "dc1",
-            Nodes: []*topology.Node{
+            Nodes: []*testingconsul.Node{
                 {
-                    Kind: topology.NodeKindServer,
+                    Kind: testingconsul.NodeKindServer,
                     Name: "dc1-server1",
-                    Addresses: []*topology.Address{
+                    Addresses: []*testingconsul.Address{
                         {Network: "dc1"},
                         {Network: "wan"},
                     },
                 },
                 {
-                    Kind: topology.NodeKindClient,
+                    Kind: testingconsul.NodeKindClient,
                     Name: "dc1-client1",
-                    Services: []*topology.Service{
+                    Services: []*testingconsul.Service{
                         {
-                            ID:             topology.ServiceID{Name: "mesh-gateway"},
+                            ID:             testingconsul.ServiceID{Name: "mesh-gateway"},
                             Port:           8443,
                             EnvoyAdminPort: 19000,
                             IsMeshGateway:  true,
@@ -49,11 +49,11 @@ cfg := &topology.Config{
                     },
                 },
                 {
-                    Kind: topology.NodeKindClient,
+                    Kind: testingconsul.NodeKindClient,
                     Name: "dc1-client2",
-                    Services: []*topology.Service{
+                    Services: []*testingconsul.Service{
                         {
-                            ID:             topology.ServiceID{Name: "ping"},
+                            ID:             testingconsul.ServiceID{Name: "ping"},
                             Image:          "rboyer/pingpong:latest",
                             Port:           8080,
                             EnvoyAdminPort: 19000,
@@ -64,8 +64,8 @@ cfg := &topology.Config{
                                 "-dialfreq", "250ms",
                                 "-name", "ping",
                             },
-                            Upstreams: []*topology.Upstream{{
-                                ID:        topology.ServiceID{Name: "pong"},
+                            Upstreams: []*testingconsul.Upstream{{
+                                ID:        testingconsul.ServiceID{Name: "pong"},
                                 LocalPort: 9090,
                                 Peer:      "peer-dc2-default",
                             }},
@@ -87,21 +87,21 @@ cfg := &topology.Config{
         },
         {
             Name: "dc2",
-            Nodes: []*topology.Node{
+            Nodes: []*testingconsul.Node{
                 {
-                    Kind: topology.NodeKindServer,
+                    Kind: testingconsul.NodeKindServer,
                     Name: "dc2-server1",
-                    Addresses: []*topology.Address{
+                    Addresses: []*testingconsul.Address{
                         {Network: "dc2"},
                         {Network: "wan"},
                     },
                 },
                 {
-                    Kind: topology.NodeKindClient,
+                    Kind: testingconsul.NodeKindClient,
                     Name: "dc2-client1",
-                    Services: []*topology.Service{
+                    Services: []*testingconsul.Service{
                         {
-                            ID:             topology.ServiceID{Name: "mesh-gateway"},
+                            ID:             testingconsul.ServiceID{Name: "mesh-gateway"},
                             Port:           8443,
                             EnvoyAdminPort: 19000,
                             IsMeshGateway:  true,
@@ -109,11 +109,11 @@ cfg := &topology.Config{
                     },
                 },
                 {
-                    Kind: topology.NodeKindDataplane,
+                    Kind: testingconsul.NodeKindDataplane,
                     Name: "dc2-client2",
-                    Services: []*topology.Service{
+                    Services: []*testingconsul.Service{
                         {
-                            ID:             topology.ServiceID{Name: "pong"},
+                            ID:             testingconsul.ServiceID{Name: "pong"},
                             Image:          "rboyer/pingpong:latest",
                             Port:           8080,
                             EnvoyAdminPort: 19000,
@@ -124,8 +124,8 @@ cfg := &topology.Config{
                                 "-dialfreq", "250ms",
                                 "-name", "pong",
                             },
-                            Upstreams: []*topology.Upstream{{
-                                ID:        topology.ServiceID{Name: "ping"},
+                            Upstreams: []*testingconsul.Upstream{{
+                                ID:        testingconsul.ServiceID{Name: "ping"},
                                 LocalPort: 9090,
                                 Peer:      "peer-dc1-default",
                             }},
@@ -146,11 +146,11 @@ cfg := &topology.Config{
             },
         },
     },
-    Peerings: []*topology.Peering{{
-        Dialing: topology.PeerCluster{
+    Peerings: []*testingconsul.Peering{{
+        Dialing: testingconsul.PeerCluster{
             Name: "dc1",
         },
-        Accepting: topology.PeerCluster{
+        Accepting: testingconsul.PeerCluster{
             Name: "dc2",
         },
     }},
@@ -172,7 +172,7 @@ reasonably realistic Consul setup. For that use case use the `sprawl/sprawltest`
 
 ```
 func TestSomething(t *testing.T) {
-    cfg := &topology.Config{...}
+    cfg := &testingconsul.Config{...}
     sp := sprawltest.Launch(t, cfg)
     // do stuff with 'sp'
 }
@@ -184,7 +184,7 @@ Though this is not an immediate design goal, this library should be safely usabl
 to create easy development environments. For that case the `sprawl` package should be used directly:
 
 ```
-cfg := &topology.Config{...}
+cfg := &testingconsul.Config{...}
 
 sp, err := sprawl.Launch(logger, workdir, cfg)
 if err != nil {
