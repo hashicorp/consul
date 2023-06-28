@@ -29,8 +29,6 @@ func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
 	}
 
 	defer f.Unmap()
-	f.Write(bootstrapJSON)
-	f.Sync()
 
 	// We can't wait for the process since we need to exec into Envoy before it
 	// will be able to complete so it will be remain as a zombie until Envoy is
