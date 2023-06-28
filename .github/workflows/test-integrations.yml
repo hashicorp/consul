@@ -622,7 +622,7 @@ jobs:
       - name: Peering commonTopo Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          cd ./test/integration/consul-container/test/peering_commontopo
+          cd ./test-integ/peering_commontopo
           docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
             --raw-command \
