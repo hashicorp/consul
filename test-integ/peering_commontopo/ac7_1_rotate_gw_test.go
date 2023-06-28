@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"

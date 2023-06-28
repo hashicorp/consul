@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-topology/sprawl"
-	"github.com/hashicorp/consul-topology/sprawl/sprawltest"
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/sprawl"
+	"github.com/hashicorp/consul/testingconsul/sprawl/sprawltest"
+	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

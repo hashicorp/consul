@@ -5,7 +5,7 @@ import (
 
 	"testing"
 
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"

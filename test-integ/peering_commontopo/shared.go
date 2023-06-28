@@ -3,7 +3,7 @@ package peering
 import (
 	"strconv"
 
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
 const HashicorpDockerProxy = "docker.mirror.hashicorp.services"

@@ -3,10 +3,10 @@ module github.com/hashicorp/consul/test-integ
 go 1.20
 
 require (
-	github.com/hashicorp/consul-topology v0.1.13
 	github.com/hashicorp/consul/api v1.22.0
 	github.com/hashicorp/consul/sdk v0.14.0
 	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230628201853-bdf4fad7c5a5
+	github.com/hashicorp/consul/testingconsul v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/itchyny/gojq v0.12.13
 	github.com/mitchellh/copystructure v1.2.0
@@ -91,4 +91,13 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.4.0 // indirect
+)
+
+replace (
+	github.com/hashicorp/consul => ../
+	github.com/hashicorp/consul/api => ../api
+	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
+	github.com/hashicorp/consul/proto-public => ../proto-public
+	github.com/hashicorp/consul/sdk => ../sdk
+	github.com/hashicorp/consul/testingconsul => ../testingconsul
 )

@@ -7,7 +7,7 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/hashicorp/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/hashicorp/go-version"
 )
 
