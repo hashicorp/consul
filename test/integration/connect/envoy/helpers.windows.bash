@@ -1076,3 +1076,22 @@ function assert_url_header {
   [ "$status" == 0 ]
   [ "$VALUE" = "$output" ]
 }
+
+# assert_upstream_message asserts both the returned code
+# and message from upstream service
+function assert_upstream_message {
+  local HOSTPORT=$1
+  run curl -s -d hello localhost:$HOSTPORT
+
+  if [ "$status" -ne 0 ]; then
+    echo "Command failed"
+    return 1
+  fi
+
+  if (echo $output | grep 'hello'); then
+    return 0
+  fi
+
+  echo "expected message not found in $output"
+  return 1
+}
