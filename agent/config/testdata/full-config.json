@@ -9,25 +9,25 @@
   "acl_replication_token": "LMmgy5dO",
   "acl_token": "O1El0wan",
   "acl_ttl": "18060s",
-  "acl" : {
-    "enabled" : true,
-    "down_policy" : "03eb2aee",
-    "default_policy" : "72c2e7a0",
+  "acl": {
+    "enabled": true,
+    "down_policy": "03eb2aee",
+    "default_policy": "72c2e7a0",
     "enable_key_list_policy": true,
     "enable_token_persistence": true,
     "policy_ttl": "1123s",
     "role_ttl": "9876s",
     "token_ttl": "3321s",
-    "enable_token_replication" : true,
+    "enable_token_replication": true,
     "msp_disable_bootstrap": true,
-    "tokens" : {
-      "master" : "8a19ac27",
-      "initial_management" : "3820e09a",
-      "agent_master" : "64fd0e08",
-      "agent_recovery" : "1dba6aba",
-      "replication" : "5795983a",
-      "agent" : "bed2377c",
-      "default" : "418fdff1",
+    "tokens": {
+      "master": "8a19ac27",
+      "initial_management": "3820e09a",
+      "agent_master": "64fd0e08",
+      "agent_recovery": "1dba6aba",
+      "replication": "5795983a",
+      "agent": "bed2377c",
+      "default": "418fdff1",
       "managed_service_provider": [
         {
           "accessor_id": "first",
@@ -57,9 +57,15 @@
     "enabled": false,
     "intro_token": "OpBPGRwt",
     "intro_token_file": "gFvAXwI8",
-    "dns_sans": ["6zdaWg9J"],
-    "ip_sans": ["198.18.99.99"],
-    "server_addresses": ["198.18.100.1"],
+    "dns_sans": [
+      "6zdaWg9J"
+    ],
+    "ip_sans": [
+      "198.18.99.99"
+    ],
+    "server_addresses": [
+      "198.18.100.1"
+    ],
     "authorization": {
       "enabled": true,
       "static": {
@@ -71,9 +77,15 @@
           "foo": "bar"
         },
         "bound_issuer": "consul",
-        "bound_audiences": ["consul-cluster-1"],
-        "claim_assertions": ["value.node == \"${node}\""],
-        "jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"]
+        "bound_audiences": [
+          "consul-cluster-1"
+        ],
+        "claim_assertions": [
+          "value.node == \"${node}\""
+        ],
+        "jwt_validation_pub_keys": [
+          "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"
+        ]
       }
     }
   },
@@ -82,7 +94,7 @@
     "disable_upgrade_migration": true,
     "last_contact_threshold": "12705s",
     "max_trailing_logs": 17849,
-    "min_quorum":		 3,
+    "min_quorum": 3,
     "redundancy_zone_tag": "3IsufDJf",
     "server_stabilization_time": "23057s",
     "upgrade_version_tag": "W9pDwFAL"
@@ -104,11 +116,20 @@
     "service_id": "L8G0QNmR",
     "token": "oo4BCTgJ",
     "status": "qLykAl5u",
-    "args": ["f3BemRjy", "e5zgpef7"],
+    "args": [
+      "f3BemRjy",
+      "e5zgpef7"
+    ],
     "http": "29B93haH",
     "header": {
-      "hBq0zn1q": [ "2a9o9ZKP", "vKwA5lR6" ],
-      "f3r6xFtM": [ "RyuIdDWv", "QbxEcIUM" ]
+      "hBq0zn1q": [
+        "2a9o9ZKP",
+        "vKwA5lR6"
+      ],
+      "f3r6xFtM": [
+        "RyuIdDWv",
+        "QbxEcIUM"
+      ]
     },
     "method": "Dou0nGT5",
     "body": "5PBQd2OT",
@@ -134,11 +155,20 @@
       "service_id": "lSulPcyz",
       "token": "toO59sh8",
       "status": "9RlWsXMV",
-      "args": ["4BAJttck", "4D2NPtTQ"],
+      "args": [
+        "4BAJttck",
+        "4D2NPtTQ"
+      ],
       "http": "dohLcyQ2",
       "header": {
-        "ZBfTin3L": [ "1sDbEqYG", "lJGASsWK" ],
-        "Ui0nU99X": [ "LMccm3Qe", "k5H5RggQ" ]
+        "ZBfTin3L": [
+          "1sDbEqYG",
+          "lJGASsWK"
+        ],
+        "Ui0nU99X": [
+          "LMccm3Qe",
+          "k5H5RggQ"
+        ]
       },
       "method": "aldrIQ4l",
       "body": "wSjTy7dg",
@@ -163,11 +193,20 @@
       "service_id": "CmUUcRna",
       "token": "a3nQzHuy",
       "status": "irj26nf3",
-      "args": ["9s526ogY", "gSlOHj1w"],
+      "args": [
+        "9s526ogY",
+        "gSlOHj1w"
+      ],
       "http": "yzhgsQ7Y",
       "header": {
-        "zcqwA8dO": [ "qb1zx0DL", "sXCxPFsD" ],
-        "qxvdnSE9": [ "6wBPUYdF", "YYh8wtSZ" ]
+        "zcqwA8dO": [
+          "qb1zx0DL",
+          "sXCxPFsD"
+        ],
+        "qxvdnSE9": [
+          "6wBPUYdF",
+          "YYh8wtSZ"
+        ]
       },
       "method": "gLrztrNw",
       "body": "0jkKgGUC",
@@ -202,15 +241,21 @@
   },
   "auto_encrypt": {
     "tls": false,
-    "dns_san": ["a.com", "b.com"],
-    "ip_san": ["192.168.4.139", "192.168.4.140"],
+    "dns_san": [
+      "a.com",
+      "b.com"
+    ],
+    "ip_san": [
+      "192.168.4.139",
+      "192.168.4.140"
+    ],
     "allow_tls": true
   },
   "cloud": {
     "resource_id": "N43DsscE",
     "client_id": "6WvsDZCP",
-    "client_secret":  "lCSMHOpB",
-    "hostname":  "DH4bh7aC",
+    "client_secret": "lCSMHOpB",
+    "hostname": "DH4bh7aC",
     "auth_url": "332nCdR2",
     "scada_address": "aoeusth232"
   },
@@ -226,21 +271,21 @@
     "enable_mesh_gateway_wan_federation": false,
     "enabled": true
   },
-  "gossip_lan" : {
+  "gossip_lan": {
     "gossip_nodes": 6,
-    "gossip_interval" : "25252s",
-    "retransmit_mult" : 1234,
-    "suspicion_mult"  : 1235,
-    "probe_interval"  : "101ms",
-    "probe_timeout"   : "102ms"
+    "gossip_interval": "25252s",
+    "retransmit_mult": 1234,
+    "suspicion_mult": 1235,
+    "probe_interval": "101ms",
+    "probe_timeout": "102ms"
   },
-  "gossip_wan" : {
-    "gossip_nodes" : 2,
-    "gossip_interval" : "6966s",
-    "retransmit_mult" : 16384,
-    "suspicion_mult"  : 16385,
-    "probe_interval" : "103ms",
-    "probe_timeout"  : "104ms"
+  "gossip_wan": {
+    "gossip_nodes": 2,
+    "gossip_interval": "6966s",
+    "retransmit_mult": 16384,
+    "suspicion_mult": 16385,
+    "probe_interval": "103ms",
+    "probe_timeout": "104ms"
   },
   "datacenter": "rzo029wg",
   "default_query_time": "16743s",
@@ -282,9 +327,19 @@
   "encrypt": "A4wELWqH",
   "encrypt_verify_incoming": true,
   "encrypt_verify_outgoing": true,
+  "experiments": [
+    "foo"
+  ],
   "http_config": {
-    "block_endpoints": [ "RBvAFcGD", "fWOWFznh" ],
-    "allow_write_http_from": [ "127.0.0.1/8", "22.33.44.55/32", "0.0.0.0/0" ],
+    "block_endpoints": [
+      "RBvAFcGD",
+      "fWOWFznh"
+    ],
+    "allow_write_http_from": [
+      "127.0.0.1/8",
+      "22.33.44.55/32",
+      "0.0.0.0/0"
+    ],
     "response_headers": {
       "M6TKa9NP": "xjuxjOzQ",
       "JRCrHZed": "rl0mTx81"
@@ -304,7 +359,12 @@
     "rpc_max_burst": 44848,
     "rpc_max_conns_per_client": 2954,
     "kv_max_value_size": 1234567800,
-    "txn_max_req_len": 567800000
+    "txn_max_req_len": 567800000,
+    "request_limits": {
+      "mode": "permissive",
+      "read_rate": 99.0,
+      "write_rate": 101.0
+    }
   },
   "log_level": "k1zo9Spt",
   "log_json": true,
@@ -340,32 +400,63 @@
   },
   "protocol": 30793,
   "primary_datacenter": "ejtmd43d",
-  "primary_gateways": [ "aej8eeZo", "roh2KahS" ],
+  "primary_gateways": [
+    "aej8eeZo",
+    "roh2KahS"
+  ],
   "primary_gateways_interval": "18866s",
   "raft_protocol": 3,
   "raft_snapshot_threshold": 16384,
   "raft_snapshot_interval": "30s",
   "raft_trailing_logs": 83749,
-  "raft_boltdb": {
-    "NoFreelistSync": true
+  "raft_logstore": {
+    "backend": "wal",
+    "disable_log_cache": true,
+    "verification": {
+      "enabled": true,
+      "interval": "12345s"
+    },
+    "boltdb": {
+      "no_freelist_sync": true
+    },
+    "wal": {
+      "segment_size_mb": 15
+    }
   },
   "read_replica": true,
   "reconnect_timeout": "23739s",
   "reconnect_timeout_wan": "26694s",
-  "recursors": [ "63.38.39.58", "92.49.18.18" ],
+  "recursors": [
+    "63.38.39.58",
+    "92.49.18.18"
+  ],
   "rejoin_after_leave": true,
+  "reporting": {
+    "license": {
+      "enabled": false
+    }
+  },
   "retry_interval": "8067s",
   "retry_interval_wan": "28866s",
-  "retry_join": [ "pbsSFY7U", "l0qLtWij" ],
-  "retry_join_wan": [ "PFsR02Ye", "rJdQIhER" ],
+  "retry_join": [
+    "pbsSFY7U",
+    "l0qLtWij"
+  ],
+  "retry_join_wan": [
+    "PFsR02Ye",
+    "rJdQIhER"
+  ],
   "retry_max": 913,
   "retry_max_wan": 23160,
-  "rpc": {"enable_streaming": true},
+  "rpc": {
+    "enable_streaming": true
+  },
   "segment_limit": 123,
   "serf_lan": "99.43.63.15",
   "serf_wan": "67.88.33.19",
   "server": true,
   "server_name": "Oerr9n1G",
+  "server_rejoin_age_max": "604800s",
   "service": {
     "id": "dLOXpSCI",
     "name": "o1ynPkp0",
@@ -382,7 +473,10 @@
         "port": 6109
       }
     },
-    "tags": ["nkwshvM5", "NTDWn3ek"],
+    "tags": [
+      "nkwshvM5",
+      "NTDWn3ek"
+    ],
     "address": "cOlSOhbp",
     "token": "msy7iWER",
     "port": 24237,
@@ -396,11 +490,19 @@
       "name": "iehanzuq",
       "status": "rCvn53TH",
       "notes": "fti5lfF3",
-      "args": ["16WRUmwS", "QWk7j7ae"],
+      "args": [
+        "16WRUmwS",
+        "QWk7j7ae"
+      ],
       "http": "dl3Fgme3",
       "header": {
-        "rjm4DEd3": ["2m3m2Fls"],
-        "l4HwQ112": ["fk56MNlo", "dhLK56aZ"]
+        "rjm4DEd3": [
+          "2m3m2Fls"
+        ],
+        "l4HwQ112": [
+          "fk56MNlo",
+          "dhLK56aZ"
+        ]
       },
       "method": "9afLm3Mj",
       "body": "wVVL2V6f",
@@ -424,11 +526,20 @@
         "name": "sgV4F7Pk",
         "notes": "yP5nKbW0",
         "status": "7oLMEyfu",
-        "args": ["5wEZtZpv", "0Ihyk8cS"],
+        "args": [
+          "5wEZtZpv",
+          "0Ihyk8cS"
+        ],
         "http": "KyDjGY9H",
         "header": {
-          "gv5qefTz": [ "5Olo2pMG", "PvvKWQU5" ],
-          "SHOVq1Vv": [ "jntFhyym", "GYJh32pp" ]
+          "gv5qefTz": [
+            "5Olo2pMG",
+            "PvvKWQU5"
+          ],
+          "SHOVq1Vv": [
+            "jntFhyym",
+            "GYJh32pp"
+          ]
         },
         "method": "T66MFBfR",
         "body": "OwGjTFQi",
@@ -451,11 +562,20 @@
         "name": "IEqrzrsd",
         "notes": "SVqApqeM",
         "status": "XXkVoZXt",
-        "args": ["wD05Bvao", "rLYB7kQC"],
+        "args": [
+          "wD05Bvao",
+          "rLYB7kQC"
+        ],
         "http": "kyICZsn8",
         "header": {
-          "4ebP5vL4": [ "G20SrL5Q", "DwPKlMbo" ],
-          "p2UI34Qz": [ "UsG1D0Qh", "NHhRiB6s" ]
+          "4ebP5vL4": [
+            "G20SrL5Q",
+            "DwPKlMbo"
+          ],
+          "p2UI34Qz": [
+            "UsG1D0Qh",
+            "NHhRiB6s"
+          ]
         },
         "method": "ciYHWors",
         "body": "lUVLGYU7",
@@ -482,7 +602,10 @@
     {
       "id": "wI1dzxS4",
       "name": "7IszXMQ1",
-      "tags": ["0Zwg8l6v", "zebELdN5"],
+      "tags": [
+        "0Zwg8l6v",
+        "zebELdN5"
+      ],
       "address": "9RhqPSPB",
       "token": "myjKJkWH",
       "port": 72219,
@@ -492,11 +615,19 @@
         "name": "atDGP7n5",
         "status": "pDQKEhWL",
         "notes": "Yt8EDLev",
-        "args": ["81EDZLPa", "bPY5X8xd"],
+        "args": [
+          "81EDZLPa",
+          "bPY5X8xd"
+        ],
         "http": "qzHYvmJO",
         "header": {
-          "UkpmZ3a3": ["2dfzXuxZ"],
-          "cVFpko4u": ["gGqdEB6k", "9LsRo22u"]
+          "UkpmZ3a3": [
+            "2dfzXuxZ"
+          ],
+          "cVFpko4u": [
+            "gGqdEB6k",
+            "9LsRo22u"
+          ]
         },
         "method": "X5DrovFc",
         "body": "WeikigLh",
@@ -521,7 +652,10 @@
     {
       "id": "MRHVMZuD",
       "name": "6L6BVfgH",
-      "tags": ["7Ale4y6o", "PMBW08hy"],
+      "tags": [
+        "7Ale4y6o",
+        "PMBW08hy"
+      ],
       "address": "R6H6g8h0",
       "token": "ZgY8gjMI",
       "port": 38292,
@@ -536,11 +670,20 @@
           "name": "9OOS93ne",
           "notes": "CQy86DH0",
           "status": "P0SWDvrk",
-          "args": ["EXvkYIuG", "BATOyt6h"],
+          "args": [
+            "EXvkYIuG",
+            "BATOyt6h"
+          ],
           "http": "u97ByEiW",
           "header": {
-            "MUlReo8L": [ "AUZG7wHG", "gsN0Dc2N" ],
-            "1UJXjVrT": [ "OJgxzTfk", "xZZrFsq7" ]
+            "MUlReo8L": [
+              "AUZG7wHG",
+              "gsN0Dc2N"
+            ],
+            "1UJXjVrT": [
+              "OJgxzTfk",
+              "xZZrFsq7"
+            ]
           },
           "method": "5wkAxCUE",
           "body": "7CRjCJyz",
@@ -621,8 +764,8 @@
             "destination_namespace": "9nakw0td",
             "destination_partition": "part-9nakw0td",
             "destination_type": "prepared_query",
-            "local_bind_socket_path":  "/foo/bar/upstream",
-            "local_bind_socket_mode":  "0600"
+            "local_bind_socket_path": "/foo/bar/upstream",
+            "local_bind_socket_mode": "0600"
           }
         ]
       }
@@ -634,15 +777,21 @@
       "port": 27147,
       "proxy": {
         "config": {
-          "1CuJHVfw" : "Kzqsa7yc"
+          "1CuJHVfw": "Kzqsa7yc"
         }
       }
     }
   ],
   "session_ttl_min": "26627s",
   "skip_leave_on_interrupt": true,
-  "start_join": [ "LR3hGDoG", "MwVpZ4Up" ],
-  "start_join_wan": [ "EbFSc3nA", "kwXTh623" ],
+  "start_join": [
+    "LR3hGDoG",
+    "MwVpZ4Up"
+  ],
+  "start_join_wan": [
+    "EbFSc3nA",
+    "kwXTh623"
+  ],
   "syslog_facility": "hHv79Uia",
   "tagged_addresses": {
     "7MYgHrYH": "dALJAhLD",
@@ -662,12 +811,19 @@
     "circonus_check_tags": "prvO4uBl",
     "circonus_submission_interval": "DolzaflP",
     "circonus_submission_url": "gTcbS93G",
+    "enable_host_metrics": true,
     "disable_hostname": true,
     "dogstatsd_addr": "0wSndumK",
-    "dogstatsd_tags": [ "3N81zSUB","Xtj8AnXZ" ],
+    "dogstatsd_tags": [
+      "3N81zSUB",
+      "Xtj8AnXZ"
+    ],
     "retry_failed_connection": true,
     "filter_default": true,
-    "prefix_filter": [ "+oJotS8XJ","-cazlEhGn" ],
+    "prefix_filter": [
+      "+oJotS8XJ",
+      "-cazlEhGn"
+    ],
     "metrics_prefix": "ftO6DySn",
     "prometheus_retention_time": "15s",
     "statsd_address": "drce87cy",
@@ -722,7 +878,10 @@
     "dir": "pVncV4Ey",
     "content_path": "qp1WRhYH",
     "metrics_provider": "sgnaoa_lower_case",
-    "metrics_provider_files": ["sgnaMFoa", "dicnwkTH"],
+    "metrics_provider_files": [
+      "sgnaMFoa",
+      "dicnwkTH"
+    ],
     "metrics_provider_options_json": "{\"DIbVQadX\": 1}",
     "metrics_proxy": {
       "base_url": "http://foo.bar",
@@ -732,7 +891,10 @@
           "value": "TYBgnN2F"
         }
       ],
-      "path_allowlist": ["/aSh3cu", "/eiK/2Th"]
+      "path_allowlist": [
+        "/aSh3cu",
+        "/eiK/2Th"
+      ]
     },
     "dashboard_url_templates": {
       "u2eziu2n_lower_case": "http://lkjasd.otr"
@@ -754,11 +916,15 @@
       "datacenter": "GyE6jpeW",
       "key": "j9lF1Tve",
       "handler": "90N7S4LN"
-    }, {
+    },
+    {
       "type": "keyprefix",
       "datacenter": "fYrl3F5d",
       "key": "sl3Dffu7",
-      "args": ["dltjDJ2a", "flEa7C2d"]
+      "args": [
+        "dltjDJ2a",
+        "flEa7C2d"
+      ]
     }
   ],
   "xds": {

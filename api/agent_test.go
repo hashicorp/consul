@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -5,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -15,8 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -177,7 +181,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
-
+	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo",
@@ -192,6 +196,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
+		Locality: locality,
 	}
 
 	regupdate := &AgentServiceRegistration{
@@ -204,7 +209,8 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 				Port:    80,
 			},
 		},
-		Port: 9000,
+		Port:     9000,
+		Locality: locality,
 	}
 
 	if err := agent.ServiceRegister(reg); err != nil {
@@ -240,12 +246,14 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, out.Service.Port)
+	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, outs[0].Service.Port)
+	require.Equal(t, locality, outs[0].Service.Locality)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -329,6 +337,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
 
+	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo",
@@ -343,6 +352,7 @@ func TestAPI_AgentServices(t *testing.T) {
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
+		Locality: locality,
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
@@ -379,6 +389,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthCritical, state)
 	require.Equal(t, 8000, out.Service.Port)
+	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
@@ -1354,6 +1365,20 @@ func TestAPI_AgentForceLeavePrune(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentForceLeaveOptions(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Eject somebody with token
+	err := agent.ForceLeaveOptions(s.Config.NodeName, ForceLeaveOpts{Prune: true}, &QueryOptions{Token: "testToken"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentMonitor(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -1543,19 +1568,19 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 	t.Run("deprecated", func(t *testing.T) {
 		agent := c.Agent()
 		if _, err := agent.UpdateACLToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
+			require.Contains(t, err.Error(), "Legacy ACL Tokens were deprecated in Consul 1.4")
 		}
 
 		if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
+			require.Contains(t, err.Error(), "Legacy ACL Tokens were deprecated in Consul 1.4")
 		}
 
 		if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
+			require.Contains(t, err.Error(), "Legacy ACL Tokens were deprecated in Consul 1.4")
 		}
 
 		if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
+			require.Contains(t, err.Error(), "Legacy ACL Tokens were deprecated in Consul 1.4")
 		}
 	})
 
@@ -1580,6 +1605,11 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+
+		if _, err := agent.UpdateConfigFileRegistrationToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
 	})
 
 	t.Run("new with fallback", func(t *testing.T) {
@@ -1664,6 +1694,9 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		require.Error(t, err)
 
 		_, err = agent.UpdateReplicationACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateConfigFileRegistrationToken("root", nil)
 		require.Error(t, err)
 	})
 }
@@ -2008,7 +2041,7 @@ func TestMemberACLMode(t *testing.T) {
 		},
 		"legacy": {
 			tagValue:     "2",
-			expectedMode: ACLModeLegacy,
+			expectedMode: ACLModeUnknown,
 		},
 		"unknown-3": {
 			tagValue:     "3",

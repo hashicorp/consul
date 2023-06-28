@@ -1,148 +1,280 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package service
 
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
-func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent) (Service, Service, error) {
+const (
+	StaticServerServiceName  = "static-server"
+	StaticServer2ServiceName = "static-server-2"
+	StaticClientServiceName  = "static-client"
+)
+
+type Checks struct {
+	Name string
+	TTL  string
+}
+
+type SidecarService struct {
+	Port  int
+	Proxy ConnectProxy
+}
+
+type ConnectProxy struct {
+	Mode string
+}
+
+type ServiceOpts struct {
+	Name     string
+	ID       string
+	Meta     map[string]string
+	HTTPPort int
+	GRPCPort int
+	// if true, register GRPC port instead of HTTP (default)
+	RegisterGRPC bool
+	Checks       Checks
+	Connect      SidecarService
+	Namespace    string
+	Locality     *api.Locality
+}
+
+// createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
+func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, httpPort int, grpcPort int, svc *api.AgentServiceRegistration, containerArgs ...string) (Service, Service, error) {
+	// Do some trickery to ensure that partial completion is correctly torn
+	// down, but successful execution is not.
+	var deferClean utils.ResettableDefer
+	defer deferClean.Execute()
+
+	if err := node.GetClient().Agent().ServiceRegister(svc); err != nil {
+		return nil, nil, err
+	}
+
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), "static-server", 8080, 8079, node)
+	serverService, err := NewExampleService(context.Background(), svc.ID, httpPort, grpcPort, node, containerArgs...)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", 8080, node) // bindPort not used
+	deferClean.Add(func() {
+		_ = serverService.Terminate()
+	})
+	sidecarCfg := SidecarConfig{
+		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
+		ServiceID: svc.ID,
+		Namespace: svc.Namespace,
+		EnableTProxy: svc.Connect != nil &&
+			svc.Connect.SidecarService != nil &&
+			svc.Connect.SidecarService.Proxy != nil &&
+			svc.Connect.SidecarService.Proxy.Mode == api.ProxyModeTransparent,
+	}
+	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
+	deferClean.Add(func() {
+		_ = serverConnectProxy.Terminate()
+	})
 
-	serverServiceIP, _ := serverService.GetAddr()
-	serverConnectProxyIP, _ := serverConnectProxy.GetAddr()
-
-	// Register the static-server service and sidecar
-	req := &api.AgentServiceRegistration{
-		Name:    "static-server",
-		Port:    8080,
-		Address: serverServiceIP,
-		Connect: &api.AgentServiceConnect{
-			SidecarService: &api.AgentServiceRegistration{
-				Name:    "static-server-sidecar-proxy",
-				Port:    20000,
-				Address: serverConnectProxyIP,
-				Kind:    api.ServiceKindConnectProxy,
-				Checks: api.AgentServiceChecks{
-					&api.AgentServiceCheck{
-						Name:     "Connect Sidecar Listening",
-						TCP:      fmt.Sprintf("%s:%d", serverConnectProxyIP, 20000),
-						Interval: "10s",
-						Status:   api.HealthPassing,
-					},
-					&api.AgentServiceCheck{
-						Name:         "Connect Sidecar Aliasing Static Server",
-						AliasService: "static-server",
-						Status:       api.HealthPassing,
-					},
-				},
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "static-server",
-					LocalServiceAddress:    serverServiceIP,
-					LocalServicePort:       8080,
-				},
-			},
-		},
-		Check: &api.AgentServiceCheck{
-			Name:     "Static Server Listening",
-			TCP:      fmt.Sprintf("%s:%d", serverServiceIP, 8080),
-			Interval: "10s",
-			Status:   api.HealthPassing,
-		},
-	}
-
-	err = node.GetClient().Agent().ServiceRegister(req)
-	if err != nil {
-		return serverService, serverConnectProxy, err
-	}
+	// disable cleanup functions now that we have an object with a Terminate() function
+	deferClean.Reset()
 
 	return serverService, serverConnectProxy, nil
 }
 
-func CreateAndRegisterStaticClientSidecar(node libnode.Agent, peerName string, localMeshGateway bool) (*ConnectContainer, error) {
-	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), "static-client-sidecar", "static-client", 5000, node)
-	if err != nil {
-		return nil, err
+func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts, containerArgs ...string) (Service, Service, error) {
+	// Register the static-server service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	p := serviceOpts.HTTPPort
+	agentCheck := api.AgentServiceCheck{
+		Name:     "Static Server Listening",
+		TCP:      fmt.Sprintf("127.0.0.1:%d", p),
+		Interval: "10s",
+		Status:   api.HealthPassing,
 	}
-
-	clientConnectProxyIP, _ := clientConnectProxy.GetAddr()
-
-	mgwMode := api.MeshGatewayModeRemote
-	if localMeshGateway {
-		mgwMode = api.MeshGatewayModeLocal
+	if serviceOpts.RegisterGRPC {
+		p = serviceOpts.GRPCPort
+		agentCheck.TCP = ""
+		agentCheck.GRPC = fmt.Sprintf("127.0.0.1:%d", p)
 	}
-
-	// Register the static-client service and sidecar
 	req := &api.AgentServiceRegistration{
-		Name: "static-client",
-		Port: 8080,
+		Name: serviceOpts.Name,
+		ID:   serviceOpts.ID,
+		Port: p,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
-				Name: "static-client-sidecar-proxy",
-				Port: 20000,
-				Kind: api.ServiceKindConnectProxy,
-				Checks: api.AgentServiceChecks{
-					&api.AgentServiceCheck{
-						Name:     "Connect Sidecar Listening",
-						TCP:      fmt.Sprintf("%s:%d", clientConnectProxyIP, 20000),
-						Interval: "10s",
-						Status:   api.HealthPassing,
-					},
-				},
 				Proxy: &api.AgentServiceConnectProxyConfig{
-					Upstreams: []api.Upstream{
-						{
-							DestinationName:  "static-server",
-							DestinationPeer:  peerName,
-							LocalBindAddress: "0.0.0.0",
-							LocalBindPort:    5000,
-							MeshGateway: api.MeshGatewayConfig{
-								Mode: mgwMode,
-							},
-						},
-					},
+					Mode: api.ProxyMode(serviceOpts.Connect.Proxy.Mode),
 				},
 			},
 		},
-		Checks: api.AgentServiceChecks{},
+		Namespace: serviceOpts.Namespace,
+		Meta:      serviceOpts.Meta,
+		Check:     &agentCheck,
+		Locality:  serviceOpts.Locality,
+	}
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, req, containerArgs...)
+}
+
+func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
+	// Register the static-server service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	req := &api.AgentServiceRegistration{
+		Name: serviceOpts.Name,
+		ID:   serviceOpts.ID,
+		Port: serviceOpts.HTTPPort,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Proxy: &api.AgentServiceConnectProxyConfig{
+					Mode: api.ProxyMode(serviceOpts.Connect.Proxy.Mode),
+				},
+				Port: serviceOpts.Connect.Port,
+			},
+		},
+		Checks: api.AgentServiceChecks{
+			{
+				Name: serviceOpts.Checks.Name,
+				TTL:  serviceOpts.Checks.TTL,
+			},
+		},
+		Meta: serviceOpts.Meta,
 	}
 
-	err = node.GetClient().Agent().ServiceRegister(req)
-	if err != nil {
-		return clientConnectProxy, err
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, req)
+}
+
+func CreateAndRegisterStaticClientSidecar(
+	node libcluster.Agent,
+	peerName string,
+	localMeshGateway bool,
+	enableTProxy bool,
+) (*ConnectContainer, error) {
+	// Do some trickery to ensure that partial completion is correctly torn
+	// down, but successful execution is not.
+	var deferClean utils.ResettableDefer
+	defer deferClean.Execute()
+
+	var proxy *api.AgentServiceConnectProxyConfig
+	if enableTProxy {
+		proxy = &api.AgentServiceConnectProxyConfig{
+			Mode: "transparent",
+		}
+	} else {
+		mgwMode := api.MeshGatewayModeRemote
+		if localMeshGateway {
+			mgwMode = api.MeshGatewayModeLocal
+		}
+		proxy = &api.AgentServiceConnectProxyConfig{
+			Upstreams: []api.Upstream{{
+				DestinationName:  StaticServerServiceName,
+				DestinationPeer:  peerName,
+				LocalBindAddress: "0.0.0.0",
+				LocalBindPort:    libcluster.ServiceUpstreamLocalBindPort,
+				MeshGateway: api.MeshGatewayConfig{
+					Mode: mgwMode,
+				},
+			}},
+		}
 	}
+
+	// Register the static-client service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	req := &api.AgentServiceRegistration{
+		Name: StaticClientServiceName,
+		Port: 8080,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Proxy: proxy,
+			},
+		},
+	}
+
+	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
+		return nil, err
+	}
+
+	// Create a service and proxy instance
+	sidecarCfg := SidecarConfig{
+		Name:         fmt.Sprintf("%s-sidecar", StaticClientServiceName),
+		ServiceID:    StaticClientServiceName,
+		EnableTProxy: enableTProxy,
+	}
+
+	clientConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
+	if err != nil {
+		return nil, err
+	}
+	deferClean.Add(func() {
+		_ = clientConnectProxy.Terminate()
+	})
+
+	// disable cleanup functions now that we have an object with a Terminate() function
+	deferClean.Reset()
 
 	return clientConnectProxy, nil
 }
 
-func GetEnvoyConfigDump(port int) (string, error) {
-	client := http.DefaultClient
-	url := fmt.Sprintf("http://localhost:%d/config_dump?include_eds", port)
-
-	res, err := client.Get(url)
-	if err != nil {
-		return "", err
+func ClientsCreate(t *testing.T, numClients int, image, version string, cluster *libcluster.Cluster) {
+	opts := libcluster.BuildOptions{
+		ConsulImageName: image,
+		ConsulVersion:   version,
 	}
-	defer res.Body.Close()
+	ctx := libcluster.NewBuildContext(t, opts)
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
+	conf := libcluster.NewConfigBuilder(ctx).
+		Client().
+		ToAgentConfig(t)
+	t.Logf("Cluster client config:\n%s", conf.JSON)
 
-	return string(body), nil
+	require.NoError(t, cluster.AddN(*conf, numClients, true))
+}
+
+func ServiceCreate(t *testing.T, client *api.Client, serviceName string) uint64 {
+	require.NoError(t, client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+		Name: serviceName,
+		Port: 9999,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Port: 22005,
+			},
+		},
+	}))
+
+	service, meta, err := client.Catalog().Service(serviceName, "", &api.QueryOptions{})
+	require.NoError(t, err)
+	require.Len(t, service, 1)
+	require.Equal(t, serviceName, service[0].ServiceName)
+	require.Equal(t, 9999, service[0].ServicePort)
+
+	return meta.LastIndex
+}
+
+func ServiceHealthBlockingQuery(client *api.Client, serviceName string, waitIndex uint64) (chan []*api.ServiceEntry, chan error) {
+	var (
+		ch    = make(chan []*api.ServiceEntry, 1)
+		errCh = make(chan error, 1)
+	)
+	go func() {
+		opts := &api.QueryOptions{WaitIndex: waitIndex}
+		service, q, err := client.Health().Service(serviceName, "", false, opts)
+		if err == nil && q.QueryBackend != api.QueryBackendStreaming {
+			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
+	}()
+
+	return ch, errCh
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // The snapshot endpoint is a special non-RPC endpoint that supports streaming
 // for taking and restoring snapshots for disaster recovery. This gets wired
 // directly into Consul's stream handler, and a new TCP connection is made for
@@ -68,14 +71,14 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	switch args.Op {
 	case structs.SnapshotSave:
 		if !args.AllowStale {
-			if err := s.consistentRead(); err != nil {
+			if err := s.ConsistentRead(); err != nil {
 				return nil, err
 			}
 		}
 
 		// Set the metadata here before we do anything; this should always be
 		// pessimistic if we get more data while the snapshot is being taken.
-		s.setQueryMeta(&reply.QueryMeta, args.Token)
+		s.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 		// Take the snapshot and capture the index.
 		snap, err := snapshot.New(s.logger, s.raft)

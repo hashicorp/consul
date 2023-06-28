@@ -13,7 +13,7 @@ description: >-
 This guide explains how to best upgrade a multi-datacenter Consul deployment that is using
 a version of Consul >= 0.8.5 and < 1.2.4 while maintaining replication. If you are on a version
 older than 0.8.5, but are in the 0.8.x series, please upgrade to 0.8.5 by following our
-[General Upgrade Process](/docs/upgrading/instructions/general-process). If you are on a version
+[General Upgrade Process](/consul/docs/upgrading/instructions/general-process). If you are on a version
 older than 0.8.0, please [contact support](https://support.hashicorp.com).
 
 In this guide, we will be using an example with two datacenters (DCs) and will be
@@ -25,7 +25,7 @@ referring to them as DC1 and DC2. DC1 will be the primary datacenter.
 - You need a Consul cluster with at least 3 nodes to perform this upgrade as documented. If
   you either have a single node cluster or several single node clusters joined via WAN, the
   servers will come up in a `No cluster leader` loop after upgrading. If that happens, you will
-  need to recover the cluster using the method described [here](https://learn.hashicorp.com/tutorials/consul/recovery-outage#manual-recovery-using-peers-json).
+  need to recover the cluster using the method described [here](/consul/tutorials/datacenter-operations/recovery-outage#manual-recovery-using-peers-json).
   You can avoid this issue entirely by growing your cluster to 3 nodes prior to upgrading.
 
 ## Assumptions
@@ -39,7 +39,7 @@ This guide makes the following assumptions:
 ## Considerations
 
 There are not too many major changes that might cause issues upgrading from 1.0.8, but notable changes
-are called out in our [Specific Version Details](/docs/upgrading/upgrade-specific#consul-1-1-0)
+are called out in our [Specific Version Details](/consul/docs/upgrading/upgrade-specific#consul-1-1-0)
 page. You can find more granular details in the full [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md#124-november-27-2018).
 Looking through these changes prior to upgrading is highly recommended.
 
@@ -88,7 +88,7 @@ You should receive output similar to this:
 }
 ```
 
-**3.** Upgrade the Consul agents in all DCs to version 1.2.4 by following our [General Upgrade Process](/docs/upgrading/instructions/general-process).
+**3.** Upgrade the Consul agents in all DCs to version 1.2.4 by following our [General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
 This should be done one DC at a time, leaving the primary DC for last.
 
 **4.** Confirm that replication is still working in DC2 by issuing the following curl command from a
@@ -120,7 +120,7 @@ moving to newer versions.
 
 The full list of changes is available here:
 
-- [Upgrade Specific Versions: Consul 1.0 - Deprecated Options](/docs/upgrading/upgrade-specific#deprecated-options-have-been-removed)
+- [Upgrade Specific Versions: Consul 1.0 - Deprecated Options](/consul/docs/upgrading/upgrade-specific#deprecated-options-have-been-removed)
 
 You can make sure your config changes are valid by copying your existing configuration files,
 making the changes, and then verifying them by using `consul validate $CONFIG_FILE1_PATH $CONFIG_FILE2_PATH ...`.

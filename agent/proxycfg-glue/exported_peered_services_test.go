@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfgglue
 
 import (
@@ -7,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -48,6 +51,14 @@ func TestServerExportedPeeredServices(t *testing.T) {
 			},
 		},
 	}))
+
+	// Create resolvers for each of the services so that they are guaranteed to be replicated by the peer stream.
+	for _, s := range []string{"web", "api", "db"} {
+		require.NoError(t, store.EnsureConfigEntry(0, &structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: s,
+		}))
+	}
 
 	authz := policyAuthorizer(t, `
 		service "web" { policy = "read" }

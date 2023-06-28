@@ -29,12 +29,12 @@ Subcommands:
 
 ## list-peers
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/status/peers](/api-docs/status#list-raft-peers)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/status/peers](/consul/api-docs/status#list-raft-peers)
 
 This command displays the current Raft peer configuration.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -46,10 +46,10 @@ Usage: `consul operator raft list-peers -stale=[true|false]`
 The output looks like this:
 
 ```text
-Node     ID              Address         State     Voter  RaftProtocol
-alice    127.0.0.1:8300  127.0.0.1:8300  follower  true   2
-bob      127.0.0.2:8300  127.0.0.2:8300  leader    true   3
-carol    127.0.0.3:8300  127.0.0.3:8300  follower  true   2
+Node     ID              Address         State     Voter  RaftProtocol  Commit Index Trails Leader By
+alice    127.0.0.1:8300  127.0.0.1:8300  follower  true   2             1167         0 commits
+bob      127.0.0.2:8300  127.0.0.2:8300  leader    true   3             1167         -
+carol    127.0.0.3:8300  127.0.0.3:8300  follower  true   2             1159         8 commits
 ```
 
 `Node` is the node name of the server, as known to Consul, or "(unknown)" if
@@ -66,16 +66,20 @@ Raft configuration.
 `Voter` is "true" or "false", indicating if the server has a vote in the Raft
 configuration.
 
+`Commit Index` is the last log index the server has a record of in its Raft log.
+
+`Trails Leader By` is the number of commits a follower trails the leader by.
+
 #### Command Options
 
 - `-stale` - Enables non-leader servers to provide cluster state information.
   If the cluster is in an outage state without a leader,
-  we recommend setting this option to `true.
+  we recommend setting this option to `true`.
   Default is `false`.
 
 ## remove-peer
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/raft/peer](/api-docs/operator/raft#delete-raft-peer)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/raft/peer](/consul/api-docs/operator/raft#delete-raft-peer)
 
 This command removes the Consul server with given address from the Raft configuration.
 
@@ -83,13 +87,13 @@ There are rare cases where a peer may be left behind in the Raft configuration
 even though the server is no longer present and known to the cluster. This command
 can be used to remove the failed server so that it is no longer affects the
 Raft quorum. If the server still shows in the output of the
-[`consul members`](/commands/members) command, it is preferable to
+[`consul members`](/consul/commands/members) command, it is preferable to
 clean up by simply running
-[`consul force-leave`](/commands/force-leave)
+[`consul force-leave`](/consul/commands/force-leave)
 instead of this command.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -107,14 +111,14 @@ The return code will indicate success or failure.
 
 ## transfer-leader
 
-Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/api-docs/operator/raft#transfer-raft-leadership)
+Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/consul/api-docs/operator/raft#transfer-raft-leadership)
 
-This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id. 
+This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id.
 
 Use this command to change leadership without restarting the leader node, which maintains quorum and workload capacity.
 
-The table below shows this command's [required ACLs](/api-docs#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |

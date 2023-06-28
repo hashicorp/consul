@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Route
   @name={{routeName}}
 as |route|>
@@ -49,13 +54,11 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="actions">
 {{#if (can 'create partitions')}}
-        <a 
-          data-test-create 
-          class="type-create"
-          href="{{href-to 'dc.partitions.create'}}"
-        >
-          Create
-        </a>
+  <Hds::Button
+    @text='Create'
+    @route='dc.partitions.create'
+    data-test-create
+  />
 {{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">

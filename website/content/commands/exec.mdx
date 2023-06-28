@@ -16,8 +16,8 @@ this can be used to run the `uptime` command across all machines providing
 the `web` service.
 
 Remote execution works by specifying a job, which is stored in the KV store.
-Agents are informed about the new job using the [event system](/commands/event),
-which propagates messages via the [gossip protocol](/docs/architecture/gossip).
+Agents are informed about the new job using the [event system](/consul/commands/event),
+which propagates messages via the [gossip protocol](/consul/docs/architecture/gossip).
 As a result, delivery is best-effort, and there is **no guarantee** of execution.
 
 While events are purely gossip driven, remote execution relies on the KV store
@@ -30,7 +30,7 @@ through the Consul servers and the Raft consensus algorithm, so having a large
 number of nodes in the cluster flow a large amount of data through the KV store
 could make the cluster unavailable.
 
-The table below shows the [required ACLs](/api-docs/api-structure#authentication) in order to
+The table below shows the [required ACLs](/consul/api-docs/api-structure#authentication) in order to
 execute this command.
 
 | ACL Required    | Scope             |
@@ -40,7 +40,7 @@ execute this command.
 | `key:write`     | `"_rexec"` prefix |
 | `event:write`   | `"_rexec"` prefix |
 
-In addition to the above, the policy associated with the [agent token](/docs/security/acl/acl-tokens#acl-agent-token) should have `write` on `"_rexec"` key prefix. This is for the agents to read the `exec` command and write its output back to the KV store.
+In addition to the above, the policy associated with the [agent token](/consul/docs/security/acl/acl-tokens#acl-agent-token) should have `write` on `"_rexec"` key prefix. This is for the agents to read the `exec` command and write its output back to the KV store.
 
 ## Usage
 

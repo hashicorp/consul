@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cachetype
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -43,7 +47,7 @@ func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedServiceNodes
-	if err := c.RPC.RPC("Catalog.ServiceNodes", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "Catalog.ServiceNodes", reqReal, &reply); err != nil {
 		return result, err
 	}
 

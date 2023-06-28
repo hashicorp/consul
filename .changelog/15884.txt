@@ -1,0 +1,3 @@
+```release-note:feature
+acl: anonymous token is logged as 'anonymous token' instead of its accessor ID
+```

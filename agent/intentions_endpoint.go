@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -40,7 +43,7 @@ func (s *HTTPHandlers) IntentionList(resp http.ResponseWriter, req *http.Request
 
 	var reply structs.IndexedIntentions
 	defer setMeta(resp, &reply.QueryMeta)
-	if err := s.agent.RPC("Intention.List", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.List", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -84,7 +87,7 @@ func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Reque
 	}
 
 	var reply string
-	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -176,7 +179,7 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 		out = *reply
 	} else {
 	RETRY_ONCE:
-		if err := s.agent.RPC("Intention.Match", args, &out); err != nil {
+		if err := s.agent.RPC(req.Context(), "Intention.Match", args, &out); err != nil {
 			return nil, err
 		}
 		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -254,7 +257,7 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 	args.Check.DestinationName = parsed.name
 
 	var reply structs.IntentionQueryCheckResponse
-	if err := s.agent.RPC("Intention.Check", args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.Check", args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -324,7 +327,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	}
 
 	var reply structs.IndexedIntentions
-	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if strings.Contains(err.Error(), consul.ErrIntentionNotFound.Error()) {
 			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
@@ -386,7 +389,7 @@ func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Req
 	args.Intention.FillPartitionAndNamespace(&entMeta, false)
 
 	var ignored string
-	if err := s.agent.RPC("Intention.Apply", &args, &ignored); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.Apply", &args, &ignored); err != nil {
 		return nil, err
 	}
 
@@ -421,7 +424,7 @@ func (s *HTTPHandlers) IntentionDeleteExact(resp http.ResponseWriter, req *http.
 	s.parseToken(req, &args.Token)
 
 	var ignored string
-	if err := s.agent.RPC("Intention.Apply", &args, &ignored); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.Apply", &args, &ignored); err != nil {
 		return nil, err
 	}
 
@@ -542,7 +545,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 	}
 
 	var reply structs.IndexedIntentions
-	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
 			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
@@ -604,7 +607,7 @@ func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWrit
 	args.Intention.ID = id
 
 	var reply string
-	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -624,7 +627,7 @@ func (s *HTTPHandlers) IntentionSpecificDelete(id string, resp http.ResponseWrit
 	s.parseToken(req, &args.Token)
 
 	var reply string
-	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Intention.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 

@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if (or @noMetricsReason @error)}}
   <span data-test-topology-metrics-status class="topology-metrics-status-error">
     {{#if (eq @noMetricsReason 'ingress-gateway')}}

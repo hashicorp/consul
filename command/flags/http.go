@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package flags
 
 import (
@@ -96,6 +99,10 @@ func (f *HTTPFlags) Addr() string {
 
 func (f *HTTPFlags) Datacenter() string {
 	return f.datacenter.String()
+}
+
+func (f *HTTPFlags) Namespace() string {
+	return f.namespace.String()
 }
 
 func (f *HTTPFlags) Partition() string {

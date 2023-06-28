@@ -10,21 +10,21 @@ description: >-
 HashiCorp Consul is a service networking solution that enables teams to manage secure network connectivity between services and across on-prem and multi-cloud environments and runtimes. Consul offers service discovery, service mesh, traffic management, and automated updates to network infrastructure device. You can use these features individually or together in a single Consul deployment.
 
 > **Hands-on**: Complete the Getting Started tutorials to learn how to deploy Consul:
-- [Get Started on Kubernetes](https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh)
-- [Get Started on VMs](https://learn.hashicorp.com/collections/consul/getting-started)
-- [HashiCorp Cloud Platform (HCP) Consul](https://learn.hashicorp.com/collections/consul/cloud-get-started)
+- [Get Started on Kubernetes](/consul/tutorials/get-started-kubernetes)
+- [Get Started on VMs](/consul/tutorials/get-started-vms)
+- [HashiCorp Cloud Platform (HCP) Consul](/consul/tutorials/get-started-hcp)
 
 ## How does Consul work?
 
 Consul provides a _control plane_ that enables you to register, query, and secure services deployed across your network. The control plane is the part of the network infrastructure that maintains a central registry to track services and their respective IP addresses. It is a distributed system that runs on clusters of nodes, such as physical servers, cloud instances, virtual machines, or containers. 
 
-Consul interacts with the _data plane_ through proxies. The data plane is the part of the network infrastructure that processes data requests. Refer to [Consul Architecture](/docs/architecture) for details.
+Consul interacts with the _data plane_ through proxies. The data plane is the part of the network infrastructure that processes data requests. Refer to [Consul Architecture](/consul/docs/architecture) for details.
 
 ![Basic Consul workflow](/img/what-is-consul-overview-diagram.png)
 
 The core Consul workflow consists of the following stages:
 
-- **Register**: Teams add services to the Consul catalog, which is a central registry that lets services automatically discover each other without requiring a human operator to modify application code, deploy additional load balancers, or hardcode IP addresses. It is the runtime source of truth for all services and their addresses. Teams can manually [define and register services](/docs/discovery/services) using the CLI or the API, or you can automate the process in Kubernetes with [service sync](/docs/k8s/service-sync). Services can also include health checks so that Consul can monitor for unhealthy services.
+- **Register**: Teams add services to the Consul catalog, which is a central registry that lets services automatically discover each other without requiring a human operator to modify application code, deploy additional load balancers, or hardcode IP addresses. It is the runtime source of truth for all services and their addresses. Teams can manually [define](/consul/docs/services/usage/define-services) and [register](/consul/docs/services/usage/register-services-checks) using the CLI or the API, or you can automate the process in Kubernetes with [service sync](/consul/docs/k8s/service-sync). Services can also include health checks so that Consul can monitor for unhealthy services.
 - **Query**: Consul’s identity-based DNS lets you find healthy services in the Consul catalog. Services registered with Consul provide health information, access points, and other data that help you control the flow of data through your network. Your services only access other services through their local proxy according to the identity-based policies you define.
 - **Secure**: After services locate upstreams, Consul ensures that service-to-service communication is authenticated, authorized, and encrypted. Consul service mesh secures microservice architectures with mTLS and can allow or restrict access based on service identities, regardless of differences in compute environments and runtimes. 
 
@@ -57,7 +57,7 @@ You can also schedule Consul workloads with [HashiCorp Nomad](https://www.nomadp
 
 Microservice architectures are complex and difficult to secure against accidental discloser to malicious actors. Consul provides several mechanisms that enhance network security without any changes to your application code, including mutual transport layer security (mTLS) encryption on all traffic between services and  Consul intentions, which are service-to-service permissions that you can manage through the Consul UI, API, and CLI.
 
-When you deploy Consul to Kubernetes clusters, you can also integrate with [HashiCorp Vault](https://www.vaultproject.io/) to manage sensitive data. By default, Consul on Kubernetes leverages Kubernetes secrets as the backend system. Kubernetes secrets are base64 encoded, unencrypted, and lack lease or time-to-live properties. By leveraging Vault as a secrets backend for Consul on Kubernetes, you can manage and store Consul related secrets within a centralized Vault cluster to use across one or many Consul on Kubernetes datacenters. Refer to [Vault as the Secrets Backend](/docs/k8s/deployment-configurations/vault) for additional information.
+When you deploy Consul to Kubernetes clusters, you can also integrate with [HashiCorp Vault](https://www.vaultproject.io/) to manage sensitive data. By default, Consul on Kubernetes leverages Kubernetes secrets as the backend system. Kubernetes secrets are base64 encoded, unencrypted, and lack lease or time-to-live properties. By leveraging Vault as a secrets backend for Consul on Kubernetes, you can manage and store Consul related secrets within a centralized Vault cluster to use across one or many Consul on Kubernetes datacenters. Refer to [Vault as the Secrets Backend](/consul/docs/k8s/deployment-configurations/vault) for additional information.
 
 You can also secure your Consul deployment, itself, by defining security policies in access control lists (ACL) to control access to data and Consul APIs.
 

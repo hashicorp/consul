@@ -21,7 +21,7 @@ Service discovery provides benefits for all organizations, ranging from simplifi
 - Faster deployment times achieved by high-speed discovery
 - Automated service registration and de-registration
 
-## How does a service mesh work?
+## How does service discovery work?
 
 Service discovery uses a service's identity instead of traditional access information (IP address and port). This allows you to dynamically map services and track any changes within a service catalog. Service consumers (users or other services) then use DNS to dynamically retrieve other service's access information from the service catalog. The lifecycle of a service may look like the following:
 
@@ -82,7 +82,7 @@ Consul's service discovery capabilities help you discover, track, and monitor th
 
 You can use Consul with virtual machines (VMs), containers, serverless technologies, or with container orchestration platforms, such as [Nomad](https://www.nomadproject.io/) and Kubernetes. Consul is platform agnostic which makes it a great fit for all environments, including legacy platforms.
 
-Consul is available as a [self-managed](/downloads) project or as a fully managed service mesh solution ([HCP Consul](https://portal.cloud.hashicorp.com/sign-in?utm_source=consul_docs)). HCP Consul enables users to discover and securely connect services without the added operational burden of maintaining a service mesh on their own.
+Consul is available as a [self-managed](/consul/downloads) project or as a fully managed service mesh solution ([HCP Consul](https://portal.cloud.hashicorp.com/sign-in?utm_source=consul_docs)). HCP Consul enables users to discover and securely connect services without the added operational burden of maintaining a service mesh on their own.
 
 ## Next steps
 
@@ -90,6 +90,6 @@ Get started with service discovery today by leveraging Consul on HCP, Consul on 
 
 Feel free to get started with Consul by exploring one of these Consul tutorials:
 
-- [Get Started with Consul on VMs](https://learn.hashicorp.com/collections/consul/getting-started)
-- [Get Started with Consul on HCP](https://learn.hashicorp.com/collections/consul/cloud-get-started)
-- [Get Started with Consul on Kubernetes](https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh)
+- [Get Started with Consul on VMs](/consul/tutorials/get-started-vms)
+- [Get Started with Consul on HCP](/consul/tutorials/get-started-hcp)
+- [Get Started with Consul on Kubernetes](/consul/tutorials/get-started-kubernetes)

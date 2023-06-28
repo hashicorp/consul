@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
@@ -16,6 +21,7 @@ module('Integration | Serializer | auth-method', function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
+      assert.expect(1);
       const serializer = this.owner.lookup('serializer:auth-method');
       const request = {
         url: `/v1/acl/auth-methods?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${
@@ -53,6 +59,7 @@ module('Integration | Serializer | auth-method', function (hooks) {
       });
     });
     test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
+      assert.expect(1);
       const serializer = this.owner.lookup('serializer:auth-method');
       const request = {
         url: `/v1/acl/auth-method/${id}?dc=${dc}${

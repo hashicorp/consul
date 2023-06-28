@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
 readonly SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
@@ -42,26 +45,16 @@ function main {
         esac
     done
 
-    for mod in $(find . -name 'buf.gen.yaml' -exec dirname {} \; | sort)
+    # clear old ratelimit.tmp files
+    find . -name .ratelimit.tmp -delete
+
+    local mods=$(find . -name 'buf.gen.yaml' -exec dirname {} \; | sort)
+    for mod in $mods
     do
+        status_stage "Generating protobuf module: $mod"
         (
-            # This looks special and it is. First of all this is not just `buf generate`
-            # from within the $mod directory because doing that would have caused global
-            # file registration conflicts when Consul starts. TLDR there is that Go's
-            # protobuf code tracks protobufs by their file paths so those filepaths all
-            # must be unique.
-            #
-            # To work around those constraints we are trying to get the file descriptors
-            # passed off to protoc-gen-go to include the top level path. The file paths
-            # in the file descriptors will be relative to where `buf` is run. Therefore
-            # we must run `buf` from the root of the repo but still tell it to only
-            # generate the singular directory. The --template argument allows us to
-            # point buf a particular configuration for what code to generate. The 
-            # --path argument allows us to tell `buf` which files/directories to 
-            # operate on. Hopefully in the future `buf` will be able to add prefixes
-            # to file descriptor paths and we can modify this to work in a more natural way.
-            buf generate --template ${mod}/buf.gen.yaml --path ${mod}
             cd $mod
+            buf generate
             for proto_file in $(buf ls-files)
             do
                 postprocess_protobuf_code $proto_file
@@ -75,6 +68,14 @@ function main {
 
     status "Generated all mog Go files"
 
+    generate_rate_limit_mappings $mods
+
+    status "Generated gRPC rate limit mapping file"
+
+    generate_protoset_file
+
+    status "Generated protoset file"
+
     return 0
 }
 
@@ -86,6 +87,7 @@ function postprocess_protobuf_code {
     fi
 
     local proto_go_path="${proto_path%%.proto}.pb.go"
+    local proto_go_grpc_path="${proto_path%%.proto}_grpc.pb.go"
     local proto_go_bin_path="${proto_path%%.proto}.pb.binary.go"
     local proto_go_rpcglue_path="${proto_path%%.proto}.rpcglue.pb.go"
 
@@ -99,10 +101,11 @@ function postprocess_protobuf_code {
     local build_tags
     build_tags="$(head -n 2 "${proto_path}" | grep '^//go:build\|// +build' || true)"
     if test -n "${build_tags}"; then
-       for file in "${proto_go_bin_path}" "${proto_go_grpc_path}"
+       for file in "${proto_go_path}" "${proto_go_bin_path}" "${proto_go_grpc_path}"
        do
-            if test -f "${file}"
+            if test -f "${file}" -a "$(head -n 2 ${file})" != "${build_tags}"
             then
+                echo "Adding build tags to ${file}"
                 echo -e "${build_tags}\n" >> "${file}.new"
                 cat "${file}" >> "${file}.new"
                 mv "${file}.new" "${file}"
@@ -123,7 +126,7 @@ function postprocess_protobuf_code {
 function generate_mog_code {
     local mog_order
 
-    mog_order="$(go list -tags "${GOTAGS}" -deps ./proto/pb... | grep "consul/proto")"
+    mog_order="$(go list -tags "${GOTAGS}" -deps ./proto/private/pb... | grep "consul/proto/private")"
 
     for FULL_PKG in ${mog_order}; do
         PKG="${FULL_PKG/#github.com\/hashicorp\/consul\/}"
@@ -137,6 +140,26 @@ function generate_mog_code {
     done
 
     return 0
+}
+
+function generate_rate_limit_mappings {
+    local flags=(
+      "-output ${SOURCE_DIR}/agent/grpc-middleware/rate_limit_mappings.gen.go"
+    )
+    for path in $@; do
+      flags+=("-input $path")
+    done
+
+    print_run go run ${SOURCE_DIR}/internal/tools/protoc-gen-consul-rate-limit/postprocess/main.go ${flags[@]} || {
+        err "Failed to generate gRPC rate limit mappings"
+        return 1
+    }
+}
+
+function generate_protoset_file {
+  local pkg_dir="${SOURCE_DIR}/pkg"
+  mkdir -p "$pkg_dir"
+  print_run buf build -o "${pkg_dir}/consul.protoset"
 }
 
 main "$@"

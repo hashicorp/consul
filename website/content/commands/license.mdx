@@ -15,13 +15,13 @@ Command: `consul license`
 The `license` command provides a list of all datacenters that use the Consul Enterprise license applied to the current datacenter.
 
 ~> **Warning**: Consul 1.10.0 removed the ability to set and reset the license using the CLI.
-See the [licensing documentation](/docs/enterprise/license/overview) for more information about
+See the [licensing documentation](/consul/docs/enterprise/license/overview) for more information about
 Consul Enterprise license management.
 
 If ACLs are enabled then a token with operator privileges may be required in
 order to use this command. Requests are forwarded internally to the leader
 if required, so this can be run from any Consul node in a cluster. See the
-[ACL Guide](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) for more information.
+[ACL Guide](/consul/tutorials/security/access-control-setup-production) for more information.
 
 ```text
 Usage: consul license <subcommand> [options] [args]
@@ -125,12 +125,12 @@ License is valid
 was removed in Consul 1.10. While the CLI command still exists it will
 always return an error. This command will be fully removed in a future release.
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/license](/api-docs/operator/license#updating-the-consul-license)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/license](/consul/api-docs/operator/license#updating-the-consul-license)
 
 This command sets the Consul Enterprise license.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -165,12 +165,13 @@ Licensed Features:
 
 ## get
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/license](/api-docs/operator/license#getting-the-consul-license)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/license](/consul/api-docs/operator/license#getting-the-consul-license)
 
-This command gets the Consul Enterprise license.
+This command gets the Consul Enterprise license. If the leader hasn't been updated with the newer license, the followers
+will display the outdated license in their GET output.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -209,13 +210,13 @@ Licensed Features:
 was removed in Consul 1.10. While the CLI command still exists it will
 always return an error. This command will be fully removed in a future release.
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/license](/api-docs/operator/license#resetting-the-consul-license)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/license](/consul/api-docs/operator/license#resetting-the-consul-license)
 
 Resets license for the datacenter to the one builtin in Consul binary, if it is still valid.
 If the builtin license is invalid, the current one stays active.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |

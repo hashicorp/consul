@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <AppView>
   <BlockSlot @name="header">
     <h1>
@@ -15,11 +20,23 @@
         </p>
       </BlockSlot>
       <BlockSlot @name="actions">
-        <li class="docs-link">
-          <a href="{{env 'CONSUL_DOCS_URL'}}/acl/index.html" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+        <li>
+          <Hds::Link::Standalone
+            @text='Read the documentation'
+            @href="{{env 'CONSUL_DOCS_URL'}}/acl/index.html"
+            @icon='docs-link'
+            @iconPosition='trailing'
+            @size='small'
+          />
         </li>
-        <li class="learn-link">
-          <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/security-networking/production-acls" rel="noopener noreferrer" target="_blank">Follow the guide</a>
+        <li>
+          <Hds::Link::Standalone
+            @text='Follow the guide'
+            @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/security-networking/production-acls"
+            @icon='learn-link'
+            @iconPosition='trailing'
+            @size='small'
+          />
         </li>
       </BlockSlot>
     </EmptyState>

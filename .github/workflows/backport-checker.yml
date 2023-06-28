@@ -1,0 +1,35 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# This workflow checks that there is either a 'pr/no-backport' label applied to a PR
+# or there is a backport/* label indicating a backport has been set
+
+name: Backport Checker
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+    # Runs on PRs to main and all release branches
+    branches:
+      - main
+      - release/*
+
+jobs:
+  # checks that a backport label is present for a PR
+  backport-check:
+    # If there's a `pr/no-backport` label we ignore this check. Also, we ignore PRs created by the bot assigned to `backport-assistant`
+    if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-backport') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for Backport Label
+        run: |
+          labels="${{join(github.event.pull_request.labels.*.name, ', ') }}"
+          if [[ "$labels" =~ .*"backport/".* ]]; then
+            echo "Found backport label!"
+            exit 0
+          fi
+          # Fail status check when no backport label was found on the PR
+          echo "Did not find a backport label matching the pattern 'backport/*' and the 'pr/no-backport' label was not applied. Reference - https://github.com/hashicorp/consul/pull/16567"
+          exit 1
+

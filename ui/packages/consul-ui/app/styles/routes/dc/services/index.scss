@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 /* drop the external dashboard button down if it exists */
 /* so it doesn't sit next to the Intentions create button */
 /* awkwardly */
@@ -14,7 +19,7 @@ html[data-route^='dc.services.instance'] .app-view > header dl {
   margin-right: 50px;
 }
 html[data-route^='dc.services.instance'] .app-view > header dt {
-  font-weight: var(--typo-weight-bold);
+  font-weight: var(--token-typography-font-weight-bold);
 }
 html[data-route^='dc.services.instance'] .tab-nav {
   border-top: var(--decor-border-100);
@@ -24,12 +29,12 @@ html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
 }
 html[data-route^='dc.services.instance'] .tab-nav,
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
 }
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
   padding-bottom: 24px;
 }
 html[data-route^='dc.services.instance.metadata'] .tab-section section h2 {
-  @extend %h300;
+  @extend %display-300-semibold;
   margin: 24px 0 12px 0;
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package health
 
 import (
@@ -5,7 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 // streamClient is a mock StreamingClient for testing that allows

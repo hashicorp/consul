@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import domIsOutside from 'consul-ui/utils/dom/is-outside';
 import { module, test } from 'qunit';
 
@@ -53,7 +58,7 @@ module('Unit | Utility | dom/is-outside', function () {
     const result = domIsOutside(el, target, doc);
     assert.notOk(result);
   });
-  test('it is not outside when its in the document but in the element', function (assert) {
+  test('it is not outside when its in the document but not in the element', function (assert) {
     // is in the document
     const doc = {
       contains: function (el) {

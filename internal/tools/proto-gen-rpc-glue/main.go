@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package main
 
 import (
@@ -105,15 +108,6 @@ func processFile(path string) error {
 			if ann.Datacenter != "" {
 				log.Printf("    Datacenter from %s", ann.Datacenter)
 			}
-			if ann.ReadTODO != "" {
-				log.Printf("    ReadTODO from %s", ann.ReadTODO)
-			}
-			if ann.LeaderReadTODO != "" {
-				log.Printf("    LeaderReadTODO from %s", ann.LeaderReadTODO)
-			}
-			if ann.WriteTODO != "" {
-				log.Printf("    WriteTODO from %s", ann.WriteTODO)
-			}
 		}
 	}
 
@@ -159,15 +153,6 @@ var _ time.Month
 		}
 		if typ.Annotation.Datacenter != "" {
 			buf.WriteString(fmt.Sprintf(tmplDatacenter, typ.Name, typ.Annotation.Datacenter))
-		}
-		if typ.Annotation.LeaderReadTODO != "" {
-			buf.WriteString(fmt.Sprintf(tmplLeaderOnlyReadTODO, typ.Name, typ.Annotation.LeaderReadTODO))
-		}
-		if typ.Annotation.ReadTODO != "" {
-			buf.WriteString(fmt.Sprintf(tmplReadTODO, typ.Name, typ.Annotation.ReadTODO))
-		}
-		if typ.Annotation.WriteTODO != "" {
-			buf.WriteString(fmt.Sprintf(tmplWriteTODO, typ.Name, typ.Annotation.WriteTODO))
 		}
 	}
 
@@ -322,13 +307,6 @@ func getAnnotation(doc []*ast.Comment) (Annotation, error) {
 		case strings.HasPrefix(part, "Datacenter="):
 			ann.Datacenter = strings.TrimPrefix(part, "Datacenter=")
 
-		case part == "ReadTODO":
-			ann.ReadTODO = "ReadTODO"
-		case part == "WriteTODO":
-			ann.WriteTODO = "WriteTODO"
-		case part == "LeaderReadTODO":
-			ann.LeaderReadTODO = "LeaderReadTODO"
-
 		default:
 			return Annotation{}, fmt.Errorf("unexpected annotation part: %s", part)
 		}
@@ -453,114 +431,6 @@ func (msg *%[1]s) Token() string {
 		return ""
 	}
 	return msg.%[2]s.Token
-}
-`
-
-const tmplLeaderOnlyReadTODO = `
-// IsRead implements structs.RPCInfo
-func (msg *%[1]s) IsRead() bool {
-	// TODO(peering): figure out read semantics here
-	return true
-}
-
-// AllowStaleRead implements structs.RPCInfo
-func (msg *%[1]s) AllowStaleRead() bool {
-	// TODO(peering): figure out read semantics here
-	// TODO(peering): this needs to stay false for calls to head to the leader until we sync stream tracker information
-	// like ImportedServicesCount, ExportedServicesCount, as well as general Status fields thru raft to make available
-	// to followers as well
-	return false
-}
-
-// HasTimedOut implements structs.RPCInfo
-func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
-	// TODO(peering): figure out read semantics here
-	return time.Since(start) > rpcHoldTimeout, nil
-}
-
-// SetTokenSecret implements structs.RPCInfo
-func (msg *%[1]s) SetTokenSecret(s string) {
-	// TODO(peering): figure out read semantics here
-}
-
-// TokenSecret implements structs.RPCInfo
-func (msg *%[1]s) TokenSecret() string {
-	// TODO(peering): figure out read semantics here
-	return ""
-}
-
-// Token implements structs.RPCInfo
-func (msg *%[1]s) Token() string {
-	// TODO(peering): figure out read semantics here
-	return ""
-}
-`
-
-const tmplReadTODO = `
-// IsRead implements structs.RPCInfo
-func (msg *%[1]s) IsRead() bool {
-	// TODO(peering): figure out read semantics here
-	return true
-}
-
-// AllowStaleRead implements structs.RPCInfo
-func (msg *%[1]s) AllowStaleRead() bool {
-	// TODO(peering): figure out read semantics here
-	return false
-}
-
-// HasTimedOut implements structs.RPCInfo
-func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
-	// TODO(peering): figure out read semantics here
-	return time.Since(start) > rpcHoldTimeout, nil
-}
-
-// SetTokenSecret implements structs.RPCInfo
-func (msg *%[1]s) SetTokenSecret(s string) {
-	// TODO(peering): figure out read semantics here
-}
-
-// TokenSecret implements structs.RPCInfo
-func (msg *%[1]s) TokenSecret() string {
-	// TODO(peering): figure out read semantics here
-	return ""
-}
-
-// Token implements structs.RPCInfo
-func (msg *%[1]s) Token() string {
-	// TODO(peering): figure out read semantics here
-	return ""
-}
-`
-
-const tmplWriteTODO = `
-// IsRead implements structs.RPCInfo
-func (msg *%[1]s) IsRead() bool {
-	// TODO(peering): figure out write semantics here
-	return false
-}
-
-// AllowStaleRead implements structs.RPCInfo
-func (msg *%[1]s) AllowStaleRead() bool {
-	// TODO(peering): figure out write semantics here
-	return false
-}
-
-// HasTimedOut implements structs.RPCInfo
-func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
-	// TODO(peering): figure out write semantics here
-	return time.Since(start) > rpcHoldTimeout, nil
-}
-
-// SetTokenSecret implements structs.RPCInfo
-func (msg *%[1]s) SetTokenSecret(s string) {
-	// TODO(peering): figure out write semantics here
-}
-
-// TokenSecret implements structs.RPCInfo
-func (msg *%[1]s) TokenSecret() string {
-	// TODO(peering): figure out write semantics here
-	return ""
 }
 `
 

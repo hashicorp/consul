@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Join External Servers to Consul on Kubernetes
+page_title: Join Kubernetes Clusters to external Consul Servers
 description: >-
-  Client agents that run on Kubernetes pods can join existing clusters whose server agents run outside of k8s. Learn how to expose gossip ports and bootstrap ACLs by configuring the Helm chart.
+  Kubernetes clusters can be joined to existing Consul clusters in a much simpler way with the introduction of Consul Dataplane. Learn how to add Kubernetes Clusters into an existing Consul cluster and bootstrap ACLs by configuring the Helm chart.
 ---
 
-# Join External Servers to Consul on Kubernetes
+# Join Kubernetes Clusters to external Consul Servers
 
 If you have a Consul cluster already running, you can configure your
 Consul on Kubernetes installation to join this existing cluster.
@@ -14,16 +14,14 @@ The below `values.yaml` file shows how to configure the Helm chart to install
 Consul so that it joins an existing Consul server cluster.
 
 The `global.enabled` value first disables all chart components by default
-so that each component is opt-in. This allows us to _only_ setup the client
-agents. We then opt-in to the client agents by setting `client.enabled` to
-`true`.
+so that each component is opt-in.
 
 Next, configure `externalServers` to point it to Consul servers.
 The `externalServers.hosts` value must be provided and should be set to a DNS, an IP,
 or an `exec=` string with a command returning Consul IPs. Please see [this documentation](https://github.com/hashicorp/go-netaddrs)
 on how the `exec=` string works.
 Other values in the `externalServers` section are optional. Please refer to
-[Helm Chart configuration](https://developer.hashicorp.com/consul/docs/k8s/helm#h-externalservers) for more details.
+[Helm Chart configuration](/consul/docs/k8s/helm#h-externalservers) for more details.
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -37,15 +35,17 @@ externalServers:
 
 </CodeBlockConfig>
 
- **Note:** To join Consul on Kubernetes to an existing Consul server cluster running outside of Kubernetes,
-refer to [Consul servers outside of Kubernetes](/docs/k8s/deployment-configurations/servers-outside-kubernetes).
+With the introduction of [Consul Dataplane](/consul/docs/connect/dataplane#what-is-consul-dataplane), Consul installation on Kubernetes is simplified by removing the Consul Client agents.
+This requires the Helm installation and rest of the consul-k8s components installed on Kubernetes to talk to Consul Servers directly on various ports.
+Before starting the installation, ensure that the Consul Servers are configured to have the gRPC port enabled `8502/tcp` using the [`ports.grpc = 8502`](/consul/docs/agent/config/config-files#grpc) configuration option.
+
 
 ## Configuring TLS
 
 -> **Note:** Consul on Kubernetes currently does not support external servers that require mutual authentication
 for the HTTPS clients of the Consul servers, that is when servers have either
 `tls.defaults.verify_incoming` or `tls.https.verify_incoming` set to `true`.
-As noted in the [Security Model](/docs/security#secure-configuration),
+As noted in the [Security Model](/consul/docs/security#secure-configuration),
 that setting isn't strictly necessary to support Consul's threat model as it is recommended that
 all requests contain a valid ACL token.
 
@@ -68,7 +68,7 @@ externalServers:
 </CodeBlockConfig>
 
 If your HTTPS port is different from Consul's default `8501`, you must also set
-`externalServers.httpsPort`.
+`externalServers.httpsPort`. If the Consul servers are not running TLS enabled, use this config to set the HTTP port the servers are configured with (default `8500`).
 
 ## Configuring ACLs
 
@@ -77,7 +77,7 @@ to help initialize ACL tokens for Consul clients and consul-k8s components for y
 
 ### Manually Bootstrapping ACLs
 
-If you would like to call the [ACL bootstrapping API](/api-docs/acl#bootstrap-acls) yourself or if your cluster has already been bootstrapped with ACLs,
+If you would like to call the [ACL bootstrapping API](/consul/api-docs/acl#bootstrap-acls) yourself or if your cluster has already been bootstrapped with ACLs,
 you can provide the bootstrap token to the Helm chart. The Helm chart will then use this token to configure ACLs
 for Consul clients and any consul-k8s components you are enabling.
 
@@ -109,9 +109,9 @@ The bootstrap token requires the following minimal permissions:
 - `agent:read` if using WAN federation over mesh gateways
 
 Next, configure external servers. The Helm chart will use this configuration to talk to the Consul server's API
-to create policies, tokens, and an auth method. If you are [enabling Consul Connect](/docs/k8s/connect),
+to create policies, tokens, and an auth method. If you are [enabling Consul service mesh](/consul/docs/k8s/connect),
 `k8sAuthMethodHost` should be set to the address of your Kubernetes API server
-so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/docs/security/acl/auth-methods/kubernetes)
+so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/consul/docs/security/acl/auth-methods/kubernetes)
 with `consul login`.
 
 <CodeBlockConfig filename="values.yaml">

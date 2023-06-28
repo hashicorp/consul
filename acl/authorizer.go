@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package acl
 
 import (
@@ -586,9 +589,8 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 
 // NewAuthorizerFromRules is a convenience function to invoke NewPolicyFromSource followed by NewPolicyAuthorizer with
 // the parse policy.
-// TODO(ACL-Legacy-Compat): remove syntax arg after removing SyntaxLegacy
-func NewAuthorizerFromRules(rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (Authorizer, error) {
-	policy, err := NewPolicyFromSource(rules, syntax, conf, meta)
+func NewAuthorizerFromRules(rules string, conf *Config, meta *EnterprisePolicyMeta) (Authorizer, error) {
+	policy, err := NewPolicyFromSource(rules, conf, meta)
 	if err != nil {
 		return nil, err
 	}

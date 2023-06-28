@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -21,13 +24,15 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -138,7 +143,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 		Name:                "my-peer-acceptor",
 		State:               pbpeering.PeeringState_DELETING,
 		PeerServerAddresses: p.Peering.PeerServerAddresses,
-		DeletedAt:           structs.TimeToProto(time.Now()),
+		DeletedAt:           timestamppb.New(time.Now()),
 	}
 	require.NoError(t, dialer.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
 	dialer.logger.Trace("deleted peering for my-peer-acceptor")
@@ -448,7 +453,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 		ID:        p.Peering.PeerID,
 		Name:      "my-peer-dialer",
 		State:     pbpeering.PeeringState_DELETING,
-		DeletedAt: structs.TimeToProto(time.Now()),
+		DeletedAt: timestamppb.New(time.Now()),
 	}
 
 	require.NoError(t, acceptor.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
@@ -467,6 +472,30 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 		require.NoError(r, err)
 		require.Equal(r, pbpeering.PeeringState_TERMINATED, peering.State)
 	})
+
+	// Re-establishing a peering terminated by the acceptor should be possible
+	// without needing to delete the terminated peering first.
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	req = pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-dialer",
+	}
+	resp, err = peeringClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err = base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	token = structs.PeeringToken{}
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+	establishReq = pbpeering.EstablishRequest{
+		PeerName:     "my-peer-acceptor",
+		PeeringToken: resp.PeeringToken,
+	}
+	_, err = dialerClient.Establish(ctx, &establishReq)
+	require.NoError(t, err)
 }
 
 func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
@@ -477,7 +506,7 @@ func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
 	t.Run("server-name-validation", func(t *testing.T) {
 		testLeader_PeeringSync_failsForTLSError(t, func(token *structs.PeeringToken) {
 			token.ServerName = "wrong.name"
-		}, `transport: authentication handshake failed: x509: certificate is valid for server.dc1.peering.11111111-2222-3333-4444-555555555555.consul, not wrong.name`)
+		}, `transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for server.dc1.peering.11111111-2222-3333-4444-555555555555.consul, not wrong.name`)
 	})
 	t.Run("bad-ca-roots", func(t *testing.T) {
 		wrongRoot, err := os.ReadFile("../../test/client_certs/rootca.crt")
@@ -485,7 +514,7 @@ func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
 
 		testLeader_PeeringSync_failsForTLSError(t, func(token *structs.PeeringToken) {
 			token.CA = []string{string(wrongRoot)}
-		}, `transport: authentication handshake failed: x509: certificate signed by unknown authority`)
+		}, `transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate signed by unknown authority`)
 	})
 }
 
@@ -622,7 +651,7 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 			ID:        peerID,
 			Name:      peerName,
 			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: structs.TimeToProto(time.Now()),
+			DeletedAt: timestamppb.New(time.Now()),
 		},
 	}))
 
@@ -660,6 +689,11 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	acceptorLocality := &structs.Locality{
+		Region: "us-west-2",
+		Zone:   "us-west-2a",
+	}
+
 	ca := connect.TestCA(t, nil)
 	_, acceptingServer := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "accepting-server"
@@ -675,6 +709,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 				"RootCert":   ca.RootCert,
 			},
 		}
+		c.Locality = acceptorLocality
 	})
 	testrpc.WaitForLeader(t, acceptingServer.RPC, "dc1")
 
@@ -682,6 +717,10 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
+	dialerLocality := &structs.Locality{
+		Region: "us-west-1",
+		Zone:   "us-west-1a",
+	}
 	conn, err := grpc.DialContext(ctx, acceptingServer.config.RPCAddr.String(),
 		grpc.WithContextDialer(newServerDialer(acceptingServer.config.RPCAddr.String())),
 		//nolint:staticcheck
@@ -704,6 +743,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	// Ensure that the token contains the correct partition and dc
 	require.Equal(t, "dc1", token.Remote.Datacenter)
 	require.Contains(t, []string{"", "default"}, token.Remote.Partition)
+	require.Equal(t, acceptorLocality, token.Remote.Locality)
 
 	// Bring up dialingServer and store acceptingServer's token so that it attempts to dial.
 	_, dialingServer := testServerWithConfig(t, func(c *Config) {
@@ -711,6 +751,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
 		c.PeeringEnabled = true
+		c.Locality = dialerLocality
 	})
 	testrpc.WaitForLeader(t, dialingServer.RPC, "dc2")
 
@@ -742,6 +783,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "dc1", p.Peering.Remote.Datacenter)
 	require.Contains(t, []string{"", "default"}, p.Peering.Remote.Partition)
+	require.Equal(t, pbcommon.LocalityToProto(acceptorLocality), p.Peering.Remote.Locality)
 
 	// Retry fetching the until the peering is active in the acceptor.
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -757,6 +799,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	require.NotNil(t, p)
 	require.Equal(t, "dc2", p.Peering.Remote.Datacenter)
 	require.Contains(t, []string{"", "default"}, p.Peering.Remote.Partition)
+	require.Equal(t, pbcommon.LocalityToProto(dialerLocality), p.Peering.Remote.Locality)
 }
 
 // Test that the dialing peer attempts to reestablish connections when the accepting peer
@@ -1501,7 +1544,7 @@ func TestLeader_Peering_NoDeletionWhenPeeringDisabled(t *testing.T) {
 			ID:        peerID,
 			Name:      peerName,
 			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: structs.TimeToProto(time.Now()),
+			DeletedAt: timestamppb.New(time.Now()),
 		},
 	}))
 
@@ -1878,7 +1921,7 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 			require.True(r, found)
 			// We assert for this error to be set which would indicate that we iterated
 			// through a bad address.
-			require.Contains(r, status.LastSendErrorMessage, "transport: Error while dialing dial tcp: address bad: missing port in address")
+			require.Contains(r, status.LastSendErrorMessage, "transport: Error while dialing: dial tcp: address bad: missing port in address")
 			require.False(r, status.Connected)
 		})
 	})

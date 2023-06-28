@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 export default function (scenario, create, set, win = window, doc = document) {
   scenario
     .given(['an external edit results in $number $model model[s]?'], function (number, model) {

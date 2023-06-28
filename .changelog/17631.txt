@@ -1,0 +1,3 @@
+```release-note:bug
+gateways: Fixed a bug where API gateways were not being taken into account in determining xDS rate limits.
+```

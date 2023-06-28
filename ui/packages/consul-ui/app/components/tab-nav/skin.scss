@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %tab-nav ul {
   list-style-type: none;
 }
@@ -18,22 +23,22 @@
 }
 %tab-nav {
   /* %frame-transparent-something */
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
 }
 %tab-button {
   @extend %with-transition-500;
   transition-property: background-color, border-color;
-  border-color: var(--transparent);
-  color: rgb(var(--tone-gray-500));
+  border-color: transparent;
+  color: var(--token-color-foreground-faint);
 }
 %tab-button-intent,
 %tab-button-active {
   /* %frame-gray-something */
-  background-color: rgb(var(--tone-gray-100));
+  background-color: var(--token-color-surface-strong);
 }
 %tab-button-intent {
-  border-color: rgb(var(--tone-gray-300));
+  border-color: var(--token-color-palette-neutral-300);
 }
 %tab-nav.animatable .selected a {
-  border-color: var(--transparent) !important;
+  border-color: transparent !important;
 }

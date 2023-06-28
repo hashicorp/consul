@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 section[data-route='dc.show.license'] {
   @extend %license-route;
 }
@@ -9,15 +14,15 @@ section[data-route='dc.show.license'] {
 }
 
 %license-route h2 {
-  @extend %h200;
+  @extend %display-400-semibold;
 }
 
 %license-validity p {
-  color: rgb(var(--tone-gray-700));
+  color: var(--token-color-foreground-faint);
 }
 %license-validity dl {
   @extend %horizontal-kv-list;
-  font-size: var(--typo-size-400);
+  @extend %body-300-regular;
 }
 %license-validity dl .expired + dd {
   @extend %visually-hidden;
@@ -28,36 +33,28 @@ section[data-route='dc.show.license'] {
 }
 %license-validity dl .expired::before {
   --icon-name: icon-x-circle;
-  --icon-color: rgb(var(--red-500));
+  --icon-color: var(--token-color-foreground-critical);
 }
 %license-validity dl .warning::before {
   --icon-name: icon-alert-circle;
-  --icon-color: rgb(var(--orange-500));
+  --icon-color: var(--token-color-foreground-warning);
 }
 %license-validity dl .valid:not(.warning)::before {
   --icon-name: icon-check-circle;
-  --icon-color: rgb(var(--green-500));
+  --icon-color: var(--token-color-foreground-success);
 }
 
 %license-route-learn-more {
   @extend %panel;
-  box-shadow: var(--decor-elevation-000);
+  box-shadow: none;
   padding: var(--padding-y) var(--padding-x);
   width: 40%;
   min-width: 413px;
   margin-top: 1rem; /* 16px */
 }
 %license-route-learn-more header > :first-child {
-  @extend %h300;
+  @extend %display-300-semibold;
 }
 %license-route-learn-more header {
   margin-bottom: 1rem; /* 16px */
-}
-%license-route-learn-more li {
-  margin-bottom: 0.25rem; /* 4px */
-}
-%license-route-learn-more a::before {
-  --icon-name: icon-docs-link;
-  content: '';
-  margin-right: 0.375rem; /* 6px */
 }

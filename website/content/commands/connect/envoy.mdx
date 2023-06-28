@@ -11,7 +11,7 @@ Command: `consul connect envoy`
 
 The connect Envoy command is used to generate a bootstrap configuration for
 [Envoy proxy](https://envoyproxy.io) for use with [Consul
-Connect](/docs/connect/).
+service mesh](/consul/docs/connect/).
 
 Refer to the [examples](#examples) for guidance on common use cases,
 such as [launching a service instance's sidecar proxy
@@ -36,7 +36,7 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
 
 #### Envoy Options for both Sidecars and Gateways
 
-- `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
+- `-proxy-id` - The [proxy service](/consul/docs/connect/registration/service-registration) ID.
   This service ID must already be registered with the local agent unless a gateway is being
   registered with the `-register` flag. As of Consul 1.8.0, this can also be
   specified via the `CONNECT_PROXY_ID` environment variable.
@@ -56,7 +56,7 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   ACL token from `-token` or the environment and so should be handled as a secret.
   This token grants the identity of any service it has `service:write` permission
   for and so can be used to access any upstream service that that service is
-  allowed to access by [Connect intentions](/docs/connect/intentions).
+  allowed to access by [service mesh intentions](/consul/docs/connect/intentions).
 
 - `-envoy-version` - The version of envoy that is being started. Default is
   `1.23.1`. This is required so that the correct configuration can be generated.
@@ -74,6 +74,18 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   as the proxy will and that the agent is reachable when the command is run.
   In cases where either assumption is violated this flag will prevent the
   command attempting to resolve config from the local agent.
+
+- `-envoy-ready-bind-address` - By default the proxy does not have a readiness probe
+  configured on it. This flag in conjunction with the `envoy-ready-bind-port` flag
+  configures where the envoy readiness probe is configured on the proxy. A `/ready` HTTP
+  endpoint will be instantiated at the specified address and port. When configured, Consul
+  uses `/ready` HTTP endpoints to check proxy health.
+
+- `-envoy-ready-bind-port` - By default the proxy does not have a readiness probe
+  configured on it. This flag in conjunction with the `envoy-ready-bind-address` flag
+  configures where the envoy readiness probe is configured on the proxy. A `/ready` HTTP
+  endpoint will be instantiated at the specified address and port. When configured, Consul
+  uses `/ready` HTTP endpoints to check proxy health.
 
 - `-prometheus-backend-port` - Sets the backend port for the "prometheus_backend"
   cluster that `envoy_prometheus_bind_addr` will point to. Without this flag,
@@ -104,18 +116,24 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
   is set in proxy config.
 
+- `-ignore-envoy-compatibility` - If set to `true`, this flag ignores the Envoy version
+compatibility check. We recommend setting this flag to `false` to ensure
+compatibility with Envoy and prevent potential issues. Default is `false`.
+
 - `-- [pass-through options]` - Any options given after a double dash are passed
   directly through to the `envoy` invocation. See [Envoy's
   documentation](https://www.envoyproxy.io/docs) for more details. The command
   always specifies `--config-file` and `--v2-config-only` and by default passes
   `--disable-hot-restart` see [hot restart](#envoy-hot-restart).
 
+- `-enable-config-gen-logging` - This flag enables debug message logging when generating the Envoy bootstrap configuration to help troubleshoot issues. Logs output to `stderr`. For more information about generating the Envoy bootstrap configuration, refer to [Envoy proxy configuration](/consul/docs/connect/proxies/envoy#bootstrap-configuration).
+
 #### Envoy Sidecar Proxy Options
 
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
   local agent yet but a [sidecar proxy
-  registration](/docs/connect/registration/service-registration) with
+  registration](/consul/docs/connect/registration/service-registration) with
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
@@ -147,17 +165,17 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   If Envoy is configured as a terminating or mesh gateway, traffic from services
   within the mesh will be received at the specified IP and port.
 
-  If Envoy is configured as an ingress gateway, a `/ready` HTTP endpoint will be
-  instantiated at the specified IP and port. Consul uses `/ready` HTTP endpoints
-  to check gateway health. The specified IP will also be used by the ingress
-  gateway when instantiating user-defined listeners configured in the
-  [ingress gateway](/docs/connect/gateways/ingress-gateway) configuration entry.
+  If Envoy is configured as an ingress gateway, Consul instantiates a `/ready` HTTP endpoint at the specified IP and port. Consul uses `/ready` HTTP endpoints
+  to check gateway health. Ingress gateways also use the specified IP when instantiating user-defined listeners configured in the
+  [ingress gateway configuration entry](/consul/docs/connect/config-entries/ingress-gateway).
 
   ~> **Note**: Ensure that user-defined ingress gateway listeners use a
      different port than the port specified in `-address` so that they do not
      conflict with the health check endpoint.
 
-- `-admin-access-log-path` The path to write the access log for the administration
+- `-admin-access-log-path` -
+  **Deprecated in Consul 1.15.0 in favor of [`proxy-defaults` access logs](/consul/docs/connect/config-entries/proxy-defaults#accesslogs).**
+  The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
   use `/dev/null`.
 
@@ -197,7 +215,7 @@ proxy configuration needed.
   be used instead. The scheme can also be set to HTTPS by setting the
   environment variable CONSUL_HTTP_SSL=true. This may be a unix domain socket
   using `unix:///path/to/socket` if the [agent is configured to
-  listen](/docs/agent/config/config-files#addresses) that way.
+  listen](/consul/docs/agent/config/config-files#addresses) that way.
 
   -> **Note:** gRPC uses the same TLS
   settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
@@ -209,7 +227,7 @@ proxy configuration needed.
 
 Assume a local service instance is registered on the local agent with a
 sidecar proxy (using the [sidecar service
-registration](/docs/connect/registration/service-registration) helper) as below.
+registration](/consul/docs/connect/registration/service-registration) helper) as below.
 
 ```hcl
 service {

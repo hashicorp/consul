@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -96,7 +99,7 @@ func (s *Server) fetchACLRolesBatch(roleIDs []string) (*structs.ACLRoleBatchResp
 	}
 
 	var response structs.ACLRoleBatchResponse
-	if err := s.RPC("ACL.RoleBatchRead", &req, &response); err != nil {
+	if err := s.RPC(context.Background(), "ACL.RoleBatchRead", &req, &response); err != nil {
 		return nil, err
 	}
 
@@ -117,7 +120,7 @@ func (s *Server) fetchACLRoles(lastRemoteIndex uint64) (*structs.ACLRoleListResp
 	}
 
 	var response structs.ACLRoleListResponse
-	if err := s.RPC("ACL.RoleList", &req, &response); err != nil {
+	if err := s.RPC(context.Background(), "ACL.RoleList", &req, &response); err != nil {
 		return nil, err
 	}
 	return &response, nil
@@ -134,7 +137,7 @@ func (s *Server) fetchACLPoliciesBatch(policyIDs []string) (*structs.ACLPolicyBa
 	}
 
 	var response structs.ACLPolicyBatchResponse
-	if err := s.RPC("ACL.PolicyBatchRead", &req, &response); err != nil {
+	if err := s.RPC(context.Background(), "ACL.PolicyBatchRead", &req, &response); err != nil {
 		return nil, err
 	}
 
@@ -155,7 +158,7 @@ func (s *Server) fetchACLPolicies(lastRemoteIndex uint64) (*structs.ACLPolicyLis
 	}
 
 	var response structs.ACLPolicyListResponse
-	if err := s.RPC("ACL.PolicyList", &req, &response); err != nil {
+	if err := s.RPC(context.Background(), "ACL.PolicyList", &req, &response); err != nil {
 		return nil, err
 	}
 	return &response, nil
@@ -313,10 +316,10 @@ func (s *Server) updateLocalACLType(ctx context.Context, logger hclog.Logger, tr
 	return false, nil
 }
 
-func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokenBatchResponse, error) {
+func (s *Server) fetchACLTokensBatch(tokenAccessorIDs []string) (*structs.ACLTokenBatchResponse, error) {
 	req := structs.ACLTokenBatchGetRequest{
 		Datacenter:  s.config.PrimaryDatacenter,
-		AccessorIDs: tokenIDs,
+		AccessorIDs: tokenAccessorIDs,
 		QueryOptions: structs.QueryOptions{
 			AllowStale: true,
 			Token:      s.tokens.ReplicationToken(),
@@ -324,7 +327,7 @@ func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokenBatchR
 	}
 
 	var response structs.ACLTokenBatchResponse
-	if err := s.RPC("ACL.TokenBatchRead", &req, &response); err != nil {
+	if err := s.RPC(context.Background(), "ACL.TokenBatchRead", &req, &response); err != nil {
 		return nil, err
 	}
 
@@ -347,7 +350,7 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 	}
 
 	var response structs.ACLTokenListResponse
-	if err := s.RPC("ACL.TokenList", &req, &response); err != nil {
+	if err := s.RPC(context.Background(), "ACL.TokenList", &req, &response); err != nil {
 		return nil, err
 	}
 	return &response, nil

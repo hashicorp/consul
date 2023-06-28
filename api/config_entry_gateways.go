@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -44,6 +47,10 @@ type IngressServiceConfig struct {
 	MaxConnections        *uint32
 	MaxPendingRequests    *uint32
 	MaxConcurrentRequests *uint32
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 }
 
 type GatewayTLSConfig struct {
@@ -137,6 +144,10 @@ type IngressService struct {
 	MaxConnections        *uint32 `json:",omitempty" alias:"max_connections"`
 	MaxPendingRequests    *uint32 `json:",omitempty" alias:"max_pending_requests"`
 	MaxConcurrentRequests *uint32 `json:",omitempty" alias:"max_concurrent_requests"`
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 }
 
 func (i *IngressGatewayConfigEntry) GetKind() string            { return i.Kind }
@@ -213,3 +224,81 @@ func (g *TerminatingGatewayConfigEntry) GetNamespace() string       { return g.N
 func (g *TerminatingGatewayConfigEntry) GetMeta() map[string]string { return g.Meta }
 func (g *TerminatingGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
 func (g *TerminatingGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
+
+// APIGatewayConfigEntry manages the configuration for an API gateway
+// with the given name.
+type APIGatewayConfigEntry struct {
+	// Kind of the config entry. This should be set to api.APIGateway.
+	Kind string
+
+	// Name is used to match the config entry with its associated api gateway
+	// service. This should match the name provided in the service definition.
+	Name string
+
+	Meta map[string]string `json:",omitempty"`
+
+	// Listeners is the set of listener configuration to which an API Gateway
+	// might bind.
+	Listeners []APIGatewayListener
+	// Status is the asynchronous status which an APIGateway propagates to the user.
+	Status ConfigEntryStatus
+
+	// CreateIndex is the Raft index this entry was created at. This is a
+	// read-only field.
+	CreateIndex uint64
+
+	// ModifyIndex is used for the Check-And-Set operations and can also be fed
+	// back into the WaitIndex of the QueryOptions in order to perform blocking
+	// queries.
+	ModifyIndex uint64
+
+	// Partition is the partition the config entry is associated with.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
+
+	// Namespace is the namespace the config entry is associated with.
+	// Namespacing is a Consul Enterprise feature.
+	Namespace string `json:",omitempty"`
+}
+
+func (g *APIGatewayConfigEntry) GetKind() string            { return g.Kind }
+func (g *APIGatewayConfigEntry) GetName() string            { return g.Name }
+func (g *APIGatewayConfigEntry) GetPartition() string       { return g.Partition }
+func (g *APIGatewayConfigEntry) GetNamespace() string       { return g.Namespace }
+func (g *APIGatewayConfigEntry) GetMeta() map[string]string { return g.Meta }
+func (g *APIGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
+func (g *APIGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
+
+// APIGatewayListener represents an individual listener for an APIGateway
+type APIGatewayListener struct {
+	// Name is the name of the listener in a given gateway. This must be
+	// unique within a gateway.
+	Name string
+	// Hostname is the host name that a listener should be bound to, if
+	// unspecified, the listener accepts requests for all hostnames.
+	Hostname string
+	// Port is the port at which this listener should bind.
+	Port int
+	// Protocol is the protocol that a listener should use, it must
+	// either be "http" or "tcp"
+	Protocol string
+	// TLS is the TLS settings for the listener.
+	TLS APIGatewayTLSConfiguration
+}
+
+// APIGatewayTLSConfiguration specifies the configuration of a listener’s
+// TLS settings.
+type APIGatewayTLSConfiguration struct {
+	// Certificates is a set of references to certificates
+	// that a gateway listener uses for TLS termination.
+	Certificates []ResourceReference
+	// MaxVersion is the maximum TLS version that the listener
+	// should support.
+	MaxVersion string `json:",omitempty" alias:"tls_max_version"`
+	// MinVersion is the minimum TLS version that the listener
+	// should support.
+	MinVersion string `json:",omitempty" alias:"tls_min_version"`
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []string `json:",omitempty" alias:"cipher_suites"`
+}

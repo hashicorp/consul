@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package watch
 
 import (
@@ -42,6 +45,7 @@ type cmd struct {
 	state       string
 	name        string
 	shell       bool
+	filter      string
 }
 
 func (c *cmd) init() {
@@ -68,6 +72,7 @@ func (c *cmd) init() {
 		"Specifies the states to watch. Optional for 'checks' type.")
 	c.flags.StringVar(&c.name, "name", "",
 		"Specifies an event name to watch. Only for 'event' type.")
+	c.flags.StringVar(&c.filter, "filter", "", "Filter to use with the request")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -124,6 +129,9 @@ func (c *cmd) Run(args []string) int {
 	}
 	if c.service != "" {
 		params["service"] = c.service
+	}
+	if c.filter != "" {
+		params["filter"] = c.filter
 	}
 	if len(c.tag) > 0 {
 		params["tag"] = c.tag

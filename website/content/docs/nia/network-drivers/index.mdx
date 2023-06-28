@@ -15,19 +15,19 @@ The following table highlights some of the additional features Terraform and Ter
 
 | Network Driver | Description | Features |
 | -------------- | ----------- | -------- |
-| [Terraform driver](/docs/nia/network-drivers/terraform) | CTS automates a local installation of the [Terraform CLI](https://www.terraform.io/) | - Local Terraform execution <br/> - Local workspace directories <br/> - [Backend options](/docs/nia/configuration#backend) available for state storage <br/> |
-| [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) | CTS Enterprise automates remote workspaces on [Terraform Cloud](https://www.terraform.io/cloud-docs) | - [Remote Terraform execution](https://www.terraform.io/cloud-docs/run/remote-operations) <br/> - Concurrent runs <br/> - [Secured variables](https://www.terraform.io/cloud-docs/workspaces/variables) <br/> - [State versions](https://www.terraform.io/cloud-docs/workspaces/state) <br/> - [Sentinel](https://www.terraform.io/cloud-docs/policy-enforcement) to enforce governance policies as code <br/> - Audit [logs](https://www.terraform.io/enterprise/admin/infrastructure/logging) and [trails](https://www.terraform.io/cloud-docs/api-docs/audit-trails) <br/> - Run [history](https://www.terraform.io/cloud-docs/run/manage), [triggers](https://www.terraform.io/cloud-docs/workspaces/settings/run-triggers), and [notifications](https://www.terraform.io/cloud-docs/workspaces/settings/notifications) <br/> - [Terraform Cloud Agents](https://www.terraform.io/cloud-docs/agents) |
+| [Terraform driver](/consul/docs/nia/network-drivers/terraform) | CTS automates a local installation of the [Terraform CLI](https://www.terraform.io/) | - Local Terraform execution <br/> - Local workspace directories <br/> - [Backend options](/consul/docs/nia/configuration#backend) available for state storage <br/> |
+| [Terraform Cloud driver](/consul/docs/nia/network-drivers/terraform-cloud) | CTS Enterprise automates remote workspaces on [Terraform Cloud](/terraform/cloud-docs) | - [Remote Terraform execution](/terraform/cloud-docs/run/remote-operations) <br/> - Concurrent runs <br/> - [Secured variables](/terraform/cloud-docs/workspaces/variables) <br/> - [State versions](/terraform/cloud-docs/workspaces/state) <br/> - [Sentinel](/terraform/cloud-docs/policy-enforcement) to enforce governance policies as code <br/> - Audit [logs](/terraform/enterprise/admin/infrastructure/logging) and [trails](/terraform/cloud-docs/api-docs/audit-trails) <br/> - Run [history](/terraform/cloud-docs/run/manage), [triggers](/terraform/cloud-docs/workspaces/settings/run-triggers), and [notifications](/terraform/cloud-docs/workspaces/settings/notifications) <br/> - [Terraform Cloud Agents](/terraform/cloud-docs/agents) |
 
 ## Understanding Terraform Automation
 
 CTS automates Terraform execution using a templated configuration to carry out infrastructure changes. The auto-generated configuration leverages input variables sourced from Consul and builds on top of reusable Terraform modules published and maintained by HashiCorp partners and the community. CTS can also run your custom built modules that suit your team's specific network automation needs.
 
-The network driver for CTS determines how the Terraform automation operates. Visit the driver pages to read more about the [Terraform driver](/docs/nia/network-drivers/terraform) and the [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud).
+The network driver for CTS determines how the Terraform automation operates. Visit the driver pages to read more about the [Terraform driver](/consul/docs/nia/network-drivers/terraform) and the [Terraform Cloud driver](/consul/docs/nia/network-drivers/terraform-cloud).
 
 ### Upgrading Terraform
 
-Upgrading the Terraform version used by CTS may introduce breaking changes that can impact the Terraform modules. Refer to the Terraform [upgrade guides](https://www.terraform.io/language/upgrade-guides) for details before upgrading.
+Upgrading the Terraform version used by CTS may introduce breaking changes that can impact the Terraform modules. Refer to the Terraform [upgrade guides](/terraform/language/upgrade-guides) for details before upgrading.
 
 The following versions were identified as containing changes that may impact Terraform modules.
 
-- [Terraform v0.15](https://www.terraform.io/language/v1.1.x/upgrade-guides/0-15)
+- [Terraform v0.15](/terraform/language/v1.1.x/upgrade-guides/0-15)

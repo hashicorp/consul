@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package autoconf
 
 import (
@@ -12,10 +15,11 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -107,6 +111,85 @@ func (m *mockServerProvider) FindLANServer() *metadata.Server {
 type mockWatcher struct {
 	ch   chan<- cache.UpdateEvent
 	done <-chan struct{}
+}
+
+type mockLeafCerts struct {
+	mock.Mock
+
+	lock     sync.Mutex
+	watchers map[string][]mockWatcher
+}
+
+var _ LeafCertManager = (*mockLeafCerts)(nil)
+
+func newMockLeafCerts(t *testing.T) *mockLeafCerts {
+	m := mockLeafCerts{
+		watchers: make(map[string][]mockWatcher),
+	}
+	m.Test(t)
+	return &m
+}
+
+func (m *mockLeafCerts) Notify(ctx context.Context, req *leafcert.ConnectCALeafRequest, correlationID string, ch chan<- cache.UpdateEvent) error {
+	ret := m.Called(ctx, req, correlationID, ch)
+
+	err := ret.Error(0)
+	if err == nil {
+		m.lock.Lock()
+		key := req.Key()
+		m.watchers[key] = append(m.watchers[key], mockWatcher{ch: ch, done: ctx.Done()})
+		m.lock.Unlock()
+	}
+	return err
+}
+
+func (m *mockLeafCerts) Prepopulate(
+	ctx context.Context,
+	key string,
+	index uint64,
+	value *structs.IssuedCert,
+	authorityKeyID string,
+) error {
+	// we cannot know what the private key is prior to it being injected into the cache.
+	// therefore redact it here and all mock expectations should take that into account
+	restore := value.PrivateKeyPEM
+	value.PrivateKeyPEM = "redacted"
+
+	ret := m.Called(ctx, key, index, value, authorityKeyID)
+
+	if restore != "" {
+		value.PrivateKeyPEM = restore
+	}
+	return ret.Error(0)
+}
+
+func (m *mockLeafCerts) sendNotification(ctx context.Context, key string, u cache.UpdateEvent) bool {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	watchers, ok := m.watchers[key]
+	if !ok || len(m.watchers) < 1 {
+		return false
+	}
+
+	var newWatchers []mockWatcher
+
+	for _, watcher := range watchers {
+		select {
+		case watcher.ch <- u:
+			newWatchers = append(newWatchers, watcher)
+		case <-watcher.done:
+			// do nothing, this watcher will be removed from the list
+		case <-ctx.Done():
+			// return doesn't matter here really, the test is being cancelled
+			return true
+		}
+	}
+
+	// this removes any already cancelled watches from being sent to
+	m.watchers[key] = newWatchers
+
+	return true
 }
 
 type mockCache struct {
@@ -220,6 +303,7 @@ type mockedConfig struct {
 	directRPC        *mockDirectRPC
 	serverProvider   *mockServerProvider
 	cache            *mockCache
+	leafCerts        *mockLeafCerts
 	tokens           *mockTokenStore
 	tlsCfg           *mockTLSConfigurator
 	enterpriseConfig *mockedEnterpriseConfig
@@ -230,6 +314,7 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 	directRPC := newMockDirectRPC(t)
 	serverProvider := newMockServerProvider(t)
 	mcache := newMockCache(t)
+	mleafs := newMockLeafCerts(t)
 	tokens := newMockTokenStore(t)
 	tlsCfg := newMockTLSConfigurator(t)
 
@@ -243,6 +328,7 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 		if !t.Failed() {
 			directRPC.AssertExpectations(t)
 			serverProvider.AssertExpectations(t)
+			mleafs.AssertExpectations(t)
 			mcache.AssertExpectations(t)
 			tokens.AssertExpectations(t)
 			tlsCfg.AssertExpectations(t)
@@ -255,6 +341,7 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 			DirectRPC:        directRPC,
 			ServerProvider:   serverProvider,
 			Cache:            mcache,
+			LeafCertManager:  mleafs,
 			Tokens:           tokens,
 			TLSConfigurator:  tlsCfg,
 			Logger:           testutil.Logger(t),
@@ -264,6 +351,7 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 		directRPC:      directRPC,
 		serverProvider: serverProvider,
 		cache:          mcache,
+		leafCerts:      mleafs,
 		tokens:         tokens,
 		tlsCfg:         tlsCfg,
 
@@ -308,7 +396,7 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 		rootsReq.CacheInfo().Key,
 	).Return(nil).Once()
 
-	leafReq := cachetype.ConnectCALeafRequest{
+	leafReq := leafcert.ConnectCALeafRequest{
 		Token:      token,
 		Agent:      agentName,
 		Datacenter: datacenter,
@@ -320,24 +408,18 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 	// on up with the request.
 	copy := *cert
 	copy.PrivateKeyPEM = "redacted"
-	leafRes := cache.FetchResult{
-		Value: &copy,
-		Index: copy.RaftIndex.ModifyIndex,
-		State: cachetype.ConnectCALeafSuccess(ca.SigningKeyID),
-	}
 
 	// we should prepopulate the cache with the agents cert
-	m.cache.On("Prepopulate",
-		cachetype.ConnectCALeafName,
-		leafRes,
-		datacenter,
-		"",
-		token,
+	m.leafCerts.On("Prepopulate",
+		mock.Anything,
 		leafReq.Key(),
+		copy.RaftIndex.ModifyIndex,
+		&copy,
+		ca.SigningKeyID,
 	).Return(nil).Once()
 
 	// when prepopulating the cert in the cache we grab the token so
-	// we should expec that here
+	// we should expect that here
 	m.tokens.On("AgentToken").Return(token).Once()
 }
 

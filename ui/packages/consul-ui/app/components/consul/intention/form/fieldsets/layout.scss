@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 .consul-intention-fieldsets {
   [role='radiogroup'] {
     overflow: visible !important;
@@ -12,7 +17,7 @@
     display: inline;
   }
   .permissions > button {
-    @extend %anchor, %p2;
+    @extend %anchor, %body-100-regular;
     float: right;
   }
 }

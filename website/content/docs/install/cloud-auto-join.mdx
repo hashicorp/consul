@@ -34,7 +34,7 @@ or via a configuration file:
 
 ## Auto-join with Network Segments <EnterpriseAlert inline />
 
-In order to use cloud auto-join with [Network Segments](/docs/enterprise/network-segments),
+In order to use cloud auto-join with [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview),
 you must reconfigure the Consul agent's Serf LAN port to match that of the
 segment you wish to join.
 
@@ -68,7 +68,7 @@ to use port `8303` as its Serf LAN port prior to attempting to join the cluster.
 <Tab heading="Agent configuration">
 
 The following example configuration overrides the default Serf LAN port using the
-[`ports.serf_lan`](/docs/agent/config/config-files#serf_lan_port) configuration option.
+[`ports.serf_lan`](/consul/docs/agent/config/config-files#serf_lan_port) configuration option.
 
 <CodeBlockConfig filename="client-config.hcl">
 
@@ -84,7 +84,7 @@ ports {
 <Tab heading="Command-line flag">
 
 The following example overrides the default Serf LAN port using the
-[`-serf-lan-port`](/docs/agent/config/cli-flags#_serf_lan_port) command line flag.
+[`-serf-lan-port`](/consul/docs/agent/config/cli-flags#_serf_lan_port) command line flag.
 
 ```shell
 $ consul agent -serf-lan-port=8303 -retry-join "provider=..."
@@ -106,7 +106,7 @@ In order to use discovery behind a proxy, you will need to set
 The following sections give the options specific to each supported cloud
 provider.
 
-### Amazon EC2
+### Amazon EC2 and ECS
 
 This returns the first private IP address of all servers in the given
 region which have the given `tag_key` and `tag_value`.
@@ -128,6 +128,10 @@ $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 - `addr_type` (optional) - the type of address to discover: `private_v4`, `public_v4`, `public_v6`. Default is `private_v4`. (>= 1.0)
 - `access_key_id` (optional) - the AWS access key for authentication (see below for more information about authenticating).
 - `secret_access_key` (optional) - the AWS secret access key for authentication (see below for more information about authenticating).
+- `service` (optional) - String value that specifies which AWS service to filter. You can specify either `ec2` or `ecs`. Default is `ec2`.
+- `ecs_cluster` (optional) - String value that limits searches to a specific AWS ECS cluster name or full ARN. By default, Consul searches all clusters with the specified tag values.
+- `ecs_family` (optional) - String value limits searches to a AWS ECS task definition family. By default, Consul searches all task definition families with the specified tags.
+- `endpoint` (optional) - String value that specifies the endpoint URL of the AWS service to use. If not set, the AWS client sets the value, which defaults to the public DNS name for the service in the specified region.
 
 #### Authentication & Precedence
 
@@ -137,11 +141,18 @@ $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 - ECS task role metadata (container-specific).
 - EC2 instance role metadata.
 
-The only required IAM permission is `ec2:DescribeInstances`, and it is
-recommended that you make a dedicated key used only to auto-join the datacenter. If the
-region is omitted it will be discovered through the local instance's [EC2
-metadata
+The only IAM permission required for discovering EC2 consul-servers is `ec2:DescribeInstances`.
+We recommend that you make a dedicated key used only to auto-join the datacenter.
+If the region is omitted it will be discovered through the local instance's [EC2 metadata
 endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html).
+
+The AWS ECS task role associated with the service attempting to discover the `consul-server` must have the following IAM permissions:
+- `ecs:ListClusters` (only used when `ecs_cluster` is not provided)
+- `ecs:ListServices` (only used when `ecs_cluster` is not provided)
+- `ecs:DescribeServices` (only used when `ecs_cluster` is not provided)
+- `ecs:ListTasks`
+- `ecs:DescribeTasks`
+If the region is omitted from the configuration, Consul obtains it from the local instance's [ECS V4 metadata endpoint](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html).
 
 ### Microsoft Azure
 

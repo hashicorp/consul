@@ -1,54 +1,575 @@
 ---
 layout: docs
-page_title: Service Splitter - Configuration Entry Reference
-description: >-
-  The service splitter configuration entry kind defines how to divide service mesh traffic between service instances. Use the reference guide to learn about `""service-splitter""` config entry parameters and how it can be used for traffic management behaviors like canary rollouts, blue green deployment, and load balancing across environments.
+page_title: Service Splitter Configuration Entry Reference
+description: >- 
+  Service splitter configuration entries are L7 traffic management tools for redirecting requests for a service to 
+  multiple instances. Learn how to write `service-splitter` config entries in HCL or YAML with a specification 
+  reference, configuration model, a complete example, and example code by use case.
 ---
 
-# Service Splitter Configuration Entry 
+# Service Splitter Configuration Reference
 
--> **v1.8.4+:** On Kubernetes, the `ServiceSplitter` custom resource is supported in Consul versions 1.8.4+.<br />
-**v1.6.0+:** On other platforms, this config entry is supported in Consul versions 1.6.0+.
+This reference page describes the structure and contents of service splitter configuration entries. Configure and apply service splitters to redirect a percentage of incoming traffic requests for a service to one or more specific service instances.
 
-The `service-splitter` config entry kind (`ServiceSplitter` on Kubernetes) controls how to split incoming Connect
-requests across different subsets of a single service (like during staged
-canary rollouts), or perhaps across different services (like during a v2
-rewrite or other type of codebase migration).
+## Configuration model
 
-If no splitter config is defined for a service it is assumed 100% of traffic
-flows to a service with the same name and discovery continues on to the
-resolution stage.
+The following list outlines field hierarchy, language-specific data types, and requirements in a service splitter configuration entry. Click on a property name to view additional details, including default values.
 
-## Interaction with other Config Entries
+<Tabs>
 
-- Service splitter config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic).
+<Tab heading="HCL and JSON" group="hcl">
 
-- Service splitter config entries are restricted to only services that define
-  their protocol as http-based via a corresponding
-  [`service-defaults`](/docs/connect/config-entries/service-defaults) config
-  entry or globally via
-  [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
+- [`Kind`](#kind): string | required
+- [`Name`](#name): string | required
+- [`Namespace`](#namespace): string <EnterpriseAlert inline />
+- [`Partition`](#partition): string <EnterpriseAlert inline />
+- [`Meta`](#meta): map 
+- [`Splits`](#splits): map | required
+	- [`Weight`](#splits-weight): number | required
+	- [`Service`](#splits-service): string | required
+	- [`ServiceSubset`](#splits-servicesubset): string 
+  - [`Namespace`](#splits-namespace): string <EnterpriseAlert inline />
+  - [`Partition`](#splits-partition): string <EnterpriseAlert inline />
+  - [`RequestHeaders`](#splits-requestheaders): map
+    - [`Add`](#splits-requestheaders): map 
+    - [`Set`](#splits-requestheaders): map 
+    - [`Remove`](#splits-requestheaders): map 
+  - [`ResponseHeaders`](#splits-responseheaders): map 
+    - [`Add`](#splits-responseheaders): map 
+    - [`Set`](#splits-responseheaders): map 
+    - [`Remove`](#splits-responseheaders): map 
 
-- Any split destination that specifies a different `Service` field and omits
-  the `ServiceSubset` field is eligible for further splitting should a splitter
-  be configured for that other service, otherwise resolution proceeds according
-  to any configured
-  [`service-resolver`](/docs/connect/config-entries/service-resolver).
+</Tab>
 
-## UI
+<Tab heading="YAML" group="yaml">
 
-Once a `service-splitter` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the _routing_ tab.
+- [`apiVersion`](#apiversion): string | required
+- [`kind`](#kind): string | required
+- [`metadata`](#metadata): object | required
+	- [`name`](#metadata-name): string | required
+	- [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
+- [`spec`](#spec): object | required
+	- [`splits`](#spec-splits): list | required
+		- [`weight`](#spec-splits-weight): float32 | required
+		- [`service`](#spec-splits-service): string | required
+	  - [`serviceSubset`](#spec-splits-servicesubset): string
+    - [`namespace`](#spec-splits-namespace): string <EnterpriseAlert inline />
+    - [`partition`](#spec-splits-partition): string <EnterpriseAlert inline />
+    - [`requestHeaders`](#spec-splits-requestheaders): HTTPHeaderModifiers 
+      - [`add`](#spec-splits-requestheaders): map 
+      - [`set`](#spec-splits-requestheaders): map 
+      - [`remove`](#spec-splits-requestheaders): map 
+    - [`responseHeaders`](#spec-splits-responseheaders): HTTPHeaderModifiers 
+      - [`add`](#spec-splits-responseheaders): map 
+      - [`set`](#spec-splits-responseheaders): map 
+      - [`remove`](#spec-splits-responseheaders): map 
 
-![screenshot of service splitter in the UI](/img/l7-routing/Splitter.png)
+</Tab>
+</Tabs>
 
-## Sample Config Entries
+## Complete configuration
+
+When every field is defined, a service splitter configuration entry has the following form:
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind      = "service-splitter"           ## string  | required
+Name      = "config-entry-name"          ## string  | required
+Namespace = "main"                       ## string
+Partition = "partition"                  ## string 
+Meta = {                                 ## map
+  key = "value"
+}
+Splits = [                               ## list    | required
+  {                                      ## map
+    Weight        = 90                   ## number  | required
+    Service       = "service"            ## string
+    ServiceSubset = "v1"                 ## string
+    Namespace     = "target-namespace"   ## string
+    Partition     = "target-partition"   ## string
+    RequestHeaders = {                   ## map
+      Set = {
+        "X-Web-Version" : "from-v1"
+      }
+    }
+    ResponseHeaders = {                  ## map
+      Set = {
+        "X-Web-Version" : "to-v1"
+      }
+    }
+  },
+  {
+    Weight        = 10
+    Service       = "service"
+    ServiceSubset = "v2"
+    Namespace     = "target-namespace"
+    Partition     = "target-partition"
+    RequestHeaders = {
+      Set = {
+        "X-Web-Version" : "from-v2"
+      }
+    }
+    ResponseHeaders = {
+      Set = {
+        "X-Web-Version" : "to-v2"
+      }
+    }
+  }
+]
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind" : "service-splitter",           ## string  | required
+  "Name" : "config-entry-name",          ## string  | required
+  "Namespace" : "main",                  ## string
+  "Partition" : "partition",             ## string 
+  "Meta" : {                             ## map
+    "_key_" : "_value_"            
+  },
+  "Splits" : [                           ## list    | required
+    {                                    ## map     
+      "Weight" : 90,                     ## number  | required
+      "Service" : "service",             ## string     
+      "ServiceSubset" : "v1",            ## string
+      "Namespace" : "target-namespace",  ## string
+      "Partition" : "target-partition",  ## string
+      "RequestHeaders" : {               ## map
+        "Set" : {
+          "X-Web-Version": "from-v1"
+          }
+      },
+      "ResponseHeaders" : {              ## map
+        "Set" : {
+          "X-Web-Version": "to-v1"
+          }
+      }
+    },
+    {
+      "Weight" : 10,            
+      "Service" : "service",    
+      "ServiceSubset" : "v2",          
+      "Namespace" : "target-namespace",  
+      "Partition" : "target-partition",  
+      "RequestHeaders" : {
+        "Set" : {
+          "X-Web-Version": "from-v2"
+          }
+      },
+      "ResponseHeaders" : {
+        "Set" : {
+          "X-Web-Version": "to-v2"
+        }
+      }
+    }
+  ]
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1         # string | required
+kind: ServiceSplitter                             # string | required
+metadata:                                         # object | required
+  name: config-entry-name                         # string | required
+  namespace: main                                 # string
+spec:
+  splits:                                         # list
+    - weight: 90                                  # floating point | required
+      service: service                            # string 
+      serviceSubset: v1                           # string 
+      namespace: target-namespace                 # string 
+      partition: target-partition                 # string 
+      requestHeaders:  
+        set:
+          x-web-version: from-v1                  # string 
+      responseHeaders:
+        set:
+          x-web-version: to-v1                    # string 
+    - weight: 10
+      service: service
+      serviceSubset: v2
+      namespace: target-namespace
+      partition: target-partition
+      requestHeaders:
+        set:
+          x-web-version: from-v2
+      responseHeaders:
+        set:
+          x-web-version: to-v2      
+```
+
+</Tab>
+
+</Tabs>
+
+## Specification
+
+This section provides details about the fields you can configure in the service splitter configuration entry.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+### `Kind` 
+
+Specifies the type of configuration entry to implement. 
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: String value that must be set to `service-splitter`. 
+
+### `Name`
+
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster. 
+
+#### Values
+
+- Default: Defaults to the name of the node after writing the entry to the Consul server.
+- This field is required.
+- Data type: String
+
+
+### `Namespace` <EnterpriseAlert inline />
+
+Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the configuration entry.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Partition` <EnterpriseAlert inline />
+
+Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry.
+
+#### Values
+
+- Default: `Default`   
+- Data type: String
+
+### `Meta`
+
+Specifies key-value pairs to add to the KV store.
+
+#### Values
+
+- Default: none 
+- Data type: Map of one or more key-value pairs 
+  - keys: String
+  - values: String, integer, or float 
+
+### `Splits`
+
+Defines how much traffic to send to sets of service instances during a traffic split. 
+
+#### Values 
+
+- Default: None
+- This field is required.
+- Data type: list of objects that can contain the following fields:
+  - `Weight`: The sum of weights for a set of service instances must add up to 100. 
+  - `Service`: This field is required.   
+  - `ServiceSubset`
+  - `Namespace` <Enterprise inline/>
+  - `Partition` <Enterprise inline/>
+  - `RequestHeaders`
+  - `ResponseHeaders`  
+
+### `Splits[].Weight`
+
+Specifies the percentage of traffic sent to the set of service instances specified in the [`Service`](#service) field. Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
+
+#### Values
+
+- Default: `null`
+- This field is required.
+- Data type: Floating number from `.01` to `100`.
+
+### `Splits[].Service`
+
+Specifies the name of the service to resolve.
+
+#### Values
+
+- Default: Inherits the value of the [`Name`](#name) field. 
+- Data type: String
+
+### `Splits[].ServiceSubset`
+
+Specifies a subset of the service to resolve. A service subset assigns a name to a specific subset of discoverable service instances within a datacenter, such as `version2` or `canary`. All services have an unnamed default subset that returns all healthy instances. 
+
+You can define service subsets in a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver), which are referenced by their names throughout the other configuration entries. This field overrides the default subset value in the service resolver configuration entry.   
+
+#### Values
+
+- Default: If empty, the `split` uses the default subset. 
+- Data type: String
+
+### `Splits[].Namespace` <EnterpriseAlert inline />
+
+Specifies the [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN when resolving the service. 
+
+#### Values
+
+- Default: Inherits the value of [`Namespace`](#Namespace) from the top-level of the configuration entry.
+- Data type: String
+
+### `Splits[].Partition` <EnterpriseAlert inline />
+
+Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
+
+#### Values
+
+- Default: By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#partition).
+- Data type: String
+
+### `Splits[].RequestHeaders`
+
+Specifies a set of HTTP-specific header modification rules applied to requests routed with the service split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
+
+#### Values
+
+- Default: None
+- Values: Object containing one or more fields that define header modification rules
+  - `Add`: Map of one or more key-value pairs
+  - `Set`: Map of one or more key-value pairs
+  - `Remove`: Map of one or more key-value pairs
+
+The following table describes how to configure values for request headers:
+
+| Rule | Description | Type |   
+| --- 	    | ---	       | ---         |  
+| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Remove` | Defines an list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
+
+#### Use variable placeholders
+
+For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
+
+
+### `Splits[].ResponseHeaders` 
+
+Specifies a set of HTTP-specific header modification rules applied to responses routed with the service split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
+
+#### Values
+
+- Default: None
+- Values: Object containing one or more fields that define header modification rules
+  - `Add`: Map of one or more string key-value pairs
+  - `Set`: Map of one or more string key-value pairs
+  - `Remove`: Map of one or more string key-value pairs
+
+The following table describes how to configure values for response headers:
+  
+| Rule | Description | Type | 
+| --- 	    | ---	       | ---         |  
+| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Remove` | Defines an list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
+
+#### Use variable placeholders
+
+For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+### `apiVersion`
+
+Kubernetes-only parameter that specifies the version of the Consul API that the configuration entry maps to Kubernetes configurations. The value must be `consul.hashicorp.com/v1alpha1`.  
+
+### `kind` 
+
+Specifies the type of configuration entry to implement. 
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: String value that must be set to `serviceSplitter`. 
+
+### `metadata.name`
+
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster. 
+
+#### Values
+
+- Default: Inherits name from the host node 
+- This field is required.
+- Data type: String
+
+
+### `metadata.namespace` <EnterpriseAlert inline />
+
+Specifies the Consul namespace to use for resolving the service. You can map Consul namespaces to Kubernetes Namespaces in different ways. Refer to [Custom Resource Definitions (CRDs) for Consul on Kubernetes](/consul/docs/k8s/crds#consul-enterprise) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Kubernetes-only field that contains all of the configurations for service splitter pods.
+
+#### Values
+
+- Default: none 
+- This field is required.
+- Data type: Object containing [`spec.splits`](#spec-splits) configuration 
+
+### `spec.meta`
+
+Specifies key-value pairs to add to the KV store.
+
+#### Values
+
+- Default: none 
+- Data type: Map of one or more key-value pairs 
+  - keys: String
+  - values: String, integer, or float 
+
+### `spec.splits`
+
+Defines how much traffic to send to sets of service instances during a traffic split. 
+
+#### Values 
+
+- Default: None
+- This field is required.
+- Data type: list of objects that can contain the following fields:
+  - `weight`: The sum of weights for a set of service instances. The total defined value must add up to 100. 
+  - `service`: This field is required.  
+  - `serviceSubset`
+  - `namespace` <Enterprise inline/>
+  - `partition` <Enterprise inline/>
+  - `requestHeaders` 
+  - `responseHeaders`  
+
+### `spec.splits[].weight`
+
+Specifies the percentage of traffic sent to the set of service instances specified in the [`spec.splits.service`](#spec-splits-service) field. Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
+
+#### Values
+
+- Default: `null`
+- This field is required.
+- Data type: Floating integer from `.01` to `100`
+
+### `spec.splits[].service`
+
+Specifies the name of the service to resolve.
+
+#### Values
+
+- Default: The service matching the configuration entry [`meta.name`](#metadata-name) field.
+- Data type: String
+
+### `spec.splits[].serviceSubset`
+
+Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. 
+
+#### Values
+
+- Default: Inherits the name of the default subset. 
+- Data type: String
+
+### `spec.splits[].namespace` <EnterpriseAlert inline />
+
+Specifies the [namespace](/consul/docs/enterprise/namespaces) to use when resolving the service. 
+
+#### Values
+
+- Default: The namespace specified in the top-level configuration entry.
+- Data type: String
+
+### `spec.splits[].partition` <EnterpriseAlert inline />
+
+Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
+
+#### Values
+
+- Default: `default`
+- Data type: String
+
+### `spec.splits[].requestHeaders`
+
+Specifies a set of HTTP-specific header modification rules applied to requests routed with the service split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
+
+#### Values
+
+- Default: None
+- Values: Object containing one or more fields that define header modification rules
+  - `add`: Map of one or more key-value pairs
+  - `set`: Map of one or more key-value pairs
+  - `remove`: Map of one or more key-value pairs
+
+The following table describes how to configure values for request headers:
+
+| Rule | Description | Type |   
+| --- 	    | ---	       | ---         |  
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `remove` | Defines an list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
+
+#### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
+
+### `spec.splits[].responseHeaders`
+
+Specifies a set of HTTP-specific header modification rules applied to responses routed with the service split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
+
+#### Values
+
+- Default: None
+- Values: Object containing one or more fields that define header modification rules
+  - `add`: Map of one or more string key-value pairs
+  - `set`: Map of one or more string key-value pairs
+  - `remove`: Map of one or more string key-value pairs
+
+The following table describes how to configure values for response headers:
+  
+| Rule | Description | Type | 
+| --- 	    | ---	       | ---         |  
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `remove` | Defines an list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
+
+#### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
+
+</Tab>
+
+</Tabs>
+
+## Examples
+
+The following examples demonstrate common service splitter configuration patterns for specific use cases. 
 
 ### Two subsets of same service
 
 Split traffic between two subsets of the same service:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-splitter"
@@ -65,18 +586,9 @@ Splits = [
 ]
 ```
 
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceSplitter
-metadata:
-  name: web
-spec:
-  splits:
-    - weight: 90
-      serviceSubset: v1
-    - weight: 10
-      serviceSubset: v2
-```
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -95,13 +607,34 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 90
+      serviceSubset: v1
+    - weight: 10
+      serviceSubset: v2
+```
+
+</Tab>
+
+</Tabs>
 
 ### Two different services
 
 Split traffic between two services:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-splitter"
@@ -118,18 +651,9 @@ Splits = [
 ]
 ```
 
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceSplitter
-metadata:
-  name: web
-spec:
-  splits:
-    - weight: 50
-      # will default to service with same name as config entry ("web")
-    - weight: 50
-      service: web-rewrite
-```
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -147,14 +671,35 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 50
+      # defaults to the service with same name as the configuration entry ("web")
+    - weight: 50
+      service: web-rewrite
+```
+
+</Tab>
+
+</Tabs>
 
 ### Set HTTP Headers
 
 Split traffic between two subsets with extra headers added so clients can tell
 which version:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-splitter"
@@ -181,24 +726,9 @@ Splits = [
 ]
 ```
 
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceSplitter
-metadata:
-  name: web
-spec:
-  splits:
-    - weight: 90
-      serviceSubset: v1
-      responseHeaders:
-        set:
-          x-web-version: v1
-    - weight: 10
-      serviceSubset: v2
-      responseHeaders:
-        set:
-          x-web-version: v2
-```
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -227,136 +757,31 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
 
-## Available Fields
 
-<ConfigEntryReference
-  keys={[
-    {
-      name: 'apiVersion',
-      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
-      hcl: false,
-    },
-    {
-      name: 'Kind',
-      description: {
-        hcl: 'Must be set to `service-splitter`',
-        yaml: 'Must be set to `ServiceSplitter`',
-      },
-    },
-    {
-      name: 'Name',
-      description: 'Set to the name of the service being configured.',
-      type: 'string: <required>',
-      yaml: false,
-    },
-    {
-      name: 'Namespace',
-      type: `string: "default"`,
-      enterprise: true,
-      description:
-        'Specifies the namespace to which the configuration entry will apply.',
-      yaml: false,
-    },
-    {
-      name: 'Partition',
-      type: `string: "default"`,
-      enterprise: true,
-      description:
-        'Specifies the admin partition to which the configuration entry will apply.',
-      yaml: false,
-    },
-    {
-      name: 'Meta',
-      type: 'map<string|string>: nil',
-      description:
-        'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
-      yaml: false,
-    },
-    {
-      name: 'metadata',
-      children: [
-        {
-          name: 'name',
-          description: 'Set to the name of the service being configured.',
-        },
-        {
-          name: 'namespace',
-          description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
-        },
-      ],
-      hcl: false,
-    },
-    {
-      name: 'Splits',
-      type: 'array<ServiceSplit>',
-      description:
-        'Defines how much traffic to send to which set of service instances during a traffic split. The sum of weights across all splits must add up to 100.',
-      children: [
-        {
-          name: 'weight',
-          type: 'float32: 0',
-          description:
-            'A value between 0 and 100 reflecting what portion of traffic should be directed to this split. The smallest representable weight is 1/10000 or .01%',
-        },
-        {
-          name: 'Service',
-          type: 'string: ""',
-          description: 'The service to resolve instead of the default.',
-        },
-        {
-          name: 'ServiceSubset',
-          type: 'string: ""',
-          description: {
-            hcl:
-              "A named subset of the given service to resolve instead of one defined as that service's `DefaultSubset`. If empty the default subset is used.",
-            yaml:
-              "A named subset of the given service to resolve instead of one defined as that service's `defaultSubset`. If empty the default subset is used.",
-          },
-        },
-        {
-          name: 'Namespace',
-          enterprise: true,
-          type: 'string: ""',
-          description:
-            'The namespace to resolve the service from instead of the current namespace. If empty, the current namespace is used.',
-        },
-        {
-          name: 'Partition',
-          enterprise: true,
-          type: 'string: ""',
-          description:
-            'The admin partition to resolve the service from instead of the current partition. If empty, the current partition is used.',
-        },
-        {
-          name: 'RequestHeaders',
-          type: 'HTTPHeaderModifiers: <optional>',
-          description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
-          that will be applied to requests routed to this split.
-          This cannot be used with a \`tcp\` listener.`,
-        },
-        {
-          name: 'ResponseHeaders',
-          type: 'HTTPHeaderModifiers: <optional>',
-          description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
-          that will be applied to responses from this split.
-          This cannot be used with a \`tcp\` listener.`,
-        },
-      ],
-    },
-  ]}
-/>
 
-## ACLs
+<Tab heading="YAML" group="yaml">
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 90
+      serviceSubset: v1
+      responseHeaders:
+        set:
+          x-web-version: v1
+    - weight: 10
+      serviceSubset: v2
+      responseHeaders:
+        set:
+          x-web-version: v2
+```
 
-Reading a `service-splitter` config entry requires `service:read` on the resource.
+</Tab>
 
-Creating, updating, or deleting a `service-splitter` config entry requires
-`service:write` on the resource and `service:read` on any other service referenced by
-name in these fields:
-
-- [`Splits[].Service`](#service)
+</Tabs>

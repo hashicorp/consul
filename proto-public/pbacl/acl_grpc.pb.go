@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: proto-public/pbacl/acl.proto
+// source: pbacl/acl.proto
 
 package pbacl
 
@@ -141,5 +141,5 @@ var ACLService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto-public/pbacl/acl.proto",
+	Metadata: "pbacl/acl.proto",
 }

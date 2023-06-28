@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import tabgroup from 'consul-ui/components/tab-nav/pageobject';
 
 export default function (visitable, creatable, items, popoverSelect) {

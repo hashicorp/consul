@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package autopilotevents
 
 import (
@@ -13,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	structs "github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	types "github.com/hashicorp/consul/types"
 )
 
@@ -101,7 +104,7 @@ func TestEventPayloadReadyServers_HasReadPermission(t *testing.T) {
  			service "foo" {
  				policy = "write"
  			}
- 		`, acl.SyntaxCurrent, nil, nil)
+ 		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

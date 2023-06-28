@@ -14,12 +14,12 @@ a Consul token.
 This page assumes general knowledge of [AWS
 IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html)
 and the concepts described in the main [auth method
-documentation](/docs/security/acl/auth-methods).
+documentation](/consul/docs/security/acl/auth-methods).
 
 ## Overview
 
 The AWS IAM auth method for Consul uses a variation on the approach used by the [IAM auth method for
-Vault](https://www.vaultproject.io/docs/auth/aws#iam-auth-method). Specifically, the IAM auth method
+Vault](/vault/docs/auth/aws#iam-auth-method). Specifically, the IAM auth method
 for Consul avoids the need to configure Consul servers with AWS credentials by requiring clients to
 provided pre-signed AWS API requests.
 
@@ -35,7 +35,7 @@ is permitted to login.
 
 ## Config Parameters
 
-The following are the auth method [`Config`](/api-docs/acl/auth-methods#config)
+The following are the auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
 parameters for an auth method of type `aws-iam`:
 
 - `BoundIAMPrincipalARNs` `(array<string>: <required>)` - The list of IAM role or IAM user ARNs
@@ -186,7 +186,7 @@ This command does the following:
 - Send the bearer token to the IAM auth method to authenticate
 
 On the Consul servers, the IAM auth method validates a client's identity during the [Login to Auth
-Method](/api-docs/acl#login-to-auth-method) API request, using the following steps:
+Method](/consul/api-docs/acl#login-to-auth-method) API request, using the following steps:
 
 - Decode the `sts:GetCallerIdentity` request from the bearer token
 - Optionally, decode the `iam:GetRole` or `iam:GetUser` request from the bearer token,

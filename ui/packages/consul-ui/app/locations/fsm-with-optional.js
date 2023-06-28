@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { env } from 'consul-ui/env';
 const OPTIONAL = {};
 if (env('CONSUL_PARTITIONS_ENABLED')) {

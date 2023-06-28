@@ -1,14 +1,19 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 [data-theme~='square-tail'] {
   .tippy-arrow {
     --size: 18px;
     left: calc(0px - (var(--size) / 2)) !important;
   }
   .tippy-arrow::before {
-    background-color: rgb(var(--tone-gray-000));
+    background-color: var(--token-color-surface-primary);
     width: calc(1px + var(--size));
     height: calc(1px + var(--size));
     border: var(--decor-border-100);
-    border-color: rgb(var(--tone-gray-300));
+    border-color: var(--token-color-palette-neutral-300);
   }
   // potential icon
   .tippy-arrow::after {

@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+/**
  * Coldark Theme for Prism.js
  * Theme variation: Dark
  * Tested with HTML, CSS, JS, JSON, PHP, YAML, Bash script
@@ -10,7 +15,7 @@ code[class*='language-'],
 pre[class*='language-'] {
   color: #e3eaf2;
   background: none;
-  font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+  font-family: var(--token-typography-font-stack-code);
   text-align: left;
   white-space: pre;
   word-spacing: normal;
@@ -142,7 +147,7 @@ pre[class*='language-'] {
 .token.keyword-this,
 .token.this,
 .token.bold {
-  font-weight: bold;
+  font-weight: var(--token-typography-font-weight-bold);
 }
 
 .token.delimiter.important {
@@ -160,7 +165,7 @@ pre[class*='language-'] {
 .language-markdown .token.title,
 .language-markdown .token.title .token.punctuation {
   color: #6cb8e6;
-  font-weight: bold;
+  font-weight: var(--token-typography-font-weight-bold);
 }
 
 .language-markdown .token.blockquote.punctuation {

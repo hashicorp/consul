@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get } from '@ember/object';
@@ -31,12 +36,6 @@ export default Component.extend(Slotted, {
   willRender: function () {
     this._super(...arguments);
     set(this, 'hasError', this._isRegistered('error'));
-  },
-  willDestroyElement: function () {
-    this._super(...arguments);
-    if (get(this, 'data.isNew')) {
-      this.data.rollbackAttributes();
-    }
   },
   actions: {
     setData: function (data) {

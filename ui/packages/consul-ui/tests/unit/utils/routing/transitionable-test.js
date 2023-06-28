@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import transitionable from 'consul-ui/utils/routing/transitionable';
 import { module, test } from 'qunit';
 

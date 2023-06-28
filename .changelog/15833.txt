@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix issue where service-resolver protocol checks incorrectly errored for failover peer targets.
+```

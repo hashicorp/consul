@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -42,6 +45,10 @@ verify_incoming_rpc = false
 verify_outgoing = true
 verify_server_hostname = true
 tls_prefer_server_cipher_suites = true
+
+raft_boltdb {
+	NoFreelistSync = true
+}
 `},
 	}
 	patchLoadOptsShims(&opts)
@@ -70,6 +77,7 @@ tls_prefer_server_cipher_suites = true
 		deprecationWarning("verify_outgoing", "tls.defaults.verify_outgoing"),
 		deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"),
 		"The 'tls_prefer_server_cipher_suites' field is deprecated and will be ignored.",
+		deprecationWarning("raft_boltdb", "raft_logstore.boltdb"),
 	}
 	require.ElementsMatch(t, expectWarns, result.Warnings)
 	// Ideally this would compare against the entire result.RuntimeConfig, but
@@ -102,6 +110,7 @@ tls_prefer_server_cipher_suites = true
 	require.True(t, rt.TLS.InternalRPC.VerifyOutgoing)
 	require.True(t, rt.TLS.HTTPS.VerifyOutgoing)
 	require.True(t, rt.TLS.InternalRPC.VerifyServerHostname)
+	require.True(t, rt.RaftLogStoreConfig.BoltDB.NoFreelistSync)
 }
 
 func TestLoad_DeprecatedConfig_ACLReplication(t *testing.T) {

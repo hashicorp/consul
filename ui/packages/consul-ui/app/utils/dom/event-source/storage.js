@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 export default function (EventTarget, P = Promise) {
   const handler = function (e) {
     // e is undefined on the opening call

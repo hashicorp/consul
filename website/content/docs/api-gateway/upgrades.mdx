@@ -1,13 +1,160 @@
 ---
 layout: docs
-page_title: Upgrade Consul API Gateway
+page_title: Upgrade API Gateway for Kubernetes
 description: >-
   Upgrade Consul API Gateway to use newly supported features. Learn about the requirements, procedures, and post-configuration changes involved in standard and specific version upgrades.
 ---
 
-# Upgrade Consul API Gateway
+# Upgrade Consul API gateway for Kubernetes
 
-This topic describes how to upgrade Consul API Gateway.
+Since Consul v1.15, the Consul API gateway is a native feature within the Consul binary and is installed during the normal Consul installation process. Since Consul on Kubernetes v1.2 (Consul v1.16), the CRDs necessary for using the Consul API gateway for Kubernetes are also included. You can install Consul v1.16 using the Consul Helm chart v1.2 and later. Refer to [Install API gateway for Kubernetes](/consul/docs/api-gateway/install) for additional information.
+
+## Introduction
+
+Because Consul API gateway releases as part of Consul, it no longer has an independent version number. Instead, the API gateway inherits the same version number as the Consul binary. Refer to the [release notes](/consul/docs/release-notes) for additional information. 
+
+To begin using the native API gateway, complete one of the following upgrade paths:
+
+### Upgrade from Consul on Kubernetes v1.1.x
+
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+### Upgrade from v0.4.x - v0.5.x
+ 
+1. Complete the [standard upgrade instructions](#standard-upgrade)
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+### Upgrade from v0.3.x
+
+1. Complete the instructions for [upgrading to v0.4.0](#upgrade-to-v0-4-0)
+1. Complete the [standard upgrade instructions](#standard-upgrade)
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+### Upgrade from v0.2.x
+
+1. Complete the instructions for [upgrading to v0.3.0](#upgrade-to-v0-2-0)
+1. Complete the instructions for [upgrading to v0.4.0](#upgrade-to-v0-4-0)
+1. Complete the [standard upgrade instructions](#standard-upgrade)
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+### Upgrade from v0.1.x
+
+1. Complete the instructions for [upgrading to v0.2.0](#upgrade-to-v0-2-0)
+1. Complete the instructions for [upgrading to v0.3.0](#upgrade-to-v0-3-0)
+1. Complete the instructions for [upgrading to v0.4.0](#upgrade-to-v0-4-0)
+1. Complete the [standard upgrade instructions](#standard-upgrade)
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+## Upgrade to native Consul API gateway
+
+You must begin the upgrade procedure with API gateway with Consul on Kubernetes v1.1 installed. If you are currently using a version of Consul on Kubernetes older than v1.1, complete the necessary stages of the upgrade path to v1.1 before you begin upgrading to the native API gateway. Refer to the [Introduction](#introduction) for an overview of the upgrade paths.
+
+### Consul-managed CRDs
+
+If you are able to tolerate downtime for your applications, you should delete previously installed CRDs and allow Consul to install and manage them for future updates. The amount of downtime depends on how quickly you are able to install the new version of Consul. If you are unable to tolerate any downtime, refer to [Self-managed CRDs](#self-managed-crds) for instructions on how to upgrade without downtime.
+
+1. Run the `kubectl delete` command and reference the `kustomize` directory to delete the existing CRDs. The following example deletes the CRDs that were installed with API gateway `v0.5.1`: 
+
+  ```shell-session
+  $ kubectl delete --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.5.1"
+  ``` 
+
+1. Issue the following command to use the API gateway packaged in Consul. Since Consul will not detected an external CRD, it will try to install the API gateway packaged with Consul.
+
+  ```shell-session
+  $ consul-k8s install -config-file values.yaml
+  ```
+
+1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information.
+
+1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
+
+1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller. 
+
+  <CodeBlockConfig filename="values.yaml">
+
+    ```diff
+    global:
+      image: hashicorp/consul:1.15
+      imageK8S: hashicorp/consul-k8s-control-plane:1.1
+    - apiGateway:
+    -  enabled: true
+    -  image: hashicorp/consul-api-gateway:0.5.4
+    -  managedGatewayClass:
+    -    enabled: true
+    ```
+
+  </CodeBlockConfig>
+
+  ```shell-session
+  $ consul-k8s install -config-file values.yaml
+  ```
+
+### Self-managed CRDs
+
+<Note>
+
+  This upgrade method uses `connectInject.apiGateway.manageExternalCRDs`, which was introduced in Consul on Kubernetes v1.2. As a result, you must be on at least Consul on Kubernetes v1.2 for this upgrade method.
+
+</Note>
+
+If you are unable to tolerate any downtime, you can complete the following steps to upgrade to the native Consul API gateway. If you choose this upgrade option, you must continue to manually install the CRDs necessary for operating the API gateway. 
+
+1. Create a Helm chart that installs the version of Consul API gateway that ships with Consul and disables externally-managed CRDs:
+
+  <CodeBlockConfig filename="values.yaml" highlight="2-3,5-6">
+
+    ```yaml
+    global:
+      image: hashicorp/consul:1.16
+      imageK8S: hashicorp/consul-k8s-control-plane:1.2
+    connectInject:
+      apiGateway:
+        manageExternalCRDs: false
+    apiGateway:
+      enabled: true
+      image: hashicorp/consul-api-gateway:0.5.4
+      managedGatewayClass:
+        enabled: true
+    ```
+
+  </CodeBlockConfig>
+  
+  You must set `connectInject.apiGateway.manageExternalCRDs` to `false`. If you have external CRDs with legacy installation and you do not set this, you will get an error when you try to upgrade because Helm will try to install CRDs that already exist.
+
+1. Issue the following command to install the new version of API gateway and disables externally-managed CRDs:
+
+  ```shell-session
+  $ consul-k8s install -config-file values.yaml
+  ```
+
+1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information.
+
+1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
+
+1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller. 
+
+  <CodeBlockConfig filename="values.yaml">
+
+    ```diff
+    global:
+      image: hashicorp/consul:1.16
+      imageK8S: hashicorp/consul-k8s-control-plane:1.2
+    connectInject:
+      apiGateway:
+        manageExternalCRDs: false
+    - apiGateway:
+    -  enabled: true
+    -  image: hashicorp/consul-api-gateway:0.5.4
+    -  managedGatewayClass:
+    -    enabled: true
+    ```
+
+  </CodeBlockConfig>
+
+  ```shell-session
+  $ consul-k8s install -config-file values.yaml
+  ```
 
 ## Upgrade to v0.4.0
 
@@ -34,7 +181,9 @@ Ensure that the following requirements are met prior to upgrading:
 <a name="v0.4.0-post-upgrade-configuration-changes"/>
 
 ### Post-upgrade configuration changes
+
 Complete the following steps after performing standard upgrade procedure.
+
 #### Requirements
 
 - Consul API Gateway should be running version v0.4.0.
@@ -56,7 +205,7 @@ Complete the following steps after performing standard upgrade procedure.
 
   You should receive a response similar to the following:
 
-  ```log
+  ```log hideClipboard
   "hashicorp/consul-api-gateway:0.4.0"
   ```
 
@@ -69,7 +218,7 @@ Complete the following steps after performing standard upgrade procedure.
   ```
 If you have any active `ReferencePolicy` resources, you will receive output similar to the response below.
 
-  ```log
+  ```log hideClipboard
   Warning: ReferencePolicy has been renamed to ReferenceGrant. ReferencePolicy will be removed in v0.6.0 in favor of the identical ReferenceGrant resource.
   NAMESPACE   NAME
   default     example-reference-policy
@@ -194,7 +343,7 @@ Ensure that the following requirements are met prior to upgrading:
 
   You should receive a response similar to the following:
 
-  ```log
+  ```log hideClipboard
   "hashicorp/consul-api-gateway:0.2.1"
   ```
 
@@ -309,7 +458,7 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-1. If you have already created a `ReferencePolicy`, modify it to allow your gateway to access your `certificateRef` and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
+1. If you have already created a `ReferencePolicy`, modify it to allow your gateway to access your `certificateRef` and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencegrant/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
 
 1. Issue the following command to apply it to your cluster:
 
@@ -348,7 +497,7 @@ Ensure that the following requirements are met prior to upgrading:
 
   You should receive the following response:
 
-  ```log
+  ```log hideClipboard
   "hashicorp/consul-api-gateway:0.1.0"
   ```
 
@@ -516,9 +665,9 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
+1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/api-types/referencegrant/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
 
-1. Issue the following command to apply it to your cluster:
+2. Issue the following command to apply it to your cluster:
 
   ```shell-session
   $ kubectl apply --filename referencepolicy.yaml

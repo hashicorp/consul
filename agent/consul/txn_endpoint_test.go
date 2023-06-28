@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -551,7 +555,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		},
 	}
 	var out structs.TxnResponse
-	if err := s1.RPC("Txn.Apply", &arg, &out); err != nil {
+	if err := s1.RPC(context.Background(), "Txn.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

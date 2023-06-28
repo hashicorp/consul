@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/partition';
 

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 @import './layout';
 %composite-row {
   @extend %list-row;
@@ -56,7 +61,7 @@
   overflow-x: visible !important;
 }
 .consul-intention-permission-list > ul {
-  border-top: 1px solid rgb(var(--tone-gray-200));
+  border-top: 1px solid var(--token-color-surface-interactive-active);
 }
 .consul-service-instance-list .port dt,
 .consul-service-instance-list .port dt::before {
@@ -68,6 +73,9 @@
 // Copy Button
 %composite-row .copy-button {
   display: inline-flex;
+}
+%composite-row .copy-button button {
+  @extend %body-100-medium;
 }
 %composite-row-header .copy-button {
   margin-left: 4px;
@@ -108,5 +116,5 @@
 %composite-row-header .policy-management dd::before,
 %composite-row-detail .policy-management::before {
   @extend %with-star-fill-mask, %as-pseudo;
-  --icon-color: rgb(var(--tone-brand-600));
+  --icon-color: var(--token-color-consul-brand);
 }

@@ -1,0 +1,22 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice
+plugins:
+  - name: go
+    out: .
+    opt:
+      - paths=source_relative
+  - name: go-grpc
+    out: .
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+  - name: go-binary
+    out: .
+    opt:
+      - paths=source_relative

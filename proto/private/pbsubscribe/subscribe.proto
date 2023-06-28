@@ -1,0 +1,254 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+/*
+   Package event provides a service for subscribing to state change events.
+*/
+syntax = "proto3";
+
+// TODO: ideally we would have prefixed this package as
+// "hashicorp.consul.internal.subscribe" before releasing but now correcting this will
+// require a grpc passthrough service shim since the package name is part of
+// the rpc method dispatch and editing it naively would break backwards
+// compatibility.
+package subscribe;
+
+import "annotations/ratelimit/ratelimit.proto";
+import "private/pbcommon/common.proto";
+import "private/pbconfigentry/config_entry.proto";
+import "private/pbservice/node.proto";
+
+// StateChangeSubscription service allows consumers to subscribe to topics of
+// state change events. Events are streamed as they happen.
+// buf:lint:ignore SERVICE_SUFFIX
+service StateChangeSubscription {
+  // Subscribe to a topic to receive events when there are changes to the topic.
+  //
+  // If SubscribeRequest.Index is 0 the event stream will start with one or
+  // more snapshot events, followed by an EndOfSnapshot event. Subsequent
+  // events will be a live stream of events as they happen.
+  //
+  // If SubscribeRequest.Index is > 0 it is assumed the client already has a
+  // snapshot, and is trying to resume a stream that was disconnected. The
+  // client will either receive a NewSnapshotToFollow event, indicating the
+  // client view is stale and it must reset its view and prepare for a new
+  // snapshot. Or, if no NewSnapshotToFollow event is received, the client
+  // view is still fresh, and all events will be the live stream.
+  //
+  // Subscribe may return a gRPC status error with codes.ABORTED to indicate
+  // the client view is now stale due to a change on the server. The client
+  // must reset its view and issue a new Subscribe call to restart the stream.
+  // This error is used when the server can no longer correctly maintain the
+  // stream, for example because the ACL permissions for the token changed, or
+  // because the server state was restored from a snapshot.
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc Subscribe(SubscribeRequest) returns (stream Event) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_SUBSCRIBE
+    };
+  }
+}
+
+// Topic enumerates the supported event topics.
+enum Topic {
+  Unknown = 0;
+
+  // ServiceHealth topic contains events for any changes to service health.
+  ServiceHealth = 1;
+
+  // ServiceHealthConnect topic contains events for any changes to service
+  // health for connect-enabled services.
+  ServiceHealthConnect = 2;
+
+  // MeshConfig topic contains events for changes to the global mesh config.
+  MeshConfig = 3;
+
+  // ServiceResolver topic contains events for changes to a service resolver.
+  ServiceResolver = 4;
+
+  // IngressGateway topic contains events for changes to an ingress gateway.
+  IngressGateway = 5;
+
+  // ServiceIntentions topic contains events for changes to service intentions.
+  ServiceIntentions = 6;
+
+  // ServiceList topic contains events about services (not service instances)
+  // getting registered/deregistered. It can be used to materialize a list of
+  // the services in the given datacenter.
+  //
+  // Note: WildcardSubject is the only supported Subject on this topic.
+  ServiceList = 7;
+
+  // ServiceDefaults topic contains events for changes to service-defaults.
+  ServiceDefaults = 8;
+
+  // APIGateway topic contains events for changes to api-gateways.
+  APIGateway = 9;
+
+  // TCPRoute topic contains events for changes to tcp-routes.
+  TCPRoute = 10;
+
+  // HTTPRoute topic contains events for changes to http-routes.
+  HTTPRoute = 11;
+
+  // InlineCertificate topic contains events for changes to inline-certificates.
+  InlineCertificate = 12;
+
+  // BoundAPIGateway topic contains events for changes to bound-api-gateways.
+  BoundAPIGateway = 13;
+
+  // IPRateLimit topic contains events for changes to control-plane-request-limit
+  IPRateLimit = 14;
+
+  // SamenessGroup topic contains events for changes to Sameness Groups
+  SamenessGroup = 15;
+
+  // JWTProvider topic contains events for changes to jwt-provider
+  JWTProvider = 16;
+}
+
+message NamedSubject {
+  // Key is a topic-specific identifier that restricts the scope of the
+  // subscription to only events pertaining to that identifier. For example,
+  // to receive events for a single service, the service's name is specified
+  // as the key.
+  string Key = 1;
+
+  // Namespace which contains the resources. If Namespace is not specified the
+  // default namespace will be used.
+  //
+  // Namespace is an enterprise-only feature.
+  string Namespace = 2;
+
+  // Partition which contains the resources. If Partition is not specified the
+  // default partition will be used.
+  //
+  // Partition is an enterprise-only feature.
+  string Partition = 3;
+
+  // PeerName is the name of the peer that the requested service was imported from.
+  string PeerName = 4;
+}
+
+// SubscribeRequest used to subscribe to a topic.
+message SubscribeRequest {
+  // Topic identifies the set of events the subscriber is interested in.
+  Topic Topic = 1;
+
+  // Deprecated: use NamedSubject.Key instead.
+  string Key = 2;
+
+  // Token is the ACL token to authenticate the request. The token must have
+  // sufficient privileges to read the requested information otherwise events
+  // will be filtered, possibly resulting in an empty snapshot and no further
+  // updates sent.
+  string Token = 3;
+
+  // Index is the raft index the subscriber has already observed up to. This
+  // is zero on an initial streaming call, but then can be provided by a
+  // client on subsequent re-connections such that the full snapshot doesn't
+  // need to be resent if the client is up to date.
+  uint64 Index = 4;
+
+  // Datacenter specifies the Consul datacenter the request is targeted at.
+  // If it's not the local DC the server will forward the request to
+  // the remote DC and proxy the results back  to the subscriber. An empty
+  // string defaults to the local datacenter.
+  string Datacenter = 5;
+
+  // Deprecated: use NamedSubject.Namespace instead.
+  string Namespace = 6;
+
+  // Deprecated: use NamedSubject.Partition instead.
+  string Partition = 7;
+
+  // Deprecated: use NamedSubject.PeerName instead.
+  string PeerName = 8;
+
+  // Subject identifies a portion of a topic for which the subscriber wishes to
+  // receive events (e.g. health events for a particular service).
+  oneof Subject {
+    // WildcardSubject is used to subscribe to all events published on the topic
+    // if it is supported.
+    bool WildcardSubject = 9;
+
+    // NamedSubject is used to subscribe to events pertaining to a specific
+    // resource (e.g. a particular service or config entry).
+    NamedSubject NamedSubject = 10;
+  }
+}
+
+// Event describes a streaming update on a subscription. Events are used both to
+// describe the current "snapshot" of the result as well as ongoing mutations to
+// that snapshot.
+message Event {
+  // Index is the raft index at which the mutation took place. At the top
+  // level of a subscription there will always be at most one Event per index.
+  // If multiple events are published to the same topic in a single raft
+  // transaction then the batch of events will be encoded inside a single
+  // top-level event to ensure they are delivered atomically to clients.
+  uint64 Index = 1;
+
+  // Payload is the actual event content.
+  oneof Payload {
+    // EndOfSnapshot indicates the event stream for the initial snapshot has
+    // ended. Subsequent Events delivered will be mutations to that result.
+    bool EndOfSnapshot = 2;
+
+    // NewSnapshotToFollow indicates that the client view is stale. The client
+    // must reset its view before handing any more events. Subsequent events
+    // in the stream will be for a new snapshot until an EndOfSnapshot event
+    // is received.
+    bool NewSnapshotToFollow = 3;
+
+    // EventBatch is a set of events. This is typically used as the payload
+    // type where multiple events are emitted in a single topic and raft
+    // index (e.g. transactional updates). In this case the Topic and Index
+    // values of all events will match and the whole set should be delivered
+    // and consumed atomically.
+    EventBatch EventBatch = 4;
+
+    // ServiceHealth is used for ServiceHealth and ServiceHealthConnect
+    // topics.
+    ServiceHealthUpdate ServiceHealth = 10;
+
+    // ConfigEntry is used for config entry topics (e.g. MeshConfig).
+    ConfigEntryUpdate ConfigEntry = 11;
+
+    // Service is used for ServiceList topic.
+    ServiceListUpdate Service = 12;
+  }
+}
+
+message EventBatch {
+  repeated Event Events = 1;
+}
+
+enum CatalogOp {
+  Register = 0;
+  Deregister = 1;
+}
+
+message ServiceHealthUpdate {
+  CatalogOp Op = 1;
+  hashicorp.consul.internal.service.CheckServiceNode CheckServiceNode = 2;
+}
+
+message ConfigEntryUpdate {
+  enum UpdateOp {
+    Upsert = 0;
+    Delete = 1;
+  }
+
+  UpdateOp Op = 1;
+  hashicorp.consul.internal.configentry.ConfigEntry ConfigEntry = 2;
+}
+
+message ServiceListUpdate {
+  CatalogOp Op = 1;
+
+  string Name = 2;
+  hashicorp.consul.internal.common.EnterpriseMeta EnterpriseMeta = 3;
+  string PeerName = 4;
+}

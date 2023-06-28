@@ -1,9 +1,14 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %informed-action {
   & {
     border-radius: var(--decor-radius-200);
     border: var(--decor-border-100);
-    border-color: rgb(var(--tone-gray-300));
-    background-color: rgb(var(--tone-gray-000));
+    border-color: var(--token-color-palette-neutral-300);
+    background-color: var(--token-color-surface-primary);
   }
   > div {
     border-top-left-radius: var(--decor-radius-200);
@@ -11,64 +16,64 @@
     cursor: default;
   }
   header {
-    @extend %h400;
+    @extend %display-100-semibold;
   }
   header > * {
     @extend %typo-inherit;
   }
   p {
-    @extend %p2;
-    color: rgb(var(--tone-gray-999));
+    @extend %body-100-regular;
+    color: var(--token-color-hashicorp-brand);
   }
   > ul {
     list-style: none;
   }
   > ul > li > *:hover,
   > ul > li > *:focus {
-    background-color: rgb(var(--tone-gray-100));
+    background-color: var(--token-color-surface-strong);
   }
   /* variants */
   &.info {
     header {
-      color: rgb(var(--tone-blue-700));
+      color: var(--token-color-foreground-action-active);
     }
     header::before {
       @extend %with-info-circle-fill-mask, %as-pseudo;
-      background-color: rgb(var(--tone-blue-500));
+      background-color: var(--token-color-foreground-action);
       margin-right: 5px;
     }
     > div {
-      background-color: rgb(var(--tone-blue-010));
+      background-color: var(--token-color-surface-action);
     }
   }
   &.dangerous {
     header {
-      color: rgb(var(--tone-red-700));
+      color: var(--token-color-palette-red-400);
     }
     header::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      background-color: rgb(var(--tone-red-500));
+      background-color: var(--token-color-foreground-critical);
     }
     > div {
-      background-color: rgb(var(--tone-red-010));
+      background-color: var(--token-color-surface-critical);
     }
   }
   &.warning {
     header {
-      color: rgb(var(--tone-orange-700));
+      color: var(--token-color-foreground-warning-on-surface);
     }
     header::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      background-color: rgb(var(--tone-yellow-500));
+      background-color: var(--token-color-vault-brand);
       margin-right: 5px;
     }
     > div {
-      background-color: rgb(var(--tone-yellow-050));
+      background-color: var(--token-color-vault-gradient-faint-start);
     }
   }
   /**/
   > ul > .action > * {
-    color: rgb(var(--tone-blue-500));
+    color: var(--token-color-foreground-action);
   }
   > ul > .dangerous > * {
     @extend %frame-red-300;

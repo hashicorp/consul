@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
@@ -7,6 +12,8 @@ module('Integration | Service | discovery-chain', function (hooks) {
   const dc = 'dc-1';
   const id = 'slug';
   test('findBySlug returns the correct data for item endpoint', function (assert) {
+    assert.expect(2);
+
     return repo(
       'Service',
       'findBySlug',

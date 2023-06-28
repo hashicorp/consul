@@ -1,0 +1,3 @@
+```release-note:feature
+cli: adds new CLI commands `consul troubleshoot upstreams` and `consul troubleshoot proxy` to troubleshoot Consul's service mesh configuration and network issues.
+```

@@ -11,7 +11,7 @@ This topic describes how to enable Consul security features for your production 
 
 ## Overview
 
-To enable security in your production workloads, you must deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller), which provisions tokens for other service mesh tasks. Refer to [Architecture](/docs/ecs/architecture#acl-controller) to learn more about the ACL controller.
+To enable security in your production workloads, you must deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller), which provisions tokens for other service mesh tasks. Refer to [Architecture](/consul/docs/ecs/architecture#acl-controller) to learn more about the ACL controller.
 
 The controller cannot provision tokens for itself, so you must create the token for the ACL controller. The following steps describe the overall process of enabling security features for your production workloads:
 
@@ -26,13 +26,13 @@ The controller cannot provision tokens for itself, so you must create the token 
 
 Implement the following security features for your Consul server clusters before applying them to your workloads:
 
-1. [TLS encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
-1. [Gossip encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
-1. [Access control lists (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
+1. [TLS encryption](/consul/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
+1. [Gossip encryption](/consul/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
+1. [Access control lists (ACLs)](/consul/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
 
 ## Auth Method
 
-Consul on ECS uses the [AWS IAM Auth Method](/docs/ecs/architecture#aws-iam-auth-method) to enable
+Consul on ECS uses the [AWS IAM Auth Method](/consul/docs/ecs/architecture#aws-iam-auth-method) to enable
 tasks to automatically obtain Consul ACL tokens during startup.
 
 With the Terraform modules for Consul on ECS, the auth method is supported by default when ACLs are
@@ -47,13 +47,13 @@ By default, the `mesh-task` module will create and configure the task IAM role f
 
 ~> **Note:** When passing an existing IAM role to the `mesh-task` module using the `task_role` input
 variable, you must configure the IAM role as described in [ECS Task Role
-Configuration](/docs/ecs/manual/secure-configuration#ecs-task-role-configuration) to be compatible with
+Configuration](/consul/docs/ecs/manual/secure-configuration#ecs-task-role-configuration) to be compatible with
 the AWS IAM auth method.
 
 ## ACL controller
 
-1. Create a policy that grants `acl:write` and `operator:write` access for the controller. Refer to the [ACL policies documentation](/docs/security/acl/acl-policies) for instructions.
-1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/docs/security/acl/acl-tokens) for instructions.
+1. Create a policy that grants `acl:write` and `operator:write` access for the controller. Refer to the [ACL policies documentation](/consul/docs/security/acl/acl-policies) for instructions.
+1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/consul/docs/security/acl/acl-tokens) for instructions.
 1. Create a Secrets Manager secret containing the ACL controller's token and a Secrets Manager secret containing the Consul CA cert.
 
 ```hcl
@@ -108,19 +108,20 @@ The following table describes the required input variables for the `acl-controll
 | `name_prefix`                       | string   | AWS resources created by the `acl-controller` module will include this prefix in the resource name.                                                                                                                                        |
 
 <EnterpriseAlert>
-If you are using Consul Enterprise, see <a href="/docs/ecs/enterprise#admin-partitions-and-namespaces">Admin Partitions and Namespaces</a> for
-additional configuration required to support Consul Enterprise on ECS.
+
+If you are using Consul Enterprise, see the [Admin Partitions and Namespaces requirements documentation](/consul/docs/ecs/requirements) for additional configuration required to support Consul Enterprise on ECS.
+
 </EnterpriseAlert>
 
 ## Deploy your services
 
-Follow the instructions described in [Create a task definition](/docs/ecs/terraform/install#create-the-task-definition) to create the basic configuration for the task module. Add the following additional configurations to make the configuration production-ready.
+Follow the instructions described in [Create a task definition](/consul/docs/ecs/terraform/install#create-the-task-definition) to create the basic configuration for the task module. Add the following additional configurations to make the configuration production-ready.
 
 ### Create an AWS Secrets Manager secret
 
 The secret stores the gossip encryption key that the Consul clients use.
 
-<CodeBlock>
+<CodeBlockConfig>
 
 ```hcl
 resource "aws_secretsmanager_secret" "gossip_key" {
@@ -133,7 +134,7 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
 }
 ```
 
-</CodeBlock>
+</CodeBlockConfig>
 
 ### Enable secure deployment
 
@@ -171,6 +172,6 @@ The following table explains the `mesh-task` input variables relevant to a secur
 
 Complete the following steps described in the Installation with Terraform chapter to deploy and connect your services:
 
-1. [Run Terraform](/docs/ecs/terraform/install#run-terraform)
-1. [Configure routes](/docs/ecs/terraform/install#configure-routes)
-1. [Configure the bind address](/docs/ecs/terraform/install#configure-the-bind-address)
+1. [Run Terraform](/consul/docs/ecs/terraform/install#run-terraform)
+1. [Configure routes](/consul/docs/ecs/terraform/install#configure-routes)
+1. [Configure the bind address](/consul/docs/ecs/terraform/install#configure-the-bind-address)

@@ -9,13 +9,13 @@ description: >-
 
 ## Release Highlights
 
-- **Cluster Peering (GA):** This version promotes Cluster Peering, a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/docs/connect/cluster-peering) documentation. Some notable improvements to Cluster Peering include: 
+- **Cluster Peering (GA):** This version promotes Cluster Peering, a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/consul/docs/connect/cluster-peering) documentation. Some notable improvements to Cluster Peering include: 
  
-  - **Cluster Peering Failover:** Cluster Peering now supports the ability to redirect to services running on cluster peers with service resolvers. More details for configuring failover across peers is provided in the Service Resolver [failover](/docs/connect/config-entries/service-resolver#failover) stanza.
+  - **Cluster Peering Failover:** Cluster Peering now supports the ability to redirect to services running on cluster peers with service resolvers. More details for configuring failover across peers is provided in the Service Resolver [failover](/consul/docs/connect/config-entries/service-resolver#failover) stanza.
   
-  - **Control Plane traffic over Mesh Gateways:** Cluster Peering now supports the establishing peering through Mesh Gateways. More detail on using Mesh Gateways for Cluster Peering are found in [Enabling Peering Control Plane Traffic](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways). Mesh Gateways are used by default for [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s). 
+  - **Control Plane traffic over Mesh Gateways:** Cluster Peering now supports the establishing peering through Mesh Gateways. More detail on using Mesh Gateways for Cluster Peering are found in [Enabling Peering Control Plane Traffic](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways). Mesh Gateways are used by default for [Cluster Peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/tech-specs). 
   
-- **Simplified Service Mesh with Consul Dataplane:** Support for a new `consul-dataplane`, a lightweight process for managing Envoy proxies introduced in Consul v1.14.0. Consul Dataplane removes the need to run client agents on every node in a cluster for service discovery and service mesh. Instead, Consul deploys sidecar proxies that provide lower latency, support additional runtimes, and integrate with cloud infrastructure providers. Read more in [Simplified Service Mesh with Consul Dataplane](/docs/connect/dataplane). 
+- **Simplified Service Mesh with Consul Dataplane:** Support for a new `consul-dataplane`, a lightweight process for managing Envoy proxies introduced in Consul v1.14.0. Consul Dataplane removes the need to run client agents on every node in a cluster for service discovery and service mesh. Instead, Consul deploys sidecar proxies that provide lower latency, support additional runtimes, and integrate with cloud infrastructure providers. Read more in [Simplified Service Mesh with Consul Dataplane](/consul/docs/connect/dataplane). 
 
   ~> **Note:** Currently `consul-dataplane` is only supported on clusters running on Consul on Kubernetes 1.0+.
 
@@ -32,7 +32,7 @@ changes the names of some [Envoy dynamic HTTP metrics](https://www.envoyproxy.io
 
 ## Upgrading
 
-For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-14-0) and the changelogs.
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific#consul-1-14-0) and the changelogs.
 
 ## Known Issues
 
@@ -50,3 +50,7 @@ The changelogs for this major release version and any maintenance versions are l
 -> **Note**: These links take you to the changelogs on the GitHub website.
 
 - [1.14.0](https://github.com/hashicorp/consul/releases/tag/v1.14.0)
+- [1.14.1](https://github.com/hashicorp/consul/releases/tag/v1.14.1)
+- [1.14.2](https://github.com/hashicorp/consul/releases/tag/v1.14.2)
+- [1.14.3](https://github.com/hashicorp/consul/releases/tag/v1.14.3)
+- [1.14.4](https://github.com/hashicorp/consul/releases/tag/v1.14.4)

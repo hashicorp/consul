@@ -1,0 +1,127 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.internal.service;
+
+import "private/pbcommon/common.proto";
+import "private/pbservice/healthcheck.proto";
+import "private/pbservice/service.proto";
+
+// IndexedCheckServiceNodes is used to return multiple instances for a given service.
+message IndexedCheckServiceNodes {
+  uint64 Index = 1;
+  repeated CheckServiceNode Nodes = 2;
+}
+
+// CheckServiceNode is used to provide the node, its service
+// definition, as well as a HealthCheck that is associated.
+message CheckServiceNode {
+  Node Node = 1;
+  NodeService Service = 2;
+  repeated HealthCheck Checks = 3;
+}
+
+// Node contains information about a node.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.Node
+// output=node.gen.go
+// name=Structs
+message Node {
+  // mog: func-to=NodeIDType func-from=string
+  string ID = 1;
+
+  string Node = 2;
+  string Partition = 8;
+  string PeerName = 9;
+  string Address = 3;
+  string Datacenter = 4;
+  map<string, string> TaggedAddresses = 5;
+  map<string, string> Meta = 6;
+
+  // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
+  common.RaftIndex RaftIndex = 7;
+  // Locality identifies where the node is running.
+  // mog: func-to=LocalityToStructs func-from=LocalityFromStructs
+  common.Locality Locality = 10;
+}
+
+// NodeService is a service provided by a node
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.NodeService
+// output=node.gen.go
+// name=Structs
+message NodeService {
+  // Kind is the kind of service this is. Different kinds of services may
+  // have differing validation, DNS behavior, etc. An empty kind will default
+  // to the Default kind. See ServiceKind for the full list of kinds.
+  // mog: func-to=structs.ServiceKind func-from=string
+  string Kind = 1;
+
+  string ID = 2;
+  string Service = 3;
+  repeated string Tags = 4;
+  string Address = 5;
+  // mog: func-to=MapStringServiceAddressToStructs func-from=NewMapStringServiceAddressFromStructs
+  map<string, ServiceAddress> TaggedAddresses = 15;
+  map<string, string> Meta = 6;
+  // mog: func-to=int func-from=int32
+  int32 Port = 7;
+  string SocketPath = 17;
+
+  // mog: func-to=WeightsPtrToStructs func-from=NewWeightsPtrFromStructs
+  Weights Weights = 8;
+  bool EnableTagOverride = 9;
+
+  // Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
+  // that case and an error to be set for any other kind. This config is part of
+  // a proxy service definition and is distinct from but shares some fields with
+  // the Connect.Proxy which configures a managed proxy as part of the actual
+  // service's definition. This duplication is ugly but seemed better than the
+  // alternative which was to re-use the same struct fields for both cases even
+  // though the semantics are different and the non-shred fields make no sense
+  // in the other case. ProxyConfig may be a more natural name here, but it's
+  // confusing for the UX because one of the fields in ConnectProxyConfig is
+  // also called just "Config"
+  ConnectProxyConfig Proxy = 11;
+
+  // Connect are the Connect settings for a service. This is purposely NOT
+  // a pointer so that we never have to nil-check this.
+  ServiceConnect Connect = 12;
+
+  // LocallyRegisteredAsSidecar is private as it is only used by a local agent
+  // state to track if the service was registered from a nested sidecar_service
+  // block. We need to track that so we can know whether we need to deregister
+  // it automatically too if it's removed from the service definition or if the
+  // parent service is deregistered. Relying only on ID would cause us to
+  // deregister regular services if they happen to be registered using the same
+  // ID scheme as our sidecars do by default. We could use meta but that gets
+  // unpleasant because we can't use the consul- prefix from an agent (reserved
+  // for use internally but in practice that means within the state store or in
+  // responses only), and it leaks the detail publicly which people might rely
+  // on which is a bit unpleasant for something that is meant to be config-file
+  // syntax sugar. Note this is not translated to ServiceNode and friends and
+  // may not be set on a NodeService that isn't the one the agent registered and
+  // keeps in it's local state. We never want this rendered in JSON as it's
+  // internal only. Right now our agent endpoints return api structs which don't
+  // include it but this is a safety net incase we change that or there is
+  // somewhere this is used in API output.
+  bool LocallyRegisteredAsSidecar = 13;
+
+  // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 16;
+
+  string PeerName = 18;
+
+  // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
+  common.RaftIndex RaftIndex = 14;
+
+  // Locality identifies where the service is running.
+  // mog: func-to=LocalityToStructs func-from=LocalityFromStructs
+  common.Locality Locality = 19;
+}

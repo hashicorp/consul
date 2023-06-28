@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -20,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -174,7 +179,7 @@ func TestClient_LANReap(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		require.Len(r, c1.LANMembersInAgentPartition(), 1)
 		server := c1.router.FindLANServer()
-		require.Nil(t, server)
+		require.Nil(r, server)
 	})
 }
 
@@ -242,7 +247,7 @@ func TestClient_RPC(t *testing.T) {
 
 	// Try an RPC
 	var out struct{}
-	if err := c1.RPC("Status.Ping", struct{}{}, &out); err != structs.ErrNoServers {
+	if err := c1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != structs.ErrNoServers {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -260,7 +265,7 @@ func TestClient_RPC(t *testing.T) {
 
 	// RPC should succeed
 	retry.Run(t, func(r *retry.R) {
-		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := c1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			r.Fatal("ping failed", err)
 		}
 	})
@@ -311,7 +316,7 @@ func TestClient_RPC_Retry(t *testing.T) {
 	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
 		var out struct{}
-		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := c1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			r.Fatalf("err: %v", err)
 		}
 	})
@@ -322,13 +327,13 @@ func TestClient_RPC_Retry(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := c1.RPC("Fail.Always", struct{}{}, &out); !structs.IsErrNoLeader(err) {
+	if err := c1.RPC(context.Background(), "Fail.Always", struct{}{}, &out); !structs.IsErrNoLeader(err) {
 		t.Fatalf("err: %v", err)
 	}
 	if got, want := failer.totalCalls, 2; got < want {
 		t.Fatalf("got %d want >= %d", got, want)
 	}
-	if err := c1.RPC("Fail.Once", struct{}{}, &out); err != nil {
+	if err := c1.RPC(context.Background(), "Fail.Once", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if got, want := failer.onceCalls, 2; got < want {
@@ -372,7 +377,7 @@ func TestClient_RPC_Pool(t *testing.T) {
 			defer wg.Done()
 			var out struct{}
 			retry.Run(t, func(r *retry.R) {
-				if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+				if err := c1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 					r.Fatal("ping failed", err)
 				}
 			})
@@ -467,7 +472,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 
 	// Try an RPC
 	var out struct{}
-	if err := c1.RPC("Status.Ping", struct{}{}, &out); err != structs.ErrNoServers {
+	if err := c1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != structs.ErrNoServers {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -482,7 +487,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 		if got, want := len(c1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d client LAN members want %d", got, want)
 		}
-		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := c1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			r.Fatal("ping failed", err)
 		}
 	})
@@ -499,11 +504,15 @@ func newClient(t *testing.T, config *Config) *Client {
 	return client
 }
 
-func newTestResolverConfig(t *testing.T, suffix string) resolver.Config {
+func newTestResolverConfig(t *testing.T, suffix string, dc, agentType string) resolver.Config {
 	n := t.Name()
 	s := strings.Replace(n, "/", "", -1)
 	s = strings.Replace(s, "_", "", -1)
-	return resolver.Config{Authority: strings.ToLower(s) + "-" + suffix}
+	return resolver.Config{
+		Datacenter: dc,
+		AgentType:  agentType,
+		Authority:  strings.ToLower(s) + "-" + suffix,
+	}
 }
 
 func newDefaultDeps(t *testing.T, c *Config) Deps {
@@ -518,9 +527,22 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	tls, err := tlsutil.NewConfigurator(c.TLSConfig, logger)
 	require.NoError(t, err, "failed to create tls configuration")
 
-	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter))
-	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), builder)
-	resolver.Register(builder)
+	resolverBuilder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter, c.Datacenter, "server"))
+	resolver.Register(resolverBuilder)
+	t.Cleanup(func() {
+		resolver.Deregister(resolverBuilder.Authority())
+	})
+
+	balancerBuilder := balancer.NewBuilder(resolverBuilder.Authority(), testutil.Logger(t))
+	balancerBuilder.Register()
+	t.Cleanup(balancerBuilder.Deregister)
+
+	r := router.NewRouter(
+		logger,
+		c.Datacenter,
+		fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter),
+		grpc.NewTracker(resolverBuilder, balancerBuilder),
+	)
 
 	connPool := &pool.ConnPool{
 		Server:           false,
@@ -543,13 +565,13 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Router:          r,
 		ConnPool:        connPool,
 		GRPCConnPool: grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-			Servers:               builder,
+			Servers:               resolverBuilder,
 			TLSWrapper:            grpc.TLSWrapper(tls.OutgoingRPCWrapper()),
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
 		}),
-		LeaderForwarder:          builder,
+		LeaderForwarder:          resolverBuilder,
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
@@ -579,7 +601,7 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
 		var out struct{}
-		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != structs.ErrRPCRateExceeded {
+		if err := c1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != structs.ErrRPCRateExceeded {
 			r.Fatalf("err: %v", err)
 		}
 	})
@@ -809,6 +831,7 @@ func TestClient_ReloadConfig(t *testing.T) {
 	deps := newDefaultDeps(t, &Config{NodeName: "node1", Datacenter: "dc1"})
 	c, err := NewClient(cfg, deps)
 	require.NoError(t, err)
+	defer c.Shutdown()
 
 	limiter := c.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(500), limiter.Limit())
@@ -854,7 +877,6 @@ func TestClient_ShortReconnectTimeout(t *testing.T) {
 		func() bool {
 			return len(cluster.Servers[0].LANMembersInAgentPartition()) == 2 &&
 				len(cluster.Clients[0].LANMembersInAgentPartition()) == 2
-
 		},
 		time.Second,
 		50*time.Millisecond,
@@ -886,11 +908,12 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		c.MaxQueryTime = 200 * time.Millisecond
 		c.RPCHoldTimeout = 50 * time.Millisecond
 	})
+	defer c1.Shutdown()
 	joinLAN(t, c1, s1)
 
 	retry.Run(t, func(r *retry.R) {
 		var out struct{}
-		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := c1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			r.Fatalf("err: %v", err)
 		}
 	})
@@ -902,22 +925,22 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		// Requests with QueryOptions have a default timeout of
 		// RPCClientTimeout (10ms) so we expect the RPC call to timeout.
 		var out struct{}
-		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{}, &out)
+		err := c1.RPC(context.Background(), "Long.Wait", &structs.NodeSpecificRequest{}, &out)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
 	})
 
 	t.Run("non-blocking query succeeds", func(t *testing.T) {
 		var out struct{}
-		require.NoError(t, c1.RPC("Short.Wait", &structs.NodeSpecificRequest{}, &out))
+		require.NoError(t, c1.RPC(context.Background(), "Short.Wait", &structs.NodeSpecificRequest{}, &out))
 	})
 
 	t.Run("check that deadline does not persist across calls", func(t *testing.T) {
 		var out struct{}
-		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{}, &out)
+		err := c1.RPC(context.Background(), "Long.Wait", &structs.NodeSpecificRequest{}, &out)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
-		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+		require.NoError(t, c1.RPC(context.Background(), "Long.Wait", &structs.NodeSpecificRequest{
 			QueryOptions: structs.QueryOptions{
 				MinQueryIndex: 1,
 			},
@@ -926,7 +949,7 @@ func TestClient_RPC_Timeout(t *testing.T) {
 
 	t.Run("blocking query succeeds", func(t *testing.T) {
 		var out struct{}
-		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+		require.NoError(t, c1.RPC(context.Background(), "Long.Wait", &structs.NodeSpecificRequest{
 			QueryOptions: structs.QueryOptions{
 				MinQueryIndex: 1,
 			},
@@ -939,7 +962,7 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		// jitter (100ms / 16 = 6.25ms) as well as RPCHoldTimeout (50ms).
 		// Client waits 156.25ms while the server waits 106.25ms (artifically
 		// adds maximum jitter) so the server will always return first.
-		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+		require.NoError(t, c1.RPC(context.Background(), "Long.Wait", &structs.NodeSpecificRequest{
 			QueryOptions: structs.QueryOptions{
 				MinQueryIndex: 1,
 				MaxQueryTime:  100 * time.Millisecond,
@@ -957,7 +980,7 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		// jitter (20ms / 16 = 1.25ms) as well as RPCHoldTimeout (50ms).
 		// Client waits 71.25ms while the server waits 106.25ms (artifically
 		// adds maximum jitter) so the client will error first.
-		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+		err := c1.RPC(context.Background(), "Long.Wait", &structs.NodeSpecificRequest{
 			QueryOptions: structs.QueryOptions{
 				MinQueryIndex: 1,
 				MaxQueryTime:  20 * time.Millisecond,

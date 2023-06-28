@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 name: "Check for metrics tests"
 on:
   pull_request:
@@ -11,7 +14,7 @@ jobs:
     if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-metrics-test') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )" 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
         name: "checkout repo"
         with:
           ref: ${{ github.event.pull_request.head.sha }}

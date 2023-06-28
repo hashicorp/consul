@@ -1,0 +1,28 @@
+---
+layout: docs
+page_title: API Gateways Overview
+description: API gateways are objects in Consul that enable ingress requests to services in your service mesh. Learn about API gateways for VMs in this overview.
+---
+
+# API gateway overview
+
+API gateways enable external network clients to access applications and services
+running in a Consul datacenter. This type of network traffic is commonly
+called _north-south_ network traffic because it refers to the flow of
+data into and out of a specific environment. API gateways can also forward
+requests from clients to specific destinations based on path or request
+protocol.
+
+API gateways solve the following primary use cases:
+
+- **Control access at the point of entry**: Set the protocols of external connection
+  requests and secure inbound connections with TLS certificates from trusted
+  providers, such as Verisign and Let's Encrypt.
+- **Simplify traffic management**: Load balance requests across services and route
+  traffic to the appropriate service by matching one or more criteria, such as
+  hostname, path, header presence or value, and HTTP method.
+
+Consul supports API
+gateways for virtual machines and Kubernetes networks. Refer to the following documentation for next steps:
+- [API Gateways on VMs](/consul/docs/connect/gateways/api-gateway/usage)
+- [API Gateways for Kubernetes](/consul/docs/api-gateway).

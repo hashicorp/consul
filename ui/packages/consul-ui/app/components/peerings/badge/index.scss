@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 .peerings-badge {
   display: flex;
   align-items: center;
@@ -7,36 +12,35 @@
   gap: 4px;
 
   &.active {
-    background: rgb(var(--tone-green-050));
-    color: rgb(var(--tone-green-600));
+    background: var(--token-color-surface-success);
+    color: var(--token-color-foreground-success);
   }
   &.pending {
-    background: rgb(var(--tone-strawberry-050));
-    color: rgb(var(--tone-strawberry-500));
+    background: var(--token-color-consul-surface);
+    color: var(--token-color-consul-brand);
   }
   &.establishing {
-    background: rgb(var(--tone-blue-050));
-    color: rgb(var(--tone-blue-500));
+    background: var(--token-color-surface-action);
+    color: var(--token-color-foreground-action);
   }
   &.failing {
-    background: rgb(var(--tone-red-050));
-    color: rgb(var(--tone-red-500));
+    background: var(--token-color-surface-critical);
+    color: var(--token-color-foreground-critical);
   }
   &.deleting {
-    background: rgb(var(--tone-yellow-050));
-    color: rgb(var(--tone-yellow-800));
+    background: var(--token-color-surface-warning);
+    color: var(--token-color-foreground-warning-on-surface);
   }
   &.terminated {
-    background: rgb(var(--tone-gray-150));
-    color: rgb(var(--tone-gray-800));
+    background: var(--token-color-surface-interactive-active);
+    color: var(--token-color-foreground-primary);
   }
   &.undefined {
-    background: rgb(var(--tone-gray-150));
-    color: rgb(var(--tone-gray-800));
+    background: var(--token-color-surface-interactive-active);
+    color: var(--token-color-foreground-primary);
   }
 
   .peerings-badge__text {
-    font-weight: 500;
-    font-size: 13px;
+    @extend %body-100-medium;
   }
 }

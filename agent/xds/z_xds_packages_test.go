@@ -1,11 +1,14 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xds
 
 import (
 	"testing"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func TestUnusedExtensions(t *testing.T) {
@@ -45,8 +48,8 @@ func TestUnusedExtensions(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var any any.Any
-			require.NoError(t, jsonpb.UnmarshalString(tc.input, &any))
+			var any anypb.Any
+			require.NoError(t, protojson.Unmarshal([]byte(tc.input), &any))
 			require.Equal(t, tc.name, any.TypeUrl)
 		})
 	}

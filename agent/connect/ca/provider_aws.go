@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package ca
 
 import (
@@ -136,20 +139,20 @@ func (a *AWSProvider) State() (map[string]string, error) {
 	return state, nil
 }
 
-// GenerateRoot implements Provider
-func (a *AWSProvider) GenerateRoot() (RootResult, error) {
+// GenerateCAChain implements Provider
+func (a *AWSProvider) GenerateCAChain() (CAChainResult, error) {
 	if !a.isPrimary {
-		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	if err := a.ensureCA(); err != nil {
-		return RootResult{}, err
+		return CAChainResult{}, err
 	}
 
 	if a.rootPEM == "" {
-		return RootResult{}, fmt.Errorf("AWS CA provider not fully Initialized")
+		return CAChainResult{}, fmt.Errorf("AWS CA provider not fully Initialized")
 	}
-	return RootResult{PEM: a.rootPEM}, nil
+	return CAChainResult{PEM: a.rootPEM}, nil
 }
 
 // ensureCA loads the CA resource to check it exists if configured by User or in
@@ -542,8 +545,8 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string, _ 
 	return nil
 }
 
-// ActiveIntermediate implements Provider
-func (a *AWSProvider) ActiveIntermediate() (string, error) {
+// ActiveLeafSigningCert implements Provider
+func (a *AWSProvider) ActiveLeafSigningCert() (string, error) {
 	err := a.ensureCA()
 	if err != nil {
 		return "", err
@@ -569,19 +572,6 @@ func (a *AWSProvider) ActiveIntermediate() (string, error) {
 	}
 
 	return a.intermediatePEM, nil
-}
-
-// GenerateIntermediate implements Provider
-func (a *AWSProvider) GenerateIntermediate() (string, error) {
-	// Like the consul provider, for now the Primary DC just gets a root and no
-	// intermediate to sign with. so just return this. Secondaries use
-	// intermediates but this method is only called during primary DC (root)
-	// initialization in case a provider generates separate root and
-	// intermediates.
-	//
-	// TODO(banks) support user-supplied CA being a Subordinate even in the
-	// primary DC.
-	return a.ActiveIntermediate()
 }
 
 // Sign implements Provider

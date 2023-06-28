@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -72,4 +75,15 @@ func getExportedServicesMatchServiceNames(serviceName string, entMeta *acl.Enter
 		structs.NewServiceName(serviceName, entMeta),
 		structs.NewServiceName(structs.WildcardSpecifier, entMeta),
 	}
+}
+
+func readSourceSamenessIntentionsFromConfigEntriesForServiceTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	serviceName string,
+	sourceEntMeta *acl.EnterpriseMeta,
+	results structs.Intentions,
+	targetType structs.IntentionTargetType,
+) (structs.Intentions, error) {
+	return results, nil
 }

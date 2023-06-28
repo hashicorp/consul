@@ -10,13 +10,13 @@ description: >
 
 Command: `consul logout`
 
-Corresponding HTTP API Endpoint: [\[POST\] /v1/acl/logout](/api-docs/acl#logout-from-auth-method)
+Corresponding HTTP API Endpoint: [\[POST\] /v1/acl/logout](/consul/api-docs/acl#logout-from-auth-method)
 
 The `logout` command will destroy the provided token if it was created from
 `consul login`.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

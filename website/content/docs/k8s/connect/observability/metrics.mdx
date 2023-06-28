@@ -10,14 +10,14 @@ description: >-
 Consul on Kubernetes integrates with Prometheus and Grafana to provide metrics for Consul service mesh. The metrics
 available are:
 
-- Connect service metrics
-- Sidecar proxy metrics
+- Mesh service metrics
+- Mesh sidecar proxy metrics
 - Consul agent metrics
 - Ingress, terminating, and mesh gateway metrics
 
 Specific sidecar proxy metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable each of these.
 
-## Connect Service and Sidecar Metrics with Metrics Merging
+## Mesh Service and Sidecar Metrics with Metrics Merging
 
 Prometheus annotations are used to instruct Prometheus to scrape metrics from Pods. Prometheus annotations only support
 scraping from one endpoint on a Pod, so Consul on Kubernetes supports metrics merging whereby service metrics and
@@ -30,7 +30,7 @@ The diagram below illustrates how the metrics integration works when merging is 
 [![Metrics Merging Architecture](/img/metrics-arch.png)](/img/metrics-arch.png)
 -->
 
-Connect service metrics can be configured with the Helm values nested under [`connectInject.metrics`](/docs/k8s/helm#v-connectinject-metrics).
+Metrics for services in the mesh can be configured with the Helm values nested under [`connectInject.metrics`](/consul/docs/k8s/helm#v-connectinject-metrics).
 
 Metrics and metrics merging can be enabled by default for all connect-injected Pods with the following Helm values:
 
@@ -110,7 +110,7 @@ global:
 
 ## Metrics in the UI Topology Visualization
 
-Consul's built-in UI has a topology visualization for services that are part of the Consul service mesh. The topology visualization has the ability to fetch basic metrics from a metrics provider for each service and display those metrics as part of the [topology visualization](/docs/connect/observability/ui-visualization).
+Consul's built-in UI has a topology visualization for services that are part of the Consul service mesh. The topology visualization has the ability to fetch basic metrics from a metrics provider for each service and display those metrics as part of the [topology visualization](/consul/docs/connect/observability/ui-visualization).
 
 The diagram below illustrates how the UI displays service metrics for a sample application:
 

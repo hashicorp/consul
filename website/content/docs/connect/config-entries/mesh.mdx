@@ -7,8 +7,6 @@ description: >-
 
 # Mesh Configuration Entry
 
--> **v1.10.0+:** This configuration entry is supported in Consul versions 1.10.0+.
-
 The `mesh` configuration entry allows you to define a global default configuration that applies to all service mesh proxies.
 Settings in this config entry apply across all namespaces and federated datacenters.
 
@@ -103,7 +101,7 @@ spec:
 </Tab>
 </Tabs>
 
-Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/docs/k8s/crds), which can only be scoped to their own partition.
+Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/k8s/crds), which can only be scoped to their own partition.
 
 ### Mesh Destinations Only
 
@@ -184,7 +182,7 @@ spec:
 </Tab>
 </Tabs>
 
-Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/docs/k8s/crds), which can only be scoped to their own partition.
+Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/k8s/crds), which can only be scoped to their own partition.
 
 ###  Peer Through Mesh Gateways
 
@@ -264,7 +262,7 @@ spec:
 </Tab>
 </Tabs>
 
-Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/docs/k8s/crds), which can only be scoped to their own partition.
+Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/k8s/crds), which can only be scoped to their own partition.
 
 
 ## Available Fields
@@ -296,7 +294,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       type: `string: "default"`,
       enterprise: true,
       description:
-        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/docs/enterprise/admin-partitions) for additional information.',
+        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for additional information.',
       yaml: false,
     },
     {
@@ -317,7 +315,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           name: 'namespace',
           enterprise: true,
           description:
-            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for additional information.',
+            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.',
         },
       ],
       hcl: false,
@@ -326,17 +324,23 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       name: 'TransparentProxy',
       type: 'TransparentProxyConfig: <optional>',
       description:
-        'Controls configuration specific to proxies in `transparent` [mode](/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.',
+        'Controls configuration specific to proxies in `transparent` [mode](/consul/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.',
       children: [
         {
           name: 'MeshDestinationsOnly',
           type: 'bool: false',
           description: `Determines whether sidecar proxies operating in transparent mode can
                         proxy traffic to IP addresses not registered in Consul's mesh. If enabled, traffic will only be proxied
-                        to upstream proxies or Connect-native services. If disabled, requests will be proxied as-is to the
+                        to upstream proxies or mesh-native services. If disabled, requests will be proxied as-is to the
                         original destination IP address. Consul will not encrypt the connection.`,
         },
       ],
+    },
+    {
+      name: 'AllowEnablingPermissiveMutualTLS',
+      type: 'bool: false',
+      description:
+        'Controls whether `MutualTLSMode=permissive` can be set in the `proxy-defaults` and `service-defaults` configuration entries. '
     },
     {
       name: 'TLS',
@@ -443,7 +447,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       name: 'Peering',
       type: 'PeeringMeshConfig: <optional>',
       description:
-        'Controls configuration specific to [peering connections](/docs/connect/cluster-peering).',
+        'Controls configuration specific to [peering connections](/consul/docs/connect/cluster-peering).',
       children: [
         {
           name: 'PeerThroughMeshGateways',
@@ -459,7 +463,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `mesh` config entry requires no specific privileges.
 

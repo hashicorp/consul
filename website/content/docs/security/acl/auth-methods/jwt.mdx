@@ -15,17 +15,17 @@ cryptographically verified using locally-provided keys, or, if configured, an
 OIDC Discovery service can be used to fetch the appropriate keys.
 
 This page assumes general knowledge of JWTs and the concepts described in the
-main [auth method documentation](/docs/security/acl/auth-methods).
+main [auth method documentation](/consul/docs/security/acl/auth-methods).
 
-Both the [`jwt`](/docs/security/acl/auth-methods/jwt) and the
-[`oidc`](/docs/security/acl/auth-methods/oidc) auth method types allow additional
+Both the [`jwt`](/consul/docs/security/acl/auth-methods/jwt) and the
+[`oidc`](/consul/docs/security/acl/auth-methods/oidc) auth method types allow additional
 processing of the claims data in the JWT.
 
 @include 'jwt_or_oidc.mdx'
 
 ## Config Parameters
 
-The following auth method [`Config`](/api-docs/acl/auth-methods#config)
+The following auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
 parameters are required to properly configure an auth method of type
 `jwt`:
 

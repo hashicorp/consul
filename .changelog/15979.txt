@@ -1,0 +1,3 @@
+```release-note:improvement
+envoy: add `MaxEjectionPercent` and `BaseEjectionTime` to passive health check configs.
+```

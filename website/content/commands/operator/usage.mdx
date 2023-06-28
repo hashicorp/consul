@@ -1,0 +1,100 @@
+---
+layout: commands
+page_title: 'Commands: Operator Usage'
+description: >
+  The operator usage command provides cluster-level tools for Consul operators
+  to view usage information, such as service and service instance counts.
+---
+
+# Consul Operator Usage
+
+Command: `consul operator usage`
+
+The Usage `operator` command provides cluster-level tools for Consul operators
+to view usage information, such as service and service instance counts.
+
+```text
+Usage: consul operator usage <subcommand> [options]
+
+  # ...
+
+Subcommands:
+    instances    Display service instance usage information
+```
+
+## instances
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/usage](/consul/api-docs/operator/usage#operator-usage)
+
+This command retrieves usage information about the number of services registered in a given
+datacenter. By default, the datacenter of the local agent is queried.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `operator:read` |
+
+Usage: `consul operator usage instances`
+
+The output looks like this:
+
+```text
+$ consul operator usage instances
+Billable Service Instances Total: 3
+dc1 Billable Service Instances: 3
+
+Billable Services
+Services      Service instances
+2             3
+
+Connect Services
+Type                     Service instances
+connect-native           0
+connect-proxy            0
+ingress-gateway          0
+mesh-gateway             1
+terminating-gateway      0
+```
+
+With the `-all-datacenters` flag:
+
+```text
+$ consul operator usage instances -all-datacenters
+Billable Service Instances Total: 4
+dc1 Billable Service Instances: 3
+dc2 Billable Service Instances: 1
+
+Billable Services
+Datacenter      Services      Service instances
+dc1             2             3
+dc2             1             1
+
+Total           3             4
+
+Connect Services
+Datacenter      Type                     Service instances
+dc1             connect-native           0
+dc1             connect-proxy            0
+dc1             ingress-gateway          0
+dc1             mesh-gateway             1
+dc1             terminating-gateway      0
+dc2             connect-native           0
+dc2             connect-proxy            0
+dc2             ingress-gateway          0
+dc2             mesh-gateway             1
+dc2             terminating-gateway      1
+
+Total                                    3
+```
+
+#### Command Options
+
+- `-all-datacenters` - Display service counts from all known datacenters.
+  Default is `false`.
+
+- `-billable` - Display only billable service information. Default is `false`.
+
+- `-connect` - Display only Consul service mesh component information. Default is `false`.

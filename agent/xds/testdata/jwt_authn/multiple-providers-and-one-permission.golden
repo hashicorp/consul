@@ -1,0 +1,76 @@
+{
+  "name": "envoy.filters.http.jwt_authn",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
+    "providers": {
+      "okta": {
+        "issuer": "test-issuer",
+        "payloadInMetadata": "jwt_payload_okta",
+        "remoteJwks": {
+          "httpUri": {
+            "uri": "https://example-okta.com/.well-known/jwks.json",
+            "cluster": "jwks_cluster",
+            "timeout": "1s"
+          },
+          "asyncFetch": {
+            "fastListener": true
+          }
+        }
+      },
+      "okta_0": {
+        "issuer": "test-issuer",
+        "payloadInMetadata": "jwt_payload_okta_0",
+        "remoteJwks": {
+          "httpUri": {
+            "uri": "https://example-okta.com/.well-known/jwks.json",
+            "cluster": "jwks_cluster",
+            "timeout": "1s"
+          },
+          "asyncFetch": {
+            "fastListener": true
+          }
+        }
+      },
+      "auth0": {
+        "issuer": "another-issuer",
+        "payloadInMetadata": "jwt_payload_auth0",
+        "remoteJwks": {
+          "httpUri": {
+            "uri": "https://example-auth0.com/.well-known/jwks.json",
+            "cluster": "jwks_cluster",
+            "timeout": "1s"
+          },
+          "asyncFetch": {
+            "fastListener": true
+          }
+        }
+      }
+    },
+    "rules": [
+      {
+        "match": {
+          "prefix": "some-special-path"
+        },
+        "requires": {
+          "providerName": "okta_0"
+        }
+      },
+      {
+        "match": {
+          "prefix": "/"
+        },
+        "requires": {
+          "providerName": "okta"
+        }
+      },
+      {
+        "match": {
+          "prefix": "/"
+        },
+        "requires": {
+          "providerName": "auth0"
+        }
+      }
+    ]
+  }
+}

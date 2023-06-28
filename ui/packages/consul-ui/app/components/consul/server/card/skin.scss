@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %consul-server-card dt:not(.name) {
   @extend %visually-hidden;
 }
@@ -5,25 +10,25 @@
   @extend %with-leader-tile;
 }
 %consul-server-card .name + dd {
-  @extend %h300;
-  color: rgb(var(--tone-gray-999));
+  @extend %display-200-semibold;
+  color: var(--token-color-hashicorp-brand);
   animation-name: typo-truncate;
 }
 %consul-server-card .health-status + dd {
   @extend %pill-200;
-  font-size: var(--typo-size-700);
+  @extend %body-100-regular;
 }
 %consul-server-card.voting-status-non-voter .health-status + dd {
-  background-color: rgb(var(--tone-gray-100));
-  color: rgb(var(--tone-gray-600));
+  background-color: var(--token-color-surface-strong);
+  color: var(--token-color-foreground-faint);
 }
 %consul-server-card:not(.voting-status-non-voter) .health-status.healthy + dd {
-  background-color: rgb(var(--tone-green-050));
-  color: rgb(var(--tone-green-800));
+  background-color: var(--token-color-surface-success);
+  color: var(--token-color-palette-green-400);
 }
 %consul-server-card:not(.voting-status-non-voter) .health-status:not(.healthy) + dd {
-  background-color: rgb(var(--tone-red-050));
-  color: rgb(var(--tone-red-500));
+  background-color: var(--token-color-surface-critical);
+  color: var(--token-color-foreground-critical);
 }
 %consul-server-card .health-status + dd::before {
   --icon-size: icon-000;
@@ -31,10 +36,7 @@
 }
 %consul-server-card .health-status.healthy + dd::before {
   --icon-name: icon-check;
-  --icon-color: rgb(var(--tone-green-800));
 }
 %consul-server-card .health-status:not(.healthy) + dd::before {
   --icon-name: icon-x;
-  --icon-color: rgb(var(--tone-red-500));
 }
-

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -185,7 +188,7 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
 	if args.RequireConsistent {
-		if err := t.srv.consistentRead(); err != nil {
+		if err := t.srv.ConsistentRead(); err != nil {
 			return err
 		}
 	}
@@ -217,7 +220,7 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	reply.QueryMeta.ResultsFilteredByACLs = total != len(reply.Results)
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	t.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	t.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }

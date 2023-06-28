@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package autoconf
 
 import (
@@ -7,8 +10,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
-	pbconfig "github.com/hashicorp/consul/proto/pbconfig"
-	"github.com/hashicorp/consul/proto/pbconnect"
+	pbconfig "github.com/hashicorp/consul/proto/private/pbconfig"
+	"github.com/hashicorp/consul/proto/private/pbconnect"
 )
 
 func stringPointer(s string) *string {

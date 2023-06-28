@@ -19,7 +19,7 @@ a process with the latest values of the view. If no process is specified,
 the current values are dumped to STDOUT which can be a useful way to inspect
 data in Consul.
 
-There is more [documentation on watches here](/docs/dynamic-app-config/watches).
+There is more [documentation on watches here](/consul/docs/dynamic-app-config/watches).
 
 ## Usage
 
@@ -28,7 +28,7 @@ Usage: `consul watch [options] [child...]`
 The only required option is `-type` which specifies the particular
 data view. Depending on the type, various options may be required
 or optionally provided. There is more documentation on watch
-[specifications here](/docs/dynamic-app-config/watches).
+[specifications here](/consul/docs/dynamic-app-config/watches).
 
 #### Command Options
 
@@ -52,6 +52,11 @@ or optionally provided. There is more documentation on watch
 
 - `-type` - Watch type. Required, one of "`key`, `keyprefix`, `services`,
   `nodes`, `service`, `checks`, or `event`.
+
+- `-filter=<filter>` - Expression to use for filtering the results. Optional for
+  `checks` `nodes`, `services`, and `service` type.
+  See the [`/catalog/nodes` API documentation](/consul/api-docs/catalog#filtering) for a
+  description of what is filterable.
 
 #### API Options
 

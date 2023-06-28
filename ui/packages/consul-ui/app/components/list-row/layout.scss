@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %list-row {
   /* this can be reused by internal components */
   /* for positioning if required */
@@ -55,5 +60,5 @@
   top: 30px;
 }
 %list-row-200 dd {
-  @extend %p2;
+  @extend %body-100-regular;
 }

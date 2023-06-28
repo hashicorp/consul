@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -67,9 +70,9 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 		} else {
-			if err, ok := err.(HTTPError); ok {
-				if err.StatusCode != 413 {
-					t.Fatalf("expected 413 but got %d", err.StatusCode)
+			if httpErr, ok := err.(HTTPError); ok {
+				if httpErr.StatusCode != 413 {
+					t.Fatalf("expected 413 but got %d", httpErr.StatusCode)
 				}
 			} else {
 				t.Fatalf("excected HTTP error but got %v", err)
@@ -150,9 +153,9 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 		} else {
-			if err, ok := err.(HTTPError); ok {
-				if err.StatusCode != 413 {
-					t.Fatalf("expected 413 but got %d", err.StatusCode)
+			if httpErr, ok := err.(HTTPError); ok {
+				if httpErr.StatusCode != 413 {
+					t.Fatalf("expected 413 but got %d", httpErr.StatusCode)
 				}
 			} else {
 				t.Fatalf("excected HTTP error but got %v", err)
@@ -220,9 +223,9 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 	resp := httptest.NewRecorder()
 	_, err := a.srv.Txn(resp, req)
 
-	if err, ok := err.(HTTPError); ok {
-		if err.StatusCode != 413 {
-			t.Fatalf("expected 413 but got %d", err.StatusCode)
+	if httpErr, ok := err.(HTTPError); ok {
+		if httpErr.StatusCode != 413 {
+			t.Fatalf("expected 413 but got %d", httpErr.StatusCode)
 		}
 	} else {
 		t.Fatalf("expected HTTP error but got %v", err)

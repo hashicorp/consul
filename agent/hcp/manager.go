@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package hcp
 
 import (
@@ -5,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
 )
@@ -15,7 +19,7 @@ var (
 )
 
 type ManagerConfig struct {
-	Client Client
+	Client hcpclient.Client
 
 	StatusFn    StatusCallback
 	MinInterval time.Duration
@@ -44,7 +48,7 @@ func (cfg *ManagerConfig) nextHeartbeat() time.Duration {
 	return min + lib.RandomStagger(max-min)
 }
 
-type StatusCallback func(context.Context) (ServerStatus, error)
+type StatusCallback func(context.Context) (hcpclient.ServerStatus, error)
 
 type Manager struct {
 	logger hclog.Logger

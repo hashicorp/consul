@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -30,6 +33,7 @@ func TestHealthCheckRace(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStore(nil)
 		},
+		StorageBackend: consulfsm.NullStorageBackend,
 	})
 	state := fsm.State()
 

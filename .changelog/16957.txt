@@ -1,0 +1,5 @@
+```release-note:breaking-change
+peering: Removed deprecated backward-compatibility behavior.
+Upstream overrides in service-defaults will now only apply to peer upstreams when the `peer` field is provided.
+Visit the 1.16.x [upgrade instructions](https://developer.hashicorp.com/consul/docs/upgrading/upgrade-specific) for more information.
+```

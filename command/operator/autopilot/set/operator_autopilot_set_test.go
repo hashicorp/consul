@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package set
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -53,7 +57,7 @@ func TestOperatorAutopilotSetConfigCommand(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var reply structs.AutopilotConfig
-	if err := a.RPC("Operator.AutopilotGetConfiguration", &req, &reply); err != nil {
+	if err := a.RPC(context.Background(), "Operator.AutopilotGetConfiguration", &req, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

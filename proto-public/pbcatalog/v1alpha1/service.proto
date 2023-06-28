@@ -1,0 +1,36 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+import "pbcatalog/v1alpha1/protocol.proto";
+import "pbcatalog/v1alpha1/selector.proto";
+
+message Service {
+  // workloads is a selector for the workloads this service should represent.
+  WorkloadSelector workloads = 1;
+  // ports is the list of mappings of workload ports that this service
+  // represents.
+  repeated ServicePort ports = 2;
+
+  // virtual_ips is a list of virtual IPs for this service. This is useful when you need to set
+  // an IP from an external system (like Kubernetes). This can be an IPv4 or IPv6 string.
+  repeated string virtual_ips = 3;
+}
+
+message ServicePort {
+  // virtual_port is the port that could only be used when transparent
+  // proxy is used alongside a virtual IP or a virtual DNS address.
+  // This value is ignored in other cases. Whether or not using transparent
+  // proxy, this value is optional.
+  uint32 virtual_port = 1;
+
+  // target_port is the name of the workload port.
+  string target_port = 2;
+
+  // protocol is the port's protocol. This should be set to "mesh"
+  // if the target port is the proxy's inbound port.
+  Protocol protocol = 3;
+}

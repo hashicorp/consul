@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 #upstream-container .topology-metrics-card:not(:last-child),
 #downstream-container .topology-metrics-card:not(:last-child) {
   margin-bottom: 8px;
@@ -5,18 +10,17 @@
 #upstream-container .topology-metrics-card,
 #downstream-container .topology-metrics-card {
   display: block;
-  color: rgb(var(--tone-gray-700));
+  color: var(--token-color-foreground-faint);
   overflow: hidden;
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
   border-radius: var(--decor-radius-100);
   border: 1px solid;
   /* TODO: If this color is combined with the above */
   /* border property then the compressor removes the color */
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
   p {
+    @extend %display-300-semibold;
     padding: 12px 12px 0 12px;
-    font-size: var(--typo-size-500);
-    font-weight: var(--typo-weight-semibold);
     margin-bottom: 0 !important;
   }
   p.empty {
@@ -28,7 +32,7 @@
       margin-right: 8px;
     }
     dd {
-      color: rgb(var(--tone-gray-700));
+      color: var(--token-color-foreground-faint);
     }
     span {
       margin-right: 8px;
@@ -56,23 +60,23 @@
     .partition dt::before,
     .nspace dt::before,
     .health dt::before {
-      --icon-color: rgb(var(--tone-gray-500));
+      --icon-color: var(--token-color-foreground-faint);
     }
     .passing::before {
       @extend %with-check-circle-fill-mask, %as-pseudo;
-      --icon-color: rgb(var(--tone-green-500));
+      --icon-color: var(--token-color-foreground-success);
     }
     .warning::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      --icon-color: rgb(var(--tone-orange-500));
+      --icon-color: var(--token-color-foreground-warning);
     }
     .critical::before {
       @extend %with-cancel-square-fill-mask, %as-pseudo;
-      --icon-color: rgb(var(--tone-red-500));
+      --icon-color: var(--token-color-foreground-critical);
     }
     .empty::before {
       @extend %with-minus-square-fill-mask, %as-pseudo;
-      --icon-color: rgb(var(--tone-gray-500));
+      --icon-color: var(--token-color-foreground-faint);
     }
   }
   .details {
@@ -96,7 +100,7 @@
       span::before {
         margin-right: 0px;
         @extend %with-union-mask, %as-pseudo;
-        --icon-color: rgb(var(--tone-gray-500));
+        --icon-color: var(--token-color-foreground-faint);
       }
       dl:first-child {
         grid-area: partition;

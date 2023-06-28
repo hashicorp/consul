@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package fsm
 
 import (
@@ -6,11 +9,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-raftchunking"
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-raftchunking"
-	"github.com/hashicorp/raft"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 )
 
 var SnapshotSummaries = []prometheus.SummaryDefinition{
@@ -24,8 +29,9 @@ var SnapshotSummaries = []prometheus.SummaryDefinition{
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type snapshot struct {
-	state      *state.Snapshot
-	chunkState *raftchunking.State
+	state           *state.Snapshot
+	chunkState      *raftchunking.State
+	storageSnapshot *raftstorage.Snapshot
 }
 
 // SnapshotHeader is the first entry in our snapshot

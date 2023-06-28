@@ -1,0 +1,76 @@
+---
+layout: docs
+page_title: Configure Consul DNS behavior
+description: ->
+    Learn how to modify the default DNS behavior so that services and nodes can easily discover other services and nodes in your network.
+---
+
+# Configure Consul DNS behavior
+
+This topic describes the default behavior of the Consul DNS functionality and how to customize how Consul performs queries.
+
+## Introduction
+The Consul DNS is the primary interface for querying records when Consul service mesh is disabled and your network runs in a non-Kubernetes environment. The DNS enables you to look up services and nodes registered with Consul using terminal commands instead of making HTTP API requests to Consul. Refer to the [Discover Consul Nodes and Services Overview](/consul/docs/services/discovery/dns-overview) for additional information.
+
+## Configure DNS behaviors
+By default, the Consul DNS listens for queries at `127.0.0.1:8600` and uses the `consul` domain. Specify the following parameters in the agent configuration to determine DNS behavior when querying services:
+
+- [`client_addr`](/consul/docs/agent/config/config-files#client_addr)
+- [`ports.dns`](/consul/docs/agent/config/config-files#dns_port)
+- [`recursors`](/consul/docs/agent/config/config-files#recursors)
+- [`domain`](/consul/docs/agent/config/config-files#domain)
+- [`alt_domain`](/consul/docs/agent/config/config-files#alt_domain)
+- [`dns_config`](/consul/docs/agent/config/config-files#dns_config)
+
+### Configure WAN address translation
+By default, Consul DNS queries return a node's local address, even when being queried from a remote datacenter. You can configure the DNS to reach a node from outside its datacenter by specifying the address in the following configuration fields in the Consul agent:
+
+- [advertise-wan](/consul/docs/agent/config/cli-flags#_advertise-wan)
+- [translate_wan_addrs](/consul/docs/agent/config/config-files#translate_wan_addrs)
+
+### Use a custom DNS resolver library
+You can specify a list of addresses in the agent's [`recursors`](/consul/docs/agent/config/config-files#recursors) field to provide upstream DNS servers that recursively resolve queries that are outside the service domain for Consul.
+
+Nodes that query records outside the `consul.` domain resolve to an upstream DNS. You can specify IP addresses or use `go-sockaddr` templates. Consul resolves IP addresses in the specified order and ignores duplicates.
+
+### Enable non-Consul queries
+You enable non-Consul queries to be resolved by setting Consul as the DNS server for a node and providing a [`recursors`](/consul/docs/agent/config/config-files#recursors) configuration.
+
+### Forward queries to an agent
+You can forward all queries sent to the `consul.` domain from the existing DNS server to a Consul agent. Refer to [Forward DNS for Consul Service Discovery](/consul/tutorials/networking/dns-forwarding) for instructions.
+
+### Query an alternate domain
+By default, Consul responds to DNS queries in the `consul` domain, but you can set a specific domain for responding to DNS queries by configuring the [`domain`](/consul/docs/agent/config/config-files#domain) parameter.
+
+You can also specify an additional domain in the [`alt_domain`](/consul/docs/agent/config/config-files#alt_domain) agent configuration option, which configures Consul to respond to queries in a secondary domain. Configuring an alternate domain may be useful during a DNS migration or to distinguish between internal and external queries, for example.
+
+Consul's DNS response uses the same domain as the query.
+
+In the following example, the `alt_domain` parameter in the agent configuration is set to `test-domain`, which enables operators to query the domain:
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 consul.service.test-domain SRV
+
+;; QUESTION SECTION:
+;consul.service.test-domain.  IN  SRV
+
+;; ANSWER SECTION:
+consul.service.test-domain. 0 IN  SRV 1 1 8300 machine.node.dc1.test-domain.
+
+;; ADDITIONAL SECTION:
+machine.node.dc1.test-domain. 0 IN  A 127.0.0.1
+machine.node.dc1.test-domain. 0 IN  TXT "consul-network-segment="
+```
+#### PTR queries
+Responses to pointer record (PTR) queries, such as `<ip>.in-addr.arpa.`, always use the [primary domain](/consul/docs/agent/config/config-files#domain) and not the alternative domain.
+
+### Caching
+By default, DNS results served by Consul are not cached. Refer to the [DNS Caching tutorial](/consul/tutorials/networking/dns-caching) for instructions on how to enable caching.
+
+
+
+
+
+
+
+

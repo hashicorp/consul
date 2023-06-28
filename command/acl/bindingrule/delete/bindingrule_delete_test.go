@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package bindingruledelete
 
 import (
@@ -5,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
 	_ "github.com/hashicorp/consul/agent/consul/authmethod/testauth"
@@ -179,5 +183,23 @@ func TestBindingRuleDeleteCommand(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, code, 1)
 		require.Contains(t, ui.ErrorWriter.String(), "Error determining binding rule ID")
+	})
+
+	t.Run("delete notfound", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-id=notfound",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, 1, code)
+		require.Contains(t, ui.ErrorWriter.String(), "Error determining binding rule ID: no such rule ID with prefix: notfound")
+
+		output := ui.OutputWriter.String()
+		require.Empty(t, output)
 	})
 }
