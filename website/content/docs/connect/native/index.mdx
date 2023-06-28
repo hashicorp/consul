@@ -7,13 +7,16 @@ description: >-
 
 # Service Mesh Native App Integration Overview
 
-~> **Note:** The Connect Native Golang SDK and `v1/agent/connect/authorize`, `v1/agent/connect/ca/leaf`, 
-and `v1/agent/connect/ca/roots` APIs are deprecated and will be removed in a future release. Although Connect Native 
-will still operate as designed, we discourage new users from adopting this feature at this time, as we plan to remove the feature
-when a future long term replacement such as proxyless GRPC via XDS is delivered (see [GH-10339](https://github.com/hashicorp/consul/issues/10339)).
+<Note>
 
-~> **Note:** The Native App Integration does not support many of the Consul's service mesh features, and is not under active development.
+The Connect Native Golang SDK and `v1/agent/connect/authorize`, `v1/agent/connect/ca/leaf`, 
+and `v1/agent/connect/ca/roots` APIs are deprecated and will be removed in a future release. Although Connect Native 
+will still operate as designed, we do not recommend leveraging this feature because it is deprecated and will be removed when the long term replacement, proxy-less gRPC connections to Consul xDS, is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward the replacement functionality.
+
+The Native App Integration does not support many of the Consul's service mesh features, and is not under active development.
 The [Envoy proxy](/consul/docs/connect/proxies/envoy) should be used for most production environments. 
+
+</Note>
 
 Applications can natively integrate with Consul's service mesh API to support accepting
 and establishing connections to other mesh services without the overhead of a
