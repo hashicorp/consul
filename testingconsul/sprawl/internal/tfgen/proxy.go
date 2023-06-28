@@ -2,12 +2,13 @@ package tfgen
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"text/template"
 
 	"github.com/hashicorp/consul/testingconsul"
-	"github.com/hashicorp/consul/testingconsul/util"
+	"golang.org/x/crypto/blake2b"
 )
 
 const proxyInternalPort = 80
@@ -53,7 +54,7 @@ server {
 		return false, "", fmt.Errorf("error writing %q: %w", configFile, err)
 	}
 
-	hash, err := util.HashFile(configFile)
+	hash, err := hashFile(configFile)
 	if err != nil {
 		return false, "", fmt.Errorf("error hashing %q: %w", configFile, err)
 	}
@@ -85,3 +86,26 @@ func (g *Generator) getForwardProxyContainer(
 }
 
 var tfForwardProxyT = template.Must(template.ParseFS(content, "templates/container-proxy.tf.tmpl"))
+
+func hashFile(path string) (string, error) {
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		return "", err
+	}
+
+	if err := addFileToHash(path, hash); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+}
+
+func addFileToHash(path string, w io.Writer) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = io.Copy(w, f)
+	return err
+}

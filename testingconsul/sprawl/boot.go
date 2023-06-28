@@ -12,11 +12,10 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/build"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/tfgen"
-	"github.com/hashicorp/consul/testingconsul"
-	"github.com/hashicorp/consul/testingconsul/util"
 )
 
 const (
@@ -196,7 +195,7 @@ func (s *Sprawl) initConsulServers() error {
 		node := cluster.FirstServer()
 
 		var err error
-		s.clients[cluster.Name], err = util.ProxyAPIClient(
+		s.clients[cluster.Name], err = testingconsul.ProxyAPIClient(
 			node.LocalProxyPort(),
 			node.LocalAddress(),
 			8500,
@@ -221,7 +220,7 @@ func (s *Sprawl) initConsulServers() error {
 
 		// Reconfigure the clients to use a management token.
 		node := cluster.FirstServer()
-		s.clients[cluster.Name], err = util.ProxyAPIClient(
+		s.clients[cluster.Name], err = testingconsul.ProxyAPIClient(
 			node.LocalProxyPort(),
 			node.LocalAddress(),
 			8500,
@@ -369,7 +368,7 @@ func (s *Sprawl) postRegenTasks() error {
 
 		// Reconfigure the clients to use a management token.
 		node := cluster.FirstServer()
-		s.clients[cluster.Name], err = util.ProxyAPIClient(
+		s.clients[cluster.Name], err = testingconsul.ProxyAPIClient(
 			node.LocalProxyPort(),
 			node.LocalAddress(),
 			8500,

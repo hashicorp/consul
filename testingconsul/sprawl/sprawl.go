@@ -17,11 +17,10 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 
+	"github.com/hashicorp/consul/testingconsul"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testingconsul/sprawl/internal/tfgen"
-	"github.com/hashicorp/consul/testingconsul"
-	"github.com/hashicorp/consul/testingconsul/util"
 )
 
 // TODO: manage workdir externally without chdir
@@ -69,7 +68,7 @@ func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) 
 		return nil, fmt.Errorf("no such network: %s", cluster.NetworkName)
 	}
 
-	transport, err := util.ProxyHTTPTransport(network.ProxyPort)
+	transport, err := testingconsul.ProxyHTTPTransport(network.ProxyPort)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +101,7 @@ func (s *Sprawl) APIClientForNode(clusterName string, nid testingconsul.NodeID, 
 		token = ""
 	}
 
-	return util.ProxyAPIClient(
+	return testingconsul.ProxyAPIClient(
 		node.LocalProxyPort(),
 		node.LocalAddress(),
 		8500,

@@ -7,9 +7,8 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testingconsul"
-	"github.com/hashicorp/consul/testingconsul/util"
+	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
 )
 
 func getLeader(client *api.Client) (string, error) {
@@ -61,7 +60,7 @@ func (s *Sprawl) rejoinServers(cluster *testingconsul.Cluster) error {
 	recoveryToken := s.secrets.ReadGeneric(cluster.Name, secrets.AgentRecovery)
 
 	node0, rest := servers[0], servers[1:]
-	client, err := util.ProxyNotPooledAPIClient(
+	client, err := testingconsul.ProxyNotPooledAPIClient(
 		node0.LocalProxyPort(),
 		node0.LocalAddress(),
 		8500,

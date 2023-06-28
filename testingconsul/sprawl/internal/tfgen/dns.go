@@ -9,7 +9,6 @@ import (
 	"text/template"
 
 	"github.com/hashicorp/consul/testingconsul"
-	"github.com/hashicorp/consul/testingconsul/util"
 )
 
 func (g *Generator) getCoreDNSContainer(
@@ -80,7 +79,7 @@ func (g *Generator) writeCoreDNSFiles(net *testingconsul.Network, dnsIPAddress s
 		if err != nil {
 			return false, nil, fmt.Errorf("error writing %q: %w", corefilePath, err)
 		}
-		corefileHash, err := util.HashFile(corefilePath)
+		corefileHash, err := hashFile(corefilePath)
 		if err != nil {
 			return false, nil, fmt.Errorf("error hashing %q: %w", corefilePath, err)
 		}
@@ -98,7 +97,7 @@ func (g *Generator) writeCoreDNSFiles(net *testingconsul.Network, dnsIPAddress s
 		if err != nil {
 			return false, nil, fmt.Errorf("error writing %q: %w", zonefilePath, err)
 		}
-		zonefileHash, err := util.HashFile(zonefilePath)
+		zonefileHash, err := hashFile(zonefilePath)
 		if err != nil {
 			return false, nil, fmt.Errorf("error hashing %q: %w", zonefilePath, err)
 		}

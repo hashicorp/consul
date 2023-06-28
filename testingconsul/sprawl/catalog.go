@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/testingconsul"
-	"github.com/hashicorp/consul/testingconsul/util"
 )
 
 func (s *Sprawl) registerAllServicesToAgents() error {
@@ -39,7 +38,7 @@ func (s *Sprawl) registerServicesToAgents(cluster *testingconsul.Cluster) error 
 			continue
 		}
 
-		agentClient, err := util.ProxyAPIClient(
+		agentClient, err := testingconsul.ProxyAPIClient(
 			node.LocalProxyPort(),
 			node.LocalAddress(),
 			8500,

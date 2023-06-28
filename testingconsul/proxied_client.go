@@ -1,4 +1,4 @@
-package util
+package testingconsul
 
 import (
 	"fmt"

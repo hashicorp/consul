@@ -169,7 +169,7 @@ func (g *Generator) Generate(step Step) error {
 	}
 
 	if g.remainingSubnets == nil {
-		g.remainingSubnets = util.GetPossibleDockerNetworkSubnets()
+		g.remainingSubnets = getPossibleDockerNetworkSubnets()
 	}
 	if len(g.remainingSubnets) == 0 {
 		return fmt.Errorf("exhausted all docker networks")
@@ -472,4 +472,16 @@ func (o *Outputs) getNode(cluster string, nid testingconsul.NodeID) *NodeOutput 
 
 type NodeOutput struct {
 	Ports map[int]int `json:",omitempty"`
+}
+
+// GetPossibleDockerNetworkSubnets returns a copy of the global-scope network list.
+func getPossibleDockerNetworkSubnets() map[string]struct{} {
+	list := ipamutils.GetGlobalScopeDefaultNetworks()
+
+	out := make(map[string]struct{})
+	for _, ipnet := range list {
+		subnet := ipnet.String()
+		out[subnet] = struct{}{}
+	}
+	return out
 }
