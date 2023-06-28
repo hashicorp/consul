@@ -23,7 +23,7 @@ func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
 		return tempFile, err
 	}
 
-	f, err := mmap.Map(file)
+	f, err := mmap.Map(file, 0, 0)
 	if err != nil {
 		return tempFile, err
 	}
