@@ -101,8 +101,8 @@ metadata:
 spec:
   defaultForFailover: false
   members:                                        # required
-    partition: <partitionWithServicesInGroup>
-    peer: <clusterPeerWithServicesInGroup>
+    - partition: <partitionWithServicesInGroup>
+    - peer: <clusterPeerWithServicesInGroup>
 ```
 
 </Tab>
@@ -365,10 +365,10 @@ metadata:
 spec:
   defaultForFailover: true
   members:                                   
-    partition: store-east
-    partition: inventory-east
-    peer: dc2-store-west
-    peer: dc2-inventory-west
+    - partition: store-east
+    - partition: inventory-east
+    - peer: dc2-store-west
+    - peer: dc2-inventory-west
 ```
 
 </Tab>
