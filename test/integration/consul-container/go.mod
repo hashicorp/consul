@@ -12,6 +12,7 @@ require (
 	github.com/hashicorp/consul/envoyextensions v0.3.0-rc1
 	github.com/hashicorp/consul/proto-public v0.4.0-rc1
 	github.com/hashicorp/consul/sdk v0.14.0-rc1
+	github.com/hashicorp/consul/testingconsul v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-uuid v1.0.3
@@ -100,5 +101,5 @@ replace (
 	github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
 	github.com/hashicorp/consul/proto-public => ../../../proto-public
 	github.com/hashicorp/consul/sdk => ../../../sdk
-		github.com/hashicorp/consul/testingconsul => ../../../testingconsul
+	github.com/hashicorp/consul/testingconsul => ../../../testingconsul
 )
