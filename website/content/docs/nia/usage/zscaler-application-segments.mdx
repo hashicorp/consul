@@ -24,7 +24,7 @@ Complete the following steps to configure your ZPA application segment:
 
 ## Background
 
-CTS is a tool that uses Consul's service catalog as a source of truth for all applications running in a given environment. When it detects changes to the services (for example, a new service node is added or deleted from the service list), CTS dynamically applies the necessary changes to your infrastructure using Terraform, in this case, the ZPA application segment resources.
+CTS is an automation tool that uses Consul's service catalog as a source of truth for all applications running in a given environment. When it detects changes to the services (for example, a new service node is added or deleted from the service list), CTS dynamically applies the necessary changes to your infrastructure using Terraform, in this case, the ZPA application segment resources.
 
 ZPA [application segments](https://help.zscaler.com/zpa/about-applications) are groups of applications that often share access type or user privileges. You can use ZPA application segments to reduce your application's attack surface by limiting access to extraneous ports and specific users.
 
@@ -161,7 +161,7 @@ Before you can use CTS, you must register your services to Consul.
 
 CTS requires access to the Consul catalog. If you're using Consul as a Terraform backend, you will also need privileges to store the Terraform state into Consul's key-value (KV) store.
 
-In production environments, we recommend enabling access control lists (ACLs) on Consul. In order for CTS to retrieve information from Consul, it must pass a token in its configuration. Refer to the [production CTS tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure) for more information about ACL tokens and an example of a secure CTS configuration.
+In production environments, we recommend enabling access control lists (ACLs) on Consul. With ACLs enabled, CTS must pass a token in its configuration to retrieve information from Consul. Refer to the [production CTS tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure) for more information about ACL tokens and an example of a secure CTS configuration.
 
 Create a CTS configuration file that defines a set of tasks to run when a service is registered or removed from Consul.  In the following example, CTS uses the `consul` and `zpa` providers to run the `slb_auto_config` task when the `web80` service changes.
 
@@ -248,7 +248,7 @@ The `task` block defines a task for CTS to run when specific Consul services cha
 - `name` defines the task name.
 - `providers` defines the providers this task uses. In this case, the previously defined `zpa` provider.
 - `module` defines the path to the ZPA Terraform NIA module. This module lets Terraform dynamically automatically create and update application segments when there are changes to specific Consul services.
-- `condition "services"` defines the Consul services, when changed, would trigger this CTS task. The names must match the name of the Consul service you want to trigger the task (in this case, `web`).
+- `condition "services"` defines the Consul services that, when changed, would trigger this CTS task. The names must match the name of the Consul service you want to trigger the task (in this case, `web`).
 
 <CodeBlockConfig filename="tasks.hcl" hideClipboard>
 
@@ -343,7 +343,7 @@ Then, register the service with Consul.
 $ consul services register web2.hcl
 ```
 
-Once CTS detects the new Consul service, it will automatically trigger the `zpa_application_segment` task, as defined in the configuration file. The task uses Terraform to update the ZPA application segment domain entries to include the new Consul service instances. Instead, if you de-registered the Consul service, CTS will trigger the ZPA application segment domain entries to remove the servers. 
+Once CTS detects the new Consul service, it will automatically trigger the `zpa_application_segment` task, as defined in the configuration file. The task uses Terraform to update the ZPA application segment domain entries to include the new Consul service instances. Instead, if you de-registered the Consul service, CTS will update the ZPA application segment domain entries to remove the servers. 
 
 The CTS task updates the application segment to include the new instances.
 
