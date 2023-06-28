@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hashicorp/consul/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
 type Store struct {

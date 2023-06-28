@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/consul-topology/sprawl/sprawltest"
-	"github.com/hashicorp/consul/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/sprawl/sprawltest"
+	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
 func TestSprawl(t *testing.T) {

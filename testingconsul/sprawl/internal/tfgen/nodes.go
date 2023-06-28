@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/hashicorp/consul/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
 type terraformPod struct {

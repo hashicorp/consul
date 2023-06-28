@@ -12,11 +12,11 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/hashicorp/consul/consul-topology/sprawl/internal/build"
-	"github.com/hashicorp/consul/consul-topology/sprawl/internal/secrets"
-	"github.com/hashicorp/consul/consul-topology/sprawl/internal/tfgen"
-	"github.com/hashicorp/consul/consul-topology/topology"
-	"github.com/hashicorp/consul/consul-topology/util"
+	"github.com/hashicorp/consul/testingconsul/sprawl/internal/build"
+	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
+	"github.com/hashicorp/consul/testingconsul/sprawl/internal/tfgen"
+	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testingconsul/util"
 )
 
 const (

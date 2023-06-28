@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
 func (s *Sprawl) ensureLicense() error {

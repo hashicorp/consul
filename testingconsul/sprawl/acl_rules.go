@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/consul-topology/topology"
+	"github.com/hashicorp/consul/testingconsul/topology"
 )
 
 func policyForCrossNamespaceRead(partition string) *api.ACLPolicy {
