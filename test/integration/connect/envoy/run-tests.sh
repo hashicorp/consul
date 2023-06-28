@@ -876,12 +876,12 @@ function common_run_container_tcpdump {
 
     # we cant run this in circle but its only here to temporarily enable.
 
-#     retry_default docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
+    retry_default docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
 
     docker run -d --name $(container_name_prev) \
         $(network_snippet $DC) \
-#         -v $(pwd)/workdir/${DC}/envoy/:/data \
-#         --privileged \
+        -v $(pwd)/workdir/${DC}/envoy/:/data \
+        --privileged \
         envoy-tcpdump \
         -v -i any \
         -w "/data/${DC}.pcap"

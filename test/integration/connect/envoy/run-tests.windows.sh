@@ -889,8 +889,8 @@ function common_run_container_tcpdump {
 
     docker.exe run -d --name $(container_name_prev) \
         $(network_snippet $DC) \
-        -v $(pwd)/workdir/${DC}/envoy/:/data \
-        --privileged \
+#         -v $(pwd)/workdir/${DC}/envoy/:/data \
+#         --privileged \
         envoy-tcpdump \
         -v -i any \
         -w "/data/${DC}.pcap"
