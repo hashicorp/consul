@@ -9,7 +9,7 @@
         "remoteJwks": {
           "httpUri": {
             "uri": "https://example-okta.com/.well-known/jwks.json",
-            "cluster": "jwks_cluster",
+            "cluster": "jwks_cluster_okta",
             "timeout": "1s"
           },
           "asyncFetch": {
@@ -23,7 +23,7 @@
         "remoteJwks": {
           "httpUri": {
             "uri": "https://example-okta.com/.well-known/jwks.json",
-            "cluster": "jwks_cluster",
+            "cluster": "jwks_cluster_okta",
             "timeout": "1s"
           },
           "asyncFetch": {
@@ -37,7 +37,7 @@
         "remoteJwks": {
           "httpUri": {
             "uri": "https://example-auth0.com/.well-known/jwks.json",
-            "cluster": "jwks_cluster",
+            "cluster": "jwks_cluster_auth0",
             "timeout": "1s"
           },
           "asyncFetch": {

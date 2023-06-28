@@ -1,0 +1,23 @@
+{
+  "loadAssignment": {
+    "clusterName": "jwks_cluster_okta",
+    "endpoints": [
+      {
+        "lbEndpoints": [
+          {
+            "endpoint": {
+              "address": {
+                "socketAddress": {
+                  "address": "example-okta.com",
+                  "portValue": 90
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "jwks_cluster_okta",
+  "type": "STRICT_DNS"
+}
