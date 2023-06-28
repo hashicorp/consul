@@ -101,17 +101,18 @@ func validateKeyLength(privateKeyBlock *pem.Block) error {
 		return nil
 	}
 
-	lenCheckFn := nonFipsLenCheck
-
-	if version.IsFIPS() {
-		lenCheckFn = fipsLenCheck
-	}
 	key, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
 	if err != nil {
 		return err
 	}
 
-	return lenCheckFn(key.N.BitLen())
+	keyBitLen := key.N.BitLen()
+
+	if version.IsFIPS() {
+		fipsLenCheck(keyBitLen)
+	}
+
+	return nonFipsLenCheck(keyBitLen)
 }
 
 func nonFipsLenCheck(keyLen int) error {
