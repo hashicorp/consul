@@ -17,12 +17,18 @@ func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
 	tempFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
 
-	f, err := mmap.Map(tempFile)
+	file, err := os.OpenFile(tempFile, os.O_RDWR, 0644)
+
 	if err != nil {
 		return tempFile, err
 	}
 
-	defer f.UnMap()
+	f, err := mmap.Map(file)
+	if err != nil {
+		return tempFile, err
+	}
+
+	defer f.Unmap()
 	f.Write(bootstrapJSON)
 	f.Sync()
 
