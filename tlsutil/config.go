@@ -867,7 +867,7 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 //     Note: setting serverName will also override the hostname used to verify
 //     the certificate presented by the server being checked.
 //
-//  2. When the a hostname in the check address won't be present in the SAN
+//  2. When the hostname in the check address won't be present in the SAN
 //     (Subject Alternative Name) field of the certificate presented by the
 //     server being checked. Note: setting serverName will also override the
 //     ServerName used for SNI.

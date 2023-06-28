@@ -1,0 +1,3 @@
+```release-note:bug
+tlsutil: Default setting of ServerName field in outgoing TLS configuration for checks now handled by crypto/tls.
+```
