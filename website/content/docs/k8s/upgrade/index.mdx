@@ -219,7 +219,7 @@ In earlier versions, Consul on Kubernetes used client agents in its deployments.
 
 If you upgrade Consul from a version that uses client agents to a version the uses dataplanes, complete the following steps to upgrade your deployment safely and without downtime.
 
-1. Before you upgrade, edit your Helm chart to enable Consul client agents by setting `client.enabled` and `client.updateStrategy`:
+1. Before you upgrade, edit your Helm chart configuration to enable Consul client agents by setting `client.enabled` and `client.updateStrategy`:
 
   ```yaml filename="values.yaml"
   client:
@@ -228,7 +228,19 @@ If you upgrade Consul from a version that uses client agents to a version the us
         type: OnDelete
   ```
 
-1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
+1. Update the `connect-injector` to not log out on restart
+to make sure that the ACL tokens used by existing services are still valid during the migration to `consul-dataplane`.
+Note that you must remove the token manually after completing the migration.
+
+  The following command triggers the deployment rollout. Wait for the rollout to complete before proceeding to next step.
+
+  ```bash
+  kubectl config set-context --current --namespace=<consul installation namespace>
+  INJECTOR_DEPLOYMENT=$(kubectl get deploy -l "component=connect-injector" -o=jsonpath='{.items[0].metadata.name}')
+  kubectl patch deploy $INJECTOR_DEPLOYMENT --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/lifecycle"}]'
+  ```
+
+1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul. The latest version of consul-k8s components may be in a CrashLoopBackoff state during the performance of the server upgrade from versions <1.14.x until all Consul servers are on versions >=1.14.x. Components in CrashLoopBackoff will not negatively affect the cluster because older versioned components will still be operating. Once all servers have been fully upgraded, the latest consul-k8s components will automatically restore from CrashLoopBackoff and older component versions will be spun down.
 
 1. Run `kubectl rollout restart` to restart your service mesh applications. Restarting service mesh application causes Kubernetes to re-inject them with the webhook for dataplanes.
 

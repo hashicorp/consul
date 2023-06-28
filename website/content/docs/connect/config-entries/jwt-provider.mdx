@@ -952,6 +952,22 @@ Defines behavior for caching the validation result of previously encountered JWT
 </Tab>
 </Tabs>
 
+## Metrics
+
+Envoy proxies expose metrics that can track JWT authentication details. Use the following Envoy metrics:
+
+```yaml
+http.public_listener.jwt_authn.allowed
+http.public_listener.jwt_authn.cors_preflight_bypassed
+http.public_listener.jwt_authn.denied
+http.public_listener.jwt_authn.jwks_fetch_failed
+http.public_listener.jwt_authn.jwks_fetch_success
+http.public_listener.jwt_authn.jwt_cache_hit
+http.public_listener.jwt_authn.jwt_cache_miss
+```
+
+~> **Note:** Currently, Envoy does not reference these metrics in their documentation. Refer to [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/) for more information about exposed metrics.
+
 ## Examples
 
 The following examples demonstrate common JWT provider configuration patterns for specific use cases.
