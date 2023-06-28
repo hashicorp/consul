@@ -109,7 +109,7 @@ func validateKeyLength(privateKeyBlock *pem.Block) error {
 	keyBitLen := key.N.BitLen()
 
 	if version.IsFIPS() {
-		fipsLenCheck(keyBitLen)
+		return fipsLenCheck(keyBitLen)
 	}
 
 	return nonFipsLenCheck(keyBitLen)
