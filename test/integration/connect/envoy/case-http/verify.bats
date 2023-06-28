@@ -57,7 +57,6 @@ load helpers
 }
 
 @test "s1 proxy should have been configured with http rbac filters" {
-  sleep 33333
   HTTP_FILTERS=$(get_envoy_http_filters localhost:19000)
   PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
   UPS=$(echo "$HTTP_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ')

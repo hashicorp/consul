@@ -989,6 +989,21 @@ function create_peering {
   [ "$status" == 0 ]
 }
 
+function assert_service_has_imported {
+  local DC=${1:-primary}
+  local SERVICE_NAME=$2
+  local PEER_NAME=$3
+
+  run curl -s -f "http://consul-${DC}-client:8500/v1/peering/${PEER_NAME}"
+  [ "$status" == 0 ]
+
+  echo "$output" | jq --raw-output '.StreamStatus.ImportedServices' | grep -e "${SERVICE_NAME}"
+  if [ $? -ne 0 ]; then
+    echo "Error finding service: ${SERVICE_NAME}"
+    return 1
+  fi
+}
+
 function get_lambda_envoy_http_filter {
   local HOSTPORT=$1
   local NAME_PREFIX=$2
@@ -1040,4 +1055,24 @@ function varsub {
   for v in "$@"; do
     sed -i "s/\${$v}/${!v}/g" $file
   done
+}
+
+function get_url_header {
+  local URL=$1
+  local HEADER=$2
+  run curl -s -f -X GET -I "${URL}"
+  [ "$status" == 0 ]
+  RESP=$(echo "$output" | tr -d '\r')
+  RESP=$(echo "$RESP" | grep -E "^${HEADER}: ")
+  RESP=$(echo "$RESP" | sed "s/^${HEADER}: //g")
+  echo "$RESP"
+}
+
+function assert_url_header {
+  local URL=$1
+  local HEADER=$2
+  local VALUE=$3
+  run get_url_header "$URL" "$HEADER"
+  [ "$status" == 0 ]
+  [ "$VALUE" = "$output" ]
 }
