@@ -7,6 +7,7 @@ import (
 	"flag"
 	"strings"
 
+	"github.com/hashicorp/consul-topology/topology"
 	"github.com/hashicorp/go-version"
 )
 
@@ -53,6 +54,20 @@ func GetLatestImageName() string {
 		return LatestImageName + "-dbg"
 	}
 	return LatestImageName
+}
+
+func TargetImages() topology.Images {
+	img := DockerImage(targetImageName, TargetVersion)
+
+	if IsEnterprise() {
+		return topology.Images{
+			ConsulEnterprise: img,
+		}
+	} else {
+		return topology.Images{
+			ConsulOSS: img,
+		}
+	}
 }
 
 func IsEnterprise() bool { return isInEnterpriseRepo }

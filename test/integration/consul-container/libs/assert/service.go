@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/assert"
 
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 )
@@ -35,7 +35,21 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.Que
 			r.Fatal("error reading service data")
 		}
 		if len(services) == 0 {
-			r.Fatal("did not find catalog entry for ", svc)
+			r.Fatalf("did not find catalog entry for %q with opts %#v", svc, opts)
+		}
+	})
+}
+
+// CatalogServiceHasInstanceCount verifies the service name exists in the Consul catalog and has the specified
+// number of instances.
+func CatalogServiceHasInstanceCount(t *testing.T, c *api.Client, svc string, count int, opts *api.QueryOptions) {
+	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Catalog().Service(svc, "", opts)
+		if err != nil {
+			r.Fatal("error reading service data")
+		}
+		if len(services) != count {
+			r.Fatalf("did not find %d catalog entries for %s", count, svc)
 		}
 	})
 }
