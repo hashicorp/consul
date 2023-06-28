@@ -1,0 +1,21 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+    # Formats go imports into deterministic sections
+    # `pre-commit run gci` to run in isolation
+    -   id: my-cmd
+        name: gci
+        args:
+        - "gci"
+        - "write"
+        - "--section"
+        - "standard"
+        - "--section"
+        - "default"
+        - "--section"
+        - "prefix(github.com/hashicorp/)"
+        - "--section"
+        - "prefix(github.com/hashicorp/consul/)"
