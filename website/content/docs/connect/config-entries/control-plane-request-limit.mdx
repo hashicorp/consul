@@ -20,7 +20,6 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 - [`kind`](#kind): string | required | must be set to `control-plane-request-limit`
 - [`mode`](#mode): string | required | default is `permissive`
-- [`name`](#name): string | required
 - [`read_rate`](#read-rate): number | `100`
 - [`write_rate`](#write-rate): number | `100`
 - [`kv`](#kv): map | no default
@@ -42,7 +41,6 @@ When every field is defined, a control plane request limit configuration entry h
 ```hcl
 kind = "control-plane-request-limit"
 mode = "permissive"
-name = "<destination service>"
 read_rate =  100
 write_rate = 100
 kv = {
@@ -64,7 +62,6 @@ catalog = {
 {
   "kind": "control-plane-request-limit",
   "mode": "permissive",
-  "name": "<destination service>",
   "read_rate":  100,
   "write_rate": 100,
   "kv": {
@@ -85,7 +82,6 @@ catalog = {
 ```yaml
 kind: control-plane-request-limit
 mode: permissive
-name: <destination service>
 read_rate: 100
 write_rate: 100
 kv:
@@ -128,16 +124,6 @@ Specifies an action to take if the rate of requests exceeds the limit.
   - `enforcing`: The server stops accepting requests and records an error in the logs. 
   - `disabled`: Limits are not enforced or tracked. 
   
-### `name`
-
-Specifies the name of the configuration entry. 
-
-#### Values
-
-- Default: none
-- This field is required.
-- Data type: string
-
 ### `read_rate`
 
 Specifies the maximum number of read requests per second that the agent allows.
