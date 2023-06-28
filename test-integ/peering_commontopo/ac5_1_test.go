@@ -42,6 +42,7 @@ func TestServiceMeshDisabledSuite(t *testing.T) {
 	}
 	ct.Launch(t)
 	for _, s := range serviceMeshDisabledSuites {
+		s := s
 		t.Run(fmt.Sprintf("%s_%s", s.DC, s.Peer), func(t *testing.T) {
 			t.Parallel()
 			s.test(t, ct)
