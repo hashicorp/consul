@@ -6,6 +6,6 @@ var (
 	TypeV1Tombstone = &pbresource.Type{
 		Group:        "internal",
 		GroupVersion: "v1",
-		Kind:         "tombstone",
+		Kind:         "Tombstone",
 	}
 )

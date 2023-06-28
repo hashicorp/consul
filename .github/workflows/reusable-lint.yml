@@ -20,6 +20,7 @@ on:
 env:
   GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
   GOARCH: ${{inputs.go-arch}}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   lint:
