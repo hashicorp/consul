@@ -54,20 +54,6 @@ func CatalogServiceHasInstanceCount(t *testing.T, c *api.Client, svc string, cou
 	})
 }
 
-// CatalogServiceHasInstanceCount verifies the service name exists in the Consul catalog and has the specified
-// number of instances.
-func CatalogServiceHasInstanceCount(t *testing.T, c *api.Client, svc string, count int, opts *api.QueryOptions) {
-	retry.Run(t, func(r *retry.R) {
-		services, _, err := c.Catalog().Service(svc, "", opts)
-		if err != nil {
-			r.Fatal("error reading service data")
-		}
-		if len(services) != count {
-			r.Fatalf("did not find %d catalog entries for %s", count, svc)
-		}
-	})
-}
-
 // CatalogServiceExists verifies the node name exists in the Consul catalog
 func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	retry.Run(t, func(r *retry.R) {
