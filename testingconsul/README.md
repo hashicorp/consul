@@ -178,20 +178,3 @@ func TestSomething(t *testing.T) {
 }
 ```
 
-### For CLI
-
-Though this is not an immediate design goal, this library should be safely usable from a CLI
-to create easy development environments. For that case the `sprawl` package should be used directly:
-
-```
-cfg := &testingconsul.Config{...}
-
-sp, err := sprawl.Launch(logger, workdir, cfg)
-if err != nil {
-    return fmt.Errorf("error during launch: %w", err)
-}
-
-defer sp.Stop()
-// do stuff with 'sp'
-
-```
