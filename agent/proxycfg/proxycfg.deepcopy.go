@@ -58,6 +58,26 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 								*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = *v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff
 							}
 						}
+						if v2.JSONWebKeySet.Remote.JWKSCluster != nil {
+							cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = new(structs.JWKSCluster)
+							*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = *v2.JSONWebKeySet.Remote.JWKSCluster
+							if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates != nil {
+								cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = new(structs.JWKSTLSCertificate)
+								*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = new(structs.JWKSTLSCertProviderInstance)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance
+								}
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa = new(structs.JWKSTLSCertTrustedCa)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa
+									if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes != nil {
+										cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes = make([]byte, len(v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes))
+										copy(cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes, v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes)
+									}
+								}
+							}
+						}
 					}
 				}
 				if v2.Audiences != nil {

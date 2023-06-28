@@ -211,13 +211,9 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 		return nil, err
 	}
 
-	// TODO: expose additional fields: eg. ConnectTimeout, through
-	// JWTProviderConfigEntry to allow user to configure cluster
 	cluster := &envoy_cluster_v3.Cluster{
-		Name: makeJWKSClusterName(p.Name),
-		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
-			Type: envoy_cluster_v3.Cluster_STRICT_DNS,
-		},
+		Name:                 makeJWKSClusterName(p.Name),
+		ClusterDiscoveryType: makeJWKSDiscoveryClusterType(p.JSONWebKeySet.Remote),
 		LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
 			ClusterName: makeJWKSClusterName(p.Name),
 			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
@@ -230,14 +226,19 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 		},
 	}
 
+	if c := p.JSONWebKeySet.Remote.JWKSCluster; c != nil {
+		connectTimeout := int64(c.ConnectTimeout / time.Second)
+		if connectTimeout > 0 {
+			cluster.ConnectTimeout = &durationpb.Duration{Seconds: connectTimeout}
+		}
+	}
+
 	if scheme == "https" {
-		// TODO: expose this configuration through JWTProviderConfigEntry to allow
-		// user to configure certs
 		jwksTLSContext, err := makeUpstreamTLSTransportSocket(
 			&envoy_tls_v3.UpstreamTlsContext{
 				CommonTlsContext: &envoy_tls_v3.CommonTlsContext{
 					ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContext{
-						ValidationContext: &envoy_tls_v3.CertificateValidationContext{},
+						ValidationContext: makeJWTCertValidationContext(p.JSONWebKeySet.Remote.JWKSCluster),
 					},
 				},
 			},
@@ -249,6 +250,76 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 		cluster.TransportSocket = jwksTLSContext
 	}
 	return cluster, nil
+}
+
+func makeJWKSDiscoveryClusterType(r *structs.RemoteJWKS) *envoy_cluster_v3.Cluster_Type {
+	ct := &envoy_cluster_v3.Cluster_Type{}
+	if r == nil || r.JWKSCluster == nil {
+		return ct
+	}
+
+	switch r.JWKSCluster.DiscoveryType {
+	case structs.Static:
+		ct.Type = envoy_cluster_v3.Cluster_STATIC
+	case structs.LogicalDNS:
+		ct.Type = envoy_cluster_v3.Cluster_LOGICAL_DNS
+	case structs.EDS:
+		ct.Type = envoy_cluster_v3.Cluster_EDS
+	case structs.OriginalDST:
+		ct.Type = envoy_cluster_v3.Cluster_ORIGINAL_DST
+	case structs.StrictDNS:
+		fallthrough // default case so uses the default option
+	default:
+		ct.Type = envoy_cluster_v3.Cluster_STRICT_DNS
+	}
+	return ct
+}
+
+func makeJWTCertValidationContext(p *structs.JWKSCluster) *envoy_tls_v3.CertificateValidationContext {
+	vc := &envoy_tls_v3.CertificateValidationContext{}
+	if p == nil || p.TLSCertificates == nil {
+		return vc
+	}
+
+	if tc := p.TLSCertificates.TrustedCa; tc != nil {
+		vc.TrustedCa = &envoy_core_v3.DataSource{}
+		if tc.Filename != "" {
+			vc.TrustedCa.Specifier = &envoy_core_v3.DataSource_Filename{
+				Filename: tc.Filename,
+			}
+		}
+
+		if tc.EnvironmentVariable != "" {
+			vc.TrustedCa.Specifier = &envoy_core_v3.DataSource_EnvironmentVariable{
+				EnvironmentVariable: tc.EnvironmentVariable,
+			}
+		}
+
+		if tc.InlineString != "" {
+			vc.TrustedCa.Specifier = &envoy_core_v3.DataSource_InlineString{
+				InlineString: tc.InlineString,
+			}
+		}
+
+		if len(tc.InlineBytes) > 0 {
+			vc.TrustedCa.Specifier = &envoy_core_v3.DataSource_InlineBytes{
+				InlineBytes: tc.InlineBytes,
+			}
+		}
+	}
+
+	if pi := p.TLSCertificates.CaCertificateProviderInstance; pi != nil {
+		vc.CaCertificateProviderInstance = &envoy_tls_v3.CertificateProviderPluginInstance{}
+		if pi.InstanceName != "" {
+			vc.CaCertificateProviderInstance.InstanceName = pi.InstanceName
+		}
+
+		if pi.CertificateName != "" {
+			vc.CaCertificateProviderInstance.CertificateName = pi.CertificateName
+		}
+	}
+
+	return vc
 }
 
 // parseJWTRemoteURL splits the URI into domain, scheme and port.
