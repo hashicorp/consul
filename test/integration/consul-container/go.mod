@@ -100,4 +100,5 @@ replace (
 	github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
 	github.com/hashicorp/consul/proto-public => ../../../proto-public
 	github.com/hashicorp/consul/sdk => ../../../sdk
+		github.com/hashicorp/consul/testingconsul => ../../../testingconsul
 )
