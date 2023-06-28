@@ -631,11 +631,9 @@ jobs:
             --packages="./..." \
             -- \
             go test \
-            -p=1 \
-            -parallel=1 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
-            -json ./... \
+            -json . \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
