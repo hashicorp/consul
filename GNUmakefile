@@ -171,7 +171,7 @@ dev-build:
 
 dev-docker-dbg: dev-docker
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	@#  'consul-dbg:local' tag is needed to run the integration tests
 	@#  'consul-dev:latest' is needed by older workflows
@@ -183,7 +183,7 @@ dev-docker-dbg: dev-docker
 
 dev-docker: linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	@#  'consul:local' tag is needed to run the integration tests
 	@#  'consul-dev:latest' is needed by older workflows
@@ -205,7 +205,7 @@ remote-docker: check-remote-dev-image-env
 	$(MAKE) GOARCH=amd64 linux
 	$(MAKE) GOARCH=arm64 linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
 	@if ! docker buildx inspect consul-builder; then \
 		docker buildx create --name consul-builder --driver docker-container --bootstrap; \
@@ -222,7 +222,7 @@ remote-docker: check-remote-dev-image-env
 # should only run in CI and not locally.
 ci.dev-docker:
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CI_DEV_DOCKER_IMAGE_NAME)"
 	@docker build $(NOCACHE) $(QUIET) -t '$(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)' \
 	--build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
