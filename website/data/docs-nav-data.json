@@ -1820,6 +1820,10 @@
             "path": "nia/usage/run-ha"
           },
           {
+            "title": "Automate Zscaler Application Segments",
+            "path": "nia/usage/zscaler-application-segments"
+          },
+          {
             "title": "Error Messages",
             "path": "nia/usage/errors-ref"
           }

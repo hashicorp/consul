@@ -1,0 +1,404 @@
+---
+page_title: Automate Zscaler with Consul-Terraform-Sync 
+description: Use Consul-Terraform-Sync (CTS) to automatically configure your Zscaler Private Access (ZPA) application segment's domain entries when your Consul service changes.
+---
+
+# Automate ZScaler Private Access application segments with CTS
+
+This topic describes how to automatically configure your ZScaler Private Access (ZPA) application segments using Terraform and Consul.
+
+## Overview
+
+You can use Consul-Terraform-Sync (CTS) for network infrastructure automation (NIA). This enables you to automatically update your infrastructure and network devices using Terraform whenever your service networking control plane (Consul) changes.
+
+The following image shows the basic architecture of an NIA setup with ZPA application segment.
+
+![NIA CTS with ZPA application segments workflow](/img/nia/zpa-application-segments-diagram-workflow.png)
+
+Complete the following steps to configure your ZPA application segment:
+
+1. Register your Consul services
+1. Configure CTS
+1. Start CTS
+1. Verify NIA workflow
+
+## Background
+
+CTS is a tool that uses Consul's service catalog as a source of truth for all applications running in a given environment. When it detects changes to the services (for example, a new service node is added or deleted from the service list), CTS dynamically applies the necessary changes to your infrastructure using Terraform, in this case, the ZPA application segment resources.
+
+ZPA [application segments](https://help.zscaler.com/zpa/about-applications) are groups of applications that often share access type or user privileges. You can use ZPA application segments to reduce your application's attack surface by limiting access to extraneous ports and specific users.
+
+The [`application-segment-nia`](https://registry.terraform.io/modules/zscaler/application-segment-nia/zpa/latest) Terraform module, a ZScaler-managed Terraform module for CTS, lets operators automate their network infrastructure by dynamically configuring domain entries in your application segments based on changes to the respective services in Consul.
+
+The following diagram shows an example network infrastructure automation (NIA) workflow with Terraform, Consul, CTS, and ZPA.
+
+1. Consul catalog updates with new service registrations or changes
+1. CTS subscribes to updates from Consul catalog
+1. When CTS detects changes from Consul catalog, it initiates run with the specified module to apply the changes
+
+![NIA CTS with ZPA high-level workflow diagram](/img/nia/cts-zpa-workflow.png)
+
+<Tip>
+
+ZScaler also manages the [`application-server-nia`](https://registry.terraform.io/modules/zscaler/application-server-nia/zpa/latest) Terraform NIA module. This module will create and update application servers in ZPA when CTS detects changes in Consul services.
+
+</Tip>
+
+This topic assumes you are familiar with the standard Consul workflow and CTS. If you are unfamiliar with these topics, reference their respective tutorials to learn more.
+
+- Complete the [Get Started with Consul on VMs](/consul/tutorials/get-started-vms) or [Get Started with Consul on Kubernetes](/consul/tutorials/get-started-kubernetes) tutorials to learn more about Consul.
+- Complete the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro) tutorial to learn more about CTS.
+
+## Requirements
+
+1. A Zscaler Private Access (ZPA) Tenant
+1. ZPA API Credentials. You will use these credentials to authenticate both Terraform and CTS to create and manage resources in ZPA Cloud.
+1. A [Consul datacenter](#consul) for service networking and service mesh
+1. A server with [Consul-Terraform-Sync (CTS) installed. This server must be able to communicate with the ZPA and the Consul datacenter.
+~> **Compatibility Note:** CTS requires Terraform 0.13 or later. You can either install Terraform before starting CTS or let the CTS install a compatible Terraform version for you.
+1. Application servers running a service. You must register these servers to Consul. Refer to [Register Services with Service Definitions](/consul/docs/discover/services) for instructions.
+1. A running instance of the ZPA App Connector. 
+
+## Configure ZPA application segment
+
+The following example Terraform configuration shows a minimum service load balancing (SLB) configuration required for the ZPA application segment and NIA integration. When your Consul services change, CTS will automatically modify the ZPA application segment's domain entries.
+
+<CodeBlockConfig filename="main.tf">
+
+```hcl
+provider "zpa" {}
+
+resource "zpa_segment_group" "segment_group" {
+  name            = "${var.aws_region}-${module.network.vpc_id}"
+  description     = "${var.aws_region}-${module.network.vpc_id}"
+  enabled         = true
+}
+```
+
+</CodeBlockConfig>
+
+## Register your Consul services
+
+Before you can use CTS, you must register your services to Consul.
+
+1. For each service, create a service configuration file with information about the service (for example, IP, port, etc), and health check information. Refer to the [service registration usage docs](/consul/docs/discovery/services) to learn how to register Consul services.
+
+  <Tabs>
+  <Tab heading="HCL" group="hcl">
+
+  Create a service configuration file with the following details named `web.hcl`.
+
+  <CodeBlockConfig filename="web.hcl">
+
+  ```hcl
+  service {
+    name = "web"
+    id = "web"
+    tags = ["web"]
+    port = 80
+    check {
+      id = "web"
+      name = "web TCP check"
+      tcp = "localhost:80"
+      interval = "15s"
+      timeout = "1s"
+    }
+  }
+  ```
+
+  </CodeBlockConfig>
+
+  </Tab>
+  <Tab heading="JSON" group="json">
+
+  Create a service configuration file with the following details named `web.json`.
+
+  <CodeBlockConfig filename="web.json">
+
+  ```json
+  {
+  "service": {
+    "name": "web",
+    "id": "web",
+    "tags": ["web"],
+    "port": 80,
+    "check": {
+      "id": "web",
+      "name": "web TCP check",
+      "http": "localhost:80",
+      "interval": "15s",
+      "timeout": "1s"
+    }
+    }
+  }
+  ```
+
+  </CodeBlockConfig>
+
+  </Tab>
+  </Tabs>
+
+1. Once you have created the configuration file, register the service with Consul.
+
+  <Tabs>
+  <Tab heading="HCL" group="hcl">
+
+  ```shell-session
+  $ consul services register web.hcl
+  ```
+
+  </Tab>
+  <Tab heading="JSON" group="json">
+
+  ```shell-session
+  $ consul services register web.json
+  ```
+
+  </Tab>
+  </Tabs>
+
+## Configure CTS
+
+CTS requires access to the Consul catalog. If you're using Consul as a Terraform backend, you will also need privileges to store the Terraform state into Consul's key-value (KV) store.
+
+In production environments, we recommend enabling access control lists (ACLs) on Consul. In order for CTS to retrieve information from Consul, it must pass a token in its configuration. Refer to the [production CTS tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure) for more information about ACL tokens and an example of a secure CTS configuration.
+
+Create a CTS configuration file that defines a set of tasks to run when a service is registered or removed from Consul.  In the following example, CTS uses the `consul` and `zpa` providers to run the `slb_auto_config` task when the `web80` service changes.
+
+<CodeBlockConfig filename="tasks.hcl">
+
+```hcl
+log_level = "info"
+
+driver "terraform" {
+  log = true
+  required_providers {
+    zpa = {
+      source = "zscaler/zpa"
+      version = "2.7.9"
+    }
+  }
+}
+
+# Consul Config Options
+consul {
+  address = "${consul}:8500"
+}
+
+terraform_provider "zpa" {
+  zpa_client_id       = "{{ env \"ZPA_CLIENT_ID\" }}"
+  zpa_client_secret   = "{{ env \"ZPA_CLIENT_SECRET\" }}"
+  zpa_customer_id     = "{{ env \"ZPA_CUSTOMER_ID\" }}"
+}
+
+task {
+  name = "zpa_application_segment"
+  description = "This task dynamically updates application segments domain names, tcp ports"
+  providers = ["zpa"]
+  module = "zscaler/application-segment-nia/zpa"
+  condition "services" {
+    names = ["web"]
+  }
+  variable_files = [""]
+}
+```
+
+</CodeBlockConfig>
+
+The `driver` block defines all Terraform providers required to execute the task. In the following example, the `zscaler/zpa` provider is required.
+
+<CodeBlockConfig filename="tasks.hcl" hideClipboard highlight="5">
+
+```hcl
+driver "terraform" {
+  log = true
+  required_providers {
+    zpa = {
+      source = "zscaler/zpa"
+      version = "2.7.9"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+The `terraform_provider` specifies the parameters to interact with the ZPA.
+
+<Note title="Security Note">
+
+   In a production environment, we recommend separating any sensitive credentials from the CTS configuration files and loading them dynamically using environment variables, Consul KV, or HashiCorp Vault. Refer to the [Terraform Registry](https://registry.terraform.io/providers/zscaler/zpa/latest/docs#authentication) for a full set of provider arguments.
+
+</Note>
+
+<CodeBlockConfig filename="tasks.hcl" hideClipboard>
+
+```hcl
+terraform_provider "zpa" {
+  zpa_client_id       = "{{ env \"ZPA_CLIENT_ID\" }}"
+  zpa_client_secret   = "{{ env \"ZPA_CLIENT_SECRET\" }}"
+  zpa_customer_id     = "{{ env \"ZPA_CUSTOMER_ID\" }}"
+}
+```
+
+</CodeBlockConfig>
+
+The `task` block defines a task for CTS to run when specific Consul services change.
+
+- `name` defines the task name.
+- `providers` defines the providers this task uses. In this case, the previously defined `zpa` provider.
+- `module` defines the path to the ZPA Terraform NIA module. This module lets Terraform dynamically automatically create and update application segments when there are changes to specific Consul services.
+- `condition "services"` defines the Consul services, when changed, would trigger this CTS task. The names must match the name of the Consul service you want to trigger the task (in this case, `web`).
+
+<CodeBlockConfig filename="tasks.hcl" hideClipboard>
+
+```hcl
+task {
+  name = "zpa_application_segment"
+  description = "This task dynamically updates application segments domain names, tcp ports"
+  providers = ["zpa"]
+  module = "zscaler/application-segment-nia/zpa"
+  condition "services" {
+    names = ["web"]
+  }
+  variable_files = [""]
+}
+```
+
+</CodeBlockConfig>
+
+For more details about the configuration, refer to the [CTS configuration docs](/consul/docs/nia/configuration). For more details on the Terraform NIA module for ZPA application segments, refer to the [Terraform Registry documentation ](https://registry.terraform.io/modules/zscaler/application-segment-nia/zpa/latest) or [GitHub repository](https://github.com/zscaler/terraform-zpa-application-segment-nia).
+
+## Start CTS
+
+Run the `consul-terraform-sync start` command to start CTS and perform the following operations:
+
+- download and install the Terraform providers and modules according to the configuration file you have provided (`tasks.hcl`),
+- create Terraform files for the defined tasks, and 
+- connect to Consul.
+
+```shell-session
+$ consul-terraform-sync start -config-file=tasks.hcl
+[INFO] v0.6.0 (7f0d7ba)
+[INFO] (driver.terraform) installing terraform to path '/root/nia'
+[INFO] (driver.terraform) successfully installed terraform
+[INFO] (templates.hcltmpl) evaluating dynamic configuration for "thunder"
+## ...
+[INFO] running Terraform command: /root/nia/terraform init -no-color -force-copy -input=false -lock-timeout=0s -backend=true -get=true -upgrade=false -lock=true -get-plugins=true -verify-plugins=true
+Initializing modules...
+Downloading a10networks/service-group-sync-nia/thunder 0.1.6 for slb_auto_config...
+- slb_auto_config in .terraform/modules/slb_auto_config
+
+Initializing the backend...
+
+Successfully configured the backend "consul"! Terraform will automatically
+use this backend unless the backend configuration changes.
+## ...
+Terraform has been successfully initialized!
+[INFO] running Terraform command: /root/nia/terraform workspace new -no-color zpa_application_segment
+Workspace "zpa_application_segment" already exists
+[INFO] running Terraform command: /root/nia/terraform workspace select -no-color slb_auto_config
+Switched to workspace "slb_auto_config".
+[INFO] running Terraform command: /root/nia/terraform apply -no-color -auto-approve -input=false -var-file=terraform.tfvars -var-file=providers.tfvars -lock=true -parallelism=10 -refresh=true
+## ...
+
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+[INFO] (ctrl) task completed zpa_application_segment
+[INFO] (ctrl) all tasks completed once
+[INFO] (cli) running controller in daemon mode
+[INFO] (api) starting server at '8558'
+```
+
+CTS continuously runs as a daemon and automatically executes the `zpa_application_segment` task when it detects changes to the `web` Consul service.
+
+## Verify NIA automation workflow
+
+Verify the workflow by registering new instances of the `web` service in Consul.
+
+Create a service configuration file with the following details named `web2.hcl`. The only difference between this configuration and `web.hcl` is the service ID is set to `web2`.
+
+<CodeBlockConfig filename="web2.hcl">
+
+```hcl
+service {
+  name = "web"
+  id = "web2"
+  tags = ["web"]
+  port = 80
+  check {
+    id = "web"
+    name = "web TCP check"
+    tcp = "localhost:80"
+    interval = "15s"
+    timeout = "1s"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+Then, register the service with Consul.
+
+```shell-session
+$ consul services register web2.hcl
+```
+
+Once CTS detects the new Consul service, it will automatically trigger the `zpa_application_segment` task, as defined in the configuration file. The task uses Terraform to update the ZPA application segment domain entries to include the new Consul service instances. Instead, if you de-registered the Consul service, CTS will trigger the ZPA application segment domain entries to remove the servers. 
+
+The CTS task updates the application segment to include the new instances.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[INFO] (ctrl) executing task zpa_application_segment
+[INFO] running Terraform command: /root/nia/terraform apply -no-color -auto-approve -input=false -var-file=terraform.tfvars -var-file=providers.tfvars -lock=true -parallelism=10 -refresh=true
+
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+[INFO] (ctrl) task completed zpa_application_segment
+[INFO] (ctrl) executing task zpa_application_segment
+[INFO] running Terraform command: /root/nia/terraform apply -no-color -auto-approve -input=false -var-file=terraform.tfvars -var-file=providers.tfvars -lock=true -parallelism=10 -refresh=true
+module.zpa_application_segment.zpa_application_segment.this["web"]: Refreshing state... [id=216196257331327661]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # module.zpa_application_segment.zpa_application_segment.this["web"] will be updated in-place
+  ~ resource "zpa_application_segment" "this" {
+      ~ domain_names                  = [
+          + "ip-10-0-200-212.us-west-2.compute.internal",
+          + "ip-10-0-200-62.us-west-2.compute.internal",
+        ]
+        id                            = "216196257331327661"
+        name                          = "web"
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+module.zpa_application_segment.zpa_application_segment.this["web"]: Modifying... [id=216196257331327661]
+module.zpa_application_segment.zpa_application_segment.this["web"]: Modifications complete after 2s [id=216196257331327661]
+
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+[INFO]  ctrl: task completed: task_name=zpa_application_segment
+[INFO]  ctrl: all tasks completed once
+[INFO]  ctrl: start task monitoring
+```
+
+</CodeBlockConfig>
+
+Once the task completes, connect to Zscaler using the [Zscaler client connecter agent](https://help.zscaler.com/z-app/what-zscaler-app). Confirm that your ZPA application segment now shows two domain entries, one for each instance of the `web` service.
+
+CTS will trigger the task every time you add or remove  a service with the same name to Consul. With CTS and network infrastructure automation, the ZPA application segment configurations will automatically reflect these changes in near-real time.
+
+## Related resources
+
+CTS helps you automatically update your network infrastructure when your upstream infrastructure changes or fails. In addition, you can extend CTS to support CI/CD operations including [blue-green deployment by leveraging Terraform](https://www.hashicorp.com/blog/terraform-feature-toggles-blue-green-deployments-canary-test) and service tags on Consul.
+
+Check out the following resource to learn more about network infrastructure automation with CTS and A10 Networks.
+
+- Webinar: [Automating Network Infrastructure Tasks with A10 and HashiCorp](https://www.brighttalk.com/webcast/16409/476300) and [GitHub repo](https://github.com/zscaler/zpa-terraform-consul-webinar) with complete Terraform demo configuration.
+
+- Learn more about the [Terraform NIA module for ZScaler application segment](https://registry.terraform.io/modules/zscaler/application-segment-nia/zpa/latest) to create and update application segments in the ZPA Cloud.
+
+- Learn more about the [Terraform NIA module for ZScaler application server](https://registry.terraform.io/modules/zscaler/application-segment-nia/zpa/latest) to create and update application servers in the ZPA Cloud.
