@@ -68,3 +68,4 @@ override.tf.json
 terraform.rc
 /go.work
 /go.work.sum
+.docker
