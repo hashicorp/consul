@@ -32,7 +32,7 @@ func (s *Sprawl) waitForLeader(cluster *topology.Cluster) {
 		leader, err := client.Status().Leader()
 		if leader != "" && err == nil {
 			logger.Info("cluster has leader", "leader_addr", leader)
-			cluster.ServerByAddr(leader)
+			return
 		}
 		logger.Info("cluster has no leader yet", "error", err)
 		time.Sleep(500 * time.Millisecond)
