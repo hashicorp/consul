@@ -266,6 +266,14 @@ function get_envoy_listener_filters {
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
 }
 
+function get_envoy_http_filter {
+  local HOSTPORT=$1
+  local FILTER_NAME=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"${FILTER_NAME}\")"
+}
+
 function get_envoy_http_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
