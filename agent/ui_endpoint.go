@@ -137,6 +137,9 @@ RPC:
 		// If not, get it from mapAddrVer.
 		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
 			if _, okver := mapAddrVer[info.Address]; okver {
+				if info.Meta == nil {
+					info.Meta = make(map[string]string)
+				}
 				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
 			}
 		}
@@ -159,6 +162,9 @@ RPC:
 		// If not, get it from mapAddrVer.
 		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
 			if _, okver := mapAddrVer[info.Address]; okver {
+				if info.Meta == nil {
+					info.Meta = make(map[string]string)
+				}
 				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
 			}
 		}
@@ -265,6 +271,9 @@ RPC:
 		// If not, get it from mapAddrVer.
 		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
 			if _, okver := mapAddrVer[info.Address]; okver {
+				if info.Meta == nil {
+					info.Meta = make(map[string]string)
+				}
 				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
 			}
 		}
