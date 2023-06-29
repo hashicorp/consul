@@ -12,11 +12,11 @@ message ConnectionConfig {
 
 message InboundConnectionsConfig {
   uint64 max_inbound_connections = 12;
-  BalanceInboundConnections balance_inbound_connections = 13;
+  BalanceConnections balance_inbound_connections = 13;
 }
 
-enum BalanceInboundConnections {
+enum BalanceConnections {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
-  BALANCE_INBOUND_CONNECTIONS_DEFAULT = 0;
-  BALANCE_INBOUND_CONNECTIONS_EXACT = 1;
+  BALANCE_CONNECTIONS_DEFAULT = 0;
+  BALANCE_CONNECTIONS_EXACT = 1;
 }
