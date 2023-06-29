@@ -593,10 +593,7 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      matrix:
-        consul-version: [ "1.14", "1.15"]
     env:
-      CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       ENVOY_VERSION: "1.24.6"
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -637,7 +634,7 @@ jobs:
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            --latest-version "${{ env.CONSUL_LATEST_VERSION }}"
+            --latest-version latest
           ls -lrt
         env:
           # this is needed because of incompatibility between RYUK container and GHA
