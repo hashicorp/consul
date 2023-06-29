@@ -54,9 +54,9 @@ func NewCommonTopo(t *testing.T) *commonTopo {
 	// Make 3-server clusters in dc1 and dc2
 	// For simplicity, the Name and Datacenter of the clusters are the same.
 	// dc1 and dc2 should be symmetric.
-	dc1 := clusterWithJustServers("dc1", 1)
+	dc1 := clusterWithJustServers("dc1", 3)
 	ct.DC1 = dc1
-	dc2 := clusterWithJustServers("dc2", 1)
+	dc2 := clusterWithJustServers("dc2", 3)
 	ct.DC2 = dc2
 	// dc3 is a failover cluster for both dc1 and dc2
 	dc3 := clusterWithJustServers("dc3", 1)
