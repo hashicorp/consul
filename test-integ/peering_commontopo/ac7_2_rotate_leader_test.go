@@ -168,7 +168,7 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 	found := 0
 	foundI := 0
 	for i, svc := range ceAsES.Services {
-		if svc.Name == s.sidServer.Name && svc.Namespace == s.sidServer.Namespace {
+		if svc.Name == s.sidServer.Name && svc.Namespace == utils.DefaultToEmpty(s.sidServer.Namespace) {
 			found += 1
 			foundI = i
 		}
