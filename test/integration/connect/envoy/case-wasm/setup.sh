@@ -5,7 +5,6 @@
 
 set -eEuo pipefail
 
-sleep 2222
 upsert_config_entry primary '
 Kind = "service-defaults"
 Name = "s2"
