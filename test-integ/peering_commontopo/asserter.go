@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // asserter is a utility to help in reducing boilerplate in invoking test
@@ -184,15 +185,15 @@ func (a *asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.Se
 	t.Helper()
 	cl := a.mustGetAPIClient(t, cluster)
 	retry.RunWith(&retry.Timer{Timeout: time.Minute * 1, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+		opts := utils.PartitionQueryOptions(sid.Partition)
+		opts.Namespace = sid.Namespace
+		opts.Peer = peerName
+
 		svcs, _, err := cl.Health().Service(
 			sid.Name,
 			"",
 			true,
-			&api.QueryOptions{
-				Namespace: sid.Namespace,
-				Partition: sid.Partition,
-				Peer:      peerName,
-			},
+			opts,
 		)
 		require.NoError(r, err)
 		assert.GreaterOrEqual(r, len(svcs), 1)

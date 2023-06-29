@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
@@ -185,11 +186,10 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 
 	// expect health entry in for peer to disappear
 	retry.RunWith(&retry.Timer{Timeout: time.Minute, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		svcs, _, err := clDC.Health().Service(s.sidServer.Name, "", true, &api.QueryOptions{
-			Namespace: s.sidServer.Namespace,
-			Partition: s.sidServer.Partition,
-			Peer:      LocalPeerName(peer, "default"),
-		})
+		opts := utils.PartitionQueryOptions(s.sidServer.Partition)
+		opts.Namespace = s.sidServer.Namespace
+		opts.Peer = LocalPeerName(peer, "default")
+		svcs, _, err := clDC.Health().Service(s.sidServer.Name, "", true, opts)
 		require.NoError(r, err)
 		assert.Equal(r, len(svcs), 0, "health entry for imported service gone")
 	})
