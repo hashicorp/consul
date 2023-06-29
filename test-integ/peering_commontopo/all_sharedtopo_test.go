@@ -40,6 +40,9 @@ func TestAllCommonTopoSuites(t *testing.T) {
 	for _, s := range ac3SvcDefaultsSuites {
 		commonTopoSuites = append(commonTopoSuites, s)
 	}
+	for _, s := range ac4ProxyDefaultsSuites {
+		commonTopoSuites = append(commonTopoSuites, s)
+	}
 	for _, s := range serviceMeshDisabledSuites {
 		commonTopoSuites = append(commonTopoSuites, s)
 	}
