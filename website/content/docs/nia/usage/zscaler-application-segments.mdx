@@ -53,7 +53,7 @@ This topic assumes you are familiar with the standard Consul workflow and CTS. I
 
 1. A Zscaler Private Access (ZPA) Tenant
 1. ZPA API Credentials. You will use these credentials to authenticate both Terraform and CTS to create and manage resources in ZPA Cloud.
-1. A [Consul datacenter](#consul) for service networking and service mesh
+1. A Consul datacenter for service networking
 1. A server with [Consul-Terraform-Sync (CTS) installed. This server must be able to communicate with the ZPA and the Consul datacenter.
 ~> **Compatibility Note:** CTS requires Terraform 0.13 or later. You can either install Terraform before starting CTS or let the CTS install a compatible Terraform version for you.
 1. Application servers running a service. You must register these servers to Consul. Refer to [Register Services with Service Definitions](/consul/docs/discover/services) for instructions.
@@ -247,7 +247,7 @@ The `task` block defines a task for CTS to run when specific Consul services cha
 
 - `name` defines the task name.
 - `providers` defines the providers this task uses. In this case, the previously defined `zpa` provider.
-- `module` defines the path to the ZPA Terraform NIA module. This module lets Terraform dynamically automatically create and update application segments when there are changes to specific Consul services.
+- `module` defines the path to the ZPA Terraform NIA module. CTS automatically applies this module whenever it detects changes to the specified Consul service to dynamically create and update ZPA application segments to reflect the service's new status.
 - `condition "services"` defines the Consul services that, when changed, would trigger this CTS task. The names must match the name of the Consul service you want to trigger the task (in this case, `web`).
 
 <CodeBlockConfig filename="tasks.hcl" hideClipboard>
@@ -271,7 +271,7 @@ For more details about the configuration, refer to the [CTS configuration docs](
 
 ## Start CTS
 
-Run the `consul-terraform-sync start` command to start CTS and perform the following operations:
+Run the `consul-terraform-sync start` command to start CTS. This command performs the following operations:
 
 - download and install the Terraform providers and modules according to the configuration file you have provided (`tasks.hcl`),
 - create Terraform files for the defined tasks, and 
