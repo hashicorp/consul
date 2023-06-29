@@ -42,7 +42,7 @@ type ac2DiscoChainSuite struct {
 var _ commonTopoSuite = (*ac2DiscoChainSuite)(nil)
 
 func (s *ac2DiscoChainSuite) testName() string {
-	return fmt.Sprintf("disco chain %s->%s", s.DC, s.Peer)
+	return fmt.Sprintf("ac2 disco chain %s->%s", s.DC, s.Peer)
 }
 
 func (s *ac2DiscoChainSuite) setup(t *testing.T, ct *commonTopo) {

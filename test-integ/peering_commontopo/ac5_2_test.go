@@ -6,9 +6,9 @@ import (
 
 	"testing"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,7 +55,7 @@ func TestPreparedQueryFailoverSuite(t *testing.T) {
 
 	for _, s := range preparedQueryFailoverSuites {
 		s := s
-		t.Run(fmt.Sprintf("%s_%s", s.DC, s.Peer), func(t *testing.T) {
+		t.Run(s.testName(), func(t *testing.T) {
 			t.Parallel()
 			s.test(t, ct)
 		})
@@ -63,7 +63,7 @@ func TestPreparedQueryFailoverSuite(t *testing.T) {
 }
 
 func (s *preparedQueryFailoverSuite) testName() string {
-	return "prepared query failover assertions"
+	return fmt.Sprintf("ac5.2 prepared query failover %s->%s", s.DC, s.Peer)
 }
 
 // creates clients in s.DC and servers in s.Peer

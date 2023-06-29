@@ -5,10 +5,10 @@ import (
 
 	"testing"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +43,7 @@ func TestServiceMeshDisabledSuite(t *testing.T) {
 	ct.Launch(t)
 	for _, s := range serviceMeshDisabledSuites {
 		s := s
-		t.Run(fmt.Sprintf("%s_%s", s.DC, s.Peer), func(t *testing.T) {
+		t.Run(s.testName(), func(t *testing.T) {
 			t.Parallel()
 			s.test(t, ct)
 		})
@@ -51,7 +51,7 @@ func TestServiceMeshDisabledSuite(t *testing.T) {
 }
 
 func (s *serviceMeshDisabledSuite) testName() string {
-	return "Service mesh disabled assertions"
+	return fmt.Sprintf("ac5.1 service mesh disabled %s->%s", s.DC, s.Peer)
 }
 
 // creates clients in s.DC and servers in s.Peer

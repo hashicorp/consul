@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +52,7 @@ func TestProxyDefaults(t *testing.T) {
 }
 
 func (s *ac4ProxyDefaultsSuite) testName() string {
-	return fmt.Sprintf("proxy defaults %s_%s", s.DC, s.Peer)
+	return fmt.Sprintf("ac4 proxy defaults %s_%s", s.DC, s.Peer)
 }
 
 // creates clients in s.DC and servers in s.Peer

@@ -54,7 +54,7 @@ type suiteRotateGW struct {
 var _ commonTopoSuite = (*suiteRotateGW)(nil)
 
 func (s *suiteRotateGW) testName() string {
-	return fmt.Sprintf("rotate mesh gateway %s->%s", s.DC, s.Peer)
+	return fmt.Sprintf("ac7.1 rotate mesh gateway %s->%s", s.DC, s.Peer)
 }
 
 func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {

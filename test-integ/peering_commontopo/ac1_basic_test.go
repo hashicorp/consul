@@ -61,7 +61,7 @@ type ac1BasicSuite struct {
 var _ commonTopoSuite = (*ac1BasicSuite)(nil)
 
 func (s *ac1BasicSuite) testName() string {
-	return fmt.Sprintf("basic %s->%s", s.DC, s.Peer)
+	return fmt.Sprintf("ac1 basic %s->%s", s.DC, s.Peer)
 }
 
 // creates clients in s.DC and servers in s.Peer

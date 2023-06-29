@@ -48,7 +48,7 @@ type ac6FailoversSuite struct {
 var _ commonTopoSuite = (*ac6FailoversSuite)(nil)
 
 func (s *ac6FailoversSuite) testName() string {
-	return "failovers"
+	return "ac6 failovers"
 }
 
 func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {

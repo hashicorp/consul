@@ -52,7 +52,7 @@ type ac7_2RotateLeaderSuite struct {
 var _ commonTopoSuite = (*ac7_2RotateLeaderSuite)(nil)
 
 func (s *ac7_2RotateLeaderSuite) testName() string {
-	return fmt.Sprintf("rotate leader %s->%s", s.DC, s.Peer)
+	return fmt.Sprintf("ac7.2 rotate leader %s->%s", s.DC, s.Peer)
 }
 
 // makes client in clu, server in peerClu
