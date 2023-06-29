@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -134,6 +135,11 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		}
 		config.Token = loginResp.Auth.ClientToken
 	}
+
+	if token := os.Getenv(vaultapi.EnvVaultToken); token != "" {
+		config.Token = token
+	}
+
 	client.SetToken(config.Token)
 
 	v.config = config
@@ -923,8 +929,13 @@ func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.Va
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
 
-	if config.Token == "" && config.AuthMethod == nil {
+	envToken := os.Getenv(vaultapi.EnvVaultToken)
+	if config.Token == "" && envToken == "" && config.AuthMethod == nil {
 		return nil, fmt.Errorf("must provide a Vault token or configure a Vault auth method")
+	}
+
+	if config.Token != "" && envToken != "" {
+		return nil, fmt.Errorf("only one Vault token can be provided")
 	}
 
 	if config.Token != "" && config.AuthMethod != nil {

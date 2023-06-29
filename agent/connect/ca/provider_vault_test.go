@@ -240,6 +240,75 @@ func TestVaultCAProvider_Configure(t *testing.T) {
 	return
 }
 
+func TestVaultCAProvider_ConfigureFromEnv(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+
+	rawCfg := map[string]any{
+		"RootPKIPath":         "pki-root/",
+		"IntermediatePKIPath": "pki-intermediate/",
+	}
+
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+
+	testcases := []struct {
+		name     string
+		setEnv   bool
+		setToken bool
+		wantErr  bool
+	}{
+		{
+			name:     "DefaultConfig",
+			setEnv:   true,
+			setToken: false,
+			wantErr:  false,
+		},
+		{
+			name:     "DefaultConfigWithoutToken",
+			setEnv:   false,
+			setToken: false,
+			wantErr:  true,
+		},
+		{
+			name:     "DefaultConfigWithBothTokens",
+			setEnv:   true,
+			setToken: true,
+			wantErr:  true,
+		},
+	}
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			testVault := NewTestVaultServer(t)
+
+			token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+
+			if testcase.setEnv {
+				t.Setenv("VAULT_TOKEN", token)
+			}
+
+			if !testcase.setToken {
+				token = ""
+			}
+
+			cfg := vaultProviderConfig(t, testVault.Addr, token, rawCfg)
+			provider := NewVaultProvider(hclog.New(nil))
+			t.Cleanup(provider.Stop)
+
+			err := provider.Configure(cfg)
+
+			if testcase.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+		})
+	}
+}
+
 func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 	SkipIfVaultNotPresent(t)
 
