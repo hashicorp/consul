@@ -632,7 +632,7 @@ jobs:
             -- \
             go test \
             -tags "${{ env.GOTAGS }}" \
-            -timeout=60m \
+            -timeout=30m \
             -json . \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
