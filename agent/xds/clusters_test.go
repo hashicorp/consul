@@ -959,6 +959,185 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 	}
 }
 
+func TestMakeJWTProviderCluster(t *testing.T) {
+	// All tests here depend on golden files located under: agent/xds/testdata/jwt_authn_cluster/*
+	tests := map[string]struct {
+		provider      *structs.JWTProviderConfigEntry
+		expectedError string
+	}{
+		"remote-jwks-not-configured": {
+			provider: &structs.JWTProviderConfigEntry{
+				Kind:          "jwt-provider",
+				Name:          "okta",
+				JSONWebKeySet: &structs.JSONWebKeySet{},
+			},
+			expectedError: "cannot create JWKS cluster for non remote JWKS. Provider Name: okta",
+		},
+		"local-jwks-configured": {
+			provider: &structs.JWTProviderConfigEntry{
+				Kind: "jwt-provider",
+				Name: "okta",
+				JSONWebKeySet: &structs.JSONWebKeySet{
+					Local: &structs.LocalJWKS{
+						Filename: "filename",
+					},
+				},
+			},
+			expectedError: "cannot create JWKS cluster for non remote JWKS. Provider Name: okta",
+		},
+		"https-provider-with-hostname-no-port": {
+			provider: makeTestProviderWithJWKS("https://example-okta.com/.well-known/jwks.json"),
+		},
+		"http-provider-with-hostname-no-port": {
+			provider: makeTestProviderWithJWKS("http://example-okta.com/.well-known/jwks.json"),
+		},
+		"https-provider-with-hostname-and-port": {
+			provider: makeTestProviderWithJWKS("https://example-okta.com:90/.well-known/jwks.json"),
+		},
+		"http-provider-with-hostname-and-port": {
+			provider: makeTestProviderWithJWKS("http://example-okta.com:90/.well-known/jwks.json"),
+		},
+		"https-provider-with-ip-no-port": {
+			provider: makeTestProviderWithJWKS("https://127.0.0.1"),
+		},
+		"http-provider-with-ip-no-port": {
+			provider: makeTestProviderWithJWKS("http://127.0.0.1"),
+		},
+		"https-provider-with-ip-and-port": {
+			provider: makeTestProviderWithJWKS("https://127.0.0.1:9091"),
+		},
+		"http-provider-with-ip-and-port": {
+			provider: makeTestProviderWithJWKS("http://127.0.0.1:9091"),
+		},
+	}
+
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			cluster, err := makeJWTProviderCluster(tt.provider)
+			if tt.expectedError != "" {
+				require.Error(t, err, tt.expectedError)
+			} else {
+				require.NoError(t, err)
+				gotJSON := protoToJSON(t, cluster)
+				require.JSONEq(t, goldenSimple(t, filepath.Join("jwt_authn_clusters", name), gotJSON), gotJSON)
+			}
+
+		})
+	}
+}
+
+func makeTestProviderWithJWKS(uri string) *structs.JWTProviderConfigEntry {
+	return &structs.JWTProviderConfigEntry{
+		Kind:   "jwt-provider",
+		Name:   "okta",
+		Issuer: "test-issuer",
+		JSONWebKeySet: &structs.JSONWebKeySet{
+			Remote: &structs.RemoteJWKS{
+				RequestTimeoutMs:    1000,
+				FetchAsynchronously: true,
+				URI:                 uri,
+			},
+		},
+	}
+}
+
+func TestParseJWTRemoteURL(t *testing.T) {
+	tests := map[string]struct {
+		uri            string
+		expectedHost   string
+		expectedPort   int
+		expectedScheme string
+		expectError    bool
+	}{
+		"invalid-url": {
+			uri:         ".com",
+			expectError: true,
+		},
+		"https-hostname-no-port": {
+			uri:            "https://test.test.com",
+			expectedHost:   "test.test.com",
+			expectedPort:   443,
+			expectedScheme: "https",
+		},
+		"https-hostname-with-port": {
+			uri:            "https://test.test.com:4545",
+			expectedHost:   "test.test.com",
+			expectedPort:   4545,
+			expectedScheme: "https",
+		},
+		"https-hostname-with-port-and-path": {
+			uri:            "https://test.test.com:4545/test",
+			expectedHost:   "test.test.com",
+			expectedPort:   4545,
+			expectedScheme: "https",
+		},
+		"http-hostname-no-port": {
+			uri:            "http://test.test.com",
+			expectedHost:   "test.test.com",
+			expectedPort:   80,
+			expectedScheme: "http",
+		},
+		"http-hostname-with-port": {
+			uri:            "http://test.test.com:4636",
+			expectedHost:   "test.test.com",
+			expectedPort:   4636,
+			expectedScheme: "http",
+		},
+		"https-ip-no-port": {
+			uri:            "https://127.0.0.1",
+			expectedHost:   "127.0.0.1",
+			expectedPort:   443,
+			expectedScheme: "https",
+		},
+		"https-ip-with-port": {
+			uri:            "https://127.0.0.1:3434",
+			expectedHost:   "127.0.0.1",
+			expectedPort:   3434,
+			expectedScheme: "https",
+		},
+		"http-ip-no-port": {
+			uri:            "http://127.0.0.1",
+			expectedHost:   "127.0.0.1",
+			expectedPort:   80,
+			expectedScheme: "http",
+		},
+		"http-ip-with-port": {
+			uri:            "http://127.0.0.1:9190",
+			expectedHost:   "127.0.0.1",
+			expectedPort:   9190,
+			expectedScheme: "http",
+		},
+		"http-ip-with-port-and-path": {
+			uri:            "http://127.0.0.1:9190/some/where",
+			expectedHost:   "127.0.0.1",
+			expectedPort:   9190,
+			expectedScheme: "http",
+		},
+		"http-ip-no-port-with-path": {
+			uri:            "http://127.0.0.1/test/path",
+			expectedHost:   "127.0.0.1",
+			expectedPort:   80,
+			expectedScheme: "http",
+		},
+	}
+
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			host, scheme, port, err := parseJWTRemoteURL(tt.uri)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, host, tt.expectedHost)
+				require.Equal(t, scheme, tt.expectedScheme)
+				require.Equal(t, port, tt.expectedPort)
+			}
+		})
+	}
+}
+
 // UID is just a convenience function to aid in writing tests less verbosely.
 func UID(input string) proxycfg.UpstreamID {
 	return proxycfg.UpstreamIDFromString(input)

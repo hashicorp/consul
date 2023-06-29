@@ -6,6 +6,8 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -141,6 +143,22 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		clusters = append(clusters, upstreamCluster)
 	}
 
+	// add clusters for jwt-providers
+	for _, prov := range cfgSnap.JWTProviders {
+		//skip cluster creation for local providers
+		if prov.JSONWebKeySet == nil || prov.JSONWebKeySet.Remote == nil {
+			continue
+		}
+
+		cluster, err := makeJWTProviderCluster(prov)
+		if err != nil {
+			s.Logger.Warn("failed to make jwt-provider cluster", "provider name", prov.Name, "error", err)
+			continue
+		}
+
+		clusters = append(clusters, cluster)
+	}
+
 	for _, u := range cfgSnap.Proxy.Upstreams {
 		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
 			continue
@@ -182,6 +200,82 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		clusters = append(clusters, c)
 	}
 	return clusters, nil
+}
+
+func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v3.Cluster, error) {
+	if p.JSONWebKeySet == nil || p.JSONWebKeySet.Remote == nil {
+		return nil, fmt.Errorf("cannot create JWKS cluster for non-remote JWKS. Provider Name: %s", p.Name)
+	}
+	hostname, scheme, port, err := parseJWTRemoteURL(p.JSONWebKeySet.Remote.URI)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: expose additional fields: eg. ConnectTimeout, through
+	// JWTProviderConfigEntry to allow user to configure cluster
+	cluster := &envoy_cluster_v3.Cluster{
+		Name: makeJWKSClusterName(p.Name),
+		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
+			Type: envoy_cluster_v3.Cluster_STRICT_DNS,
+		},
+		LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
+			ClusterName: makeJWKSClusterName(p.Name),
+			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
+						makeEndpoint(hostname, port),
+					},
+				},
+			},
+		},
+	}
+
+	if scheme == "https" {
+		// TODO: expose this configuration through JWTProviderConfigEntry to allow
+		// user to configure certs
+		jwksTLSContext, err := makeUpstreamTLSTransportSocket(
+			&envoy_tls_v3.UpstreamTlsContext{
+				CommonTlsContext: &envoy_tls_v3.CommonTlsContext{
+					ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContext{
+						ValidationContext: &envoy_tls_v3.CertificateValidationContext{},
+					},
+				},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		cluster.TransportSocket = jwksTLSContext
+	}
+	return cluster, nil
+}
+
+// parseJWTRemoteURL splits the URI into domain, scheme and port.
+// It will default to port 80 for http and 443 for https for any
+// URI that does not specify a port.
+func parseJWTRemoteURL(uri string) (string, string, int, error) {
+	u, err := url.ParseRequestURI(uri)
+	if err != nil {
+		return "", "", 0, err
+	}
+
+	var port int
+	if u.Port() != "" {
+		port, err = strconv.Atoi(u.Port())
+		if err != nil {
+			return "", "", port, err
+		}
+	}
+
+	if port == 0 {
+		port = 80
+		if u.Scheme == "https" {
+			port = 443
+		}
+	}
+
+	return u.Hostname(), u.Scheme, port, nil
 }
 
 func makeExposeClusterName(destinationPort int) string {
