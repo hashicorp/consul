@@ -186,10 +186,11 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 
 	// expect health entry in for peer to disappear
 	retry.RunWith(&retry.Timer{Timeout: time.Minute, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		opts := utils.PartitionQueryOptions(s.sidServer.Partition)
-		opts.Namespace = s.sidServer.Namespace
-		opts.Peer = LocalPeerName(peer, "default")
-		svcs, _, err := clDC.Health().Service(s.sidServer.Name, "", true, opts)
+		svcs, _, err := clDC.Health().Service(s.sidServer.Name, "", true, utils.CompatQueryOpts(&api.QueryOptions{
+			Partition: s.sidServer.Partition,
+			Namespace: s.sidServer.Namespace,
+			Peer:      LocalPeerName(peer, "default"),
+		}))
 		require.NoError(r, err)
 		assert.Equal(r, len(svcs), 0, "health entry for imported service gone")
 	})

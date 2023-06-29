@@ -348,8 +348,9 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 			require.Len(t, client.Upstreams, 1, "expected one upstream for client")
 
 			u := client.Upstreams[0]
-			opts := utils.PartitionQueryOptions(u.ID.Partition)
-			ct.Assert.CatalogServiceExists(t, clu.Name, u.ID.Name, opts)
+			ct.Assert.CatalogServiceExists(t, clu.Name, u.ID.Name, utils.CompatQueryOpts(&api.QueryOptions{
+				Partition: u.ID.Partition,
+			}))
 
 			t.Cleanup(func() {
 				cfg := ct.Sprawl.Config()

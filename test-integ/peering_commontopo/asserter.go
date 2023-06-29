@@ -185,15 +185,15 @@ func (a *asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.Se
 	t.Helper()
 	cl := a.mustGetAPIClient(t, cluster)
 	retry.RunWith(&retry.Timer{Timeout: time.Minute * 1, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		opts := utils.PartitionQueryOptions(sid.Partition)
-		opts.Namespace = sid.Namespace
-		opts.Peer = peerName
-
 		svcs, _, err := cl.Health().Service(
 			sid.Name,
 			"",
 			true,
-			opts,
+			utils.CompatQueryOpts(&api.QueryOptions{
+				Partition: sid.Partition,
+				Namespace: sid.Namespace,
+				Peer:      peerName,
+			}),
 		)
 		require.NoError(r, err)
 		assert.GreaterOrEqual(r, len(svcs), 1)

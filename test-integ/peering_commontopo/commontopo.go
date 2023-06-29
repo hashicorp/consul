@@ -158,10 +158,10 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 		// TODO: these could probably be done in parallel
 		for k, v := range eepp {
 			retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}, t, func(r *retry.R) {
-				opts := utils.PartitionQueryOptions(k.partition)
-				// not sure if we need to do a similar DefaultOrEmpty for namespace?
-				opts.Namespace = k.namespace
-				peering, _, err := cl.Peerings().Read(context.Background(), k.peer, opts)
+				peering, _, err := cl.Peerings().Read(context.Background(), k.peer, utils.CompatQueryOpts(&api.QueryOptions{
+					Partition: k.partition,
+					Namespace: k.namespace,
+				}))
 				require.Nil(r, err, "reading peering data")
 				require.NotNilf(r, peering, "peering not found %q", k.peer)
 				assert.Len(r, peering.StreamStatus.ExportedServices, v, "peering exported services")
