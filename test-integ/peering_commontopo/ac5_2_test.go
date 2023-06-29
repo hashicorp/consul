@@ -38,10 +38,6 @@ var (
 
 func TestPreparedQueryFailoverSuite(t *testing.T) {
 	var querySuite *preparedQueryFailoverSuite
-
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
 	t.Parallel()
 	ct := NewCommonTopo(t)
 
