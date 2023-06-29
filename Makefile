@@ -153,20 +153,6 @@ ifdef SKIP_DOCKER_BUILD
 ENVOY_INTEG_DEPS=noop
 endif
 
-# The help target prints out all targets with their descriptions organized
-# beneath their categories. The categories are represented by '##@' and the
-# target descriptions by '##'. The awk commands is responsible for reading the
-# entire set of makefiles included in this invocation, looking for lines of the
-# file as xyz: ## something, and then pretty-format the target and help. Then,
-# if there's a line with ##@ something, that gets pretty-printed as a category.
-# More info on the usage of ANSI control characters for terminal formatting:
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
-# More info on the awk command:
-# http://linuxcommand.org/lc3_adv_awk.php
-.PHONY: help
-help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-
 ##@ Build
 
 .PHONY: all
@@ -297,7 +283,7 @@ lint/%:
 # In a few specific instances though it is okay to import test definitions and
 # helpers from some of the packages in the root module.
 .PHONY: lint-container-test-deps
-lint-container-test-deps: ## check that the test-container module only imports allowlisted packages from the root consul module.
+lint-container-test-deps: ## Check that the test-container module only imports allowlisted packages from the root consul module.
 	@echo "--> Checking container tests for bad dependencies"
 	@cd test/integration/consul-container && \
 		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
@@ -415,7 +401,7 @@ test-compat-integ-setup: dev-docker
 	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
 
 .PHONY: test-compat-integ
-test-compat-integ: test-compat-integ-setup ## test compat integ
+test-compat-integ: test-compat-integ-setup ## Test compat integ
 ifeq ("$(GOTESTSUM_PATH)","")
 	@cd ./test/integration/consul-container && \
 	go test \
@@ -445,7 +431,7 @@ else
 endif
 
 .PHONY: test-metrics-integ
-test-metrics-integ: test-compat-integ-setup ## test metrics integ
+test-metrics-integ: test-compat-integ-setup ## Test metrics integ
 	@cd ./test/integration/consul-container && \
 		go test -v -timeout=7m ./test/metrics \
 		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
@@ -495,7 +481,7 @@ codegen-tools: ## Install tools for codegen
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
 
 .PHONY: deep-copy
-deep-copy: codegen-tools ## deep copy
+deep-copy: codegen-tools ## Deep copy
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
@@ -607,3 +593,19 @@ envoy-regen: ## Regenerating envoy golden files
 	@go test -tags '$(GOTAGS)' ./agent/xds -update
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
+
+##@ Help
+
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk commands is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
