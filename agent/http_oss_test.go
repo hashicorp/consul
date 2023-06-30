@@ -188,12 +188,9 @@ func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
 			req, _ := http.NewRequest(method, uri, nil)
 			req.RemoteAddr = "192.168.1.2:5555"
 			resp := httptest.NewRecorder()
-<<<<<<< HEAD
-			a.config.EnableDebug = true
-=======
+
 			a.enableDebug.Store(true)
 
->>>>>>> 2af6bc434a (feature - [NET - 4005]  - [Supportability] Reloadable Configuration - enable_debug (#17565))
 			a.srv.handler().ServeHTTP(resp, req)
 
 			require.Equal(t, http.StatusForbidden, resp.Code, "%s %s", method, path)
