@@ -184,6 +184,60 @@ spec:
 
 </CodeTabs>
 </Tab>
+
+
+<Tab heading="Consul Enterprise (Sameness Group)">
+<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Partition = "<partition containing services to export>"
+Name = "<partition containing services to export>"
+Services = [
+  {
+    Name = "<name of service to export>"
+    Namespace = "<namespace in the partition containing the service to export>"
+    Consumers = [
+      {
+        SamenessGroup = "<name of the sameness group that dials the exported service>"
+      }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: <partition containing services to export>
+spec:
+  services:
+    - name: <name of service to export>
+      namespace: <namespace in the partition containing the service to export>
+      consumers:
+        - samenessGroup: <name of the sameness group that dials the exported service>
+```
+
+```json
+"Kind": "exported-services",
+"Partition": "<partition containing services to export>",
+"Name": "<partition containing services to export>",
+"Services": [
+  {
+    "Name": "<name of service to export>",
+    "Namespace": "<namespace in the partition containing the service to export>"
+    "Consumers": [
+      {
+        "SamenessGroup": "<name of the sameness group that dials the exported service>"
+      }
+    ]
+  }
+]
+```
+
+</CodeTabs>
+</Tab>
 </Tabs>
 
 ### Configuration Parameters
