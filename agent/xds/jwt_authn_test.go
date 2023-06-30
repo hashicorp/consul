@@ -438,7 +438,7 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 					RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 						HttpUri: &envoy_core_v3.HttpUri{
 							Uri:              oktaRemoteJWKS.URI,
-							HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: "jwks_cluster"},
+							HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: makeJWKSClusterName(ceRemoteJWKS.Name)},
 							Timeout:          &durationpb.Duration{Seconds: 1},
 						},
 						AsyncFetch: &envoy_http_jwt_authn_v3.JwksAsyncFetch{
@@ -520,16 +520,18 @@ func TestMakeLocalJWKS(t *testing.T) {
 
 func TestMakeRemoteJWKS(t *testing.T) {
 	tests := map[string]struct {
-		jwks     *structs.RemoteJWKS
-		expected *envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks
+		jwks         *structs.RemoteJWKS
+		providerName string
+		expected     *envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks
 	}{
 		"with-no-cache-duration": {
-			jwks: oktaRemoteJWKS,
+			jwks:         oktaRemoteJWKS,
+			providerName: "auth0",
 			expected: &envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 				RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 					HttpUri: &envoy_core_v3.HttpUri{
 						Uri:              oktaRemoteJWKS.URI,
-						HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: "jwks_cluster"},
+						HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: makeJWKSClusterName("auth0")},
 						Timeout:          &durationpb.Duration{Seconds: 1},
 					},
 					AsyncFetch: &envoy_http_jwt_authn_v3.JwksAsyncFetch{
@@ -539,12 +541,13 @@ func TestMakeRemoteJWKS(t *testing.T) {
 			},
 		},
 		"with-retry-policy": {
-			jwks: extendedRemoteJWKS,
+			jwks:         extendedRemoteJWKS,
+			providerName: "okta",
 			expected: &envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 				RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 					HttpUri: &envoy_core_v3.HttpUri{
 						Uri:              oktaRemoteJWKS.URI,
-						HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: "jwks_cluster"},
+						HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: makeJWKSClusterName("okta")},
 						Timeout:          &durationpb.Duration{Seconds: 1},
 					},
 					AsyncFetch: &envoy_http_jwt_authn_v3.JwksAsyncFetch{
@@ -560,7 +563,7 @@ func TestMakeRemoteJWKS(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			res := makeRemoteJWKS(tt.jwks)
+			res := makeRemoteJWKS(tt.jwks, tt.providerName)
 			require.Equal(t, res, tt.expected)
 		})
 	}
