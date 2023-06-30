@@ -177,6 +177,17 @@ function assert_cert_has_cn {
   echo "$CERT" | grep "CN = ${CN}"
 }
 
+function assert_upstream_missing_once {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+
+  run get_upstream_endpoint $HOSTPORT $CLUSTER_NAME
+  [ "$status" -eq 0 ]
+  echo "$output"
+  [ "" == "$output" ]
+}
+
+
 function assert_upstream_missing {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
