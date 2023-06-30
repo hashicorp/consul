@@ -510,6 +510,57 @@ spec:
 </Tab>
 </Tabs>
 
+### Exporting a service to a sameness group
+
+The following example configures Consul to export a service named `api` to a defined group of partitions that belong to a separately defined [sameness group](/consul/docs/connect/config-entries/sameness-group) named `monitoring`.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Name = "default"
+
+Services = [
+  {
+    Name      = "api"
+    Consumers = [
+        {
+            SamenessGroup  = "monitoring"
+        }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+Kind: ExportedServices
+metadata:
+  name: default
+spec:
+  services:
+    - name: api
+      consumers:
+        - samenessGroup: monitoring
+```
+
+```json
+"Kind": "exported-services",
+  "Name": "default",
+  "Services": [
+    {
+      "Name": "api",
+      "Consumers": [
+        {
+          "SamenessGroup": "monitoring"
+        }
+      ]
+    }
+  ]
+```
+
+</CodeTabs>
+
 ### Exporting all services
 
 <Tabs>
