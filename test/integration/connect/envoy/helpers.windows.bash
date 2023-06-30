@@ -411,6 +411,15 @@ function get_envoy_metrics {
   get_all_envoy_metrics $HOSTPORT | grep "$METRICS"
 }
 
+function assert_upstream_has_endpoint_port {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+
+  run retry_long assert_upstream_has_endpoint_port_once $HOSTPORT $CLUSTER_NAME $PORT_VALUE
+  [ "$status" -eq 0 ]
+}
+
 function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
