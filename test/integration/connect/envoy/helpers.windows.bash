@@ -177,6 +177,16 @@ function assert_cert_has_cn {
   echo "$CERT" | grep "CN = ${CN}"
 }
 
+function get_upstream_endpoint {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+.cluster_statuses[]
+| select(.name|startswith(\"${CLUSTER_NAME}\"))"
+}
+
 function assert_upstream_missing_once {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
