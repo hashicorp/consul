@@ -12,79 +12,54 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// This tests prepared query failover across 3 clusters. The following test case covers:
-// 1. Create a prepared query with failover target to DC2 and DC3 cluster.
-// Test will fail if not run in parallel
 type preparedQueryFailoverSuite struct {
-	DC   string
-	Peer string
-
-	nodeServer   []*topology.Node
-	dc3ServerSID topology.ServiceID
-
-	serverSID    topology.ServiceID
-	clientSID    topology.ServiceID
-	dc3APIClient *api.Client
+	clientSID  topology.ServiceID
+	serverSID  topology.ServiceID
+	nodeServer topology.NodeID
+	ct         *commonTopo
 }
 
-var (
-	preparedQueryFailoverSuites []*preparedQueryFailoverSuite = []*preparedQueryFailoverSuite{
-		{DC: "dc1", Peer: "dc2"},
-		{DC: "dc2", Peer: "dc1"},
-	}
-	query *api.PreparedQuery
-	def   *api.PreparedQueryDefinition
-)
+var ac5Context = make(map[nodeKey]preparedQueryFailoverSuite)
 
 func TestPreparedQueryFailoverSuite(t *testing.T) {
-	var querySuite *preparedQueryFailoverSuite
+	if !*FlagNoReuseCommonTopo {
+		t.Skip("NoReuseCommonTopo unset")
+	}
 	t.Parallel()
+	s := preparedQueryFailoverSuite{}
 	ct := NewCommonTopo(t)
+	s.ct = ct
 
-	for _, s := range preparedQueryFailoverSuites {
-		s.setup(t, ct)
-		querySuite = s
-	}
-	// setup dc3 cluster and disable server node in dc2
-	querySuite.setupForDC3(ct, ct.DC3, ct.DC1, ct.DC2)
+	s.setup(t, ct)
 	ct.Launch(t)
-
-	for _, s := range preparedQueryFailoverSuites {
-		s := s
-		t.Run(s.testName(), func(t *testing.T) {
-			t.Parallel()
-			s.test(t, ct)
-		})
-	}
+	s.test(t, ct)
 }
 
 func (s *preparedQueryFailoverSuite) testName() string {
-	return fmt.Sprintf("ac5.2 prepared query failover %s->%s", s.DC, s.Peer)
+	return "prepared query failover assertions"
 }
 
-// creates clients in s.DC and servers in s.Peer
 func (s *preparedQueryFailoverSuite) setup(t *testing.T, ct *commonTopo) {
-	clu := ct.ClusterByDatacenter(t, s.DC)
-	peerClu := ct.ClusterByDatacenter(t, s.Peer)
+	s.setupDC(ct, ct.DC1, ct.DC2)
+	s.setupDC(ct, ct.DC2, ct.DC1)
+	s.setupDC3(ct, ct.DC3, ct.DC1, ct.DC2)
+}
 
+func (s *preparedQueryFailoverSuite) setupDC(ct *commonTopo, clu, peerClu *topology.Cluster) {
 	// TODO: handle all partitions
 	partition := "default"
-	peer := LocalPeerName(peerClu, "default")
-	cluPeerName := LocalPeerName(clu, "default")
+	peer := LocalPeerName(peerClu, partition)
 
 	serverSID := topology.ServiceID{
 		Name:      "ac5-server-http",
 		Partition: partition,
 	}
 
-	// Make client which will dial server
 	clientSID := topology.ServiceID{
 		Name:      "ac5-client-http",
 		Partition: partition,
 	}
 
-	// disable service mesh for client in DC2
-	fmt.Println("Creating client in cluster: ", s.DC)
 	client := serviceExt{
 		Service: NewFortioServiceWithDefaults(
 			clu.Datacenter,
@@ -107,27 +82,27 @@ func (s *preparedQueryFailoverSuite) setup(t *testing.T, ct *commonTopo) {
 
 	server := serviceExt{
 		Service: NewFortioServiceWithDefaults(
-			peerClu.Datacenter,
+			clu.Datacenter,
 			serverSID,
 			nil,
 		),
-		Exports: []api.ServiceConsumer{{Peer: cluPeerName}},
+		Exports: []api.ServiceConsumer{{Peer: peer}},
 	}
+	serverNode := ct.AddServiceNode(clu, server)
 
-	serverNode := ct.AddServiceNode(peerClu, server)
-
-	s.clientSID = clientSID
-	s.serverSID = serverSID
-	s.nodeServer = append(s.nodeServer, serverNode)
+	ac5Context[nodeKey{clu.Datacenter, partition}] = preparedQueryFailoverSuite{
+		clientSID:  clientSID,
+		serverSID:  serverSID,
+		nodeServer: serverNode.ID(),
+	}
 }
 
-func (s *preparedQueryFailoverSuite) setupForDC3(ct *commonTopo, clu, peer1, peer2 *topology.Cluster) {
+func (s *preparedQueryFailoverSuite) setupDC3(ct *commonTopo, clu, peer1, peer2 *topology.Cluster) {
 	var (
 		peers     []string
 		partition = "default"
 	)
-	peers = append(peers, LocalPeerName(peer1, "default"))
-	peers = append(peers, LocalPeerName(peer2, "default"))
+	peers = append(peers, LocalPeerName(peer1, partition), LocalPeerName(peer2, partition))
 
 	serverSID := topology.ServiceID{
 		Name:      "ac5-server-http",
@@ -140,7 +115,6 @@ func (s *preparedQueryFailoverSuite) setupForDC3(ct *commonTopo, clu, peer1, pee
 	}
 
 	// disable service mesh for client in DC3
-	fmt.Println("Creating client in cluster: ", clu.Datacenter)
 	client := serviceExt{
 		Service: NewFortioServiceWithDefaults(
 			clu.Datacenter,
@@ -169,7 +143,6 @@ func (s *preparedQueryFailoverSuite) setupForDC3(ct *commonTopo, clu, peer1, pee
 
 	ct.AddServiceNode(clu, client)
 
-	// Make HTTP server
 	server := serviceExt{
 		Service: NewFortioServiceWithDefaults(
 			clu.Datacenter,
@@ -189,120 +162,166 @@ func (s *preparedQueryFailoverSuite) setupForDC3(ct *commonTopo, clu, peer1, pee
 
 	serverNode := ct.AddServiceNode(clu, server)
 
-	s.dc3ServerSID = serverSID
-	s.nodeServer = append(s.nodeServer, serverNode)
+	ac5Context[nodeKey{clu.Datacenter, partition}] = preparedQueryFailoverSuite{
+		clientSID:  clientSID,
+		serverSID:  serverSID,
+		nodeServer: serverNode.ID(),
+	}
+}
+
+func (s *preparedQueryFailoverSuite) createPreparedQuery(t *testing.T, c *api.Client, serviceName, partition string) (*api.PreparedQueryDefinition, *api.PreparedQuery) {
+	var (
+		peers []string
+		err   error
+	)
+	peers = append(peers, LocalPeerName(s.ct.DC2, partition), LocalPeerName(s.ct.DC3, partition))
+
+	def := &api.PreparedQueryDefinition{
+		Name: "ac5-prepared-query",
+		Service: api.ServiceQuery{
+			Service:     serviceName,
+			Partition:   ConfigEntryPartition(partition),
+			OnlyPassing: true,
+			Failover: api.QueryFailoverOptions{
+				Targets: func() []api.QueryFailoverTarget {
+					var queryFailoverTargets []api.QueryFailoverTarget
+					for _, peer := range peers {
+						queryFailoverTargets = append(queryFailoverTargets, api.QueryFailoverTarget{
+							Peer: peer,
+						})
+					}
+					return queryFailoverTargets
+				}(),
+			},
+		},
+	}
+
+	query := c.PreparedQuery()
+	def.ID, _, err = query.Create(def, nil)
+	require.NoError(t, err, "error creating prepared query in cluster")
+
+	return def, query
 }
 
 func (s *preparedQueryFailoverSuite) test(t *testing.T, ct *commonTopo) {
-	var partition = "default"
-	dc := ct.Sprawl.Topology().Clusters[s.DC]
-	apiClient := ct.APIClientForCluster(t, dc)
-
+	partition := "default"
+	dc1 := ct.Sprawl.Topology().Clusters[ct.DC1.Name]
+	dc2 := ct.Sprawl.Topology().Clusters[ct.DC2.Name]
 	dc3 := ct.Sprawl.Topology().Clusters[ct.DC3.Name]
-	s.dc3APIClient = ct.APIClientForCluster(t, dc3)
 
-	// get peer names for dc2 & dc3 cluster respectively
-	var peers []string
-	peers = append(peers, LocalPeerName(ct.DC2, partition))
-	peers = append(peers, LocalPeerName(ct.DC3, partition))
+	type testcase struct {
+		cluster       *topology.Cluster
+		peer          *topology.Cluster
+		targetCluster *topology.Cluster
+	}
+	tcs := []testcase{
+		{
+			cluster:       dc1,
+			peer:          dc2,
+			targetCluster: dc3,
+		},
+	}
+	for _, tc := range tcs {
+		client := ct.APIClientForCluster(t, tc.cluster)
 
-	s.testServiceHealthCheck(t, apiClient)
-	s.testQueryTwoFailovers(t, apiClient, ct, peers)
+		t.Run(s.testName(), func(t *testing.T) {
+			svc := ac5Context[nodeKey{tc.cluster.Name, partition}]
+			require.NotNil(t, svc.serverSID.Name, "expected service name to not be nil")
+			require.NotNil(t, svc.nodeServer, "expected node server to not be nil")
+
+			assertServiceHealth(t, client, svc.serverSID.Name, 1)
+			def, _ := s.createPreparedQuery(t, client, svc.serverSID.Name, partition)
+			s.testPreparedQueryZeroFailover(t, client, def, tc.cluster)
+			s.testPreparedQuerySingleFailover(t, client, def, tc.cluster, tc.peer, partition)
+			s.testPreparedQueryTwoFailovers(t, client, def, tc.cluster, tc.peer, tc.targetCluster, partition)
+		})
+	}
 }
 
-func (s *preparedQueryFailoverSuite) testServiceHealthCheck(t *testing.T, apiClient *api.Client) {
-	t.Run("validate service health in cluster", func(t *testing.T) {
-		// preconditions check
-		assertServiceHealth(t, s.dc3APIClient, s.serverSID.Name, 1) // validate server is healthy in dc3 cluster
-		assertServiceHealth(t, apiClient, s.serverSID.Name, 1)
+func (s *preparedQueryFailoverSuite) testPreparedQueryZeroFailover(t *testing.T, cl *api.Client, def *api.PreparedQueryDefinition, cluster *topology.Cluster) {
+	t.Run(fmt.Sprintf("prepared query should not failover %s", cluster.Name), func(t *testing.T) {
+
+		// Validate prepared query exists in cluster
+		queryDef, _, err := cl.PreparedQuery().Get(def.ID, nil)
+		require.NoError(t, err)
+		require.Len(t, queryDef, 1, "expected 1 prepared query")
+		require.Equal(t, 2, len(queryDef[0].Service.Failover.Targets), "expected 2 prepared query failover targets to dc2 and dc3")
+
+		queryResult, _, err := cl.PreparedQuery().Execute(def.ID, nil)
+		require.NoError(t, err)
+
+		// expected outcome should show 0 failover
+		require.Equal(t, 0, queryResult.Failovers, "expected 0 prepared query failover")
+		require.Equal(t, cluster.Name, queryResult.Nodes[0].Node.Datacenter, "pq results should come from the local cluster")
 	})
 }
 
-func (s *preparedQueryFailoverSuite) testQueryTwoFailovers(t *testing.T, c *api.Client, ct *commonTopo, peers []string) {
-	if s.DC == "dc2" {
-		// TO-DO: currently failing
-		t.Skip()
-	}
+func (s *preparedQueryFailoverSuite) testPreparedQuerySingleFailover(t *testing.T, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
+	t.Run(fmt.Sprintf("prepared query with single failover %s", cluster.Name), func(t *testing.T) {
+		cfg := s.ct.Sprawl.Config()
+		svc := ac5Context[nodeKey{cluster.Name, partition}]
 
-	t.Run("prepared query with two failovers", func(t *testing.T) {
-		var err error
-
-		// disable dc1 & dc2 and relaunch topology
-		cfg := ct.Sprawl.Config()
-		require.NoError(t, disableNodeInCluster(t, cfg, ct.DC1.Name, s.serverSID.Name, true)) //dc1
-		require.NoError(t, disableNodeInCluster(t, cfg, ct.DC2.Name, s.serverSID.Name, true)) //dc2
-		require.NoError(t, ct.Sprawl.Relaunch(cfg))
+		nodeCfg := DisableNode(t, cfg, cluster.Name, svc.nodeServer)
+		require.NoError(t, s.ct.Sprawl.Relaunch(nodeCfg))
 
 		// assert server health status
-		dc2 := ct.Sprawl.Topology().Clusters[ct.DC2.Name]
-		dc2APIClient := ct.APIClientForCluster(t, dc2)
+		assertServiceHealth(t, cl, svc.serverSID.Name, 0)
 
-		assertServiceHealth(t, c, s.serverSID.Name, 0)              //dc1
-		assertServiceHealth(t, dc2APIClient, s.serverSID.Name, 0)   //dc2
-		assertServiceHealth(t, s.dc3APIClient, s.serverSID.Name, 1) //dc3 is status should be unchanged
+		// Validate prepared query exists in cluster
+		queryDef, _, err := cl.PreparedQuery().Get(def.ID, nil)
+		require.NoError(t, err)
+		require.Len(t, queryDef, 1, "expected 1 prepared query")
 
-		// create prepared query definition
-		def = &api.PreparedQueryDefinition{
-			Name: "ac5-prepared-query",
-			Service: api.ServiceQuery{
-				Service:     s.serverSID.Name,
-				Partition:   ConfigEntryPartition(s.serverSID.Partition),
-				OnlyPassing: true,
-				// create failover for peer in dc2 and dc3 cluster
-				Failover: api.QueryFailoverOptions{
-					Targets: func() []api.QueryFailoverTarget {
-						var queryFailoverTargets []api.QueryFailoverTarget
-						for _, peer := range peers {
-							queryFailoverTargets = append(queryFailoverTargets, api.QueryFailoverTarget{
-								Peer: peer,
-							})
-						}
-						return queryFailoverTargets
-					}(),
-				},
-			},
-		}
+		pqFailoverTargets := queryDef[0].Service.Failover.Targets
+		require.Len(t, pqFailoverTargets, 2, "expected 2 prepared query failover targets to dc2 and dc3")
 
-		query = c.PreparedQuery()
-		def.ID, _, err = query.Create(def, nil)
+		queryResult, _, err := cl.PreparedQuery().Execute(def.ID, nil)
 		require.NoError(t, err)
 
-		// Read registered query
-		queryDef, _, err := query.Get(def.ID, nil)
-		require.NoError(t, err)
-		require.Len(t, queryDef, 1, "expected exactly 1 prepared query")
-		require.Equal(t, 2, len(queryDef[0].Service.Failover.Targets), "expected 2 failover targets for dc2 & dc3")
-		fmt.Println("PreparedQuery with failover created successfully.")
-
-		// expected outcome should show 2 failovers
-		queryResult, _, err := query.Execute(def.ID, nil)
-		require.NoError(t, err)
-		require.Equal(t, 2, queryResult.Failovers, "expected 2 failovers to dc3")
-		// should failover to peer in DC2 cluster
-		require.Equal(t, ct.DC3.Datacenter, queryResult.Nodes[0].Node.Datacenter)
-		// failover to nearest cluster
-		require.Equal(t, "peer-dc3-default", queryResult.Nodes[0].Checks[0].PeerName)
+		require.Equal(t, 1, queryResult.Failovers, "expected 1 prepared query failover")
+		require.Equal(t, peerClu.Name, queryResult.Nodes[0].Node.Datacenter, fmt.Sprintf("the pq results should originate from peer clu %s", peerClu.Name))
+		require.Equal(t, pqFailoverTargets[0].Peer, queryResult.Nodes[0].Checks[0].PeerName,
+			fmt.Sprintf("pq results should come from the first failover target peer %s", pqFailoverTargets[0].Peer))
 	})
 }
 
-// disableNodeInCluster disables node in specified datacenter
-func disableNodeInCluster(t *testing.T, cfg *topology.Config, clusterName, serviceName string, status bool) error {
-	nodes := cfg.Cluster(clusterName).Nodes
-	serverNode := fmt.Sprintf("%s-%s", clusterName, serviceName)
-	for _, node := range nodes {
-		if node.Name == serverNode {
-			node.Disabled = status
-			fmt.Printf("Node: %s Node Disabled: %v Cluster: %s\n", node.Name, node.Disabled, node.Cluster)
-			return nil
-		}
-	}
-	return fmt.Errorf("Failed to disable node")
+func (s *preparedQueryFailoverSuite) testPreparedQueryTwoFailovers(t *testing.T, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu, targetCluster *topology.Cluster, partition string) {
+	t.Run(fmt.Sprintf("prepared query with two failovers %s", cluster.Name), func(t *testing.T) {
+		cfg := s.ct.Sprawl.Config()
+
+		svc := ac5Context[nodeKey{peerClu.Name, partition}]
+
+		cfg = DisableNode(t, cfg, peerClu.Name, svc.nodeServer)
+		require.NoError(t, s.ct.Sprawl.Relaunch(cfg))
+
+		// assert server health status
+		assertServiceHealth(t, cl, ac5Context[nodeKey{cluster.Name, partition}].serverSID.Name, 0) // cluster: failing
+		assertServiceHealth(t, cl, svc.serverSID.Name, 0)                                          // peer cluster: failing
+
+		queryDef, _, err := cl.PreparedQuery().Get(def.ID, nil)
+		require.NoError(t, err)
+		require.Len(t, queryDef, 1, "expected 1 prepared query")
+
+		pqFailoverTargets := queryDef[0].Service.Failover.Targets
+		require.Len(t, pqFailoverTargets, 2, "expected 2 prepared query failover targets to dc2 and dc3")
+
+		retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}, t, func(r *retry.R) {
+			queryResult, _, err := cl.PreparedQuery().Execute(def.ID, nil)
+			require.NoError(r, err)
+			require.Equal(r, 2, queryResult.Failovers, "expected 2 prepared query failover")
+
+			require.Equal(r, targetCluster.Name, queryResult.Nodes[0].Node.Datacenter, fmt.Sprintf("the pq results should originate from cluster %s", targetCluster.Name))
+			require.Equal(r, pqFailoverTargets[1].Peer, queryResult.Nodes[0].Checks[0].PeerName,
+				fmt.Sprintf("pq results should come from the second failover target peer %s", pqFailoverTargets[1].Peer))
+		})
+	})
 }
 
 // assertServiceHealth checks that a service health status before running tests
 func assertServiceHealth(t *testing.T, cl *api.Client, serverSVC string, count int) {
 	t.Helper()
-	retry.RunWith(&retry.Timer{Timeout: time.Second * 30, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+	t.Log("validate service health in catalog")
+	retry.RunWith(&retry.Timer{Timeout: time.Second * 10, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
 		svcs, _, err := cl.Health().Service(
 			serverSVC,
 			"",
