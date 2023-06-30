@@ -5,10 +5,8 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1;
 
-import "google/protobuf/duration.proto";
 import "pbcatalog/v1alpha1/selector.proto";
-import "pbmesh/v1alpha1/connection.proto";
-import "pbmesh/v1alpha1/routing.proto";
+import "pbmesh/v1alpha1/upstreams_configuration.proto";
 import "pbresource/resource.proto";
 
 message Upstreams {
@@ -16,85 +14,63 @@ message Upstreams {
   // These can be prefixes or specific workload names.
   hashicorp.consul.catalog.v1alpha1.WorkloadSelector workloads = 1;
 
+  // upstreams is the list of explicit upstreams to define for the selected workloads.
   repeated Upstream upstreams = 2;
-  repeated PreparedQueryUpstream pq_upstreams = 3;
 
-  UpstreamConfig upstream_config = 4;
+  // pq_upstreams is the list of prepared query upstreams. This field is not supported directly in v2
+  // and should only be used for migration reasons.
+  repeated PreparedQueryUpstream pq_upstreams = 3;
 }
 
 message Upstream {
-  hashicorp.consul.resource.ID destination_ref = 1;
+  // destination_ref is the reference to an upstream service. This has to be pbcatalog.Service type.
+  hashicorp.consul.resource.Reference destination_ref = 1;
+
+  // destination_port is the port name of the upstream service. This should be the name
+  // of the service's target port.
   string destination_port = 2;
+
+  // datacenter is the datacenter for where this upstream service lives.
   string datacenter = 3;
 
+  // listen_addr is the address where Envoy will listen for requests to this upstream.
+  // It can provided either as an ip:port or as a Unix domain socket.
   oneof listen_addr {
-    TCPAddress tcp = 4;
+    IPPortAddress ip_port = 4;
     UnixSocketAddress unix = 5;
   }
-
-  UpstreamConfig upstream_config = 7;
 }
 
-message TCPAddress {
+message IPPortAddress {
+  // ip is an IPv4 address.
   string ip = 1;
+
+  // port is the port number.
   uint32 port = 2;
 }
 
 message UnixSocketAddress {
+  // path is the file system path at which to bind a Unix domain socket listener.
   string path = 1;
+
+  // mode is the Unix file mode for the socket file. It should be provided
+  // in the numeric notation, for example, "0600".
   string mode = 2;
 }
 
 message PreparedQueryUpstream {
+  // name is the name of the prepared query to use as an upstream.
   string name = 1;
+
+  // datacenter is the datacenter for where this upstream service lives.
   string datacenter = 2;
 
+  // listen_addr is the address where Envoy will listen for requests to this upstream.
+  // It can provided either as an ip:port or as a Unix domain socket.
   oneof listen_addr {
-    TCPAddress tcp = 4;
+    IPPortAddress tcp = 4;
     UnixSocketAddress unix = 5;
   }
 
   UpstreamConfig upstream_config = 6;
-}
-
-message UpstreamConfig {
-  uint64 connect_timeout_ms = 2;
-  UpstreamLimits limits = 3;
-  PassiveHealthCheck passive_health_check = 4;
-  BalanceConnections balance_outbound_connections = 5;
-  MeshGatewayMode mesh_gateway_mode = 6;
-}
-
-// UpstreamLimits describes the limits that are associated with a specific
-// upstream of a service instance.
-message UpstreamLimits {
-  // MaxConnections is the maximum number of connections the local proxy can
-  // make to the upstream service.
-  int32 max_connections = 1;
-
-  // MaxPendingRequests is the maximum number of requests that will be queued
-  // waiting for an available connection. This is mostly applicable to HTTP/1.1
-  // clusters since all HTTP/2 requests are streamed over a single
-  // connection.
-  int32 max_pending_requests = 2;
-
-  // MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
-  // to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
-  // clusters since all HTTP/1.1 requests are limited by MaxConnections.
-  int32 max_concurrent_requests = 3;
-}
-
-message PassiveHealthCheck {
-  // Interval between health check analysis sweeps. Each sweep may remove
-  // hosts or return hosts to the pool.
-  google.protobuf.Duration interval = 1;
-
-  // MaxFailures is the count of consecutive failures that results in a host
-  // being removed from the pool.
-  uint32 max_failures = 2;
-
-  // EnforcingConsecutive5xx is the % chance that a host will be actually ejected
-  // when an outlier status is detected through consecutive 5xx.
-  // This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
-  uint32 enforcing_consecutive_5xx = 3;
 }

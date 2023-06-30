@@ -10,23 +10,23 @@ import (
 )
 
 const (
-	UpstreamsKind = "Upstreams"
+	UpstreamsConfigurationKind = "UpstreamsConfiguration"
 )
 
 var (
-	UpstreamsV1Alpha1Type = &pbresource.Type{
+	UpstreamsConfigurationV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: CurrentVersion,
-		Kind:         UpstreamsKind,
+		Kind:         UpstreamsConfigurationKind,
 	}
 
-	UpstreamsType = UpstreamsV1Alpha1Type
+	UpstreamsConfigurationType = UpstreamsConfigurationV1Alpha1Type
 )
 
-func RegisterUpstreams(r resource.Registry) {
+func RegisterUpstreamsConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     UpstreamsType,
-		Proto:    &pbmesh.Upstreams{},
+		Type:     UpstreamsConfigurationType,
+		Proto:    &pbmesh.UpstreamsConfiguration{},
 		Validate: nil,
 	})
 }
