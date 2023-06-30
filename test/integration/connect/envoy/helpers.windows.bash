@@ -163,6 +163,20 @@ function assert_cert_signed_by_ca {
   echo "$CERT" | grep 'Verify return code: 0 (ok)'
 }
 
+function assert_cert_has_cn {
+  local HOSTPORT=$1
+  local CN=$2
+  local SERVER_NAME=${3:-$CN}
+
+  CERT=$(openssl s_client -connect $HOSTPORT -servername $SERVER_NAME -showcerts </dev/null 2>/dev/null)
+
+  echo "WANT CN: ${CN} (SNI: ${SERVER_NAME})"
+  echo "GOT CERT:"
+  echo "$CERT"
+
+  echo "$CERT" | grep "CN = ${CN}"
+}
+
 function assert_envoy_version {
   local ADMINPORT=$1
   run retry_default curl -f -s localhost:$ADMINPORT/server_info
