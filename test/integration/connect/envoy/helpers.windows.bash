@@ -804,6 +804,21 @@ function wait_for_config_entry {
   retry_default read_config_entry "$@"
 }
 
+function assert_config_entry_status {
+  local TYPE="$1"
+  local STATUS="$2"
+  local REASON="$3"
+  local DC="$4"
+  local KIND="$5"
+  local NAME="$6"
+  local NS=${7:-}
+  local AP=${8:-}
+  local PEER=${9:-}
+
+  status=$(curl -s -f "consul-${DC}-client:8500/v1/config/${KIND}/${NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER}" | jq ".Status.Conditions[] | select(.Type == \"$TYPE\" and .Status == \"$STATUS\" and .Reason == \"$REASON\")")
+  [ -n "$status" ]
+}
+
 function delete_config_entry {
   local KIND=$1
   local NAME=$2
