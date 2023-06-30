@@ -4199,6 +4199,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
 
 	a.enableDebug.Store(newCfg.EnableDebug)
+	a.config.EnableDebug = newCfg.EnableDebug
 
 	return nil
 }
