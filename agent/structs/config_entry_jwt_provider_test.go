@@ -250,14 +250,14 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 						JWKSCluster: &JWKSCluster{
 							TLSCertificates: &JWKSTLSCertificate{
-								TrustedCa:                     &JWKSTLSCertTrustedCa{},
+								TrustedCA:                     &JWKSTLSCertTrustedCA{},
 								CaCertificateProviderInstance: &JWKSTLSCertProviderInstance{},
 							},
 						},
 					},
 				},
 			},
-			validateErr: "must specify exactly one of: CaCertificateProviderInstance or TrustedCa for JKWS' TLSCertificates",
+			validateErr: "must specify exactly one of: CaCertificateProviderInstance or TrustedCA for JKWS' TLSCertificates",
 		},
 		"invalid jwt-provider - Remote JWKS cluster with multiple trustedCa options": {
 			entry: &JWTProviderConfigEntry{
@@ -269,7 +269,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 						JWKSCluster: &JWKSCluster{
 							TLSCertificates: &JWKSTLSCertificate{
-								TrustedCa: &JWKSTLSCertTrustedCa{
+								TrustedCA: &JWKSTLSCertTrustedCA{
 									Filename:     "myfile.cert",
 									InlineString: "*****",
 								},
@@ -278,7 +278,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "must specify exactly one of: Filename, EnvironmentVariable, InlineString or InlineBytes for JWKS' TrustedCa",
+			validateErr: "must specify exactly one of: Filename, EnvironmentVariable, InlineString or InlineBytes for JWKS' TrustedCA",
 		},
 		"invalid jwt-provider - JWT location with 2 fields": {
 			entry: &JWTProviderConfigEntry{
@@ -326,7 +326,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 							DiscoveryType:  "STATIC",
 							ConnectTimeout: connectTimeout,
 							TLSCertificates: &JWKSTLSCertificate{
-								TrustedCa: &JWKSTLSCertTrustedCa{
+								TrustedCA: &JWKSTLSCertTrustedCA{
 									Filename: "myfile.cert",
 								},
 							},
@@ -367,7 +367,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 							DiscoveryType:  "STATIC",
 							ConnectTimeout: connectTimeout,
 							TLSCertificates: &JWKSTLSCertificate{
-								TrustedCa: &JWKSTLSCertTrustedCa{
+								TrustedCA: &JWKSTLSCertTrustedCA{
 									Filename: "myfile.cert",
 								},
 							},

@@ -16,11 +16,11 @@ import (
 const (
 	DefaultClockSkewSeconds = 30
 
-	StrictDNS   ClusterDiscoveryType = "STRICT_DNS"
-	Static      ClusterDiscoveryType = "STATIC"
-	LogicalDNS  ClusterDiscoveryType = "LOGICAL_DNS"
-	EDS         ClusterDiscoveryType = "EDS"
-	OriginalDST ClusterDiscoveryType = "ORIGINAL_DST"
+	DiscoveryTypeStrictDNS   ClusterDiscoveryType = "STRICT_DNS"
+	DiscoveryTypeStatic      ClusterDiscoveryType = "STATIC"
+	DiscoveryTypeLogicalDNS  ClusterDiscoveryType = "LOGICAL_DNS"
+	DiscoveryTypeEDS         ClusterDiscoveryType = "EDS"
+	DiscoveryTypeOriginalDST ClusterDiscoveryType = "ORIGINAL_DST"
 )
 
 type JWTProviderConfigEntry struct {
@@ -252,7 +252,7 @@ type RemoteJWKS struct {
 	// There is no retry by default.
 	RetryPolicy *JWKSRetryPolicy `json:",omitempty" alias:"retry_policy"`
 
-	// JWKSCluster defines how the specified Remote JWKS "URI" is to be fetched.
+	// JWKSCluster defines how the specified Remote JWKS URI is to be fetched.
 	JWKSCluster *JWKSCluster `json:",omitempty" alias:"jwks_cluster"`
 }
 
@@ -282,15 +282,15 @@ func (ks *RemoteJWKS) Validate() error {
 type JWKSCluster struct {
 	// DiscoveryType refers to the service discovery type to use for resolving the cluster.
 	//
-	// This defaults to: STRICT_DNS
-	// other options include: STATIC, LOGICAL_DNS, EDS and ORIGINAL_DST
+	// This defaults to STRICT_DNS.
+	// Other options include STATIC, LOGICAL_DNS, EDS or ORIGINAL_DST.
 	DiscoveryType ClusterDiscoveryType `json:",omitempty" alias:"discovery_type"`
 
 	// TLSCertificates refers to the data containing certificate authority certificates to use
-	// in verifying a presented peer certificate
+	// in verifying a presented peer certificate.
 	// If not specified and a peer certificate is presented it will not be verified.
 	//
-	// must be one of: CaCertificateProviderInstance or TrustedCa
+	// Must be either CaCertificateProviderInstance or TrustedCA.
 	TLSCertificates *JWKSTLSCertificate `json:",omitempty" alias:"tls_certificates"`
 
 	// The timeout for new network connections to hosts in the cluster.
@@ -302,7 +302,7 @@ type ClusterDiscoveryType string
 
 func (d ClusterDiscoveryType) Validate() error {
 	switch d {
-	case Static, StrictDNS, LogicalDNS, EDS, OriginalDST:
+	case DiscoveryTypeStatic, DiscoveryTypeStrictDNS, DiscoveryTypeLogicalDNS, DiscoveryTypeEDS, DiscoveryTypeOriginalDST:
 		return nil
 	default:
 		return fmt.Errorf("unsupported jwks cluster discovery type: %q", d)
@@ -324,68 +324,68 @@ func (c *JWKSCluster) Validate() error {
 }
 
 // JWKSTLSCertificate refers to the data containing certificate authority certificates to use
-// in verifying a presented peer certificate
+// in verifying a presented peer certificate.
 // If not specified and a peer certificate is presented it will not be verified.
 //
-// must be one of: CaCertificateProviderInstance or TrustedCa
+// Must be either CaCertificateProviderInstance or TrustedCA.
 type JWKSTLSCertificate struct {
 	// CaCertificateProviderInstance Certificate provider instance for fetching TLS certificates.
 	CaCertificateProviderInstance *JWKSTLSCertProviderInstance `json:",omitempty" alias:"ca_certificate_provider_instance"`
 
-	// TrustedCa defines TLS certificate data containing certificate authority certificates
-	// to use in verifying a presented peer certificate
+	// TrustedCA defines TLS certificate data containing certificate authority certificates
+	// to use in verifying a presented peer certificate.
 	//
 	// Exactly one of Filename, EnvironmentVariable, InlineString or InlineBytes must be specified.
-	TrustedCa *JWKSTLSCertTrustedCa `json:",omitempty" alias:"trusted_ca"`
+	TrustedCA *JWKSTLSCertTrustedCA `json:",omitempty" alias:"trusted_ca"`
 }
 
 func (c *JWKSTLSCertificate) Validate() error {
 	hasProviderInstance := c.CaCertificateProviderInstance != nil
-	hasTrustedCa := c.TrustedCa != nil
+	hasTrustedCA := c.TrustedCA != nil
 
-	if countTrue(hasProviderInstance, hasTrustedCa) != 1 {
-		return fmt.Errorf("must specify exactly one of: CaCertificateProviderInstance or TrustedCa for JKWS' TLSCertificates")
+	if countTrue(hasProviderInstance, hasTrustedCA) != 1 {
+		return fmt.Errorf("must specify exactly one of: CaCertificateProviderInstance or TrustedCA for JKWS' TLSCertificates")
 	}
 
-	if c.TrustedCa != nil {
-		return c.TrustedCa.Validate()
+	if c.TrustedCA != nil {
+		return c.TrustedCA.Validate()
 	}
 	return nil
 }
 
 type JWKSTLSCertProviderInstance struct {
-	// InstanceName refers to the certicate provider instance name
+	// InstanceName refers to the certificate provider instance name
 	//
-	// defaults to "default".
+	// The default value is "default".
 	InstanceName string `json:",omitempty" alias:"instance_name"`
 
 	// CertificateName is used to specify certificate instances or types. For example, "ROOTCA" to specify
 	// a root-certificate (validation context) or "example.com" to specify a certificate for a
 	// particular domain.
 	//
-	// default to empty string
+	// The default value is the empty string.
 	CertificateName string `json:",omitempty" alias:"certificate_name"`
 }
 
-// JWKSTLSCertTrustedCa defines TLS certificate data containing certificate authority certificates
-// to use in verifying a presented peer certificate
+// JWKSTLSCertTrustedCA defines TLS certificate data containing certificate authority certificates
+// to use in verifying a presented peer certificate.
 //
 // Exactly one of Filename, EnvironmentVariable, InlineString or InlineBytes must be specified.
-type JWKSTLSCertTrustedCa struct {
+type JWKSTLSCertTrustedCA struct {
 	Filename            string `json:",omitempty" alias:"filename"`
 	EnvironmentVariable string `json:",omitempty" alias:"environment_variable"`
 	InlineString        string `json:",omitempty" alias:"inline_string"`
 	InlineBytes         []byte `json:",omitempty" alias:"inline_bytes"`
 }
 
-func (c *JWKSTLSCertTrustedCa) Validate() error {
+func (c *JWKSTLSCertTrustedCA) Validate() error {
 	hasFilename := c.Filename != ""
 	hasEnv := c.EnvironmentVariable != ""
 	hasInlineBytes := len(c.InlineBytes) > 0
 	hasInlineString := c.InlineString != ""
 
 	if countTrue(hasFilename, hasEnv, hasInlineString, hasInlineBytes) != 1 {
-		return fmt.Errorf("must specify exactly one of: Filename, EnvironmentVariable, InlineString or InlineBytes for JWKS' TrustedCa")
+		return fmt.Errorf("must specify exactly one of: Filename, EnvironmentVariable, InlineString or InlineBytes for JWKS' TrustedCA")
 	}
 	return nil
 }

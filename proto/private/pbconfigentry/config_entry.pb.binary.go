@@ -758,12 +758,12 @@ func (msg *JWKSTLSCertProviderInstance) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *JWKSTLSCertTrustedCa) MarshalBinary() ([]byte, error) {
+func (msg *JWKSTLSCertTrustedCA) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *JWKSTLSCertTrustedCa) UnmarshalBinary(b []byte) error {
+func (msg *JWKSTLSCertTrustedCA) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

@@ -6330,7 +6330,7 @@ type JWKSTLSCertificate struct {
 	unknownFields protoimpl.UnknownFields
 
 	CaCertificateProviderInstance *JWKSTLSCertProviderInstance `protobuf:"bytes,1,opt,name=CaCertificateProviderInstance,proto3" json:"CaCertificateProviderInstance,omitempty"`
-	TrustedCa                     *JWKSTLSCertTrustedCa        `protobuf:"bytes,2,opt,name=TrustedCa,proto3" json:"TrustedCa,omitempty"`
+	TrustedCA                     *JWKSTLSCertTrustedCA        `protobuf:"bytes,2,opt,name=TrustedCA,proto3" json:"TrustedCA,omitempty"`
 }
 
 func (x *JWKSTLSCertificate) Reset() {
@@ -6372,9 +6372,9 @@ func (x *JWKSTLSCertificate) GetCaCertificateProviderInstance() *JWKSTLSCertProv
 	return nil
 }
 
-func (x *JWKSTLSCertificate) GetTrustedCa() *JWKSTLSCertTrustedCa {
+func (x *JWKSTLSCertificate) GetTrustedCA() *JWKSTLSCertTrustedCA {
 	if x != nil {
-		return x.TrustedCa
+		return x.TrustedCA
 	}
 	return nil
 }
@@ -6441,10 +6441,10 @@ func (x *JWKSTLSCertProviderInstance) GetCertificateName() string {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/agent/structs.JWKSTLSCertTrustedCa
+// target=github.com/hashicorp/consul/agent/structs.JWKSTLSCertTrustedCA
 // output=config_entry.gen.go
 // name=Structs
-type JWKSTLSCertTrustedCa struct {
+type JWKSTLSCertTrustedCA struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -6455,8 +6455,8 @@ type JWKSTLSCertTrustedCa struct {
 	InlineBytes         []byte `protobuf:"bytes,4,opt,name=InlineBytes,proto3" json:"InlineBytes,omitempty"`
 }
 
-func (x *JWKSTLSCertTrustedCa) Reset() {
-	*x = JWKSTLSCertTrustedCa{}
+func (x *JWKSTLSCertTrustedCA) Reset() {
+	*x = JWKSTLSCertTrustedCA{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[75]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -6464,13 +6464,13 @@ func (x *JWKSTLSCertTrustedCa) Reset() {
 	}
 }
 
-func (x *JWKSTLSCertTrustedCa) String() string {
+func (x *JWKSTLSCertTrustedCA) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*JWKSTLSCertTrustedCa) ProtoMessage() {}
+func (*JWKSTLSCertTrustedCA) ProtoMessage() {}
 
-func (x *JWKSTLSCertTrustedCa) ProtoReflect() protoreflect.Message {
+func (x *JWKSTLSCertTrustedCA) ProtoReflect() protoreflect.Message {
 	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[75]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -6482,33 +6482,33 @@ func (x *JWKSTLSCertTrustedCa) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use JWKSTLSCertTrustedCa.ProtoReflect.Descriptor instead.
-func (*JWKSTLSCertTrustedCa) Descriptor() ([]byte, []int) {
+// Deprecated: Use JWKSTLSCertTrustedCA.ProtoReflect.Descriptor instead.
+func (*JWKSTLSCertTrustedCA) Descriptor() ([]byte, []int) {
 	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{75}
 }
 
-func (x *JWKSTLSCertTrustedCa) GetFilename() string {
+func (x *JWKSTLSCertTrustedCA) GetFilename() string {
 	if x != nil {
 		return x.Filename
 	}
 	return ""
 }
 
-func (x *JWKSTLSCertTrustedCa) GetEnvironmentVariable() string {
+func (x *JWKSTLSCertTrustedCA) GetEnvironmentVariable() string {
 	if x != nil {
 		return x.EnvironmentVariable
 	}
 	return ""
 }
 
-func (x *JWKSTLSCertTrustedCa) GetInlineString() string {
+func (x *JWKSTLSCertTrustedCA) GetInlineString() string {
 	if x != nil {
 		return x.InlineString
 	}
 	return ""
 }
 
-func (x *JWKSTLSCertTrustedCa) GetInlineBytes() []byte {
+func (x *JWKSTLSCertTrustedCA) GetInlineBytes() []byte {
 	if x != nil {
 		return x.InlineBytes
 	}
@@ -8264,12 +8264,12 @@ var file_private_pbconfigentry_config_entry_proto_rawDesc = []byte{
 	0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x1d, 0x43, 0x61, 0x43, 0x65, 0x72, 0x74, 0x69,
 	0x66, 0x69, 0x63, 0x61, 0x74, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x49, 0x6e,
 	0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x59, 0x0a, 0x09, 0x54, 0x72, 0x75, 0x73, 0x74, 0x65,
-	0x64, 0x43, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3b, 0x2e, 0x68, 0x61, 0x73, 0x68,
+	0x64, 0x43, 0x41, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3b, 0x2e, 0x68, 0x61, 0x73, 0x68,
 	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74,
 	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72,
 	0x79, 0x2e, 0x4a, 0x57, 0x4b, 0x53, 0x54, 0x4c, 0x53, 0x43, 0x65, 0x72, 0x74, 0x54, 0x72, 0x75,
-	0x73, 0x74, 0x65, 0x64, 0x43, 0x61, 0x52, 0x09, 0x54, 0x72, 0x75, 0x73, 0x74, 0x65, 0x64, 0x43,
-	0x61, 0x22, 0x6b, 0x0a, 0x1b, 0x4a, 0x57, 0x4b, 0x53, 0x54, 0x4c, 0x53, 0x43, 0x65, 0x72, 0x74,
+	0x73, 0x74, 0x65, 0x64, 0x43, 0x41, 0x52, 0x09, 0x54, 0x72, 0x75, 0x73, 0x74, 0x65, 0x64, 0x43,
+	0x41, 0x22, 0x6b, 0x0a, 0x1b, 0x4a, 0x57, 0x4b, 0x53, 0x54, 0x4c, 0x53, 0x43, 0x65, 0x72, 0x74,
 	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65,
 	0x12, 0x22, 0x0a, 0x0c, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x4e, 0x61, 0x6d, 0x65,
 	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65,
@@ -8277,7 +8277,7 @@ var file_private_pbconfigentry_config_entry_proto_rawDesc = []byte{
 	0x61, 0x74, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0f, 0x43,
 	0x65, 0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0xaa,
 	0x01, 0x0a, 0x14, 0x4a, 0x57, 0x4b, 0x53, 0x54, 0x4c, 0x53, 0x43, 0x65, 0x72, 0x74, 0x54, 0x72,
-	0x75, 0x73, 0x74, 0x65, 0x64, 0x43, 0x61, 0x12, 0x1a, 0x0a, 0x08, 0x46, 0x69, 0x6c, 0x65, 0x6e,
+	0x75, 0x73, 0x74, 0x65, 0x64, 0x43, 0x41, 0x12, 0x1a, 0x0a, 0x08, 0x46, 0x69, 0x6c, 0x65, 0x6e,
 	0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x46, 0x69, 0x6c, 0x65, 0x6e,
 	0x61, 0x6d, 0x65, 0x12, 0x30, 0x0a, 0x13, 0x45, 0x6e, 0x76, 0x69, 0x72, 0x6f, 0x6e, 0x6d, 0x65,
 	0x6e, 0x74, 0x56, 0x61, 0x72, 0x69, 0x61, 0x62, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
@@ -8556,7 +8556,7 @@ var file_private_pbconfigentry_config_entry_proto_goTypes = []interface{}{
 	(*JWKSCluster)(nil),                         // 83: hashicorp.consul.internal.configentry.JWKSCluster
 	(*JWKSTLSCertificate)(nil),                  // 84: hashicorp.consul.internal.configentry.JWKSTLSCertificate
 	(*JWKSTLSCertProviderInstance)(nil),         // 85: hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
-	(*JWKSTLSCertTrustedCa)(nil),                // 86: hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCa
+	(*JWKSTLSCertTrustedCA)(nil),                // 86: hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
 	(*JWKSRetryPolicy)(nil),                     // 87: hashicorp.consul.internal.configentry.JWKSRetryPolicy
 	(*RetryPolicyBackOff)(nil),                  // 88: hashicorp.consul.internal.configentry.RetryPolicyBackOff
 	(*JWTLocation)(nil),                         // 89: hashicorp.consul.internal.configentry.JWTLocation
@@ -8737,7 +8737,7 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	84,  // 142: hashicorp.consul.internal.configentry.JWKSCluster.TLSCertificates:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertificate
 	117, // 143: hashicorp.consul.internal.configentry.JWKSCluster.ConnectTimeout:type_name -> google.protobuf.Duration
 	85,  // 144: hashicorp.consul.internal.configentry.JWKSTLSCertificate.CaCertificateProviderInstance:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
-	86,  // 145: hashicorp.consul.internal.configentry.JWKSTLSCertificate.TrustedCa:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCa
+	86,  // 145: hashicorp.consul.internal.configentry.JWKSTLSCertificate.TrustedCA:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
 	88,  // 146: hashicorp.consul.internal.configentry.JWKSRetryPolicy.RetryPolicyBackOff:type_name -> hashicorp.consul.internal.configentry.RetryPolicyBackOff
 	117, // 147: hashicorp.consul.internal.configentry.RetryPolicyBackOff.BaseInterval:type_name -> google.protobuf.Duration
 	117, // 148: hashicorp.consul.internal.configentry.RetryPolicyBackOff.MaxInterval:type_name -> google.protobuf.Duration
@@ -9660,7 +9660,7 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 			}
 		}
 		file_private_pbconfigentry_config_entry_proto_msgTypes[75].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*JWKSTLSCertTrustedCa); i {
+			switch v := v.(*JWKSTLSCertTrustedCA); i {
 			case 0:
 				return &v.state
 			case 1:
