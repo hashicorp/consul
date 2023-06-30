@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -400,6 +401,8 @@ type Agent struct {
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
+
+	enableDebug atomic.Bool
 }
 
 // New process the desired options and creates a new Agent.
@@ -554,6 +557,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	// the configuration
 	c.NodeID = a.config.NodeID
 	a.config = c
+
+	a.enableDebug.Store(c.EnableDebug)
 
 	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
@@ -4193,7 +4198,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 
 	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
 
-	a.config.EnableDebug = newCfg.EnableDebug
+	a.enableDebug.Store(newCfg.EnableDebug)
 
 	return nil
 }
