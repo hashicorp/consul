@@ -15,12 +15,12 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-multierror"
 )
 
 // TestExtAuthzLocal Summary
@@ -65,7 +65,7 @@ func TestExtAuthzLocal(t *testing.T) {
 	libassert.AssertContainerState(t, clientService, "running")
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 
-	// wire up the ext-authz envoy extension for the static-server
+	// Wire up the ext-authz envoy extension for the static-server
 	consul := cluster.APIClient(0)
 	defaults := api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
@@ -84,6 +84,8 @@ func TestExtAuthzLocal(t *testing.T) {
 	}
 	consul.ConfigEntries().Set(&defaults, nil)
 
+	// Make requests to the static-server. We expect that all requests are rejected with 403 Forbidden
+	// unless they are to the /allow path.
 	baseURL := fmt.Sprintf("http://localhost:%d", port)
 	doRequest(t, baseURL, http.StatusForbidden)
 	doRequest(t, baseURL+"/allow", http.StatusOK)
@@ -139,7 +141,7 @@ func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 			"--set=decision_logs.console=true",
 			"--set=status.console=true",
 			"--ignore=.*",
-			"/testdata/policies/bundle.tar.gz",
+			"/testdata/policies/policy.rego",
 		},
 		Mounts: []testcontainers.ContainerMount{{
 			Source: testcontainers.DockerBindMountSource{
@@ -160,44 +162,9 @@ func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 }
 
 func doRequest(t *testing.T, url string, expStatus int) {
-	var errs error
-	for i := 0; i < 5; i++ {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("failed to create HTTP request: %w", err))
-		}
-		res, err := cleanhttp.DefaultClient().Do(req)
-		if err == nil {
-			res.Body.Close()
-			fmt.Printf("\n\n!!! GET %s: exp %d, obs %d\n\n", url, expStatus, res.StatusCode)
-			if res.StatusCode == expStatus {
-				return
-			} else {
-				errs = multierror.Append(errs, fmt.Errorf("unexpected status code: want: %d, have: %d", expStatus, res.StatusCode))
-			}
-		} else {
-			errs = multierror.Append(errs, fmt.Errorf("unexpected error: %w", err))
-		}
-		time.Sleep(time.Duration(i+1) * time.Second)
-	}
-	t.Fatalf("request failed:\n%s", errs.Error())
-}
-
-type MeshServiceRequest struct {
-	Agent                libcluster.Agent
-	ServiceOpts          *libservice.ServiceOpts
-	ContainerRequest     testcontainers.ContainerRequest
-	MapPorts             []string
-	DisableTestdataMount bool
-}
-
-func Wait() {
-	for {
-		_, err := os.Stat("continue")
-		if err == nil {
-			_ = os.Remove("continue")
-			break
-		}
-		time.Sleep(time.Second)
-	}
+	retry.RunWith(&retry.Timer{Timeout: 5 * time.Second, Wait: time.Second}, t, func(r *retry.R) {
+		resp, err := cleanhttp.DefaultClient().Get(url)
+		require.NoError(r, err)
+		require.Equal(r, expStatus, resp.StatusCode)
+	})
 }
