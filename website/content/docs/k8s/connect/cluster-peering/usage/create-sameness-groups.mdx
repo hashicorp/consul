@@ -89,9 +89,9 @@ metadata:
 spec:
   defaultForFailover: true
   members:                                   
-    partition: partition-1
-    partition: partition-2
-    peer: dc2-partition-1
+    - partition: partition-1
+    - partition: partition-2
+    - peer: dc2-partition-1
 ```
 
 </CodeBlockConfig>
@@ -106,9 +106,9 @@ metadata:
 spec:
   defaultForFailover: true
   members:                                   
-    partition: partition-2
-    partition: partition-1
-    peer: dc2-partition-1  
+    - partition: partition-2
+    - partition: partition-1
+    - peer: dc2-partition-1  
 ```
 
 </CodeBlockConfig>
@@ -123,9 +123,9 @@ metadata:
 spec:
   defaultForFailover: true
   members:                                   
-    partition: partition-1
-    peer: dc1-partition-1
-    peer: dc2-partition-2
+    - partition: partition-1
+    - peer: dc1-partition-1
+    - peer: dc2-partition-2
 ```
 
 </CodeBlockConfig>

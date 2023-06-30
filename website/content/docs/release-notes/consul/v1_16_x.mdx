@@ -51,6 +51,15 @@ We are pleased to announce the following Consul updates.
 
   Consul's API gateway is the recommended alternative to ingress gateway. For ingress gateway features not currently supported by API gateway, equivalent functionality will be added to API gateway over the next several releases of Consul.
 
+- **Connect Native Golang SDK:** The Connect Native [Golang SDK](https://github.com/hashicorp/consul/tree/main/connect) is deprecated and will be removed in a future release. No further enhancements or maintenance is expected in the future releases. We will remove the SDK when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
+
+- **Connect Native APIs:** The following APIs for Connect Native are deprecated: 
+  - `v1/agent/connect/authorize` - used by the SDK to perform intention based authorization checks
+  - `v1/agent/connect/ca/leaf` - used by the SDK to get a leaf cert for a locally registered service
+  - `v1/agent/connect/ca/roots` - use to retrieved cached CA roots form the local client agent
+  
+  The `v1/agent/connect/authorize` and `v1/agent/connect/ca/leaf` endpoints have corresponding gRPC APIs. We will remove these APIs when the gRPC API for `v1/agent/connect/ca/roots` and HTTP endpoints for all three APIs are available. 
+
 ## Upgrading
 
 For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
