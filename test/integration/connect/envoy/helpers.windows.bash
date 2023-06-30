@@ -197,7 +197,6 @@ function assert_upstream_missing_once {
   [ "" == "$output" ]
 }
 
-
 function assert_upstream_missing {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
@@ -269,6 +268,13 @@ function get_envoy_expose_checks_listener_once {
   run curl -m 5 -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("exposed_path_"))'
+}
+
+function get_envoy_public_listener_once {
+  local HOSTPORT=$1
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("public_listener:"))'
 }
 
 function assert_envoy_http_rbac_policy_count {
