@@ -285,7 +285,8 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	err = setupHTTPS(httpServer, noopConnState, time.Second)
 	require.NoError(t, err)
 
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
+
 	srvHandler := a.srv.handler()
 	mux, ok := srvHandler.(*wrappedMux)
 	require.True(t, ok, "expected a *wrappedMux, got %T", handler)
@@ -481,7 +482,7 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp := httptest.NewRecorder()
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
 	a.srv.handler().ServeHTTP(resp, req)
 	if got, want := resp.Code, http.StatusBadRequest; got != want {
 		t.Fatalf("bad response code got %d want %d", got, want)
@@ -505,7 +506,7 @@ func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp := httptest.NewRecorder()
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
 	a.srv.handler().ServeHTTP(resp, req)
 	// Key doesn't actually exist so we should get 404
 	if got, want := resp.Code, http.StatusNotFound; got != want {
@@ -645,7 +646,7 @@ func requireHasHeadersSet(t *testing.T, a *TestAgent, path string) {
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", path, nil)
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
 	a.srv.handler().ServeHTTP(resp, req)
 
 	hdrs := resp.Header()
@@ -707,7 +708,7 @@ func TestAcceptEncodingGzip(t *testing.T) {
 	// negotiation, but since this call doesn't go through a real
 	// transport, the header has to be set manually
 	req.Header["Accept-Encoding"] = []string{"gzip"}
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
 	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, 200, resp.Code)
 	require.Equal(t, "", resp.Header().Get("Content-Encoding"))
@@ -715,7 +716,7 @@ func TestAcceptEncodingGzip(t *testing.T) {
 	resp = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/v1/kv/long", nil)
 	req.Header["Accept-Encoding"] = []string{"gzip"}
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
 	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, 200, resp.Code)
 	require.Equal(t, "gzip", resp.Header().Get("Content-Encoding"))
@@ -1062,7 +1063,7 @@ func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile?seconds=1", nil)
 
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
 	httpServer := &HTTPHandlers{agent: a.Agent}
 	httpServer.handler().ServeHTTP(resp, req)
 
@@ -1163,7 +1164,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d (%#v)", i, c), func(t *testing.T) {
 			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
 			resp := httptest.NewRecorder()
-			a.config.EnableDebug = true
+			a.enableDebug.Store(true)
 			a.srv.handler().ServeHTTP(resp, req)
 			assert.Equal(t, c.code, resp.Code)
 		})
@@ -1474,7 +1475,7 @@ func TestEnableWebUI(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)
 	resp := httptest.NewRecorder()
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
 	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
@@ -1504,7 +1505,7 @@ func TestEnableWebUI(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "/ui/", nil)
 		resp := httptest.NewRecorder()
-		a.config.EnableDebug = true
+		a.enableDebug.Store(true)
 		a.srv.handler().ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
 		require.Contains(t, resp.Body.String(), `<!-- CONSUL_VERSION:`)

@@ -55,7 +55,7 @@ func TestUIEndpoint_MetricsProxy_ACLDeny(t *testing.T) {
 	`, backendURL))
 	defer a.Shutdown()
 
-	a.config.EnableDebug = true
+	a.enableDebug.Store(true)
 	h := a.srv.handler()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")

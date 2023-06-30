@@ -2617,8 +2617,9 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			require.NoError(t, a.Agent.reloadConfigInternal(&cfg))
 
 			// Now fetch the API handler to run requests against
+			a.enableDebug.Store(true)
+
 			h := a.srv.handler()
-			a.config.EnableDebug = true
 
 			req := httptest.NewRequest("GET", tc.path, nil)
 			rec := httptest.NewRecorder()
