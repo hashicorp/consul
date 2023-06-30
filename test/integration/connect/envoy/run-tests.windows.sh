@@ -810,6 +810,10 @@ function run_container_ingress-gateway-primary {
   common_run_container_gateway ingress-gateway primary
 }
 
+function run_container_api-gateway-primary {
+  common_run_container_gateway api-gateway primary
+}
+
 function run_container_terminating-gateway-primary {
   common_run_container_gateway terminating-gateway primary
 }
