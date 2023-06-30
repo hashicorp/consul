@@ -236,11 +236,11 @@ Note that you must remove the token manually after completing the migration.
 
   ```bash
   kubectl config set-context --current --namespace=<consul installation namespace>
-  INJECTOR_DEPLOYMENT=$(kg deploy -l "component=connect-injector" -o=jsonpath='{.items[0].metadata.name}')
+  INJECTOR_DEPLOYMENT=$(kubectl get deploy -l "component=connect-injector" -o=jsonpath='{.items[0].metadata.name}')
   kubectl patch deploy $INJECTOR_DEPLOYMENT --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/lifecycle"}]'
   ```
 
-1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
+1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul. The latest version of consul-k8s components may be in a CrashLoopBackoff state during the performance of the server upgrade from versions <1.14.x until all Consul servers are on versions >=1.14.x. Components in CrashLoopBackoff will not negatively affect the cluster because older versioned components will still be operating. Once all servers have been fully upgraded, the latest consul-k8s components will automatically restore from CrashLoopBackoff and older component versions will be spun down.
 
 1. Run `kubectl rollout restart` to restart your service mesh applications. Restarting service mesh application causes Kubernetes to re-inject them with the webhook for dataplanes.
 
