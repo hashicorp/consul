@@ -177,6 +177,15 @@ function assert_cert_has_cn {
   echo "$CERT" | grep "CN = ${CN}"
 }
 
+function assert_upstream_missing {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run retry_long assert_upstream_missing_once $HOSTPORT $CLUSTER_NAME
+  echo "OUTPUT: $output $status"
+
+  [ "$status" -eq 0 ]
+}
+
 function assert_envoy_version {
   local ADMINPORT=$1
   run retry_default curl -f -s localhost:$ADMINPORT/server_info
