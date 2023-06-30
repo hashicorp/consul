@@ -316,6 +316,15 @@ func (e *JWTProviderConfigEntry) GetRaftIndex() *RaftIndex               { retur
 func (e *JWTProviderConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
+
+	// allow service-identity tokens the ability to read jwt-providers
+	// this is a workaround to allow sidecar proxies to read the jwt-providers
+	// see issue: https://github.com/hashicorp/consul/issues/17886 for more details
+	err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzContext)
+	if err == nil {
+		return err
+	}
+
 	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
