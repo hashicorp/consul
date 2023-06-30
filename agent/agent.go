@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -400,6 +401,8 @@ type Agent struct {
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
+
+	enableDebug atomic.Bool
 }
 
 // New process the desired options and creates a new Agent.
@@ -554,6 +557,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	// the configuration
 	c.NodeID = a.config.NodeID
 	a.config = c
+
+	a.enableDebug.Store(c.EnableDebug)
 
 	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
@@ -1049,13 +1054,13 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 			httpServer := &http.Server{
 				Addr:           l.Addr().String(),
 				TLSConfig:      tlscfg,
-				Handler:        srv.handler(a.config.EnableDebug),
+				Handler:        srv.handler(),
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
 			if libscada.IsCapability(l.Addr()) {
 				// wrap in http2 server handler
-				httpServer.Handler = h2c.NewHandler(srv.handler(a.config.EnableDebug), &http2.Server{})
+				httpServer.Handler = h2c.NewHandler(srv.handler(), &http2.Server{})
 			}
 
 			// Load the connlimit helper into the server
@@ -4192,6 +4197,9 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
+
+	a.enableDebug.Store(newCfg.EnableDebug)
+	a.config.EnableDebug = newCfg.EnableDebug
 
 	return nil
 }
