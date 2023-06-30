@@ -259,15 +259,15 @@ func makeJWKSDiscoveryClusterType(r *structs.RemoteJWKS) *envoy_cluster_v3.Clust
 	}
 
 	switch r.JWKSCluster.DiscoveryType {
-	case structs.Static:
+	case structs.DiscoveryTypeStatic:
 		ct.Type = envoy_cluster_v3.Cluster_STATIC
-	case structs.LogicalDNS:
+	case structs.DiscoveryTypeLogicalDNS:
 		ct.Type = envoy_cluster_v3.Cluster_LOGICAL_DNS
-	case structs.EDS:
+	case structs.DiscoveryTypeEDS:
 		ct.Type = envoy_cluster_v3.Cluster_EDS
-	case structs.OriginalDST:
+	case structs.DiscoveryTypeOriginalDST:
 		ct.Type = envoy_cluster_v3.Cluster_ORIGINAL_DST
-	case structs.StrictDNS:
+	case structs.DiscoveryTypeStrictDNS:
 		fallthrough // default case so uses the default option
 	default:
 		ct.Type = envoy_cluster_v3.Cluster_STRICT_DNS
@@ -281,7 +281,7 @@ func makeJWTCertValidationContext(p *structs.JWKSCluster) *envoy_tls_v3.Certific
 		return vc
 	}
 
-	if tc := p.TLSCertificates.TrustedCa; tc != nil {
+	if tc := p.TLSCertificates.TrustedCA; tc != nil {
 		vc.TrustedCa = &envoy_core_v3.DataSource{}
 		if tc.Filename != "" {
 			vc.TrustedCa.Specifier = &envoy_core_v3.DataSource_Filename{

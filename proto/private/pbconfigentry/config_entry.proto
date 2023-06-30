@@ -1043,7 +1043,7 @@ message JWKSCluster {
 // name=Structs
 message JWKSTLSCertificate {
   JWKSTLSCertProviderInstance CaCertificateProviderInstance = 1;
-  JWKSTLSCertTrustedCa TrustedCa = 2;
+  JWKSTLSCertTrustedCA TrustedCA = 2;
 }
 
 // mog annotation:
@@ -1058,10 +1058,10 @@ message JWKSTLSCertProviderInstance {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/agent/structs.JWKSTLSCertTrustedCa
+// target=github.com/hashicorp/consul/agent/structs.JWKSTLSCertTrustedCA
 // output=config_entry.gen.go
 // name=Structs
-message JWKSTLSCertTrustedCa {
+message JWKSTLSCertTrustedCA {
   string Filename = 1;
   string EnvironmentVariable = 2;
   string InlineString = 3;

@@ -1142,7 +1142,7 @@ func JWKSTLSCertProviderInstanceFromStructs(t *structs.JWKSTLSCertProviderInstan
 	s.InstanceName = t.InstanceName
 	s.CertificateName = t.CertificateName
 }
-func JWKSTLSCertTrustedCaToStructs(s *JWKSTLSCertTrustedCa, t *structs.JWKSTLSCertTrustedCa) {
+func JWKSTLSCertTrustedCAToStructs(s *JWKSTLSCertTrustedCA, t *structs.JWKSTLSCertTrustedCA) {
 	if s == nil {
 		return
 	}
@@ -1151,7 +1151,7 @@ func JWKSTLSCertTrustedCaToStructs(s *JWKSTLSCertTrustedCa, t *structs.JWKSTLSCe
 	t.InlineString = s.InlineString
 	t.InlineBytes = s.InlineBytes
 }
-func JWKSTLSCertTrustedCaFromStructs(t *structs.JWKSTLSCertTrustedCa, s *JWKSTLSCertTrustedCa) {
+func JWKSTLSCertTrustedCAFromStructs(t *structs.JWKSTLSCertTrustedCA, s *JWKSTLSCertTrustedCA) {
 	if s == nil {
 		return
 	}
@@ -1169,10 +1169,10 @@ func JWKSTLSCertificateToStructs(s *JWKSTLSCertificate, t *structs.JWKSTLSCertif
 		JWKSTLSCertProviderInstanceToStructs(s.CaCertificateProviderInstance, &x)
 		t.CaCertificateProviderInstance = &x
 	}
-	if s.TrustedCa != nil {
-		var x structs.JWKSTLSCertTrustedCa
-		JWKSTLSCertTrustedCaToStructs(s.TrustedCa, &x)
-		t.TrustedCa = &x
+	if s.TrustedCA != nil {
+		var x structs.JWKSTLSCertTrustedCA
+		JWKSTLSCertTrustedCAToStructs(s.TrustedCA, &x)
+		t.TrustedCA = &x
 	}
 }
 func JWKSTLSCertificateFromStructs(t *structs.JWKSTLSCertificate, s *JWKSTLSCertificate) {
@@ -1184,10 +1184,10 @@ func JWKSTLSCertificateFromStructs(t *structs.JWKSTLSCertificate, s *JWKSTLSCert
 		JWKSTLSCertProviderInstanceFromStructs(t.CaCertificateProviderInstance, &x)
 		s.CaCertificateProviderInstance = &x
 	}
-	if t.TrustedCa != nil {
-		var x JWKSTLSCertTrustedCa
-		JWKSTLSCertTrustedCaFromStructs(t.TrustedCa, &x)
-		s.TrustedCa = &x
+	if t.TrustedCA != nil {
+		var x JWKSTLSCertTrustedCA
+		JWKSTLSCertTrustedCAFromStructs(t.TrustedCA, &x)
+		s.TrustedCA = &x
 	}
 }
 func JWTCacheConfigToStructs(s *JWTCacheConfig, t *structs.JWTCacheConfig) {

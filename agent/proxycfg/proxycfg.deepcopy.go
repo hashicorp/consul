@@ -64,12 +64,12 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = new(structs.JWKSTLSCertProviderInstance)
 									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance
 								}
-								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa != nil {
-									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa = new(structs.JWKSTLSCertTrustedCa)
-									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa
-									if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes != nil {
-										cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes = make([]byte, len(v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes))
-										copy(cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes, v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCa.InlineBytes)
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = new(structs.JWKSTLSCertTrustedCA)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA
+									if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes != nil {
+										cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes = make([]byte, len(v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes))
+										copy(cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes, v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes)
 									}
 								}
 							}

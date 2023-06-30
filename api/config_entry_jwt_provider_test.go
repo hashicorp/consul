@@ -30,7 +30,7 @@ func TestAPI_ConfigEntries_JWTProvider(t *testing.T) {
 						DiscoveryType:  "STATIC",
 						ConnectTimeout: connectTimeout,
 						TLSCertificates: &JWKSTLSCertificate{
-							TrustedCa: &JWKSTLSCertTrustedCa{
+							TrustedCA: &JWKSTLSCertTrustedCA{
 								Filename: "myfile.cert",
 							},
 						},

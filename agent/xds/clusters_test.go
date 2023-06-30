@@ -1038,10 +1038,10 @@ func makeTestProviderWithJWKS(uri string) *structs.JWTProviderConfigEntry {
 				FetchAsynchronously: true,
 				URI:                 uri,
 				JWKSCluster: &structs.JWKSCluster{
-					DiscoveryType:  structs.Static,
+					DiscoveryType:  structs.DiscoveryTypeStatic,
 					ConnectTimeout: time.Duration(5) * time.Second,
 					TLSCertificates: &structs.JWKSTLSCertificate{
-						TrustedCa: &structs.JWKSTLSCertTrustedCa{
+						TrustedCA: &structs.JWKSTLSCertTrustedCA{
 							Filename: "mycert.crt",
 						},
 					},
