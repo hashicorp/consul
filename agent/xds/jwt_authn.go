@@ -19,6 +19,7 @@ import (
 const (
 	jwtEnvoyFilter       = "envoy.filters.http.jwt_authn"
 	jwtMetadataKeyPrefix = "jwt_payload"
+	jwksClusterPrefix    = "jwks_cluster"
 )
 
 // This is an intermediate JWTProvider form used to associate
@@ -158,7 +159,7 @@ func buildJWTProviderConfig(p *structs.JWTProviderConfigEntry, metadataKeySuffix
 		}
 		envoyCfg.JwksSourceSpecifier = specifier
 	} else if remote := p.JSONWebKeySet.Remote; remote != nil && remote.URI != "" {
-		envoyCfg.JwksSourceSpecifier = makeRemoteJWKS(remote)
+		envoyCfg.JwksSourceSpecifier = makeRemoteJWKS(remote, p.Name)
 	} else {
 		return nil, fmt.Errorf("invalid jwt provider config; missing JSONWebKeySet for provider: %s", p.Name)
 	}
@@ -210,14 +211,12 @@ func makeLocalJWKS(l *structs.LocalJWKS, pName string) (*envoy_http_jwt_authn_v3
 	return specifier, nil
 }
 
-func makeRemoteJWKS(r *structs.RemoteJWKS) *envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks {
+func makeRemoteJWKS(r *structs.RemoteJWKS, providerName string) *envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks {
 	remote_specifier := envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 		RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 			HttpUri: &envoy_core_v3.HttpUri{
-				Uri: r.URI,
-				// TODO(roncodingenthusiast): An explicit cluster is required.
-				// Need to figure out replacing `jwks_cluster` will an actual cluster
-				HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: "jwks_cluster"},
+				Uri:              r.URI,
+				HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: makeJWKSClusterName(providerName)},
 			},
 			AsyncFetch: &envoy_http_jwt_authn_v3.JwksAsyncFetch{
 				FastListener: r.FetchAsynchronously,
@@ -237,6 +236,10 @@ func makeRemoteJWKS(r *structs.RemoteJWKS) *envoy_http_jwt_authn_v3.JwtProvider_
 	}
 
 	return &remote_specifier
+}
+
+func makeJWKSClusterName(providerName string) string {
+	return fmt.Sprintf("%s_%s", jwksClusterPrefix, providerName)
 }
 
 func buildJWTRetryPolicy(r *structs.JWKSRetryPolicy) *envoy_core_v3.RetryPolicy {

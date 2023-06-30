@@ -61,7 +61,7 @@ message UpstreamConfig {
   uint64 connect_timeout_ms = 2;
   UpstreamLimits limits = 3;
   PassiveHealthCheck passive_health_check = 4;
-  BalanceInboundConnections balance_inbound_connections = 5;
+  BalanceConnections balance_outbound_connections = 5;
   MeshGatewayMode mesh_gateway_mode = 6;
 }
 

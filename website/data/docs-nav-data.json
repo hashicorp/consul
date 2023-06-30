@@ -1072,11 +1072,6 @@
         "path": "agent/sentinel"
       },
       {
-        "title": "RPC",
-        "path": "agent/rpc",
-        "hidden": true
-      },
-      {
         "title": "Experimental WAL LogStore",
         "routes": [
           {
