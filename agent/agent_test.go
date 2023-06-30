@@ -4200,7 +4200,6 @@ func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
 		},
 	)
 	require.NoError(t, a.reloadConfigInternal(c))
-
 	require.Equal(t, true, a.enableDebug.Load())
 
 	c = TestConfig(
@@ -4212,7 +4211,6 @@ func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
 		},
 	)
 	require.NoError(t, a.reloadConfigInternal(c))
-
 	require.Equal(t, false, a.enableDebug.Load())
 }
 
