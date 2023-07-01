@@ -16,9 +16,19 @@ upgrade flow.
 
 ## Consul 1.16.x
 
+#### API health endpoints return different status code
+
+Consul versions 1.16.0+ now return an error 403 "Permission denied" status
+whenever the `/v1/health/connect/` and `/v1/health/ingress/` endpoints are
+queried with insufficient ACL `service:read` privileges.
+
+In Consul versions older than 1.16.0, the service health API did not return an explicit error when given a token with invalid permissions. Instead, it returned an empty list with a success status code.
+
+Before upgrading, ensure that all of your applications can handle this new API behavior properly. An update is not required unless you have a custom application that is querying one of these API endpoints directly.
+
 #### Remove deprecated service-defaults peer upstream override behavior
 
-When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides) 
+When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides)
 does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
 This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
 
@@ -142,7 +152,7 @@ In Consul v1.15 and higher:
    UpstreamConfig = {
      Overrides = [
        {
-          Name = foo  # Applies to local service `foo` 
+          Name = foo  # Applies to local service `foo`
        },
        {
           Name = foo  # Applies to `foo` imported from peered cluster `bar`
@@ -157,13 +167,13 @@ In Consul v1.15 and higher:
 ## Consul 1.14.x
 
 ### Service Mesh Compatibility
-Prior to Consul 1.14, cluster peering or Consul connect were disabled by default.
+Prior to Consul 1.14, cluster peering and Consul service mesh were disabled by default.
 A breaking change was made in Consul 1.14 that:
 - [Cluster Peering is enabled by default.](/consul/docs/connect/cluster-peering)
   Cluster peering and WAN federation can coexist,
   so there is no need to disable cluster peering to upgrade existing WAN federated datacenters.
   To disable cluster peering nonetheless, set [`peering.enabled`](/consul/docs/agent/config/config-files#peering_enabled) to `false`.
-- [Consul Connect is enabled by default.](/consul/docs/connect)
+- [Consul service mesh is enabled by default.](/consul/docs/connect)
   To disable, set [`connect.enabled`](/consul/docs/agent/config/config-files#connect_enabled) to `false`.
 
 The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.3 and
@@ -228,7 +238,7 @@ Consul 1.13.0 contains a bug that prevents Consul server agents from restoring
 saved state on startup if the state
 
 1. was generated before Consul 1.13 (such as during an upgrade), and
-2. contained any Connect proxy registrations.
+2. contained any service mesh proxy registrations.
 
 This bug is fixed in Consul versions 1.13.1 and newer.
 
@@ -391,6 +401,12 @@ A breaking change was made in Consul 1.13.2 that impacts service mesh operation
 if the Vault policy is not modified as described.
 As a precaution, we recommend both modifying the Vault policy and upgrading
 to Consul 1.13.3 or later to avoid the breaking nature of that change.
+
+### Nomad Incompatibility
+
+Nomad users should not upgrade to Consul v1.13.8. An API change in this Consul
+release prevents Nomad from correctly detecting the Consul agent version. As a
+result, allocations are not placed in clients running v1.13.8.
 
 ## Consul 1.12.x ((#consul-1-12-0))
 
@@ -770,7 +786,7 @@ registrations](/consul/docs/connect/registration/sidecar-service).
 
 There are two major features in Consul 1.4.0 that may impact upgrades: a [new
 ACL system](#acl-upgrade) and [multi-datacenter support for
-Connect](#connect-multi-datacenter) in the Enterprise version.
+service mesh](#multi-datacenter-service-mesh) in the Enterprise version.
 
 ### ACL Upgrade
 
@@ -851,13 +867,13 @@ as soon as possible after upgrade, as well as updating any integrations to work
 with the the new ACL [Token](/consul/api-docs/acl/tokens) and
 [Policy](/consul/api-docs/acl/policies) APIs.
 
-### Connect Multi-datacenter
+### Multi-datacenter service mesh
 
 This only applies to users upgrading from an older version of Consul Enterprise to Consul Enterprise 1.4.0 (all license types).
 
-In addition, this upgrade will only affect clusters where [Connect is enabled](/consul/docs/connect/configuration) on your servers before the migration.
+In addition, this upgrade will only affect clusters where [service mesh is enabled](/consul/docs/connect/configuration) on your servers before the migration.
 
-Connect multi-datacenter uses the same primary/secondary approach as ACLs and
+Multi-datacenter service mesh uses the same primary/secondary approach as ACLs and
 will use the same [primary_datacenter](#primary-datacenter). When a secondary
 datacenter server restarts with 1.4.0 it will detect it is not the primary and
 begin an automatic bootstrap of multi-datacenter CA federation.
@@ -866,11 +882,11 @@ Datacenters can be upgraded in either order; secondary datacenters will not
 switch into multi-datacenter mode until all servers in both the secondary and
 primary datacenter are detected to be running at least Consul 1.4.0. Secondary
 datacenters monitor this periodically (every few minutes) and will
-automatically upgrade Connect to use a federated Certificate Authority when
+automatically upgrade service mesh to use a federated Certificate Authority when
 they do.
 
 In general, migrating a Consul cluster from OSS to Enterprise will update the
-CA to be federated automatically and without impact on Connect traffic. When
+CA to be federated automatically and without impact on service mesh traffic. When
 upgrading Consul Enterprise 1.3.x to Consul Enterprise 1.4.0 upgrades the CA
 upgrade is seamless, however depending on the size of the cluster, _new_
 connection attempts in the secondary datacenter might fail for a short window
@@ -879,14 +895,11 @@ authorization endpoint validating originating cluster in a way that was not
 fully forwards compatible with migrating between cluster trust domains. That
 issue is fixed in 1.4.0 as part of General Availability.
 
-Once migrated (typically a few seconds). Connect will use the primary
+Once migrated (typically a few seconds). The service mesh will use the primary
 datacenter's Certificate Authority as the root of trust for all other
 datacenters. CA migration or root key changes in the primary will now rotate
 automatically and without loss of connectivity throughout all datacenters and
 workloads.
-
-For more information see [Connect
-Multi-datacenter](/consul/docs/enterprise).
 
 ## Consul 1.3.0
 
@@ -1411,7 +1424,7 @@ the file. Consul 0.7 also uses a new, automatically-created raft/peers.info file
 to avoid ingesting the `peers.json` file on the first start after upgrading (the
 `peers.json` file is simply deleted on the first start after upgrading).
 
-Please be sure to review the [Outage Recovery tutorial](/consul/tutorials/datacenter-operations/recovery-outage)
+Please be sure to review the [Disaster recovery for Consul clusters tutorial](/consul/tutorials/datacenter-operations/recovery-outage)
 before upgrading for more details.
 
 ## Consul 0.6.4

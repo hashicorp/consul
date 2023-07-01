@@ -185,6 +185,8 @@ message EnvoyExtension {
   bool Required = 2;
   // mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
   google.protobuf.Struct Arguments = 3;
+  string ConsulVersion = 4;
+  string EnvoyVersion = 5;
 }
 
 // mog annotation:

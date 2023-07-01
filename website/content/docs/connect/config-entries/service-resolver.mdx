@@ -1,40 +1,1293 @@
 ---
 layout: docs
-page_title: Service Resolver - Configuration Entry Reference
-description: >-
-  The service resolver configuration entry kind defines subsets of service instances that satisfy upstream discovery requests. Use the reference guide to learn about `""service-resolver""` config entry parameters and how filtering by service subsets helps route traffic based on properties like version number.
+page_title: Service Resolver Configuration Entry Reference
+description: >- 
+  Service resolver configuration entries are L7 traffic management tools for defining sets of service instances that resolve upstream requests and Consul’s behavior when resolving them. Learn how to write `service-resolver` config entries in HCL or YAML with a specification reference, configuration model, a complete example, and example code by use case.
 ---
 
-# Service Resolver Configuration Entry
+# Service resolver configuration entry reference
 
--> **v1.8.4+:** On Kubernetes, the `ServiceResolver` custom resource is supported in Consul versions 1.8.4+.<br />
-**v1.6.0+:** On other platforms, this config entry is supported in Consul versions 1.6.0+.
+This page provides reference information for service resolver configuration entries. Configure and apply service resolvers to create named subsets of service instances and define their behavior when satisfying upstream requests.
 
-The `service-resolver` config entry kind (`ServiceResolver` on Kubernetes) controls which service instances
-should satisfy Connect upstream discovery requests for a given service name.
+Refer to [L7 traffic management overview](/consul/docs/connect/l7-traffic) for additional information.
 
-If no resolver config is defined the chain assumes 100% of traffic goes to the
-healthy instances of the default service in the current datacenter+namespace
-and discovery terminates.
+## Configuration model
 
-## Interaction with other Config Entries
+The following list outlines field hierarchy, language-specific data types, and requirements in the configuration entry. Click on a property name to view additional details, including default values.
 
-- Service resolver config entries are a component of [L7 Traffic
-  Management](/consul/docs/connect/l7-traffic).
+<Tabs>
 
-## UI
+<Tab heading="HCL and JSON" group="hcl">
 
-Once a `service-resolver` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the *routing* tab.
+- [`Kind`](#kind): string | required | must be set to `service-resolver`
+- [`Name`](#name): string | required
+- [`Namespace`](#namespace): string | `default` <EnterpriseAlert inline />
+- [`Partition`](#partition): string | `default` <EnterpriseAlert inline />
+- [`Meta`](#meta): map
+- [`ConnectTimeout`](#connecttimeout): string | `0s`
+- [`RequestTimeout`](#requesttimeout): string | `15s`
+- [`Subsets`](#subsets): map
+  - [`Filter`](#subsets): string
+  - [`OnlyPassing`](#subsets): boolean | `false`
+- [`DefaultSubset`](#defaultsubset): string
+- [`Redirect`](#redirect): map
+  - [`Service`](#redirect-service): string
+  - [`ServiceSubset`](#redirect-servicesubset): string
+  - [`Namespace`](#redirect-namespace): string <EnterpriseAlert inline />
+  - [`Partition`](#redirect-partition): string | `default` <EnterpriseAlert inline />
+  - [`SamenessGroup`](#redirect-samenessgroup): string <EnterpriseAlert inline />
+  - [`Datacenter`](#redirect-datacenter): list
+  - [`Peer`](#redirect-peer): string
+- [`Failover`](#failover): map
+  - [`Service`](#failover-service): string
+  - [`ServiceSubset`](#failover-servicesubset): string
+  - [`Namespace`](#failover-namespace): string <EnterpriseAlert inline />
+  - [`SamenessGroup`](#failover-samenessgroup): string <EnterpriseAlert inline />
+  - [`Datacenters`](#failover-datacenters): list
+  - [`Targets`](#failover-targets): list
+    - [`Service`](#failover-targets-service): string
+    - [`ServiceSubset`](#failover-targets-servicesubset): string
+    - [`Namespace`](#failover-targets-namespace): string <EnterpriseAlert inline />
+    - [`Partition`](#failover-targets-partition): string | `default` <EnterpriseAlert inline />
+    - [`Datacenter`](#failover-targets-datacenter): string
+    - [`Peer`](#failover-targets-peer): string
+- [`LoadBalancer`](#loadbalancer): map
+  - [`Policy`](#loadbalancer-policy): string
+  - [`LeastRequestConfig`](#loadbalancer-leastrequestconfig): map
+    - [`ChoiceCount`](#loadbalancer-leastrequestconfig-choicecount): integer | `2`
+  - [`RingHashConfig`](#loadbalancer-ringhashconfig): map
+    - [`MinimumRingSize`](#loadbalancer-ringhashconfig): integer | `1024`
+    - [`MaximumRingSize`](#loadbalancer-ringhashconfig): integer | `8192`
+  - [`HashPolicies`](#loadbalancer-hashpolicies): map
+    - [`Field`](#loadbalancer-hashpolicies-field): string
+    - [`FieldValue`](#loadbalancer-hashpolicies-fieldvalue): string
+    - [`CookieConfig`](#loadbalancer-hashpolicies-cookieconfig): map
+      - [`Session`](#loadbalancer-hashpolicies-cookieconfig-session): boolean | `false`
+      - [`TTL`](#loadbalancer-hashpolicies-cookieconfig-ttl): string
+      - [`Path`](#loadbalancer-hashpolicies-cookieconfig-path): string
+    - [`SourceIP`](#loadbalancer-hashpolicies-sourceip): boolean | `false`
+    - [`Terminal`](#loadbalancer-hashpolicies-terminal): boolean | `false`
 
-![screenshot of service resolver in the UI](/img/l7-routing/Resolver.png)
+</Tab>
 
-## Sample Config Entries
+<Tab heading="YAML" group="yaml">
+
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `ServiceResolver`
+- [`metadata`](#metadata): map | required
+  - [`name`](#metadata-name): string | required
+  - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
+- [`spec`](#spec): map | required
+  - [`connectTimeout`](#spec-connecttimeout): string | `0s`
+  - [`requestTimeout`](#spec-requesttimeout): string | `15s`
+  - [`subsets`](#spec-subsets): map
+    - [`filter`](#spec-subsets-filter): string
+    - [`onlyPassing`](#spec-subsets-onlypassing): boolean | `false`
+  - [`defaultSubset`](#spec-defaultsubset): string
+  - [`redirect`](#spec-redirect): map
+    - [`service`](#spec-redirect-service): string
+    - [`serviceSubset`](#spec-redirect-servicesubset): string
+    - [`namespace`](#spec-redirect-namespace): string <EnterpriseAlert inline />
+    - [`partition`](#spec-redirect-partition): string <EnterpriseAlert inline />
+    - [`samenessGroup`](#spec-redirect-samenessgroup): string <EnterpriseAlert inline />
+    - [`datacenter`](#spec-redirect-datacenter): string
+    - [`peer`](#spec-redirect-peer): string
+  - [`failover`](#spec-failover): map
+    - [`service`](#spec-failover-service): string
+    - [`serviceSubset`](#spec-failover-servicesubset): string
+    - [`namespace`](#spec-failover-namespace): string <EnterpriseAlert inline />
+    - [`samenessGroup`](#spec-failover-samenessgroup): string <EnterpriseAlert inline />
+    - [`datacenters`](#spec-failover-datacenters): string
+    - [`targets`](#spec-failover-targets): list
+      - [`service`](#spec-failover-targets-service): string
+      - [`serviceSubset`](#spec-failover-targets-servicesubset): string
+      - [`namespace`](#spec-failover-targets-namespace): string | `default` <EnterpriseAlert inline />
+      - [`partition`](#spec-failover-targets-partition): string | `default` <EnterpriseAlert inline />
+      - [`datacenter`](#spec-failover-targets-datacenter): string
+      - [`peer`](#spec-failover-targets-peer): string
+  - [`loadBalancer`](#spec-loadbalancer): map
+    - [`policy`](#spec-loadbalancer-policy): string
+    - [`leastRequestConfig`](#spec-loadbalancer-leastrequestconfig): map
+      - [`choiceCount`](#spec-loadbalancer-leastrequestconfig): integer | `2`
+    - [`ringHashConfig`](#spec-loadbalancer-ringhashconfig): map
+      - [`minimumRingSize`](#spec-loadbalancer-ringhashconfig): integer | `1024`
+      - [`maximumRingSize`](#spec-loadbalancer-ringhashconfig): integer | `8192`
+  - [`hashPolicies`](#spec-loadbalancer-hashpolicies): list
+    - [`field`](#spec-loadbalancer-hashpolicies-field): string
+    - [`fieldValue`](#spec-loadbalancer-hashpolicies-fieldvalue): string
+    - [`cookieConfig`](#spec-loadbalancer-hashpolicies-cookieconfig): map
+      - [`session`](#spec-loadbalancer-hashpolicies-cookieconfig-session): boolean | `false`
+      - [`ttl`](#spec-loadbalancer-hashpolicies-cookieconfig-ttl): string | `0s`
+      - [`path`](#spec-loadbalancer-hashpolicies-cookieconfig-path): string
+    - [`sourceIP`](#spec-loadbalancer-hashpolicies-sourceip): boolean | `false`
+    - [`terminal`](#spec-loadbalancer-hashpolicies-terminal): boolean | `false`
+
+</Tab>
+</Tabs>
+
+## Complete configuration
+
+When every field is defined, a service resolver configuration entry has the following form:
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind      = "service-resolver"                                     ## required
+Name      = "<name-of-service-configuration-applies-to>"
+Namespace = "<namespace-configuration-applies-to>" 
+Partition = "<partition-configuration-applies-to>" 
+Meta = {
+ <key> = "<value>"
+}
+
+ConnectTimeout = "10s"
+RequestTimeout = "15s"
+Subsets = {
+ <subset01-name> = {
+   Filter      = "<expression.to.match.on == value01>"
+   OnlyPassing = true
+ }
+ <subset02-name> = {
+   Filter      = "<expression.to.match.on == value02>"
+   OnlyPassing = true
+ }
+}
+DefaultSubset  = "<subset01-name>"
+
+Redirect = {
+ Service       = "<destination-service>"
+ ServiceSubset = "<destination-subset>"
+ Namespace     = "<destination-namespace>"
+ Partition     = "<destination-partition>"
+ SamenessGroup = "<destination-sameness-group>"
+ Datacenter    = "<destination-datacenter>"
+ Peer          = "<destination-peer>"
+}
+
+Failover = {                   ## requires at least one of the following: Service, ServiceSubset, Namespace, Targets, Datacenters, SamenessGroup
+ <local-subset-name> = {
+   Targets = [
+     { Service = "<destination-service>" },
+     { ServiceSubset = "<destination-service-subset>" },
+     { Namespace = "<destination-namespace>" },
+     { Partition = "<destination-partition>" },
+     { Datacenter = "<destination-datacenter>" },
+     { Peer = "<destination-peer>" }
+   ]
+ }
+ "*" = {
+   Service       = "<destination-service>"
+   ServiceSubset = "<destination-service-subset>"
+   Namespace     = "<destination-namespace>"
+   Datacenters   = ["<destination-datacenter-01>", "<destination-datacenter-02>"]
+ }
+}
+
+LoadBalancer = {
+ Policy = "random"
+  LeastRequestConfig = {                     ## requires Policy = "least_request"
+   ChoiceCount = 2
+  RingHashConfig = {                         ## requires Policy = "ring_hash"
+   MinimumRingSize = 1024
+   MaximumRingSize = 8192
+ }
+ }
+ HashPolicies = [
+   {
+     Field      = "header"                  ## cannot specify with SourceIP
+     FieldValue = "<value-to-hash>"         ## cannot specify with SourceIP
+     CookieConfig = {
+       Session = false
+       TTL     = "0s"
+       Path    = "<path/to/cookie>"
+     }
+     SourceIP = false                        ## cannot specify with Field or FieldValue
+     Terminal = false
+   }
+ ]
+}
+
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind":"service-resolver",                             // required
+  "Name":"<name-of-service-configuration-applies-to>",
+  "Namespace":"<namespace-configuration-applies-to>",
+  "Partition":"parition-configuration-applies-to>", 
+  "Meta":{
+   "<key>":"<value>"
+  },
+
+  "ConnectTimeout":"10s",
+  "RequestTimeout":"15s",
+  "Subsets":{
+   "<subset01-name>":{
+     "Filter":"<expression.to.match.on == value01",
+     "OnlyPassing":true
+    },
+   "<subset02-name>":{
+     "Filter":"<expression.to.match.on == value02>",
+     "OnlyPassing":true
+   }
+  },
+  "DefaultSubset ":"<subset01-name>",
+
+  "Redirect":{
+   "Service":"<destination-service>",
+   "ServiceSubset":"<destination-subset>",
+   "Namespace":"<destination-namespace>",
+   "Partition":"<destination-partition>",
+   "SamenessGroup":"<destination-sameness-group>",
+   "Datacenter":"<destination-datacenter>",
+   "Peer":"<destination-peer>"
+  },
+
+  "Failover":{                   // requires at least one of the following": Service, ServiceSubset, Namespace, Targets, Datacenters, SamenessGroup
+   "<local=subset-name>":{
+     "Targets":[
+       {"Service":"<destination-service>"},
+       {"ServiceSubset":"<destination-service-subset>"},
+       {"Namespace":"<destination-namespace>"},
+       {"Partition":"<destination-partition>"},
+       {"Datacenter":"<destination-datacenter>"},
+       {"Peer":"<destination-peer>"}
+     ]
+   },
+   "*":{
+     "Service ":"<destination-service>",
+     "ServiceSubset":"<destination-service-subset>",
+     "Namespace":"<destination-namespace>",
+     "Datacenters":["<destination-datacenter-01>", "<destination-datacenter-02>"]
+   }
+  },
+
+  "LoadBalancer":{
+   "Policy":"random",
+      "LeastRequestConfig":{                     // requires Policy":"least_request"
+     "ChoiceCount":2
+   },
+   "RingHashConfig":{                         // requires Policy":"ring_hash"
+     "MinimumRingSize":1024,
+     "MaximumRingSize":8192
+   },
+   "HashPolicies":[
+    {
+      "Field":"header",                       // cannot specify with SourceIP
+      "FieldValue":"<value-to-hash>",         // cannot specify with SourceIP
+      "CookieConfig":{
+        "Session":false,
+        "TTL":"0s",
+        "Path":"<path/to/cookie>"
+       },
+       "SourceIP":false,                       // cannot specify with Field or FieldValue
+       "Terminal":false
+    } 
+   ]
+  }
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1         # required
+kind: ServiceResolver                             # required            
+metadata:
+  name: <serviceName>
+  namespace: <namespace>
+spec:
+  connectTimeout: 10s
+  requestTimeout: 15s
+  subsets:
+    <subset01Name>:
+      filter: <expression.to.match.on == value01>
+      onlyPassing: false
+    <subset02Name>:
+      filter: <expression.to.match.on == value02>
+      onlyPassing: false
+  defaultSubset: <definedSubsetName>
+  redirect:                                 
+    service: <serviceName>
+    servicesubset: <subsetName>
+    namespace: <namespaceName>
+    partition: <partitionName>
+    samenessGroup: <samenessGroupName>
+    peer: <peerName>
+  failover:                         # requires at least one of the following: service, serviceSubset, namespace, targets, datacenters, samenessGroup
+    <localSubsetName>: 
+      targets:
+      - service: <serviceName>
+      - serviceSubset: <serviceSubset>
+      - namespace: <namespaceName>
+      - partition: <partitionName>
+      - datacenter: <datacenterName>
+      - peer: <peerName>
+    `*`: <namespaceName>
+      service: <serviceName>
+      serviceSubset: <serviceSubset>
+      namespace: <namespaceName>
+      datacenters: ["<destinationDatacenter01>", "<destinationDatacenter02>"]
+  loadBalancer:
+    policy: random
+    leastRequestConfig:                # requires policy: leastRequestConfig
+      choiceCount: 2
+    ringHashConfig:                    # requires policy: ringHashConfig
+      minimumRingSize: 1024
+      maximumRingSize: 8192
+    hashPolicies:
+      - field: header                  # cannot specify with SourceIP
+      - fieldValue: <valueToHashOn>    # cannot specify with SourceIP
+      - cookieConfig:
+        session: false
+        ttl: 0s
+        path: <path/to/cookie>
+      - sourceIP: false                # cannot specify with field or fieldValue
+      - terminal: false
+```
+
+</Tab>
+
+</Tabs>
+
+## Specification
+
+This section provides details about the fields you can configure in the configuration entry.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+### `Kind`
+
+Specifies the type of configuration entry to implement. Must be set to `service-resolver`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `service-resolver`.
+
+### `Name`
+
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `Namespace` <EnterpriseAlert inline />
+
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Partition` <EnterpriseAlert inline />
+
+Specifies the admin partition that the service resolver applies to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+
+#### Values
+
+- Default: `default`
+- Data type: String
+
+### `Meta`
+
+Specifies key-value pairs to add to the KV store.
+
+#### Values
+
+- Default: none
+- Data type: Map of one or more key-value pairs
+  - `<KEY>`: String
+  - `<VALUE>`: String or integer
+
+### `ConnectTimeout`
+
+Specifies the timeout duration for establishing new network connections to this service. By default, the duration is measured in nanoseconds (ns).
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `RequestTimeout`
+
+Specifies the timeout duration for receiving an HTTP response from this service. When set to `0s`, the default value of `15s` is used instead. By default, the duration is measured in nanoseconds (ns).
+
+#### Values
+
+- Default: `15s`
+- Data type: String
+
+### `Subsets`
+
+Specifies names for custom service subsets and the conditions under which service instances belong to each subset. Define a subset by specifying a key and a value where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If this parameter is not specified, only the unnamed default subset is usable.
+
+For additional guidance, refer to the [filter on service version configuration example](#filter-on-service-version).
+
+#### Values
+
+- Default: None
+- Data type: Map containing a key-value pair.
+  - `<KEY>`: String that names the subset. The string must be valid as a DNS subdomain element.
+  - `<VALUE>`: Map that can contain the following parameters:
+  
+    | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
+    | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
+    | `Filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2). For more information about creating and using expressions to filter, refer to [filtering](/consul/api-docs/features/filtering).     | String    | None    |
+    | `OnlyPassing` | Determines if instances that return a warning from a health check are allowed to resolve a request. When set to `false`, instances with `passing` and `warning` states are considered healthy. When set to `true`, only instances with a `passing` health check state are considered healthy. | Boolean   | `false` |
+
+### `DefaultSubset`
+
+Specifies a defined subset of service instances to use when no explicit subset is requested. If this parameter is not specified, Consul uses the unnamed default subset.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect`
+
+Specifies redirect instructions for local service traffic so that services deployed to a different network location resolve the upstream request instead. When this field is defined, Consul ignores all other fields in a service resolver configuration entry except for `Kind`, `Name`, `Namespace`. When there are multiple redirects defined for a single service, Consul uses only the first one it applies.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+  - [`Service`](#redirect-service)
+  - [`ServiceSubset`](#redirect-servicesubset)
+  - [`Namespace`](#redirect-namespace)
+  - [`Partition`](#redirect-partition)
+  - [`SamenessGroup`](#redirect-samenessgroup)
+  - [`Datacenter`](#redirect-datacenter)
+  - [`Peer`](#redirect-peer)
+
+### `Redirect{}.Service`
+
+Specifies the name of a service at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.ServiceSubset`
+
+Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `Redirect` map: `Service`, `Namespace`, and`Datacenter`.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.Namespace` <EnterpriseAlert inline />
+
+Specifies the namespace at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.Partition` <EnterpriseAlert inline />
+
+Specifies the admin partition at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.SamenessGroup` <EnterpriseAlert inline />
+
+Specifies the sameness group at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.Datacenter`
+
+Specifies the datacenter at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.Peer`
+
+Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover`
+
+Specifies controls for rerouting traffic to an alternate pool of service instances if the target service fails.
+
+This parameter is a map, and its key is the name of the local service subset that resolves to another location when it fails. You can specify a `"*"` wildcard to apply failovers to any subset.
+
+`Service`, `ServiceSubset`, `Namespace`, `Targets`, `SamenessGroup`, and `Datacenters` cannot all be empty at the same time.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+  - [`Service`](#failover-service)
+  - [`ServiceSubset`](#failover-servicesubset)
+  - [`Namespace`](#failover-namespace)
+  - [`SamenessGroup`](#failover-samenessgroup)
+  - [`Datacenters`](#failover-datacenters)
+  - [`Targets`](#failover-targets)
+  
+### `Failover{}.Service`
+
+Specifies the name of the service to resolve at the failover location during a failover scenario.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.ServiceSubset`
+
+Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`DefaultSubset`](#defaultsubset).
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Namespace` <EnterpriseAlert inline />
+
+Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.SamenessGroup` <EnterpriseAlert inline />
+
+Specifies the sameness group at the failover location where the failover services are deployed.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Datacenters`
+
+Specifies an ordered list of datacenters at the failover location to attempt connections to during a failover scenario. When Consul cannot establish a connection with the first datacenter in the list, it proceeds sequentially until establishing a connection with another datacenter.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets`
+
+Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios.
+
+For examples, refer to the [failover example configurations](#service-failover).
+
+#### Values
+
+- Default: None
+- Data type: List of maps that can contain the following parameters:
+  - [`Service`](#failover-targets-service)
+  - [`ServiceSubset`](#failover-targets-servicesubset)
+  - [`Namespace`](#failover-targets-namespace)
+  - [`Partition`](#failover-targets-partition)
+  - [`Datacenter`](#failover-targets-datacenter)
+  - [`Peer`](#failover-targets-peer)
+
+### `Failover{}.Targets[].Service`
+
+Specifies the service name to use for the failover target. If empty, the current service name is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].ServiceSubset`
+
+Specifies the named subset to use for the failover target. If empty, the default subset for the requested service name is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].Namespace` <EnterpriseAlert inline />
+
+Specifies the namespace to use for the failover target. If empty, the default namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].Partition` <EnterpriseAlert inline />
+
+Specifies the admin partition within the same datacenter to use for the failover target. If empty, the `default` partition is used. To use an admin partition in a different datacenter for the failover target, use the `Peer` field instead.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].Datacenter`
+
+Specifies the WAN federated datacenter to use for the failover target. If empty, the current datacenter is used. To use a datacenter for the failover target that is connected with a cluster peering relationship rather than WAN federation, use the `Peer` field instead.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].Peer`
+
+Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `LoadBalancer`
+
+Specifies the load balancing policy and configuration for services issuing requests to this upstream.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+  - [`Policy`](#loadbalancer-policy)
+  - [`RingHashConfig`](#loadbalancer-ringhashconfig)
+  - [`LeastRequestConfig`](#loadbalancer-leastrequestconfig)
+  - [`HashPolicies`](#loadbalancer-hashpolicies)
+
+### `LoadBalancer{}.Policy`
+
+Specifies the type of load balancing policy for selecting a host. Supported load balancing policies include:
+
+| Policy | Description                                                     |
+| :----- | :-------------------------------------------------------------- |
+| Random | The load balancer forwards a client request to an available server chosen at random from a fixed list. |
+| Round robin | The load balancer proceeds through a fixed list of servers and forwards a client request to each available server in order. |
+| Least request | The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig). |
+| Ring hash | The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig). |
+| Maglev | The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies). |
+
+
+#### Values
+
+- Default: None
+- Data type: String containing one of the following values:
+
+  - `random`
+  - `round_robin` 
+  - `least_request`
+  - `ring_hash` 
+  - `maglev`  
+
+### `LoadBalancer{}.LeastRequestConfig`
+
+Specifies configuration for the `least_request` policy type.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameter:
+  
+  | Parameter     | Description                                                                                        | Data type | Default |
+  | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
+  | `ChoiceCount` | Specifies the number of random healthy hosts from which to select the one with the least requests. | Integer   | `2`     |
+
+### `LoadBalancer{}.RingHashConfig`
+
+Specifies configuration for the `ring_hash` policy type.
+
+#### Values
+
+- Default: None
+- Data type: List that can contain the following parameters:
+  
+  | Parameter     | Description                                                    | Data type | Default |
+  | :------------ | :------------------------------------------------------------- | --------- | ------- |
+  | `MinimumRingSize` | Determines the minimum number of entries in the hash ring. | Integer   | `1024`  |
+  | `MaximumRingSize` | Determines the maximum number of entries in the hash ring. | Integer   | `8192`  |
+
+### `LoadBalancer{}.HashPolicies`
+
+Specifies a list of hash policies to use for hashing load balancing algorithms. Consul evaluates hash policies individually and combines them so that identical lists result in the same hash. If no hash policies are present or successfully evaluated, then Consul selects a random backend host.
+
+#### Values
+
+- Default: None
+- Data type:  List of maps for the following parameters:
+  - [`Field`](#loadbalancer-hashpolicies-field)
+  - [`FieldValue`](#loadbalancer-hashpolicies-fieldvalue)
+  - [`CookieConfig`](#loadbalancer-hashpolicies-cookieconfig)
+  - [`SourceIP`](#loadbalancer-hashpolicies-sourceip)
+  - [`Terminal`](#loadbalancer-hashpolicies-terminal)
+
+### `LoadBalancer{}.HashPolicies[].Field`
+
+ Specifies the attribute type to hash on. You cannot specify the `Field` parameter if `SourceIP` is also configured.
+
+ Supported attribute types include the following:
+
+| Attribute | Description                                                     |
+| :--------- | :-------------------------------------------------------------- |
+| Cookie     | The load balancer uses a cookie to obtain a hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-cookie) for more information. |
+| Header     | The load balancer uses a request header to obtain a hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-header) for more information. |
+| Query Parameter | The load balancer uses a URL query parameter to obtain the hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-queryparameter) for more information. |
+
+#### Values
+
+- Default: None
+- Data type: String containing one of the following values:
+  - `cookie`
+  - `header`
+  - `query_parameter`
+
+### `LoadBalancer{}.HashPolicies[].FieldValue`
+
+Specifies the value to hash, such as a header name, cookie name, or a URL query parameter name. You cannot specify the `FieldValue` parameter if `SourceIP` is also configured.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `LoadBalancer{}.HashPolicies[].CookieConfig`
+
+Specifies additional configuration options for the `cookie` hash policy type. This field causes Envoy to generate a cookie for a client on its first request.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+  
+  | Parameter      | Description                                                                       | Data type | Default |
+  | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
+  | `Session`      | Directs Consul to generate a session cookie with no expiration.                   | Boolean   | `false` |
+  | `TTL`          | Specifies the TTL for generated cookies. Cannot be specified for session cookies. | String    | `0s`    |
+  | `Path`         | Specifies the path to set for the cookie.                                         | String    | None    |
+
+### `LoadBalancer{}.HashPolicies[].SourceIP`
+
+Determines if the hash type should besource IP address. You cannot specify `SourceIP` if `Field` or `FieldValue` are configured.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+  
+### `LoadBalancer{}.HashPolicies[].Terminal`
+
+ Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+  
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`. 
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `consul.hashicorp.com/v1alpha1`.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to `ServiceResolver`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `ServiceResolver`.
+
+## `metadata`
+
+Map that contains an arbitrary name for the configuration entry and the namespace it applies to. 
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace`<EnterpriseAlert inline />
+
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `ServiceResolver` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.connectTimeout`
+
+Specifies the timeout duration for establishing new network connections to this service. By default, the duration is measured in nanoseconds (ns).
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.requestTimeout`
+
+Specifies the timeout duration for receiving an HTTP response from this service. When set to `0s`, the default value of `15s` is used instead. By default, the duration is measured in nanoseconds (ns).
+
+#### Values
+
+- Default: `15s`
+- Data type: String
+
+### `spec.subsets`
+
+Specifies names for custom service subsets and the conditions under which service instances belong to each subset. Define a subset by specifying a key and a value where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If this parameter is not specified, only the unnamed default subset is usable.
+
+For additional guidance, refer to the [filter on service version configuration example](#filter-on-service-version).
+
+#### Values
+
+- Default: None
+- Data type: Map containing a key-value pair.
+  - `<KEY>`: String that names the subset. The string must be valid as a DNS subdomain element.
+  - `<VALUE>`: Map that can contain the following parameters:
+
+    | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
+    | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
+    | `filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2). For more information about creating and using expressions to filter, refer to [filtering](/consul/api-docs/features/filtering).     | String    | None    |
+    | `onlyPassing` | Determines if instances that return a warning from a health check are allowed to resolve a request. When set to `false`, instances with `passing` and `warning` states are considered healthy. When set to `true`, only instances with a `passing` health check state are considered healthy. | Boolean   | `false` |
+
+### `spec.defaultSubset`
+
+Specifies a defined subset of service instances to use when no explicit subset is requested. If this parameter is not specified, Consul uses the unnamed default subset.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect`
+
+Specifies redirect instructions for local service traffic so that services deployed to a different network location resolve the upstream request instead. When this field is defined, Consul ignores all other fields in a service resolver configuration entry except for `kind`, `name`, `namespace`. When there are multiple redirects defined for a single service, Consul uses only the first one it applies.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+  - [`service`](#spec-redirect-service)
+  - [`serviceSubset`](#spec-redirect-servicesubset)
+  - [`namespace`](#spec-redirect-namespace)
+  - [`partition`](#spec-redirect-partition)
+  - [`samenessGroup`](#spec-redirect-samenessgroup)
+  - [`datacenter`](#spec-redirect-datacenter)
+  - [`peer`](#spec-redirect-peer)
+
+### `spec.redirect.service`
+
+Specifies the name of a service at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.serviceSubset`
+
+Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `redirect` map: `service`, `namespace`, and`datacenter`.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.partition` <EnterpriseAlert inline />
+
+Specifies the admin partition at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.samenessGroup` <EnterpriseAlert inline />
+
+Specifies the sameness group at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+
+### `spec.redirect.datacenter`
+
+Specifies the datacenter at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.peer`
+
+Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover`
+
+Specifies controls for rerouting traffic to an alternate pool of service instances if the target service fails.
+
+This parameter is a map, and its key is the name of the local service subset that resolves to another location when it fails. You can specify a `"*"` wildcard to apply failovers to any subset.
+
+`service`, `serviceSubset`, `namespace`, `targets`, `samenessGroup`, and `datacenters` cannot all be empty at the same time.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+  - [`service`](#spec-failover-service)
+  - [`serviceSubset`](#spec-failover-servicesubset)
+  - [`namespace`](#spec-failover-namespace)
+  - [`samenessGroup`](#spec-failover-samenessgroup)
+  - [`datacenters`](#spec-failover-datacenters)
+  - [`targets`](#spec-failover-targets)
+  
+### `spec.failover.service`
+
+Specifies the name of the service to resolve at the failover location during a failover scenario.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.serviceSubset`
+
+Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`defaultSubset`](#defaultsubset).
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.samenessGroup` <EnterpriseAlert inline />
+
+Specifies the sameness group at the failover location where the failover services are deployed.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.datacenters`
+
+Specifies an ordered list of datacenters at the failover location to attempt connections to during a failover scenario. When Consul cannot establish a connection with the first datacenter in the list, it proceeds sequentially until establishing a connection with another datacenter.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets`
+
+Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios.
+
+For examples, refer to the [failover example configurations](#service-failover).
+
+#### Values
+
+- Default: None
+- Data type: List of maps that can contain the following parameters:
+  - [`service`](#spec-failover-targets-service)
+  - [`serviceSubset`](#spec-failover-targets-servicesubset)
+  - [`namespace`](#spec-failover-targets-namespace)
+  - [`partition`](#spec-failover-targets-partition)
+  - [`datacenter`](#spec-failover-targets-datacenter)
+  - [`peer](#spec-failover-targets-peer)
+
+### `spec.failover.targets.service`
+
+Specifies the service name to use for the failover target. If empty, the current service name is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.serviceSubset`
+
+Specifies the named subset to use for the failover target. If empty, the default subset for the requested service name is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace to use for the failover target. If empty, the default namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.partition` <EnterpriseAlert inline />
+
+Specifies the admin partition within the same datacenter to use for the failover target. If empty, the `default` partition is used. To use an admin partition in a different datacenter for the failover target, use the `peer` field instead.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.datacenter`
+
+Specifies the WAN federated datacenter to use for the failover target. If empty, the current datacenter is used. To use a datacenter for the failover target that is connected with a cluster peering relationship rather than WAN federation, use the `peer` field instead.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.peer`
+
+Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.loadBalancer`
+
+Specifies the load balancing policy and configuration for services issuing requests to this upstream.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+  - [`policy`](#spec-loadbalancer-policy)
+  - [`leastRequestConfig`](#spec-loadbalancer-leastrequestconfig)
+  - [`ringHashConfig`](#spec-loadbalancer-ringhashconfig)
+  - [`hashPolicies`](#spec-loadbalancer-hashpolicies)
+
+### `spec.loadBalancer.policy`
+
+Specifies the type of load balancing policy for selecting a host. Supported load balancing policies include:
+
+| Policy | Description                                                     |
+| :----- | :-------------------------------------------------------------- |
+| Random | The load balancer forwards a client request to an available server chosen at random from a fixed list. |
+| Round robin | The load balancer proceeds through a fixed list of servers and forwards a client request to each available server in order. |
+| Least request | The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`spec.loadBalancer.leastRequestConfig`](#spec-loadbalancer-leastrequestconfig). |
+| Ring hash | The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`spec.loadBalancer.ringHashConfig`](#spec-loadbalancer-ringhashconfig). |
+| Maglev | The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`spec.loadBalancer.hashPolicies`](#spec-loadbalancer-hashpolicies). |
+
+#### Values
+
+- Default: None
+- Data type: String containing one of the following values:
+
+  - `random`
+  - `round_robin` 
+  - `least_request`
+  - `ring_hash` 
+  - `maglev`
+
+### `spec.loadBalancer.leastRequestConfig`
+
+Specifies configuration for the `least_request` policy type.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameter:
+  
+  | Parameter     | Description                                                                                        | Data type | Default |
+  | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
+  | `choiceCount` | Specifies the number of random healthy hosts from which to select the one with the least requests. | Integer   | `2`     |
+
+### `spec.loadBalancer.ringHashConfig`
+
+Specifies configuration for the `ring_hash` policy type.
+
+#### Values
+
+- Default: None
+- Data type: List that can contain the following parameters:
+  
+  | Parameter     | Description                                                    | Data type | Default |
+  | :------------ | :------------------------------------------------------------- | --------- | ------- |
+  | `minimumRingSize` | Determines the minimum number of entries in the hash ring. | Integer   | `1024`  |
+  | `maximumRingSize` | Determines the maximum number of entries in the hash ring. | Integer   | `8192`  |
+
+### `spec.loadBalancer.hashPolicies`
+
+Specifies a list of hash policies to use for hashing load balancing algorithms. Consul evaluates hash policies individually and combines them so that identical lists result in the same hash. If no hash policies are present or successfully evaluated, then Consul selects a random backend host.
+
+#### Values
+
+- Default: None
+- Data type:  List that can contain the following parameters:
+  - [`field`](#spec-loadbalancer-hashpolicies-field)
+  - [`fieldValue`](#spec-loadbalancer-hashpolicies-fieldvalue)
+  - [`cookieConfig`](#spec-loadbalancer-hashpolicies-cookieconfig)
+  - [`sourceIP`](#spec-loadbalancer-hashpolicies-sourceip)
+  - [`terminal`](#spec-loadbalancer-hashpolicies-terminal)
+
+### `spec.loadBalancer.hashPolicies[].field`
+
+ Specifies the attribute type to hash on. You cannot specify the `field` parameter if `sourceIP` is also configured.
+
+Supported attribute types include the following: 
+
+| Attribute | Description                                                     |
+| :--------- | :-------------------------------------------------------------- |
+| Cookie     | The load balancer uses a cookie to obtain a hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-cookie) for more information. |
+| Header     | The load balancer uses a request header to obtain a hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-header) for more information. |
+| Query Parameter | The load balancer uses a URL query parameter to obtain the hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-queryparameter) for more information. |
+
+#### Values
+
+- Default: None
+- Data type: String containing one of the following values:
+  - `cookie`
+  - `header`
+  - `query_parameter`
+
+### `spec.loadBalancer.hashPolicies[].fieldValue`
+
+Specifies the value to hash, such as a header name, cookie name, or a URL query parameter name. You cannot specify the `fieldValue` parameter if `sourceIP` is also configured.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.loadBalancer.hashPolicies[].cookieConfig`
+
+Specifies additional configuration options for the `cookie` hash policy type. This field causes Envoy to generate a cookie for a client on its first request.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+  
+  | Parameter      | Description                                                                       | Data type | Default |
+  | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
+  | `session`      | Directs Consul to generate a session cookie with no expiration.                   | Boolean   | `false` |
+  | `ttl`          | Specifies the TTL for generated cookies. Cannot be specified for session cookies. | String    | `0s`    |
+  | `path`         | Specifies the path to set for the cookie.                                         | String    | None    |
+
+### `spec.loadBalancer.hashPolicies[].sourceIP`
+
+Determines if the hash type should besource IP address. You cannot specify `sourceIP` if `field` or `fieldValue` are configured.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.loadBalancer.hashPolicies[].terminal`
+
+Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+</Tab>
+</Tabs>
+
+## Examples
+
+The following examples demonstrate common service resolver configuration patterns for specific use cases.
 
 ### Filter on service version
 
-Create service subsets based on a version metadata and override the defaults:
+The following example creates two subsets of the `web` service and assigns service instances to subsets based on each instance's version metadata. It also defines `v1` as the default subset.
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind          = "service-resolver"
@@ -50,6 +1303,10 @@ Subsets = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -63,6 +1320,10 @@ spec:
     v2:
       filter: 'Service.Meta.version == v2'
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -80,13 +1341,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
-### Other datacenters
+### Resolve virtual upstreams
 
-Expose a set of services in another datacenter as a virtual service:
+The folowing example uses the [`Redirect` parameter](#redirect) to expose a set of services to another datacenter as a virtual service.
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-resolver"
@@ -96,6 +1359,10 @@ Redirect {
   Datacenter = "dc2"
 }
 ```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -108,6 +1375,10 @@ spec:
     datacenter: dc2
 ```
 
+</Tab>
+
+<Tab heading="JSON" group="json">
+
 ```json
 {
   "Kind": "service-resolver",
@@ -119,13 +1390,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
-### Failover
+### Service failover
 
-Enable failover for subset `v2` to `dc2`, and all other subsets to `dc3` or `dc4`:
+The following example enables failover for subset `v2` to `dc2`. All other subsets attempt failover to `dc3`, and when it is not available, to `dc4`:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind           = "service-resolver"
@@ -141,6 +1414,10 @@ Failover = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -154,6 +1431,10 @@ spec:
     '*':
       datacenters: ['dc3', 'dc4']
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -171,12 +1452,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
-Enable failover to a WAN federated datacenter and then a cluster peer for all
-service subsets.
+#### Failover targets for federation and cluster peering
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+The following example enables failover to target a WAN federated datacenter for all service subsets. If the connection to `dc3` times out after 15 seconds, the service failover targets the peer with the establish cluster peering connection instead.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind           = "service-resolver"
@@ -192,6 +1476,10 @@ Failover = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -205,6 +1493,10 @@ spec:
       - datacenter: "dc3"
       - peer: "peer-01"
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -222,13 +1514,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
-<EnterpriseAlert product="consul">
-  Failover to another datacenter and namespace for all service subsets.
-</EnterpriseAlert>
+#### Failover for all service subsets <EnterpriseAlert inline />
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+The following example enables failover to the `secondary` namespace in another datacenter for all service subsets.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind           = "service-resolver"
@@ -243,6 +1537,10 @@ Failover = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -255,6 +1553,10 @@ spec:
     namespace: 'secondary'
     datacenters: ['dc2']
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -271,13 +1573,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
-<EnterpriseAlert product="consul">
-  Failover within a datacenter and a different namespace.
-</EnterpriseAlert>
+#### Failover to a namespace <EnterpriseAlert inline />
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+The following example enables failover to a different namespace in the same datacenter.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind           = "service-resolver"
@@ -292,6 +1596,10 @@ Failover = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -304,6 +1612,10 @@ spec:
     service: 'product-api-backup'
     namespace: 'secondary'
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -320,13 +1632,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
 ### Consistent load balancing
 
-Apply consistent load balancing for requests based on `x-user-id` header:
+The following example applies a Maglev load balancing policy for requests with an `x-user-id` header:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-resolver"
@@ -343,6 +1657,10 @@ LoadBalancer = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -355,6 +1673,10 @@ spec:
       - field: header
         fieldValue: x-user-id
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -372,437 +1694,5 @@ spec:
 }
 ```
 
-</CodeTabs>
-
-## Available Fields
-
-<ConfigEntryReference
-  keys={[
-    {
-      name: 'apiVersion',
-      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
-      hcl: false,
-    },
-    {
-      name: 'Kind',
-      description: {
-        hcl: 'Must be set to `service-resolver`',
-        yaml: 'Must be set to `ServiceResolver`',
-      },
-    },
-    {
-      name: 'Name',
-      description: 'Set to the name of the service being configured.',
-      type: 'string: <required>',
-      yaml: false,
-    },
-    {
-      name: 'Namespace',
-      type: `string: "default"`,
-      enterprise: true,
-      description:
-        'Specifies the namespace in which the configuration entry will apply.',
-      yaml: false,
-    },
-    {
-      name: 'Partition',
-      type: `string: "default"`,
-      enterprise: true,
-      description:
-        'Specifies the admin partition in which the configuration entry will apply.',
-      yaml: false,
-    },
-    {
-      name: 'Meta',
-      type: 'map<string|string>: nil',
-      description:
-        'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
-      yaml: false,
-    },
-    {
-      name: 'metadata',
-      children: [
-        {
-          name: 'name',
-          description: 'Set to the name of the service being configured.',
-        },
-        {
-          name: 'namespace',
-          description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
-        },
-      ],
-      hcl: false,
-    },
-    {
-      name: 'ConnectTimeout',
-      type: 'duration: 0s',
-      description:
-        'The timeout for establishing new network connections to this service. The default unit of time is `ns`.',
-    },
-    {
-      name: 'RequestTimeout',
-      type: 'duration: 0s',
-      description:
-        'The timeout for receiving an HTTP response from this service before the connection is terminated. If unspecified or 0, the default of 15s is used. The default unit of time is `ns`.',
-    },
-    {
-      name: 'DefaultSubset',
-      type: 'string: ""',
-      description:
-        'The subset to use when no explicit subset is requested. If empty, the unnamed subset is used.',
-    },
-    {
-      name: 'Subsets',
-      type: 'map[string]ServiceResolverSubset',
-      description:
-        'A map of subset name to subset definition for all usable named subsets of this service. The map key is the name of the subset and all names must be valid DNS subdomain elements.<br><br>This may be empty, in which case only the unnamed default subset will be usable.',
-      children: [
-        {
-          name: 'Filter',
-          type: 'string: ""',
-          description: `The filter expression for selecting instances of the 
-                            requested service. If empty, all healthy instances are returned. 
-                            This expression can filter on the same selectors as the
-                            [Health API endpoint](/consul/api-docs/health#filtering-2).`,
-        },
-        {
-          name: 'OnlyPassing',
-          type: 'bool: false',
-          description: `Specifies the behavior of the resolver's
-                            health check interpretation. If this is set to false, instances with checks
-                            in the passing as well as the warning states will be considered healthy. If
-                            this is set to true, only instances with checks in the passing state will
-                            be considered healthy.`,
-        },
-      ],
-    },
-    {
-      name: 'Redirect',
-      type: 'ServiceResolverRedirect: <optional>',
-      description: {
-        hcl: `When configured, all attempts to resolve the service this resolver defines will be substituted for the supplied redirect EXCEPT when the redirect has already been applied.
-                      <br><br>
-                      When \`Redirect\` is set, all other fields besides \`Kind\`, \`Name\`, \`Namespace\` and \`Redirect\` will be ignored.`,
-        yaml: `When configured, all attempts to resolve the service this resolver defines will be substituted for the supplied redirect EXCEPT when the redirect has already been applied.
-                      <br><br>
-                      When \`redirect\` is set, all other fields besides \`redirect\` will be ignored.`,
-      },
-      children: [
-        {
-          name: 'Service',
-          type: 'string: ""',
-          description: 'A service to resolve instead of the current service.',
-        },
-        {
-          name: 'ServiceSubset',
-          type: 'string: ""',
-          description: {
-            hcl: `A named subset of the given service to
-                      resolve instead of one defined as that service's \`DefaultSubset\`. If empty, the
-                      default subset is used.
-                      <br><br>
-                      If this is specified at least one of \`Service\`, \`Datacenter\`, or \`Namespace\`
-                      should be configured.`,
-            yaml: `A named subset of the given service to
-                      resolve instead of one defined as that service's \`defaultSubset\`. If empty, the
-                      default subset is used.
-                      <br><br>
-                      If this is specified at least one of \`service\`, \`datacenter\`, or \`namespace\`
-                      should be configured.`,
-          },
-        },
-        {
-          name: 'Namespace',
-          enterprise: true,
-          type: 'string: ""',
-          description:
-            'Specifies the destination namespace to resolve the service from.',
-        },
-        {
-          name: 'Partition',
-          enterprise: true,
-          type: 'string: ""',
-          description:
-            'Specifies the destination admin partition to resolve the service from.',
-        },
-        {
-          name: 'Datacenter',
-          type: 'string: ""',
-          description:
-            'Specifies the destination datacenter to resolve the service from.',
-        },
-        {
-          name: 'Peer',
-          type: 'string: ""',
-          description:
-              `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers)
-                  on the peered cluster to allow the source service to access this redirect target service as an upstream. When
-                  the peer name is specified, Consul uses Envoy's outlier detection to determine
-                  the health of the redirect target based on whether communication attempts to the
-                  redirect target are generally successful. Service health checks imported from a peer
-                  are not considered in the health of a redirect target because they do not account for service
-                  routers, splitters, and resolvers that may be defined in the peer for the target service.`,
-        },
-      ],
-    },
-    {
-      name: 'Failover',
-      type: 'map[string]ServiceResolverFailover',
-      description: {
-        hcl: `Controls when and how to
-                reroute traffic to an alternate pool of service instances.
-                <br><br>
-                The map is keyed by the service subset it applies to and the special
-                string \`"*"\` is a wildcard that applies to any subset not otherwise
-                specified here.
-                <br><br>
-                \`Service\`, \`ServiceSubset\`, \`Namespace\`, \`Targets\`, and
-                \`Datacenters\` cannot all be empty at once.`,
-        yaml: `Controls when and how to
-                reroute traffic to an alternate pool of service instances.
-                <br><br>
-                The map is keyed by the service subset it applies to and the special
-                string \`"*"\` is a wildcard that applies to any subset not otherwise
-                specified here.
-                <br><br>
-                \`service\`, \`serviceSubset\`, \`namespace\`, \`targets\` and
-                \`datacenters\` cannot all be empty at once.`,
-      },
-      children: [
-        {
-          name: 'Service',
-          type: 'string: ""',
-          description:
-            'The service to resolve instead of the default as the failover group of instances during failover.',
-        },
-        {
-          name: 'ServiceSubset',
-          type: 'string: ""',
-          description:
-            'The named subset of the requested service to resolve as the failover group of instances. If empty, the default subset for the requested service is used.',
-        },
-        {
-          name: 'Namespace',
-          enterprise: true,
-          type: 'string: ""',
-          description:
-            'The namespace to resolve the requested service from to form the failover group of instances. If empty, the current namespace is used.',
-        },
-        {
-          name: 'Datacenters',
-          type: 'array<string>',
-          description: 'A fixed list of datacenters to try during failover.',
-        },
-        {
-          name: 'Targets',
-          type: 'array<ServiceResolverFailoverTarget>',
-          description: `A fixed list of failover targets to try during
-                          failover. It allows operators to express complicated failover
-                          scenarios such as between cluster peers, WAN federated datacenters, and local admin partitions.`,
-          children: [
-            {
-              name: 'Service',
-              type: 'string: ""',
-              description:
-                'The service name to use for the failover target. If empty, the current service name is used.',
-            },
-            {
-              name: 'ServiceSubset',
-              type: 'string: ""',
-              description:
-                'The named subset to use for the failover target. If empty, the default subset for the requested service name is used.',
-            },
-            {
-              name: 'Namespace',
-              enterprise: true,
-              type: 'string: ""',
-              description:
-                `The namespace to use for the failover target. If empty, the \`default\` namespace is used.`,
-            },
-            {
-              name: 'Partition',
-              enterprise: true,
-              type: 'string: ""',
-              description:
-                `The admin partition within the same datacenter to use for the failover target.
-                If empty, the \`default\` partition is used.
-                To use an admin partition in a different datacenter for the failover target,
-                use the \`Peer\` field instead.`,
-            },
-            {
-              name: 'Datacenter',
-              type: 'string: ""',
-              description:
-                `The WAN federated datacenter to use for the failover target.
-                If empty, the current datacenter is used.
-                To use a datacenter for the failover target that is connected
-                with a cluster peering relationship rather than WAN federation,
-                use the \`Peer\` field instead.`,
-            },
-            {
-              name: 'Peer',
-              type: 'string: ""',
-              description:
-              `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers)
-                  on the peered cluster to allow the source service to access this failover target service as an upstream.
-                  When the peer name is specified, Consul uses Envoy's outlier detection
-                  to determine the health of the failover target based on
-                  whether communication attempts to the failover target are generally successful.
-                  Service health checks imported from a peer are not considered in the health
-                  of a failover target because they do not account for service routers, splitters, and resolvers
-                  that may be defined in the peer for the target service.`,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      name: 'LoadBalancer',
-      type: 'LoadBalancer',
-      description:
-        'Determines the load balancing policy and configuration for services issuing requests to this upstream. This option is available in Consul versions 1.9.0 and newer.',
-      children: [
-        {
-          name: 'Policy',
-          type: 'string: ""',
-          description:
-            'The load balancing policy used to select a host. One of: `random`, `round_robin`, `least_request`, `ring_hash`, `maglev`.',
-        },
-        {
-          name: 'RingHashConfig',
-          type: 'RingHashConfig',
-          description: 'Configuration for the `ring_hash` policy type.',
-          children: [
-            {
-              name: 'MinimumRingSize',
-              type: 'int: 1024',
-              description:
-                'Determines the minimum number of entries in the hash ring.',
-            },
-            {
-              name: 'MaximumRingSize',
-              type: 'int: 8192',
-              description:
-                'Determines the maximum number of entries in the hash ring.',
-            },
-          ],
-        },
-        {
-          name: 'LeastRequestConfig',
-          type: 'LeastRequestConfig',
-          description: 'Configuration for the `least_request` policy type.',
-          children: [
-            {
-              name: 'ChoiceCount',
-              type: 'int: 2',
-              description:
-                'Determines the number of random healthy hosts from which to select the one with the least requests.',
-            },
-          ],
-        },
-        {
-          name: 'HashPolicies',
-          type: 'array<HashPolicies>',
-          description: `List of hash policies to use for
-                            hashing load balancing algorithms. Hash policies are evaluated individually
-                            and combined such that identical lists result in the same hash.
-                            If no hash policies are present, or none are successfully evaluated,
-                            then a random backend host will be selected.`,
-          children: [
-            {
-              name: 'Field',
-              type: 'string: ""',
-              description: {
-                hcl:
-                  'The attribute type to hash on. Must be one of `header`, `cookie`, or `query_parameter`. Cannot be specified along with `SourceIP`.',
-                yaml:
-                  'The attribute type to hash on. Must be one of `header`, `cookie`, or `query_parameter`. Cannot be specified along with `sourceIP`.',
-              },
-            },
-            {
-              name: 'FieldValue',
-              type: 'string: ""',
-              description: {
-                hcl:
-                  'The value to hash. ie. header name, cookie name, URL query parameter name. Cannot be specified along with `SourceIP`.',
-                yaml:
-                  'The value to hash. ie. header name, cookie name, URL query parameter name. Cannot be specified along with `sourceIP`.',
-              },
-            },
-            {
-              name: 'CookieConfig',
-              type: 'CookieConfig',
-              description:
-                'Additional configuration for the "cookie" hash policy type. This is specified to have Envoy generate a cookie for a client on its first request.',
-              children: [
-                {
-                  name: 'Session',
-                  type: 'bool: false',
-                  description: 'Generates a session cookie with no expiration.',
-                },
-                {
-                  name: 'TTL',
-                  type: 'duration: 0s',
-                  description:
-                    'TTL for generated cookies. Cannot be specified for session cookies.',
-                },
-                {
-                  name: 'Path',
-                  type: 'string: ""',
-                  description: 'The path to set for the cookie.',
-                },
-              ],
-            },
-            {
-              name: 'SourceIP',
-              type: 'bool: false',
-              description: {
-                hcl:
-                  'Determines whether the hash should be of the source IP address rather than of a field and field value. Cannot be specified along with `Field` or `FieldValue`.',
-                yaml:
-                  'Determines whether the hash should be of the source IP address rather than of a field and field value. Cannot be specified along with `field` or `fieldValue`.',
-              },
-            },
-            {
-              name: 'Terminal',
-              type: 'bool: false',
-              description:
-                'Will short circuit the computation of the hash when multiple hash policies are present. If a hash is computed when a Terminal policy is evaluated, then that hash will be used and subsequent hash policies will be ignored.',
-            },
-          ],
-        },
-      ],
-    },
-  ]}
-/>
-
-## Service Subsets
-
-A service subset assigns a concrete name to a specific subset of discoverable
-service instances within a datacenter, such as `"version2"` or `"canary"`.
-
-A service subset name is useful only when composed with an actual service name,
-a specific datacenter, and namespace.
-
-All services have an unnamed default subset that will return all healthy
-instances unfiltered.
-
-Subsets are defined in `service-resolver` configuration entries, but are
-referenced by their names throughout the other configuration entry kinds.
-
-## ACLs
-
-Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
-
-Reading a `service-resolver` config entry requires `service:read` on the resource.
-
-Creating, updating, or deleting a `service-resolver` config entry requires
-`service:write` on the resource and `service:read` on any other service referenced by
-name in these fields:
-
-- [`Redirect.Service`](#service)
-
-- [`Failover[].Service`](#service-1)
+</Tab>
+</Tabs>

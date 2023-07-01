@@ -22,6 +22,31 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestList_InputValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	testCases := map[string]func(*pbresource.ListRequest){
+		"no type":    func(req *pbresource.ListRequest) { req.Type = nil },
+		"no tenancy": func(req *pbresource.ListRequest) { req.Tenancy = nil },
+	}
+	for desc, modFn := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			req := &pbresource.ListRequest{
+				Type:    demo.TypeV2Album,
+				Tenancy: demo.TenancyDefault,
+			}
+			modFn(req)
+
+			_, err := client.List(testContext(t), req)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
 func TestList_TypeNotFound(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
@@ -33,7 +58,7 @@ func TestList_TypeNotFound(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestList_Empty(t *testing.T) {
@@ -68,10 +93,11 @@ func TestList_Many(t *testing.T) {
 
 				// Prevent test flakes if the generated names collide.
 				artist.Id.Name = fmt.Sprintf("%s-%d", artist.Id.Name, i)
-				_, err = server.Backend.WriteCAS(tc.ctx, artist)
+
+				rsp, err := client.Write(tc.ctx, &pbresource.WriteRequest{Resource: artist})
 				require.NoError(t, err)
 
-				resources[i] = artist
+				resources[i] = rsp.Resource
 			}
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -152,7 +178,7 @@ func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 
 	// allow list, deny read
 	authz := AuthorizerFrom(t, demo.ArtistV2ListPolicy,
-		`key_prefix "resource/demo.v2.artist/" { policy = "deny" }`)
+		`key_prefix "resource/demo.v2.Artist/" { policy = "deny" }`)
 	_, rsp, err := roundTripList(t, authz)
 
 	// verify resource filtered out by key:read denied hence no results

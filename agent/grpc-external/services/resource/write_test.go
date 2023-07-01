@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 )
 
@@ -150,7 +151,7 @@ func TestWrite_TypeNotFound(t *testing.T) {
 	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestWrite_ACLs(t *testing.T) {
@@ -392,6 +393,36 @@ func TestWrite_Update_NoUid(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestWrite_Update_GroupVersion(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	res = rsp1.Resource
+	res.Id.Type = demo.TypeV1Artist
+
+	// translate artistV2 to artistV1
+	var artistV2 pbdemov2.Artist
+	require.NoError(t, res.Data.UnmarshalTo(&artistV2))
+	artistV1 := &pbdemov1.Artist{
+		Name:         artistV2.Name,
+		Description:  "some awesome band",
+		Genre:        pbdemov1.Genre_GENRE_JAZZ,
+		GroupMembers: int32(len(artistV2.GroupMembers)),
+	}
+	res.Data.MarshalFrom(artistV1)
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+}
+
 func TestWrite_NonCASUpdate_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
@@ -539,6 +570,25 @@ func TestWrite_Owner_Uid(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, rsp2.Resource.Owner.Uid)
 		require.Equal(t, artist.Id.Uid, rsp2.Resource.Owner.Uid)
+	})
+
+	t.Run("no-uid - update auto resolve", func(t *testing.T) {
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		uid := ulid.Make().String()
+		album, err := demo.GenerateV2Album(artist.Id)
+		require.NoError(t, err)
+		album.Owner.Uid = uid
+
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+
+		// unset the uid and rewrite the resource
+		album.Owner.Uid = ""
+		rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+		require.Equal(t, uid, rsp.GetResource().GetOwner().GetUid())
 	})
 }
 

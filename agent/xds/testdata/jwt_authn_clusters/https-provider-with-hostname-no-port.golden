@@ -1,0 +1,32 @@
+{
+  "loadAssignment": {
+    "clusterName": "jwks_cluster_okta",
+    "endpoints": [
+      {
+        "lbEndpoints": [
+          {
+            "endpoint": {
+              "address": {
+                "socketAddress": {
+                  "address": "example-okta.com",
+                  "portValue": 443
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "jwks_cluster_okta",
+  "transportSocket": {
+    "name": "tls",
+    "typedConfig": {
+      "@type":"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+      "commonTlsContext": {
+        "validationContext": {}
+      }
+    }
+  },
+  "type": "STRICT_DNS"
+}

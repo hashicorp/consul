@@ -56,19 +56,27 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 
 		// TODO(peering): consider PeerUpstreamEndpoints in addition to DiscoveryChain
 		// These are the discovery chains for upstreams which have the Envoy Extensions applied to the local service.
-		for uid, dc := range cfgSnap.ConnectProxy.DiscoveryChain {
+		for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 			compoundServiceName := upstreamIDToCompoundServiceName(uid)
-			extensionsMap[compoundServiceName] = convertEnvoyExtensions(dc.EnvoyExtensions)
+			extensionsMap[compoundServiceName] = convertEnvoyExtensions(chain.EnvoyExtensions)
 
-			meta := uid.EnterpriseMeta
-			sni := connect.ServiceSNI(uid.Name, "", meta.NamespaceOrDefault(), meta.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+			primarySNI := connect.ServiceSNI(uid.Name, "", chain.Namespace, chain.Partition, cfgSnap.Datacenter, trustDomain)
+			snis := make(map[string]struct{})
+			for _, t := range chain.Targets {
+				// SNI isn't set for peered services. We don't support peered services yet.
+				if t.SNI != "" {
+					snis[t.SNI] = struct{}{}
+				}
+			}
+
 			outgoingKind, ok := outgoingKindByService[compoundServiceName]
 			if !ok {
 				outgoingKind = api.ServiceKindConnectProxy
 			}
 
 			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
-				SNI:               map[string]struct{}{sni: {}},
+				PrimarySNI:        primarySNI,
+				SNIs:              snis,
 				VIP:               vipForService[compoundServiceName],
 				EnvoyID:           uid.EnvoyID(),
 				OutgoingProxyKind: outgoingKind,
@@ -86,12 +94,12 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 		cfgSnapExts := convertEnvoyExtensions(cfgSnap.Proxy.EnvoyExtensions)
 		for _, ext := range cfgSnapExts {
 			extCfg := extensioncommon.RuntimeConfig{
-				EnvoyExtension: ext,
-				ServiceName:    localSvc,
-				// Upstreams is nil to signify this extension is not being applied to an upstream service, but rather to the local service.
-				Upstreams:      nil,
-				LocalUpstreams: upstreamMap,
-				Kind:           kind,
+				EnvoyExtension:        ext,
+				ServiceName:           localSvc,
+				IsSourcedFromUpstream: false,
+				Upstreams:             upstreamMap,
+				Kind:                  kind,
+				Protocol:              proxyConfigProtocol(cfgSnap.Proxy.Config),
 			}
 			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
 		}
@@ -101,10 +109,10 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 			compoundServiceName := serviceNameToCompoundServiceName(svc)
 			extensionsMap[compoundServiceName] = convertEnvoyExtensions(c.EnvoyExtensions)
 
-			sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+			primarySNI := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
 			envoyID := proxycfg.NewUpstreamIDFromServiceName(svc)
 
-			snis := map[string]struct{}{sni: {}}
+			snis := map[string]struct{}{primarySNI: {}}
 
 			resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 			if hasResolver {
@@ -115,7 +123,8 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 			}
 
 			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
-				SNI:               snis,
+				PrimarySNI:        primarySNI,
+				SNIs:              snis,
 				EnvoyID:           envoyID.EnvoyID(),
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
 			}
@@ -123,16 +132,22 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 		}
 	}
 
+	// If applicable, include extension configuration for remote upstreams of the local service.
+	// This only applies to specific extensions authorized to apply to remote proxies.
 	for svc, exts := range extensionsMap {
 		extensionConfigurationsMap[svc] = []extensioncommon.RuntimeConfig{}
 		for _, ext := range exts {
-			extCfg := extensioncommon.RuntimeConfig{
-				EnvoyExtension: ext,
-				Kind:           kind,
-				ServiceName:    svc,
-				Upstreams:      upstreamMap,
+			if appliesToRemoteDownstreams(ext) {
+				extCfg := extensioncommon.RuntimeConfig{
+					EnvoyExtension:        ext,
+					Kind:                  kind,
+					ServiceName:           svc,
+					IsSourcedFromUpstream: true,
+					Upstreams:             upstreamMap,
+					Protocol:              proxyConfigProtocol(cfgSnap.Proxy.Config),
+				}
+				extensionConfigurationsMap[svc] = append(extensionConfigurationsMap[svc], extCfg)
 			}
-			extensionConfigurationsMap[svc] = append(extensionConfigurationsMap[svc], extCfg)
 		}
 	}
 
@@ -157,4 +172,26 @@ func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServic
 
 func convertEnvoyExtensions(structExtensions structs.EnvoyExtensions) []api.EnvoyExtension {
 	return structExtensions.ToAPI()
+}
+
+func proxyConfigProtocol(cfg map[string]any) string {
+	if p, exists := cfg["protocol"]; exists {
+		if protocol, ok := p.(string); ok {
+			return protocol
+		}
+	}
+	return ""
+}
+
+// appliesToRemoteDownstreams returns true if the given extension should be applied to remote downstream proxies of the
+// service targeted by the extension, rather than just the local proxy. In the context of GetRuntimeConfigurations, this
+// determines whether the extension should apply to the local proxy (a downstream of the configured service).
+//
+// Currently, only the AWS Lambda and Validate extensions are allowed to apply to downstream proxies.
+//
+// See extensioncommon.RuntimeConfig.IsSourcedFromUpstream and UpstreamEnvoyExtender doc for more information. We make
+// this check here out of precaution s.t. even if an unauthorized extension is erroneously constructed with the
+// UpstreamEnvoyExtender, this check will not allow the upstream extension configuration to be provided.
+func appliesToRemoteDownstreams(extension api.EnvoyExtension) bool {
+	return extension.Name == api.BuiltinAWSLambdaExtension || extension.Name == api.BuiltinValidateExtension
 }

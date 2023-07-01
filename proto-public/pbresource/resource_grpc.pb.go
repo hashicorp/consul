@@ -27,6 +27,14 @@ type ResourceServiceClient interface {
 	// By default, reads are eventually consistent, but you can opt-in to strong
 	// consistency via the x-consul-consistency-mode metadata (see ResourceService
 	// docs for more info).
+	//
+	// Errors with NotFound if the resource is not found.
+	//
+	// Errors with InvalidArgument if the request fails validation or the resource
+	// is stored as a type with a different GroupVersion than was requested.
+	//
+	// Errors with PermissionDenied if the caller is not authorized to read
+	// the resource.
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
 	// Write a resource.
 	//
@@ -68,6 +76,10 @@ type ResourceServiceClient interface {
 	//
 	// Results are eventually consistent (see ResourceService docs for more info).
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
+	// List resources of a given owner.
+	//
+	// Results are eventually consistent (see ResourceService docs for more info).
+	ListByOwner(ctx context.Context, in *ListByOwnerRequest, opts ...grpc.CallOption) (*ListByOwnerResponse, error)
 	// Delete a resource by ID.
 	//
 	// Deleting a non-existent resource will return a successful response for
@@ -141,6 +153,15 @@ func (c *resourceServiceClient) List(ctx context.Context, in *ListRequest, opts 
 	return out, nil
 }
 
+func (c *resourceServiceClient) ListByOwner(ctx context.Context, in *ListByOwnerRequest, opts ...grpc.CallOption) (*ListByOwnerResponse, error) {
+	out := new(ListByOwnerResponse)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/ListByOwner", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *resourceServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
 	out := new(DeleteResponse)
 	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/Delete", in, out, opts...)
@@ -191,6 +212,14 @@ type ResourceServiceServer interface {
 	// By default, reads are eventually consistent, but you can opt-in to strong
 	// consistency via the x-consul-consistency-mode metadata (see ResourceService
 	// docs for more info).
+	//
+	// Errors with NotFound if the resource is not found.
+	//
+	// Errors with InvalidArgument if the request fails validation or the resource
+	// is stored as a type with a different GroupVersion than was requested.
+	//
+	// Errors with PermissionDenied if the caller is not authorized to read
+	// the resource.
 	Read(context.Context, *ReadRequest) (*ReadResponse, error)
 	// Write a resource.
 	//
@@ -232,6 +261,10 @@ type ResourceServiceServer interface {
 	//
 	// Results are eventually consistent (see ResourceService docs for more info).
 	List(context.Context, *ListRequest) (*ListResponse, error)
+	// List resources of a given owner.
+	//
+	// Results are eventually consistent (see ResourceService docs for more info).
+	ListByOwner(context.Context, *ListByOwnerRequest) (*ListByOwnerResponse, error)
 	// Delete a resource by ID.
 	//
 	// Deleting a non-existent resource will return a successful response for
@@ -276,6 +309,9 @@ func (UnimplementedResourceServiceServer) WriteStatus(context.Context, *WriteSta
 }
 func (UnimplementedResourceServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedResourceServiceServer) ListByOwner(context.Context, *ListByOwnerRequest) (*ListByOwnerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByOwner not implemented")
 }
 func (UnimplementedResourceServiceServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -367,6 +403,24 @@ func _ResourceService_List_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ResourceService_ListByOwner_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListByOwnerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ResourceServiceServer).ListByOwner(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hashicorp.consul.resource.ResourceService/ListByOwner",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ResourceServiceServer).ListByOwner(ctx, req.(*ListByOwnerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ResourceService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteRequest)
 	if err := dec(in); err != nil {
@@ -428,6 +482,10 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _ResourceService_List_Handler,
+		},
+		{
+			MethodName: "ListByOwner",
+			Handler:    _ResourceService_ListByOwner_Handler,
 		},
 		{
 			MethodName: "Delete",

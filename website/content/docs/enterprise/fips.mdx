@@ -1,0 +1,127 @@
+---
+layout: docs
+page_title: FIPS 140-2
+description: >-
+  A version of Consul compliant with FIPS 140-2 is available to Enterprise users. Learn about where to find FIPS-compliant versions of Consul, as well as usage restrictions and technical details.
+---
+
+# FIPS 140-2
+
+<EnterpriseAlert>
+  This feature requires Consul Enterprise.
+</EnterpriseAlert>
+
+Builds of Consul Enterprise marked with a `fips1402` feature name include built-in support for FIPS 140-2 compliance.
+
+To use this feature, you must have an [active or trial license for Consul Enterprise](/consul/docs/enterprise/license/overview). To start a trial, contact HashiCorp sales.
+
+## Using FIPS 140-2 Consul Enterprise
+
+FIPS 140-2 builds of Consul Enterprise behave in the same way as non-FIPS builds. There are no restrictions on Consul algorithms and ensuring that Consul remains in a FIPS-compliant mode of operation is your responsibility. To maintain FIPS-compliant operation, you must [ensure that TLS is enabled](/consul/tutorials/security/tls-encryption-secure) so that communication is encrypted. Consul products surface some helpful warnings where settings are insecure.
+
+Encryption is disabled in Consul Enterprise by default. As a result, Consul may transmit sensitive control plane information. You must ensure that gossip encryption and mTLS is enabled for all agents when running Consul with FIPS-compliant settings. In addition, be aware that TLSv1.3 does not work with FIPS 140-2, as HKDF is not a certified primitive.
+
+HashiCorp is not a NIST-certified testing laboratory and can only provide general guidance about using Consul Enterprise in a FIPS-compliant manner. We recommend consulting an approved auditor for further information.
+
+The FIPS 140-2 variant of Consul uses separate binaries that are available from the following sources:
+
+- From the [HashiCorp Releases page](https://releases.hashicorp.com/consul), releases ending with the `+ent.fips1402` suffix.
+- From the [Docker Hub `hashicorp/consul-enterprise-fips`](https://hub.docker.com/r/hashicorp/consul-enterprise-fips) container repository.
+- From the [AWS ECR `hashicorp/consul-enterprise-fips`](https://gallery.ecr.aws/hashicorp/consul-enterprise-fips) container repository.
+- From the [Red Hat Access `hashicorp/consul-enterprise-fips`](https://catalog.redhat.com/software/containers/hashicorp/consul-enterprise-fips/628d50e37ff70c66a88517ea) container repository.
+
+The above naming conventions, which append `.fips1402` to binary names and tags, and `-fips` to registry names, also apply to `consul-k8s`, `consul-k8s-control-plane`, `consul-dataplane`, and `consul-ecs`, which are packaged separately from Consul Enterprise.
+
+### Usage restrictions
+
+When using Consul Enterprise with FIPS 140-2, be aware of the following operation restrictions:
+
+#### Migration restrictions
+
+We do not support in-place migrations from non-FIPS builds of Consul to FIPS builds of Consul, regardless of version. A fresh cluster installation is required to support FIPS 140-2. You cannot upgrade directly to a FIPS-compliant build.
+
+#### TLS restrictions
+Consul Enterprise's FIPS modifications include restrictions to supported TLS cipher suites and key information. Only the following cipher suites are allowed:
+
+- `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`
+- `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384`
+- `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`
+- `TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384`
+- `TLS_RSA_WITH_AES_128_GCM_SHA256`
+- `TLS_RSA_WITH_AES_256_GCM_SHA384`
+
+In addition, only the following key types are allowed in TLS chains of trust:
+
+- RSA 2048, 3072, and 4096-bit
+- ECDSA P-256, P-384, and P-521
+
+Finally, only TLSv1.2 is supported in FIPS mode. These settings are in line with recent NIST guidance and FIPS requirements.
+
+#### Heterogeneous cluster deployments
+
+We do not support mixed deployment scenarios within the same Consul cluster. An example of an unsupported deployment scenario is one that mixes FIPS and non-FIPS Consul binaries. Nodes across the entire cluster must use a single binary or deployment type.
+
+Running a heterogeneous cluster is not permitted by FIPS, as components of the system are not compliant with FIPS. Attempts to join non-FIPS and FIPS nodes or servers may fail.
+
+### Envoy
+
+To enable users to deploy a FIPS compliant service mesh with Consul, HashiCorp provides FIPS compliant versions of Envoy available for download. Contact Hashicorp sales for more information.
+
+## Deployment prerequisites
+
+Depending on your Consul runtime, there are additional requirements for using FIPS 140-2.
+
+### VMs
+
+If using Consul on VMs, you must use a FIPS compliant version of Envoy. Contact HashiCorp sales to learn how to obtain a FIPS compliant version of Envoy.
+
+### Consul-k8s and Helm
+
+When deploying the FIPS builds of Consul on Kubernetes using `consul-k8s` or Helm, you must ensure that the Helm chart is updated to use FIPS builds of Consul Enterprise, Consul Dataplane, and Envoy images.
+
+## Technical details
+
+Consul's FIPS 140-2 Linux products use the BoringCrypto integration in the official Go 1.20+ toolchain, which include a FIPS-validated crypto module.
+
+Consul's FIPS 140-2 products on Windows use the CNGCrypto integration in Microsoft's Go toolchain, which include a FIPS-validated crypto module.
+
+To ensure your build of Consul Enterprise includes FIPS support, confirm that a line with `FIPS: Enabled` appears when you run a `version` command. For example, the following message appears for Linux users:
+
+```log hideClipboard
+FIPS: FIPS 140-2 Enabled, crypto module boringcrypto
+```
+
+The following message appears for Windows users:
+
+```log hideClipboard
+FIPS: FIPS 140-2 Enabled, crypto module cngcrypto
+```
+
+FIPS 140-2 Linux binaries depend on cgo, which require that a GNU C Library (glibc) Linux distribution be used to run Consul. Refer to [instructions for Windows FIPS mode](https://github.com/microsoft/go/blob/microsoft/main/eng/doc/fips/README.md#windows-fips-mode-cng) for more information on running CNGCrypto-enabled Go binaries in FIPS mode.
+
+The NIST Cryptographic Module Validation Program certifications and accompanying security policies for BoringCrypto and CNG are available through the following external links:
+
+- [BoringCrypto](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/4407)
+- [CNG](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/4515)
+
+### Validating FIPS crypto modules
+
+To validate that a FIPS 140-2 Linux binary correctly includes BoringCrypto, run `go tool nm` on the binary to get a symbol dump.  On FIPS-enabled builds, many results appear, as in the following example:
+
+```shell-session
+$ go tool nm consul | grep -i goboringcrypto
+4014d0 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_cbc_encrypt
+4014f0 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_ctr128_encrypt
+401520 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_decrypt
+401540 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_encrypt
+401560 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_set_decrypt_key
+```
+
+Similarly, on a FIPS Windows binary, run `go tool nm` on the binary to get a symbol dump, and then search for `go-crypto-winnative`. 
+
+On both Linux and Windows non-FIPS builds, the search output yields no results.
+
+### Compliance validation
+
+A Lab, authorized by the U.S. Government to certify FIPS 140-2 compliance, is in the process of verifying that Consul Enterprise and its related packages are compliant with the requirements of FIPS 140-2 Level 1.
+

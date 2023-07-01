@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -58,6 +60,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
 		rawConfig map[string]interface{}
 		expConfig *structs.VaultCAProviderConfig
+		isPrimary bool
 		expError  string
 	}{
 		"no token and no auth method provided": {
@@ -68,15 +71,26 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
 			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
 		},
-		"no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test"},
+		"primary no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
+			isPrimary: true,
 			expError:  "must provide a valid path to a root PKI backend",
+		},
+		"secondary no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
+			isPrimary: false,
+			expConfig: &structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Token:                  "test",
+				IntermediatePKIPath:    "test/",
+			},
 		},
 		"no root intermediate path": {
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
 			expError:  "must provide a valid path for the intermediate PKI backend",
 		},
 		"adds a slash to RootPKIPath and IntermediatePKIPath": {
+			isPrimary: true,
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
@@ -89,7 +103,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			config, err := ParseVaultCAConfig(c.rawConfig)
+			config, err := ParseVaultCAConfig(c.rawConfig, c.isPrimary)
 			if c.expError != "" {
 				require.EqualError(t, err, c.expError)
 			} else {
@@ -1141,6 +1155,45 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 
 	require.Equal(t, new, newActive)
 	require.NotEqual(t, orig, new)
+}
+
+func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+	t.Parallel()
+
+	testVault := NewTestVaultServer(t)
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+	provider := createVaultProvider(t, true, testVault.Addr, token,
+		map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		})
+
+	version := strings.Split(vaultTestVersion, ".")
+	require.Len(t, version, 3)
+	minorVersion, err := strconv.Atoi(version[1])
+	require.NoError(t, err)
+	expIssSet, errStr := provider.autotidyIssuers("pki-intermediate/")
+	switch {
+	case minorVersion <= 11:
+		require.False(t, expIssSet)
+		require.Contains(t, errStr, "auto-tidy")
+	case minorVersion == 12:
+		require.False(t, expIssSet)
+		require.Contains(t, errStr, "tidy_expired_issuers")
+	default: // Consul 1.13+
+		require.True(t, expIssSet)
+	}
+
+	// check permission denied
+	expIssSet, errStr = provider.autotidyIssuers("pki-bad/")
+	require.False(t, expIssSet)
+	require.Contains(t, errStr, "permission denied")
 }
 
 func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {

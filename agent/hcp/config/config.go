@@ -6,7 +6,9 @@ package config
 import (
 	"crypto/tls"
 
+	"github.com/hashicorp/consul/types"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
+	"github.com/hashicorp/hcp-sdk-go/resource"
 )
 
 // CloudConfig defines configuration for connecting to HCP services
@@ -24,10 +26,17 @@ type CloudConfig struct {
 
 	// TlsConfig for testing.
 	TLSConfig *tls.Config
+
+	NodeID   types.NodeID
+	NodeName string
 }
 
 func (c *CloudConfig) WithTLSConfig(cfg *tls.Config) {
 	c.TLSConfig = cfg
+}
+
+func (c *CloudConfig) Resource() (resource.Resource, error) {
+	return resource.FromString(c.ResourceID)
 }
 
 func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
@@ -46,6 +55,6 @@ func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfi
 	if c.ScadaAddress != "" {
 		opts = append(opts, hcpcfg.WithSCADA(c.ScadaAddress, c.TLSConfig))
 	}
-	opts = append(opts, hcpcfg.FromEnv())
+	opts = append(opts, hcpcfg.FromEnv(), hcpcfg.WithoutBrowserLogin())
 	return hcpcfg.NewHCPConfig(opts...)
 }

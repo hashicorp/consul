@@ -2,16 +2,19 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // Manager is responsible for scheduling the execution of controllers.
 type Manager struct {
+	client pbresource.ResourceServiceClient
 	logger hclog.Logger
 
 	raftLeader atomic.Bool
@@ -24,8 +27,11 @@ type Manager struct {
 
 // NewManager creates a Manager. logger will be used by the Manager, and as the
 // base logger for controllers when one is not specified using WithLogger.
-func NewManager(logger hclog.Logger) *Manager {
-	return &Manager{logger: logger}
+func NewManager(client pbresource.ResourceServiceClient, logger hclog.Logger) *Manager {
+	return &Manager{
+		client: client,
+		logger: logger,
+	}
 }
 
 // Register the given controller to be executed by the Manager. Cannot be called
@@ -36,6 +42,10 @@ func (m *Manager) Register(ctrl Controller) {
 
 	if m.running {
 		panic("cannot register additional controllers after calling Run")
+	}
+
+	if ctrl.reconciler == nil {
+		panic(fmt.Sprintf("cannot register controller without a reconciler %s", ctrl))
 	}
 
 	m.controllers = append(m.controllers, ctrl)
@@ -53,11 +63,17 @@ func (m *Manager) Run(ctx context.Context) {
 	m.running = true
 
 	for _, desc := range m.controllers {
+		logger := desc.logger
+		if logger == nil {
+			logger = m.logger.With("managed_type", resource.ToGVK(desc.managedType))
+		}
+
 		runner := &controllerRunner{
 			ctrl:   desc,
-			logger: m.logger.With("managed_type", resource.ToGVK(desc.managedType)),
+			client: m.client,
+			logger: logger,
 		}
-		go newSupervisor(runner.run, m.newLeaseLocked()).run(ctx)
+		go newSupervisor(runner.run, m.newLeaseLocked(desc)).run(ctx)
 	}
 }
 
@@ -82,7 +98,11 @@ func (m *Manager) SetRaftLeader(leader bool) {
 	}
 }
 
-func (m *Manager) newLeaseLocked() Lease {
+func (m *Manager) newLeaseLocked(ctrl Controller) Lease {
+	if ctrl.placement == PlacementEachServer {
+		return eternalLease{}
+	}
+
 	ch := make(chan struct{}, 1)
 	m.leaseChans = append(m.leaseChans, ch)
 	return &raftLease{m: m, ch: ch}

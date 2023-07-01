@@ -52,8 +52,8 @@ func (s *serverPeeringList) Notify(ctx context.Context, req *cachetype.PeeringLi
 				return 0, nil, err
 			}
 			return index, &pbpeering.PeeringListResponse{
-				Index:    index,
-				Peerings: peerings,
+				OBSOLETE_Index: index,
+				Peerings:       peerings,
 			}, nil
 		},
 		dispatchBlockingQueryUpdate[*pbpeering.PeeringListResponse](ch),
