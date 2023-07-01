@@ -574,7 +574,7 @@ func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
 // into a concrete type.
 //
 // There is an 'api' variation of this in
-// command/config/write/config_write.go:newDecodeConfigEntry
+// command/helpers/helpers.go:newDecodeConfigEntry
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	var entry ConfigEntry
 
