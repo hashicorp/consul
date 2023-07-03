@@ -47,12 +47,6 @@ func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 		return pipeFile, err
 	}
 
-	// Wait for the command to finish
-	err = cmd.Wait()
-	if err != nil {
-		return pipeFile, err
-	}
-
 	// We can't wait for the process since we need to exec into Envoy before it
 	// will be able to complete so it will be remain as a zombie until Envoy is
 	// killed then will be reaped by the init process (pid 0). This is all a bit
