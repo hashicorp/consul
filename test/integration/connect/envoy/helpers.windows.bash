@@ -981,7 +981,7 @@ function get_upstream_fortio_name {
   fi
   # We use --resolve instead of setting a Host header since we need the right
   # name to be sent for SNI in some cases too.
-  run retry_default curl -v -s -f --resolve "${HOST}:${PORT}:127.0.0.1" $extra_args \
+  run retry_default curl --ssl-revoke-best-effort -v -s -f --resolve "${HOST}:${PORT}:127.0.0.1" $extra_args \
       "${PROTO}${HOST}:${PORT}${PREFIX}/debug?env=dump"
 
   # Useful Debugging but breaks the expectation that the value output is just
@@ -991,6 +991,30 @@ function get_upstream_fortio_name {
   fi
   [ "$status" == 0 ]
   echo "$output" | grep -E "^FORTIO_NAME="
+}
+
+function get_upstream_endpoint_port {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+.cluster_statuses[]
+| select(.name|startswith(\"${CLUSTER_NAME}\"))
+| [.host_statuses[].address.socket_address.port_value]
+| [select(.[] == ${PORT_VALUE})]
+| length"
+}
+
+function assert_upstream_has_endpoint_port_once {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+
+  GOT_COUNT=$(get_upstream_endpoint_port $HOSTPORT $CLUSTER_NAME $PORT_VALUE)
+
+  [ "$GOT_COUNT" -eq 1 ]
 }
 
 function assert_expected_fortio_name {
