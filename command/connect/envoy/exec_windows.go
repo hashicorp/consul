@@ -17,39 +17,32 @@ func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	pipeFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
 
-	pipeConn, err := npipe.Dial(pipeFile)
-	if err != nil {
-		return tempFile, err
-	}
-
-	defer pipeConn.close()
-
 	binary, args, err := execArgs("connect", "envoy", "pipe-bootstrap", pipeFile)
 	if err != nil {
 		return pipeFile, err
 	}
 
+	// Dial the named pipe
+	pipeConn, err := npipe.Dial(pipeFile)
+	if err != nil {
+		return pipeFile, err
+	}
+	defer pipeConn.Close()
+
 	// Start the command to connect to the named pipe
 	cmd := exec.Command(binary, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return pipeFile, err
-	}
+	cmd.Stdin = pipeConn
 
-	// Start the command and write the config
+	// Start the command
 	err = cmd.Start()
 	if err != nil {
 		return pipeFile, err
 	}
 
 	// Write the config
-	_, err = stdin.Write(bootstrapJSON)
-	if err != nil {
-		return pipeFile, err
-	}
-	err = stdin.Close()
+	_, err = pipeConn.Write(bootstrapJSON)
 	if err != nil {
 		return pipeFile, err
 	}
