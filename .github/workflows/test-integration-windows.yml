@@ -1,0 +1,1373 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: test-integrations-windows
+
+on:
+  pull_request:
+    branches-ignore:
+      - stable-website
+      - 'docs/**'
+      - 'ui/**'
+      - 'mktg-**' # Digital Team Terraform-generated branch prefix
+      - 'backport/docs/**'
+      - 'backport/ui/**'
+      - 'backport/mktg-**'
+
+env:
+  TEST_RESULTS_DIR: /tmp/test-results
+  TEST_RESULTS_ARTIFACT_NAME: test-results
+  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+  GOTESTSUM_VERSION: "1.9.0"
+  CONSUL_BINARY_UPLOAD_NAME: consul-bin
+  # strip the hashicorp/ off the front of github.repository for consul
+  CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'consul' }}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    name: Setup
+    outputs:
+      compute-small: ${{ steps.runners.outputs.compute-small }}
+      compute-medium: ${{ steps.runners.outputs.compute-medium }}
+      compute-large: ${{ steps.runners.outputs.compute-large }}
+      compute-xl: ${{ steps.runners.outputs.compute-xl }}
+      enterprise: ${{ steps.runners.outputs.enterprise }}
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - id: runners
+        run: .github/scripts/get_runner_windows_classes.sh
+
+  envoy-integration-test:
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    needs:
+      - build-docker-images
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        envoy-version: ["1.23.10", "1.24.8", "1.25.7", "1.26.2"]
+        xds-target: ["server", "client"]
+        test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
+    env:
+      ENVOY_VERSION: ${{ matrix.envoy-version }}
+      XDS_TARGET: ${{ matrix.xds-target }}
+      AWS_LAMBDA_REGION: us-west-2
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version-file: 'go.mod'
+
+      - name: fetch binary
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+          path: ./bin
+      - name: restore mode+x
+        run: chmod +x ./bin/consul
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4b4e9c3e2d4531116a6f8ba8e71fc6e2cb6e6c8c # v2.5.0
+
+      - name: Docker build consul
+        run: docker build -t windows/consul -f ./build-support-windows/Dockerfile-windows .
+
+      - name: Docker build consul local
+        run: ./build-support-windows/build-consul-local-images.sh
+
+      - name: Docker build consul dev
+        run: ./build-support-windows/build-consul-dev-image.sh
+
+
+      - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-api-gateway-http-hostnames"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-http-hostnames" -win=true
+
+      - name: Envoy Integration Tests for windows case-api-gateway-http-simple
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-api-gateway-http-simple"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-http-simple" -win=true
+
+      - name: Envoy Integration Tests for windows case-api-gateway-http-splitter-targets
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-api-gateway-http-splitter-targets"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-http-splitter-targets" -win=true
+
+      - name: Envoy Integration Tests for windows case-api-gateway-http-tls-overlapping-hosts
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-api-gateway-http-tls-overlapping-hosts"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-http-tls-overlapping-hosts" -win=true
+
+      - name: Envoy Integration Tests for windows case-api-gateway-tcp-conflicted
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-api-gateway-tcp-conflicted"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-tcp-conflicted" -win=true
+
+      - name: Envoy Integration Tests for windows case-api-gateway-tcp-simple
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-api-gateway-tcp-simple"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-tcp-simple" -win=true
+
+      - name: Envoy Integration Tests for windows case-api-gateway-tcp-tls-overlapping-hosts
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-api-gateway-tcp-tls-overlapping-hosts"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-tcp-tls-overlapping-hosts" -win=true
+
+      - name: Envoy Integration Tests for windows case-badauthz
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-badauthz"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-badauthz" -win=true
+
+      - name: Envoy Integration Tests for windows case-basic
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-basic"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-basic" -win=true
+
+      - name: Envoy Integration Tests for windows case-centralconf
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-centralconf"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-centralconf" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-cluster-peering-failover
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-cluster-peering-failover"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-cluster-peering-failover" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-dc-failover-gateways-none
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-dc-failover-gateways-none"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-none" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-dc-failover-gateways-remote
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-dc-failover-gateways-remote"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-remote" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-defaultsubset
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-defaultsubset"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-defaultsubset" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-features
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-features"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-features" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-subset-onlypassing
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-subset-onlypassing"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-subset-onlypassing" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-subset-redirect
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-subset-redirect"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-subset-redirect" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-svc-failover
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-svc-failover"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-svc-failover" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-svc-redirect-http
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-svc-redirect-http"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-svc-redirect-http" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-resolver-svc-redirect-tcp
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-resolver-svc-redirect-tcp"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-svc-redirect-tcp" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-router-features
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-router-features"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-router-features" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-splitter-cluster-peering
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-splitter-cluster-peering"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-splitter-cluster-peering" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-splitter-features
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-splitter-features"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-splitter-features" -win=true
+
+      - name: Envoy Integration Tests for windows case-cfg-splitter-peering-ingress-gateways
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cfg-splitter-peering-ingress-gateways"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-splitter-peering-ingress-gateways" -win=true
+
+      - name: Envoy Integration Tests for windows case-consul-exec
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-consul-exec"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-consul-exec" -win=true
+
+      - name: Envoy Integration Tests for windows case-cross-peer-control-plane-mgw
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cross-peer-control-plane-mgw"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peer-control-plane-mgw" -win=true
+
+      - name: Envoy Integration Tests for windows case-cross-peers
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cross-peers"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peers" -win=true
+
+      - name: Envoy Integration Tests for windows case-cross-peers-http
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cross-peers-http"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peers-http" -win=true
+
+      - name: Envoy Integration Tests for windows case-cross-peers-http-router
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cross-peers-http-router"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peers-http-router" -win=true
+
+      - name: Envoy Integration Tests for windows case-cross-peers-resolver-redirect-tcp
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-cross-peers-resolver-redirect-tcp"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peers-resolver-redirect-tcp" -win=true
+
+      - name: Envoy Integration Tests for windows case-dogstatsd-udp
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-dogstatsd-udp"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-dogstatsd-udp" -win=true
+
+      - name: Envoy Integration Tests for windows case-envoyext-ratelimit
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-envoyext-ratelimit"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-envoyext-ratelimit" -win=true
+
+      - name: Envoy Integration Tests for windows case-expose-checks
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-expose-checks"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-expose-checks" -win=true
+
+      - name: Envoy Integration Tests for windows case-gateway-without-services
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-gateway-without-services"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-gateway-without-services" -win=true
+
+      - name: Envoy Integration Tests for windows case-gateways-local
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-gateways-local"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-gateways-local" -win=true
+
+      - name: Envoy Integration Tests for windows case-gateways-remote
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-gateways-remote"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-gateways-remote" -win=true
+
+      - name: Envoy Integration Tests for windows case-grpc
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-grpc"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-grpc" -win=true
+
+      - name: Envoy Integration Tests for windows case-http
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-http"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-http" -win=true
+
+      - name: Envoy Integration Tests for windows case-http-badauthz
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-http-badauthz"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-http-badauthz" -win=true
+
+      - name: Envoy Integration Tests for windows case-ingress-gateway-grpc
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-ingress-gateway-grpc"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-grpc" -win=true
+
+      - name: Envoy Integration Tests for windows case-ingress-gateway-http
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-ingress-gateway-http"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-http" -win=true
+
+      - name: Envoy Integration Tests for windows case-ingress-gateway-multiple-services
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-ingress-gateway-multiple-services"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-multiple-services" -win=true
+
+      - name: Envoy Integration Tests for windows case-ingress-gateway-peering-failover
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-ingress-gateway-peering-failover"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-peering-failover" -win=true
+
+      - name: Envoy Integration Tests for windows case-ingress-gateway-simple
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-ingress-gateway-simple"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-simple" -win=true
+
+      - name: Envoy Integration Tests for windows case-ingress-mesh-gateways-resolver
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-ingress-mesh-gateways-resolver"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-mesh-gateways-resolver" -win=true
+
+      - name: Envoy Integration Tests for windows case-l7-intentions
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-l7-intentions"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-l7-intentions" -win=true
+
+      - name: Envoy Integration Tests for windows case-multidc-rsa-ca
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-multidc-rsa-ca"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-multidc-rsa-ca" -win=true
+
+      - name: Envoy Integration Tests for windows case-prometheus
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-prometheus"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-prometheus" -win=true
+
+      - name: Envoy Integration Tests for windows case-property-override
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-property-override"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-property-override" -win=true
+
+      - name: Envoy Integration Tests for windows case-stats-proxy
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-stats-proxy"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-stats-proxy" -win=true
+
+      - name: Envoy Integration Tests for windows case-statsd-udp
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-statsd-udp"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-statsd-udp" -win=true
+
+      - name: Envoy Integration Tests for windows case-terminating-gateway-hostnames
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-terminating-gateway-hostnames"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-terminating-gateway-hostnames" -win=true
+
+      - name: Envoy Integration Tests for windows case-terminating-gateway-simple
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-terminating-gateway-simple"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-terminating-gateway-simple" -win=true
+
+      - name: Envoy Integration Tests for windows case-terminating-gateway-without-services
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-terminating-gateway-without-services"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-terminating-gateway-without-services" -win=true
+
+      - name: Envoy Integration Tests for windows case-upstream-config
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-upstream-config"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-upstream-config" -win=true
+
+      - name: Envoy Integration Tests for windows case-wanfed-gw
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-wanfed-gw"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-wanfed-gw" -win=true
+
+      - name: Envoy Integration Tests for windows case-ingress-gateway-sds
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-ingress-gateway-sds"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-sds" -win=true
+
+      - name: Envoy Integration Tests for windows case-lua
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-lua"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-lua" -win=true
+
+      - name: Envoy Integration Tests for windows case-terminating-gateway-subsets
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-terminating-gateway-subsets"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-terminating-gateway-subsets" -win=true
+
+      - name: Envoy Integration Tests for windows case-wasm
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-wasm"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-wasm" -win=true
+
+      - name: Envoy Integration Tests for windows case-ingress-gateway-tls
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-ingress-gateway-tls"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-tls" -win=true
+
+      - name: Envoy Integration Tests for windows case-mesh-to-lambda
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          LAMBDA_TESTS_ENABLED: "true"
+          # tput complains if this isn't set to something.
+          TERM: ansi
+        run: |
+          # shellcheck disable=SC2001
+          echo "Running Integration Test case-mesh-to-lambda"
+          # shellcheck disable=SC2001
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+            --debug \
+            --rerun-fails \
+            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+            --jsonfile /tmp/jsonfile/go-test.log \
+            --packages=./test/integration/connect/envoy \
+            -- -timeout=30m -tags integration -run="TestEnvoy/case-mesh-to-lambda" -win=true
+
+
+        # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+            kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+
+      - name: prepare datadog-ci
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        # do not run on forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
+
+  test-integrations-success:
+    needs:
+      - setup
+      - envoy-integration-test
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    if: ${{ always() }}
+    steps:
+      - name: evaluate upstream job results
+        run: |
+          # exit 1 if failure or cancelled result for any upstream job
+          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure|cancelled)\"'; then
+            printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
+            exit 1
+          fi
