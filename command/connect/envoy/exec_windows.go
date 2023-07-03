@@ -6,29 +6,59 @@ package envoy
 import (
 	"errors"
 	"fmt"
-	"github.com/edsrzf/mmap-go"
+	"github.com/natefinch/npipe"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
 )
 
-func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
-	tempFile := filepath.Join(os.TempDir(),
+func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
+	pipeFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
 
-	file, err := os.OpenFile(tempFile, os.O_RDWR, 0644)
-
+	pipeConn, err := npipe.Dial(pipeFile)
 	if err != nil {
 		return tempFile, err
 	}
 
-	f, err := mmap.Map(file, 0, 0)
+	defer pipeConn.close()
+
+	binary, args, err := execArgs("connect", "envoy", "pipe-bootstrap", pipeFile)
 	if err != nil {
-		return tempFile, err
+		return pipeFile, err
 	}
 
-	defer f.Unmap()
+	// Start the command to connect to the named pipe
+	cmd := exec.Command(binary, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return pipeFile, err
+	}
+
+	// Start the command and write the config
+	err = cmd.Start()
+	if err != nil {
+		return pipeFile, err
+	}
+
+	// Write the config
+	_, err = stdin.Write(bootstrapJSON)
+	if err != nil {
+		return pipeFile, err
+	}
+	err = stdin.Close()
+	if err != nil {
+		return pipeFile, err
+	}
+
+	// Wait for the command to finish
+	err = cmd.Wait()
+	if err != nil {
+		return pipeFile, err
+	}
 
 	// We can't wait for the process since we need to exec into Envoy before it
 	// will be able to complete so it will be remain as a zombie until Envoy is
@@ -36,7 +66,7 @@ func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
 	// gross but the cleanest workaround I can think of for Envoy 1.10 not
 	// supporting /dev/fd/<fd> config paths any more. So we are done and leaving
 	// the child to run it's course without reaping it.
-	return tempFile, nil
+	return pipeFile, nil
 }
 
 func startProc(binary string, args []string) (p *os.Process, err error) {
@@ -53,7 +83,7 @@ func startProc(binary string, args []string) (p *os.Process, err error) {
 }
 
 func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []byte) error {
-	tempFile, err := makeBootstrapTemp(bootstrapJSON)
+	tempFile, err := makeBootstrapPipe(bootstrapJSON)
 	if err != nil {
 		os.RemoveAll(tempFile)
 		return err
