@@ -20,7 +20,7 @@ env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
   GOTESTSUM_VERSION: "1.9.0"
-  CONSUL_BINARY_UPLOAD_NAME: consul-bin
+  CONSUL_BINARY_UPLOAD_NAME: consul.exe
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
