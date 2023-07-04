@@ -45,8 +45,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.23.10", "1.24.8", "1.25.7", "1.26.2"]
-        xds-target: ["server", "client"]
+        envoy-version: [ "1.23.10", "1.24.8", "1.25.7", "1.26.2" ]
+        xds-target: [ "server", "client" ]
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
       XDS_TARGET: ${{ matrix.xds-target }}
@@ -72,10 +72,10 @@ jobs:
         run: docker build -t windows/consul -f Dockerfile-windows .
 
       - name: Docker build consul local
-        run: .\build-support-windows\build-consul-local-images.sh
+        run: bash ./build-support-windows/build-consul-local-images.sh
 
       - name: Docker build consul dev
-        run: .\build-support-windows\build-consul-dev-image.sh
+        run: bash ./build-support-windows/build-consul-dev-image.sh
 
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
@@ -90,13 +90,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-http-hostnames"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-http-hostnames" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-hostnames" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-simple
         env:
@@ -110,13 +106,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-http-simple"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-http-simple" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-simple" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-splitter-targets
         env:
@@ -130,13 +122,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-http-splitter-targets"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-http-splitter-targets" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-splitter-targets" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-tls-overlapping-hosts
         env:
@@ -150,13 +138,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-http-tls-overlapping-hosts"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-http-tls-overlapping-hosts" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-tls-overlapping-hosts" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-conflicted
         env:
@@ -170,13 +154,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-tcp-conflicted"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-tcp-conflicted" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-tcp-conflicted" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-simple
         env:
@@ -190,13 +170,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-tcp-simple"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-tcp-simple" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-tcp-simple" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-tls-overlapping-hosts
         env:
@@ -210,13 +186,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-tcp-tls-overlapping-hosts"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-api-gateway-tcp-tls-overlapping-hosts" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-tcp-tls-overlapping-hosts" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-badauthz
         env:
@@ -230,13 +202,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-badauthz"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-badauthz" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-badauthz" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-basic
         env:
@@ -250,13 +218,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-basic"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-basic" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-basic" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-centralconf
         env:
@@ -270,13 +234,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-centralconf"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-centralconf" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-centralconf" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-cluster-peering-failover
         env:
@@ -290,13 +250,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-cluster-peering-failover"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-cluster-peering-failover" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-cluster-peering-failover" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-dc-failover-gateways-none
         env:
@@ -310,13 +266,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-dc-failover-gateways-none"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-none" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-none" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-dc-failover-gateways-remote
         env:
@@ -330,13 +282,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-dc-failover-gateways-remote"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-remote" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-remote" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-defaultsubset
         env:
@@ -350,13 +298,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-defaultsubset"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-defaultsubset" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-defaultsubset" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-features
         env:
@@ -370,13 +314,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-features"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-features" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-features" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-subset-onlypassing
         env:
@@ -390,13 +330,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-subset-onlypassing"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-subset-onlypassing" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-subset-onlypassing" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-subset-redirect
         env:
@@ -410,13 +346,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-subset-redirect"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-subset-redirect" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-subset-redirect" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-failover
         env:
@@ -430,13 +362,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-svc-failover"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-svc-failover" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-svc-failover" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-redirect-http
         env:
@@ -450,13 +378,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-svc-redirect-http"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-svc-redirect-http" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-svc-redirect-http" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-redirect-tcp
         env:
@@ -470,13 +394,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-svc-redirect-tcp"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-resolver-svc-redirect-tcp" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-svc-redirect-tcp" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-router-features
         env:
@@ -490,13 +410,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-router-features"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-router-features" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-router-features" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-cluster-peering
         env:
@@ -510,13 +426,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-splitter-cluster-peering"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-splitter-cluster-peering" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-splitter-cluster-peering" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-features
         env:
@@ -530,13 +442,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-splitter-features"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-splitter-features" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-splitter-features" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-peering-ingress-gateways
         env:
@@ -550,13 +458,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-splitter-peering-ingress-gateways"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cfg-splitter-peering-ingress-gateways" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-splitter-peering-ingress-gateways" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-consul-exec
         env:
@@ -570,13 +474,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-consul-exec"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-consul-exec" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-consul-exec" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peer-control-plane-mgw
         env:
@@ -590,13 +490,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peer-control-plane-mgw"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peer-control-plane-mgw" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peer-control-plane-mgw" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers
         env:
@@ -610,13 +506,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peers"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peers" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-http
         env:
@@ -630,13 +522,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peers-http"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peers-http" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-http" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-http-router
         env:
@@ -650,13 +538,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peers-http-router"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peers-http-router" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-http-router" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-resolver-redirect-tcp
         env:
@@ -670,13 +554,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peers-resolver-redirect-tcp"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-cross-peers-resolver-redirect-tcp" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-resolver-redirect-tcp" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-dogstatsd-udp
         env:
@@ -690,13 +570,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-dogstatsd-udp"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-dogstatsd-udp" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-dogstatsd-udp" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-envoyext-ratelimit
         env:
@@ -710,13 +586,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-envoyext-ratelimit"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-envoyext-ratelimit" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-envoyext-ratelimit" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-expose-checks
         env:
@@ -730,13 +602,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-expose-checks"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-expose-checks" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-expose-checks" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-gateway-without-services
         env:
@@ -750,13 +618,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-gateway-without-services"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-gateway-without-services" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-gateway-without-services" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-gateways-local
         env:
@@ -770,13 +634,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-gateways-local"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-gateways-local" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-gateways-local" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-gateways-remote
         env:
@@ -790,13 +650,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-gateways-remote"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-gateways-remote" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-gateways-remote" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-grpc
         env:
@@ -810,13 +666,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-grpc"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-grpc" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-grpc" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-http
         env:
@@ -830,13 +682,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-http"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-http" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-http" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-http-badauthz
         env:
@@ -850,13 +698,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-http-badauthz"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-http-badauthz" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-http-badauthz" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-grpc
         env:
@@ -870,13 +714,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-grpc"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-grpc" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-grpc" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-http
         env:
@@ -890,13 +730,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-http"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-http" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-http" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-multiple-services
         env:
@@ -910,13 +746,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-multiple-services"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-multiple-services" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-multiple-services" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-peering-failover
         env:
@@ -930,13 +762,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-peering-failover"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-peering-failover" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-peering-failover" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-simple
         env:
@@ -950,13 +778,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-simple"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-simple" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-simple" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-mesh-gateways-resolver
         env:
@@ -970,13 +794,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-mesh-gateways-resolver"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-mesh-gateways-resolver" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-mesh-gateways-resolver" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-l7-intentions
         env:
@@ -990,13 +810,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-l7-intentions"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-l7-intentions" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-l7-intentions" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-multidc-rsa-ca
         env:
@@ -1010,13 +826,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-multidc-rsa-ca"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-multidc-rsa-ca" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-multidc-rsa-ca" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-prometheus
         env:
@@ -1030,13 +842,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-prometheus"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-prometheus" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-prometheus" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-property-override
         env:
@@ -1050,13 +858,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-property-override"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-property-override" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-property-override" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-stats-proxy
         env:
@@ -1070,13 +874,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-stats-proxy"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-stats-proxy" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-stats-proxy" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-statsd-udp
         env:
@@ -1090,13 +890,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-statsd-udp"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-statsd-udp" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-statsd-udp" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-hostnames
         env:
@@ -1110,13 +906,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-terminating-gateway-hostnames"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-terminating-gateway-hostnames" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-hostnames" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-simple
         env:
@@ -1130,13 +922,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-terminating-gateway-simple"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-terminating-gateway-simple" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-simple" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-without-services
         env:
@@ -1150,13 +938,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-terminating-gateway-without-services"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-terminating-gateway-without-services" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-without-services" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-upstream-config
         env:
@@ -1170,13 +954,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-upstream-config"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-upstream-config" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-upstream-config" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-wanfed-gw
         env:
@@ -1190,13 +970,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-wanfed-gw"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-wanfed-gw" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-wanfed-gw" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-sds
         env:
@@ -1210,13 +986,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-sds"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-sds" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-sds" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-lua
         env:
@@ -1230,13 +1002,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-lua"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-lua" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-lua" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-subsets
         env:
@@ -1250,13 +1018,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-terminating-gateway-subsets"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-terminating-gateway-subsets" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-subsets" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-wasm
         env:
@@ -1270,13 +1034,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-wasm"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-wasm" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-wasm" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-tls
         env:
@@ -1290,13 +1050,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-tls"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/case-ingress-gateway-tls" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-tls" \ 
+            -win=true
 
       - name: Envoy Integration Tests for windows case-mesh-to-lambda
         env:
@@ -1310,13 +1066,9 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-mesh-to-lambda"
           # shellcheck disable=SC2001
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-            --debug \
-            --rerun-fails \
-            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-            --jsonfile /tmp/jsonfile/go-test.log \
-            --packages=./test/integration/connect/envoy \
-            -- -timeout=30m -tags integration -run="TestEnvoy/case-mesh-to-lambda" -win=true
+          go test -v -timeout=30m -tags integration-windows \
+            ./test/integration/connect/envoy -run="TestEnvoy/case-mesh-to-lambda" \ 
+            -win=true
 
 
         # NOTE: ENT specific step as we store secrets in Vault.
