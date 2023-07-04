@@ -73,7 +73,7 @@ jobs:
 
       - name: Docker build consul local
         shell: bash
-        run: ./build-support-windows/build-consul-local-images.sh
+        run: cd build-support-windows && ./build-consul-local-images.sh
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
         shell: bash
