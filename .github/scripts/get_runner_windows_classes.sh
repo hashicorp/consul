@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # shellcheck disable=SC2129
-echo "compute-small=['windows-2019']" >> "$GITHUB_OUTPUT"
+echo "compute-small=['windows-2019', '']" >> "$GITHUB_OUTPUT"
 echo "compute-medium=['windows-2019']" >> "$GITHUB_OUTPUT"
 echo "compute-large=['windows-2019']" >> "$GITHUB_OUTPUT"
-echo "compute-xl=['windows-2019']" >> "$GITHUB_OUTPUT"
+echo "compute-xl=['windows-2019', 'type=m5d.8xlarge']" >> "$GITHUB_OUTPUT"
