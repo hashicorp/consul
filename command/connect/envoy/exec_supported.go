@@ -9,11 +9,6 @@ import (
 	"strings"
 )
 
-// testSelfExecOverride is a way for the tests to no fork-bomb themselves by
-// self-executing the whole test suite for each case recursively. It's gross but
-// the least gross option I could think of.
-var testSelfExecOverride string
-
 func isHotRestartOption(s string) bool {
 	restartOpts := []string{
 		"--restart-epoch",
