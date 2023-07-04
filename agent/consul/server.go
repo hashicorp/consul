@@ -72,7 +72,6 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
@@ -526,7 +525,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
-		typeRegistry:            resource.NewRegistry(),
+		typeRegistry:            NewTypeRegistry(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -810,7 +809,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerResources(flat)
+	s.registerControllers(flat)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -861,18 +860,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	return s, nil
 }
 
-func (s *Server) registerResources(deps Deps) {
+func (s *Server) registerControllers(deps Deps) {
 	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
-		catalog.RegisterTypes(s.typeRegistry)
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-
-		mesh.RegisterTypes(s.typeRegistry)
 	}
 
 	reaper.RegisterControllers(s.controllerManager)
 
 	if s.config.DevMode {
-		demo.RegisterTypes(s.typeRegistry)
 		demo.RegisterControllers(s.controllerManager)
 	}
 }
