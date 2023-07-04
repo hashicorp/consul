@@ -6,30 +6,40 @@ package envoyextensions
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/go-cleanhttp"
 )
 
-// TestExtAuthz Summary
+// TestExtAuthzLocal Summary
 // This test makes sure two services in the same datacenter have connectivity.
-// A simulated client (a direct HTTP call) talks to it's upstream proxy through the
+// A simulated client (a direct HTTP call) talks to it's upstream proxy through the mesh.
+// The upstream (static-server) is configured with a `builtin/ext-authz` extension that
+// calls an OPA external authorization service to authorize incoming HTTP requests.
+// The external authorization service is deployed as a container on the local network.
 //
 // Steps:
-//   - Create a single agent cluster.
-//   - Create the example static-server and sidecar containers, then register them both with Consul
-//   - Create an example static-client sidecar, then register both the service and sidecar with Consul
-//   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
-func TestExtAuthz(t *testing.T) {
+// - Create a single agent cluster.
+// - Create the example static-server and sidecar containers, then register them both with Consul
+// - Create an example static-client sidecar, then register both the service and sidecar with Consul
+// - Create an OPA external authorization container on the local network, this doesn't need to be registered with Consul.
+// - Configure the static-server service with a `builtin/ext-authz` EnvoyExtension targeting the OPA ext-authz service.
+// - Make sure a call to the client sidecar local bind port returns the expected response from the upstream static-server:
+//   - A call to `/allow` returns 200 OK.
+//   - A call to any other endpoint returns 403 Forbidden.
+func TestExtAuthzLocal(t *testing.T) {
 	t.Parallel()
 
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
@@ -53,10 +63,9 @@ func TestExtAuthz(t *testing.T) {
 	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
 
 	libassert.AssertContainerState(t, clientService, "running")
-	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 
-	// wire up ext-authz envoy extension
+	// Wire up the ext-authz envoy extension for the static-server
 	consul := cluster.APIClient(0)
 	defaults := api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
@@ -73,10 +82,13 @@ func TestExtAuthz(t *testing.T) {
 			},
 		}},
 	}
-
 	consul.ConfigEntries().Set(&defaults, nil)
 
-	utils.Wait()
+	// Make requests to the static-server. We expect that all requests are rejected with 403 Forbidden
+	// unless they are to the /allow path.
+	baseURL := fmt.Sprintf("http://localhost:%d", port)
+	doRequest(t, baseURL, http.StatusForbidden)
+	doRequest(t, baseURL+"/allow", http.StatusOK)
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
@@ -108,7 +120,6 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 
 func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 	node := cluster.Agents[0]
-	//client := node.GetClient()
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -130,7 +141,7 @@ func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 			"--set=decision_logs.console=true",
 			"--set=status.console=true",
 			"--ignore=.*",
-			"/testdata/policies/bundle.tar.gz",
+			"/testdata/policies/policy.rego",
 		},
 		Mounts: []testcontainers.ContainerMount{{
 			Source: testcontainers.DockerBindMountSource{
@@ -144,10 +155,16 @@ func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 	ctx := context.Background()
 
 	exposedPorts := []string{}
-	info, err := libcluster.LaunchContainerOnNode(ctx, node, req, exposedPorts)
+	_, err = libcluster.LaunchContainerOnNode(ctx, node, req, exposedPorts)
 	if err != nil {
 		t.Fatal(err)
 	}
+}
 
-	fmt.Printf("\n!!! ext-authz info = %#v\n\n", *info)
+func doRequest(t *testing.T, url string, expStatus int) {
+	retry.RunWith(&retry.Timer{Timeout: 5 * time.Second, Wait: time.Second}, t, func(r *retry.R) {
+		resp, err := cleanhttp.DefaultClient().Get(url)
+		require.NoError(r, err)
+		require.Equal(r, expStatus, resp.StatusCode)
+	})
 }
