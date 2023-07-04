@@ -1,0 +1,47 @@
+name: reusable-dev-build-windows
+
+on:
+  workflow_call:
+    inputs:
+      uploaded-binary-name:
+        required: false
+        type: string
+        default: "consul-bin.exe"
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: true
+        type: string
+      repository-name:
+        required: true
+        type: string
+      go-arch:
+        required: false
+        type: string
+        default: ""
+    secrets:
+      elevated-github-token:
+        required: true
+jobs:
+  build:
+    runs-on: 'windows-2019'
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version-file: 'go.mod'
+      - name: Build
+        env:
+          GOARCH: ${{ inputs.goarch }}
+        run: go build .
+      # save dev build to pass to downstream jobs
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        with:
+          name: ${{inputs.uploaded-binary-name}}
+          path: C:\bin\consul
+      - name: Notify Slack
+        if: ${{ failure() }}
+        run: .github/scripts/notify_slack.sh

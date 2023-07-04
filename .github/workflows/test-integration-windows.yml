@@ -26,19 +26,14 @@ env:
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    name: Setup
-    outputs:
-      compute-small: ${{ steps.runners.outputs.compute-small }}
-      compute-medium: ${{ steps.runners.outputs.compute-medium }}
-      compute-large: ${{ steps.runners.outputs.compute-large }}
-      compute-xl: ${{ steps.runners.outputs.compute-xl }}
-      enterprise: ${{ steps.runners.outputs.enterprise }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - id: runners
-        run: .github/scripts/get_runner_windows_classes.sh
+  dev-build:
+    uses: ./.github/workflows/reusable-dev-build-windows.yml
+    with:
+      runs-on: 'windows-2019'
+      repository-name: ${{ github.repository }}
+      uploaded-binary-name: 'consul-bin.exe'
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   envoy-integration-test:
     runs-on: 'windows-2019'
