@@ -1381,12 +1381,11 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		if err != nil {
 			return nil, err
 		}
-
-		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
-
+		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{}
 		if jwtFilter != nil {
 			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, jwtFilter)
 		}
+		filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, rbacFilter)
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
