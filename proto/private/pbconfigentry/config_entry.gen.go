@@ -1082,6 +1082,30 @@ func JSONWebKeySetFromStructs(t *structs.JSONWebKeySet, s *JSONWebKeySet) {
 		s.Remote = &x
 	}
 }
+func JWKSClusterToStructs(s *JWKSCluster, t *structs.JWKSCluster) {
+	if s == nil {
+		return
+	}
+	t.DiscoveryType = structs.ClusterDiscoveryType(s.DiscoveryType)
+	if s.TLSCertificates != nil {
+		var x structs.JWKSTLSCertificate
+		JWKSTLSCertificateToStructs(s.TLSCertificates, &x)
+		t.TLSCertificates = &x
+	}
+	t.ConnectTimeout = structs.DurationFromProto(s.ConnectTimeout)
+}
+func JWKSClusterFromStructs(t *structs.JWKSCluster, s *JWKSCluster) {
+	if s == nil {
+		return
+	}
+	s.DiscoveryType = string(t.DiscoveryType)
+	if t.TLSCertificates != nil {
+		var x JWKSTLSCertificate
+		JWKSTLSCertificateFromStructs(t.TLSCertificates, &x)
+		s.TLSCertificates = &x
+	}
+	s.ConnectTimeout = structs.DurationToProto(t.ConnectTimeout)
+}
 func JWKSRetryPolicyToStructs(s *JWKSRetryPolicy, t *structs.JWKSRetryPolicy) {
 	if s == nil {
 		return
@@ -1102,6 +1126,68 @@ func JWKSRetryPolicyFromStructs(t *structs.JWKSRetryPolicy, s *JWKSRetryPolicy) 
 		var x RetryPolicyBackOff
 		RetryPolicyBackOffFromStructs(t.RetryPolicyBackOff, &x)
 		s.RetryPolicyBackOff = &x
+	}
+}
+func JWKSTLSCertProviderInstanceToStructs(s *JWKSTLSCertProviderInstance, t *structs.JWKSTLSCertProviderInstance) {
+	if s == nil {
+		return
+	}
+	t.InstanceName = s.InstanceName
+	t.CertificateName = s.CertificateName
+}
+func JWKSTLSCertProviderInstanceFromStructs(t *structs.JWKSTLSCertProviderInstance, s *JWKSTLSCertProviderInstance) {
+	if s == nil {
+		return
+	}
+	s.InstanceName = t.InstanceName
+	s.CertificateName = t.CertificateName
+}
+func JWKSTLSCertTrustedCaToStructs(s *JWKSTLSCertTrustedCa, t *structs.JWKSTLSCertTrustedCa) {
+	if s == nil {
+		return
+	}
+	t.Filename = s.Filename
+	t.EnvironmentVariable = s.EnvironmentVariable
+	t.InlineString = s.InlineString
+	t.InlineBytes = s.InlineBytes
+}
+func JWKSTLSCertTrustedCaFromStructs(t *structs.JWKSTLSCertTrustedCa, s *JWKSTLSCertTrustedCa) {
+	if s == nil {
+		return
+	}
+	s.Filename = t.Filename
+	s.EnvironmentVariable = t.EnvironmentVariable
+	s.InlineString = t.InlineString
+	s.InlineBytes = t.InlineBytes
+}
+func JWKSTLSCertificateToStructs(s *JWKSTLSCertificate, t *structs.JWKSTLSCertificate) {
+	if s == nil {
+		return
+	}
+	if s.CaCertificateProviderInstance != nil {
+		var x structs.JWKSTLSCertProviderInstance
+		JWKSTLSCertProviderInstanceToStructs(s.CaCertificateProviderInstance, &x)
+		t.CaCertificateProviderInstance = &x
+	}
+	if s.TrustedCa != nil {
+		var x structs.JWKSTLSCertTrustedCa
+		JWKSTLSCertTrustedCaToStructs(s.TrustedCa, &x)
+		t.TrustedCa = &x
+	}
+}
+func JWKSTLSCertificateFromStructs(t *structs.JWKSTLSCertificate, s *JWKSTLSCertificate) {
+	if s == nil {
+		return
+	}
+	if t.CaCertificateProviderInstance != nil {
+		var x JWKSTLSCertProviderInstance
+		JWKSTLSCertProviderInstanceFromStructs(t.CaCertificateProviderInstance, &x)
+		s.CaCertificateProviderInstance = &x
+	}
+	if t.TrustedCa != nil {
+		var x JWKSTLSCertTrustedCa
+		JWKSTLSCertTrustedCaFromStructs(t.TrustedCa, &x)
+		s.TrustedCa = &x
 	}
 }
 func JWTCacheConfigToStructs(s *JWTCacheConfig, t *structs.JWTCacheConfig) {
@@ -1521,6 +1607,11 @@ func RemoteJWKSToStructs(s *RemoteJWKS, t *structs.RemoteJWKS) {
 		JWKSRetryPolicyToStructs(s.RetryPolicy, &x)
 		t.RetryPolicy = &x
 	}
+	if s.JWKSCluster != nil {
+		var x structs.JWKSCluster
+		JWKSClusterToStructs(s.JWKSCluster, &x)
+		t.JWKSCluster = &x
+	}
 }
 func RemoteJWKSFromStructs(t *structs.RemoteJWKS, s *RemoteJWKS) {
 	if s == nil {
@@ -1534,6 +1625,11 @@ func RemoteJWKSFromStructs(t *structs.RemoteJWKS, s *RemoteJWKS) {
 		var x JWKSRetryPolicy
 		JWKSRetryPolicyFromStructs(t.RetryPolicy, &x)
 		s.RetryPolicy = &x
+	}
+	if t.JWKSCluster != nil {
+		var x JWKSCluster
+		JWKSClusterFromStructs(t.JWKSCluster, &x)
+		s.JWKSCluster = &x
 	}
 }
 func ResourceReferenceToStructs(s *ResourceReference, t *structs.ResourceReference) {

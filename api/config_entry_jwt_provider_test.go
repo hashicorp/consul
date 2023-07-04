@@ -4,6 +4,7 @@ package api
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
@@ -17,12 +18,23 @@ func TestAPI_ConfigEntries_JWTProvider(t *testing.T) {
 	entries := c.ConfigEntries()
 
 	testutil.RunStep(t, "set and get", func(t *testing.T) {
+		connectTimeout := time.Duration(5) * time.Second
 		jwtProvider := &JWTProviderConfigEntry{
 			Name: "okta",
 			Kind: JWTProvider,
 			JSONWebKeySet: &JSONWebKeySet{
-				Local: &LocalJWKS{
-					Filename: "test.txt",
+				Remote: &RemoteJWKS{
+					FetchAsynchronously: true,
+					URI:                 "https://example.com/.well-known/jwks.json",
+					JWKSCluster: &JWKSCluster{
+						DiscoveryType:  "STATIC",
+						ConnectTimeout: connectTimeout,
+						TLSCertificates: &JWKSTLSCertificate{
+							TrustedCa: &JWKSTLSCertTrustedCa{
+								Filename: "myfile.cert",
+							},
+						},
+					},
 				},
 			},
 			Meta: map[string]string{
