@@ -53,8 +53,6 @@ jobs:
       AWS_LAMBDA_REGION: us-west-2
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-        with:
-          ref: ${{ github.ref }}
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version-file: 'go.mod'
@@ -71,7 +69,7 @@ jobs:
         uses: docker/setup-buildx-action@4b4e9c3e2d4531116a6f8ba8e71fc6e2cb6e6c8c # v2.5.0
 
       - name: Docker build consul
-        run: docker build -t windows/consul -f .\build-support-windows\Dockerfile-windows .
+        run: docker build -t windows/consul -f Dockerfile-windows .
 
       - name: Docker build consul local
         run: .\build-support-windows\build-consul-local-images.sh
