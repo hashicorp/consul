@@ -75,12 +75,8 @@ jobs:
         shell: bash
         run: ./build-support-windows/build-consul-local-images.sh
 
-#      - name: Docker build consul dev
-#        shell: bash
-#        run: ./build-support-windows/build-consul-dev-image.sh
-#
-
       - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -97,6 +93,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-simple
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -113,6 +110,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-splitter-targets
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -129,6 +127,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-tls-overlapping-hosts
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -145,6 +144,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-conflicted
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -161,6 +161,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-simple
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -177,6 +178,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-tls-overlapping-hosts
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -193,6 +195,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-badauthz
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -209,6 +212,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-basic
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -225,6 +229,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-centralconf
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -241,6 +246,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-cluster-peering-failover
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -257,6 +263,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-dc-failover-gateways-none
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -273,6 +280,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-dc-failover-gateways-remote
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -289,6 +297,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-defaultsubset
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -305,6 +314,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-features
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -321,6 +331,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-subset-onlypassing
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -337,6 +348,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-subset-redirect
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -353,6 +365,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-failover
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -369,6 +382,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-redirect-http
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -385,6 +399,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-redirect-tcp
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -401,6 +416,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-router-features
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -417,6 +433,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-cluster-peering
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -433,6 +450,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-features
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -449,6 +467,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-peering-ingress-gateways
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -465,6 +484,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-consul-exec
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -481,6 +501,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peer-control-plane-mgw
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -497,6 +518,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -513,6 +535,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-http
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -529,6 +552,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-http-router
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -545,6 +569,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-resolver-redirect-tcp
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -561,6 +586,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-dogstatsd-udp
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -577,6 +603,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-envoyext-ratelimit
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -593,6 +620,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-expose-checks
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -609,6 +637,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-gateway-without-services
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -625,6 +654,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-gateways-local
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -641,6 +671,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-gateways-remote
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -657,6 +688,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-grpc
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -673,6 +705,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-http
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -689,6 +722,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-http-badauthz
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -705,6 +739,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-grpc
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -721,6 +756,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-http
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -737,6 +773,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-multiple-services
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -753,6 +790,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-peering-failover
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -769,6 +807,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-simple
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -785,6 +824,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-mesh-gateways-resolver
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -801,6 +841,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-l7-intentions
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -817,6 +858,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-multidc-rsa-ca
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -833,6 +875,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-prometheus
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -849,6 +892,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-property-override
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -865,6 +909,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-stats-proxy
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -881,6 +926,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-statsd-udp
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -897,6 +943,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-hostnames
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -913,6 +960,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-simple
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -929,6 +977,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-without-services
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -945,6 +994,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-upstream-config
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -961,6 +1011,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-wanfed-gw
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -977,6 +1028,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-sds
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -993,6 +1045,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-lua
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -1009,6 +1062,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-subsets
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -1025,6 +1079,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-wasm
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -1041,6 +1096,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-tls
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -1057,6 +1113,7 @@ jobs:
             -win=true
 
       - name: Envoy Integration Tests for windows case-mesh-to-lambda
+        shell: bash
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
