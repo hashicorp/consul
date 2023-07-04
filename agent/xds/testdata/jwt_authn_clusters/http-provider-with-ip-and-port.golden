@@ -19,5 +19,6 @@
     ]
   },
   "name": "jwks_cluster_okta",
-  "type": "STRICT_DNS"
+  "connectTimeout": "5s",
+  "type": "STATIC"
 }
