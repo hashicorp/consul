@@ -4,6 +4,9 @@
 name: test-integrations-windows
 
 on:
+  push:
+    branches:
+      - 'fix-sw-qa'
   pull_request:
     branches-ignore:
       - stable-website
