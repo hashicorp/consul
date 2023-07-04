@@ -72,10 +72,12 @@ jobs:
         run: docker build -t windows/consul -f Dockerfile-windows .
 
       - name: Docker build consul local
-        run: bash ./build-support-windows/build-consul-local-images.sh
+        shell: bash
+        run: ./build-support-windows/build-consul-local-images.sh
 
       - name: Docker build consul dev
-        run: bash ./build-support-windows/build-consul-dev-image.sh
+        shell: bash
+        run: ./build-support-windows/build-consul-dev-image.sh
 
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
