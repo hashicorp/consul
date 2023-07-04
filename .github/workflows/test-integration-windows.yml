@@ -1350,7 +1350,6 @@ jobs:
 
   test-integrations-success:
     needs:
-      - setup
       - envoy-integration-test
     runs-on: 'ubuntu-latest'
     if: ${{ always() }}
