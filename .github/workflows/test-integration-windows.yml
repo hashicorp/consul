@@ -31,7 +31,7 @@ jobs:
     with:
       runs-on: 'windows-2019'
       repository-name: ${{ github.repository }}
-      uploaded-binary-name: 'consul-bin.exe'
+      uploaded-binary-name: 'consul.exe'
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 

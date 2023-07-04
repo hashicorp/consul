@@ -6,7 +6,7 @@ on:
       uploaded-binary-name:
         required: false
         type: string
-        default: "consul-bin.exe"
+        default: "consul.exe"
       runs-on:
         description: An expression indicating which kind of runners to use.
         required: true
@@ -41,7 +41,7 @@ jobs:
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: ${{inputs.uploaded-binary-name}}
-          path: C:\bin\consul
+          path: ${{ github.workspace }}
       - name: Notify Slack
         if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
