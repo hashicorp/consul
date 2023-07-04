@@ -42,7 +42,7 @@ func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	}
 
 	// Write the config
-	n, err = pipeConn.Write(bootstrapJSON)
+	n, err := pipeConn.Write(bootstrapJSON)
 	if err != nil {
 		return pipeFile, err
 	}
