@@ -1037,8 +1037,101 @@ func makeTestProviderWithJWKS(uri string) *structs.JWTProviderConfigEntry {
 				RequestTimeoutMs:    1000,
 				FetchAsynchronously: true,
 				URI:                 uri,
+				JWKSCluster: &structs.JWKSCluster{
+					DiscoveryType:  structs.DiscoveryTypeStatic,
+					ConnectTimeout: time.Duration(5) * time.Second,
+					TLSCertificates: &structs.JWKSTLSCertificate{
+						TrustedCA: &structs.JWKSTLSCertTrustedCA{
+							Filename: "mycert.crt",
+						},
+					},
+				},
 			},
 		},
+	}
+}
+
+func TestMakeJWKSDiscoveryClusterType(t *testing.T) {
+	tests := map[string]struct {
+		remoteJWKS          *structs.RemoteJWKS
+		expectedClusterType *envoy_cluster_v3.Cluster_Type
+	}{
+		"nil remote jwks": {
+			remoteJWKS:          nil,
+			expectedClusterType: &envoy_cluster_v3.Cluster_Type{},
+		},
+		"nil jwks cluster": {
+			remoteJWKS:          &structs.RemoteJWKS{},
+			expectedClusterType: &envoy_cluster_v3.Cluster_Type{},
+		},
+		"jwks cluster defaults to Strict DNS": {
+			remoteJWKS: &structs.RemoteJWKS{
+				JWKSCluster: &structs.JWKSCluster{},
+			},
+			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_STRICT_DNS,
+			},
+		},
+		"jwks with cluster EDS": {
+			remoteJWKS: &structs.RemoteJWKS{
+				JWKSCluster: &structs.JWKSCluster{
+					DiscoveryType: "EDS",
+				},
+			},
+			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_EDS,
+			},
+		},
+		"jwks with static dns": {
+			remoteJWKS: &structs.RemoteJWKS{
+				JWKSCluster: &structs.JWKSCluster{
+					DiscoveryType: "STATIC",
+				},
+			},
+			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_STATIC,
+			},
+		},
+
+		"jwks with original dst": {
+			remoteJWKS: &structs.RemoteJWKS{
+				JWKSCluster: &structs.JWKSCluster{
+					DiscoveryType: "ORIGINAL_DST",
+				},
+			},
+			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
+			},
+		},
+		"jwks with strict dns": {
+			remoteJWKS: &structs.RemoteJWKS{
+				JWKSCluster: &structs.JWKSCluster{
+					DiscoveryType: "STRICT_DNS",
+				},
+			},
+			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_STRICT_DNS,
+			},
+		},
+		"jwks with logical dns": {
+			remoteJWKS: &structs.RemoteJWKS{
+				JWKSCluster: &structs.JWKSCluster{
+					DiscoveryType: "LOGICAL_DNS",
+				},
+			},
+			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_LOGICAL_DNS,
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			clusterType := makeJWKSDiscoveryClusterType(tt.remoteJWKS)
+
+			require.Equal(t, tt.expectedClusterType, clusterType)
+		})
 	}
 }
 
