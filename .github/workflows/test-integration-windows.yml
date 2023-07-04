@@ -4,9 +4,6 @@
 name: test-integrations-windows
 
 on:
-  push:
-    branches:
-      - 'fix-sw-qa'
   pull_request:
     branches-ignore:
       - stable-website
@@ -45,8 +42,6 @@ jobs:
 
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
-    needs:
-      - build-docker-images
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
