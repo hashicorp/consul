@@ -41,7 +41,7 @@ jobs:
         run: .github/scripts/get_runner_windows_classes.sh
 
   envoy-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: 'windows-2019'
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -1357,7 +1357,7 @@ jobs:
     needs:
       - setup
       - envoy-integration-test
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    runs-on: 'ubuntu-latest'
     if: ${{ always() }}
     steps:
       - name: evaluate upstream job results
