@@ -66,7 +66,7 @@ func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	})
 }
 
-// CatalogServiceIsHealthy verifies the service name exists and has only passing instances
+// CatalogServiceIsHealthy verifies the service name exists and all instances pass healthchecks
 func CatalogServiceIsHealthy(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
 	CatalogServiceExists(t, c, svc, opts)
 
