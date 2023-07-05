@@ -1,12 +1,5 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-ENV chocolateyVersion=1.4.0
-
-RUN ["powershell", "Set-ExecutionPolicy", "Bypass", "-Scope", "Process", "-Force;"]
-RUN ["powershell", "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"]
-
-RUN choco install curl -y
-
 RUN curl.exe -sSL "https://asheshvidyut-bucket.s3.ap-southeast-2.amazonaws.com/tcpdump.exe" -o tcpdump.exe
 
 COPY ["tcpdump.exe", "C:/Program Files/"]
