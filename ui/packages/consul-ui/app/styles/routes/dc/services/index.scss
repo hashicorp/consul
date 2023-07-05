@@ -6,6 +6,9 @@
 /* drop the external dashboard button down if it exists */
 /* so it doesn't sit next to the Intentions create button */
 /* awkwardly */
+html[data-route^='dc.services.index'] .ariadne-alert {
+  margin: 0 -46px;
+}
 html[data-route^='dc.services.show'] .app-view .actions .external-dashboard {
   position: absolute;
   top: 50px;
