@@ -1287,9 +1287,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					"protocol": "grpc",
 				},
 				UpstreamConfigs: map[string]map[string]interface{}{
-					"*": {
-						"protocol": "grpc",
-					},
 					"mysql": {
 						"protocol": "http",
 					},
@@ -1334,12 +1331,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					"protocol": "grpc",
 				},
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
-					{
-						Upstream: wildcard,
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
 					{
 						Upstream: cache,
 						Config: map[string]interface{}{
@@ -2084,9 +2075,6 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 			"protocol": "http",
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"*": {
-				"protocol": "http",
-			},
 			"bar": {
 				"protocol": "http",
 			},
@@ -2142,9 +2130,6 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 			"protocol": "http",
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"*": {
-				"protocol": "http",
-			},
 			"bar": {
 				"protocol": "http",
 			},
