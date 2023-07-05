@@ -54,14 +54,16 @@ This topic assumes you are familiar with the standard Consul workflow and CTS. I
 1. A Zscaler Private Access (ZPA) Tenant
 1. ZPA API Credentials. You will use these credentials to authenticate both Terraform and CTS to create and manage resources in ZPA Cloud.
 1. A Consul datacenter for service networking
-1. A server with [Consul-Terraform-Sync (CTS) installed. This server must be able to communicate with the ZPA and the Consul datacenter.
+1. A server with Consul-Terraform-Sync (CTS) installed. This server must be able to communicate with the ZPA and the Consul datacenter.
+
 ~> **Compatibility Note:** CTS requires Terraform 0.13 or later. You can either install Terraform before starting CTS or let the CTS install a compatible Terraform version for you.
+
 1. Application servers running a service. You must register these servers to Consul. Refer to [Register Services with Service Definitions](/consul/docs/discover/services) for instructions.
 1. A running instance of the ZPA App Connector. 
 
-## Configure ZPA application segment
+## Configure ZPA segment group
 
-The following example Terraform configuration shows a minimum service load balancing (SLB) configuration required for the ZPA application segment and NIA integration. When your Consul services change, CTS will automatically modify the ZPA application segment's domain entries.
+The following example Terraform configuration shows a minimum segment group required for the ZPA application segment and NIA integration. When your Consul services change, CTS will automatically modify the ZPA application segment's domain entries.
 
 <CodeBlockConfig filename="main.tf">
 

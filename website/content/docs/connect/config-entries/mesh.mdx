@@ -339,6 +339,8 @@ Note that the Kubernetes example does not include a `partition` field. Configura
     {
       name: 'AllowEnablingPermissiveMutualTLS',
       type: 'bool: false',
+      default: 'false',
+      required: false,
       description:
         'Controls whether `MutualTLSMode=permissive` can be set in the `proxy-defaults` and `service-defaults` configuration entries. '
     },
