@@ -1097,11 +1097,11 @@ jobs:
           secrets: |
             kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
-      - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
-        run: |
-          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
-          chmod +x /usr/local/bin/datadog-ci
+#      - name: prepare datadog-ci
+#        if: ${{ !endsWith(github.repository, '-enterprise') }}
+#        run: |
+#          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+#          chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
