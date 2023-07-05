@@ -440,7 +440,7 @@ func (c *cmd) run(args []string) int {
 		// API gateways do not have a default listener or ready endpoint,
 		// so adding any check to the registration will fail
 		var check *api.AgentServiceCheck
-		if c.gatewayKind == api.ServiceKindAPIGateway {
+		if c.gatewayKind != api.ServiceKindAPIGateway {
 			check = &api.AgentServiceCheck{
 				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
 				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
