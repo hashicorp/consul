@@ -109,8 +109,8 @@ func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, request
 func doHTTPServiceEchoesWithClient(
 	t *testing.T,
 	client *http.Client,
-	port string,
-	ip int,
+	ip string,
+	port int,
 	path string,
 	requestHeaders map[string]string,
 	expectedResHeader map[string]string,
