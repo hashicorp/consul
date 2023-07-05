@@ -8,6 +8,7 @@
   <:notifications as |app|>
     {{#each flashMessages.queue as |flash|}}
       <app.Notification @delay={{sub flash.timeout flash.extendedTimeout}} @sticky={{flash.sticky}}>
+
         {{#if flash.dom}}
           {{{flash.dom}}}
         {{else}}
@@ -15,7 +16,8 @@
             <Hds::Toast
               @color={{if (eq status 'error') 'critical' status}}
               data-notification
-              as |T|>
+              as |T|
+            >
               <T.Title>{{capitalize status}}!</T.Title>
               <T.Description>
                 {{#if (eq type 'logout')}}
