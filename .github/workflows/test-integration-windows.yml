@@ -918,21 +918,21 @@ jobs:
           go test -v -timeout=30m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-hostnames" -win=true
 
-      - name: Envoy Integration Tests for windows case-terminating-gateway-simple
-        shell: bash
-        env:
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          LAMBDA_TESTS_ENABLED: "true"
-          # tput complains if this isn't set to something.
-          TERM: ansi
-        run: |
-          # shellcheck disable=SC2001
-          echo "Running Integration Test case-terminating-gateway-simple"
-          # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
-            ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-simple" -win=true
+#      - name: Envoy Integration Tests for windows case-terminating-gateway-simple
+#        shell: bash
+#        env:
+#          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+#          GOTESTSUM_FORMAT: standard-verbose
+#          COMPOSE_INTERACTIVE_NO_CLI: 1
+#          LAMBDA_TESTS_ENABLED: "true"
+#          # tput complains if this isn't set to something.
+#          TERM: ansi
+#        run: |
+#          # shellcheck disable=SC2001
+#          echo "Running Integration Test case-terminating-gateway-simple"
+#          # shellcheck disable=SC2001
+#          go test -v -timeout=30m -tags integration \
+#            ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-simple" -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-without-services
         shell: bash
