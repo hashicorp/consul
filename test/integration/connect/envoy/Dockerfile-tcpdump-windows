@@ -1,6 +1,10 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-RUN curl.exe -sSL "https://asheshvidyut-bucket.s3.ap-southeast-2.amazonaws.com/tcpdump.exe" -o tcpdump.exe
+RUN mkdir tcpdump
+
+RUN curl.exe -sSL "https://asheshvidyut-bucket.s3.ap-southeast-2.amazonaws.com/tcpdump.exe" -o tcpdump/tcpdump.exe
+
+WORKDIR /tcpdump
 
 COPY ["tcpdump.exe", "C:/Program Files/"]
 
