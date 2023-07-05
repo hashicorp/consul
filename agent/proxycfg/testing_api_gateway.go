@@ -3,9 +3,10 @@ package proxycfg
 import (
 	"fmt"
 
+	"github.com/mitchellh/go-testing-interface"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -45,13 +46,13 @@ func TestConfigSnapshotAPIGateway(
 			Result:        placeholderLeaf,
 		},
 		{
-			CorrelationID: gatewayConfigWatchID,
+			CorrelationID: apiGatewayConfigWatchID,
 			Result: &structs.ConfigEntryResponse{
 				Entry: entry,
 			},
 		},
 		{
-			CorrelationID: gatewayConfigWatchID,
+			CorrelationID: boundGatewayConfigWatchID,
 			Result: &structs.ConfigEntryResponse{
 				Entry: boundEntry,
 			},
@@ -134,13 +135,13 @@ func TestConfigSnapshotAPIGateway_NilConfigEntry(
 			Result:        roots,
 		},
 		{
-			CorrelationID: gatewayConfigWatchID,
+			CorrelationID: apiGatewayConfigWatchID,
 			Result: &structs.ConfigEntryResponse{
 				Entry: nil, // The first watch on a config entry will return nil if the config entry doesn't exist.
 			},
 		},
 		{
-			CorrelationID: gatewayConfigWatchID,
+			CorrelationID: boundGatewayConfigWatchID,
 			Result: &structs.ConfigEntryResponse{
 				Entry: nil, // The first watch on a config entry will return nil if the config entry doesn't exist.
 			},
