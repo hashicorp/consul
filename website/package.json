@@ -9,7 +9,7 @@
     "dart-linkcheck": "2.0.15",
     "husky": "4.3.8",
     "next": "^12.3.1",
-    "prettier": "2.2.1"
+    "prettier": "3.0.0"
   },
   "husky": {
     "hooks": {
