@@ -2308,6 +2308,7 @@ type ServiceUsage struct {
 	ServiceInstances         int
 	ConnectServiceInstances  map[string]int
 	BillableServiceInstances int
+	Nodes                    int
 	EnterpriseServiceUsage
 }
 

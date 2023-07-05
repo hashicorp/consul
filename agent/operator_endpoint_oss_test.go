@@ -65,6 +65,7 @@ func TestOperator_Usage(t *testing.T) {
 			},
 			// 4 = 6 total service instances - 1 connect proxy - 1 consul service
 			BillableServiceInstances: 4,
+			Nodes:                    2,
 		},
 	}
 	require.Equal(t, expected, raw.(structs.Usage).Usage)
