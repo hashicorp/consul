@@ -25,7 +25,9 @@ func (s *HTTPHandlers) CloudLink(resp http.ResponseWriter, req *http.Request) (i
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing resource ID"}
 	}
 
-	// TODO: write cloud config to disk
+	if err := persistCloudConfig(clientID, clientSecret, resourceID); err != nil {
+		return nil, err
+	}
 
 	// TODO: restart
 
@@ -34,7 +36,7 @@ func (s *HTTPHandlers) CloudLink(resp http.ResponseWriter, req *http.Request) (i
 
 func persistCloudConfig(clientID, clientSecret, resourceID string) error {
 	// Hack - would have to retrieve this
-	dir := "/opt/consul/data/hcp-config"
+	dir := "opt/consul/data/hcp-config"
 
 	if err := lib.EnsurePath(dir, true); err != nil {
 		// Create subdir if it's not already there.
