@@ -7,7 +7,7 @@ description: >-
 
 # Register a Service Mesh Proxy Outside of a Service Registration
 
-This topic describes how to declare a proxy as a `connect-proxy` in service definitions. The `kind` must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
+This topic describes how to declare a service mesh proxy in a service definition. The `kind` must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
 
 
 ## Configuration
@@ -53,7 +53,7 @@ You can specify several additional parameters to configure the proxy to meet you
 
 ### Example
 
-In the following example, a proxy named `redis-proxy` is registered as a service mesh proxy. It proxies to the `redis` service and is available at port `8181`. As a result, any service mesh clients searching for a Connect-capable endpoint for `redis` will find this proxy.
+In the following example, a proxy named `redis-proxy` is registered as a service mesh proxy. It proxies to the `redis` service and is available at port `8181`. As a result, any service mesh clients searching for a mesh-capable endpoint for `redis` will find this proxy.
 
 <CodeTabs heading="Minimal example of a service mesh proxy">
 
@@ -378,7 +378,7 @@ The following examples show all possible mesh gateway configurations.
 The following examples show possible configurations to expose HTTP paths through Envoy.
 
 Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
-non-Connect-enabled applications to contact an HTTP endpoint.
+non-mesh-enabled applications to contact an HTTP endpoint.
 Some examples include: exposing a `/metrics` path for Prometheus or `/healthz` for kubelet liveness checks.
  
 Note that the examples in this topic use snake case, which is a convention that separates words with underscores, because the format is supported in configuration files and API registrations.

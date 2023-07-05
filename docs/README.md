@@ -25,6 +25,7 @@ be found in the public [user documentation].
 1. [Agent Configuration](./config)
 1. [RPC](./rpc)
 1. [Cluster Persistence](./persistence)
+1. [Resources and Controllers](./resources)
 1. [Client Agent](./client-agent)
 1. [Service Discovery](./service-discovery)
 1. [Service Mesh (Connect)](./service-mesh)
@@ -39,6 +40,7 @@ Also see the [FAQ](./faq.md).
 
 1. [Integration Tests](../test/integration/connect/envoy/README.md)
 1. [Upgrade Tests](../test/integration/consul-container/test/upgrade/README.md)
+1. [Remote Debugging Integration Tests](../test/integration/consul-container/test/debugging.md)
 
 ## Important Directories
 

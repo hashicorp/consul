@@ -259,11 +259,10 @@ func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, 
 	}, nil
 }
 
-// OwnerReferences returns the IDs of resources owned by the resource with the
-// given ID.
+// ListByOwner returns resources owned by the resource with the given ID.
 //
 // For more information, see the storage.Backend documentation.
-func (s *Store) OwnerReferences(id *pbresource.ID) ([]*pbresource.ID, error) {
+func (s *Store) ListByOwner(id *pbresource.ID) ([]*pbresource.Resource, error) {
 	tx := s.txn(false)
 	defer tx.Abort()
 
@@ -272,11 +271,11 @@ func (s *Store) OwnerReferences(id *pbresource.ID) ([]*pbresource.ID, error) {
 		return nil, err
 	}
 
-	var refs []*pbresource.ID
+	var res []*pbresource.Resource
 	for v := iter.Next(); v != nil; v = iter.Next() {
-		refs = append(refs, v.(*pbresource.Resource).Id)
+		res = append(res, v.(*pbresource.Resource))
 	}
-	return refs, nil
+	return res, nil
 }
 
 func (s *Store) txn(write bool) *memdb.Txn {

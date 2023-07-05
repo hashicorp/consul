@@ -503,6 +503,24 @@ func (a *Agent) Host() (map[string]interface{}, error) {
 	return out, nil
 }
 
+// Version is used to retrieve information about the running Consul version and build.
+func (a *Agent) Version() (map[string]interface{}, error) {
+	r := a.c.newRequest("GET", "/v1/agent/version")
+	_, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
+	var out map[string]interface{}
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Metrics is used to query the agent we are speaking to for
 // its current internal metric data
 func (a *Agent) Metrics() (*MetricsInfo, error) {

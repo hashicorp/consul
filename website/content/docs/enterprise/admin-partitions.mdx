@@ -67,8 +67,6 @@ You can configure services to be discoverable by downstream services in any part
 
 You can use [cluster peering](/consul/docs/connect/cluster-peering/) between two admin partitions to connect clusters owned by different operators. Without Consul Enterprise, cluster peering is limited to the `default` partitions in each datacenter. Enterprise users can [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) between any two admin partitions as long as the partitions are in separate datacenters. It is not possible to establish cluster peering connections between two partitions in a single datacenter.
 
-To use mesh gateways with admin partitions and cluster peering, refer to [Mesh Gateways between Admin Partitions](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions).
-
 ## Requirements
 
 Your Consul configuration must meet the following requirements to use admin partitions.

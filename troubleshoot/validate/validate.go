@@ -21,11 +21,11 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 )
 
-const builtinValidateExtension = "builtin/proxy/validate"
-
 // Validate contains input information about which proxy resources to validate and output information about resources it
 // has validated.
 type Validate struct {
+	extensioncommon.BasicExtensionAdapter
+
 	// envoyID is an argument to the Validate plugin and identifies which listener to begin the validation with.
 	envoyID string
 
@@ -81,8 +81,8 @@ func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExten
 	var resultErr error
 	var plugin Validate
 
-	if name := ext.EnvoyExtension.Name; name != builtinValidateExtension {
-		return nil, fmt.Errorf("expected extension name 'builtin/proxy/validate' but got %q", name)
+	if name := ext.EnvoyExtension.Name; name != api.BuiltinValidateExtension {
+		return nil, fmt.Errorf("expected extension name '%s' but got %q", api.BuiltinValidateExtension, name)
 	}
 
 	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]
@@ -92,10 +92,10 @@ func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExten
 	upstream, ok := ext.Upstreams[ext.ServiceName]
 	if ok {
 		vip = upstream.VIP
-		if upstream.SNI == nil || len(upstream.SNI) == 0 {
+		if upstream.SNIs == nil || len(upstream.SNIs) == 0 {
 			return nil, fmt.Errorf("no SNIs were set, unable to validate Envoy clusters")
 		}
-		snis = upstream.SNI
+		snis = upstream.SNIs
 	}
 	if mainEnvoyID == "" && vip == "" {
 		return nil, fmt.Errorf("envoyID or virtual IP is required")
@@ -306,84 +306,87 @@ func (p *Validate) CanApply(config *extensioncommon.RuntimeConfig) bool {
 	return true
 }
 
-func (p *Validate) PatchRoute(config *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+func (v *Validate) PatchRoute(p extensioncommon.RoutePayload) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	route := p.Message
 	// Route name on connect proxies will be the envoy ID. We are only validating routes for the specific upstream with
 	// the envoyID configured.
-	if route.Name != p.envoyID {
+	if route.Name != p.Upstream.EnvoyID {
 		return route, false, nil
 	}
-	p.route = true
+	v.route = true
 	for sni := range extensioncommon.RouteClusterNames(route) {
-		if _, ok := p.resources[sni]; ok {
+		if _, ok := v.resources[sni]; ok {
 			continue
 		}
-		p.resources[sni] = &resource{required: true}
+		v.resources[sni] = &resource{required: true}
 	}
 	return route, false, nil
 }
 
-func (p *Validate) PatchCluster(config *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	v, ok := p.resources[c.Name]
+func (v *Validate) PatchCluster(p extensioncommon.ClusterPayload) (*envoy_cluster_v3.Cluster, bool, error) {
+	c := p.Message
+	val, ok := v.resources[c.Name]
 	if !ok {
-		v = &resource{}
-		p.resources[c.Name] = v
+		val = &resource{}
+		v.resources[c.Name] = val
 	}
-	v.cluster = true
+	val.cluster = true
 
 	// If it's an aggregate cluster, add the child clusters to p.resources if they are not already there.
 	aggregateCluster, ok := isAggregateCluster(c)
 	if ok {
 		// Mark this as an aggregate cluster, so we know we do not need to validate its endpoints directly.
-		v.aggregateCluster = true
+		val.aggregateCluster = true
 		for _, clusterName := range aggregateCluster.Clusters {
-			r, ok := p.resources[clusterName]
+			r, ok := v.resources[clusterName]
 			if !ok {
 				r = &resource{}
-				p.resources[clusterName] = r
+				v.resources[clusterName] = r
 			}
-			if v.aggregateClusterChildren == nil {
-				v.aggregateClusterChildren = []string{}
+			if val.aggregateClusterChildren == nil {
+				val.aggregateClusterChildren = []string{}
 			}
 			// On the parent cluster, add the children.
-			v.aggregateClusterChildren = append(v.aggregateClusterChildren, clusterName)
+			val.aggregateClusterChildren = append(val.aggregateClusterChildren, clusterName)
 			// On the child cluster, set the parent.
 			r.parentCluster = c.Name
 			// The child clusters of an aggregate cluster will be required if the parent cluster is.
-			r.required = v.required
+			r.required = val.required
 		}
 		return c, false, nil
 	}
 
 	if c.EdsClusterConfig != nil {
-		v.usesEDS = true
+		val.usesEDS = true
 	} else {
 		la := c.LoadAssignment
 		if la == nil {
 			return c, false, nil
 		}
-		v.endpoints = len(la.Endpoints) + len(la.NamedEndpoints)
+		val.endpoints = len(la.Endpoints) + len(la.NamedEndpoints)
 	}
 	return c, false, nil
 }
 
-func (p *Validate) PatchFilter(config *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (v *Validate) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
+	filter := p.Message
 	// If a single filter exists for a listener we say it exists.
-	p.listener = true
+	v.listener = true
 
 	if httpConfig := envoy_resource_v3.GetHTTPConnectionManager(filter); httpConfig != nil {
 		// If the http filter uses RDS, then the clusters we need to validate exist in the route, and there's nothing
 		// else we need to do with the filter.
 		if httpConfig.GetRds() != nil {
-			p.usesRDS = true
+			v.usesRDS = true
 
 			// Edit the runtime configuration to add an envoy ID based on the route name in the filter. This is because
 			// routes are matched by envoyID and in the transparent proxy case, we only have the VIP set in the
 			// RuntimeConfig.
-			p.envoyID = httpConfig.GetRds().RouteConfigName
+			v.envoyID = httpConfig.GetRds().RouteConfigName
 			emptyServiceKey := api.CompoundServiceName{}
-			upstream, ok := config.Upstreams[emptyServiceKey]
+			upstream, ok := p.RuntimeConfig.Upstreams[emptyServiceKey]
 			if ok {
-				upstream.EnvoyID = p.envoyID
+				upstream.EnvoyID = v.envoyID
 			}
 			return filter, true, nil
 		}
@@ -392,10 +395,10 @@ func (p *Validate) PatchFilter(config *extensioncommon.RuntimeConfig, filter *en
 	// FilterClusterNames handles the filter being an http or tcp filter.
 	for sni := range extensioncommon.FilterClusterNames(filter) {
 		// Mark any clusters we see as required resources.
-		if r, ok := p.resources[sni]; ok {
+		if r, ok := v.resources[sni]; ok {
 			r.required = true
 		} else {
-			p.resources[sni] = &resource{required: true}
+			v.resources[sni] = &resource{required: true}
 		}
 	}
 

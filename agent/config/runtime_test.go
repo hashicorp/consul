@@ -25,13 +25,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -47,6 +46,7 @@ type testCase struct {
 	desc             string
 	args             []string
 	setup            func() // TODO: accept a testing.T instead of panic
+	cleanup          func()
 	expected         func(rt *RuntimeConfig)
 	expectedErr      string
 	expectedWarnings []string
@@ -324,6 +324,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DevMode = true
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
+			rt.Experiments = []string{"resource-apis"}
 			rt.EnableDebug = true
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
@@ -618,6 +619,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeName = "a"
 			rt.TLS.NodeName = "a"
 			rt.DataDir = dataDir
+			rt.Cloud.NodeName = "a"
 		},
 	})
 	run(t, testCase{
@@ -629,6 +631,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.NodeID = "a"
 			rt.DataDir = dataDir
+			rt.Cloud.NodeID = "a"
 		},
 	})
 	run(t, testCase{
@@ -1034,6 +1037,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				return nil, fmt.Errorf("should not detect advertise_addr")
 			},
 		},
+	})
+	run(t, testCase{
+		desc:        "locality invalid",
+		args:        []string{`-data-dir=` + dataDir},
+		json:        []string{`{"locality": {"zone": "us-west-1a"}}`},
+		hcl:         []string{`locality { zone = "us-west-1a" }`},
+		expectedErr: "locality is invalid: zone cannot be set without region",
 	})
 	run(t, testCase{
 		desc: "client addr and ports == 0",
@@ -2309,19 +2319,22 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		setup: func() {
 			os.Setenv("HCP_RESOURCE_ID", "env-id")
-			t.Cleanup(func() {
-				os.Unsetenv("HCP_RESOURCE_ID")
-			})
+		},
+		cleanup: func() {
+			os.Unsetenv("HCP_RESOURCE_ID")
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Cloud = hcpconfig.CloudConfig{
 				// ID is only populated from env if not populated from other sources.
 				ResourceID: "env-id",
+				NodeName:   "thehostname",
+				NodeID:     "",
 			}
 
 			// server things
 			rt.ServerMode = true
+			rt.Telemetry.EnableHostMetrics = true
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
@@ -2338,9 +2351,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		setup: func() {
 			os.Setenv("HCP_RESOURCE_ID", "env-id")
-			t.Cleanup(func() {
-				os.Unsetenv("HCP_RESOURCE_ID")
-			})
+		},
+		cleanup: func() {
+			os.Unsetenv("HCP_RESOURCE_ID")
 		},
 		json: []string{`{
 			  "cloud": {
@@ -2357,10 +2370,12 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Cloud = hcpconfig.CloudConfig{
 				// ID is only populated from env if not populated from other sources.
 				ResourceID: "file-id",
+				NodeName:   "thehostname",
 			}
 
 			// server things
 			rt.ServerMode = true
+			rt.Telemetry.EnableHostMetrics = true
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
@@ -6033,6 +6048,9 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+		if tc.cleanup != nil {
+			tc.cleanup()
+		}
 	}
 }
 
@@ -6311,6 +6329,8 @@ func TestLoad_FullConfig(t *testing.T) {
 			Hostname:     "DH4bh7aC",
 			AuthURL:      "332nCdR2",
 			ScadaAddress: "aoeusth232",
+			NodeID:       types.NodeID("AsUIlw99"),
+			NodeName:     "otlLxGaI",
 		},
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
@@ -6350,6 +6370,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",
+		Experiments:                      []string{"foo"},
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,
@@ -6419,6 +6440,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		SerfPortWAN:             8302,
 		ServerMode:              true,
 		ServerName:              "Oerr9n1G",
+		ServerRejoinAgeMax:      604800 * time.Second,
 		ServerPort:              3757,
 		Services: []*structs.ServiceDefinition{
 			{
@@ -6754,6 +6776,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				Expiration: 15 * time.Second,
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
+			EnableHostMetrics: true,
 		},
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{
@@ -7163,7 +7186,8 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
-		Locality: &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
+		Locality:           &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
+		ServerRejoinAgeMax: 24 * 7 * time.Hour,
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

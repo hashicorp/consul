@@ -129,9 +129,21 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 					cp_Targets_v2.Locality = new(Locality)
 					*cp_Targets_v2.Locality = *v2.Locality
 				}
+				if v2.PrioritizeByLocality != nil {
+					cp_Targets_v2.PrioritizeByLocality = new(DiscoveryPrioritizeByLocality)
+					*cp_Targets_v2.PrioritizeByLocality = *v2.PrioritizeByLocality
+				}
 			}
 			cp.Targets[k2] = cp_Targets_v2
 		}
+	}
+	if o.AutoVirtualIPs != nil {
+		cp.AutoVirtualIPs = make([]string, len(o.AutoVirtualIPs))
+		copy(cp.AutoVirtualIPs, o.AutoVirtualIPs)
+	}
+	if o.ManualVirtualIPs != nil {
+		cp.ManualVirtualIPs = make([]string, len(o.ManualVirtualIPs))
+		copy(cp.ManualVirtualIPs, o.ManualVirtualIPs)
 	}
 	return &cp
 }
@@ -231,10 +243,6 @@ func (o *DiscoveryResolver) DeepCopy() *DiscoveryResolver {
 	var cp DiscoveryResolver = *o
 	if o.Failover != nil {
 		cp.Failover = o.Failover.DeepCopy()
-	}
-	if o.PrioritizeByLocality != nil {
-		cp.PrioritizeByLocality = new(DiscoveryPrioritizeByLocality)
-		*cp.PrioritizeByLocality = *o.PrioritizeByLocality
 	}
 	return &cp
 }

@@ -1,0 +1,122 @@
+--- 
+layout: docs
+page_title: Route traffic to a virtual service
+description: Define virtual services in service resolver config entries so that Consul on Kubernetes can route traffic to virtual services when transparent proxy mode is enabled for Envoy proxies.  
+---
+
+# Route traffic to a virtual service
+
+This topic describes how to define virtual services so that Consul on Kubernetes can route traffic to virtual services when transparent proxy mode is enabled for Envoy proxies. 
+
+## Overview
+
+You can define virtual services in service resolver configuration entries so that downstream applications can send requests to a virtual service using a Consul DNS name in peered clusters. Your applications can send requests to virtual services in the same cluster using KubeDNS. Service resolvers are part of the service mesh proxy upstream discovery chain. Refer to [Service mesh traffic management](/consul/docs/connect/l7-traffic) for additional information.
+
+Complete the following steps to configure failover service instances in Consul on Kubernetes when proxies are in transparent proxy mode:
+
+1. Create a service resolver configuration entry.
+1. Create intentions that allow the downstream service to access the real service and the virtual service.
+1. Configure your application to call the discovery chain using the Consul DNS or KubeDNS.
+
+## Requirements
+ 
+- `consul-k8s` v1.2.0-beta1 or newer.
+- Consul service mesh must be enabled. Refer to [How does Consul service mesh work on Kubernetes](/consul/docs/k8s/connect).
+- Proxies must be configured to run in transparent proxy mode. 
+- To query virtual DNS names, you must use Consul DNS.
+- To query the discovery chain using KubeDNS, the service resolver must be in the same partition as the running service. 
+
+### ACL requirements
+
+The default ACLs that the Consul Helm chart configures are suitable for most cases, but if you have more complex security policies for Consul API access, refer to the [ACL documentation](/consul/docs/security/acl) for additional guidance. 
+
+## Create a service resolver configuration entry
+
+Specify the target failover in the [`spec.redirect.service`](/consul/docs/connect/config-entries/service-resolver#spec-redirect-service) field in the service resolver configuration entry. In the following example, the `virtual-api` service is configured to redirect to the `real-api`:
+
+<CodeBlockConfig heading="virtual-api-redirect.yaml">
+
+```yaml
+apiversion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+ name: virtual-api
+spec:
+ redirect:
+   service: real-api
+```
+
+</CodeBlockConfig>
+
+Refer to the [service resolver configuration entry reference](/consul/docs/connect/config-entries/service-resolver) documentation for information about all service resolver configurations.
+
+You can apply the configuration using the `kubectl apply` command:
+
+```shell-session
+$ kubectl apply -f virtual-api-redirect.yaml
+```
+
+## Create service intentions 
+
+If intentions are not already defined, create and apply intentions that allow the appropriate downstream to access the real service and the target redirect service. In the following examples, the `frontend` service is allowed to send messages to the `virtual-api` and `real-api` services:
+
+
+<CodeBlockConfig heading="frontend-api-api-beta-allow.yaml">
+
+```yaml
+apiversion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+ name: virtual-api
+spec:
+ destination:
+   name: virtual-api
+ sources:
+   - name: frontend
+     action: allow
+---
+apiversion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+ name: real-api
+spec:
+ destination:
+   name: real-api
+ sources:
+   - name: frontend
+     action: allow
+```
+
+</CodeBlockConfig>
+
+Refer to the [service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information about configuring service intentions. 
+
+You can apply the configuration using the `kubectl apply` command:
+
+```shell-session
+$ kubectl apply -f frontend-api-api-beta-allow.yaml
+```
+
+## Configure your application to call the DNS
+
+Configure your application to contact the discovery chain in either the Consul DNS or the KubeDNS. 
+
+### Consul DNS
+
+You can query the Consul DNS using the `<service>.virtual.consul` lookup format. For Consul Enterprise, your query string may need to include the namespace, partition, or both. Refer to the [DNS documentation](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups) for details on building virtual service lookups.
+
+In the following example, the application queries the Consul catalog for `virtual-api` over HTTP. By default, the lookup would query the `default` partition and `default` namespace if Consul Enterprise manages the network infrastructure:
+
+```text
+http://virtual-api.virtual.consul/
+```
+
+### KubeDNS
+
+You can query the KubeDNS if the real and virtual services are in the same Kubernetes cluster by specifying the name of the service. In the following example, the application queries KubeDNS for `virtual-api` over HTTP:
+
+```text
+http://virtual-api.<namespace>.svc.cluster.local
+```
+
+Note that you cannot use KubeDNS if a corresponding Kubernetes service and pod do not exist. 

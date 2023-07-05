@@ -1,5 +1,0 @@
-{
-    "versionInfo": "00000001",
-    "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-    "nonce": "00000001"
-}

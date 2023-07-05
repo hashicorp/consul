@@ -5,8 +5,10 @@ package cluster
 
 import (
 	"context"
+	"io"
 
 	"github.com/testcontainers/testcontainers-go"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/api"
 
@@ -22,6 +24,7 @@ type Agent interface {
 	GetAgentName() string
 	GetPartition() string
 	GetPod() testcontainers.Container
+	Logs(context.Context) (io.ReadCloser, error)
 	ClaimAdminPort() (int, error)
 	GetConfig() Config
 	GetInfo() AgentInfo
@@ -34,6 +37,7 @@ type Agent interface {
 	Upgrade(ctx context.Context, config Config) error
 	Exec(ctx context.Context, cmd []string) (string, error)
 	DataDir() string
+	GetGRPCConn() *grpc.ClientConn
 }
 
 // Config is a set of configurations required to create a Agent
@@ -42,11 +46,11 @@ type Agent interface {
 type Config struct {
 	// NodeName is set for the consul agent name and container name
 	// Equivalent to the -node command-line flag.
-	// If empty, a randam name will be generated
+	// If empty, a random name will be generated
 	NodeName string
 	// NodeID is used to configure node_id in agent config file
 	// Equivalent to the -node-id command-line flag.
-	// If empty, a randam name will be generated
+	// If empty, a random name will be generated
 	NodeID string
 
 	// ExternalDataDir is data directory to copy consul data from, if set.
@@ -79,10 +83,7 @@ func (c *Config) DockerImage() string {
 func (c Config) Clone() Config {
 	c2 := c
 	if c.Cmd != nil {
-		c2.Cmd = make([]string, len(c.Cmd))
-		for i, v := range c.Cmd {
-			c2.Cmd[i] = v
-		}
+		copy(c2.Cmd, c.Cmd)
 	}
 	return c2
 }

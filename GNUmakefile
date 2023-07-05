@@ -3,6 +3,9 @@
 
 SHELL = bash
 
+
+GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-gen-rpc-glue/e2e" | sort)
+
 ###
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
@@ -61,6 +64,7 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+ENVOY_VERSION?='1.25.4'
 
 ################
 # CI Variables #
@@ -69,6 +73,7 @@ CI_DEV_DOCKER_NAMESPACE?=hashicorpdev
 CI_DEV_DOCKER_IMAGE_NAME?=consul
 CI_DEV_DOCKER_WORKDIR?=bin/
 ################
+CONSUL_VERSION?=$(shell cat version/VERSION)
 
 TEST_MODCACHE?=1
 TEST_BUILDCACHE?=1
@@ -164,13 +169,13 @@ dev-build:
 	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
 
-dev-docker-dbg: dev-docker linux dev-build
+dev-docker-dbg: dev-docker
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	@#  'consul-dbg:local' tag is needed to run the integration tests
 	@#  'consul-dev:latest' is needed by older workflows
-	@docker buildx use default && docker buildx build -t 'consul-dbg:local' -t '$(CONSUL_DEV_IMAGE)' \
+	@docker buildx use default && docker buildx build -t $(CONSUL_COMPAT_TEST_IMAGE)-dbg:local \
        --platform linux/$(GOARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --load \
@@ -178,15 +183,18 @@ dev-docker-dbg: dev-docker linux dev-build
 
 dev-docker: linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	@#  'consul:local' tag is needed to run the integration tests
 	@#  'consul-dev:latest' is needed by older workflows
 	@docker buildx use default && docker buildx build -t 'consul:local' -t '$(CONSUL_DEV_IMAGE)' \
        --platform linux/$(GOARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+		--label org.opencontainers.image.version=$(CONSUL_VERSION) \
+		--label version=$(CONSUL_VERSION) \
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
+	docker tag 'consul:local'  '$(CONSUL_COMPAT_TEST_IMAGE):local'
 
 check-remote-dev-image-env:
 ifndef REMOTE_DEV_IMAGE
@@ -197,7 +205,7 @@ remote-docker: check-remote-dev-image-env
 	$(MAKE) GOARCH=amd64 linux
 	$(MAKE) GOARCH=arm64 linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
 	@if ! docker buildx inspect consul-builder; then \
 		docker buildx create --name consul-builder --driver docker-container --bootstrap; \
@@ -205,6 +213,8 @@ remote-docker: check-remote-dev-image-env
 	@docker buildx use consul-builder && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+		--label org.opencontainers.image.version=$(CONSUL_VERSION) \
+		--label version=$(CONSUL_VERSION) \
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
@@ -212,7 +222,7 @@ remote-docker: check-remote-dev-image-env
 # should only run in CI and not locally.
 ci.dev-docker:
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CI_DEV_DOCKER_IMAGE_NAME)"
 	@docker build $(NOCACHE) $(QUIET) -t '$(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)' \
 	--build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
@@ -248,19 +258,13 @@ cov: other-consul dev-build
 
 test: other-consul dev-build lint test-internal
 
-go-mod-tidy:
-	@echo "--> Running go mod tidy"
-	@cd sdk && go mod tidy
-	@cd api && go mod tidy
-	@go mod tidy
-	@cd test/integration/consul-container && go mod tidy
-	@cd test/integration/connect/envoy/test-sds-server && go mod tidy
-	@cd proto-public && go mod tidy
-	@cd internal/tools/proto-gen-rpc-glue && go mod tidy
-	@cd internal/tools/proto-gen-rpc-glue/e2e && go mod tidy
-	@cd internal/tools/proto-gen-rpc-glue/e2e/consul && go mod tidy
-	@cd internal/tools/protoc-gen-consul-rate-limit && go mod tidy
+.PHONY: go-mod-tidy
+go-mod-tidy: $(foreach mod,$(GO_MODULES),go-mod-tidy/$(mod))
 
+.PHONY: mod-tidy/%
+go-mod-tidy/%:
+	@echo "--> Running go mod tidy ($*)"
+	@cd $* && go mod tidy
 
 test-internal:
 	@echo "--> Running go test"
@@ -290,6 +294,12 @@ test-internal:
 	@awk '/^[^[:space:]]/ {do_print=0} /--- FAIL/ {do_print=1} do_print==1 {print}' test.log
 	@grep '^FAIL' test.log || true
 	@if [ "$$(cat exit-code)" == "0" ] ; then echo "PASS" ; exit 0 ; else exit 1 ; fi
+
+test-all: other-consul dev-build lint $(foreach mod,$(GO_MODULES),test-module/$(mod))
+
+test-module/%:
+	@echo "--> Running go test ($*)"
+	cd $* && go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' ./...
 
 test-race:
 	$(MAKE) GOTEST_FLAGS=-race
@@ -327,32 +337,38 @@ other-consul:
 		echo "Found other running consul agents. This may affect your tests." ; \
 		exit 1 ; \
 	fi
+	
+.PHONY: fmt
+fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod)) 
 
-lint: -lint-main lint-container-test-deps
+.PHONY: fmt/%
+fmt/%:
+	@echo "--> Running go fmt ($*)"
+	@cd $* && gofmt -s -l -w .
 
-.PHONY: -lint-main
--lint-main: lint-tools
-	@echo "--> Running golangci-lint"
-	@golangci-lint run --build-tags '$(GOTAGS)' && \
-		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
-		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
-	@echo "--> Running golangci-lint (container tests)"
-	@cd test/integration/consul-container && golangci-lint run --build-tags '$(GOTAGS)'
-	@echo "--> Running lint-consul-retry"
-	@lint-consul-retry
-	@echo "--> Running enumcover"
-	@enumcover ./...
+.PHONY: lint
+lint: $(foreach mod,$(GO_MODULES),lint/$(mod)) lint-container-test-deps
 
+.PHONY: lint/%
+lint/%:
+	@echo "--> Running golangci-lint ($*)"
+	@cd $* && GOWORK=off golangci-lint run --build-tags '$(GOTAGS)'
+	@echo "--> Running lint-consul-retry ($*)"
+	@cd $* && GOWORK=off lint-consul-retry
+	@echo "--> Running enumcover ($*)"
+	@cd $* && GOWORK=off enumcover ./...
+
+# check that the test-container module only imports allowlisted packages
+# from the root consul module. Generally we don't want to allow these imports.
+# In a few specific instances though it is okay to import test definitions and
+# helpers from some of the packages in the root module.
 .PHONY: lint-container-test-deps
 lint-container-test-deps:
 	@echo "--> Checking container tests for bad dependencies"
-	@cd test/integration/consul-container && ( \
-		found="$$(go list -m all | grep -c '^github.com/hashicorp/consul ')" ; \
-		if [[ "$$found" != "0" ]]; then \
-			echo "test/integration/consul-container: This project should not depend on the root consul module" >&2 ; \
-			exit 1 ; \
-		fi \
-	)
+	@cd test/integration/consul-container && \
+		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
+			github.com/hashicorp/consul \
+			internal/catalog/catalogtest
 
 # Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 ui: ui-docker
@@ -383,6 +399,7 @@ codegen-tools:
 deep-copy: codegen-tools
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
 
 version:
 	@echo -n "Version:                    "
@@ -459,10 +476,13 @@ else
 		--latest-version latest
 endif
 
+# NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
 .PHONY: test-compat-integ-setup
 test-compat-integ-setup: dev-docker
 	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
 	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+	@#  'consul-envoy:target-version' is needed by compatibility integ test
+	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
 
 .PHONY: test-metrics-integ
 test-metrics-integ: test-compat-integ-setup

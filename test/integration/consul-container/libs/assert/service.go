@@ -17,8 +17,9 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/stretchr/testify/assert"
+
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 )
 
 const (
@@ -39,6 +40,20 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.Que
 	})
 }
 
+// CatalogServiceHasInstanceCount verifies the service name exists in the Consul catalog and has the specified
+// number of instances.
+func CatalogServiceHasInstanceCount(t *testing.T, c *api.Client, svc string, count int, opts *api.QueryOptions) {
+	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Catalog().Service(svc, "", opts)
+		if err != nil {
+			r.Fatal("error reading service data")
+		}
+		if len(services) != count {
+			r.Fatalf("did not find %d catalog entries for %s", count, svc)
+		}
+	})
+}
+
 // CatalogServiceExists verifies the node name exists in the Consul catalog
 func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	retry.Run(t, func(r *retry.R) {
@@ -55,22 +70,39 @@ func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
 	doHTTPServiceEchoes(t, ip, port, path, nil)
 }
+func HTTPServiceEchoesWithClient(t *testing.T, client *http.Client, addr string, path string) {
+	doHTTPServiceEchoesWithClient(t, client, addr, path, nil)
+}
 
 func HTTPServiceEchoesResHeader(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
 	doHTTPServiceEchoes(t, ip, port, path, expectedResHeader)
+}
+func HTTPServiceEchoesResHeaderWithClient(t *testing.T, client *http.Client, addr string, path string, expectedResHeader map[string]string) {
+	doHTTPServiceEchoesWithClient(t, client, addr, path, expectedResHeader)
 }
 
 // HTTPServiceEchoes verifies that a post to the given ip/port combination returns the data
 // in the response body. Optional path can be provided to differentiate requests.
 func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
+	client := cleanhttp.DefaultClient()
+	addr := fmt.Sprintf("%s:%d", ip, port)
+	doHTTPServiceEchoesWithClient(t, client, addr, path, expectedResHeader)
+}
+
+func doHTTPServiceEchoesWithClient(
+	t *testing.T,
+	client *http.Client,
+	addr string,
+	path string,
+	expectedResHeader map[string]string,
+) {
 	const phrase = "hello"
 
 	failer := func() *retry.Timer {
 		return &retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}
 	}
 
-	client := cleanhttp.DefaultClient()
-	url := fmt.Sprintf("http://%s:%d", ip, port)
+	url := "http://" + addr
 
 	if path != "" {
 		url += "/" + path
@@ -84,6 +116,10 @@ func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, expecte
 			r.Fatal("could not make call to service ", url)
 		}
 		defer res.Body.Close()
+
+		statusCode := res.StatusCode
+		t.Logf("...got response code %d", statusCode)
+		require.Equal(r, 200, statusCode)
 
 		body, err := io.ReadAll(res.Body)
 		if err != nil {
@@ -166,7 +202,7 @@ func AssertFortioNameWithClient(t *testing.T, urlbase string, name string, reqHo
 
 		m := fortioNameRE.FindStringSubmatch(string(body))
 		require.GreaterOrEqual(r, len(m), 2)
-		t.Logf("got response from server name %s", m[1])
+		t.Logf("got response from server name %q expect %q", m[1], name)
 		assert.Equal(r, name, m[1])
 	})
 }

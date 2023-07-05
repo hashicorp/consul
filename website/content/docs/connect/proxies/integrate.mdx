@@ -7,20 +7,34 @@ description: >-
 
 # Custom Proxy Configuration for Service Mesh
 
+<Note>
+
+ The Connect Native Golang SDK and `v1/agent/connect/authorize`, `v1/agent/connect/ca/leaf`, 
+ and `v1/agent/connect/ca/roots` APIs are deprecated and will be removed in a future release. Although Connect Native 
+ will still operate as designed, we do not recommend leveraging this feature because it is deprecated and will be removed when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
+
+ The Native App Integration does not support many of the Consul's service mesh features, and is not under active development.
+ The [Envoy proxy](/consul/docs/connect/proxies/envoy) should be used for most production environments. 
+
+</Note>
+
 This topic describes the process and API endpoints you can use to extend proxies for integration with Consul.
 
 ## Overview
 
-You can extend any proxy to support Connect. Consul ships with a built-in
+You can extend any proxy to support Consul service mesh. Consul ships with a built-in
 proxy suitable for an out-of-the-box development experience, but you may require a more robust proxy solution for production environments.
 
 The proxy you integrate must be able to accept inbound connections and/or establish outbound connections identified as a particular service. In some cases, either ability may be acceptable, but both are generally required to support for full sidecar functionality.
 
 Sidecar proxies may support L4 or L7 network functionality. L4 integration is simpler and adequate for securing all traffic. L4 treats all traffic as TCP, however, so advanced routing or metrics features are not supported.
 
-Full L7 support is built on top of L4 support. An L7 proxy integration supports most or all of the L7 traffic routing features in Connect by dynamically configuring routing, retries, and other L7 features. The built-in proxy only supports L4, while [Envoy](/consul/docs/connect/proxies/envoy) supports the full L7 feature set.
+Full L7 support is built on top of L4 support. An L7 proxy integration supports most or all of the L7 traffic routing features in Consul service mesh by dynamically configuring routing, retries, and other L7 features. The built-in proxy only supports L4, while [Envoy](/consul/docs/connect/proxies/envoy) supports the full L7 feature set.
 
 Areas where the integration approach differs between L4 and L7 are identified in this topic.
+
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
 
 ## Accepting Inbound Connections
 
@@ -38,7 +52,7 @@ $ curl http://<host-ip>:8500/v1/agent/connect/ca/leaf/<service-name>
 
 </CodeBlockConfig>
 
-The client certificate from the inbound connection must be validated against the Connect CA root certificates. Call the [`/v1/agent/connect/ca/roots`] endpoint to obtain the root certificates from the Connect CA, e.g.:
+The client certificate from the inbound connection must be validated against the service mesh CA root certificates. Call the [`/v1/agent/connect/ca/roots`] endpoint to obtain the root certificates from the service mesh CA, e.g.:
 
 <CodeBlockConfig language="shell-session">
 
@@ -103,7 +117,7 @@ leaf certificate.
 
 ## Establishing Outbound Connections
 
-For outbound connections, the proxy should communicate with a Connect-capable
+For outbound connections, the proxy should communicate with a mesh-capable
 endpoint for a service and provide a client certificate from the
 [`/v1/agent/connect/ca/leaf/`] API endpoint. The proxy must use the root certificate obtained from the [`/v1/agent/connect/ca/roots`] endpoint to verify the certificate served from the destination endpoint.
 
@@ -126,7 +140,7 @@ fetching the discovery chain so that L7 features, such as HTTP routing rules, ar
 not returned.
 
 For each [target](/consul/docs/connect/l7-traffic/discovery-chain#targets) in the resulting
-discovery chain, a list of healthy, Connect-capable endpoints may be fetched
+discovery chain, a list of healthy, mesh-capable endpoints may be fetched
 from the [`/v1/health/connect/:service_id`] API endpoint as described in the [Service
 Discovery](#service-discovery) section.
 
@@ -138,7 +152,7 @@ documentation for details about supported configuration parameters.
 
 ### Service Discovery
 
-Proxies can use Consul's [service discovery API](/consul/api-docs/health#list-service-instances-for-connect-enabled-service) to return all available, Connect-capable endpoints for a given service. This endpoint supports a `cached` query parameter, which uses [agent caching](/consul/api-docs/features/caching) to improve
+Proxies can use Consul's [service discovery API](/consul/api-docs/health#list-service-instances-for-mesh-enabled-service) to return all available, mesh-capable endpoints for a given service. This endpoint supports a `cached` query parameter, which uses [agent caching](/consul/api-docs/features/caching) to improve
 performance. The API package provides a [`UseCache`] query option to leverage caching.
 In addition to performance improvements, using the cache makes the mesh more resilient to Consul server outages. This is because the mesh "fails static" with the last known set of service instances still used, rather than errors on new connections.
 
