@@ -1,41 +1,56 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 func (s *HTTPHandlers) CloudLink(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	switch req.Method {
-	case "PUT":
-		return s.cloudLinkPut(resp, req)
-
-	default:
-		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
-	}
-}
-
-// configGet gets either a specific config entry, or lists all config entries
-// of a kind if no name is provided.
-func (s *HTTPHandlers) cloudLinkPut(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// parse values
 	var clientID string
 	if clientID = req.URL.Query().Get("client_id"); clientID == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing client ID"}
 	}
 
-	var secretID string
-	if secretID = req.URL.Query().Get("secret_id"); secretID == "" {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing client ID"}
+	var clientSecret string
+	if clientSecret = req.URL.Query().Get("client_secret"); clientSecret == "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing client secret"}
 	}
 
 	var resourceID string
 	if resourceID = req.URL.Query().Get("resource_id"); resourceID == "" {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing client ID"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing resource ID"}
 	}
 
-	// TODO: write as a config to disk
+	// TODO: write cloud config to disk
 
 	// TODO: restart
 
 	return true, nil
+}
+
+func persistCloudConfig(clientID, clientSecret, resourceID string) error {
+	// Hack - would have to retrieve this
+	dir := "/opt/consul/data/hcp-config"
+
+	if err := lib.EnsurePath(dir, true); err != nil {
+		// Create subdir if it's not already there.
+		return fmt.Errorf("failed to ensure directory %q: %w", dir, err)
+	}
+
+	content := fmt.Sprintf(`
+{
+	"cloud": {
+		"resource_id": "%s",
+		"client_id": "%s",
+		"client_secret": "%s"
+	}
+}
+`, resourceID, clientID, clientSecret)
+
+	file := filepath.Join(dir, "cloud.json")
+	return os.WriteFile(file, []byte(content), 0600)
 }
