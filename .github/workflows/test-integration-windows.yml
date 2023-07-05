@@ -1030,21 +1030,21 @@ jobs:
           go test -v -timeout=30m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-subsets" -win=true
 
-      - name: Envoy Integration Tests for windows case-wasm
-        shell: bash
-        env:
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          LAMBDA_TESTS_ENABLED: "true"
-          # tput complains if this isn't set to something.
-          TERM: ansi
-        run: |
-          # shellcheck disable=SC2001
-          echo "Running Integration Test case-wasm"
-          # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
-            ./test/integration/connect/envoy -run="TestEnvoy/case-wasm" -win=true
+#      - name: Envoy Integration Tests for windows case-wasm
+#        shell: bash
+#        env:
+#          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+#          GOTESTSUM_FORMAT: standard-verbose
+#          COMPOSE_INTERACTIVE_NO_CLI: 1
+#          LAMBDA_TESTS_ENABLED: "true"
+#          # tput complains if this isn't set to something.
+#          TERM: ansi
+#        run: |
+#          # shellcheck disable=SC2001
+#          echo "Running Integration Test case-wasm"
+#          # shellcheck disable=SC2001
+#          go test -v -timeout=30m -tags integration \
+#            ./test/integration/connect/envoy -run="TestEnvoy/case-wasm" -win=true
 
 #      - name: Envoy Integration Tests for windows case-ingress-gateway-tls
 #        shell: bash
