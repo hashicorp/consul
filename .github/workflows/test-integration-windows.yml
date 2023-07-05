@@ -65,6 +65,9 @@ jobs:
       - name: restore mode+x
         run: chmod +x C:\bin\consul
 
+      - name: Setup TcpDump Docker Image
+        run: cd test/integration/connect/envoy && docker build -t envoy-tcpdump -f Dockerfile-tcpdump-windows .
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4b4e9c3e2d4531116a6f8ba8e71fc6e2cb6e6c8c # v2.5.0
 

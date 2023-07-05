@@ -890,7 +890,7 @@ function common_run_container_tcpdump {
 
     # we cant run this in circle but its only here to temporarily enable.
 
-    docker.exe build --rm=false -t envoy-tcpdump -f Dockerfile-tcpdump-windows .
+#     docker.exe build --rm=false -t envoy-tcpdump -f Dockerfile-tcpdump-windows .
 
     docker.exe run -d --name $(container_name_prev) \
         $(network_snippet $DC) \
