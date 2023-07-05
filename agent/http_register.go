@@ -66,6 +66,7 @@ func init() {
 	registerEndpoint("/v1/catalog/node/", []string{"GET"}, (*HTTPHandlers).CatalogNodeServices)
 	registerEndpoint("/v1/catalog/node-services/", []string{"GET"}, (*HTTPHandlers).CatalogNodeServiceList)
 	registerEndpoint("/v1/catalog/gateway-services/", []string{"GET"}, (*HTTPHandlers).CatalogGatewayServices)
+	registerEndpoint("/v1/cloud/link", []string{"PUT"}, (*HTTPHandlers).CloudLink)
 	registerEndpoint("/v1/config/", []string{"GET", "DELETE"}, (*HTTPHandlers).Config)
 	registerEndpoint("/v1/config", []string{"PUT"}, (*HTTPHandlers).ConfigApply)
 	registerEndpoint("/v1/connect/ca/configuration", []string{"GET", "PUT"}, (*HTTPHandlers).ConnectCAConfiguration)
