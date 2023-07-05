@@ -103,7 +103,6 @@ func TestIngressGateway(t *testing.T) {
 	libassert.AssertContainerState(t, ingressService, "running")
 	libassert.AssertContainerState(t, serverService, "running")
 
-	//time.Sleep(3600 * time.Second)
 	mappedPort, err := clientNode.GetPod().MappedPort(context.Background(), nat.Port(fmt.Sprintf("%d/tcp", gatewayListenerPort)))
 	require.NoError(t, err)
 
