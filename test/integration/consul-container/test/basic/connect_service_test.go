@@ -7,11 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
@@ -40,7 +37,7 @@ func TestBasicConnectService(t *testing.T) {
 		},
 	})
 
-	clientService := createServices(t, cluster)
+	_, clientService := topology.CreateServices(t, cluster)
 	_, port := clientService.GetAddr()
 	_, adminPort := clientService.GetAdminAddr()
 
@@ -50,31 +47,4 @@ func TestBasicConnectService(t *testing.T) {
 	libassert.AssertContainerState(t, clientService, "running")
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
-}
-
-func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
-	node := cluster.Agents[0]
-	client := node.GetClient()
-	// Create a service and proxy instance
-	serviceOpts := &libservice.ServiceOpts{
-		Name:     libservice.StaticServerServiceName,
-		ID:       "static-server",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}
-
-	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
-
-	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, false)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
-
-	return clientConnectProxy
 }
