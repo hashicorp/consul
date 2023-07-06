@@ -31,7 +31,7 @@ service discovery, including hosted services like databases.
 
 ~> Enabling both Service Mesh and Service Sync on the same Kubernetes services is not supported, as Service Mesh also registers Kubernetes service instances to Consul. Ensure that Service Sync is only enabled for namespaces and services that are not injected with the Consul sidecar for Service Mesh as described in [Sync Enable/Disable](/consul/docs/k8s/service-sync#sync-enable-disable).
 
-The catalog sync feature deploys a long-running process which can
+The service sync feature deploys a long-running process which can
 can run either inside or outside of a Kubernetes cluster. However, running this process within
 the Kubernetes cluster is generally easier since it is automated using the
 [Helm chart](/consul/docs/k8s/helm).
