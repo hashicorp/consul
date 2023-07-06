@@ -31,16 +31,16 @@ When transparent proxy mode is enabled, all service-to-service traffic is requir
 
 ### Kubernetes service mesh workload scenarios 
 
-Below are multiple different scenarios for registering workloads on Kubernetes onto Consul Service Mesh
+-> **Note:** A Kubernetes Service is **required** to register services on the Consul Service Mesh as Consul monitors the lifecyle of a Kubernetes service and its service instances using the service object. In addition the Kubernetes service is used to register and de-register the service from the Catalog. 
 
-- [Kubernetes Pods running as a deployment](#example-kubernetes-deployment)
+Below are multiple scenarios for registering workloads on Kubernetes onto Consul Service Mesh. Each scenario provides an example Kubernetes manifest to help quickly understand how to use Consul Service Mesh once you have installed Consul on Kubernetes. 
+
+- [Kubernetes Pods running as a deployment](#kubernetes-pods-running-as-a-deployment)
 - [Connecting to mesh-enabled Services](#connecting-to-mesh-enabled-services)
 - [Kubernetes Jobs](#kubernetes-jobs)
 - [Kubernetes Pods with Multiple ports](#kubernetes-pods-with-multiple-ports)
 
 #### Kubernetes Pods running as a deployment
-
--> **Note:** A Kubernetes Service is **required** to register services on the Consul Service Mesh as Consul monitors the lifecyle of a Kubernetes service using a service object, and monitors the Kubernetes service to register and de-register it from the Catalog. 
 
 The following example shows a Kubernetes configuration that specifically enables service mesh connections for the `static-server` service. Consul starts and registers a sidecar proxy that listens on port 20000 by default and proxies valid inbound connections to port 8080. 
 
