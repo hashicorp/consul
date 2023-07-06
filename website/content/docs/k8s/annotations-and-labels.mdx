@@ -16,7 +16,7 @@ This allows the user to configure natively configure Consul on select Kubernetes
   - [Annotations](#annotations)
   - [Labels](#labels)
 - [Service Sync](#service-sync)
-  - [Annotations](#service-sync-annotations)
+  - [Annotations](#annotations-1)
 
 The noun _connect_ is used throughout this documentation to refer to the connect
 subsystem that provides Consul's service mesh capabilities.
@@ -283,7 +283,10 @@ Resource labels could be used on a Kubernetes service to control connect-inject 
 The following Kubernetes resource annotations could be used on a pod to [Service Sync](https://developer.hashicorp.com/consul/docs/k8s/service-sync) behavior:
 
 - `consul.hashicorp.com/service-sync`: If this is set to `true`, then the Kubernetes service is explicitly configured to be synced to Consul.  
-
+  ```yaml
+  annotations:
+    'consul.hashicorp.com/service-sync': 'true'
+  ```
 - `consul.hashicorp.com/service-port`: Configures the port to register to the Consul Catalog for the Kubernetes service. The annotation value may be a name of a port (recommended) or an exact port value. See [service ports](https://developer.hashicorp.com/consul/docs/k8s/service-sync#service-ports) for more information. 
   ```yaml
   annotations:
@@ -295,7 +298,7 @@ The following Kubernetes resource annotations could be used on a pod to [Service
   annotations:
     'consul.hashicorp.com/service-tags': 'primary,foo'
   ```
-- `consul.hashicorp.com/service-meta`: A map for specifying service metadata for Consul services. The "KEY" below can be set to any key. This allows setting multiple meta values.
+- `consul.hashicorp.com/service-meta-KEY`: A map for specifying service metadata for Consul services. The "KEY" below can be set to any key. This allows setting multiple meta values.
 
   ```yaml
   annotations:
