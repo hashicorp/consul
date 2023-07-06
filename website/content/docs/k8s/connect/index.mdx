@@ -19,7 +19,28 @@ Consul service mesh is enabled by default when you install Consul on Kubernetes 
 
 If `connectInject.default` is set to `false` or you want to explicitly enable service mesh sidecar proxy injection for a specific deployment, add the `consul.hashicorp.com/connect-inject` annotation to the pod specification template and set it to `true` when connecting services to the mesh. 
 
-### Example 
+### Service names
+
+When the service is onboarded, the name registered in Consul is set to the name of the Kubernetes Service associated with the Pod. You can specify a custom name for the service in the [`consul.hashicorp.com/connect-service` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service), but if ACLs are enabled, then the name of the service registered in Consul must match the Pod's `ServiceAccount` name.
+
+### Transparent proxy mode
+
+By default, the Consul service mesh runs in transparent proxy mode. This mode forces inbound and outbound traffic through the sidecar proxy even though the service binds to all interfaces. Transparent proxy infers the location of upstream services using Consul service intentions, and also allows you to use Kubernetes DNS as you normally would for your workloads. 
+
+When transparent proxy mode is enabled, all service-to-service traffic is required to use mTLS. While onboarding new services to service mesh, your network may have mixed mTLS and non-mTLS traffic, which can result in broken service-to-service communication. You can temporarily enable permissive mTLS mode during the onboarding process so that existing mesh services can accept traffic from services that are not yet fully onboarded. Permissive mTLS enables sidecar proxies to access both mTLS and non-mTLS traffic. Refer to [Onboard mesh services in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for additional information.
+
+### Kubernetes service mesh workload scenarios 
+
+Below are multiple different scenarios for registering workloads on Kubernetes onto Consul Service Mesh
+
+- [Kubernetes Pods running as a deployment](#example-kubernetes-deployment)
+- [Connecting to mesh-enabled Services](#connecting-to-mesh-enabled-services)
+- [Kubernetes Jobs](#kubernetes-jobs)
+- [Kubernetes Pods with Multiple ports](#kubernetes-pods-with-multiple-ports)
+
+#### Kubernetes Pods running as a deployment
+
+-> **Note:** A Kubernetes Service is **required** to register services on the Consul Service Mesh as Consul monitors the lifecyle of a Kubernetes service using a service object, and monitors the Kubernetes service to register and de-register it from the Catalog. 
 
 The following example shows a Kubernetes configuration that specifically enables service mesh connections for the `static-server` service. Consul starts and registers a sidecar proxy that listens on port 20000 by default and proxies valid inbound connections to port 8080. 
 
@@ -74,25 +95,12 @@ spec:
 
 To establish a connection to the Pod using service mesh, a client must use another mesh proxy. The client mesh proxy will use Consul service discovery to find all available upstream proxies and their public ports.
 
-### Service names
-
-When the service is onboarded, the name registered in Consul is set to the name of the Kubernetes Service associated with the Pod. You can specify a custom name for the service in the [`consul.hashicorp.com/connect-service` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service), but if ACLs are enabled, then the name of the service registered in Consul must match the Pod's `ServiceAccount` name.
-
-### Transparent proxy mode
-
-By default, the Consul service mesh runs in transparent proxy mode. This mode forces inbound and outbound traffic through the sidecar proxy even though the service binds to all interfaces. Transparent proxy infers the location of upstream services using Consul service intentions, and also allows you to use Kubernetes DNS as you normally would for your workloads. 
-
-When transparent proxy mode is enabled, all service-to-service traffic is required to use mTLS. While onboarding new services to service mesh, your network may have mixed mTLS and non-mTLS traffic, which can result in broken service-to-service communication. You can temporarily enable permissive mTLS mode during the onboarding process so that existing mesh services can accept traffic from services that are not yet fully onboarded. Permissive mTLS enables sidecar proxies to access both mTLS and non-mTLS traffic. Refer to [Onboard mesh services in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for additional information.
-
-### Connecting to Mesh-Enabled Services
+#### Connecting to Mesh-Enabled Services
 
 The example Deployment specification below configures a Deployment that is capable
 of establishing connections to our previous example "static-server" service. The
 connection to this static text service happens over an authorized and encrypted
 connection via service mesh.
-
--> **Note:** As of consul-k8s `v0.26.0` and Consul Helm `v0.32.0`, having a Kubernetes
-Service is **required** to run services on the Consul Service Mesh.
 
 ```yaml
 apiVersion: v1
@@ -172,7 +180,88 @@ $ kubectl exec deploy/static-client -- curl --silent http://static-server/
 command terminated with exit code 52
 ```
 
-### Kubernetes Pods with Multiple ports
+#### Kubernetes Jobs
+
+Kubernetes Jobs run pods that successfully terminate and only make outbound requests to services on the mesh. In order to register a Kubernetes job on the mesh, you must provide an integer value for the `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` annotation, and issue a request the `http://127.0.0.1:20600/graceful_shutdown` API endpoint for `consul-dataplane` to gracefully shut down the `consul-dataplane` sidecar after the job is complete. ,
+
+Below is an example Kubernetes manifest that deploys a job correctly. 
+
+```yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-job
+  namespace: default
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-job
+  namespace: default
+spec:
+  selector:
+    app: test-job
+  ports:
+    - port: 80
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+   name: test-job
+   namespace: default
+   labels:
+     app: test-job
+spec:
+  template:
+    metadata:
+      annotations:
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds": "5"
+      labels:
+        app: test-job
+    spec:
+      containers:
+      - name: test-job
+        image: alpine/curl:3.14
+        ports:
+        - containerPort: 80
+        command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Started test job"
+            sleep 10
+            echo "Killing proxy"
+            curl --max-time 2 -s -f -XPOST http://127.0.0.1:20600/graceful_shutdown
+            sleep 10
+            echo "Ended test job"
+      serviceAccountName: test-job
+      restartPolicy: Never
+```
+
+Upon completing the job you should be able to verify that all containers are shut down within the pod.
+
+```bash
+> kubectl get pods  
+NAME             READY   STATUS      RESTARTS   AGE
+test-job-49st7   0/2     Completed   0          3m55s
+
+> kubectl get job
+NAME       COMPLETIONS   DURATION   AGE
+test-job   1/1           30s        4m31s
+```
+
+In addition, based on the logs emitted by the pod you can verify that the proxy was indeed shut down prior to job completing. 
+
+```
+> kubectl logs test-job-49st7 -c test-job
+Started test job
+Killing proxy
+Ended test job
+```
+
+#### Kubernetes Pods with Multiple ports
 To configure a pod with multiple ports to be a part of the service mesh and receive and send service mesh traffic, you
 will need to add configuration so that a Consul service can be registered per port. This is because services in Consul
 currently support a single port per service instance.
