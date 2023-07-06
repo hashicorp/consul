@@ -195,6 +195,7 @@ Kubernetes Jobs run pods that successfully terminate and only make outbound requ
 Below is an example Kubernetes manifest that deploys a job correctly. 
 
 <CodeBlockConfig filename="test-job.yaml">
+
 ```yaml
 ---
 apiVersion: v1
@@ -253,20 +254,22 @@ spec:
 
 Upon completing the job you should be able to verify that all containers are shut down within the pod.
 
-```bash
-> kubectl get pods  
+```shell-session
+$ kubectl get pods  
 NAME             READY   STATUS      RESTARTS   AGE
 test-job-49st7   0/2     Completed   0          3m55s
+```
 
-> kubectl get job
+```shell-session 
+$ kubectl get job
 NAME       COMPLETIONS   DURATION   AGE
 test-job   1/1           30s        4m31s
 ```
 
 In addition, based on the logs emitted by the pod you can verify that the proxy was indeed shut down prior to job completing. 
 
-```
-> kubectl logs test-job-49st7 -c test-job
+```shell-session
+$ kubectl logs test-job-49st7 -c test-job
 Started test job
 Killing proxy
 Ended test job
@@ -357,10 +360,11 @@ metadata:
 
 Create a Deployment with any chosen name, and use the following annotations:
 ```yaml
-consul.hashicorp.com/connect-inject: true
-consul.hashicorp.com/transparent-proxy: false
-consul.hashicorp.com/connect-service: web,web-admin
-consul.hashicorp.com/connect-service-port: 8080,9090
+annotations:
+  consul.hashicorp.com/connect-inject: true
+  consul.hashicorp.com/transparent-proxy: false
+  consul.hashicorp.com/connect-service: web,web-admin
+  consul.hashicorp.com/connect-service-port: 8080,9090
 ```
 Note that the order the ports are listed in the same order as the service names, i.e. the first service name `web`
 corresponds to the first port, `8080`, and the second service name `web-admin` corresponds to the second port, `9090`.
@@ -422,7 +426,8 @@ application with the configuration in the [previous section](#connecting-to-mesh
 following annotation to the pod template on `static-client`:
 
 ```yaml
-consul.hashicorp.com/connect-service-upstreams: "web:1234,web-admin:2234"
+annotations:
+  consul.hashicorp.com/connect-service-upstreams: "web:1234,web-admin:2234"
 ```
 
 If you exec on to a static-client pod, using a command like:
