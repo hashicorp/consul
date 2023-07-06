@@ -1,58 +1,49 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/consul/agent/hcp/cloudcfg"
 	"github.com/hashicorp/consul/lib"
 )
 
 func (s *HTTPHandlers) CloudLink(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var clientID string
-	if clientID = req.URL.Query().Get("client_id"); clientID == "" {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing client ID"}
+	var cloudCfg cloudcfg.CloudConfig
+	dec := json.NewDecoder(req.Body)
+	if err := dec.Decode(&cloudCfg); err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 	}
 
-	var clientSecret string
-	if clientSecret = req.URL.Query().Get("client_secret"); clientSecret == "" {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing client secret"}
+	if s.agent.config.DevMode {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot persist data in dev mode"}
 	}
 
-	var resourceID string
-	if resourceID = req.URL.Query().Get("resource_id"); resourceID == "" {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing resource ID"}
-	}
-
-	if err := persistCloudConfig(clientID, clientSecret, resourceID); err != nil {
+	if err := persistCloudConfig(s.agent.config.DataDir, &cloudCfg); err != nil {
 		return nil, err
 	}
 
-	// TODO: restart
-
-	return true, nil
+	s.agent.Restart()
+	return nil, nil
 }
 
-func persistCloudConfig(clientID, clientSecret, resourceID string) error {
+func persistCloudConfig(dataDir string, cloudCfg *cloudcfg.CloudConfig) error {
 	// Hack - would have to retrieve this
-	dir := "opt/consul/data/hcp-config"
+	dir := filepath.Join(dataDir, "hcp-config")
 
+	// Create subdir if it's not already there.
 	if err := lib.EnsurePath(dir, true); err != nil {
-		// Create subdir if it's not already there.
 		return fmt.Errorf("failed to ensure directory %q: %w", dir, err)
 	}
 
-	content := fmt.Sprintf(`
-{
-	"cloud": {
-		"resource_id": "%s",
-		"client_id": "%s",
-		"client_secret": "%s"
+	content, err := json.Marshal(cloudCfg)
+	if err != nil {
+		return err
 	}
-}
-`, resourceID, clientID, clientSecret)
 
 	file := filepath.Join(dir, "cloud.json")
-	return os.WriteFile(file, []byte(content), 0600)
+	return os.WriteFile(file, content, 0600)
 }

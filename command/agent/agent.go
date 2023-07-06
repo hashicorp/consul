@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/cloudcfg"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -142,135 +143,149 @@ func (c *cmd) run(args []string) int {
 	// FIXME: logs should always go to stderr, but previously they were sent to
 	// stdout, so continue to use Stdout for now, and fix this in a future release.
 	logGate := &logging.GatedWriter{Writer: c.ui.Stdout()}
-	loader := func(source config.Source) (config.LoadResult, error) {
+	loader := cloudcfg.CloudConfigLoader(func(source config.Source) (config.LoadResult, error) {
 		c.configLoadOpts.DefaultConfig = source
 		return config.Load(c.configLoadOpts)
-	}
+	})
 
 	// wait for signal
 	signalCh := make(chan os.Signal, 10)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	for {
+		ctx, cancel := context.WithCancel(context.Background())
 
-	// startup logger is a shim since we need to be about to log both before and
-	// after logging is setup properly but before agent has started fully. This
-	// takes care of that!
-	suLogger := newStartupLogger()
-	go handleStartupSignals(ctx, cancel, signalCh, suLogger)
+		// startup logger is a shim since we need to be about to log both before and
+		// after logging is setup properly but before agent has started fully. This
+		// takes care of that!
+		suLogger := newStartupLogger()
+		go handleStartupSignals(ctx, cancel, signalCh, suLogger)
 
-	// See if we need to bootstrap config from HCP before we go any further with
-	// agent startup. First do a preliminary load of agent configuration using the given loader.
-	// This is just to peek whether bootstrapping from HCP is enabled. The result is discarded
-	// on the call to agent.NewBaseDeps so that the wrapped loader takes effect.
-	res, err := loader(nil)
-	if err != nil {
-		ui.Error(err.Error())
-		return 1
-	}
-	if res.RuntimeConfig.IsCloudEnabled() {
-		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
-		if err != nil {
-			ui.Error("error building HCP HTTP client: " + err.Error())
-			return 1
-		}
-
-		// We override loader with the one returned as it was modified to include HCP-provided config.
-		loader, err = hcpbootstrap.LoadConfig(ctx, client, res.RuntimeConfig.DataDir, loader, ui)
+		// See if we need to bootstrap config from HCP before we go any further with
+		// agent startup. First do a preliminary load of agent configuration using the given loader.
+		// This is just to peek whether bootstrapping from HCP is enabled. The result is discarded
+		// on the call to agent.NewBaseDeps so that the wrapped loader takes effect.
+		res, err := loader(nil)
 		if err != nil {
 			ui.Error(err.Error())
 			return 1
 		}
-	}
+		if res.RuntimeConfig.IsCloudEnabled() {
+			client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
+			if err != nil {
+				ui.Error("error building HCP HTTP client: " + err.Error())
+				return 1
+			}
 
-	bd, err := agent.NewBaseDeps(loader, logGate, nil)
-	if err != nil {
-		ui.Error(err.Error())
-		return 1
-	}
-	c.logger = bd.Logger
-	agent, err := agent.New(bd)
-	if err != nil {
-		ui.Error(err.Error())
-		return 1
-	}
-
-	// Upgrade our startupLogger to use the real logger now we have it
-	suLogger.SetLogger(c.logger)
-
-	config := bd.RuntimeConfig
-	if config.Logging.LogJSON {
-		// Hide all non-error output when JSON logging is enabled.
-		ui.Ui = &cli.BasicUI{
-			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: io.Discard},
+			// We override loader with the one returned as it was modified to include HCP-provided config.
+			loader, err = hcpbootstrap.LoadConfig(ctx, client, res.RuntimeConfig.DataDir, loader, ui)
+			if err != nil {
+				ui.Error(err.Error())
+				return 1
+			}
 		}
+
+		bd, err := agent.NewBaseDeps(loader, logGate, nil)
+		if err != nil {
+			ui.Error(err.Error())
+			return 1
+		}
+		c.logger = bd.Logger
+		agent, err := agent.New(bd)
+		if err != nil {
+			ui.Error(err.Error())
+			return 1
+		}
+
+		// Upgrade our startupLogger to use the real logger now we have it
+		suLogger.SetLogger(c.logger)
+
+		config := bd.RuntimeConfig
+		if config.Logging.LogJSON {
+			// Hide all non-error output when JSON logging is enabled.
+			ui.Ui = &cli.BasicUI{
+				BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: io.Discard},
+			}
+		}
+
+		ui.Output("Starting Consul agent...")
+
+		segment := config.SegmentName
+		if config.ServerMode {
+			segment = "<all>"
+		}
+		ui.Info(fmt.Sprintf("           Version: '%s'", c.versionHuman))
+		if strings.Contains(c.versionHuman, "dev") {
+			ui.Info(fmt.Sprintf("          Revision: '%s'", c.revision))
+		}
+		ui.Info(fmt.Sprintf("        Build Date: '%s'", c.buildDate))
+		ui.Info(fmt.Sprintf("           Node ID: '%s'", config.NodeID))
+		ui.Info(fmt.Sprintf("         Node name: '%s'", config.NodeName))
+		if ap := config.PartitionOrEmpty(); ap != "" {
+			ui.Info(fmt.Sprintf("         Partition: '%s'", ap))
+		}
+		ui.Info(fmt.Sprintf("        Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+		ui.Info(fmt.Sprintf("            Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+		ui.Info(fmt.Sprintf("       Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
+			config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.GRPCTLSPort, config.DNSPort))
+		ui.Info(fmt.Sprintf("      Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+			config.SerfPortLAN, config.SerfPortWAN))
+		ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
+		ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+		ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
+		if config.ServerMode {
+			ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
+		}
+		ui.Info(fmt.Sprintf("ACL Default Policy: %s", config.ACLResolverSettings.ACLDefaultPolicy))
+		ui.Info(fmt.Sprintf("         HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
+			config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
+		ui.Info(fmt.Sprintf("          gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
+		ui.Info(fmt.Sprintf("  Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
+			config.TLS.InternalRPC.VerifyIncoming, config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyServerHostname, config.TLS.InternalRPC.TLSMinVersion))
+		// Enable log streaming
+		ui.Output("")
+		ui.Output("Log data will now stream in as it occurs:\n")
+		logGate.Flush()
+
+		err = agent.Start(ctx)
+		signal.Stop(signalCh)
+		cancel()
+
+		if err != nil {
+			c.logger.Error("Error starting agent", "error", err)
+			return 1
+		}
+
+		if !config.DisableUpdateCheck && !config.DevMode {
+			c.startupUpdateCheck(config)
+		}
+
+		// Let the agent know we've finished registration
+		agent.StartSync()
+
+		c.logger.Info("Consul agent running!")
+
+		// wait for signal
+		exitCode, restart := c.waitForSignal(agent, config)
+
+		// shutdown agent before endpoints
+		agent.ShutdownAgent()
+		agent.ShutdownEndpoints()
+
+		if !restart {
+			// if we're not restarting then exit here, otherwise continue
+			return exitCode
+		}
+
+		c.logger.Info("Consul agent restarting...")
 	}
+}
 
-	ui.Output("Starting Consul agent...")
-
-	segment := config.SegmentName
-	if config.ServerMode {
-		segment = "<all>"
-	}
-	ui.Info(fmt.Sprintf("           Version: '%s'", c.versionHuman))
-	if strings.Contains(c.versionHuman, "dev") {
-		ui.Info(fmt.Sprintf("          Revision: '%s'", c.revision))
-	}
-	ui.Info(fmt.Sprintf("        Build Date: '%s'", c.buildDate))
-	ui.Info(fmt.Sprintf("           Node ID: '%s'", config.NodeID))
-	ui.Info(fmt.Sprintf("         Node name: '%s'", config.NodeName))
-	if ap := config.PartitionOrEmpty(); ap != "" {
-		ui.Info(fmt.Sprintf("         Partition: '%s'", ap))
-	}
-	ui.Info(fmt.Sprintf("        Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	ui.Info(fmt.Sprintf("            Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("       Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.GRPCTLSPort, config.DNSPort))
-	ui.Info(fmt.Sprintf("      Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
-		config.SerfPortLAN, config.SerfPortWAN))
-	ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
-	ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
-	ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
-	if config.ServerMode {
-		ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
-	}
-	ui.Info(fmt.Sprintf("ACL Default Policy: %s", config.ACLResolverSettings.ACLDefaultPolicy))
-	ui.Info(fmt.Sprintf("         HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
-		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
-	ui.Info(fmt.Sprintf("          gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
-	ui.Info(fmt.Sprintf("  Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
-		config.TLS.InternalRPC.VerifyIncoming, config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyServerHostname, config.TLS.InternalRPC.TLSMinVersion))
-	// Enable log streaming
-	ui.Output("")
-	ui.Output("Log data will now stream in as it occurs:\n")
-	logGate.Flush()
-
-	err = agent.Start(ctx)
-	signal.Stop(signalCh)
-	cancel()
-
-	if err != nil {
-		c.logger.Error("Error starting agent", "error", err)
-		return 1
-	}
-
-	// shutdown agent before endpoints
-	defer agent.ShutdownEndpoints()
-	defer agent.ShutdownAgent()
-
-	if !config.DisableUpdateCheck && !config.DevMode {
-		c.startupUpdateCheck(config)
-	}
-
-	// Let the agent know we've finished registration
-	agent.StartSync()
-
-	c.logger.Info("Consul agent running!")
-
-	// wait for signal
-	signalCh = make(chan os.Signal, 10)
+func (c *cmd) waitForSignal(agent *agent.Agent, config *config.RuntimeConfig) (int, bool) {
+	signalCh := make(chan os.Signal, 10)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
+	var restart bool
 	for {
 		var sig os.Signal
 		select {
@@ -278,15 +293,18 @@ func (c *cmd) run(args []string) int {
 			sig = s
 		case <-service_os.Shutdown_Channel():
 			sig = os.Interrupt
+		case <-agent.RestartCh():
+			sig = os.Interrupt
+			restart = true
 		case err := <-agent.RetryJoinCh():
 			c.logger.Error("Retry join failed", "error", err)
-			return 1
+			return 1, false
 		case <-agent.Failed():
 			// The deferred Shutdown method will log the appropriate error
-			return 1
+			return 1, false
 		case <-agent.ShutdownCh():
 			// agent is already down!
-			return 0
+			return 0, false
 		}
 
 		switch sig {
@@ -307,7 +325,7 @@ func (c *cmd) run(args []string) int {
 			graceful := (sig == os.Interrupt && !(config.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (config.LeaveOnTerm))
 			if !graceful {
 				c.logger.Info("Graceful shutdown disabled. Exiting")
-				return 1
+				return 1, restart
 			}
 
 			c.logger.Info("Gracefully shutting down agent...")
@@ -324,13 +342,13 @@ func (c *cmd) run(args []string) int {
 			select {
 			case <-signalCh:
 				c.logger.Info("Caught second signal, Exiting", "signal", sig)
-				return 1
+				return 1, restart
 			case <-time.After(gracefulTimeout):
 				c.logger.Info("Timeout on graceful leave. Exiting")
-				return 1
+				return 1, restart
 			case <-gracefulCh:
 				c.logger.Info("Graceful exit completed")
-				return 0
+				return 0, restart
 			}
 		}
 	}

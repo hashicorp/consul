@@ -315,6 +315,8 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	restartCh chan struct{}
+
 	// joinLANNotifier is called after a successful JoinLAN.
 	joinLANNotifier notifier
 
@@ -459,6 +461,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		joinLANNotifier: &systemd.Notifier{},
 		retryJoinCh:     make(chan error),
 		shutdownCh:      make(chan struct{}),
+		restartCh:       make(chan struct{}),
 		endpoints:       make(map[string]string),
 		stateLock:       mutex.New(),
 
@@ -1803,6 +1806,10 @@ func (a *Agent) RetryJoinCh() <-chan error {
 // selected to wait for the agent to perform a shutdown.
 func (a *Agent) ShutdownCh() <-chan struct{} {
 	return a.shutdownCh
+}
+
+func (a *Agent) RestartCh() <-chan struct{} {
+	return a.restartCh
 }
 
 // JoinLAN is used to have the agent join a LAN cluster
@@ -4162,6 +4169,10 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 	}
 
 	return a.reloadConfigInternal(newCfg)
+}
+
+func (a *Agent) Restart() {
+	a.restartCh <- struct{}{}
 }
 
 func revertStaticConfig(oldCfg tlsutil.ProtocolConfig, newCfg tlsutil.ProtocolConfig) bool {

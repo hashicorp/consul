@@ -276,6 +276,11 @@ func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) 
 	return nil, s.agent.ReloadConfig()
 }
 
+func (s *HTTPHandlers) AgentRestart(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	s.agent.Restart()
+	return nil, nil
+}
+
 func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 	weights := api.AgentWeights{Passing: 1, Warning: 1}
 	if s.Weights != nil {
