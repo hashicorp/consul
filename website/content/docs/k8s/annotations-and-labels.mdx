@@ -188,6 +188,13 @@ The following Kubernetes resource annotations could be used on a pod to control 
     consul.hashicorp.com/kubernetes-service: 'service-name-to-use'
   ```
 
+- `consul.hashicorp.com/service-weight:` - Configure ability to support weighted loadbalancing by service annotation for Catalog Sync. The integer provided will be applied as a weight for the `passing` state for the health of the service. See [weights](/consul/docs/services/configuration/services-configuration-reference#weights) in service configuration for more information on how this is leveraged for services in the Catalog. 
+
+  ```yaml
+  annotations:
+    consul.hashicorp.com/service-weight: 10
+  ```
+
 - `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
   be applied to the Consul service and its sidecar.
 
