@@ -47,18 +47,20 @@
         (or route.params.nspace route.model.user.token.Namespace 'default')
         as |sort filters items partition nspace|
       }}
-        <Hds::Alert @type='page' @color='highlight' class='ariadne-alert' as |A|>
-          <A.Title>Link your cluster to the HashiCorp Cloud Platform (HCP) UI</A.Title>
-          <A.Description>Have better access... view observability, global workflows, cross
-            cluster...</A.Description>
-          <A.Button
-            @href={{hcp-link-url route.params.dc}}
-            @text='Link to HCP'
-            @color='secondary'
-            @icon='external-link'
-            @iconPosition='trailing'
-          />
-        </Hds::Alert>
+        {{#if this.shouldShowLinkAlert}}
+          <Hds::Alert @type='page' @color='highlight' class='ariadne-alert' as |A|>
+            <A.Title>Link your cluster to the HashiCorp Cloud Platform (HCP) UI</A.Title>
+            <A.Description>Have better access... view observability, global workflows, cross
+              cluster...</A.Description>
+            <A.Button
+              @href={{hcp-link-url route.params.dc}}
+              @text='Link to HCP'
+              @color='secondary'
+              @icon='external-link'
+              @iconPosition='trailing'
+            />
+          </Hds::Alert>
+        {{/if}}
 
         <AppView>
           <BlockSlot @name='header'>
@@ -134,8 +136,10 @@
               </collection.Empty>
             </DataCollection>
           </BlockSlot>
-
         </AppView>
+        <Outlet @name={{routeName}} @model={{route.model}} as |o|>
+          {{outlet}}
+        </Outlet>
 
       {{/let}}
 

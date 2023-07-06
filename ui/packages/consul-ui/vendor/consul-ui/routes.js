@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-(routes =>
+((routes) =>
   routes({
     dc: {
       _options: {
@@ -56,6 +56,14 @@
               search: {
                 as: 'filter',
                 replace: true,
+              },
+            },
+          },
+          link: {
+            _options: {
+              path: '/link',
+              queryParams: {
+                magic: 'magic',
               },
             },
           },
