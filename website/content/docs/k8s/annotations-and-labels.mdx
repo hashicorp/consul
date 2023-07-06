@@ -18,7 +18,7 @@ This allows the user to configure natively configure Consul on select Kubernetes
 The noun _connect_ is used throughout this documentation to refer to the connect
 subsystem that provides Consul's service mesh capabilities.
 
-## Annotations
+## Consul Service Mesh Annotations
 
 The following Kubernetes resource annotations could be used on a pod to control connect-inject behavior:
 
@@ -186,13 +186,6 @@ The following Kubernetes resource annotations could be used on a pod to control 
     consul.hashicorp.com/kubernetes-service: 'service-name-to-use'
   ```
 
-- `consul.hashicorp.com/service-weight:` - Configure ability to support weighted loadbalancing by service annotation for Catalog Sync. The integer provided will be applied as a weight for the `passing` state for the health of the service. See [weights](/consul/docs/services/configuration/services-configuration-reference#weights) in service configuration for more information on how this is leveraged for services in the Catalog. 
-
-  ```yaml
-  annotations:
-    consul.hashicorp.com/service-weight: 10
-  ```
-
 - `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
   be applied to the Consul service and its sidecar.
 
@@ -265,6 +258,18 @@ The following Kubernetes resource annotations could be used on a pod to control 
   ```yaml
   annotations:
     "consul.hashicorp.com/consul-sidecar-user-volume-mount": "[{\"name\": \"secrets-store-mount\", \"mountPath\": \"/mnt/secrets-store\"}]"
+  ```
+
+## Consul Catalog Sync anntoations
+
+The following Kubernetes resource annotations could be used on a pod to [Catalog Sync](https://developer.hashicorp.com/consul/docs/k8s/service-sync) behavior:
+
+- 'consul.hashicorp.com/service-sync': If this is set to `true`, then the Kubernetes service is explicitly configured to be synced to Consul.  
+- `consul.hashicorp.com/service-weight:` - Configure ability to support weighted loadbalancing by service annotation for Catalog Sync. The integer provided will be applied as a weight for the `passing` state for the health of the service. See [weights](/consul/docs/services/configuration/services-configuration-reference#weights) in service configuration for more information on how this is leveraged for services in the Consul catalog. 
+
+  ```yaml
+  annotations:
+    consul.hashicorp.com/service-weight: 10
   ```
 
 ## Labels
