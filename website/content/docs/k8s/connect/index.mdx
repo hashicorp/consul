@@ -95,7 +95,7 @@ spec:
       serviceAccountName: static-server
 ```
 
-<CodeBlockConfig/>
+</CodeBlockConfig>
 
 To establish a connection to the Pod using service mesh, a client must use another mesh proxy. The client mesh proxy will use Consul service discovery to find all available upstream proxies and their public ports.
 
@@ -152,7 +152,7 @@ spec:
       serviceAccountName: static-client
 ```
 
-<CodeBlockConfig/>
+</CodeBlockConfig>
 
 By default when ACLs are enabled or when ACLs default policy is `allow`,
 Consul will automatically configure proxies with all upstreams from the same datacenter.
@@ -249,7 +249,7 @@ spec:
       restartPolicy: Never
 ```
 
-<CodeBlockConfig/>
+</CodeBlockConfig>
 
 Upon completing the job you should be able to verify that all containers are shut down within the pod.
 
@@ -325,7 +325,7 @@ spec:
       targetPort: 9090
 ```
 
-<CodeBlockConfig/>
+</CodeBlockConfig>
 
 `web` will target `containerPort` `8080` and select pods labeled `app: web`. `web-admin` will target `containerPort`
 `9090` and will also select the same pods.
@@ -353,7 +353,7 @@ metadata:
   type: kubernetes.io/service-account-token
 ```
 
-<CodeBlockConfig/>
+</CodeBlockConfig>
 
 Create a Deployment with any chosen name, and use the following annotations:
 ```yaml
@@ -415,7 +415,7 @@ spec:
       serviceAccountName: web
 ```
 
-<CodeBlockConfig/>
+</CodeBlockConfig>
 
 After deploying the `web` application, you can test service mesh connections by deploying the `static-client`
 application with the configuration in the [previous section](#connecting-to-mesh-enabled-services) and add the
