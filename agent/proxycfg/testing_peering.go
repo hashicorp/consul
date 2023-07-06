@@ -15,14 +15,18 @@ import (
 )
 
 func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, false)
+	return testConfigSnapshot(t, false, false)
 }
 
-func TestConfigSnapshotPeeringWithListenerOverride(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, true)
+func TestConfigSnapshotPeeringWithEscapeOverrides(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshot(t, true, false)
 }
 
-func testConfigSnapshot(t testing.T, listenerOverride bool) *ConfigSnapshot {
+func TestConfigSnapshotPeeringWithHTTP2(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshot(t, false, true)
+}
+
+func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool) *ConfigSnapshot {
 	var (
 		paymentsUpstream = structs.Upstream{
 			DestinationName: "payments",
@@ -39,6 +43,11 @@ func testConfigSnapshot(t testing.T, listenerOverride bool) *ConfigSnapshot {
 		refundsUID = NewUpstreamID(&refundsUpstream)
 	)
 
+	protocol := "tcp"
+	if useHTTP2 {
+		protocol = "http2"
+	}
+
 	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -47,7 +56,7 @@ func testConfigSnapshot(t testing.T, listenerOverride bool) *ConfigSnapshot {
 			refundsUpstream,
 		}
 
-		if listenerOverride {
+		if escapeOverride {
 			if ns.Proxy.Upstreams[0].Config == nil {
 				ns.Proxy.Upstreams[0].Config = map[string]interface{}{}
 			}
@@ -56,6 +65,10 @@ func testConfigSnapshot(t testing.T, listenerOverride bool) *ConfigSnapshot {
 
 			ns.Proxy.Upstreams[0].Config["envoy_listener_json"] =
 				customListenerJSON(t, customListenerJSONOptions{
+					Name: uid.EnvoyID() + ":custom-upstream",
+				})
+			ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+				customClusterJSON(t, customClusterJSONOptions{
 					Name: uid.EnvoyID() + ":custom-upstream",
 				})
 		}
@@ -98,7 +111,7 @@ func testConfigSnapshot(t testing.T, listenerOverride bool) *ConfigSnapshot {
 									SpiffeID: []string{
 										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/payments",
 									},
-									Protocol: "tcp",
+									Protocol: protocol,
 								},
 							},
 						},
@@ -127,7 +140,7 @@ func testConfigSnapshot(t testing.T, listenerOverride bool) *ConfigSnapshot {
 									SpiffeID: []string{
 										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/refunds",
 									},
-									Protocol: "tcp",
+									Protocol: protocol,
 								},
 							},
 						},
@@ -456,3 +469,43 @@ const customListenerJSONTpl = `{
 		}
 	]
 }`
+
+type customClusterJSONOptions struct {
+	Name       string
+	TLSContext string
+}
+
+var customClusterJSONTpl = `{
+	"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+	"name": "{{ .Name }}",
+	"connectTimeout": "15s",
+	"loadAssignment": {
+		"clusterName": "{{ .Name }}",
+		"endpoints": [
+			{
+				"lbEndpoints": [
+					{
+						"endpoint": {
+							"address": {
+								"socketAddress": {
+									"address": "1.2.3.4",
+									"portValue": 8443
+								}
+							}
+						}
+					}
+				]
+			}
+		]
+	}
+}`
+
+var customClusterJSONTemplate = template.Must(template.New("").Parse(customClusterJSONTpl))
+
+func customClusterJSON(t testing.T, opts customClusterJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := customClusterJSONTemplate.Execute(&buf, opts)
+	require.NoError(t, err)
+	return buf.String()
+}
