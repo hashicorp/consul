@@ -151,10 +151,10 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		// until a new response comes in. By setting these earlier we allow a minimal xDS snapshot to configure the
 		// gateway.
 		if correlationID == apiGatewayConfigWatchID {
-			snap.APIGateway.BoundGatewayConfigLoaded = true
+			snap.APIGateway.GatewayConfigLoaded = true
 		}
 		if correlationID == boundGatewayConfigWatchID {
-			snap.APIGateway.GatewayConfigLoaded = true
+			snap.APIGateway.BoundGatewayConfigLoaded = true
 		}
 		return nil
 	}
