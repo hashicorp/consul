@@ -18,7 +18,9 @@ This allows the user to configure natively configure Consul on select Kubernetes
 The noun _connect_ is used throughout this documentation to refer to the connect
 subsystem that provides Consul's service mesh capabilities.
 
-## Consul Service Mesh Annotations
+## Consul Service Mesh
+
+### Annotations
 
 The following Kubernetes resource annotations could be used on a pod to control connect-inject behavior:
 
@@ -260,7 +262,20 @@ The following Kubernetes resource annotations could be used on a pod to control 
     "consul.hashicorp.com/consul-sidecar-user-volume-mount": "[{\"name\": \"secrets-store-mount\", \"mountPath\": \"/mnt/secrets-store\"}]"
   ```
 
-## Service Sync annotations
+### Labels
+
+Resource labels could be used on a Kubernetes service to control connect-inject behavior.
+
+- `consul.hashicorp.com/service-ignore` - This label can be set on a Kubernetes Service.
+  If set to "true", the service will not be used to register a Consul endpoint. This can be
+  useful in cases where 2 or more services point to the same deployment. Consul cannot register
+  multiple endpoints to the same deployment. This label can be used to tell the endpoint
+  registration to ignore all services except for the one which should be used for routing requests
+  using Consul.
+
+## Consul Service Sync 
+
+### Annotations
 
 The following Kubernetes resource annotations could be used on a pod to [Service Sync](https://developer.hashicorp.com/consul/docs/k8s/service-sync) behavior:
 
@@ -290,14 +305,4 @@ The following Kubernetes resource annotations could be used on a pod to [Service
     consul.hashicorp.com/service-weight: 10
   ```
 
-## Labels
-
-Resource labels could be used on a Kubernetes service to control connect-inject behavior.
-
-- `consul.hashicorp.com/service-ignore` - This label can be set on a Kubernetes Service.
-  If set to "true", the service will not be used to register a Consul endpoint. This can be
-  useful in cases where 2 or more services point to the same deployment. Consul cannot register
-  multiple endpoints to the same deployment. This label can be used to tell the endpoint
-  registration to ignore all services except for the one which should be used for routing requests
-  using Consul.
 
