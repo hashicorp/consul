@@ -133,7 +133,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
       - Service name: Place the service name at the beginning of the annotation to specify the upstream service. You also have the option to append the WAN federated datacenter where the service is deployed.
 
-      - Namespace (requires Consul Enterprise 1.7+): Upstream services may be running in a different namespace. Place
+      - Namespace: Upstream services may be running in a different namespace. Place
       the upstream namespace after the service name. For additional details about configuring the injector, refer to [Consul Enterprise namespaces](#consul-enterprise-namespaces) .
         
         ```yaml
@@ -144,7 +144,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
         If the namespace is not specified, the annotation defaults to the namespace of the source service.
         Consul Enterprise v1.7 and older interprets the value placed in the namespace position as part of the service name.
 
-      - Admin partitions (requires Consul Enterprise 1.11+): Upstream services may be running in a different
+      - Admin partitions: Upstream services may be running in a different
         partition. When specifying a partition, you must also specify a namespace. Place the partition name after the namespace. If you specify the name of the datacenter, it must be the local datacenter. Communicating across partitions using this method is only supported within a
         datacenter. For cross partition communication across datacenters, [establish a cluster
         peering connection](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering) and set the upstream with a labeled annotation format.
