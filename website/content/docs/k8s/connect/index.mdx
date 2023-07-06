@@ -44,6 +44,8 @@ Below are multiple scenarios for registering workloads on Kubernetes onto Consul
 
 The following example shows a Kubernetes configuration that specifically enables service mesh connections for the `static-server` service. Consul starts and registers a sidecar proxy that listens on port 20000 by default and proxies valid inbound connections to port 8080. 
 
+<CodeBlockConfig filename="static-server.yaml">
+
 ```yaml
 apiVersion: v1
 kind: Service
@@ -93,6 +95,8 @@ spec:
       serviceAccountName: static-server
 ```
 
+<CodeBlockConfig/>
+
 To establish a connection to the Pod using service mesh, a client must use another mesh proxy. The client mesh proxy will use Consul service discovery to find all available upstream proxies and their public ports.
 
 #### Connecting to Mesh-Enabled Services
@@ -101,6 +105,8 @@ The example Deployment specification below configures a Deployment that is capab
 of establishing connections to our previous example "static-server" service. The
 connection to this static text service happens over an authorized and encrypted
 connection via service mesh.
+
+<CodeBlockConfig filename="static-client.yaml">
 
 ```yaml
 apiVersion: v1
@@ -146,6 +152,8 @@ spec:
       serviceAccountName: static-client
 ```
 
+<CodeBlockConfig/>
+
 By default when ACLs are enabled or when ACLs default policy is `allow`,
 Consul will automatically configure proxies with all upstreams from the same datacenter.
 When ACLs are enabled with default `deny` policy,
@@ -186,6 +194,7 @@ Kubernetes Jobs run pods that successfully terminate and only make outbound requ
 
 Below is an example Kubernetes manifest that deploys a job correctly. 
 
+<CodeBlockConfig filename="test-job.yaml">
 ```yaml
 ---
 apiVersion: v1
@@ -240,6 +249,8 @@ spec:
       restartPolicy: Never
 ```
 
+<CodeBlockConfig/>
+
 Upon completing the job you should be able to verify that all containers are shut down within the pod.
 
 ```bash
@@ -285,6 +296,9 @@ metadata:
   name: web-admin
 ```
 Create two Service objects for `web` and `web-admin`:
+
+<CodeBlockConfig filename="multiport-svc.yaml">
+
 ```yaml
 apiVersion: v1
 kind: Service
@@ -310,11 +324,16 @@ spec:
       port: 80
       targetPort: 9090
 ```
+
+<CodeBlockConfig/>
+
 `web` will target `containerPort` `8080` and select pods labeled `app: web`. `web-admin` will target `containerPort`
 `9090` and will also select the same pods.
 
 ~> Kubernetes 1.24+ only
 In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each multi-port service that references the ServiceAccount, and the Kubernetes secret must have the same name as the ServiceAccount:
+
+<CodeBlockConfig filename="multiport-sa.yaml">
 
 ```yaml
 apiVersion: v1
@@ -334,6 +353,8 @@ metadata:
   type: kubernetes.io/service-account-token
 ```
 
+<CodeBlockConfig/>
+
 Create a Deployment with any chosen name, and use the following annotations:
 ```yaml
 consul.hashicorp.com/connect-inject: true
@@ -350,6 +371,9 @@ serviceAccountName: web
 ```
 
 For reference, the full deployment example could look something like the following:
+
+<CodeBlockConfig filename="multiport-http-echo.yaml">
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -391,9 +415,12 @@ spec:
       serviceAccountName: web
 ```
 
+<CodeBlockConfig/>
+
 After deploying the `web` application, you can test service mesh connections by deploying the `static-client`
 application with the configuration in the [previous section](#connecting-to-mesh-enabled-services) and add the
 following annotation to the pod template on `static-client`:
+
 ```yaml
 consul.hashicorp.com/connect-service-upstreams: "web:1234,web-admin:2234"
 ```
