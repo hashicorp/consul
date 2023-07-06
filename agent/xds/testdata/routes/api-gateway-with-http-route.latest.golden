@@ -1,0 +1,50 @@
+{
+  "versionInfo":  "00000001",
+  "resources":  [
+    {
+      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name":  "8080",
+      "virtualHosts":  [
+        {
+          "name":  "api-gateway-listener-9b9265b",
+          "domains":  [
+            "*",
+            "*:8080"
+          ],
+          "routes":  [
+            {
+              "match":  {
+                "prefix":  "/"
+              },
+              "route":  {
+                "cluster":  "service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              },
+              "requestHeadersToAdd":  [
+                {
+                  "header":  {
+                    "key":  "X-Header-Add",
+                    "value":  "added"
+                  },
+                  "append":  true
+                },
+                {
+                  "header":  {
+                    "key":  "X-Header-Set",
+                    "value":  "set"
+                  },
+                  "append":  false
+                }
+              ],
+              "requestHeadersToRemove":  [
+                "X-Header-Remove"
+              ]
+            }
+          ]
+        }
+      ],
+      "validateClusters":  true
+    }
+  ],
+  "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "nonce":  "00000001"
+}
