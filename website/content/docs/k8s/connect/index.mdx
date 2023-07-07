@@ -382,7 +382,8 @@ The service account on the pod spec for the deployment should be set to the firs
 serviceAccountName: web
 ```
 
-For reference, the full deployment example could look something like the following:
+For reference, a full deployment example is provided below with the correct annotations provided. In addition, the previous yaml manifests can also be combined into
+a single manifest for easier deployment. 
 
 <CodeBlockConfig filename="multiport-web.yaml">
 
@@ -431,7 +432,7 @@ spec:
 
 After deploying the `web` application, you can test service mesh connections by deploying the `static-client`
 application with the configuration in the [previous section](#connecting-to-mesh-enabled-services) and add the
-following annotation to the pod template on `static-client`:
+`consul.hashicorp.com/connect-service-upstreams: 'web:1234,web-admin:2234'` annotation to the pod template on `static-client`:
 
 <CodeBlockConfig filename="multiport-static-client.yaml" lineNumbers highlight="33">
 
