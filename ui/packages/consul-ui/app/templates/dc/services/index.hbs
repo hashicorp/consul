@@ -50,8 +50,12 @@
         {{#if this.shouldShowLinkAlert}}
           <Hds::Alert @type='page' @color='highlight' class='ariadne-alert' as |A|>
             <A.Title>Link your cluster to the HashiCorp Cloud Platform (HCP) UI</A.Title>
-            <A.Description>Have better access... view observability, global workflows, cross
-              cluster...</A.Description>
+            <A.Description>
+              Take advantage of HCP Consul's features, including automated cluster creation,
+              observability insights, and global workflows, for the entirety of your cluster's
+              lifecycle. Click on the link below to sign in to HCP and link your cluster to HCP
+              Consul.
+            </A.Description>
             <A.Button
               @href={{hcp-link-url route.params.dc}}
               @text='Link to HCP'
