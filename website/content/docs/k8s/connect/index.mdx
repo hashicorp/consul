@@ -251,15 +251,6 @@ spec:
       restartPolicy: Never
 ```
 
-Upon completing the job you should be able to verify that all containers are shut down within the pod.
-
-```bash
-> kubectl get pods  
-NAME             READY   STATUS      RESTARTS   AGE
-test-job-49st7   0/2     Completed   0          3m55s
-
-> kubectl get job
-=======
 </CodeBlockConfig>
 
 Upon completing the job you should be able to verify that all containers are shut down within the pod.
@@ -272,7 +263,6 @@ test-job-49st7   0/2     Completed   0          3m55s
 
 ```shell-session 
 $ kubectl get job
->>>>>>> b9a6a744d5 (docs - add jobs use case for service mesh k8s (#18037))
 NAME       COMPLETIONS   DURATION   AGE
 test-job   1/1           30s        4m31s
 ```
