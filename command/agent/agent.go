@@ -143,14 +143,6 @@ func (c *cmd) run(args []string) int {
 	// FIXME: logs should always go to stderr, but previously they were sent to
 	// stdout, so continue to use Stdout for now, and fix this in a future release.
 	logGate := &logging.GatedWriter{Writer: c.ui.Stdout()}
-	loader := cloudcfg.CloudConfigLoader(func(source config.Source) (config.LoadResult, error) {
-		c.configLoadOpts.DefaultConfig = source
-		return config.Load(c.configLoadOpts)
-	})
-
-	// wait for signal
-	signalCh := make(chan os.Signal, 10)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -159,12 +151,22 @@ func (c *cmd) run(args []string) int {
 		// after logging is setup properly but before agent has started fully. This
 		// takes care of that!
 		suLogger := newStartupLogger()
+
+		// wait for signal
+		signalCh := make(chan os.Signal, 10)
+		signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 		go handleStartupSignals(ctx, cancel, signalCh, suLogger)
 
 		// See if we need to bootstrap config from HCP before we go any further with
 		// agent startup. First do a preliminary load of agent configuration using the given loader.
 		// This is just to peek whether bootstrapping from HCP is enabled. The result is discarded
 		// on the call to agent.NewBaseDeps so that the wrapped loader takes effect.
+
+		loader := cloudcfg.CloudConfigLoader(func(source config.Source) (config.LoadResult, error) {
+			c.configLoadOpts.DefaultConfig = source
+			return config.Load(c.configLoadOpts)
+		})
+
 		res, err := loader(nil)
 		if err != nil {
 			ui.Error(err.Error())

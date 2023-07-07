@@ -49,12 +49,8 @@ func CloudConfigLoader(baseLoader func(source config.Source) (config.LoadResult,
 		// load from the cloud.json file
 		dir := filepath.Join(res.RuntimeConfig.DataDir, "hcp-config")
 		cloudCfg, err := loadCloudConfig(dir)
-		if err != nil {
+		if err != nil || cloudCfg == nil {
 			return res, err
-		}
-
-		if cloudCfg == nil {
-			return res, nil
 		}
 
 		res.RuntimeConfig.Bootstrap = true
