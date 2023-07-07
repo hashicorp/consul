@@ -1,29 +1,46 @@
 <Route @name={{routeName}} as |route|>
   {{did-insert (set this 'encodedMagic' magic)}}
-  <Hds::Modal id='basic-modal' @onClose={{this.closeLinkModal}} as |M|>
-    <M.Header>
-      Confirm HCP Consul linking request
-    </M.Header>
-    <M.Body>
-      <h2 class='hds-typography-display-300 hds-font-weight-bold'>Link location:</h2>
-      <Hds::Card::Container @level='base' @hasBorder={{true}} class='p-4 my-3'>
-        <h3 class='hds-typography-display-200 hds-font-weight-semibold'>HCP Organization</h3>
-        <p>{{this.orgId}}</p>
+  {{#if this.successfulLink}}
+    <Hds::Toast @color='success' {{notification sticky=false}} as |T|>
+      <T.Title>Success</T.Title>
+      <T.Description>You've successfully linked your cluster.</T.Description>
+    </Hds::Toast>
+  {{else if this.failedLink}}
+    <Hds::Toast @color='critical' {{notification sticky=false}} as |T|>
+      <T.Title>Failed</T.Title>
+      <T.Description>Cluster linking has failed.</T.Description>
+    </Hds::Toast>
+  {{/if}}
+  {{#if this.isModalOpen}}
+    <Hds::Modal id='basic-modal' @onClose={{this.closeLinkModal}} as |M|>
+      <M.Header>
+        Confirm HCP Consul linking request
+      </M.Header>
+      <M.Body>
+        <h2 class='hds-typography-display-300 hds-font-weight-bold'>Link location:</h2>
+        <Hds::Card::Container @level='base' @hasBorder={{true}} class='p-4 my-3'>
+          <h3 class='hds-typography-display-200 hds-font-weight-semibold'>HCP Organization</h3>
+          <p>{{this.orgName}}</p>
 
-        <h3 class='hds-typography-display-200 hds-font-weight-semibold'>HCP Project</h3>
-        <p>{{this.projectId}}</p>
+          <h3 class='hds-typography-display-200 hds-font-weight-semibold'>HCP Project</h3>
+          <p>{{this.projectName}}</p>
 
-        <h3 class='hds-typography-display-200 hds-font-weight-semibold'>HCP Consul Cluster ID</h3>
-        <p>{{this.clusterId}}</p>
+          <h3 class='hds-typography-display-200 hds-font-weight-semibold'>HCP Consul Cluster ID</h3>
+          <p>{{this.clusterId}}</p>
 
-      </Hds::Card::Container>
-      <Hds::Alert @type='compact' @color='highlight' as |A|>
-        <A.Description>You must restart your Consul servers to finalize linking your cluster to HCP
-          Consul.</A.Description>
-      </Hds::Alert>
-    </M.Body>
-    <M.Footer as |F|>
-      <Hds::Button type='button' @text='Confirm & restart Consul servers' />
-    </M.Footer>
-  </Hds::Modal>
+        </Hds::Card::Container>
+        <Hds::Alert @type='compact' @color='highlight' as |A|>
+          <A.Description>You must restart your Consul servers to finalize linking your cluster to
+            HCP Consul.</A.Description>
+        </Hds::Alert>
+      </M.Body>
+      <M.Footer as |F|>
+        <Hds::Button
+          type='button'
+          @text='Confirm & restart Consul servers'
+          {{on 'click' this.linkAndRestart}}
+        />
+      </M.Footer>
+    </Hds::Modal>
+  {{/if}}
 </Route>
