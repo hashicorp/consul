@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
@@ -19,7 +20,6 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/hashicorp/go-cleanhttp"
 )
 
 // Creates a gateway service and tests to see if it is routable
@@ -46,7 +46,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerPortOne,
 			serviceHTTPPort,
 			serviceGRPCPort,
@@ -56,12 +56,22 @@ func TestAPIGatewayCreate(t *testing.T) {
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.APIClient(0)
 
-	namespace := getNamespace()
-	if namespace != "" {
-		ns := &api.Namespace{Name: namespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		require.NoError(t, err)
-	}
+	namespace := getOrCreateNamespace(t, client)
+
+	// Create a gateway
+	// We intentionally do this before creating the config entries
+	gatewayService, err := libservice.NewGatewayService(context.Background(), libservice.GatewayConfig{
+		Kind:      "api",
+		Namespace: namespace,
+		Name:      gatewayName,
+	}, cluster.Agents[0], listenerPortOne)
+	require.NoError(t, err)
+
+	// We check this is healthy here because in the case of bringing up a new kube cluster,
+	// it is not possible to create the config entry in advance.
+	// The health checks must pass so the pod can start up.
+	// For API gateways, this should always pass, because there is no default listener for health in Envoy
+	libassert.CatalogServiceIsHealthy(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// add api gateway config
 	apiGateway := &api.APIGatewayConfigEntry{
@@ -79,7 +89,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 
 	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
 
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
 		ID:        serviceName,
 		Name:      serviceName,
 		Namespace: namespace,
@@ -109,17 +119,9 @@ func TestAPIGatewayCreate(t *testing.T) {
 
 	require.NoError(t, cluster.ConfigEntryWrite(tcpRoute))
 
-	// Create a gateway
-	gatewayService, err := libservice.NewGatewayService(context.Background(), libservice.GatewayConfig{
-		Kind:      "api",
-		Namespace: namespace,
-		Name:      gatewayName,
-	}, cluster.Agents[0], listenerPortOne)
-	require.NoError(t, err)
-
 	// make sure the gateway/route come online
 	// make sure config entries have been properly created
-	checkGatewayConfigEntry(t, client, gatewayName, namespace)
+	checkGatewayConfigEntry(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 	checkTCPRouteConfigEntry(t, client, routeName, namespace)
 
 	port, err := gatewayService.GetPort(listenerPortOne)
@@ -137,18 +139,18 @@ func isBound(conditions []api.Condition) bool {
 
 func conditionStatusIsValue(typeName string, statusValue string, conditions []api.Condition) bool {
 	for _, c := range conditions {
-		if c.Type == typeName && c.Status == statusValue {
+		if c.Type == typeName && string(c.Status) == statusValue {
 			return true
 		}
 	}
 	return false
 }
 
-func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName string, namespace string) {
+func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName string, opts *api.QueryOptions) {
 	t.Helper()
 
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayName, opts)
 		if err != nil {
 			t.Log("error constructing request", err)
 			return false
@@ -163,11 +165,11 @@ func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName strin
 	}, time.Second*10, time.Second*1)
 }
 
-func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, namespace string) {
+func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, opts *api.QueryOptions) {
 	t.Helper()
 
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, opts)
 		if err != nil {
 			t.Log("error constructing request", err)
 			return false

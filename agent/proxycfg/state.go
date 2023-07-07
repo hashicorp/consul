@@ -44,6 +44,7 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	jwtProviderID                      = "jwt-provider"
 	peerServersWatchID                 = "peer-servers"
 	peeredUpstreamsID                  = "peered-upstreams"
 	intentionUpstreamsDestinationID    = "intention-upstreams-destination"
@@ -123,6 +124,7 @@ type serviceInstance struct {
 	taggedAddresses map[string]structs.ServiceAddress
 	proxyCfg        structs.ConnectProxyConfig
 	token           string
+	locality        *structs.Locality
 }
 
 func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error) {
@@ -243,6 +245,7 @@ func newServiceInstanceFromNodeService(id ProxyID, ns *structs.NodeService, toke
 	return serviceInstance{
 		kind:            ns.Kind,
 		service:         ns.Service,
+		locality:        ns.Locality,
 		proxyID:         id,
 		address:         ns.Address,
 		port:            ns.Port,
@@ -302,6 +305,7 @@ func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig)
 	return ConfigSnapshot{
 		Kind:                  s.kind,
 		Service:               s.service,
+		ServiceLocality:       s.locality,
 		ProxyID:               s.proxyID,
 		Address:               s.address,
 		Port:                  s.port,

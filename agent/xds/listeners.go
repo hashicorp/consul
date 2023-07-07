@@ -228,6 +228,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 		uniqueAddrs := make(map[string]struct{})
 
+		if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
+			for _, ip := range chain.AutoVirtualIPs {
+				uniqueAddrs[ip] = struct{}{}
+			}
+			for _, ip := range chain.ManualVirtualIPs {
+				uniqueAddrs[ip] = struct{}{}
+			}
+		}
+
 		// Match on the virtual IP for the upstream service (identified by the chain's ID).
 		// We do not match on all endpoints here since it would lead to load balancing across
 		// all instances when any instance address is dialed.
@@ -851,16 +860,11 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 				return nil, err
 			}
 		case structs.ServiceKindAPIGateway:
-			// TODO Find a cleaner solution, can't currently pass unexported property types
-			var err error
-			cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+			listeners, err := s.makeAPIGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
-			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
-			if err != nil {
-				return nil, err
-			}
+
 			resources = append(resources, listeners...)
 		case structs.ServiceKindIngressGateway:
 			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
@@ -1360,6 +1364,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		logger:           s.Logger,
 	}
 	if useHTTPFilter {
+		jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
+		if jwtFilterErr != nil {
+			return nil, jwtFilterErr
+		}
 		rbacFilter, err := makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
@@ -1373,8 +1381,11 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		if err != nil {
 			return nil, err
 		}
-
-		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
+		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{}
+		if jwtFilter != nil {
+			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, jwtFilter)
+		}
+		filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, rbacFilter)
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
@@ -1430,7 +1441,55 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 	}
 
+	// When permissive mTLS mode is enabled, include an additional filter chain
+	// that matches on the `destination_port == <service port>`. Traffic sent
+	// directly to the service port is passed through to the application
+	// unmodified.
+	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent &&
+		cfgSnap.Proxy.MutualTLSMode == structs.MutualTLSModePermissive {
+		chain, err := makePermissiveFilterChain(cfgSnap, filterOpts)
+		if err != nil {
+			return nil, fmt.Errorf("unable to add permissive mtls filter chain: %w", err)
+		}
+		if chain == nil {
+			s.Logger.Debug("no service port defined for service in permissive mTLS mode; not adding filter chain for non-mTLS traffic")
+		} else {
+			l.FilterChains = append(l.FilterChains, chain)
+
+			// With tproxy, the REDIRECT iptables target rewrites the destination ip/port
+			// to the proxy ip/port (e.g. 127.0.0.1:20000) for incoming packets.
+			// We need the original_dst filter to recover the original destination address.
+			originalDstFilter, err := makeEnvoyListenerFilter("envoy.filters.listener.original_dst", &envoy_original_dst_v3.OriginalDst{})
+			if err != nil {
+				return nil, err
+			}
+			l.ListenerFilters = append(l.ListenerFilters, originalDstFilter)
+		}
+	}
 	return l, err
+}
+
+func makePermissiveFilterChain(cfgSnap *proxycfg.ConfigSnapshot, opts listenerFilterOpts) (*envoy_listener_v3.FilterChain, error) {
+	servicePort := cfgSnap.Proxy.LocalServicePort
+	if servicePort <= 0 {
+		// No service port means the service does not accept incoming traffic, so
+		// the connect proxy does not need to listen for incoming non-mTLS traffic.
+		return nil, nil
+	}
+
+	opts.statPrefix += "permissive_"
+	filter, err := makeTCPProxyFilter(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	chain := &envoy_listener_v3.FilterChain{
+		FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+			DestinationPort: &wrapperspb.UInt32Value{Value: uint32(servicePort)},
+		},
+		Filters: []*envoy_listener_v3.Filter{filter},
+	}
+	return chain, nil
 }
 
 // finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
@@ -1699,7 +1758,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 type terminatingGatewayFilterChainOpts struct {
 	cluster    string
 	service    structs.ServiceName
-	intentions structs.Intentions
+	intentions structs.SimplifiedIntentions
 	protocol   string
 	address    string // only valid for destination listeners
 	port       int    // only valid for destination listeners

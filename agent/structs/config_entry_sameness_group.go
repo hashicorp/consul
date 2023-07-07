@@ -71,6 +71,6 @@ func (s *SamenessGroupConfigEntry) MarshalJSON() ([]byte, error) {
 }
 
 type SamenessGroupMember struct {
-	Partition string
-	Peer      string
+	Partition string `json:",omitempty"`
+	Peer      string `json:",omitempty"`
 }

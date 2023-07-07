@@ -238,9 +238,9 @@ type Config struct {
 	AutoConfigAuthzAllowReuse      bool
 
 	// TombstoneTTL is used to control how long KV tombstones are retained.
-	// This provides a window of time where the X-Consul-Index is monotonic.
+	// This provides a window of time when the X-Consul-Index is monotonic.
 	// Outside this window, the index may not be monotonic. This is a result
-	// of a few trade offs:
+	// of a few trade-offs:
 	// 1) The index is defined by the data view and not globally. This is a
 	// performance optimization that prevents any write from incrementing the
 	// index for all data views.
@@ -248,10 +248,10 @@ type Config struct {
 	// is also monotonic. This prevents deletes from reducing the disk space
 	// used.
 	// In theory, neither of these are intrinsic limitations, however for the
-	// purposes of building a practical system, they are reasonable trade offs.
+	// purposes of building a practical system, they are reasonable trade-offs.
 	//
 	// It is also possible to set this to an incredibly long time, thereby
-	// simulating infinite retention. This is not recommended however.
+	// simulating infinite retention. This is not recommended, however.
 	//
 	TombstoneTTL time.Duration
 
@@ -441,10 +441,16 @@ type Config struct {
 
 	Locality *structs.Locality
 
+	Cloud CloudConfig
+
 	Reporting Reporting
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
+
+	// ServerRejoinAgeMax is used to specify the duration of time a server
+	// is allowed to be down/offline before a startup operation is refused.
+	ServerRejoinAgeMax time.Duration
 }
 
 func (c *Config) InPrimaryDatacenter() bool {
@@ -522,11 +528,13 @@ func DefaultConfig() *Config {
 		TombstoneTTLGranularity:              30 * time.Second,
 		SessionTTLMin:                        10 * time.Second,
 		ACLTokenMinExpirationTTL:             1 * time.Minute,
-		ACLTokenMaxExpirationTTL:             24 * time.Hour,
+		// Duration is stored as an int64. Setting the default max
+		// to the max possible duration (approx 290 years).
+		ACLTokenMaxExpirationTTL: 1<<63 - 1,
 
 		// These are tuned to provide a total throughput of 128 updates
-		// per second. If you update these, you should update the client-
-		// side SyncCoordinateRateTarget parameter accordingly.
+		// per second. If you update these, you should update the client-side
+		// SyncCoordinateRateTarget parameter accordingly.
 		CoordinateUpdatePeriod:     5 * time.Second,
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
@@ -558,7 +566,7 @@ func DefaultConfig() *Config {
 			},
 		},
 
-		// Stay under the 10 second aggregation interval of
+		// Stay under the 10-second aggregation interval of
 		// go-metrics. This ensures we always report the
 		// usage metrics in each cycle.
 		MetricsReportingInterval: 9 * time.Second,
@@ -570,6 +578,8 @@ func DefaultConfig() *Config {
 		PeeringTestAllowPeerRegistrations: false,
 
 		EnterpriseConfig: DefaultEnterpriseConfig(),
+
+		ServerRejoinAgeMax: 24 * 7 * time.Hour,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

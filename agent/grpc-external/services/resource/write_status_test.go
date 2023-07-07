@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -5,20 +8,69 @@ import (
 	"testing"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+func TestWriteStatus_ACL(t *testing.T) {
+	type testCase struct {
+		authz       resolver.Result
+		assertErrFn func(error)
+	}
+	testcases := map[string]testCase{
+		"denied": {
+			authz: AuthorizerFrom(t, demo.ArtistV2WritePolicy),
+			assertErrFn: func(err error) {
+				require.Error(t, err)
+				require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+			},
+		},
+		"allowed": {
+			authz: AuthorizerFrom(t, demo.ArtistV2WritePolicy, `operator = "write"`),
+			assertErrFn: func(err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for desc, tc := range testcases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+			demo.RegisterTypes(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+			require.NoError(t, err)
+			artist = rsp.Resource
+
+			// exercise ACL
+			_, err = client.WriteStatus(testContext(t), validWriteStatusRequest(t, artist))
+			tc.assertErrFn(err)
+		})
+	}
+}
+
 func TestWriteStatus_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.WriteStatusRequest){
 		"no id":                   func(req *pbresource.WriteStatusRequest) { req.Id = nil },
@@ -34,6 +86,7 @@ func TestWriteStatus_InputValidation(t *testing.T) {
 		"no reference type":       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Type = nil },
 		"no reference tenancy":    func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Tenancy = nil },
 		"no reference name":       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Name = "" },
+		"updated at provided":     func(req *pbresource.WriteStatusRequest) { req.Status.UpdatedAt = timestamppb.Now() },
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
@@ -62,7 +115,7 @@ func TestWriteStatus_Success(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			res, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -89,6 +142,7 @@ func TestWriteStatus_Success(t *testing.T) {
 			require.NotEqual(t, rsp.Resource.Version, res.Version, "version should have changed")
 			require.Contains(t, rsp.Resource.Status, "consul.io/other-controller")
 			require.Contains(t, rsp.Resource.Status, "consul.io/artist-controller")
+			require.NotNil(t, rsp.Resource.Status["consul.io/artist-controller"].UpdatedAt)
 		})
 	}
 }
@@ -97,7 +151,7 @@ func TestWriteStatus_CASFailure(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -126,13 +180,13 @@ func TestWriteStatus_TypeNotFound(t *testing.T) {
 	_, err = client.WriteStatus(testContext(t), validWriteStatusRequest(t, res))
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestWriteStatus_ResourceNotFound(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -147,7 +201,7 @@ func TestWriteStatus_ResourceNotFound(t *testing.T) {
 func TestWriteStatus_WrongUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -168,7 +222,7 @@ func TestWriteStatus_NonCASUpdate_Retry(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)

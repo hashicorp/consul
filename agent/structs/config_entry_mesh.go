@@ -16,6 +16,10 @@ type MeshConfigEntry struct {
 	// when enabled.
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
 
+	// AllowEnablingPermissiveMutualTLS must be true in order to allow setting
+	// MutualTLSMode=permissive in either service-defaults or proxy-defaults.
+	AllowEnablingPermissiveMutualTLS bool `json:",omitempty" alias:"allow_enabling_permissive_mutual_tls"`
+
 	TLS *MeshTLSConfig `json:",omitempty"`
 
 	HTTP *MeshHTTPConfig `json:",omitempty"`

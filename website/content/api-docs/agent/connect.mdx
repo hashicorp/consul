@@ -2,18 +2,18 @@
 layout: api
 page_title: Connect - Agent - HTTP API
 description: >-
-  The /agent/connect endpoints interact with Connect with agent-local
+  The /agent/connect endpoints interact with agent-local service mesh
   operations.
 ---
 
 # Connect - Agent HTTP API
 
-The `/agent/connect` endpoints interact with [Connect](/consul/docs/connect)
-with agent-local operations.
+The `/agent/connect` endpoints interact with
+with agent-local [service mesh](/consul/docs/connect) operations.
 
-These endpoints may mirror the [non-agent Connect endpoints](/consul/api-docs/connect)
-in some cases. Almost all agent-local Connect endpoints perform local caching
-to optimize performance of Connect without having to make requests to the server.
+These endpoints may mirror the [non-agent service mesh endpoints](/consul/api-docs/connect)
+in some cases. Almost all agent-local service mesh endpoints perform local caching
+to optimize performance of the mesh without having to make requests to the server.
 
 ## Authorize
 
@@ -29,7 +29,7 @@ This endpoint tests whether a connection attempt is authorized between
 two services. This is the primary API that must be implemented by
 [proxies](/consul/docs/connect/proxies) or
 [native integrations](/consul/docs/connect/native)
-that wish to integrate with Connect. Prior to calling this API, it is expected
+that wish to integrate with the service mesh. Prior to calling this API, it is expected
 that the client TLS certificate has been properly verified against the
 current CA roots.
 
@@ -108,7 +108,7 @@ This is used by [proxies](/consul/docs/connect/proxies) or
 [native integrations](/consul/docs/connect/native) to verify served client
 or server certificates are valid.
 
-This is equivalent to the [non-Agent Connect endpoint](/consul/api-docs/connect),
+This is equivalent to the [non-Agent service mesh endpoint](/consul/api-docs/connect),
 but the response of this request is cached locally at the agent. This allows
 for very fast response times and for fail open behavior if the server is
 unavailable. This endpoint should be used by proxies and native integrations.
@@ -248,7 +248,7 @@ $ curl \
 
 ## Methods to Specify Namespace <EnterpriseAlert inline />
 
-Local agent connect endpoints
+Local agent service mesh endpoints
 support several methods for specifying the namespace of resources
 with the following order of precedence:
 1. `Namespace` field of the JSON request body -

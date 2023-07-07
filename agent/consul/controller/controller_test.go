@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -144,13 +145,13 @@ func TestBasicController_Retry(t *testing.T) {
 		StorageBackend: fsm.NullStorageBackend,
 	}).State()
 
-	queueInitialized := make(chan *countingWorkQueue)
+	queueInitialized := make(chan *countingWorkQueue[Request])
 	controller := New(publisher, reconciler).Subscribe(&stream.SubscribeRequest{
 		Topic:   state.EventTopicIngressGateway,
 		Subject: stream.SubjectWildcard,
 	}).WithWorkers(-1).WithBackoff(1*time.Millisecond, 1*time.Millisecond)
-	go controller.WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) WorkQueue {
-		queue := newCountingWorkQueue(RunWorkQueue(ctx, baseBackoff, maxBackoff))
+	go controller.WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) queue.WorkQueue[Request] {
+		queue := newCountingWorkQueue(queue.RunWorkQueue[Request](ctx, baseBackoff, maxBackoff))
 		queueInitialized <- queue
 		return queue
 	}).Run(ctx)
@@ -244,9 +245,9 @@ func TestBasicController_RunPanicAssertions(t *testing.T) {
 	started := make(chan struct{})
 	reconciler := newTestReconciler(false)
 	publisher := stream.NewEventPublisher(0)
-	controller := New(publisher, reconciler).WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) WorkQueue {
+	controller := New(publisher, reconciler).WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) queue.WorkQueue[Request] {
 		close(started)
-		return RunWorkQueue(ctx, baseBackoff, maxBackoff)
+		return queue.RunWorkQueue[Request](ctx, baseBackoff, maxBackoff)
 	})
 	subscription := &stream.SubscribeRequest{
 		Topic:   state.EventTopicIngressGateway,
@@ -276,7 +277,7 @@ func TestBasicController_RunPanicAssertions(t *testing.T) {
 		controller.WithWorkers(1)
 	})
 	require.Panics(t, func() {
-		controller.WithQueueFactory(RunWorkQueue)
+		controller.WithQueueFactory(queue.RunWorkQueue[Request])
 	})
 }
 

@@ -140,7 +140,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 			failures = 0
 		} else {
 			failures++
-			wait = backOffWait(c.options, failures)
+			wait = backOffWait(failures)
 
 			c.options.Logger.
 				With("error", err).
@@ -227,7 +227,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 		// as this would eliminate the single-flighting of these requests in the cache and
 		// the efficiencies gained by it.
 		if failures > 0 {
-			wait = backOffWait(c.options, failures)
+			wait = backOffWait(failures)
 		} else {
 			// Calculate when the cached data's Age will get too stale and
 			// need to be re-queried. When the data's Age already exceeds the

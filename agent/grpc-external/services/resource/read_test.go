@@ -25,7 +25,7 @@ func TestRead_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.ReadRequest){
 		"no id":      func(req *pbresource.ReadRequest) { req.Id = nil },
@@ -33,17 +33,17 @@ func TestRead_InputValidation(t *testing.T) {
 		"no tenancy": func(req *pbresource.ReadRequest) { req.Id.Tenancy = nil },
 		"no name":    func(req *pbresource.ReadRequest) { req.Id.Name = "" },
 		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition wildcard": func(req *pbresource.ReadRequest) {
+		"tenancy partition not default": func(req *pbresource.ReadRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Partition = storage.Wildcard
+			req.Id.Tenancy.Partition = ""
 		},
-		"tenancy namespace wildcard": func(req *pbresource.ReadRequest) {
+		"tenancy namespace not default": func(req *pbresource.ReadRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Namespace = storage.Wildcard
+			req.Id.Tenancy.Namespace = ""
 		},
-		"tenancy peername wildcard": func(req *pbresource.ReadRequest) {
+		"tenancy peername not local": func(req *pbresource.ReadRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.PeerName = storage.Wildcard
+			req.Id.Tenancy.PeerName = ""
 		},
 	}
 	for desc, modFn := range testCases {
@@ -71,7 +71,7 @@ func TestRead_TypeNotFound(t *testing.T) {
 	_, err = client.Read(context.Background(), &pbresource.ReadRequest{Id: artist.Id})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestRead_ResourceNotFound(t *testing.T) {
@@ -79,7 +79,7 @@ func TestRead_ResourceNotFound(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -98,7 +98,7 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -123,7 +123,7 @@ func TestRead_Success(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -146,7 +146,7 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 			server := testServer(t)
 			mockBackend := NewMockBackend(t)
 			server.Backend = mockBackend
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -162,7 +162,7 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 	}
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestRead_ACLs(t *testing.T) {
 	type testCase struct {
 		authz resolver.Result
@@ -188,7 +188,7 @@ func TestRead_ACLs(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)

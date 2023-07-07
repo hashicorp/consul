@@ -3,14 +3,14 @@ layout: api
 page_title: Usage - Operator - HTTP API
 description: |-
   The /operator/usage endpoint returns usage information about the number of
-  services, service instances and Connect-enabled service instances by
+  services, service instances and mesh-enabled service instances by
   datacenter.
 ---
 
 # Usage Operator HTTP API
 
 The `/operator/usage` endpoint returns usage information about the number of
-services, service instances and Connect-enabled service instances by datacenter.
+services, service instances and mesh-enabled service instances by datacenter.
 
 | Method | Path              | Produces           |
 | ------ | ----------------- | ------------------ |
@@ -64,7 +64,8 @@ $ curl \
         "mesh-gateway": 0,
         "terminating-gateway": 0
       },
-      "BillableServiceInstances": 0
+      "BillableServiceInstances": 0,
+      "Nodes": 1
     }
   },
   "Index": 13,
@@ -142,12 +143,12 @@ $ curl \
 - `ServiceInstances` is the total number of service instances registered in
   the datacenter.
 
-- `ConnectServiceInstances` is the total number of Connect service instances
+- `ConnectServiceInstances` is the total number of mesh service instances
   registered in the datacenter.
 
 - `BillableServiceInstances` is the total number of billable service instances
   registered in the datacenter. This is only relevant in Consul Enterprise
-  and is the total service instance count, not including any Connect service
+  and is the total service instance count, not including any mesh service
   instances or any Consul server instances.
 
 - `PartitionNamespaceServices` <EnterpriseAlert inline /> is the total number
@@ -163,5 +164,5 @@ $ curl \
   by partition and namespace.
 
 - `PartitionNamespaceConnectServiceInstances` <EnterpriseAlert inline /> is
-  the total number of Connect service instances registered in the datacenter,
+  the total number of mesh service instances registered in the datacenter,
   by partition and namespace.

@@ -146,6 +146,7 @@ func init() {
 	registerCommand(structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete)
 	registerCommand(structs.PeeringSecretsWriteType, (*FSM).applyPeeringSecretsWrite)
 	registerCommand(structs.ResourceOperationType, (*FSM).applyResourceOperation)
+	registerCommand(structs.UpdateVirtualIPRequestType, (*FSM).applyManualVirtualIPs)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -785,4 +786,21 @@ func (c *FSM) applyPeeringTrustBundleDelete(buf []byte, index uint64) interface{
 
 func (f *FSM) applyResourceOperation(buf []byte, idx uint64) any {
 	return f.deps.StorageBackend.Apply(buf, idx)
+}
+
+func (c *FSM) applyManualVirtualIPs(buf []byte, index uint64) interface{} {
+	var req state.ServiceVirtualIP
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	found, unassignedFrom, err := c.state.AssignManualServiceVIPs(index, req.Service, req.ManualIPs)
+	if err != nil {
+		c.logger.Warn("AssignManualVirtualIPs failed", "error", err)
+		return err
+	}
+	return structs.AssignServiceManualVIPsResponse{
+		Found:          found,
+		UnassignedFrom: unassignedFrom,
+	}
 }

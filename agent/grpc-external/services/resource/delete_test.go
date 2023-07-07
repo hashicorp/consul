@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -10,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -19,7 +23,7 @@ func TestDelete_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.DeleteRequest){
 		"no id":      func(req *pbresource.DeleteRequest) { req.Id = nil },
@@ -27,17 +31,17 @@ func TestDelete_InputValidation(t *testing.T) {
 		"no tenancy": func(req *pbresource.DeleteRequest) { req.Id.Tenancy = nil },
 		"no name":    func(req *pbresource.DeleteRequest) { req.Id.Name = "" },
 		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition wildcard": func(req *pbresource.DeleteRequest) {
+		"tenancy partition not default": func(req *pbresource.DeleteRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Partition = storage.Wildcard
+			req.Id.Tenancy.Partition = ""
 		},
-		"tenancy namespace wildcard": func(req *pbresource.DeleteRequest) {
+		"tenancy namespace not default": func(req *pbresource.DeleteRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Namespace = storage.Wildcard
+			req.Id.Tenancy.Namespace = ""
 		},
-		"tenancy peername wildcard": func(req *pbresource.DeleteRequest) {
+		"tenancy peername not local": func(req *pbresource.DeleteRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.PeerName = storage.Wildcard
+			req.Id.Tenancy.PeerName = ""
 		},
 	}
 	for desc, modFn := range testCases {
@@ -98,7 +102,7 @@ func TestDelete_ACLs(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -119,8 +123,7 @@ func TestDelete_Success(t *testing.T) {
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
-			demo.Register(server.Registry)
-
+			demo.RegisterTypes(server.Registry)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
@@ -137,8 +140,56 @@ func TestDelete_Success(t *testing.T) {
 			_, err = server.Backend.Read(ctx, storage.StrongConsistency, artistId)
 			require.Error(t, err)
 			require.ErrorIs(t, err, storage.ErrNotFound)
+
+			// verify tombstone created
+			_, err = client.Read(ctx, &pbresource.ReadRequest{
+				Id: &pbresource.ID{
+					Name:    tombstoneName(artistId),
+					Type:    resource.TypeV1Tombstone,
+					Tenancy: artist.Id.Tenancy,
+				},
+			})
+			require.NoError(t, err)
 		})
 	}
+}
+
+func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
+	t.Parallel()
+
+	server, client, ctx := testDeps(t)
+	demo.RegisterTypes(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+	artist = rsp.Resource
+
+	// delete artist
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: ""})
+	require.NoError(t, err)
+
+	// verify artist's tombstone created
+	rsp2, err := client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Name:    tombstoneName(artist.Id),
+			Type:    resource.TypeV1Tombstone,
+			Tenancy: artist.Id.Tenancy,
+		},
+	})
+	require.NoError(t, err)
+	tombstone := rsp2.Resource
+
+	// delete artist's tombstone
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: tombstone.Id, Version: tombstone.Version})
+	require.NoError(t, err)
+
+	// verify no new tombstones created and artist's existing tombstone deleted
+	rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy})
+	require.NoError(t, err)
+	require.Empty(t, rsp3.Resources)
 }
 
 func TestDelete_NotFound(t *testing.T) {
@@ -147,7 +198,7 @@ func TestDelete_NotFound(t *testing.T) {
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
@@ -162,7 +213,7 @@ func TestDelete_VersionMismatch(t *testing.T) {
 	t.Parallel()
 
 	server, client, ctx := testDeps(t)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})

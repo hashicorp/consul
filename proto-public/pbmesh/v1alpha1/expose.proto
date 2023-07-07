@@ -1,0 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+import "pbcatalog/v1alpha1/protocol.proto";
+
+message ExposeConfig {
+  repeated ExposePath expose_paths = 1;
+}
+
+message ExposePath {
+  uint32 listener_port = 1;
+  string path = 2;
+  uint32 local_path_port = 3;
+  hashicorp.consul.catalog.v1alpha1.Protocol protocol = 4;
+}

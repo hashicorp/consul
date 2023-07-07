@@ -5,12 +5,19 @@ package resource
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+)
+
+var (
+	groupRegexp        = regexp.MustCompile(`^[a-z][a-z\d_]+$`)
+	groupVersionRegexp = regexp.MustCompile(`^v([a-z\d]+)?\d$`)
+	kindRegexp         = regexp.MustCompile(`^[A-Z][A-Za-z\d]+$`)
 )
 
 type Registry interface {
@@ -68,19 +75,36 @@ type TypeRegistry struct {
 }
 
 func NewRegistry() Registry {
-	return &TypeRegistry{
-		registrations: make(map[string]Registration),
-	}
+	registry := &TypeRegistry{registrations: make(map[string]Registration)}
+	// Tombstone is an implicitly registered type since it is used to implement
+	// the cascading deletion of resources. ACLs end up being defaulted to
+	// operator:<read,write>. It is useful to note that tombstone creation
+	// does not get routed through the resource service and bypasses ACLs
+	// as part of the Delete endpoint.
+	registry.Register(Registration{
+		Type:  TypeV1Tombstone,
+		Proto: &pbresource.Tombstone{},
+	})
+	return registry
 }
 
 func (r *TypeRegistry) Register(registration Registration) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	typ := registration.Type
 	if typ.Group == "" || typ.GroupVersion == "" || typ.Kind == "" {
 		panic("type field(s) cannot be empty")
 	}
+
+	switch {
+	case !groupRegexp.MatchString(typ.Group):
+		panic(fmt.Sprintf("Type.Group must be in snake_case. Got: %q", typ.Group))
+	case !groupVersionRegexp.MatchString(typ.GroupVersion):
+		panic(fmt.Sprintf("Type.GroupVersion must be lowercase, start with `v`, and end with a number (e.g. `v2` or `v1alpha1`). Got: %q", typ.Group))
+	case !kindRegexp.MatchString(typ.Kind):
+		panic(fmt.Sprintf("Type.Kind must be in PascalCase. Got: %q", typ.Kind))
+	}
+
+	r.lock.Lock()
+	defer r.lock.Unlock()
 
 	key := ToGVK(registration.Type)
 	if _, ok := r.registrations[key]; ok {

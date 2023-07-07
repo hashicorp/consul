@@ -3,81 +3,240 @@
 
 syntax = "proto3";
 
+// For more information, see: https://github.com/hashicorp/consul/tree/main/docs/resources
 package hashicorp.consul.resource;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 
+// Type describes a resource's type. It follows the GVK (Group Version Kind)
+// [pattern](https://book.kubebuilder.io/cronjob-tutorial/gvks.html) established
+// by Kubernetes.
 message Type {
+  // Group describes the area of functionality to which this resource type
+  // relates (e.g. "catalog", "authorization").
   string group = 1;
+
+  // GroupVersion is incremented when sweeping or backward-incompatible changes
+  // are made to the group's resource types.
   string group_version = 2;
+
+  // Kind identifies the specific resource type within the group.
   string kind = 3;
 }
 
+// Tenancy describes the tenancy units in which the resource resides.
 message Tenancy {
+  // Partition is the topmost administrative boundary within a cluster.
+  // https://developer.hashicorp.com/consul/docs/enterprise/admin-partitions
+  //
+  // When using the List and WatchList endpoints, provide the wildcard value "*"
+  // to list resources across all partitions.
   string partition = 1;
+
+  // Namespace further isolates resources within a partition.
+  // https://developer.hashicorp.com/consul/docs/enterprise/namespaces
+  //
+  // When using the List and WatchList endpoints, provide the wildcard value "*"
+  // to list resources across all namespaces.
   string namespace = 2;
+
+  // PeerName identifies which peer the resource is imported from.
+  // https://developer.hashicorp.com/consul/docs/connect/cluster-peering
+  //
+  // When using the List and WatchList endpoints, provide the wildcard value "*"
+  // to list resources across all peers.
   string peer_name = 3;
 }
 
+// ID uniquely identifies a resource.
 message ID {
+  // Uid is the unique internal identifier we gave to the resource.
+  //
+  // It is primarily used to tell the difference between the current resource
+  // and previous deleted resources with the same user-given name.
+  //
+  // Concretely, Uid is a [ULID](https://github.com/ulid/spec) and you can treat
+  // its timestamp component as the resource's creation time.
   string uid = 1;
+
+  // Name is the user-given name of the resource (e.g. the "billing" service).
   string name = 2;
+
+  // Type identifies the resource's type.
   Type type = 3;
+
+  // Tenancy identifies the tenancy units (i.e. partition, namespace) in which
+  // the resource resides.
   Tenancy tenancy = 4;
 }
 
+// Resource describes a resource of a known type managed by Consul.
 message Resource {
+  // ID uniquely identifies the resource.
   ID id = 1;
+
+  // Owner (optionally) describes which resource "owns" this resource, it is
+  // immutable and can only be set on resource creation. Owned resources will
+  // be automatically deleted when their owner is deleted.
   ID owner = 2;
+
+  // Version is the low-level version identifier used by the storage backend
+  // in CAS (Compare-And-Swap) operations. It will change when the resource is
+  // modified in any way, including status updates.
+  //
+  // When calling the Write endpoint, providing a non-blank version will perform
+  // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+  // if the given version doesn't match what is stored.
   string version = 3;
+
+  // Generation is incremented whenever the resource's content (i.e. not its
+  // status) is modified. You can think of it as being the "user version".
+  //
+  // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+  // can treat its timestamp component as the resource's modification time.
   string generation = 4;
 
+  // Metadata contains key/value pairs of arbitrary metadata about the resource.
   map<string, string> metadata = 5;
+
+  // Status is used by controllers to communicate the result of attempting to
+  // reconcile and apply the resource (e.g. surface semantic validation errors)
+  // with users and other controllers. Each status is identified by a unique key
+  // and should only ever be updated by one controller.
+  //
+  // Status can only be updated via the WriteStatus endpoint. Attempting to do
+  // so via the Write endpoint will result in an InvalidArgument error code.
   map<string, Status> status = 6;
 
+  // Data contains the resource's type-specific content.
   google.protobuf.Any data = 7;
 }
 
+// Status is used by controllers to communicate the result of attempting to
+// reconcile and apply a resource (e.g. surface semantic validation errors)
+// with users and other controllers.
 message Status {
+  // ObservedGeneration identifies which generation of a resource this status
+  // related to. It can be used to determine whether the current generation of
+  // a resource has been reconciled.
   string observed_generation = 1;
+
+  // Conditions contains a set of discreet observations about the resource in
+  // relation to the current state of the system (e.g. it is semantically valid).
   repeated Condition conditions = 2;
+
+  // UpdatedAt is the time at which the status was last written.
+  google.protobuf.Timestamp updated_at = 3;
 }
 
+// Condition represents a discreet observation about a resource in relation to
+// the current state of the system.
+//
+// It is heavily inspired by Kubernetes' [conditions](https://bit.ly/3H9Y6IK)
+// and the Gateway API [types and reasons](https://bit.ly/3n2PPiP).
 message Condition {
+  // State represents the state of the condition (i.e. true/false/unknown).
   enum State {
+    // STATE_UNKNOWN means that the state of the condition is unknown.
+    //
     // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
     STATE_UNKNOWN = 0;
+
+    // STATE_TRUE means that the state of the condition is true.
     STATE_TRUE = 1;
+
+    // STATE_FALSE means that the state of the condition is false.
     STATE_FALSE = 2;
   }
 
+  // Type identifies the type of condition (e.g. "Invalid", "ResolvedRefs").
   string type = 1;
+
+  // State represents the state of the condition (i.e. true/false/unknown).
   State state = 2;
+
+  // Reason provides more machine-readable details about the condition (e.g.
+  // "InvalidProtocol").
   string reason = 3;
+
+  // Message contains a human-friendly description of the status.
   string message = 4;
+
+  // Resource identifies which resource this condition relates to, when it is
+  // not the core resource itself.
   Reference resource = 5;
 }
 
+// Reference identifies which resource a condition relates to, when it is not
+// the core resource itself.
 message Reference {
+  // Type identifies the resource's type.
   Type type = 1;
+
+  // Tenancy identifies the tenancy units (i.e. partition, namespace) in which
+  // the resource resides.
   Tenancy tenancy = 2;
+
+  // Name is the user-given name of the resource (e.g. the "billing" service).
   string name = 3;
+
+  // Section identifies which part of the resource the condition relates to.
   string section = 4;
 }
 
-message WatchEvent {
-  enum Operation {
-    OPERATION_UNSPECIFIED = 0;
-    OPERATION_UPSERT = 1;
-    OPERATION_DELETE = 2;
-  }
-
-  Operation operation = 1;
-  Resource resource = 2;
+// Tombstone represents a promise to delete all of a resource's immediately
+// owned (child) resources, if any.
+message Tombstone {
+  // Owner resource identifier.
+  ID owner = 1;
 }
 
+// ResourceService provides the shared primitives for storing, querying, and
+// watching resources of different types.
+//
+// It is exposed on our external gRPC port and used internally by controllers.
+//
+// # Consistency Guarentees
+//
+// All reads are eventually consistent by default. Concretely, we guarantee
+// [monotonic reads](https://jepsen.io/consistency/models/monotonic-reads).
+//
+// That is, a read will always return results that are as up-to-date as an
+// earlier read, provided both happen on the same Consul server. But we do
+// not make any such guarantee about writes. In other words, reads won't
+// necessarily reflect earlier writes, even when made against the same server.
+//
+// This guarantee also holds between the Read and WatchList endpoints such that
+// you'll never receive an event about a resource that you cannot immediately
+// read, provided both the Read and WatchList happen on the same server.
+//
+// The Read endpoint also supports a strong consistency mode that guarantees
+// [linearizability](https://jepsen.io/consistency/models/linearizable), such
+// that a read will always return the most up-to-date version of a resource,
+// without caveat.
+//
+// This is much more expensive than eventual consistency and when using the Raft
+// storage backend, will increase load on the cluster leader, so should be used
+// sparingly.
+//
+// To opt-in to strongly consistent reads set the `x-consul-consistency-mode`
+// gRPC metadata field to "consistent".
 service ResourceService {
+  // Read a resource by ID.
+  //
+  // By default, reads are eventually consistent, but you can opt-in to strong
+  // consistency via the x-consul-consistency-mode metadata (see ResourceService
+  // docs for more info).
+  //
+  // Errors with NotFound if the resource is not found.
+  //
+  // Errors with InvalidArgument if the request fails validation or the resource
+  // is stored as a type with a different GroupVersion than was requested.
+  //
+  // Errors with PermissionDenied if the caller is not authorized to read
+  // the resource.
   rpc Read(ReadRequest) returns (ReadResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
@@ -85,6 +244,24 @@ service ResourceService {
     };
   }
 
+  // Write a resource.
+  //
+  // To perform a CAS (Compare-And-Swap) write, provide the current resource
+  // version in the Resource.Version field. If the given version doesn't match
+  // what is currently stored, an Aborted error code will be returned.
+  //
+  // To perform a blanket write (update regardless of the stored version),
+  // provide an empty Version in the Resource.Version field. Note that the
+  // write may still fail due to not being able to internally do a CAS write
+  // and return an Aborted error code.
+  //
+  // Resource.Id.Uid can (and by controllers, should) be provided to avoid
+  // accidentally modifying a resource if it has been deleted and recreated.
+  // If the given Uid doesn't match what is stored, a FailedPrecondition error
+  // code will be returned.
+  //
+  // It is not possible to modify the resource's status using Write. You must
+  // use WriteStatus instead.
   rpc Write(WriteRequest) returns (WriteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_WRITE,
@@ -92,6 +269,20 @@ service ResourceService {
     };
   }
 
+  // WriteStatus updates one of the resource's statuses. It should only be used
+  // by controllers.
+  //
+  // To perform a CAS (Compare-And-Swap) write, provide the current resource
+  // version in the Version field. If the given version doesn't match what is
+  // currently stored, an Aborted error code will be returned.
+  //
+  // Note: in most cases, CAS status updates are not necessary because updates
+  // are scoped to a specific status key and controllers are leader-elected so
+  // there is no chance of a conflict.
+  //
+  // Id.Uid must be provided to avoid accidentally modifying a resource if it has
+  // been deleted and recreated. If the given Uid doesn't match what is stored,
+  // a FailedPrecondition error code will be returned.
   rpc WriteStatus(WriteStatusRequest) returns (WriteStatusResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_WRITE,
@@ -99,6 +290,11 @@ service ResourceService {
     };
   }
 
+  // List resources of a given type, tenancy, and optionally name prefix.
+  //
+  // To list resources across all tenancy units, provide the wildcard "*" value.
+  //
+  // Results are eventually consistent (see ResourceService docs for more info).
   rpc List(ListRequest) returns (ListResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
@@ -106,6 +302,29 @@ service ResourceService {
     };
   }
 
+  // List resources of a given owner.
+  //
+  // Results are eventually consistent (see ResourceService docs for more info).
+  rpc ListByOwner(ListByOwnerRequest) returns (ListByOwnerResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
+  }
+
+  // Delete a resource by ID.
+  //
+  // Deleting a non-existent resource will return a successful response for
+  // idempotency.
+  //
+  // To perform a CAS (Compare-And-Swap) deletion, provide the current resource
+  // version in the Version field. If the given version doesn't match what is
+  // currently stored, an Aborted error code will be returned.
+  //
+  // Resource.Id.Uid can (and by controllers, should) be provided to avoid
+  // accidentally modifying a resource if it has been deleted and recreated.
+  // If the given Uid doesn't match what is stored, a FailedPrecondition error
+  // code will be returned.
   rpc Delete(DeleteRequest) returns (DeleteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_WRITE,
@@ -113,6 +332,17 @@ service ResourceService {
     };
   }
 
+  // WatchList watches resources of the given type, tenancy, and optionally name
+  // prefix. It returns results for the current state-of-the-world at the start
+  // of the stream, and delta events whenever resources are written or deleted.
+  //
+  // To watch resources across all tenancy units, provide the wildcard "*" value.
+  //
+  // WatchList makes no guarantees about event timeliness (e.g. an event for a
+  // write may not be received immediately), but it does guarantee that events
+  // will be emitted in the correct order. See ResourceService docs for more
+  // info about consistency guarentees.
+  //
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   rpc WatchList(WatchListRequest) returns (stream WatchEvent) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
@@ -122,52 +352,138 @@ service ResourceService {
   }
 }
 
+// ReadRequest contains the parameters to the Read endpoint.
 message ReadRequest {
+  // ID of the resource.
   ID id = 1;
 }
 
+// ReadResponse contains the results of calling the Read endpoint.
 message ReadResponse {
+  // Resource that was read.
   Resource resource = 1;
 }
 
+// ListRequest contains the parameters to the List endpoint.
 message ListRequest {
+  // Type of resource to list.
   Type type = 1;
+
+  // Tenancy units in which to list resources. To list resources in all units,
+  // provide the wildcard "*" value.
   Tenancy tenancy = 2;
+
+  // NamePrefix filters the results to those with a name beginning with the
+  // given prefix.
   string name_prefix = 3;
 }
 
+// ListResponse contains the results of calling the List endpoint.
 message ListResponse {
+  // Resources that were listed.
   repeated Resource resources = 1;
 }
 
+// ListByOwnerRequest contains the parameters to the ListByOwner endpoint.
+message ListByOwnerRequest {
+  ID owner = 1;
+}
+
+// ListByOwnerResponse contains the results of calling the ListByOwner endpoint.
+message ListByOwnerResponse {
+  // Resources that were listed.
+  repeated Resource resources = 1;
+}
+
+// WriteRequest contains the parameters to the Write endpoint.
 message WriteRequest {
+  // Resource to write.
   Resource resource = 1;
 }
 
+// WriteResponse contains the results of calling the Write endpoint.
 message WriteResponse {
+  // Resource that was written.
   Resource resource = 1;
 }
 
+// WriteStatusRequest contains the parameters to the WriteStatus endpoint.
 message WriteStatusRequest {
+  // ID of the resource to which the status will be written. Must contain a Uid.
   ID id = 1;
+
+  // Version may be provided to perform a CAS (Compare-And-Swap) update of the
+  // status. If the given version doesn't match what is currently stored, an
+  // Aborted error code will be returned.
+  //
+  // Note: in most cases, CAS status updates are not necessary because updates
+  // are scoped to a specific status key and controllers are leader-elected so
+  // there is no chance of a conflict.
   string version = 2;
+
+  // Key identifies which status will be written. Generally, each controller
+  // should write 1 status which it owns exclusively (i.e. no other controller
+  // updates it).
   string key = 3;
+
+  // Status that will be written to the resource.
   Status status = 4;
 }
 
+// WriteStatusResponse contains the results of calling the WriteStatus endpoint.
 message WriteStatusResponse {
+  // Resource to which the status was written.
   Resource resource = 1;
 }
 
+// DeleteRequest contains the parameters to the Delete endpoint.
 message DeleteRequest {
+  // ID of the resource that will be deleted.
   ID id = 1;
+
+  // Version may be provided to perform a CAS (Compare-And-Swap) deletion of the
+  // resource. If the given version doesn't match what is currently stored, an
+  // Aborted error code will be returned.
   string version = 2;
 }
 
+// DeleteResponse contains the results of calling the Delete endpoint.
 message DeleteResponse {}
 
+// WatchListRequest contains the parameters to the WatchList endpoint.
 message WatchListRequest {
+  // Type of resource to watch.
   Type type = 1;
+
+  // Tenancy units in which to watch resources. To list resources in all units,
+  // provide the wildcard "*" value.
   Tenancy tenancy = 2;
+
+  // NamePrefix filters the results to those with a name beginning with the
+  // given prefix.
   string name_prefix = 3;
+}
+
+// WatchEvent is emitted on the WatchList stream when a resource changes.
+message WatchEvent {
+  // Operation describes the type of event.
+  enum Operation {
+    // OPERATION_UNSPECIFIED is the default/zero value. You should not see it
+    // in practice.
+    OPERATION_UNSPECIFIED = 0;
+
+    // OPERATION_UPSERT indicates that the resource was written (i.e. created or
+    // updated). All events from the initial state-of-the-world will be upsert
+    // events.
+    OPERATION_UPSERT = 1;
+
+    // OPERATION_DELETED indicates that the resource was deleted.
+    OPERATION_DELETE = 2;
+  }
+
+  // Operation describes the type of event.
+  Operation operation = 1;
+
+  // Resource the event relates to.
+  Resource resource = 2;
 }

@@ -285,6 +285,8 @@ func TestDiscoveryChainRead(t *testing.T) {
 						33*time.Second,
 					),
 				},
+				AutoVirtualIPs:   []string{"240.0.0.1"},
+				ManualVirtualIPs: []string{},
 			}
 			if !reflect.DeepEqual(expect, value.Chain) {
 				r.Fatalf("should be equal: expected=%+v, got=%+v", expect, value.Chain)
@@ -333,6 +335,8 @@ func TestDiscoveryChainRead(t *testing.T) {
 			expectTarget_DC1.ID: expectTarget_DC1,
 			expectTarget_DC2.ID: expectTarget_DC2,
 		},
+		AutoVirtualIPs:   []string{"240.0.0.1"},
+		ManualVirtualIPs: []string{},
 	}
 
 	require.True(t, t.Run("POST: read modified chain with overrides (camel case)", func(t *testing.T) {

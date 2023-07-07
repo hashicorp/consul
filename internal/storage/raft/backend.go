@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package raft
 
 import (
@@ -40,6 +43,9 @@ import (
 // Backend's gRPC client and server *DO NOT* handle TLS themselves, as they are
 // intended to communicate over Consul's multiplexed server port (which handles
 // TLS).
+//
+// For more information, see here:
+// https://github.com/hashicorp/consul/tree/main/docs/resources#raft-storage-backend
 //
 // You must call Run before using the backend.
 func NewBackend(h Handle, l hclog.Logger) (*Backend, error) {
@@ -214,9 +220,9 @@ func (b *Backend) WatchList(_ context.Context, resType storage.UnversionedType, 
 	return b.store.WatchList(resType, tenancy, namePrefix)
 }
 
-// OwnerReferences implements the storage.Backend interface.
-func (b *Backend) OwnerReferences(_ context.Context, id *pbresource.ID) ([]*pbresource.ID, error) {
-	return b.store.OwnerReferences(id)
+// ListByOwner implements the storage.Backend interface.
+func (b *Backend) ListByOwner(_ context.Context, id *pbresource.ID) ([]*pbresource.Resource, error) {
+	return b.store.ListByOwner(id)
 }
 
 // Apply is called by the FSM with the bytes of a Raft log entry, with Consul's

@@ -11,52 +11,26 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestRegister(t *testing.T) {
 	r := resource.NewRegistry()
 
-	serviceType := &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v1",
-		Kind:         "service",
-	}
-
 	// register success
-	serviceRegistration := resource.Registration{Type: serviceType}
-	r.Register(serviceRegistration)
+	reg := resource.Registration{Type: demo.TypeV2Artist}
+	r.Register(reg)
+	actual, ok := r.Resolve(demo.TypeV2Artist)
+	require.True(t, ok)
+	require.True(t, proto.Equal(demo.TypeV2Artist, actual.Type))
 
 	// register existing should panic
-	assertRegisterPanics(t, r.Register, serviceRegistration, "resource type mesh.v1.service already registered")
-
-	// register empty Group should panic
-	assertRegisterPanics(t, r.Register, resource.Registration{
-		Type: &pbresource.Type{
-			Group:        "",
-			GroupVersion: "v1",
-			Kind:         "service",
-		},
-	}, "type field(s) cannot be empty")
-
-	// register empty GroupVersion should panic
-	assertRegisterPanics(t, r.Register, resource.Registration{
-		Type: &pbresource.Type{
-			Group:        "mesh",
-			GroupVersion: "",
-			Kind:         "service",
-		},
-	}, "type field(s) cannot be empty")
-
-	// register empty Kind should panic
-	assertRegisterPanics(t, r.Register, resource.Registration{
-		Type: &pbresource.Type{
-			Group:        "mesh",
-			GroupVersion: "v1",
-			Kind:         "",
-		},
-	}, "type field(s) cannot be empty")
+	require.PanicsWithValue(t, "resource type demo.v2.Artist already registered", func() {
+		r.Register(reg)
+	})
 }
 
 func TestRegister_Defaults(t *testing.T) {
@@ -87,21 +61,12 @@ func TestRegister_Defaults(t *testing.T) {
 	require.NoError(t, reg.Mutate(nil))
 }
 
-func assertRegisterPanics(t *testing.T, registerFn func(reg resource.Registration), registration resource.Registration, panicString string) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("expected panic, but none occurred")
-		} else {
-			errstr, ok := r.(string)
-			if !ok {
-				t.Errorf("unexpected error type returned from panic")
-			} else if errstr != panicString {
-				t.Errorf("expected %s error message but got: %s", panicString, errstr)
-			}
-		}
-	}()
+func TestNewRegistry(t *testing.T) {
+	r := resource.NewRegistry()
 
-	registerFn(registration)
+	// verify tombstone type registered implicitly
+	_, ok := r.Resolve(resource.TypeV1Tombstone)
+	require.True(t, ok)
 }
 
 func TestResolve(t *testing.T) {
@@ -110,7 +75,7 @@ func TestResolve(t *testing.T) {
 	serviceType := &pbresource.Type{
 		Group:        "mesh",
 		GroupVersion: "v1",
-		Kind:         "service",
+		Kind:         "Service",
 	}
 
 	// not found
@@ -122,4 +87,90 @@ func TestResolve(t *testing.T) {
 	registration, ok := r.Resolve(serviceType)
 	assert.True(t, ok)
 	assert.Equal(t, registration.Type, serviceType)
+}
+
+func TestRegister_TypeValidation(t *testing.T) {
+	registry := resource.NewRegistry()
+
+	testCases := map[string]struct {
+		fn    func(*pbresource.Type)
+		valid bool
+	}{
+		"Valid": {valid: true},
+		"Group empty": {
+			fn:    func(t *pbresource.Type) { t.Group = "" },
+			valid: false,
+		},
+		"Group PascalCase": {
+			fn:    func(t *pbresource.Type) { t.Group = "Foo" },
+			valid: false,
+		},
+		"Group kebab-case": {
+			fn:    func(t *pbresource.Type) { t.Group = "foo-bar" },
+			valid: false,
+		},
+		"Group snake_case": {
+			fn:    func(t *pbresource.Type) { t.Group = "foo_bar" },
+			valid: true,
+		},
+		"GroupVersion empty": {
+			fn:    func(t *pbresource.Type) { t.GroupVersion = "" },
+			valid: false,
+		},
+		"GroupVersion snake_case": {
+			fn:    func(t *pbresource.Type) { t.GroupVersion = "v_1" },
+			valid: false,
+		},
+		"GroupVersion kebab-case": {
+			fn:    func(t *pbresource.Type) { t.GroupVersion = "v-1" },
+			valid: false,
+		},
+		"GroupVersion no leading v": {
+			fn:    func(t *pbresource.Type) { t.GroupVersion = "1" },
+			valid: false,
+		},
+		"GroupVersion no trailing number": {
+			fn:    func(t *pbresource.Type) { t.GroupVersion = "OnePointOh" },
+			valid: false,
+		},
+		"Kind PascalCase with numbers": {
+			fn:    func(t *pbresource.Type) { t.Kind = "Number1" },
+			valid: true,
+		},
+		"Kind camelCase": {
+			fn:    func(t *pbresource.Type) { t.Kind = "barBaz" },
+			valid: false,
+		},
+		"Kind snake_case": {
+			fn:    func(t *pbresource.Type) { t.Kind = "bar_baz" },
+			valid: false,
+		},
+		"Kind empty": {
+			fn:    func(t *pbresource.Type) { t.Kind = "" },
+			valid: false,
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			reg := func() {
+				typ := &pbresource.Type{
+					Group:        "foo",
+					GroupVersion: "v1",
+					Kind:         "Bar",
+				}
+				if tc.fn != nil {
+					tc.fn(typ)
+				}
+				registry.Register(resource.Registration{
+					Type: typ,
+				})
+			}
+
+			if tc.valid {
+				require.NotPanics(t, reg)
+			} else {
+				require.Panics(t, reg)
+			}
+		})
+	}
 }

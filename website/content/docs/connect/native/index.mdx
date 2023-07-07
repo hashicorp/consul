@@ -2,18 +2,25 @@
 layout: docs
 page_title: Service Mesh Native App Integration - Overview
 description: >-
-  When using sidecar proxies is not possible, applications can natively integrate with Consul service mesh, but have reduced access to service mesh features. Learn how “Connect-Native” apps use mTLS to authenticate with Consul and how to add integrations to service registrations.
+  When using sidecar proxies is not possible, applications can natively integrate with Consul service mesh, but have reduced access to service mesh features. Learn how "mesh-native" or "connect-native" apps use mTLS to authenticate with Consul and how to add integrations to service registrations.
 ---
 
 # Service Mesh Native App Integration Overview
 
-~> **Note:** The Native App Integration does not support many of the Connect service
-mesh features, and is not under active development.
-The [Envoy proxy](/consul/docs/connect/proxies/envoy) should be used for most production
-environments.
+<Note>
 
-Applications can natively integrate with the Connect API to support accepting
-and establishing connections to other Connect services without the overhead of a
+The Connect Native Golang SDK and `v1/agent/connect/authorize`, `v1/agent/connect/ca/leaf`, 
+and `v1/agent/connect/ca/roots` APIs are deprecated and will be removed in a future release. Although Connect Native 
+will still operate as designed, we do not recommend leveraging this feature because it is deprecated and will be removed 
+removed when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
+
+The Native App Integration does not support many of the Consul's service mesh features, and is not under active development.
+The [Envoy proxy](/consul/docs/connect/proxies/envoy) should be used for most production environments. 
+
+</Note>
+
+Applications can natively integrate with Consul's service mesh API to support accepting
+and establishing connections to other mesh services without the overhead of a
 [proxy sidecar](/consul/docs/connect/proxies). This option is especially useful
 for applications that may be experiencing performance issues with the proxy
 sidecar deployment. This page will cover the high-level overview of
@@ -21,20 +28,23 @@ integration, registering the service, etc. For language-specific examples, see
 the sidebar navigation to the left. It is also required if your service uses
 relies on a dynamic set of upstream services.
 
-Connect is just basic mutual TLS. This means that almost any application
-can easily integrate with Connect. There is no custom protocol in use;
-any language that supports TLS can accept and establish Connect-based
+Service mesh traffic is just basic mutual TLS. This means that almost any application
+can easily integrate with Consul service mesh. There is no custom protocol in use;
+any language that supports TLS can accept and establish mesh-based
 connections.
 
 We currently provide an easy-to-use [Go integration](/consul/docs/connect/native/go)
 to assist with the getting the proper certificates, verifying connections,
 etc. We plan to add helper libraries for other languages in the future.
 However, without library support, it is still possible for any major language
-to integrate with Connect.
+to integrate with Consul service mesh.
+
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
 
 ## Overview
 
-The primary work involved in natively integrating with Connect is
+The primary work involved in natively integrating with service mesh is
 [acquiring the proper TLS certificate](/consul/api-docs/agent/connect#service-leaf-certificate),
 [verifying TLS certificates](/consul/api-docs/agent/connect#certificate-authority-ca-roots),
 and [authorizing inbound connections or requests](/consul/api-docs/connect/intentions#list-matching-intentions).
@@ -55,7 +65,7 @@ Details on the steps are below:
 - **Service discovery** - This is normal service discovery using Consul,
   a static IP, or any other mechanism. If you're using Consul DNS, the
   [`<service>.connect`](/consul/docs/services/discovery/dns-static-lookups#service-mesh-enabled-service-lookups)
-  syntax to find Connect-capable endpoints for a service. After service
+  syntax to find mesh-capable endpoints for a service. After service
   discovery, choose one address from the list of **service addresses**.
 
 - **Mutual TLS** - As a client, connect to the discovered service address
@@ -64,7 +74,7 @@ Details on the steps are below:
   as the client certificate. Verify the remote certificate against the
   [public CA roots](/consul/api-docs/agent/connect#certificate-authority-ca-roots).
   As a client, if the connection is established then you've established
-  a Connect-based connection and there are no further steps!
+  a mesh-based connection and there are no further steps!
 
 - **Authorization** - As a server accepting connections, verify the client
   certificate against the [public CA
@@ -102,8 +112,8 @@ so that new connections are not disrupted. This can be done through
 Consul blocking queries (HTTP long polling) or through periodic polling.
 
 The API calls for
-[acquiring a leaf TLS certificate](/consul/api-docs/agent/connect#service-leaf-certificate)
-and [reading CA roots](/consul/api-docs/agent/connect#certificate-authority-ca-roots)
+[acquiring a service mesh TLS certificate](/consul/api-docs/agent/connect#service-leaf-certificate)
+and [reading service mesh CA roots](/consul/api-docs/agent/connect#certificate-authority-ca-roots)
 both support
 [blocking queries](/consul/api-docs/features/blocking). By using blocking
 queries, an application can efficiently wait for an updated value. For example,
@@ -121,7 +131,7 @@ certificate endpoints frequently, such as multiple times per minute.
 The overhead for the blocking queries (long or periodic polling) is minimal.
 The API calls are to the local agent and the local agent uses locally
 cached data multiplexed over a single TCP connection to the Consul leader.
-Even if a single machine has 1,000 Connect-enabled services all blocking
+Even if a single machine has 1,000 mesh-enabled services all blocking
 on certificate updates, this translates to only one TCP connection to the
 Consul server.
 
@@ -131,9 +141,9 @@ and locally caching the certificates.
 
 ## Service registration
 
-Connect-native applications must tell Consul that they support Connect
+Mesh-native applications must tell Consul that they support service mesh
 natively. This enables the service to be returned as part of service
-discovery for service mesh-capable services used by other Connect-native applications
+discovery for service mesh-capable services used by other mesh-native applications
 and client [proxies](/consul/docs/connect/proxies).
 
 You can enable native service mesh support directly in the [service definition](/consul/docs/services/configuration/services-configuration-reference#connect) by configuring the `connect` block. In the following example, the `redis` service is configured to support service mesh natively:
@@ -150,6 +160,6 @@ You can enable native service mesh support directly in the [service definition](
 }
 ```
 
-Services that support Connect natively are still returned through the standard
-service discovery mechanisms in addition to the Connect-only service discovery
+Services that support service mesh natively are still returned through the standard
+service discovery mechanisms in addition to the mesh-only service discovery
 mechanisms.

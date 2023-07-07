@@ -63,6 +63,9 @@ func (f *Filter) Filter(subject any) {
 	case *structs.IndexedIntentions:
 		v.QueryMeta.ResultsFilteredByACLs = f.filterIntentions(&v.Intentions)
 
+	case *structs.IntentionQueryMatch:
+		f.filterIntentionMatch(v)
+
 	case *structs.IndexedNodeDump:
 		if f.filterNodeDump(&v.Dump) {
 			v.QueryMeta.ResultsFilteredByACLs = true
@@ -255,7 +258,10 @@ func (f *Filter) filterServiceNodes(nodes *structs.ServiceNodes) bool {
 			continue
 		}
 		removed = true
-		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node, &node.EnterpriseMeta))
+		node.CompoundServiceID()
+		f.logger.Debug("dropping service node from result due to ACLs",
+			"node", structs.NodeNameString(node.Node, &node.EnterpriseMeta),
+			"service", node.CompoundServiceID())
 		sn = append(sn[:i], sn[i+1:]...)
 		i--
 	}
@@ -337,7 +343,9 @@ func (f *Filter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) bool 
 		if node.CanRead(f.authorizer) == acl.Allow {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()))
+		f.logger.Debug("dropping check service node from result due to ACLs",
+			"node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()),
+			"service", node.Service.CompoundServiceID())
 		removed = true
 		csn = append(csn[:i], csn[i+1:]...)
 		i--
@@ -438,6 +446,26 @@ func (f *Filter) filterIntentions(ixns *structs.Intentions) bool {
 
 	*ixns = ret
 	return removed
+}
+
+// filterIntentionMatch filters IntentionQueryMatch to only exclude all
+// matches when the user doesn't have access to any match.
+func (f *Filter) filterIntentionMatch(args *structs.IntentionQueryMatch) {
+	var authzContext acl.AuthorizerContext
+	authz := f.authorizer.ToAllowAuthorizer()
+	for _, entry := range args.Entries {
+		entry.FillAuthzContext(&authzContext)
+		if prefix := entry.Name; prefix != "" {
+			if err := authz.IntentionReadAllowed(prefix, &authzContext); err != nil {
+				accessorID := authz.AccessorID
+				f.logger.Warn("Operation on intention prefix denied due to ACLs",
+					"prefix", prefix,
+					"accessorID", acl.AliasIfAnonymousToken(accessorID))
+				args.Entries = nil
+				return
+			}
+		}
+	}
 }
 
 // filterNodeDump is used to filter through all parts of a node dump and

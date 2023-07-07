@@ -48,9 +48,10 @@ func newTestSnapshot(
 	t *testing.T,
 	prevSnap *proxycfg.ConfigSnapshot,
 	dbServiceProtocol string,
+	nsFn func(ns *structs.NodeService),
 	additionalEntries ...structs.ConfigEntry,
 ) *proxycfg.ConfigSnapshot {
-	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, additionalEntries...)
+	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nsFn, nil, additionalEntries...)
 	snap.ConnectProxy.PreparedQueryEndpoints = map[proxycfg.UpstreamID]structs.CheckServiceNodes{
 		UID("prepared_query:geo-cache"): proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
 	}

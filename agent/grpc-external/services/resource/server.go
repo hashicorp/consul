@@ -131,17 +131,19 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 		return status.Errorf(codes.InvalidArgument, "%s.%s is required", errorPrefix, field)
 	}
 
+	// Revisit defaulting and non-namespaced resources post-1.16
+	var expected string
 	switch {
-	case id.Tenancy.Namespace == storage.Wildcard:
-		field = "tenancy.namespace"
-	case id.Tenancy.Partition == storage.Wildcard:
-		field = "tenancy.partition"
-	case id.Tenancy.PeerName == storage.Wildcard:
-		field = "tenancy.peername"
+	case id.Tenancy.Partition != "default":
+		field, expected = "partition", "default"
+	case id.Tenancy.Namespace != "default":
+		field, expected = "namespace", "default"
+	case id.Tenancy.PeerName != "local":
+		field, expected = "peername", "local"
 	}
 
 	if field != "" {
-		return status.Errorf(codes.InvalidArgument, "%s.%s cannot be a wildcard", errorPrefix, field)
+		return status.Errorf(codes.InvalidArgument, "%s.tenancy.%s must be %s", errorPrefix, field, expected)
 	}
 	return nil
 }

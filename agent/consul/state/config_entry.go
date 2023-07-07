@@ -6,8 +6,10 @@ package state
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -16,6 +18,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
+)
+
+var (
+	permissiveModeNotAllowedError = errors.New("cannot set MutualTLSMode=permissive because AllowEnablingPermissiveMutualTLS=false in the mesh config entry")
 )
 
 type ConfigEntryLinkIndex struct {
@@ -229,14 +235,16 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 		return fmt.Errorf("failed configuration lookup: %s", err)
 	}
 
+	var existingConf structs.ConfigEntry
 	raftIndex := conf.GetRaftIndex()
 	if existing != nil {
-		existingIdx := existing.(structs.ConfigEntry).GetRaftIndex()
+		existingConf = existing.(structs.ConfigEntry)
+		existingIdx := existingConf.GetRaftIndex()
 		raftIndex.CreateIndex = existingIdx.CreateIndex
 
 		// Handle optional upsert logic.
 		if updatableConf, ok := conf.(structs.UpdatableConfigEntry); ok {
-			if err := updatableConf.UpdateOver(existing.(structs.ConfigEntry)); err != nil {
+			if err := updatableConf.UpdateOver(existingConf); err != nil {
 				return err
 			}
 		}
@@ -256,7 +264,7 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 	}
 	raftIndex.ModifyIndex = idx
 
-	err = validateProposedConfigEntryInGraph(tx, q, conf)
+	err = validateProposedConfigEntryInGraph(tx, q, conf, existingConf)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -445,7 +453,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		}
 	}
 
-	err = validateProposedConfigEntryInGraph(tx, q, nil)
+	err = validateProposedConfigEntryInGraph(tx, q, nil, c)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -458,9 +466,8 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	// If this is a resolver/router/splitter, attempt to delete the virtual IP associated
-	// with this service.
-	if kind == structs.ServiceResolver || kind == structs.ServiceRouter || kind == structs.ServiceSplitter {
+	// Attempt to delete the virtual IP associated with this service, if applicable.
+	if configEntryHasVirtualIP(c) {
 		psn := structs.PeeredServiceName{ServiceName: sn}
 		if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
 			return fmt.Errorf("failed to clean up virtual IP for %q: %v", psn.String(), err)
@@ -512,11 +519,14 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		if err != nil {
 			return err
 		}
-	case structs.ServiceResolver:
-		fallthrough
-	case structs.ServiceRouter:
-		fallthrough
-	case structs.ServiceSplitter:
+	}
+
+	// Assign virtual-ips, if needed
+	supported, err := virtualIPsSupported(tx, nil)
+	if err != nil {
+		return err
+	}
+	if supported && configEntryHasVirtualIP(conf) {
 		psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(conf.GetName(), conf.GetEnterpriseMeta())}
 		if _, err := assignServiceVirtualIP(tx, idx, psn); err != nil {
 			return err
@@ -534,6 +544,28 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	return nil
 }
 
+func configEntryHasVirtualIP(c structs.ConfigEntry) bool {
+	if c == nil || c.GetName() == "" {
+		return false
+	}
+	switch c.GetKind() {
+	case structs.ServiceRouter:
+		return true
+	case structs.ServiceResolver:
+		return true
+	case structs.ServiceSplitter:
+		return true
+	case structs.ServiceDefaults:
+		return true
+	case structs.ServiceIntentions:
+		entMeta := c.GetEnterpriseMeta()
+		return !strings.Contains(c.GetName(), "*") &&
+			!strings.Contains(entMeta.NamespaceOrDefault(), "*") &&
+			!strings.Contains(entMeta.PartitionOrDefault(), "*")
+	}
+	return false
+}
+
 // validateProposedConfigEntryInGraph can be used to verify graph integrity for
 // a proposed graph create/update/delete.
 //
@@ -544,7 +576,7 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 func validateProposedConfigEntryInGraph(
 	tx ReadTxn,
 	kindName configentry.KindName,
-	newEntry structs.ConfigEntry,
+	newEntry, existingEntry structs.ConfigEntry,
 ) error {
 	switch kindName.Kind {
 	case structs.ProxyDefaults:
@@ -552,7 +584,25 @@ func validateProposedConfigEntryInGraph(
 		if kindName.Name != structs.ProxyConfigGlobal {
 			return nil
 		}
+		if newPD, ok := newEntry.(*structs.ProxyConfigEntry); ok && newPD != nil {
+			var existingMode structs.MutualTLSMode
+			if existingPD, ok := existingEntry.(*structs.ProxyConfigEntry); ok && existingPD != nil {
+				existingMode = existingPD.MutualTLSMode
+			}
+			if err := checkMutualTLSMode(tx, kindName, newPD.MutualTLSMode, existingMode); err != nil {
+				return err
+			}
+		}
 	case structs.ServiceDefaults:
+		if newSD, ok := newEntry.(*structs.ServiceConfigEntry); ok && newSD != nil {
+			var existingMode structs.MutualTLSMode
+			if existingSD, ok := existingEntry.(*structs.ServiceConfigEntry); ok && existingSD != nil {
+				existingMode = existingSD.MutualTLSMode
+			}
+			if err := checkMutualTLSMode(tx, kindName, newSD.MutualTLSMode, existingMode); err != nil {
+				return err
+			}
+		}
 	case structs.ServiceRouter:
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
@@ -568,6 +618,13 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
+		if newEntry != nil {
+			err := validateJWTProvidersExist(tx, kindName, newEntry)
+			if err != nil {
+
+				return err
+			}
+		}
 	case structs.MeshConfig:
 	case structs.ExportedServices:
 	case structs.APIGateway: // TODO Consider checkGatewayClash
@@ -576,11 +633,212 @@ func validateProposedConfigEntryInGraph(
 	case structs.HTTPRoute:
 	case structs.TCPRoute:
 	case structs.RateLimitIPConfig:
+	case structs.JWTProvider:
+		if newEntry == nil && existingEntry != nil {
+			err := validateJWTProviderIsReferenced(tx, kindName, existingEntry)
+			if err != nil {
+				return err
+			}
+		}
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
 
 	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
+}
+
+func getExistingJWTProvidersByName(tx ReadTxn, kn configentry.KindName) (map[string]*structs.JWTProviderConfigEntry, error) {
+	meta := acl.NewEnterpriseMetaWithPartition(
+		kn.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
+
+	_, configEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, &meta)
+
+	providerNames := make(map[string]*structs.JWTProviderConfigEntry)
+
+	for i := range configEntries {
+		entry, ok := configEntries[i].(*structs.JWTProviderConfigEntry)
+		if !ok {
+			return nil, fmt.Errorf("Invalid type of jwt-provider config entry: %T", configEntries[i])
+		}
+
+		if _, ok := providerNames[entry.Name]; !ok {
+			providerNames[entry.Name] = entry
+		}
+	}
+
+	return providerNames, err
+}
+
+func validateJWTProvider(existingProviderNames map[string]*structs.JWTProviderConfigEntry, referencedProviderNames map[string]struct{}) error {
+	var result error
+
+	for referencedProvider := range referencedProviderNames {
+		_, found := existingProviderNames[referencedProvider]
+		if !found {
+			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", referencedProvider)).ErrorOrNil()
+		}
+	}
+
+	return result
+}
+
+func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs.SourceIntention) map[string]struct{} {
+	providerNames := make(map[string]struct{})
+
+	if j != nil {
+		for _, provider := range j.Providers {
+			if _, ok := providerNames[provider.Name]; !ok {
+				providerNames[provider.Name] = struct{}{}
+			}
+		}
+	}
+
+	for _, src := range s {
+		for _, perm := range src.Permissions {
+			if perm.JWT != nil {
+				for _, provider := range perm.JWT.Providers {
+					if _, ok := providerNames[provider.Name]; !ok {
+						providerNames[provider.Name] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+
+	return providerNames
+}
+
+// validateJWTProviderIsReferenced iterates over intentions to determine if the provider being
+// deleted is referenced by any intention.
+//
+// This could be an expensive operation based on the number of intentions. We purposely set this to only
+// run on delete and don't expect this to be called often.
+func validateJWTProviderIsReferenced(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
+	meta := acl.NewEnterpriseMetaWithPartition(
+		kn.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
+	entry, ok := ce.(*structs.JWTProviderConfigEntry)
+	if !ok {
+		return fmt.Errorf("invalid jwt provider config entry: %T", entry)
+	}
+
+	_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, &meta)
+	if err != nil {
+		return err
+	}
+
+	err = findJWTProviderNameReferences(ixnEntries, entry.Name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func findJWTProviderNameReferences(entries []structs.ConfigEntry, pName string) error {
+	errMsg := "cannot delete jwt provider config entry referenced by an intention. Provider name: %s, intention name: %s"
+	for _, entry := range entries {
+		ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+		if !ok {
+			return fmt.Errorf("type %T is not a service intentions config entry", entry)
+		}
+
+		if ixn.JWT != nil {
+			for _, prov := range ixn.JWT.Providers {
+				if prov.Name == pName {
+					return fmt.Errorf(errMsg, pName, ixn.Name)
+				}
+			}
+		}
+
+		for _, s := range ixn.Sources {
+			for _, perm := range s.Permissions {
+				if perm.JWT == nil {
+					continue
+				}
+				for _, prov := range perm.JWT.Providers {
+					if prov.Name == pName {
+						return fmt.Errorf(errMsg, pName, ixn.Name)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// This fetches all the jwt-providers config entries and iterates over them
+// to validate that any provider referenced exists.
+// This is okay because we assume there are very few jwt-providers per partition
+func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
+	var result error
+	entry, ok := ce.(*structs.ServiceIntentionsConfigEntry)
+	if !ok {
+		return fmt.Errorf("Invalid service intention config entry: %T", entry)
+	}
+
+	referencedProvidersNames := getReferencedProviderNames(entry.JWT, entry.Sources)
+
+	if len(referencedProvidersNames) > 0 {
+		jwtProvidersNames, err := getExistingJWTProvidersByName(tx, kn)
+		if err != nil {
+			return fmt.Errorf("Failed retrieval of jwt config entries with err: %v", err)
+		}
+
+		result = multierror.Append(result, validateJWTProvider(jwtProvidersNames, referencedProvidersNames)).ErrorOrNil()
+	}
+	return result
+}
+
+// checkMutualTLSMode validates the MutualTLSMode (in proxy-defaults or
+// service-defaults) against the AllowEnablingPermissiveMutualTLS setting in the
+// mesh config entry, as follows:
+//
+// - If AllowEnablingPermissiveMutualTLS=true, any value of MutualTLSMode is allowed.
+// - If AllowEnablingPermissiveMutualTLS=false, *changing* to MutualTLSMode=permissive is not allowed
+//
+// If MutualTLSMode=permissive is already stored, but the setting is not being changed
+// by this transaction, then the permissive setting is allowed (does not cause a validation error).
+func checkMutualTLSMode(tx ReadTxn, kindName configentry.KindName, newMode, existingMode structs.MutualTLSMode) error {
+	// Setting the mode to something not permissive is always allowed.
+	if newMode != structs.MutualTLSModePermissive {
+		return nil
+	}
+
+	// If the MutualTLSMode has not been changed, then do not error. This allows
+	// remaining in MutualTLSMode=permissive without causing validation failures
+	// after AllowEnablingPermissiveMutualTLS=false is set.
+	if existingMode == newMode {
+		return nil
+	}
+
+	// The mesh config entry exists in the default namespace in the given partition.
+	metaInDefaultNS := acl.NewEnterpriseMetaWithPartition(
+		kindName.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
+	_, mesh, err := configEntryTxn(tx, nil, structs.MeshConfig, structs.MeshConfigMesh, &metaInDefaultNS)
+	if err != nil {
+		return fmt.Errorf("unable to validate MutualTLSMode against mesh config entry: %w", err)
+	}
+
+	permissiveAllowed := false
+	if mesh != nil {
+		meshConfig, ok := mesh.(*structs.MeshConfigEntry)
+		if !ok {
+			return fmt.Errorf("unable to validate MutualTLSMode: invalid type from mesh config entry lookup: %T", mesh)
+		}
+		permissiveAllowed = meshConfig.AllowEnablingPermissiveMutualTLS
+	}
+
+	// If permissive is not allowed, then any value for MutualTLSMode is allowed.
+	if !permissiveAllowed && newMode == structs.MutualTLSModePermissive {
+		return permissiveModeNotAllowedError
+	}
+	return nil
 }
 
 func checkGatewayClash(tx ReadTxn, kindName configentry.KindName, otherKind string) error {
@@ -954,20 +1212,23 @@ func validateProposedConfigEntryInServiceGraph(
 		svcTopNodeType              = make(map[structs.ServiceID]string)
 		exportedServicesByPartition = make(map[string]map[structs.ServiceName]struct{})
 	)
-	for chain := range checkChains {
-		protocol, topNode, newTargets, err := testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta)
+	for serviceID := range checkChains {
+		chain, err := testCompileDiscoveryChain(tx, serviceID.ID, overrides, &serviceID.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
-		svcProtocols[chain] = protocol
-		svcTopNodeType[chain] = topNode.Type
+		topNode := chain.Nodes[chain.StartNode]
+		protocol := chain.Protocol
 
-		chainSvc := structs.NewServiceName(chain.ID, &chain.EnterpriseMeta)
+		svcProtocols[serviceID] = protocol
+		svcTopNodeType[serviceID] = topNode.Type
+
+		chainSvc := structs.NewServiceName(serviceID.ID, &serviceID.EnterpriseMeta)
 
 		// Validate that we aren't adding a cross-datacenter or cross-partition
 		// reference to a peer-exported service's discovery chain by this pending
 		// edit.
-		partition := chain.PartitionOrDefault()
+		partition := serviceID.PartitionOrDefault()
 		exportedServices, ok := exportedServicesByPartition[partition]
 		if !ok {
 			entMeta := structs.NodeEnterpriseMetaInPartition(partition)
@@ -985,15 +1246,15 @@ func validateProposedConfigEntryInServiceGraph(
 			// If a TCP (L4) discovery chain is peer exported we have to take
 			// care to prohibit certain edits to service-resolvers.
 			if !structs.IsProtocolHTTPLike(protocol) {
-				_, _, oldTargets, err := testCompileDiscoveryChain(tx, chain.ID, nil, &chain.EnterpriseMeta)
+				oldChain, err := testCompileDiscoveryChain(tx, serviceID.ID, nil, &serviceID.EnterpriseMeta)
 				if err != nil {
 					return fmt.Errorf("error compiling current discovery chain for %q: %w", chainSvc, err)
 				}
 
 				// Ensure that you can't introduce any new targets that would
 				// produce a new SpiffeID for this L4 service.
-				oldSpiffeIDs := convertTargetsToTestSpiffeIDs(oldTargets)
-				newSpiffeIDs := convertTargetsToTestSpiffeIDs(newTargets)
+				oldSpiffeIDs := convertTargetsToTestSpiffeIDs(oldChain)
+				newSpiffeIDs := convertTargetsToTestSpiffeIDs(chain)
 				for id, targetID := range newSpiffeIDs {
 					if _, exists := oldSpiffeIDs[id]; !exists {
 						return fmt.Errorf("peer exported service %q uses protocol=%q and cannot introduce new discovery chain targets like %q",
@@ -1103,6 +1364,11 @@ func validateChainIsPeerExportSafe(
 			if e.Redirect.Datacenter != "" {
 				return fmt.Errorf("peer exported service %q contains cross-datacenter resolver redirect", exportedSvc)
 			}
+
+			if e.Redirect.Peer != "" {
+				return fmt.Errorf("peer exported service %q contains cross-peer resolver redirect", exportedSvc)
+			}
+
 			if !emptyOrMatchesEntryPartition(e, e.Redirect.Partition) {
 				return fmt.Errorf("peer exported service %q contains cross-partition resolver redirect", exportedSvc)
 			}
@@ -1111,6 +1377,14 @@ func validateChainIsPeerExportSafe(
 			for _, failover := range e.Failover {
 				if len(failover.Datacenters) > 0 {
 					return fmt.Errorf("peer exported service %q contains cross-datacenter failover", exportedSvc)
+				}
+
+				// We don't exclude Peer and Partition here because it's equivalent to sameness group failover behavior.
+				// Cross-peer and partition behavior is ignored by mesh gateways in xds/endpoints.
+				for _, t := range failover.Targets {
+					if t.Datacenter != "" {
+						return fmt.Errorf("peer exported service %q contains cross-datacenter failover", exportedSvc)
+					}
 				}
 			}
 		}
@@ -1136,10 +1410,10 @@ func testCompileDiscoveryChain(
 	chainName string,
 	overrides map[configentry.KindName]structs.ConfigEntry,
 	entMeta *acl.EnterpriseMeta,
-) (string, *structs.DiscoveryGraphNode, map[string]*structs.DiscoveryTarget, error) {
+) (*structs.CompiledDiscoveryChain, error) {
 	_, speculativeEntries, err := readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides, entMeta)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, err
 	}
 
 	// Note we use an arbitrary namespace and datacenter as those would not
@@ -1156,10 +1430,10 @@ func testCompileDiscoveryChain(
 	}
 	chain, err := discoverychain.Compile(req)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, err
 	}
 
-	return chain.Protocol, chain.Nodes[chain.StartNode], chain.Targets, nil
+	return chain, nil
 }
 
 func (s *Store) ServiceDiscoveryChain(
@@ -1203,6 +1477,22 @@ func serviceDiscoveryChainTxn(
 		return 0, nil, nil, errors.New("no cluster trust domain setup")
 	}
 	req.EvaluateInTrustDomain = signingID.Host()
+
+	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(serviceName, entMeta)}
+	serviceVIPEntry, err := serviceVIPsTxn(tx, psn)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	if serviceVIPEntry != nil {
+		assignedIP, err := serviceVIPEntry.IPWithOffset()
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		req.AutoVirtualIPs = []string{assignedIP}
+		req.ManualVirtualIPs = make([]string, len(serviceVIPEntry.ManualIPs))
+		copy(req.ManualVirtualIPs, serviceVIPEntry.ManualIPs)
+	}
 
 	// Then we compile it into something useful.
 	chain, err := discoverychain.Compile(req)
@@ -1387,14 +1677,14 @@ func readDiscoveryChainConfigEntriesTxn(
 	// the end of this function to indicate "no such entry".
 
 	var (
-		todoSplitters      = make(map[structs.ServiceID]struct{})
-		todoResolvers      = make(map[structs.ServiceID]struct{})
-		todoDefaults       = make(map[structs.ServiceID]struct{})
-		todoPeers          = make(map[string]struct{})
-		todoSamenessGroups = make(map[string]struct{})
+		todoSplitters = make(map[structs.ServiceID]struct{})
+		todoResolvers = make(map[structs.ServiceID]struct{})
+		todoDefaults  = make(map[structs.ServiceID]struct{})
+		todoPeers     = make(map[string]struct{})
 	)
 
 	sid := structs.NewServiceID(serviceName, entMeta)
+	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
 
 	// At every step we'll need service and proxy defaults.
 	todoDefaults[sid] = struct{}{}
@@ -1461,6 +1751,31 @@ func readDiscoveryChainConfigEntriesTxn(
 		}
 	}
 
+	processSamenessGroup := func(sg *structs.SamenessGroupConfigEntry, resolverID structs.ServiceID) error {
+		if sg == nil {
+			return nil
+		}
+
+		res.SamenessGroups[sg.Name] = sg
+
+		for _, peer := range sg.RelatedPeers() {
+			todoPeers[peer] = struct{}{}
+		}
+
+		for _, m := range sg.AllMembers() {
+			if m.Peer != "" {
+				continue
+			}
+
+			// Disco chains preserve the name and namespace from the resolver.
+			em := acl.NewEnterpriseMetaWithPartition(m.Partition, resolverID.NamespaceOrDefault())
+			s := structs.NewServiceID(resolverID.ID, &em)
+			todoResolvers[s] = struct{}{}
+		}
+
+		return nil
+	}
+
 	for {
 		resolverID, ok := anyKey(todoResolvers)
 		if !ok {
@@ -1483,12 +1798,23 @@ func readDiscoveryChainConfigEntriesTxn(
 			maxIdx = idx
 		}
 
+		res.Resolvers[resolverID] = resolver
 		if resolver == nil {
-			res.Resolvers[resolverID] = nil
+			idx, sg, err := getDefaultSamenessGroup(tx, ws, resolverID.PartitionOrDefault())
+			if err != nil {
+				return 0, nil, err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			processSamenessGroup(sg, resolverID)
+
+			if resolverID == sid {
+				res.DefaultSamenessGroup = sg
+			}
+
 			continue
 		}
-
-		res.Resolvers[resolverID] = resolver
 
 		for _, svc := range resolver.ListRelatedServices() {
 			todoResolvers[svc] = struct{}{}
@@ -1498,8 +1824,22 @@ func readDiscoveryChainConfigEntriesTxn(
 			todoPeers[peer] = struct{}{}
 		}
 
+		// We fetch sameness groups here rather than in another loop because we need the resolvers
+		// for services in different partitions of the local datacenter.
 		for _, sg := range resolver.RelatedSamenessGroups() {
-			todoSamenessGroups[sg] = struct{}{}
+			if _, ok := res.SamenessGroups[sg]; ok {
+				continue
+			}
+
+			idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta.PartitionOrDefault())
+			if err != nil {
+				return 0, nil, err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+
+			processSamenessGroup(entry, resolverID)
 		}
 	}
 
@@ -1540,42 +1880,6 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue
 		}
 		res.Services[svcID] = entry
-	}
-
-	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
-	for sg := range todoSamenessGroups {
-		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta.PartitionOrDefault())
-		if err != nil {
-			return 0, nil, err
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		if entry == nil {
-			continue
-		}
-
-		for _, peer := range entry.RelatedPeers() {
-			todoPeers[peer] = struct{}{}
-		}
-		res.SamenessGroups[sg] = entry
-	}
-
-	if r := res.Resolvers[sid]; r == nil {
-		idx, sg, err := getDefaultSamenessGroup(tx, ws, sid.PartitionOrDefault())
-		if err != nil {
-			return 0, nil, err
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		if sg != nil {
-			res.DefaultSamenessGroup = sg
-			res.SamenessGroups[sg.Name] = sg
-			for _, peer := range sg.RelatedPeers() {
-				todoPeers[peer] = struct{}{}
-			}
-		}
 	}
 
 	for peerName := range todoPeers {
@@ -1856,6 +2160,7 @@ func protocolForService(
 }
 
 const dummyTrustDomain = "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul"
+const dummyPeerTrustDomain = "4945bd44-b427-4cf5-b19a-5f54b195bf6e.consul"
 
 func newConfigEntryQuery(c structs.ConfigEntry) configentry.KindName {
 	return configentry.NewKindName(c.GetKind(), c.GetName(), c.GetEnterpriseMeta())
@@ -1882,9 +2187,24 @@ func (q ConfigEntryKindQuery) PartitionOrDefault() string {
 // convertTargetsToTestSpiffeIDs indexes the provided targets by their eventual
 // spiffeid values using a dummy trust domain. Returns a map of SpiffeIDs to
 // targetID values which can be used for error output.
-func convertTargetsToTestSpiffeIDs(targets map[string]*structs.DiscoveryTarget) map[string]string {
+func convertTargetsToTestSpiffeIDs(chain *structs.CompiledDiscoveryChain) map[string]string {
+	excludedTargets := make(map[string]struct{})
+
+	for _, n := range chain.Nodes {
+		if n != nil && n.Resolver != nil && n.Resolver.Failover != nil {
+			failover := n.Resolver.Failover
+			for _, t := range failover.Targets {
+				excludedTargets[t] = struct{}{}
+			}
+		}
+	}
+
 	out := make(map[string]string)
-	for tid, t := range targets {
+	for tid, t := range chain.Targets {
+		if _, ok := excludedTargets[tid]; ok {
+			continue
+		}
+
 		testSpiffeID := connect.SpiffeIDService{
 			Host:       dummyTrustDomain,
 			Partition:  t.Partition,
@@ -1892,6 +2212,15 @@ func convertTargetsToTestSpiffeIDs(targets map[string]*structs.DiscoveryTarget) 
 			Datacenter: t.Datacenter,
 			Service:    t.Service,
 		}
+
+		// Setting peer to dc allows spiffe ids to compare peered services to non-peered services.
+		// We also have to use a distinct trust domain for peering services so we handle
+		// clashes between peers and datacenters.
+		if t.Peer != "" {
+			testSpiffeID.Datacenter = t.Peer
+			testSpiffeID.Host = dummyPeerTrustDomain
+		}
+
 		uri := testSpiffeID.URI().String()
 		if _, ok := out[uri]; !ok {
 			out[uri] = tid

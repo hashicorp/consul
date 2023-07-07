@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -30,6 +33,7 @@ func (e *SimplifiedExportedServices) ToPartitionMap() map[string]map[string][]st
 				}
 			}
 			resp[svc.Namespace][svc.Name] = consumers
+			resp[svc.Namespace][svc.Name+structs.SidecarProxySuffix] = consumers
 		}
 	}
 	return resp

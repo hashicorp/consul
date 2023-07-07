@@ -22,6 +22,34 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestWatchList_InputValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	testCases := map[string]func(*pbresource.WatchListRequest){
+		"no type":    func(req *pbresource.WatchListRequest) { req.Type = nil },
+		"no tenancy": func(req *pbresource.WatchListRequest) { req.Tenancy = nil },
+	}
+	for desc, modFn := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			req := &pbresource.WatchListRequest{
+				Type:    demo.TypeV2Album,
+				Tenancy: demo.TenancyDefault,
+			}
+			modFn(req)
+
+			stream, err := client.WatchList(testContext(t), req)
+			require.NoError(t, err)
+
+			_, err = stream.Recv()
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
 func TestWatchList_TypeNotFound(t *testing.T) {
 	t.Parallel()
 
@@ -38,7 +66,7 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 
 	err = mustGetError(t, rspCh)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestWatchList_GroupVersionMatches(t *testing.T) {
@@ -46,7 +74,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 	ctx := context.Background()
 
 	// create a watch
@@ -90,7 +118,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	t.Parallel()
 
 	server := testServer(t)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 	client := testClient(t, server)
 	ctx := context.Background()
 
@@ -123,7 +151,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	mustGetNoResource(t, rspCh)
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestWatchList_ACL_ListDenied(t *testing.T) {
 	t.Parallel()
 
@@ -137,14 +165,14 @@ func TestWatchList_ACL_ListDenied(t *testing.T) {
 	require.Contains(t, err.Error(), "lacks permission 'key:list'")
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestWatchList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	t.Parallel()
 
 	// allow list, deny read
 	authz := AuthorizerFrom(t, `
 		key_prefix "resource/" { policy = "list" }
-		key_prefix "resource/demo.v2.artist/" { policy = "deny" }
+		key_prefix "resource/demo.v2.Artist/" { policy = "deny" }
 		`)
 	rspCh, _ := roundTripACL(t, authz)
 
@@ -152,14 +180,14 @@ func TestWatchList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	mustGetNoResource(t, rspCh)
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestWatchList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 	t.Parallel()
 
 	// allow list, allow read
 	authz := AuthorizerFrom(t, `
 		key_prefix "resource/" { policy = "list" }
-		key_prefix "resource/demo.v2.artist/" { policy = "read" }
+		key_prefix "resource/demo.v2.Artist/" { policy = "read" }
 	`)
 	rspCh, artist := roundTripACL(t, authz)
 
@@ -177,7 +205,7 @@ func roundTripACL(t *testing.T, authz acl.Authorizer) (<-chan resourceOrError, *
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(authz, nil)
 	server.ACLResolver = mockACLResolver
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)

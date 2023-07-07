@@ -9,9 +9,12 @@ import (
 	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -1660,6 +1663,280 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			},
 			expectErr: `cannot introduce new discovery chain targets like`,
 		},
+		"can redirect a peer exported http service to another service": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "other",
+				},
+			},
+		},
+		"cannot redirect a peer exported http service to another peer service": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "other",
+					Peer:    "something",
+				},
+			},
+			expectErr: `contains cross-peer resolver redirect`,
+		},
+		"cannot redirect a peer exported http service to a service in another datacenter": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service:    "other",
+					Datacenter: "dc12",
+				},
+			},
+			expectErr: `contains cross-datacenter resolver redirect`,
+		},
+		"can failover a peer exported http service to another service": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Service: "other",
+					},
+				},
+			},
+		},
+		"can failover a peer exported http service to another peer service": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{
+								Service: "other",
+								Peer:    "some-peer",
+							},
+						},
+					},
+				},
+			},
+		},
+		"can't failover a peer exported http service to another service in a different datacenter": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Service:     "other",
+						Datacenters: []string{"dc12"},
+					},
+				},
+			},
+			expectErr: `contains cross-datacenter failover`,
+		},
+		"can't failover a peer exported http service to another service in a different datacenter using targets": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{
+								Service:    "other",
+								Datacenter: "dc12",
+							},
+						},
+					},
+				},
+			},
+			expectErr: `contains cross-datacenter failover`,
+		},
+		"can failover a peer exported tcp service": {
+			entries: []structs.ConfigEntry{
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{
+								Service: "other",
+							},
+							{
+								Service: "other",
+								Peer:    "cluster-01",
+							},
+						},
+					},
+				},
+			},
+		},
+		"can failover a peer exported tcp service from a redirect": {
+			entries: []structs.ConfigEntry{
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "other",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "main",
+					},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{
+								Service: "another",
+							},
+							{
+								Service: "other",
+								Peer:    "cluster-01",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -3181,4 +3458,434 @@ func TestStateStore_ConfigEntry_VirtualIP(t *testing.T) {
 			ensureVirtualIP(t, s, "bar", "240.0.0.1")
 		})
 	}
+}
+
+func TestStore_MutualTLSMode_Validation_InitialWrite(t *testing.T) {
+	cases := []struct {
+		// setup
+		mesh *structs.MeshConfigEntry
+
+		mtlsMode structs.MutualTLSMode
+		expErr   error
+	}{
+		// Mesh config entry does not exist. Should default to AllowEnablingPermissiveMutualTLS=false.
+		{
+			mtlsMode: structs.MutualTLSModeDefault,
+		},
+		{
+			mtlsMode: structs.MutualTLSModeStrict,
+		},
+		{
+			mtlsMode: structs.MutualTLSModePermissive,
+			expErr:   permissiveModeNotAllowedError,
+		},
+
+		// Mesh config entry contains AllowEnablingPermissiveMutualTLS=false
+		{
+			mesh:     &structs.MeshConfigEntry{},
+			mtlsMode: structs.MutualTLSModeDefault,
+		},
+		{
+			mesh:     &structs.MeshConfigEntry{},
+			mtlsMode: structs.MutualTLSModeStrict,
+		},
+		{
+			mesh:     &structs.MeshConfigEntry{},
+			mtlsMode: structs.MutualTLSModePermissive,
+			expErr:   permissiveModeNotAllowedError,
+		},
+
+		// Mesh config entry exists with AllowEnablingPermissiveMutualTLS=true.
+		{
+			mesh:     &structs.MeshConfigEntry{AllowEnablingPermissiveMutualTLS: true},
+			mtlsMode: structs.MutualTLSModeDefault,
+		},
+		{
+			mesh:     &structs.MeshConfigEntry{AllowEnablingPermissiveMutualTLS: true},
+			mtlsMode: structs.MutualTLSModeStrict,
+		},
+		{
+			mesh:     &structs.MeshConfigEntry{AllowEnablingPermissiveMutualTLS: true},
+			mtlsMode: structs.MutualTLSModePermissive,
+		},
+	}
+	for _, c := range cases {
+		c := c
+		var name string
+		if c.mesh == nil {
+			name = fmt.Sprintf("when mesh config entry not found")
+		} else {
+			name = fmt.Sprintf("when AllowEnablingPermissiveMutualTLS=%v", c.mesh.AllowEnablingPermissiveMutualTLS)
+		}
+		if c.expErr != nil {
+			name += " cannot"
+		} else {
+			name += " can"
+		}
+		name += fmt.Sprintf(" set MutualTLSMode=%q", c.mtlsMode)
+		t.Run(name, func(t *testing.T) {
+			s := testConfigStateStore(t)
+
+			var err error
+			var idx uint64
+			if c.mesh != nil {
+				idx, err = writeConfigAndBumpIndexForTest(s, idx, c.mesh)
+				require.NoError(t, err)
+			}
+
+			idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ProxyConfigEntry{
+				Kind:          structs.ProxyDefaults,
+				Name:          structs.ProxyConfigGlobal,
+				MutualTLSMode: c.mtlsMode,
+			})
+			require.Equal(t, c.expErr, err)
+
+			_, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ServiceConfigEntry{
+				Kind:          structs.ServiceDefaults,
+				Name:          "test-svc",
+				MutualTLSMode: c.mtlsMode,
+			})
+			require.Equal(t, c.expErr, err)
+		})
+	}
+}
+
+func TestStore_MutualTLSMode_Validation_SubsequentWrite(t *testing.T) {
+	cases := []struct {
+		allowPermissive bool
+		initialModes    []structs.MutualTLSMode
+		transitions     map[structs.MutualTLSMode]error
+	}{
+		{
+			allowPermissive: false,
+			initialModes: []structs.MutualTLSMode{
+				structs.MutualTLSModeDefault,
+				structs.MutualTLSModeStrict,
+			},
+			transitions: map[structs.MutualTLSMode]error{
+				structs.MutualTLSModeDefault: nil,
+				structs.MutualTLSModeStrict:  nil,
+				// Cannot transition from "" -> "permissive"
+				// Cannot transition from "strict" -> "permissive"
+				structs.MutualTLSModePermissive: permissiveModeNotAllowedError,
+			},
+		},
+		{
+			allowPermissive: false,
+			initialModes: []structs.MutualTLSMode{
+				structs.MutualTLSModePermissive,
+			},
+			transitions: map[structs.MutualTLSMode]error{
+				structs.MutualTLSModeDefault: nil,
+				structs.MutualTLSModeStrict:  nil,
+				// Can transition from "permissive" -> "permissive"
+				structs.MutualTLSModePermissive: nil,
+			},
+		},
+		{
+			allowPermissive: true,
+			initialModes: []structs.MutualTLSMode{
+				structs.MutualTLSModeDefault,
+				structs.MutualTLSModeStrict,
+				structs.MutualTLSModePermissive,
+			},
+			transitions: map[structs.MutualTLSMode]error{
+				// Can transition from any mode to any other mode when allowPermissive=true
+				structs.MutualTLSModeDefault:    nil,
+				structs.MutualTLSModeStrict:     nil,
+				structs.MutualTLSModePermissive: nil,
+			},
+		},
+	}
+	for _, c := range cases {
+		c := c
+
+		for _, initialMode := range c.initialModes {
+			for newMode, expErr := range c.transitions {
+				name := fmt.Sprintf("when AllowEnablingPermissiveMutualTLS=%v", c.allowPermissive)
+				if expErr != nil {
+					name += " cannot"
+				} else {
+					name += " can"
+				}
+				name += fmt.Sprintf(" transition MutualTLSMode from %q to %q", initialMode, newMode)
+				t.Run(name, func(t *testing.T) {
+					s := testConfigStateStore(t)
+
+					// Setup initial state.
+					idx, err := writeConfigAndBumpIndexForTest(s, 0, &structs.MeshConfigEntry{
+						AllowEnablingPermissiveMutualTLS: true, // set to true to allow writing any initial mode.
+					})
+					require.NoError(t, err)
+
+					idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ProxyConfigEntry{
+						Kind:          structs.ProxyDefaults,
+						Name:          structs.ProxyConfigGlobal,
+						MutualTLSMode: initialMode,
+					})
+					require.NoError(t, err)
+
+					idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ServiceConfigEntry{
+						Kind:          structs.ServiceDefaults,
+						Name:          "test-svc",
+						MutualTLSMode: initialMode,
+					})
+					require.NoError(t, err)
+
+					// Set AllowEnablingPermissiveMutualTLS for the test case.
+					idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.MeshConfigEntry{
+						AllowEnablingPermissiveMutualTLS: c.allowPermissive,
+					})
+					require.NoError(t, err)
+
+					// Test switching to the other mode.
+					idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ProxyConfigEntry{
+						Kind:          structs.ProxyDefaults,
+						Name:          structs.ProxyConfigGlobal,
+						MutualTLSMode: newMode,
+					})
+					require.Equal(t, expErr, err)
+
+					_, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ServiceConfigEntry{
+						Kind:          structs.ServiceDefaults,
+						Name:          "test-svc",
+						MutualTLSMode: newMode,
+					})
+					require.Equal(t, expErr, err)
+				})
+
+			}
+		}
+	}
+}
+
+func writeConfigAndBumpIndexForTest(s *Store, idx uint64, entry structs.ConfigEntry) (uint64, error) {
+	err := s.EnsureConfigEntry(idx, entry)
+	if err == nil {
+		idx++
+	}
+	return idx, err
+}
+
+func TestStateStore_DiscoveryChain_AttachVirtualIPs(t *testing.T) {
+	s := testStateStore(t)
+	setVirtualIPFlags(t, s)
+
+	ca := &structs.CAConfiguration{
+		Provider: "consul",
+	}
+	err := s.CASetConfig(0, ca)
+	require.NoError(t, err)
+
+	// Attempt to assign manual virtual IPs to a service that doesn't exist - should be a no-op.
+	psn := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo", EnterpriseMeta: *acl.DefaultEnterpriseMeta()}}
+
+	// Register a service via config entry.
+	s.EnsureConfigEntry(1, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "foo",
+	})
+
+	vip, err := s.VirtualIPForService(psn)
+	require.NoError(t, err)
+	assert.Equal(t, "240.0.0.1", vip)
+
+	// Assign manual virtual IPs for foo
+	found, _, err := s.AssignManualServiceVIPs(2, psn, []string{"2.2.2.2", "3.3.3.3"})
+	require.NoError(t, err)
+	require.True(t, found)
+
+	serviceVIP, err := s.ServiceManualVIPs(psn)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), serviceVIP.ModifyIndex)
+	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
+	require.Equal(t, []string{"2.2.2.2", "3.3.3.3"}, serviceVIP.ManualIPs)
+
+	req := discoverychain.CompileRequest{
+		ServiceName:          "foo",
+		EvaluateInNamespace:  psn.ServiceName.NamespaceOrDefault(),
+		EvaluateInPartition:  psn.ServiceName.PartitionOrDefault(),
+		EvaluateInDatacenter: "dc1",
+	}
+	idx, chain, _, err := s.ServiceDiscoveryChain(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition(), req)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, []string{"240.0.0.1"}, chain.AutoVirtualIPs)
+	require.Equal(t, []string{"2.2.2.2", "3.3.3.3"}, chain.ManualVirtualIPs)
+
+}
+
+func TestFindJWTProviderNameReferences(t *testing.T) {
+	oktaProvider := structs.IntentionJWTProvider{Name: "okta"}
+	auth0Provider := structs.IntentionJWTProvider{Name: "auth0"}
+	cases := map[string]struct {
+		entries       []structs.ConfigEntry
+		providerName  string
+		expectedError string
+	}{
+		"no jwt at any level": {
+			entries:      []structs.ConfigEntry{},
+			providerName: "okta",
+		},
+		"provider not referenced": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: "service-intentions",
+					Name: "api-intention",
+					JWT: &structs.IntentionJWTRequirement{
+						Providers: []*structs.IntentionJWTProvider{&oktaProvider, &auth0Provider},
+					},
+				},
+			},
+			providerName: "fake-provider",
+		},
+		"only top level jwt with no permissions": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: "service-intentions",
+					Name: "api-intention",
+					JWT: &structs.IntentionJWTRequirement{
+						Providers: []*structs.IntentionJWTProvider{&oktaProvider, &auth0Provider},
+					},
+				},
+			},
+			providerName:  "okta",
+			expectedError: "cannot delete jwt provider config entry referenced by an intention. Provider name: okta, intention name: api-intention",
+		},
+		"top level jwt with permissions": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: "service-intentions",
+					Name: "api-intention",
+					JWT: &structs.IntentionJWTRequirement{
+						Providers: []*structs.IntentionJWTProvider{&oktaProvider},
+					},
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "api",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: "allow",
+									JWT: &structs.IntentionJWTRequirement{
+										Providers: []*structs.IntentionJWTProvider{&oktaProvider},
+									},
+								},
+							},
+						},
+						{
+							Name:   "serv",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: "allow",
+									JWT: &structs.IntentionJWTRequirement{
+										Providers: []*structs.IntentionJWTProvider{&auth0Provider},
+									},
+								},
+							},
+						},
+						{
+							Name:   "web",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{Action: "allow"},
+							},
+						},
+					},
+				},
+			},
+			providerName:  "auth0",
+			expectedError: "cannot delete jwt provider config entry referenced by an intention. Provider name: auth0, intention name: api-intention",
+		},
+		"no top level jwt and existing permissions": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: "service-intentions",
+					Name: "api-intention",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "api",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: "allow",
+									JWT: &structs.IntentionJWTRequirement{
+										Providers: []*structs.IntentionJWTProvider{&oktaProvider},
+									},
+								},
+							},
+						},
+						{
+							Name:   "serv",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: "allow",
+									JWT: &structs.IntentionJWTRequirement{
+										Providers: []*structs.IntentionJWTProvider{&auth0Provider},
+									},
+								},
+							},
+						},
+						{
+							Name:   "web",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{Action: "allow"},
+							},
+						},
+					},
+				},
+			},
+			providerName:  "okta",
+			expectedError: "cannot delete jwt provider config entry referenced by an intention. Provider name: okta, intention name: api-intention",
+		},
+	}
+
+	for name, tt := range cases {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			err := findJWTProviderNameReferences(tt.entries, tt.providerName)
+
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestStore_ValidateJWTProviderIsReferenced(t *testing.T) {
+	s := testStateStore(t)
+
+	// First create a config entry
+	provider := &structs.JWTProviderConfigEntry{
+		Kind: structs.JWTProvider,
+		Name: "okta",
+	}
+	require.NoError(t, s.EnsureConfigEntry(0, provider))
+
+	// create a service intention referencing the config entry
+	ixn := &structs.ServiceIntentionsConfigEntry{
+		Name: "api",
+		JWT: &structs.IntentionJWTRequirement{
+			Providers: []*structs.IntentionJWTProvider{
+				{Name: provider.Name},
+			},
+		},
+	}
+	require.NoError(t, s.EnsureConfigEntry(1, ixn))
+
+	// attempt deleting a referenced provider
+	err := s.DeleteConfigEntry(0, structs.JWTProvider, provider.Name, nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), `cannot delete jwt provider config entry referenced by an intention. Provider name: okta, intention name: api`)
+
+	// delete the intention
+	require.NoError(t, s.DeleteConfigEntry(1, structs.ServiceIntentions, ixn.Name, nil))
+	// successfully delete the provider after deleting the intention
+	require.NoError(t, s.DeleteConfigEntry(0, structs.JWTProvider, provider.Name, nil))
 }
