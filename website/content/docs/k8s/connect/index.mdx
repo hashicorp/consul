@@ -226,8 +226,8 @@ spec:
   template:
     metadata:
       annotations:
-        "consul.hashicorp.com/connect-inject": "true"
-        "consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds": "5"
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds': '5'
       labels:
         app: test-job
     spec:
@@ -276,6 +276,7 @@ Ended test job
 ```
 
 #### Kubernetes Pods with Multiple ports
+
 To configure a pod with multiple ports to be a part of the service mesh and receive and send service mesh traffic, you
 will need to add configuration so that a Consul service can be registered per port. This is because services in Consul
 currently support a single port per service instance.
@@ -287,6 +288,9 @@ First, decide on the names for the two Consul services that will correspond to t
 chooses the names `web` for `8080` and `web-admin` for `9090`.
 
 Create two service accounts for `web` and `web-admin`:
+
+<CodeBlockConfig filename="multiport-web-sa.yaml">
+
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -298,9 +302,13 @@ kind: ServiceAccount
 metadata:
   name: web-admin
 ```
+
+</CodeBlockConfig>
+
+
 Create two Service objects for `web` and `web-admin`:
 
-<CodeBlockConfig filename="multiport-svc.yaml">
+<CodeBlockConfig filename="multiport-web-svc.yaml">
 
 ```yaml
 apiVersion: v1
@@ -336,7 +344,7 @@ spec:
 ~> Kubernetes 1.24+ only
 In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each multi-port service that references the ServiceAccount, and the Kubernetes secret must have the same name as the ServiceAccount:
 
-<CodeBlockConfig filename="multiport-sa.yaml">
+<CodeBlockConfig filename="multiport-web-secret.yaml">
 
 ```yaml
 apiVersion: v1
@@ -361,10 +369,10 @@ metadata:
 Create a Deployment with any chosen name, and use the following annotations:
 ```yaml
 annotations:
-  consul.hashicorp.com/connect-inject: true
-  consul.hashicorp.com/transparent-proxy: false
-  consul.hashicorp.com/connect-service: web,web-admin
-  consul.hashicorp.com/connect-service-port: 8080,9090
+  'consul.hashicorp.com/connect-inject': 'true'
+  'consul.hashicorp.com/transparent-proxy': 'false'
+  'consul.hashicorp.com/connect-service': 'web,web-admin'
+  'consul.hashicorp.com/connect-service-port': '8080,9090'
 ```
 Note that the order the ports are listed in the same order as the service names, i.e. the first service name `web`
 corresponds to the first port, `8080`, and the second service name `web-admin` corresponds to the second port, `9090`.
@@ -376,7 +384,7 @@ serviceAccountName: web
 
 For reference, the full deployment example could look something like the following:
 
-<CodeBlockConfig filename="multiport-http-echo.yaml">
+<CodeBlockConfig filename="multiport-web.yaml">
 
 ```yaml
 apiVersion: apps/v1
@@ -425,10 +433,54 @@ After deploying the `web` application, you can test service mesh connections by 
 application with the configuration in the [previous section](#connecting-to-mesh-enabled-services) and add the
 following annotation to the pod template on `static-client`:
 
+<CodeBlockConfig filename="multiport-static-client.yaml" lineNumbers highlight="33">
+
 ```yaml
-annotations:
-  consul.hashicorp.com/connect-service-upstreams: "web:1234,web-admin:2234"
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-client
+  template:
+    metadata:
+      name: static-client
+      labels:
+        app: static-client
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+		'consul.hashicorp.com/connect-service-upstreams': 'web:1234,web-admin:2234'
+    spec:
+      containers:
+        - name: static-client
+          image: curlimages/curl:latest
+          # Just spin & wait forever, we'll use `kubectl exec` to demo
+          command: ['/bin/sh', '-c', '--']
+          args: ['while true; do sleep 30; done;']
+      # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-client
 ```
+
+</CodeBlockConfig>
 
 If you exec on to a static-client pod, using a command like:
 ```shell-session
