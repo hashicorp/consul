@@ -17,7 +17,12 @@
           "prefix": "/"
         },
         "requires": {
-          "providerName": "okta"
+          "requiresAny": {
+            "requirements": [
+              {"providerName": "okta"}, 
+              {"allowMissingOrFailed": {}}
+            ]
+          }
         }
       }
     ]
