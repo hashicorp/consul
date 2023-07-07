@@ -143,8 +143,6 @@ annotation. If using ACLs, this name must be the same as the Pod's `ServiceAccou
 
 To establish a connection to the Pod using service mesh, a client must use another mesh proxy. The client mesh proxy will use Consul service discovery to find all available upstream proxies and their public ports.
 
-#### Connecting to Mesh-Enabled Services
-
 The example Deployment specification below configures a Deployment that is capable
 of establishing connections to our previous example "static-server" service. The
 connection to this static text service happens over an authorized and encrypted
