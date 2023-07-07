@@ -104,9 +104,21 @@ jobs:
       - name: Make sure consul is executable
         run: chmod +x $GITHUB_WORKSPACE/${{inputs.directory}}/consul
       - run: go env
+      - name: build custom go
+        run: |
+          cd /tmp
+          git clone https://github.com/nfi-hashicorp/go.git
+          cd go/src
+          git checkout gotest-remote-cache
+          ./make.bash
+
+
+          
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
+          export GOROOT=/tmp/go
+          export PATH=$PATH:$GOROOT/bin
           # separate the list
           PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
           # PACKAGE_NAMES="${{ matrix.package }}"
