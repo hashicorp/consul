@@ -119,6 +119,8 @@ jobs:
         run: |
           export GOROOT=/tmp/go
           export PATH=$PATH:$GOROOT/bin
+          export GOTESTCACHE=https://nfi-hashicorp-organic-xylophone-rq9q7w4xw643x766-2601.preview.app.github.dev/
+          export GODEBUG=gocachetest=1
           # separate the list
           PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
           # PACKAGE_NAMES="${{ matrix.package }}"
