@@ -1,0 +1,49 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.proxystate.v1alpha1;
+import "pbresource/resource.proto";
+import "pbproxystate/v1alpha1/address.proto";
+import "google/protobuf/wrappers.proto";
+
+message Endpoints {
+  // name is the name of the Endpoints. This should match the cluster name.
+  string name = 1;
+  // endpoints either has a reference to a ServiceEndpoints resource or inlined endpoints.
+  oneof endpoints{
+    // reference refers to a ServiceEndpoints resource.
+    EndpointReference reference = 2;
+    // inline_endpoints contains inlined endpoint configuration.
+    InlineEndpoints inline_endpoints = 3;
+  }
+}
+
+message EndpointReference {
+  // id is the ServiceEndpoints resource id.
+  hashicorp.consul.resource.ID id = 1;
+}
+
+message InlineEndpoints {
+  repeated InlineEndpoint endpoints = 1;
+}
+
+message InlineEndpoint {
+  oneof address{
+    HostPortAddress host_port = 1;
+    UnixSocketAddress unix_socket = 2;
+  }
+  HealthStatus health_status = 3;
+  google.protobuf.UInt32Value load_balancing_weight = 4;
+
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNKNOWN = 0;
+  HEALTH_STATUS_HEALTHY = 1;
+  HEALTH_STATUS_UNHEALTHY = 2;
+}
+
+
+

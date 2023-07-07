@@ -1,0 +1,20 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.proxystate.v1alpha1;
+
+message LeafReference {
+  string name = 1;
+  string namespace = 2;
+  string partition = 3;
+  string host = 4;
+  string datacenter = 5;
+  repeated string dns_san = 6;
+}
+
+message CAReference {
+  string peer = 1;
+  string trust_domain = 2;
+}

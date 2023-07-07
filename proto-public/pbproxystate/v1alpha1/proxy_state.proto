@@ -1,0 +1,36 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.proxystate.v1alpha1;
+
+import "pbproxystate/v1alpha1/transport_socket.proto";
+import "pbproxystate/v1alpha1/listener.proto";
+import "pbproxystate/v1alpha1/cluster.proto";
+import "pbproxystate/v1alpha1/route.proto";
+import "pbproxystate/v1alpha1/endpoints.proto";
+import "pbproxystate/v1alpha1/escape_hatches.proto";
+import "pbproxystate/v1alpha1/access_logs.proto";
+import "pbresource/resource.proto";
+
+message ProxyState {
+  // id is this proxy's ID.
+  hashicorp.consul.resource.ID id = 1;
+  // listeners is a list of listeners for this proxy.
+  repeated Listener listeners = 2;
+  // clusters is a map from cluster name to clusters. The keys are referenced from listeners or routes.
+  map<string, Cluster> clusters = 3;
+  // routes is a map from route name to routes. The keys are referenced from listeners.
+  map<string, Route> routes = 4;
+  // endpoints is a map from cluster name to endpoints. Each endpoint is either a reference to a ServiceEndpoints resource, or a set of static endpoints whose health is not managed by Consul.
+  map<string, Endpoints> endpoints = 5;
+  // tls has TLS configuration for this proxy.
+  TLS tls = 6;
+  // intention_default_allow is the default action for intentions. This determines how the Envoy RBAC filters are generated.
+  bool intention_default_allow = 7;
+  // escape defines top level escape hatches. These are user configured json strings that configure an entire piece of listener or cluster Envoy configuration.
+  EscapeHatches escape = 9;
+  // access_logs configures access logging for this proxy.
+  AccessLogs access_logs = 10;
+}

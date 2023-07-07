@@ -1,0 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.proxystate.v1alpha1;
+
+message EscapeHatches {
+  // listener_tracing_json contains user provided tracing configuration.
+  string listener_tracing_json = 1;
+  // listener_json contains user provided listener configuration for an upstream listener.
+  string listener_json = 2;
+  // cluster_json contains user provided cluster configuration for an upstream cluster.
+  string cluster_json = 3;
+}
