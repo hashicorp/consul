@@ -104,9 +104,23 @@ jobs:
       - name: Make sure consul is executable
         run: chmod +x $GITHUB_WORKSPACE/${{inputs.directory}}/consul
       - run: go env
+      - name: build custom go
+        run: |
+          cd /tmp
+          git clone https://github.com/nfi-hashicorp/go.git
+          cd go/src
+          git checkout gotest-remote-cache
+          ./make.bash
+
+
+          
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
+          export GOROOT=/tmp/go
+          export PATH=$PATH:$GOROOT/bin
+          export GOTESTCACHE=https://nfi-hashicorp-organic-xylophone-rq9q7w4xw643x766-2601.preview.app.github.dev/
+          export GODEBUG=gocachetest=1
           # separate the list
           PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
           # PACKAGE_NAMES="${{ matrix.package }}"
@@ -126,8 +140,7 @@ jobs:
           --packages="$PACKAGE_NAMES" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="${{env.GOTAGS}}" -p 2 \
-          ${GO_TEST_FLAGS-} \
-          -cover -coverprofile=coverage.txt
+          ${GO_TEST_FLAGS-}
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@v3.1.2
         with:
           name: test-results
