@@ -24,9 +24,14 @@
     "typedConfig": {
       "@type":"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
       "commonTlsContext": {
-        "validationContext": {}
+        "validationContext": {
+          "trustedCa": {
+            "filename": "mycert.crt"
+          }
+        }
       }
     }
   },
-  "type": "STRICT_DNS"
+  "connectTimeout": "5s",
+  "type": "STATIC"
 }

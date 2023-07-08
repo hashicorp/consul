@@ -12,11 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-cleanhttp"
-
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
@@ -47,7 +46,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerPortOne,
 			serviceHTTPPort,
 			serviceGRPCPort,
@@ -58,6 +57,21 @@ func TestAPIGatewayCreate(t *testing.T) {
 	client := cluster.APIClient(0)
 
 	namespace := getOrCreateNamespace(t, client)
+
+	// Create a gateway
+	// We intentionally do this before creating the config entries
+	gatewayService, err := libservice.NewGatewayService(context.Background(), libservice.GatewayConfig{
+		Kind:      "api",
+		Namespace: namespace,
+		Name:      gatewayName,
+	}, cluster.Agents[0], listenerPortOne)
+	require.NoError(t, err)
+
+	// We check this is healthy here because in the case of bringing up a new kube cluster,
+	// it is not possible to create the config entry in advance.
+	// The health checks must pass so the pod can start up.
+	// For API gateways, this should always pass, because there is no default listener for health in Envoy
+	libassert.CatalogServiceIsHealthy(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// add api gateway config
 	apiGateway := &api.APIGatewayConfigEntry{
@@ -75,7 +89,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 
 	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
 
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
 		ID:        serviceName,
 		Name:      serviceName,
 		Namespace: namespace,
@@ -104,14 +118,6 @@ func TestAPIGatewayCreate(t *testing.T) {
 	}
 
 	require.NoError(t, cluster.ConfigEntryWrite(tcpRoute))
-
-	// Create a gateway
-	gatewayService, err := libservice.NewGatewayService(context.Background(), libservice.GatewayConfig{
-		Kind:      "api",
-		Namespace: namespace,
-		Name:      gatewayName,
-	}, cluster.Agents[0], listenerPortOne)
-	require.NoError(t, err)
 
 	// make sure the gateway/route come online
 	// make sure config entries have been properly created
