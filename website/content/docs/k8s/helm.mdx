@@ -35,6 +35,7 @@ Use these links to navigate to a particular top-level stanza.
 - [`webhookCertManager`](#h-webhookcertmanager)
 - [`prometheus`](#h-prometheus)
 - [`tests`](#h-tests)
+- [`telemetryCollector`](#h-telemetrycollector)
 
 ## All Values
 
@@ -404,6 +405,23 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the replication token.
 
+    - `resources` ((#v-global-acls-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods.
+      This should be a YAML map corresponding to a Kubernetes
+      [`ResourceRequirements``](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
+      object.
+
+      Example:
+
+      ```yaml
+      resources:
+        requests:
+          memory: '200Mi'
+          cpu: '100m'
+        limits:
+          memory: '200Mi'
+          cpu: '100m'
+      ```
+
     - `partitionToken` ((#v-global-acls-partitiontoken)) - partitionToken references a Vault secret containing the ACL token to be used in non-default partitions.
       This value should only be provided in the default partition and only when setting
       the `global.secretsBackend.vault.enabled` value to true.
@@ -496,6 +514,9 @@ Use these links to navigate to a particular top-level stanza.
       Envoy metrics on port `20200` at the `/metrics` path and all gateway pods
       will have Prometheus scrape annotations. Only applicable if `global.metrics.enabled` is true.
 
+    - `enableTelemetryCollector` ((#v-global-metrics-enabletelemetrycollector)) (`boolean: false`) - Configures the Helm chart’s components to forward envoy metrics for the Consul service mesh to the
+      consul-telemetry-collector. This includes gateway metrics and sidecar metrics.
+
   - `imageConsulDataplane` ((#v-global-imageconsuldataplane)) (`string: hashicorp/consul-dataplane:<latest supported version>`) - The name (and tag) of the consul-dataplane Docker image used for the
     connect-injected sidecar proxies and mesh, terminating, and ingress gateways.
 
@@ -564,6 +585,19 @@ Use these links to navigate to a particular top-level stanza.
     extraLabels:
       labelKey: label-value
       anotherLabelKey: another-label-value
+    ```
+
+  - `trustedCAs` ((#v-global-trustedcas)) (`array<string>: []`) - Optional PEM-encoded CA certificates that will be added to trusted system CAs.
+
+    Example:
+
+    ```yaml
+    trustedCAs: [
+      |
+      -----BEGIN CERTIFICATE-----
+      MIIC7jCCApSgAwIBAgIRAIq2zQEVexqxvtxP6J0bXAwwCgYIKoZIzj0EAwIwgbkx
+      ...
+    ]
     ```
 
 ### server ((#h-server))
@@ -694,10 +728,10 @@ Use these links to navigate to a particular top-level stanza.
     ```yaml
     resources:
       requests:
-        memory: '100Mi'
+        memory: '200Mi'
         cpu: '100m'
       limits:
-        memory: '100Mi'
+        memory: '200Mi'
         cpu: '100m'
     ```
 
@@ -812,13 +846,13 @@ Use these links to navigate to a particular top-level stanza.
     ```
 
   - `tolerations` ((#v-server-tolerations)) (`string: ""`) - Toleration settings for server pods. This
-    should be a multi-line string matching the 
-    [Tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) 
+    should be a multi-line string matching the
+    [Tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/)
     array in a Pod spec.
 
   - `topologySpreadConstraints` ((#v-server-topologyspreadconstraints)) (`string: ""`) - Pod topology spread constraints for server pods.
-    This should be a multi-line YAML string matching the 
-    [`topologySpreadConstraints`](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/) 
+    This should be a multi-line YAML string matching the
+    [`topologySpreadConstraints`](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/)
     array in a Pod Spec.
 
     This requires K8S >= 1.18 (beta) or 1.19 (stable).
@@ -911,7 +945,7 @@ Use these links to navigate to a particular top-level stanza.
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
 
-  - `snapshotAgent` ((#v-server-snapshotagent)) - <EnterpriseAlert inline /> Values for setting up and running 
+  - `snapshotAgent` ((#v-server-snapshotagent)) - <EnterpriseAlert inline /> Values for setting up and running
     [snapshot agents](https://developer.hashicorp.com/consul/commands/snapshot/agent)
     within the Consul clusters. They run as a sidecar with Consul servers.
 
@@ -943,6 +977,56 @@ Use these links to navigate to a particular top-level stanza.
         MIIC7jCCApSgAwIBAgIRAIq2zQEVexqxvtxP6J0bXAwwCgYIKoZIzj0EAwIwgbkx
         ...
       ```
+
+  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing
+    and configure a sink and filters for their audit logs. Please refer to
+    [audit logs](https://developer.hashicorp.com/consul/docs/enterprise/audit-logging) documentation
+    for further information.
+
+    - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
+      global.acls.manageSystemACLs must be enabled to use this feature.
+
+    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul
+      will log auditing events.
+
+      Example:
+
+      ```yaml
+      sinks:
+        - name: My Sink
+          type: file
+          format: json
+          path: /tmp/audit.json
+          delivery_guarantee: best-effort
+          rotate_duration: 24h
+          rotate_max_files: 15
+          rotate_bytes: 25165824
+
+      ```
+
+      The sink object supports the following keys:
+
+      - `name` - Name of the sink.
+
+      - `type` - Type specifies what kind of sink this is. Currently only file sinks are available
+
+      - `format` - Format specifies what format the events will be emitted with. Currently only `json`
+        events are emitted.
+
+      - `path` - The directory and filename to write audit events to.
+
+      - `delivery_guarantee` - Specifies the rules governing how audit events are written. Consul
+        only supports `best-effort` event delivery.
+
+      - `mode` - The permissions to set on the audit log files.
+
+      - `rotate_duration` - Specifies the interval by which the system rotates to a new log file.
+         At least one of `rotate_duration` or `rotate_bytes` must be configured to enable audit logging.
+
+      - `rotate_bytes` -  Specifies how large an individual log file can grow before Consul rotates to a new file.
+         At least one of rotate_bytes or rotate_duration must be configured to enable audit logging.
+
+      - `rotate_max_files` - Defines the limit that Consul should follow before it deletes old log files.
 
 ### externalServers ((#h-externalservers))
 
@@ -1462,6 +1546,19 @@ Use these links to navigate to a particular top-level stanza.
     or may not be broadly accessible depending on your Kubernetes cluster.
     Set this to false to skip syncing ClusterIP services.
 
+  - `ingress` ((#v-synccatalog-ingress))
+
+    - `enabled` ((#v-synccatalog-ingress-enabled)) (`boolean: false`) - Syncs the hostname from a Kubernetes Ingress resource to service registrations
+      when a rule matched a service. Currently only supports host based routing and
+      not path based routing. The only supported path on an ingress rule is "/".
+      Set this to false to skip syncing Ingress services.
+
+      Currently, port 80 is synced if there is not TLS entry for the hostname. Syncs the port
+      443 if there is a TLS entry that matches the hostname.
+
+    - `loadBalancerIPs` ((#v-synccatalog-ingress-loadbalancerips)) (`boolean: false`) - Requires syncIngress to be `true`. syncs the LoadBalancer IP from a Kubernetes Ingress
+      resource instead of the hostname to service registrations when a rule matched a service.
+
   - `nodePortSyncType` ((#v-synccatalog-nodeportsynctype)) (`string: ExternalFirst`) - Configures the type of syncing that happens for NodePort
     services. The valid options are: ExternalOnly, InternalOnly, ExternalFirst.
 
@@ -1724,7 +1821,19 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
-  - `resources` ((#v-connectinject-resources)) (`map`) - The resource settings for connect inject pods.
+  - `resources` ((#v-connectinject-resources)) (`map`) - The resource settings for connect inject pods. The defaults, are optimized for getting started worklows on developer deployments. The settings should be tweaked for production deployments.
+
+    - `requests` ((#v-connectinject-resources-requests))
+
+      - `memory` ((#v-connectinject-resources-requests-memory)) (`string: 200Mi`) - Recommended production default: 500Mi
+
+      - `cpu` ((#v-connectinject-resources-requests-cpu)) (`string: 50m`) - Recommended production default: 250m
+
+    - `limits` ((#v-connectinject-resources-limits))
+
+      - `memory` ((#v-connectinject-resources-limits-memory)) (`string: 200Mi`) - Recommended production default: 500Mi
+
+      - `cpu` ((#v-connectinject-resources-limits-cpu)) (`string: 50m`) - Recommended production default: 250m
 
   - `failurePolicy` ((#v-connectinject-failurepolicy)) (`string: Fail`) - Sets the failurePolicy for the mutating webhook. By default this will cause pods not part of the consul installation to fail scheduling while the webhook
     is offline. This prevents a pod from skipping mutation if the webhook were to be momentarily offline.
@@ -1865,17 +1974,52 @@ Use these links to navigate to a particular top-level stanza.
 
       - `requests` ((#v-connectinject-sidecarproxy-resources-requests))
 
-        - `memory` ((#v-connectinject-sidecarproxy-resources-requests-memory)) (`string: null`) - Recommended default: 100Mi
+        - `memory` ((#v-connectinject-sidecarproxy-resources-requests-memory)) (`string: null`) - Recommended production default: 100Mi
 
-        - `cpu` ((#v-connectinject-sidecarproxy-resources-requests-cpu)) (`string: null`) - Recommended default: 100m
+        - `cpu` ((#v-connectinject-sidecarproxy-resources-requests-cpu)) (`string: null`) - Recommended production default: 100m
 
       - `limits` ((#v-connectinject-sidecarproxy-resources-limits))
 
-        - `memory` ((#v-connectinject-sidecarproxy-resources-limits-memory)) (`string: null`) - Recommended default: 100Mi
+        - `memory` ((#v-connectinject-sidecarproxy-resources-limits-memory)) (`string: null`) - Recommended production default: 100Mi
 
-        - `cpu` ((#v-connectinject-sidecarproxy-resources-limits-cpu)) (`string: null`) - Recommended default: 100m
+        - `cpu` ((#v-connectinject-sidecarproxy-resources-limits-cpu)) (`string: null`) - Recommended production default: 100m
 
-  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container.
+    - `lifecycle` ((#v-connectinject-sidecarproxy-lifecycle)) (`map`) - Set default lifecycle management configuration for sidecar proxy.
+      These settings can be overridden on a per-pod basis via these annotations:
+
+      - `consul.hashicorp.com/enable-sidecar-proxy-lifecycle`
+      - `consul.hashicorp.com/enable-sidecar-proxy-shutdown-drain-listeners`
+      - `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds`
+      - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port`
+      - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path`
+
+      - `defaultEnabled` ((#v-connectinject-sidecarproxy-lifecycle-defaultenabled)) (`boolean: true`)
+
+      - `defaultEnableShutdownDrainListeners` ((#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)) (`boolean: true`)
+
+      - `defaultShutdownGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)) (`integer: 30`)
+
+      - `defaultGracefulPort` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)) (`integer: 20600`)
+
+      - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
+
+  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
+    won't be set for the initContainer. The defaults are optimized for developer instances of
+    Kubernetes, however they should be tweaked with the recommended defaults as shown below to speed up service registration times.
+
+    - `resources` ((#v-connectinject-initcontainer-resources))
+
+      - `requests` ((#v-connectinject-initcontainer-resources-requests))
+
+        - `memory` ((#v-connectinject-initcontainer-resources-requests-memory)) (`string: 25Mi`) - Recommended production default: 150Mi
+
+        - `cpu` ((#v-connectinject-initcontainer-resources-requests-cpu)) (`string: 50m`) - Recommended production default: 250m
+
+      - `limits` ((#v-connectinject-initcontainer-resources-limits))
+
+        - `memory` ((#v-connectinject-initcontainer-resources-limits-memory)) (`string: 150Mi`) - Recommended production default: 150Mi
+
+        - `cpu` ((#v-connectinject-initcontainer-resources-limits-cpu)) (`string: null`) - Recommended production default: 500m
 
 ### meshGateway ((#h-meshgateway))
 
@@ -2004,7 +2148,7 @@ Use these links to navigate to a particular top-level stanza.
   - `tolerations` ((#v-meshgateway-tolerations)) (`string: null`) - Optional YAML string to specify tolerations.
 
   - `topologySpreadConstraints` ((#v-meshgateway-topologyspreadconstraints)) (`string: ""`) - Pod topology spread constraints for mesh gateway pods.
-    This should be a multi-line YAML string matching the 
+    This should be a multi-line YAML string matching the
     [`topologySpreadConstraints`](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/)
     array in a Pod Spec.
 
@@ -2118,7 +2262,7 @@ Use these links to navigate to a particular top-level stanza.
     - `tolerations` ((#v-ingressgateways-defaults-tolerations)) (`string: null`) - Optional YAML string to specify tolerations.
 
     - `topologySpreadConstraints` ((#v-ingressgateways-defaults-topologyspreadconstraints)) (`string: ""`) - Pod topology spread constraints for ingress gateway pods.
-      This should be a multi-line YAML string matching the 
+      This should be a multi-line YAML string matching the
       [`topologySpreadConstraints`](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/)
       array in a Pod Spec.
 
@@ -2165,7 +2309,7 @@ Use these links to navigate to a particular top-level stanza.
     `defaults`. Values defined here override the defaults except in the
     case of annotations where both will be applied.
 
-  - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
+    - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
 ### terminatingGateways ((#h-terminatinggateways))
 
@@ -2281,7 +2425,7 @@ Use these links to navigate to a particular top-level stanza.
     `defaults`. Values defined here override the defaults except in the
     case of annotations where both will be applied.
 
-  - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
+    - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
 
 ### apiGateway ((#h-apigateway))
 
@@ -2312,7 +2456,7 @@ Use these links to navigate to a particular top-level stanza.
         beta.kubernetes.io/arch: amd64
       ```
 
-    - `tolerations` ((#v-apigateway-managedgatewayclass-tolerations)) (`string: null`) - Toleration settings for gateway pods created with the managed gateway class. 
+    - `tolerations` ((#v-apigateway-managedgatewayclass-tolerations)) (`string: null`) - Toleration settings for gateway pods created with the managed gateway class.
       This should be a multi-line string matching the
       [Tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
 
@@ -2329,7 +2473,7 @@ Use these links to navigate to a particular top-level stanza.
         ```yaml
         service:
           annotations: |
-          - external-dns.alpha.kubernetes.io/hostname
+            - external-dns.alpha.kubernetes.io/hostname
         ```
 
     - `deployment` ((#v-apigateway-managedgatewayclass-deployment)) (`map`) - This value defines the number of pods to deploy for each Gateway as well as a min and max number of pods for all Gateways
@@ -2428,6 +2572,76 @@ Use these links to navigate to a particular top-level stanza.
   is only useful when running helm template.
 
   - `enabled` ((#v-tests-enabled)) (`boolean: true`)
+
+### telemetryCollector ((#h-telemetrycollector))
+
+- `telemetryCollector` ((#v-telemetrycollector))
+
+  - `enabled` ((#v-telemetrycollector-enabled)) (`boolean: false`) - Enables the consul-telemetry-collector deployment
+
+  - `image` ((#v-telemetrycollector-image)) (`string: hashicorp/consul-telemetry-collector:0.0.1`) - The name of the Docker image (including any tag) for the containers running
+    the consul-telemetry-collector
+
+  - `resources` ((#v-telemetrycollector-resources)) (`map`) - The resource settings for consul-telemetry-collector pods.
+
+  - `replicas` ((#v-telemetrycollector-replicas)) (`integer: 1`) - This value sets the number of consul-telemetry-collector replicas to deploy.
+
+  - `customExporterConfig` ((#v-telemetrycollector-customexporterconfig)) (`string: null`) - This value defines additional configuration for the telemetry collector. It should be formatted as a multi-line
+    json blob string
+
+    ```yaml
+    customExporterConfig: |
+      {"http_collector_endpoint": "other-otel-collector"}
+    ```
+
+  - `service` ((#v-telemetrycollector-service))
+
+    - `annotations` ((#v-telemetrycollector-service-annotations)) (`string: null`) - This value defines additional annotations for the server service account. This should be formatted as a multi-line
+      string.
+
+      ```yaml
+      annotations: |
+        "sample/annotation1": "foo"
+        "sample/annotation2": "bar"
+      ```
+
+  - `serviceAccount` ((#v-telemetrycollector-serviceaccount))
+
+    - `annotations` ((#v-telemetrycollector-serviceaccount-annotations)) (`string: null`) - This value defines additional annotations for the telemetry-collector's service account. This should be formatted
+      as a multi-line string.
+
+      ```yaml
+      annotations: |
+        "sample/annotation1": "foo"
+        "sample/annotation2": "bar"
+      ```
+
+  - `cloud` ((#v-telemetrycollector-cloud))
+
+    - `clientId` ((#v-telemetrycollector-cloud-clientid))
+
+      - `secretName` ((#v-telemetrycollector-cloud-clientid-secretname)) (`string: null`)
+
+      - `secretKey` ((#v-telemetrycollector-cloud-clientid-secretkey)) (`string: null`)
+
+    - `clientSecret` ((#v-telemetrycollector-cloud-clientsecret))
+
+      - `secretName` ((#v-telemetrycollector-cloud-clientsecret-secretname)) (`string: null`)
+
+      - `secretKey` ((#v-telemetrycollector-cloud-clientsecret-secretkey)) (`string: null`)
+
+  - `initContainer` ((#v-telemetrycollector-initcontainer))
+
+    - `resources` ((#v-telemetrycollector-initcontainer-resources)) (`map`) - The resource settings for consul-telemetry-collector initContainer.
+
+  - `nodeSelector` ((#v-telemetrycollector-nodeselector)) (`string: null`) - Optional YAML string to specify a nodeSelector config.
+
+  - `priorityClassName` ((#v-telemetrycollector-priorityclassname)) (`string: ""`) - Optional priorityClassName.
+
+  - `extraEnvironmentVars` ((#v-telemetrycollector-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the stateful set.
+    These could be used to include proxy settings required for cloud auto-join
+    feature, in case kubernetes cluster is behind egress http proxies. Additionally,
+    it could be used to configure custom consul parameters.
 
   <!-- codegen: end -->
 
