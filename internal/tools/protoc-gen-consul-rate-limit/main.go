@@ -1,38 +1,41 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// protoc-gen-consul-rate-limit maintains the mapping of gRPC method names to
+// protoc-gen-consul-rate-limit
+// This protoc plugin maintains the mapping of gRPC method names to
 // a specification of how they should be rate-limited. This is used by the gRPC
 // InTapHandle function (see agent/grpc-middleware/rate.go) to enforce relevant
-// limits without having to call the handler.
+// limits without having to call the handler. It works in two phases:
 //
-// It works in two phases:
+// # Phase 1
 //
-//	1. Buf/protoc invokes this plugin for each .proto file. We extract the rate
-//	   limit specification from an annotation on the RPC:
+//	Buf/protoc invokes this plugin for each .proto file. We extract the rate limit
+//	specification from an annotation on the RPC:
 //
-//	   service Foo {
-//	     rpc Bar(BarRequest) returns (BarResponse) {
-//	       option (hashicorp.consul.internal.ratelimit.spec) = {
-//	         operation_type: OPERATION_TYPE_WRITE,
-//			 operation_category: OPERATION_CATEGORY_ACL
-//	       };
-//	     }
-//	   }
+//		service Foo {
+//			rpc Bar(BarRequest) returns (BarResponse) {
+//				option (hashicorp.consul.internal.ratelimit.spec) = {
+//					operation_type: OPERATION_TYPE_WRITE,
+//					operation_category: OPERATION_CATEGORY_ACL
+//				};
+//			}
+//		}
 //
-//	   We write a JSON array of the limits to protobuf/package/path/.ratelimit.tmp:
+// We write a JSON array of the limits to protobuf/package/path/.ratelimit.tmp:
 //
-//	   [
-//	     {
-//	       "MethodName": "/Foo/Bar",
-//	       "OperationType": "OPERATION_TYPE_WRITE",
-//		   "OperationCategory": "OPERATION_CATEGORY_ACL"
-//	     }
-//	   ]
+//	[
+//		{
+//			"MethodName": "/Foo/Bar",
+//			"OperationType": "OPERATION_TYPE_WRITE",
+//			"OperationCategory": "OPERATION_CATEGORY_ACL"
+//		}
+//	]
 //
-//	2. The protobuf.sh script (invoked by make proto) runs our postprocess script
-//	   which reads all of the .ratelimit.tmp files in proto and proto-public and
-//	   generates a single Go map in agent/grpc-middleware/rate_limit_mappings.gen.go
+// # Phase 2
+//
+// The protobuf.sh script (invoked by make proto) runs our postprocess script
+// which reads all of the .ratelimit.tmp files in proto and proto-public and
+// generates a single Go map in agent/grpc-middleware/rate_limit_mappings.gen.go
 package main
 
 import (

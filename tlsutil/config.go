@@ -857,10 +857,23 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	return config
 }
 
-// OutgoingTLSConfigForCheck generates a *tls.Config for outgoing TLS connections
-// for checks. This function is separated because there is an extra flag to
-// consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
-// be checked for checks.
+// OutgoingTLSConfigForCheck creates a client *tls.Config for executing checks.
+// It is RECOMMENDED that the serverName be left unspecified. The crypto/tls
+// client will deduce the ServerName (for SNI) from the check address unless
+// it's an IP (RFC 6066, Section 3). However, there are two instances where
+// supplying a serverName is useful:
+//
+//  1. When the check address is an IP, a serverName can be supplied for SNI.
+//     Note: setting serverName will also override the hostname used to verify
+//     the certificate presented by the server being checked.
+//
+//  2. When the hostname in the check address won't be present in the SAN
+//     (Subject Alternative Name) field of the certificate presented by the
+//     server being checked. Note: setting serverName will also override the
+//     ServerName used for SNI.
+//
+// Setting skipVerify will disable verification of the server's certificate
+// chain and hostname, which is generally not suitable for production use.
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName string) *tls.Config {
 	c.log("OutgoingTLSConfigForCheck")
 
@@ -875,13 +888,9 @@ func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName str
 		}
 	}
 
-	if serverName == "" {
-		serverName = c.serverNameOrNodeName()
-	}
 	config := c.internalRPCTLSConfig(false)
 	config.InsecureSkipVerify = skipVerify
 	config.ServerName = serverName
-
 	return config
 }
 

@@ -33,6 +33,7 @@ func (e *SimplifiedExportedServices) ToPartitionMap() map[string]map[string][]st
 				}
 			}
 			resp[svc.Namespace][svc.Name] = consumers
+			resp[svc.Namespace][svc.Name+structs.SidecarProxySuffix] = consumers
 		}
 	}
 	return resp

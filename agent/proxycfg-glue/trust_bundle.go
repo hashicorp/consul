@@ -59,8 +59,8 @@ func (s *serverTrustBundle) Notify(ctx context.Context, req *cachetype.TrustBund
 				return 0, nil, err
 			}
 			return index, &pbpeering.TrustBundleReadResponse{
-				Index:  index,
-				Bundle: bundle,
+				OBSOLETE_Index: index,
+				Bundle:         bundle,
 			}, nil
 		},
 		dispatchBlockingQueryUpdate[*pbpeering.TrustBundleReadResponse](ch),
@@ -116,8 +116,8 @@ func (s *serverTrustBundleList) Notify(ctx context.Context, req *cachetype.Trust
 			}
 
 			return index, &pbpeering.TrustBundleListByServiceResponse{
-				Index:   index,
-				Bundles: bundles,
+				OBSOLETE_Index: index,
+				Bundles:        bundles,
 			}, nil
 		},
 		dispatchBlockingQueryUpdate[*pbpeering.TrustBundleListByServiceResponse](ch),

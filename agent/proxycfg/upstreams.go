@@ -316,8 +316,19 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			watchedChainEndpoints = true
 		}
 
-		opts := targetWatchOpts{upstreamID: uid}
-		opts.fromChainTarget(target)
+		opts := targetWatchOpts{
+			upstreamID: uid,
+			chainID:    target.ID,
+			service:    target.Service,
+			filter:     target.Subset.Filter,
+			datacenter: target.Datacenter,
+			peer:       target.Peer,
+			entMeta:    target.GetEnterpriseMetadata(),
+		}
+		// Peering targets do not set the datacenter field, so we should default it here.
+		if opts.datacenter == "" {
+			opts.datacenter = s.source.Datacenter
+		}
 
 		err := s.watchUpstreamTarget(ctx, snap, opts)
 		if err != nil {
@@ -433,15 +444,6 @@ type targetWatchOpts struct {
 	datacenter string
 	peer       string
 	entMeta    *acl.EnterpriseMeta
-}
-
-func (o *targetWatchOpts) fromChainTarget(t *structs.DiscoveryTarget) {
-	o.chainID = t.ID
-	o.service = t.Service
-	o.filter = t.Subset.Filter
-	o.datacenter = t.Datacenter
-	o.peer = t.Peer
-	o.entMeta = t.GetEnterpriseMetadata()
 }
 
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {

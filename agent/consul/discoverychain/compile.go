@@ -44,6 +44,11 @@ type CompileRequest struct {
 	OverrideConnectTimeout time.Duration
 
 	Entries *configentry.DiscoveryChainSet
+
+	// AutoVirtualIPs and ManualVirtualIPs are lists of IPs associated with
+	// the service.
+	AutoVirtualIPs   []string
+	ManualVirtualIPs []string
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -98,6 +103,8 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		overrideProtocol:       req.OverrideProtocol,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
 		entries:                entries,
+		autoVirtualIPs:         req.AutoVirtualIPs,
+		manualVirtualIPs:       req.ManualVirtualIPs,
 
 		resolvers:     make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
 		splitterNodes: make(map[string]*structs.DiscoveryGraphNode),
@@ -138,6 +145,11 @@ type compiler struct {
 	//
 	// This is an INPUT field.
 	entries *configentry.DiscoveryChainSet
+
+	// autoVirtualIPs and manualVirtualIPs are lists of IPs associated with
+	// the service.
+	autoVirtualIPs   []string
+	manualVirtualIPs []string
 
 	// resolvers is initially seeded by copying the provided entries.Resolvers
 	// map and default resolvers are added as they are needed.
@@ -352,6 +364,8 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,
 		Targets:           c.loadedTargets,
+		AutoVirtualIPs:    c.autoVirtualIPs,
+		ManualVirtualIPs:  c.manualVirtualIPs,
 	}, nil
 }
 
@@ -995,19 +1009,25 @@ RESOLVE_AGAIN:
 		Type: structs.DiscoveryGraphNodeTypeResolver,
 		Name: target.ID,
 		Resolver: &structs.DiscoveryResolver{
-			Default:              resolver.IsDefault(),
-			Target:               target.ID,
-			ConnectTimeout:       connectTimeout,
-			RequestTimeout:       resolver.RequestTimeout,
-			PrioritizeByLocality: resolver.PrioritizeByLocality.ToDiscovery(),
+			Default:        resolver.IsDefault(),
+			Target:         target.ID,
+			ConnectTimeout: connectTimeout,
+			RequestTimeout: resolver.RequestTimeout,
 		},
 		LoadBalancer: resolver.LoadBalancer,
 	}
 
-	// Merge default values from the proxy defaults
 	proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
-	if proxyDefault != nil && node.Resolver.PrioritizeByLocality == nil {
-		node.Resolver.PrioritizeByLocality = proxyDefault.PrioritizeByLocality.ToDiscovery()
+
+	// Only set PrioritizeByLocality for targets in the same partition.
+	if target.Partition == c.evaluateInPartition && target.Peer == "" {
+		if resolver.PrioritizeByLocality != nil {
+			target.PrioritizeByLocality = resolver.PrioritizeByLocality.ToDiscovery()
+		}
+
+		if target.PrioritizeByLocality == nil && proxyDefault != nil {
+			target.PrioritizeByLocality = proxyDefault.PrioritizeByLocality.ToDiscovery()
+		}
 	}
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]

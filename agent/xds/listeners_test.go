@@ -1109,6 +1109,15 @@ func TestListenersFromSnapshot(t *testing.T) {
 					nil)
 			},
 		},
+		{
+			name: "connect-proxy-without-tproxy-and-permissive-mtls",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
+				},
+					nil)
+			},
+		},
 	}
 
 	tests = append(tests, makeListenerDiscoChainTests(false)...)

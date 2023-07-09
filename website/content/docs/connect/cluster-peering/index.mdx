@@ -41,6 +41,7 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Shares support queries and service endpoints       |    &#9989;     |    &#9989;      |
 | Connects clusters owned by different operators     |    &#10060;    |    &#9989;      |
 | Functions without declaring primary datacenter     |    &#10060;    |    &#9989;      |
+| Can use sameness groups for identical services     |    &#10060;    |    &#9989;      |
 | Replicates exported services for service discovery |    &#10060;    |    &#9989;      |
 | Gossip protocol: Requires LAN gossip only          |    &#10060;    |    &#9989;      |
 | Forwards service requests for service discovery    |    &#9989;     |    &#10060;     |
@@ -53,13 +54,14 @@ The following resources are available to help you use Consul's cluster peering f
 
 ### Tutorials
 
-- To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) and Google Kubernetes Engine (GKE) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](/consul/tutorials/developer-mesh/cluster-peering).
+- To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) and Google Kubernetes Engine (GKE) environments, complete the [Connect services between Consul datacenters with cluster peering tutorial](/consul/tutorials/developer-mesh/cluster-peering).
 
 ### Usage documentation
 
 - [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering)
 - [Manage cluster peering connections](/consul/docs/connect/cluster-peering/usage/manage-connections)
 - [Manage L7 traffic with cluster peering](/consul/docs/connect/cluster-peering/usage/peering-traffic-management)
+- [Create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups)
 
 ### Kubernetes documentation
 
@@ -67,6 +69,7 @@ The following resources are available to help you use Consul's cluster peering f
 - [Establish cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering)
 - [Manage cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/manage-peering)
 - [Manage L7 traffic with cluster peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/l7-traffic)
+- [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups)
 
 ### HCP Consul documentation
 

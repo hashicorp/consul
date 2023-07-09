@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
@@ -69,7 +70,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerPort,
 			serviceOneHTTPPort,
 			serviceOneGRPCPort,
@@ -82,26 +83,9 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.Agents[0].GetClient()
 
-	gwNamespace := getNamespace()
-	if gwNamespace != "" {
-		ns := &api.Namespace{Name: gwNamespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		require.NoError(t, err)
-	}
-
-	serviceOneNamespace := getNamespace()
-	if serviceOneNamespace != "" {
-		ns := &api.Namespace{Name: serviceOneNamespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		require.NoError(t, err)
-	}
-
-	serviceTwoNamespace := getNamespace()
-	if serviceTwoNamespace != "" {
-		ns := &api.Namespace{Name: serviceTwoNamespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		require.NoError(t, err)
-	}
+	gwNamespace := getOrCreateNamespace(t, client)
+	serviceOneNamespace := getOrCreateNamespace(t, client)
+	serviceTwoNamespace := getOrCreateNamespace(t, client)
 
 	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
 		Name:      serviceOneName,
@@ -244,9 +228,9 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: gwNamespace})
 
 	// make sure config entries have been properly created
-	checkGatewayConfigEntry(t, client, gatewayName, gwNamespace)
-	checkHTTPRouteConfigEntry(t, client, routeOneName, gwNamespace)
-	checkHTTPRouteConfigEntry(t, client, routeTwoName, gwNamespace)
+	checkGatewayConfigEntry(t, client, gatewayName, &api.QueryOptions{Namespace: gwNamespace})
+	checkHTTPRouteConfigEntry(t, client, routeOneName, &api.QueryOptions{Namespace: gwNamespace})
+	checkHTTPRouteConfigEntry(t, client, routeTwoName, &api.QueryOptions{Namespace: gwNamespace})
 
 	// gateway resolves routes
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
@@ -314,7 +298,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerPort,
 			fooHTTPPort,
 			fooGRPCPort,
@@ -332,12 +316,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	fooPath := "/v1/foo"
 	barPath := "/v1/bar"
 
-	namespace := getNamespace()
-	if namespace != "" {
-		ns := &api.Namespace{Name: namespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		require.NoError(t, err)
-	}
+	namespace := getOrCreateNamespace(t, client)
 
 	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
 		ID:        fooName,
@@ -486,9 +465,9 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// make sure config entries have been properly created
-	checkGatewayConfigEntry(t, client, gatewayName, namespace)
-	checkHTTPRouteConfigEntry(t, client, invalidRouteName, namespace)
-	checkHTTPRouteConfigEntry(t, client, validRouteName, namespace)
+	checkGatewayConfigEntry(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
+	checkHTTPRouteConfigEntry(t, client, invalidRouteName, &api.QueryOptions{Namespace: namespace})
+	checkHTTPRouteConfigEntry(t, client, validRouteName, &api.QueryOptions{Namespace: namespace})
 
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
 	require.NoError(t, err)
@@ -523,8 +502,6 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	// infrastructure set up
 	address := "localhost"
 
@@ -548,7 +525,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerOnePort,
 			listenerTwoPort,
 			serviceHTTPPort,
@@ -560,13 +537,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.APIClient(0)
 
-	// getNamespace() should always return an empty string in Consul OSS
-	namespace := getNamespace()
-	if namespace != "" {
-		ns := &api.Namespace{Name: namespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		require.NoError(t, err)
-	}
+	namespace := getOrCreateNamespace(t, client)
 
 	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
 		ID:        serviceName,
@@ -603,7 +574,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 		Namespace: namespace,
 	}
 	require.NoError(t, cluster.ConfigEntryWrite(gatewayOne))
-	checkGatewayConfigEntry(t, client, gatewayOneName, namespace)
+	checkGatewayConfigEntry(t, client, gatewayOneName, &api.QueryOptions{Namespace: namespace})
 
 	// create gateway service
 	gwOneCfg := libservice.GatewayConfig{
@@ -630,7 +601,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 		Namespace: namespace,
 	}
 	require.NoError(t, cluster.ConfigEntryWrite(gatewayTwo))
-	checkGatewayConfigEntry(t, client, gatewayTwoName, namespace)
+	checkGatewayConfigEntry(t, client, gatewayTwoName, &api.QueryOptions{Namespace: namespace})
 
 	// create gateway service
 	gwTwoCfg := libservice.GatewayConfig{

@@ -747,7 +747,7 @@ func (m *subscriptionManager) NotifyStandardService(
 //
 // This name was chosen to match existing "sidecar service" generation logic
 // and similar logic in the Service Identity synthetic ACL policies.
-const syntheticProxyNameSuffix = "-sidecar-proxy"
+const syntheticProxyNameSuffix = structs.SidecarProxySuffix
 
 func generateProxyNameForDiscoveryChain(sn structs.ServiceName) structs.ServiceName {
 	return structs.NewServiceName(sn.Name+syntheticProxyNameSuffix, &sn.EnterpriseMeta)

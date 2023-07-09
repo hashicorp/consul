@@ -12,7 +12,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
@@ -108,6 +107,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		//
 		//	- CAS failures will be retried by retryCAS anyway. So the read-modify-write
 		//	  cycle should eventually succeed.
+		var mismatchError storage.GroupVersionMismatchError
 		existing, err := s.Backend.Read(ctx, storage.EventualConsistency, input.Id)
 		switch {
 		// Create path.
@@ -147,7 +147,11 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			// TODO(spatel): Revisit owner<->resource tenancy rules post-1.16
 
 		// Update path.
-		case err == nil:
+		case err == nil || errors.As(err, &mismatchError):
+			// Allow writes that update GroupVersion.
+			if mismatchError.Stored != nil {
+				existing = mismatchError.Stored
+			}
 			// Use the stored ID because it includes the Uid.
 			//
 			// Generally, users won't provide the Uid but controllers will, because
@@ -175,15 +179,24 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return storage.ErrCASFailure
 			}
 
+			// Fill in an empty Owner UID with the existing owner's UID. If other parts
+			// of the owner ID like the type or name have changed then the subsequent
+			// EqualID call will still error as you are not allowed to change the owner.
+			// This is a small UX nicety to repeatedly "apply" a resource that should
+			// have an owner without having to care about the current owners incarnation.
+			if input.Owner != nil && existing.Owner != nil && input.Owner.Uid == "" {
+				input.Owner.Uid = existing.Owner.Uid
+			}
+
 			// Owner can only be set on creation. Enforce immutability.
-			if !proto.Equal(input.Owner, existing.Owner) {
+			if !resource.EqualID(input.Owner, existing.Owner) {
 				return status.Errorf(codes.InvalidArgument, "owner cannot be changed")
 			}
 
 			// Carry over status and prevent updates
 			if input.Status == nil {
 				input.Status = existing.Status
-			} else if !resource.EqualStatus(input.Status, existing.Status) {
+			} else if !resource.EqualStatusMap(input.Status, existing.Status) {
 				return errUseWriteStatus
 			}
 

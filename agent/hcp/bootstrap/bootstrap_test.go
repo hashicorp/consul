@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/hcp"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-uuid"
@@ -157,7 +158,7 @@ func TestLoadConfig_Persistence(t *testing.T) {
 
 		// Override the client TLS config so that the test server can be trusted.
 		initial.RuntimeConfig.Cloud.WithTLSConfig(clientTLS)
-		client, err := hcp.NewClient(initial.RuntimeConfig.Cloud)
+		client, err := hcpclient.NewClient(initial.RuntimeConfig.Cloud)
 		require.NoError(t, err)
 
 		loader, err := LoadConfig(context.Background(), client, initial.RuntimeConfig.DataDir, baseLoader, ui)

@@ -32,6 +32,13 @@ type BuiltCluster struct {
 	Gateway   libservice.Service
 }
 
+type PeeringClusterSize struct {
+	AcceptingNumServers int
+	AcceptingNumClients int
+	DialingNumServers   int
+	DialingNumClients   int
+}
+
 // BasicPeeringTwoClustersSetup sets up a scenario for testing peering, which consists of
 //
 //   - an accepting cluster with 3 servers and 1 client agent. The client should be used to
@@ -46,11 +53,12 @@ func BasicPeeringTwoClustersSetup(
 	t *testing.T,
 	consulImage string,
 	consulVersion string,
+	pcs PeeringClusterSize,
 	peeringThroughMeshgateway bool,
 ) (*BuiltCluster, *BuiltCluster) {
 	acceptingCluster, acceptingCtx, acceptingClient := NewCluster(t, &ClusterConfig{
-		NumServers: 3,
-		NumClients: 1,
+		NumServers: pcs.AcceptingNumServers,
+		NumClients: pcs.AcceptingNumClients,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:           "dc1",
 			ConsulImageName:      consulImage,
@@ -61,8 +69,8 @@ func BasicPeeringTwoClustersSetup(
 	})
 
 	dialingCluster, dialingCtx, dialingClient := NewCluster(t, &ClusterConfig{
-		NumServers: 1,
-		NumClients: 1,
+		NumServers: pcs.DialingNumServers,
+		NumClients: pcs.DialingNumClients,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:           "dc2",
 			ConsulImageName:      consulImage,
@@ -179,7 +187,11 @@ type ClusterConfig struct {
 	BuildOpts                 *libcluster.BuildOptions
 	Cmd                       string
 	LogConsumer               *TestLogConsumer
-	Ports                     []int
+
+	// Exposed Ports are available on the cluster's pause container for the purposes
+	// of adding external communication to the cluster. An example would be a listener
+	// on a gateway.
+	ExposedPorts []int
 }
 
 // NewCluster creates a cluster with peering enabled. It also creates
@@ -226,8 +238,8 @@ func NewCluster(
 		serverConf.Cmd = append(serverConf.Cmd, config.Cmd)
 	}
 
-	if config.Ports != nil {
-		cluster, err = libcluster.New(t, []libcluster.Config{*serverConf}, config.Ports...)
+	if config.ExposedPorts != nil {
+		cluster, err = libcluster.New(t, []libcluster.Config{*serverConf}, config.ExposedPorts...)
 	} else {
 		cluster, err = libcluster.NewN(t, *serverConf, config.NumServers)
 	}
