@@ -2683,12 +2683,11 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	}
 
 	mapCommon("internal_rpc", t.InternalRPC, &c.InternalRPC)
+
+	c.InternalRPC.VerifyServerHostname = boolVal(t.Defaults.VerifyServerHostname)
 	if t.InternalRPC.VerifyServerHostname != nil {
 		c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
-	} else {
-		c.InternalRPC.VerifyServerHostname = boolVal(t.Defaults.VerifyServerHostname)
 	}
-
 	// Setting only verify_server_hostname is documented to imply verify_outgoing.
 	// If it doesn't then we risk sending communication over plain TCP when we
 	// documented it as forcing TLS for RPCs. Enforce this here rather than in
