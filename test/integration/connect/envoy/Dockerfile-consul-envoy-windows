@@ -1,5 +1,5 @@
 # From Consul Version 1.13.3 / 1.12.6 / 1.11.11
-ARG VERSION=1.17.0-dev
+ARG VERSION=1.16.0-dev
 # From Envoy version 1.23.1 / 1.21.5 / 1.20.7
 ARG ENVOY_VERSION
 
