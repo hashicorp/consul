@@ -348,7 +348,7 @@ func ensureNoNodeWithSimilarNameTxn(tx ReadTxn, node *structs.Node, allowClashWi
 	}
 	for nodeIt := enodes.Next(); nodeIt != nil; nodeIt = enodes.Next() {
 		enode := nodeIt.(*structs.Node)
-		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
+		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID && node.Address != enode.Address {
 			// Look up the existing node's Serf health check to see if it's failed.
 			// If it is, the node can be renamed.
 			enodeCheck, err := tx.First(tableChecks, indexID, NodeCheckQuery{
