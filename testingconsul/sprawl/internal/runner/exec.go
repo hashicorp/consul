@@ -89,6 +89,7 @@ func cmdExec(ctx context.Context, name, binary string, args []string, stdout, st
 		cmd.Stderr = io.MultiWriter(stderr, cmd.Stderr)
 	}
 	cmd.Stdin = stdin
+	// cmd.Env = append(cmd.Env, `TF_REATTACH_PROVIDERS={"registry.terraform.io/kreuzwerker/docker":{"Protocol":"grpc","ProtocolVersion":5,"Pid":11475,"Test":true,"Addr":{"Network":"unix","String":"/var/folders/dm/yfyzf7pn7t9flrxb55fsw5br0000gp/T/plugin2725480008"}}}`)
 	if err := cmd.Run(); err != nil {
 		return &ExecError{
 			BinaryName:  name,

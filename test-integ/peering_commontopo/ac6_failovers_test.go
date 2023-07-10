@@ -203,7 +203,7 @@ func (s *ac6FailoversSuite) setupAC6Failovers(ct *commonTopo, clu, peerClu *topo
 					ixns := []*api.SourceIntention{
 						{
 							Name:      client.ID.Name,
-							Partition: part.Name,
+							Partition: ConfigEntryPartition(part.Name),
 							Action:    api.IntentionActionAllow,
 						},
 					}
@@ -363,14 +363,15 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 			})
 
 			fmt.Println("### preconditions")
-			// Local
-			ct.Assert.UpstreamEndpointStatus(t, client, "failover-target~0~"+clusterPrefix(u, clu.Datacenter), "HEALTHY", 1)
-			// Peer default
-			ct.Assert.UpstreamEndpointStatus(t, client, "failover-target~1~"+clusterPrefix(u, clu.Datacenter), "HEALTHY", 1)
-			// Peer part1
-			ct.Assert.UpstreamEndpointStatus(t, client, "failover-target~2~"+clusterPrefix(u, clu.Datacenter), "HEALTHY", 1)
-			// dc3 default
-			ct.Assert.UpstreamEndpointStatus(t, client, "failover-target~3~"+clusterPrefix(u, clu.Datacenter), "HEALTHY", 1)
+			// TODO: deduce this number, instead of hard-coding
+			nFailoverTargets := 4
+			// in OSS, we don't have failover targets for non-default partitions
+			if !utils.IsEnterprise() {
+				nFailoverTargets = 3
+			}
+			for i := 0; i < nFailoverTargets; i++ {
+				ct.Assert.UpstreamEndpointStatus(t, client, fmt.Sprintf("failover-target~%d~%s", i, clusterPrefix(u, clu.Datacenter)), "HEALTHY", 1)
+			}
 
 			ct.Assert.FortioFetch2FortioName(t, client, u, clu.Name, serverSID)
 
@@ -378,7 +379,7 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 				t.Fatalf("failed preconditions")
 			}
 
-			t.Log("### Failover to peer target")
+			fmt.Println("### Failover to peer target")
 			cfg := ct.Sprawl.Config()
 			DisableNode(t, cfg, clu.Name, s.ac6[nodeKey{clu.Datacenter, partition}].serverNode)
 			require.NoError(t, ct.Sprawl.Relaunch(cfg))
