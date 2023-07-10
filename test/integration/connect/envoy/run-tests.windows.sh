@@ -407,6 +407,8 @@ function capture_logs {
     source ${CASE_DIR}/capture.sh || true
   fi
 
+  docker.exe logs "envoy_${cont}_1"
+
   for cont in $services; do
     echo "Capturing log for $cont"
     docker.exe logs "envoy_${cont}_1" &> "${LOG_DIR}/${cont}.log" || {
