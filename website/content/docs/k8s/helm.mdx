@@ -1648,7 +1648,7 @@ Use these links to navigate to a particular top-level stanza.
   - `transparentProxy` ((#v-connectinject-transparentproxy)) - Configures Transparent Proxy for Consul Service mesh services.
     Using this feature requires Consul 1.10.0-beta1+.
 
-    - `defaultEnabled` ((#v-connectinject-transparentproxy-defaultenabled)) (`boolean: true`) - If true, then all Consul Service mesh will run with transparent proxy enabled by default,
+    - `defaultEnabled` ((#v-connectinject-transparentproxy-defaultenabled)) (`boolean: true`) - If true, then all services registered with Consul service mesh will run with transparent proxy enabled by default,
       i.e. we enforce that all traffic within the pod will go through the proxy.
       This value is overridable via the "consul.hashicorp.com/transparent-proxy" pod annotation.
 
