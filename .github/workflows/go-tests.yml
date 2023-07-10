@@ -184,6 +184,18 @@ jobs:
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
+  dev-build-s390x:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-dev-build.yml
+    with:
+      uploaded-binary-name: 'consul-bin-s390x'
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      go-arch: "s390x"
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
   # dev-build-arm64:
   #   # only run on enterprise because GHA does not have arm64 runners in OSS
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
@@ -299,9 +311,10 @@ jobs:
   go-test-s390x:
     needs:
     - setup
-    - dev-build
+    - dev-build-s390x
     uses: ./.github/workflows/reusable-unit.yml
     with:
+      uploaded-binary-name: 'consul-bin-s390x'
       directory: .
       go-arch: "s390x"
       go-test-flags: 'export GO_TEST_FLAGS="-short"'
