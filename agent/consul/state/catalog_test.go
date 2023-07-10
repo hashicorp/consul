@@ -204,6 +204,13 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Status:  api.HealthCritical,
 	}))
 	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false))
+
+	node = &structs.Node{
+		ID:      makeRandomNodeID(t), // Different ID
+		Node:    "node1",             // Same name
+		Address: "1.2.3.4",           // Same address
+	}
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, node, false), "Should not clash with itself")
 }
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
