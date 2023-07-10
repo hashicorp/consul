@@ -1,0 +1,382 @@
+---
+layout: docs
+page_title: Create tokens for for Consul External Service Monitor
+description: >-
+  Learn how to create ACL tokens for the Consul External Service Monitor
+---
+
+# Create a Consul ESM token
+
+This topic describes how to create a token for the Consul External Service Monitor.
+
+## Introduction
+
+Consul External Service Monitor (ESM) can monitor third party or external services in contexts where it is not possible to run a Consul agent. To learn more about Consul ESM, refer to the [Register External Services with Consul Service Discovery](/consul/tutorials/developer-discovery/service-registration-external-services) tutorial.
+
+
+## Requirements
+
+Core ACL functionality is available in all versions of Consul.
+
+Consul ESM must present a token linked to policies that grant the following permissions:
+
+* `agent:read`: Enables checking version compatibility and calculating network coordinates
+* `key:write`: Enables storing state in the Consul KV store
+* `node:read`: Enables discovering Consul nodes to monitor
+* `node:write`: Enables updating status for the nodes that Consul ESM monitors
+* `service:write`: Enables Consul ESM to register as a service in the catalog
+* `session:write`: Enables Consul ESM is registered to acquire a leader lock
+* `acl:read`: (Enterprise-only) Enables Consul ESM to scan namespaces for nodes and health checks to monitor
+
+-> Note: Consul ESM does not currently support non-default partitions.
+
+@include 'create-token-requirements.mdx'
+
+## Consul ESM token in Consul OSS
+
+To create a token for Consul ESM, you must define a policy, register the policy with Consul, and link the policy to a token.
+
+### Define a custom policy
+
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+
+The following example policy is defined in a file. The policy grants the appropriate permissions for Consul ESM running on an agent named `agent1` to monitor two nodes named `node1` and `node2`. It allows Consul ESM to register into the catalog as the `consul-esm` service and write keys with the prefix `consul-esm/` in the Consul KV store.
+
+<CodeTabs>
+
+```hcl
+agent "agent1" {
+  policy = "read"
+}
+key_prefix "consul-esm/" {
+  policy = "write"
+}
+node_prefix "" {
+  policy = "read"
+}
+service "consul-esm" {
+  policy = "write"
+}
+session "agent1" {
+   policy = "write"
+}
+node "node1" {
+  policy = "write"
+}
+node "node2" {
+  policy = "write"
+}
+```
+
+```json
+{
+  "agent": {
+    "agent1": [{
+      "policy": "read"
+    }]
+  },
+  "key_prefix": {
+    "consul-esm/": [{
+      "policy": "write"
+    }]
+  },
+  "node": {
+    "node1": [{
+      "policy": "write"
+    }],
+    "node2": [{
+      "policy": "write"
+    }]
+  },
+  "node_prefix": {
+    "": [{
+      "policy": "read"
+    }]
+  },
+  "service": {
+    "consul-esm": [{
+      "policy": "write"
+    }]
+  },
+  "session": {
+    "agent1": [{
+      "policy": "write"
+    }]
+  }
+}
+```
+
+</CodeTabs>
+
+### Register the policy with Consul
+
+After defining the policy, you can register the policy with Consul using the command line or API endpoint.
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl policy create` command and specify the policy rules to create a policy. Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
+
+The following example registers a custom policy defined in `esm-policy.hcl`.
+
+```shell-session
+$ consul acl policy create \
+    -name "esm-policy" -rules @esm-policy.hcl \
+    -description "Policy for Consul ESM"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
+
+The following example registers the policy defined in `esm-policy.hcl`. You must embed policy rules in the `Rules` field of the request body.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Name": "esm-policy",
+  "Description": "Policy for Consul ESM",
+  "Rules": "agent \"agent1\" {\n  policy = \"read\"\n}\nkey_prefix \"consul-esm/\" {\n  policy = \"write\"\n}\nnode_prefix \"\" {\n  policy = \"read\"\n}\nservice \"consul-esm\" {\n  policy = \"write\"\n}\nsession \"agent1\" {\n   policy = \"write\"\n}\nnode \"node1\" {\n  policy = \"write\"\n}\nnode \"node2\" {\n  policy = \"write\"\n}\n"
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+### Link the policy to a token
+
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/security/acl/auth-methods).
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl token create` command and specify the policy name or ID to create a token linked to the policy. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
+
+The following example creates an ACL token linked to the policy `esm-policy`.
+
+```shell-session
+$ consul acl token create \
+    -description "Token for Consul ESM" \
+    -policy-name "esm-policy"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
+
+The following example creates an ACL token linked to the policy `esm-policy`.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Policies": [
+    {
+      "Name": "esm-policy"
+    }
+  ]
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+
+## Consul ESM token in Consul Enterprise
+
+To create a token for Consul ESM, you must define a policy, register the policy with Consul, and link the policy to a token.
+
+### Define a custom policy
+
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+
+The following example policy is defined in a file. The policy grants the appropriate permissions for Consul ESM running on an agent named `agent1` to monitor two nodes named `node1` and `node2`. It allows Consul ESM to register into the catalog as the `consul-esm` service, to write keys with the prefix `consul-esm/` in the Consul KV store, and to scan the `default` and `ns1` namespaces for nodes and health checks to monitor.
+
+<CodeTabs>
+
+```hcl
+partition "default" {
+  agent "agent1" {
+    policy = "read"
+  }
+  key_prefix "consul-esm/" {
+    policy = "write"
+  }
+  node_prefix "" {
+    policy = "read"
+  }
+  service "consul-esm" {
+    policy = "write"
+  }
+  session "agent1" {
+    policy = "write"
+  }
+
+  node "node1" {
+    policy = "write"
+  }
+  node "node1" {
+    policy = "write"
+  }
+
+  namespace "default" {
+    acl = "read"
+  }
+  namespace "ns1" {
+    acl = "read"
+  }
+}
+```
+
+```json
+{
+  "partition": {
+    "default": [{
+      "agent": {
+        "agent1": [{
+          "policy": "read"
+        }]
+      },
+      "key_prefix": {
+        "consul-esm/": [{
+          "policy": "write"
+        }]
+      },
+      "namespace": {
+        "default": [{
+          "acl": "read"
+        }],
+        "ns1": [{
+          "acl": "read"
+        }]
+      },
+      "node": {
+        "node1": [{
+          "policy": "write"
+        },
+        {
+          "policy": "write"
+        }]
+      },
+      "node_prefix": {
+        "": [{
+          "policy": "read"
+        }]
+      },
+      "service": {
+        "consul-esm": [{
+          "policy": "write"
+        }]
+      },
+      "session": {
+        "agent1": [{
+          "policy": "write"
+        }]
+      }
+    }]
+  }
+}
+```
+
+</CodeTabs>
+
+### Register the policy with Consul
+
+After defining the policy, you can register the policy with Consul using the command line or API endpoint.
+
+You can specify an admin partition and namespace when creating policies in Consul Enterprise. The policy is only valid in the specified scopes. The example policy contains permissions for multiple namespaces in multiple partitions. You must create ACL policies that grant permissions for multiple namespaces in multiple partitions in the `default` namespace and the `default` partition.
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl policy create` command and specify the policy rules to create a policy. Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
+
+The following command registers a policy defined in `esm-policy.hcl`.
+
+```shell-session
+$ consul acl policy create -partition "default" -namespace "default" \
+    -name "esm-policy" -rules @esm-policy.hcl \
+    -description "Policy for Consul ESM"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
+
+The following example registers the policy defined in `esm-policy.hcl`. You must embed policy rules in the `Rules` field of the request body.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Name": "esm-policy",
+  "Description": "Policy for Consul ESM",
+  "Partition": "default",
+  "Namespace": "default",
+  "Rules": "partition \"default\" {\n  agent \"agent1\" {\n    policy = \"read\"\n  }\n  key_prefix \"consul-esm/\" {\n    policy = \"write\"\n  }\n  node_prefix \"\" {\n    policy = \"read\"\n  }\n  service \"consul-esm\" {\n    policy = \"write\"\n  }\n  session \"agent1\" {\n    policy = \"write\"\n  }\n\n  node \"node1\" {\n    policy = \"write\"\n  }\n  node \"node1\" {\n    policy = \"write\"\n  }\n\n  namespace \"default\" {\n    acl = \"read\"\n  }\n  namespace \"ns1\" {\n    acl = \"read\"\n  }\n}\n"
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+
+### Link the policy to a token
+
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/security/acl/auth-methods).
+
+You can specify an admin partition and namespace when creating tokens in Consul Enterprise. The token must be created in the partition and namespace where the policy was created. The following example creates an ACL token in the `default` namespace in the `default` partition.
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl token create` command and specify the policy name or ID to create a token linked to the policy. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
+
+
+The following command creates the ACL token linked to the policy `esm-policy`.
+
+```shell-session
+$ consul acl token create -partition "default" -namespace "default" \
+    -description "Token for Consul ESM" \
+    -policy-name "esm-policy"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
+
+The following example creates an ACL token linked to the policy `esm-policy`.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Policies": [
+    {
+      "Name": "esm-policy"
+    }
+  ],
+  "Partition": "default",
+  "Namespace": "default"
+}'
+```
+
+</Tab>
+
+</Tabs>

@@ -1,0 +1,329 @@
+---
+layout: docs
+page_title: Create tokens for service registration
+description: >-
+  Learn how to create ACL tokens to enable Consul DNS.
+---
+
+# Create a DNS token
+
+This topic describes how to create a token that you can use to enable using Consul DNS.
+
+## Introduction
+
+A Consul agent must be configured with a token linked to policies that grant the appropriate set of permissions. To enable catalog lookups over DNS, the token must be linked to policies that grant the following permissions:
+
+Specify the [`default`](consul/docs/agent/config/config-files#acl_tokens_default) token to the Consul agent to authorize the agent to respond to DNS queries. Refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview) for details on configuring and using Consul DNS.
+
+## Requirements
+
+Core ACL functionality is available in all versions of Consul.
+
+The DNS token must be linked to policies that grant the following permissions:
+
+* `service:read`: Enables the agent to perform service lookups for DNS
+* `node:read`: Enables node lookups over DNS
+* `query:read`: Enables the agent to perform prepared query lookups for DNS
+
+@include 'create-token-requirements.mdx'
+
+## DNS token in Consul OSS
+
+To create a token for DNS, you must define a policy, register the policy with Consul, and link the policy to a token.
+
+### Define a policy
+
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+
+The following example policy is defined in a file. The policy grants the appropriate permissions to enable a Consul agent to respond to DNS queries.
+
+<CodeTabs>
+
+```hcl
+node_prefix "" {
+  policy = "read"
+}
+service_prefix "" {
+  policy = "read"
+}
+query_prefix "" {
+  policy = "read"
+}
+```
+
+```json
+{
+  "node_prefix": {
+    "": [{
+      "policy": "read"
+    }]
+  },
+  "query_prefix": {
+    "": [{
+      "policy": "read"
+    }]
+  },
+  "service_prefix": {
+    "": [{
+      "policy": "read"
+    }]
+  }
+}
+```
+
+</CodeTabs>
+
+### Register the policy with Consul
+
+After defining the policy, you can register the policy with Consul using the command line or API endpoint.
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl policy create` command and specify the policy rules to create a policy. Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
+
+The following example registers a policy defined in `dns-access.hcl`.
+
+```shell-session
+$ consul acl policy create \
+    -name "dns-access" -rules @dns-access.hcl \
+    -description "DNS Policy"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
+
+The following example registers the policy defined in `dns-access.hcl`. You must embed policy rules in the `Rules` field of the request body.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Name": "dns-access",
+  "Description": "DNS Policy",
+  "Rules": "node_prefix \"\" {\n  policy = \"read\"\n}\nservice_prefix \"\" {\n  policy = \"read\"\n}\nquery_prefix \"\" {\n  policy = \"read\"\n}\n"
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+### Link the policy to a token
+
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/security/acl/auth-methods).
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl token create` command and specify the policy name or ID to create a token linked to the policy. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
+
+The following command creates the ACL token linked to the policy `dns-access`.
+
+```shell-session
+$ consul acl token create \
+    -description "DNS token" \
+    -policy-name "dns-access"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
+
+The following example creates the ACL token linked to the policy `dns-access`.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Policies": [
+    {
+      "Name": "dns-access"
+    }
+  ]
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+## DNS token in Consul Enterprise
+
+To create a token for DNS, you must define a policy, register the policy with Consul, and link the policy to a token.
+
+### Define a policy
+
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+
+The following example policy is defined in a file. The policy grants the appropriate permissions to enable a Consul agent to respond to DNS queries for resources in any namespace in any partition.
+
+<CodeTabs>
+
+```hcl
+partition_prefix "" {
+  namespace_prefix "" {
+    node_prefix "" {
+      policy = "read"
+    }
+    service_prefix "" {
+      policy = "read"
+    }
+    query_prefix "" {
+      policy = "read"
+    }
+  }
+}
+```
+
+```json
+{
+  "partition_prefix": {
+    "": [{
+      "namespace_prefix": {
+        "": [{
+          "node_prefix": {
+            "": [{
+              "policy": "read"
+            }]
+          },
+          "query_prefix": {
+            "": [{
+              "policy": "read"
+            }]
+          },
+          "service_prefix": {
+            "": [{
+              "policy": "read"
+            }]
+          }
+        }]
+      }
+    }]
+  }
+}
+```
+
+</CodeTabs>
+
+### Register the policy with Consul
+
+After defining the policy, you can register the policy with Consul using the command line or API endpoint.
+
+You can specify an admin partition when creating policies in Consul Enterprise. The policy is only valid in the specified admin partition. The example policy contains permissions for multiple namespaces in multiple partitions. You must create ACL policies that grant permissions for multiple namespaces in multiple partitions in the `default` namespace and the `default` partition.
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+
+Run the `consul acl policy create` command and specify the policy rules to create a policy. Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
+
+```shell-session
+consul acl policy create -partition "default" -namespace "default" \
+  -name dns-access -rules @dns-access.hcl \
+  -description "DNS Policy"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
+
+The following example registers the policy defined in `dns-access.hcl`. You must embed policy rules in the `Rules` field of the request body.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Name": "dns-access",
+  "Description": "DNS Policy",
+  "Partition": "default",
+  "Namespace": "default",
+  "Rules": "partition_prefix \"\" {\n  namespace_prefix \"\" {\n    node_prefix \"\" {\n      policy = \"read\"\n    }\n    service_prefix \"\" {\n      policy = \"read\"\n    }\n    query_prefix \"\" {\n      policy = \"read\"\n    }\n  }\n}\n"
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+### Link the policy to a token
+
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/security/acl/auth-methods).
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl token create` command and specify the policy name or ID to create a token linked to the policy. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
+
+The following command creates the ACL token linked to the policy `dns-access`.
+
+```shell-session
+$ consul acl token create -partition "default" -namespace "default" \
+    -description "DNS token" \
+    -policy-name "dns-access"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
+
+The following example creates the ACL token linked to the policy `dns-access`.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Policies": [
+    {
+      "Name": "dns-access"
+    }
+  ],
+  "Partition": "default",
+  "Namespace": "default"
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+## Apply the token
+
+Configure the Consul agent with the token by either specifying the token in the agent configuration file or by using the `consul set-agent-token` command.
+
+### Apply the token in a file
+
+Specify the token in the [`default`](consul/docs/agent/config/config-files#acl_tokens_default) field of the agent configuration file so that the agent can present it and register into the catalog on startup.
+
+```hcl
+acl = {
+  enabled = true
+  tokens = {
+    default = "<token>"
+    ...
+  }
+  ...
+}
+```
+
+### Apply the token with a command
+
+Set the `default` token using the [`acl.token.default`](/consul/docs/agent/config/config-files#acl_tokens_default)  command. The following command configures a running Consul agent token with the specified token.
+
+```shell-session
+$ consul set-agent-token default <acl-token-secret-id>
+```
+
