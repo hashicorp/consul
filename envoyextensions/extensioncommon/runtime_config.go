@@ -70,7 +70,10 @@ type RuntimeConfig struct {
 // that matches the given SNI, if the RuntimeConfig corresponds to an upstream of the local service.
 // Only used when IsSourcedFromUpstream is true.
 func (c RuntimeConfig) MatchesUpstreamServiceSNI(sni string) bool {
-	u := c.Upstreams[c.ServiceName]
+	u, ok := c.Upstreams[c.ServiceName]
+	if !ok {
+		return false
+	}
 	_, match := u.SNIs[sni]
 	return match
 }
@@ -79,7 +82,10 @@ func (c RuntimeConfig) MatchesUpstreamServiceSNI(sni string) bool {
 // upstream of the local service. Note that this could be the local service if it targets itself as an upstream.
 // Only used when IsSourcedFromUpstream is true.
 func (c RuntimeConfig) UpstreamEnvoyID() string {
-	u := c.Upstreams[c.ServiceName]
+	u, ok := c.Upstreams[c.ServiceName]
+	if !ok {
+		return ""
+	}
 	return u.EnvoyID
 }
 
@@ -87,6 +93,9 @@ func (c RuntimeConfig) UpstreamEnvoyID() string {
 // RuntimeConfig corresponds to an upstream of the local service.
 // Only used when IsSourcedFromUpstream is true.
 func (c RuntimeConfig) UpstreamOutgoingProxyKind() api.ServiceKind {
-	u := c.Upstreams[c.ServiceName]
+	u, ok := c.Upstreams[c.ServiceName]
+	if !ok {
+		return ""
+	}
 	return u.OutgoingProxyKind
 }
