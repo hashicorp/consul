@@ -99,6 +99,14 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		c.UI.Output(billableOutput + "\n")
+
+		c.UI.Output("\nNodes")
+		nodesOutput, err := formatNodesCounts(usage.Usage)
+		if err != nil {
+			c.UI.Error(err.Error())
+			return 1
+		}
+		c.UI.Output(nodesOutput + "\n\n")
 	}
 
 	// Output Connect service counts
@@ -113,6 +121,34 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func formatNodesCounts(usageStats map[string]api.ServiceUsage) (string, error) {
+	var output bytes.Buffer
+	tw := tabwriter.NewWriter(&output, 0, 2, 6, ' ', 0)
+
+	nodesTotal := 0
+
+	fmt.Fprintf(tw, "Datacenter\t")
+
+	fmt.Fprintf(tw, "Count\t")
+
+	fmt.Fprint(tw, "\t\n")
+
+	for dc, usage := range usageStats {
+		nodesTotal += usage.Nodes
+		fmt.Fprintf(tw, "%s\t%d\n", dc, usage.Nodes)
+	}
+
+	fmt.Fprint(tw, "\t\n")
+	fmt.Fprintf(tw, "Total")
+
+	fmt.Fprintf(tw, "\t%d", nodesTotal)
+
+	if err := tw.Flush(); err != nil {
+		return "", fmt.Errorf("Error flushing tabwriter: %s", err)
+	}
+	return strings.TrimSpace(output.String()), nil
 }
 
 func formatServiceCounts(usageStats map[string]api.ServiceUsage, billable, showDatacenter bool) (string, error) {

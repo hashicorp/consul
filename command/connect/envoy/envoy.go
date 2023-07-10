@@ -440,6 +440,18 @@ func (c *cmd) run(args []string) int {
 			meta = map[string]string{structs.MetaWANFederationKey: "1"}
 		}
 
+		// API gateways do not have a default listener or ready endpoint,
+		// so adding any check to the registration will fail
+		var check *api.AgentServiceCheck
+		if c.gatewayKind != api.ServiceKindAPIGateway {
+			check = &api.AgentServiceCheck{
+				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
+				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
+				Interval:                       "10s",
+				DeregisterCriticalServiceAfter: c.deregAfterCritical,
+			}
+		}
+
 		svc := api.AgentServiceRegistration{
 			Kind:            c.gatewayKind,
 			Name:            c.gatewaySvcName,
@@ -449,12 +461,7 @@ func (c *cmd) run(args []string) int {
 			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
-			Check: &api.AgentServiceCheck{
-				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
-				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
-				Interval:                       "10s",
-				DeregisterCriticalServiceAfter: c.deregAfterCritical,
-			},
+			Check:           check,
 		}
 
 		if err := c.client.Agent().ServiceRegister(&svc); err != nil {

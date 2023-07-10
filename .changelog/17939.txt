@@ -1,0 +1,4 @@
+```release-note:improvement
+http: GET API `operator/usage` endpoint now returns node count
+cli: `consul operator usage` command now returns node count
+```
