@@ -42,7 +42,7 @@ When every field is defined, a control plane request limit configuration entry h
 ```hcl
 kind = "control-plane-request-limit"
 mode = "permissive"
-name = "<destination service>"
+name = "<name-for-the-entry>"
 read_rate =  100
 write_rate = 100
 kv = {
@@ -64,7 +64,7 @@ catalog = {
 {
   "kind": "control-plane-request-limit",
   "mode": "permissive",
-  "name": "<destination service>",
+  "name": "<name-for-the-entry>",
   "read_rate":  100,
   "write_rate": 100,
   "kv": {
@@ -85,7 +85,7 @@ catalog = {
 ```yaml
 kind: control-plane-request-limit
 mode: permissive
-name: <destination service>
+name: <name-for-the-entry>
 read_rate: 100
 write_rate: 100
 kv:
