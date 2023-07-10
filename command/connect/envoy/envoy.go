@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -38,7 +37,7 @@ func New(ui cli.Ui) *cmd {
 	return c
 }
 
-const DefaultAdminAccessLogPath = os.DevNull
+const DefaultAdminAccessLogPath = "/dev/null"
 
 type cmd struct {
 	UI     cli.Ui
