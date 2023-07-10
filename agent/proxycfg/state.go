@@ -36,6 +36,8 @@ const (
 	serviceResolversWatchID            = "service-resolvers"
 	gatewayServicesWatchID             = "gateway-services"
 	gatewayConfigWatchID               = "gateway-config"
+	apiGatewayConfigWatchID            = "api-gateway-config"
+	boundGatewayConfigWatchID          = "bound-gateway-config"
 	inlineCertificateConfigWatchID     = "inline-certificate-config"
 	routeConfigWatchID                 = "route-config"
 	externalServiceIDPrefix            = "external-service:"

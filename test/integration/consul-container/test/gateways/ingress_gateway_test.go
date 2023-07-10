@@ -62,11 +62,6 @@ func TestIngressGateway(t *testing.T) {
 	ingressService, err := libservice.NewGatewayService(context.Background(), gwCfg, clientNode)
 	require.NoError(t, err)
 
-	// this is deliberate
-	// internally, ingress gw have a 15s timeout before the /ready endpoint is available,
-	// then we need to wait for the health check to re-execute and propagate.
-	time.Sleep(45 * time.Second)
-
 	// We check this is healthy here because in the case of bringing up a new kube cluster,
 	// it is not possible to create the config entry in advance.
 	// The health checks must pass so the pod can start up.
