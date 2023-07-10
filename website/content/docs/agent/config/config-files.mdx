@@ -2094,6 +2094,12 @@ specially crafted certificate signed by the CA can be used to gain full access t
       * `TLSv1_2` (default)
       * `TLSv1_3`
 
+    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When 
+      set to true, Consul verifies the TLS certificate presented by the servers 
+      match the hostname `server.<datacenter>.<domain>`. By default this is false, 
+      and Consul does not verify the hostname of the certificate, only that it 
+      is signed by a trusted CA. 
+
       **WARNING: TLS 1.1 and lower are generally considered less secure and
       should not be used if possible.**
 
@@ -2201,7 +2207,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       only way to enforce that no client can communicate with a server unencrypted
       is to also enable `verify_incoming` which requires client certificates too.
 
-    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When
+    - `verify_server_hostname` Overrides [tls.defaults.verify_server_hostname](#tls_defaults_verify_server_hostname). When
       set to true, Consul verifies the TLS certificate presented by the servers
       match the hostname `server.<datacenter>.<domain>`. By default this is false,
       and Consul does not verify the hostname of the certificate, only that it
@@ -2285,9 +2291,6 @@ tls {
     ca_file = "/etc/pki/tls/certs/ca-bundle.crt"
     verify_incoming = true
     verify_outgoing = true
-  }
-
-  internal_rpc {
     verify_server_hostname = true
   }
 }
@@ -2316,9 +2319,7 @@ tls {
       "cert_file": "/etc/pki/tls/certs/my.crt",
       "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
       "verify_incoming": true,
-      "verify_outgoing": true
-    },
-    "internal_rpc": {
+      "verify_outgoing": true,
       "verify_server_hostname": true
     }
   }
