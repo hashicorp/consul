@@ -687,6 +687,18 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 		!c.MeshConfigSet
 }
 
+// valid tests for two valid ingress snapshot states:
+//  1. waiting: the watch on ingress config entries is set, but none were received
+//  2. loaded: both the ingress config entry AND the leaf cert are set
+func (c *configSnapshotIngressGateway) valid() bool {
+	waiting := c.GatewayConfigLoaded && len(c.Upstreams) == 0 && c.Leaf == nil
+
+	// If we have a leaf, it implies we successfully watched parent resources
+	loaded := c.GatewayConfigLoaded && c.Leaf != nil
+
+	return waiting || loaded
+}
+
 type IngressListenerKey struct {
 	Protocol string
 	Port     int
@@ -769,8 +781,7 @@ func (s *ConfigSnapshot) Valid() bool {
 
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
-			s.IngressGateway.Leaf != nil &&
-			s.IngressGateway.GatewayConfigLoaded &&
+			s.IngressGateway.valid() &&
 			s.IngressGateway.HostsSet &&
 			s.IngressGateway.MeshConfigSet
 	default:
