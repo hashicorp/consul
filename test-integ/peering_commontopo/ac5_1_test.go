@@ -99,8 +99,7 @@ func (s *serviceMeshDisabledSuite) setup(t *testing.T, ct *commonTopo) {
 		Exports: []api.ServiceConsumer{{Peer: peer}},
 	}
 
-	serverNode := ct.AddServiceNode(clu, server)
-	serverNode.Disabled = true
+	ct.AddServiceNode(clu, server)
 
 	s.clientSID = clientSID
 	s.serverSID = serverSID
