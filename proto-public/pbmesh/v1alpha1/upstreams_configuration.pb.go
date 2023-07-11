@@ -93,6 +93,9 @@ func (x *UpstreamsConfiguration) GetConfigOverrides() []*UpstreamConfigOverrides
 	return nil
 }
 
+// UpstreamConfigOverrides allow to override upstream configuration per destination_ref/port/datacenter.
+// In that sense, those three fields (destination_ref, destination_port and datacenter) are treated
+// sort of like map keys and config is a like a map value for that key.
 type UpstreamConfigOverrides struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

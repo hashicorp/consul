@@ -25,7 +25,7 @@ var (
 
 func RegisterUpstreamsConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     UpstreamsConfigurationType,
+		Type:     UpstreamsConfigurationV1Alpha1Type,
 		Proto:    &pbmesh.UpstreamsConfiguration{},
 		Validate: nil,
 	})
