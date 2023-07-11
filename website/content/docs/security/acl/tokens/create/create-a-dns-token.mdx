@@ -13,7 +13,7 @@ This topic describes how to create a token that you can use to enable using Cons
 
 A Consul agent must be configured with a token linked to policies that grant the appropriate set of permissions. To enable catalog lookups over DNS, the token must be linked to policies that grant the following permissions:
 
-Specify the [`default`](consul/docs/agent/config/config-files#acl_tokens_default) token to the Consul agent to authorize the agent to respond to DNS queries. Refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview) for details on configuring and using Consul DNS.
+Specify the [`default`](/consul/docs/agent/config/config-files#acl_tokens_default) token to the Consul agent to authorize the agent to respond to DNS queries. Refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview) for details on configuring and using Consul DNS.
 
 ## Requirements
 
@@ -306,7 +306,7 @@ Configure the Consul agent with the token by either specifying the token in the 
 
 ### Apply the token in a file
 
-Specify the token in the [`default`](consul/docs/agent/config/config-files#acl_tokens_default) field of the agent configuration file so that the agent can present it and register into the catalog on startup.
+Specify the token in the [`default`](/consul/docs/agent/config/config-files#acl_tokens_default) field of the agent configuration file so that the agent can present it and register into the catalog on startup.
 
 ```hcl
 acl = {
