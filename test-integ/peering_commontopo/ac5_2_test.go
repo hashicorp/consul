@@ -261,11 +261,11 @@ func (s *preparedQueryFailoverSuite) testPreparedQueryZeroFailover(t *testing.T,
 
 		retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}, t, func(r *retry.R) {
 			queryResult, _, err := cl.PreparedQuery().Execute(def.ID, nil)
-			require.NoError(t, err)
+			require.NoError(r, err)
 
 			// expected outcome should show 0 failover
-			require.Equal(t, 0, queryResult.Failovers, "expected 0 prepared query failover")
-			require.Equal(t, cluster.Name, queryResult.Nodes[0].Node.Datacenter, "pq results should come from the local cluster")
+			require.Equal(r, 0, queryResult.Failovers, "expected 0 prepared query failover")
+			require.Equal(r, cluster.Name, queryResult.Nodes[0].Node.Datacenter, "pq results should come from the local cluster")
 		})
 	})
 }
@@ -291,11 +291,11 @@ func (s *preparedQueryFailoverSuite) testPreparedQuerySingleFailover(t *testing.
 
 		retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}, t, func(r *retry.R) {
 			queryResult, _, err := cl.PreparedQuery().Execute(def.ID, nil)
-			require.NoError(t, err)
+			require.NoError(r, err)
 
-			require.Equal(t, 1, queryResult.Failovers, "expected 1 prepared query failover")
-			require.Equal(t, peerClu.Name, queryResult.Nodes[0].Node.Datacenter, fmt.Sprintf("the pq results should originate from peer clu %s", peerClu.Name))
-			require.Equal(t, pqFailoverTargets[0].Peer, queryResult.Nodes[0].Checks[0].PeerName,
+			require.Equal(r, 1, queryResult.Failovers, "expected 1 prepared query failover")
+			require.Equal(r, peerClu.Name, queryResult.Nodes[0].Node.Datacenter, fmt.Sprintf("the pq results should originate from peer clu %s", peerClu.Name))
+			require.Equal(r, pqFailoverTargets[0].Peer, queryResult.Nodes[0].Checks[0].PeerName,
 				fmt.Sprintf("pq results should come from the first failover target peer %s", pqFailoverTargets[0].Peer))
 		})
 	})
@@ -383,8 +383,8 @@ func (s *preparedQueryFailoverSuite) testPQZeroFailover(t *testing.T, cl *api.Cl
 			queryResult, _, err := cl.PreparedQuery().Execute(def.ID, nil)
 			require.NoError(r, err)
 			// expected outcome should show 0 failover
-			require.Equal(t, 0, queryResult.Failovers, "expected 0 prepared query failover")
-			require.Equal(t, cluster.Name, queryResult.Nodes[0].Node.Datacenter, "pq results should come from the local cluster")
+			require.Equal(r, 0, queryResult.Failovers, "expected 0 prepared query failover")
+			require.Equal(r, cluster.Name, queryResult.Nodes[0].Node.Datacenter, "pq results should come from the local cluster")
 		})
 	})
 }
