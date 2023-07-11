@@ -66,13 +66,6 @@ BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
 ENVOY_VERSION?='1.25.4'
 
-################
-# CI Variables #
-################
-CI_DEV_DOCKER_NAMESPACE?=hashicorpdev
-CI_DEV_DOCKER_IMAGE_NAME?=consul
-CI_DEV_DOCKER_WORKDIR?=bin/
-################
 CONSUL_VERSION?=$(shell cat version/VERSION)
 
 TEST_MODCACHE?=1
@@ -224,25 +217,6 @@ remote-docker: check-remote-dev-image-env ## Remote docker
 		--label version=$(CONSUL_VERSION) \
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
-
-# This make target should only run in CI and not locally.
-ci.dev-docker:  ## In CI, the linux binary will be attached from a previous step at bin/.
-	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
-	@echo "Building Consul Development container - $(CI_DEV_DOCKER_IMAGE_NAME)"
-	@docker build $(NOCACHE) $(QUIET) -t '$(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)' \
-	--build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
-	--label COMMIT_SHA=$(CIRCLE_SHA1) \
-	--label PULL_REQUEST=$(CIRCLE_PULL_REQUEST) \
-	--label CIRCLE_BUILD_URL=$(CIRCLE_BUILD_URL) \
-	$(CI_DEV_DOCKER_WORKDIR) -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
-	@echo $(DOCKER_PASS) | docker login -u="$(DOCKER_USER)" --password-stdin
-	@echo "Pushing dev image to: https://cloud.docker.com/u/hashicorpdev/repository/docker/hashicorpdev/consul"
-	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)
-ifeq ($(CIRCLE_BRANCH), main)
-	@docker tag $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT) $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
-	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
-endif
 
 linux:  ## Linux builds a linux binary compatible with the source platform
 	@mkdir -p ./pkg/bin/linux_$(GOARCH)
