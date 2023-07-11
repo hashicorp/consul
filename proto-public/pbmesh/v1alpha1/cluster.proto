@@ -31,7 +31,7 @@ message FailoverGroup {
 
 message FailoverGroupConfig {
   bool use_alt_stat_name = 1;
-  google.protobuf.Duration connect_timeout = 7;
+  google.protobuf.Duration connect_timeout = 2;
 }
 
 message EndpointGroup {

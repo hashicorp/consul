@@ -55,7 +55,7 @@ message InboundNonMeshTLS {
     // leaf_key is the UUID key to use to look up the leaf certificate in the ProxyState leaf certificate map.
     string leaf_key = 1;
     // sds refers to certificates retrieved via Envoy SDS.
-    SDSCertificate sds = 3;
+    SDSCertificate sds = 2;
   }
 }
 
@@ -65,7 +65,7 @@ message OutboundNonMeshTLS {
   // key_file is a filename for a key for outbound connections.
   string key_file = 2;
   // validation_context has what is needed to validate the destination.
-  NonMeshOutboundValidationContext validation_context = 4;
+  NonMeshOutboundValidationContext validation_context = 3;
 }
 
 message MeshInboundValidationContext {
@@ -79,8 +79,8 @@ message MeshOutboundValidationContext {
   // trust_bundle_peer_name_key is which trust bundle to use for the destination. It could be the local or a peer's trust bundle.
   // This will be a key in the trust bundle map.
   string trust_bundle_peer_name_key = 1;
-  // spiffe_id is one or more spiffe IDs to validate.
-  repeated string spiffe_id = 2;
+  // spiffe_ids is one or more spiffe IDs to validate.
+  repeated string spiffe_ids = 2;
 }
 
 message NonMeshOutboundValidationContext {
