@@ -72,7 +72,7 @@ To use cluster peering with Consul on Kubernetes deployments, update the Helm ch
   $ helm install ${HELM_RELEASE_NAME2} hashicorp/consul --create-namespace --namespace consul --version "1.2.0" --values values.yaml --set global.datacenter=dc2 --kube-context $CLUSTER2_CONTEXT
   ```
 
-1. For both clusters apply `Mesh` Config entry values provided in [Mesh Gateway Specificaions](/consul/docs/k8s/connect/cluster-peering/tech-specs#mesh-gateway-specifications) to enable establsihing peering connections over Mesh Gateways. 
+1. For both clusters apply `Mesh` Config entry values provided in [Mesh Gateway Specificaions](/consul/docs/k8s/connect/cluster-peering/tech-specs#mesh-gateway-specifications) to allow establishing peering connections over Mesh Gateways. 
 
 ### Configure the mesh gateway mode for traffic between services
 
