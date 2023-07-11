@@ -3450,7 +3450,7 @@ func parseNodes(tx ReadTxn, ws memdb.WatchSet, idx uint64,
 		ws.AddWithLimit(watchLimit, services.WatchCh(), allServicesCh)
 		for service := services.Next(); service != nil; service = services.Next() {
 			ns := service.(*structs.ServiceNode).ToNodeService()
-			//Update Node Meta with version from Consul Service, if already not exists in Node Meta
+			// If version isn't defined in node meta, set it from the Consul service meta
 			if _, ok := dump.Meta[structs.MetaConsulVersion]; !ok && ns.ID == "consul" && ns.Meta["version"] != "" {
 				if dump.Meta == nil {
 					dump.Meta = make(map[string]string)
