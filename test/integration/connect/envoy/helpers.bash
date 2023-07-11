@@ -328,6 +328,18 @@ function get_envoy_cluster_config {
   "
 }
 
+function cacert_curl {
+  run retry_default curl --cacert <(get_ca_root) -s -f -d hello --resolve s1.ingress.consul:9998:127.0.0.1 https://s1.ingress.consul:9998
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"hello"* ]]
+}
+
+function cacert_curl_custom_host {
+  run retry_default curl --cacert <(get_ca_root) -s -f -d hello --resolve test.example.com:9999:127.0.0.1 https://test.example.com:9999
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"hello"* ]]
+}
+
 function get_envoy_stats_flush_interval {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
@@ -930,16 +942,6 @@ function upsert_l4_intention {
 
 function get_ca_root {
   curl -s -f "http://localhost:8500/v1/connect/ca/roots" | jq -r ".Roots[0].RootCert"
-}
-
-function cacert_curl {
-  local RESOLVE_ADDR=$1
-  local ADDR=$2  
-  
-  run retry_default curl --cacert <(get_ca_root) -s -f -d hello --resolve $RESOLVE_ADDR $ADDR
-
-  [ "$status" -eq 0 ]
-  [ "$output" == *"hello"* ]
 }
 
 function wait_for_agent_service_register {
