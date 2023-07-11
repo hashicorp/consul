@@ -921,10 +921,10 @@ function get_ca_root {
 }
 
 function cacert_curl  {
-#   local RESOLVE_ADDR=$1
-#   local ADDR=$2
-#   local CA_ROOT="/c/workdir/caroot.pem"
-#   get_ca_root > $CA_ROOT
+  local RESOLVE_ADDR=$1
+  local ADDR=$2
+  local CA_ROOT="/c/workdir/caroot.pem"
+  get_ca_root > $CA_ROOT
 #
 #   run retry_default curl --cacert $CA_ROOT -s -f -d hello --resolve $RESOLVE_ADDR $ADDR
 #
