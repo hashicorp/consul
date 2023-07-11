@@ -1,4 +1,4 @@
-ARG VERSION=1.16.0
+ARG VERSION=latest
 
 FROM windows/consul:${VERSION}-local
 COPY dist/ C:\\consul

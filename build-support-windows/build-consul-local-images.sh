@@ -3,7 +3,7 @@
 readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 
 # Build Consul Version 1.13.3 / 1.12.6 / 1.11.11
-VERSION=${VERSION:-"1.16.0"}
+VERSION=${VERSION:-"latest"}
 export VERSION
 
 # Build Windows Envoy Version 1.23.1 / 1.21.5 / 1.20.7
