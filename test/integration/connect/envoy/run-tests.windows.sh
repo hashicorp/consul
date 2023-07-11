@@ -619,6 +619,7 @@ function common_run_container_service {
   local grpcPort="$4"
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
 
+  echo "testing fortio output" >&3
   docker.exe exec -d $CONTAINER_NAME bash \
     -c "FORTIO_NAME=${service} \
     fortio.exe server \
