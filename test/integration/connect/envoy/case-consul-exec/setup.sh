@@ -6,3 +6,4 @@
 set -eEuo pipefail
 
 register_services primary
+sleep 120
