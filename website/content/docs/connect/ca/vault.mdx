@@ -93,7 +93,7 @@ The key after the slash refers to the corresponding option name in the agent con
   This token must have [proper privileges](#vault-acl-policies) for the PKI
   paths configured. In Consul 1.8.5 and later, if the token has the [renewable](/vault/api-docs/auth/token#renewable)
   flag set, Consul will attempt to renew its lease periodically after half the
-  duration has expired. You can also provide this token through an environment variable `VAULT_TOKEN`. Token has to be provided either through the configuration file or through the environment variable. Both cannot be used at the same time.
+  duration has expired. You can also provide the token through the `VAULT_TOKEN` environment variable. The token must be provided either through the configuration file or through the environment variable, but you cannot provide the token using both methods to at the same time.
 
   !> **Warning:** You must either provide a token or configure an auth method below.
 
