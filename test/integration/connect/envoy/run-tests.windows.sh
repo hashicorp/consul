@@ -624,7 +624,7 @@ function common_run_container_service {
     fortio.exe server \
     -http-port ":$httpPort" \
     -grpc-port ":$grpcPort" \
-    -redirect-port disabled >/dev/null"
+    -redirect-port disabled"
 }
 
 function run_container_s1 {
