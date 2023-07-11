@@ -42,7 +42,7 @@ message Upstream {
 }
 
 message IPPortAddress {
-  // ip is an IPv4 address.
+  // ip is an IPv4 or an IPv6 address.
   string ip = 1;
 
   // port is the port number.

@@ -16,7 +16,7 @@ const (
 var (
 	UpstreamsV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: CurrentVersion,
+		GroupVersion: VersionV1Alpha1,
 		Kind:         UpstreamsKind,
 	}
 
@@ -25,7 +25,7 @@ var (
 
 func RegisterUpstreams(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     UpstreamsType,
+		Type:     UpstreamsV1Alpha1Type,
 		Proto:    &pbmesh.Upstreams{},
 		Validate: nil,
 	})

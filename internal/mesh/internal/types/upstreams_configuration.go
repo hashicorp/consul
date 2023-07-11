@@ -16,7 +16,7 @@ const (
 var (
 	UpstreamsConfigurationV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: CurrentVersion,
+		GroupVersion: VersionV1Alpha1,
 		Kind:         UpstreamsConfigurationKind,
 	}
 

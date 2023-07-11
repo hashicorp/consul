@@ -24,6 +24,9 @@ message UpstreamsConfiguration {
   repeated UpstreamConfigOverrides config_overrides = 3;
 }
 
+// UpstreamConfigOverrides allow to override upstream configuration per destination_ref/port/datacenter.
+// In that sense, those three fields (destination_ref, destination_port and datacenter) are treated
+// sort of like map keys and config is a like a map value for that key.
 message UpstreamConfigOverrides {
   // destination_ref is the reference to an upstream service that this configuration applies to.
   // This has to be pbcatalog.Service type.
