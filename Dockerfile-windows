@@ -36,9 +36,11 @@ EXPOSE 8301 8301/udp 8302 8302/udp
 # use to interact with Consul.
 EXPOSE 8500 8600 8600/udp
 
-ENV CONSUL_URL=https://releases.hashicorp.com/consul/${VERSION}/consul_${VERSION}_windows_amd64.zip
-RUN curl %CONSUL_URL% -L -o consul.zip
-RUN tar -xf consul.zip -C consul
+#ENV CONSUL_URL=https://releases.hashicorp.com/consul/${VERSION}/consul_${VERSION}_windows_amd64.zip
+#RUN curl %CONSUL_URL% -L -o consul.zip
+#RUN tar -xf consul.zip -C consul
+
+COPY C:\\bin\\consul.exe consul\
 
 COPY .release/docker/docker-entrypoint-windows.sh C:\\docker-entrypoint-windows.sh
 ENTRYPOINT ["bash.exe", "docker-entrypoint-windows.sh"]
