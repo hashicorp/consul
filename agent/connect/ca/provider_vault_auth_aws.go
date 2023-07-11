@@ -72,9 +72,6 @@ func (g *AWSLoginDataGenerator) GenerateLoginData(authMethod *structs.VaultAuthM
 	if err != nil {
 		return nil, fmt.Errorf("aws auth failed to generate login data: %w", err)
 	}
-	if loginData == nil {
-		return nil, fmt.Errorf("got nil response from GenerateLoginData")
-	}
 
 	// If a Vault role name is specified, we need to manually add this
 	role, ok := authMethod.Params["role"]
