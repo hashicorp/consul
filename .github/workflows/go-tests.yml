@@ -316,7 +316,7 @@ jobs:
     with:
       uploaded-binary-name: 'consul-bin-s390x'
       directory: .
-      go-arch: "s390x"
+      # go-arch: "s390x"
       go-test-flags: 'export GO_TEST_FLAGS="-short"'
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
