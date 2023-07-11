@@ -59,41 +59,91 @@ func pkiTestPolicy(rootPath, intermediatePath string) string {
 func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
 		rawConfig map[string]interface{}
+		envConfig map[string]string
 		expConfig *structs.VaultCAProviderConfig
 		isPrimary bool
 		expError  string
 	}{
-		"no token and no auth method provided": {
+		"no vault address provided": {
 			rawConfig: map[string]interface{}{},
+			expError:  "must provide a Vault address",
+		},
+		"no token and no auth method provided": {
+			rawConfig: map[string]interface{}{"Address": "http://127.0.0.1:8200"},
 			expError:  "must provide a Vault token or configure a Vault auth method",
 		},
 		"both token and auth method provided": {
-			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
+			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}, "Address": "http://127.0.0.1:8200"},
 			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
 		},
 		"primary no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
+			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test", "Address": "http://127.0.0.1:8200"},
 			isPrimary: true,
 			expError:  "must provide a valid path to a root PKI backend",
 		},
 		"secondary no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
+			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test", "Address": "http://127.0.0.1:8200"},
 			isPrimary: false,
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
+				Address:                "http://127.0.0.1:8200",
 				Token:                  "test",
 				IntermediatePKIPath:    "test/",
 			},
 		},
 		"no root intermediate path": {
-			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "Address": "http://127.0.0.1:8200"},
 			expError:  "must provide a valid path for the intermediate PKI backend",
 		},
 		"adds a slash to RootPKIPath and IntermediatePKIPath": {
 			isPrimary: true,
-			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test", "Address": "http://127.0.0.1:8200"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
+				Address:                "http://127.0.0.1:8200",
+				Token:                  "test",
+				RootPKIPath:            "test/",
+				IntermediatePKIPath:    "test/",
+			},
+		},
+		"vault address provided from env": {
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
+			envConfig: map[string]string{"VAULT_ADDR": "http://127.0.0.1:8200"},
+			expConfig: &structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Address:                "http://127.0.0.1:8200",
+				Token:                  "test",
+				RootPKIPath:            "test/",
+				IntermediatePKIPath:    "test/",
+			},
+		},
+		"vault address provided from env and config": {
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test", "Address": "http://127.0.0.1:8200"},
+			envConfig: map[string]string{"VAULT_ADDR": "http://127.0.0.1:8200"},
+			expError:  "only one Vault address can be provided",
+		},
+		"vault token provided from env": {
+			rawConfig: map[string]interface{}{"RootPKIPath": "test", "IntermediatePKIPath": "test", "Address": "http://127.0.0.1:8200"},
+			envConfig: map[string]string{"VAULT_TOKEN": "test"},
+			expConfig: &structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Address:                "http://127.0.0.1:8200",
+				Token:                  "test",
+				RootPKIPath:            "test/",
+				IntermediatePKIPath:    "test/",
+			},
+		},
+		"vault token provided from env and config": {
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test", "Address": "http://127.0.0.1:8200"},
+			envConfig: map[string]string{"VAULT_TOKEN": "test"},
+			expError:  "only one Vault token can be provided",
+		},
+		"vault token and addr provided from env": {
+			rawConfig: map[string]interface{}{"RootPKIPath": "test", "IntermediatePKIPath": "test"},
+			envConfig: map[string]string{"VAULT_ADDR": "http://127.0.0.1:8200", "VAULT_TOKEN": "test"},
+			expConfig: &structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Address:                "http://127.0.0.1:8200",
 				Token:                  "test",
 				RootPKIPath:            "test/",
 				IntermediatePKIPath:    "test/",
@@ -103,6 +153,9 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
+			for k, v := range c.envConfig {
+				t.Setenv(k, v)
+			}
 			config, err := ParseVaultCAConfig(c.rawConfig, c.isPrimary)
 			if c.expError != "" {
 				require.EqualError(t, err, c.expError)
@@ -254,43 +307,55 @@ func TestVaultCAProvider_ConfigureFromEnv(t *testing.T) {
 		ConsulManaged:    true,
 	}
 
-	testcases := []struct {
-		name     string
-		setEnv   bool
-		setToken bool
-		wantErr  bool
+	cases := map[string]struct {
+		envOnlyToken      bool
+		envOnlyAddr       bool
+		envConfigOverride map[string]string
+		expError          string
 	}{
-		{
-			name:     "DefaultConfig",
-			setEnv:   true,
-			setToken: false,
-			wantErr:  false,
+		"DefaultConfig": {
+			envOnlyToken: false,
+			envOnlyAddr:  false,
 		},
-		{
-			name:     "DefaultConfigWithoutToken",
-			setEnv:   false,
-			setToken: false,
-			wantErr:  true,
+		"DefaultConfigWithEnvToken": {
+			envOnlyToken: true,
+			envOnlyAddr:  false,
 		},
-		{
-			name:     "DefaultConfigWithBothTokens",
-			setEnv:   true,
-			setToken: true,
-			wantErr:  true,
+		"DefaultConfigWithEnvTokenAndAddr": {
+			envOnlyToken: true,
+			envOnlyAddr:  true,
+		},
+		"DefaultConfigWithEnvTokenMissing": {
+			envOnlyToken:      true,
+			envOnlyAddr:       false,
+			envConfigOverride: map[string]string{"VAULT_TOKEN": ""},
+			expError:          "must provide a Vault token or configure a Vault auth method",
+		},
+		"DefaultConfigWithEnvAddrMissing": {
+			envOnlyToken:      true,
+			envOnlyAddr:       true,
+			envConfigOverride: map[string]string{"VAULT_ADDR": ""},
+			expError:          "must provide a Vault address",
 		},
 	}
-	for _, testcase := range testcases {
-		t.Run(testcase.name, func(t *testing.T) {
-			testVault := NewTestVaultServer(t)
 
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			testVault := NewTestVaultServer(t)
 			token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
 
-			if testcase.setEnv {
-				t.Setenv("VAULT_TOKEN", token)
+			if c.envOnlyToken {
+				t.Setenv(vaultapi.EnvVaultToken, token)
+				token = ""
 			}
 
-			if !testcase.setToken {
-				token = ""
+			if c.envOnlyAddr {
+				t.Setenv(vaultapi.EnvVaultAddress, testVault.Addr)
+				testVault.Addr = ""
+			}
+
+			for k, v := range c.envConfigOverride {
+				t.Setenv(k, v)
 			}
 
 			cfg := vaultProviderConfig(t, testVault.Addr, token, rawCfg)
@@ -299,12 +364,11 @@ func TestVaultCAProvider_ConfigureFromEnv(t *testing.T) {
 
 			err := provider.Configure(cfg)
 
-			if testcase.wantErr {
-				require.Error(t, err)
+			if c.expError != "" {
+				require.EqualError(t, err, c.expError)
 			} else {
 				require.NoError(t, err)
 			}
-
 		})
 	}
 }

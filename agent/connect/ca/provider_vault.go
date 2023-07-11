@@ -107,9 +107,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 
-	clientConf := &vaultapi.Config{
-		Address: config.Address,
-	}
+	clientConf := &vaultapi.Config{}
 	err = clientConf.ConfigureTLS(vaultTLSConfig(config))
 	if err != nil {
 		return err
@@ -118,6 +116,8 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	if err != nil {
 		return err
 	}
+
+	client.SetAddress(config.Address)
 
 	// We don't want to set the namespace if it's empty to prevent potential
 	// unknown behavior (what does Vault do with an empty namespace). The Vault
@@ -134,10 +134,6 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 			return err
 		}
 		config.Token = loginResp.Auth.ClientToken
-	}
-
-	if token := os.Getenv(vaultapi.EnvVaultToken); token != "" {
-		config.Token = token
 	}
 
 	client.SetToken(config.Token)
@@ -929,6 +925,19 @@ func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.Va
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
 
+	envAddr := os.Getenv(vaultapi.EnvVaultAddress)
+	if config.Address == "" && envAddr == "" {
+		return nil, fmt.Errorf("must provide a Vault address")
+	}
+
+	if config.Address != "" && envAddr != "" {
+		return nil, fmt.Errorf("only one Vault address can be provided")
+	}
+
+	if envAddr != "" {
+		config.Address = envAddr
+	}
+
 	envToken := os.Getenv(vaultapi.EnvVaultToken)
 	if config.Token == "" && envToken == "" && config.AuthMethod == nil {
 		return nil, fmt.Errorf("must provide a Vault token or configure a Vault auth method")
@@ -940,6 +949,10 @@ func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.Va
 
 	if config.Token != "" && config.AuthMethod != nil {
 		return nil, fmt.Errorf("only one of Vault token or Vault auth method can be provided, but not both")
+	}
+
+	if envToken != "" {
+		config.Token = envToken
 	}
 
 	if isPrimary && config.RootPKIPath == "" {
