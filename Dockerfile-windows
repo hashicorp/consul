@@ -40,7 +40,7 @@ EXPOSE 8500 8600 8600/udp
 #RUN curl %CONSUL_URL% -L -o consul.zip
 #RUN tar -xf consul.zip -C consul
 
-COPY C:\\bin\\consul.exe consul\
+COPY C:\\consul.exe C:\\consul
 
 COPY .release/docker/docker-entrypoint-windows.sh C:\\docker-entrypoint-windows.sh
 ENTRYPOINT ["bash.exe", "docker-entrypoint-windows.sh"]
