@@ -1,5 +1,5 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
-ARG VERSION=latest
+ARG VERSION=1.16.0
 
 ENV chocolateyVersion=1.4.0
 
