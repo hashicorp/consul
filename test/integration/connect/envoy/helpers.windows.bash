@@ -623,7 +623,7 @@ function assert_intention_denied {
 function docker_consul {
   local DC=$1
   shift 1
-  docker_exec envoy_consul-${DC}_1 "$@"
+  retry_default docker_exec envoy_consul-${DC}_1 "$@"
 }
 
 function docker_consul_for_proxy_bootstrap {
