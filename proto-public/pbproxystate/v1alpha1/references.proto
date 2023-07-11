@@ -4,8 +4,9 @@
 syntax = "proto3";
 
 package hashicorp.consul.proxystate.v1alpha1;
+import "pbresource/resource.proto";
 
-message LeafReference {
+message LeafCertificateRef {
   string name = 1;
   string namespace = 2;
   string partition = 3;
@@ -14,7 +15,14 @@ message LeafReference {
   repeated string dns_san = 6;
 }
 
-message CAReference {
+message TrustBundleRef {
   string peer = 1;
   string trust_domain = 2;
+}
+
+message EndpointRef {
+  // name is the name of the Endpoints. This should match the cluster name.
+  string name = 1;
+  // id is the ServiceEndpoints resource id.
+  hashicorp.consul.resource.ID id = 2;
 }

@@ -27,10 +27,10 @@ message Listener {
   Router default_router = 6;
   // capabilities describe Envoy proxy functionality to enable. These map closely to Envoy listener filters.
   repeated Capability capabilities = 7;
-  // connection_config has additional listener connection
-  ConnectionConfig connection_config = 8;
-  // use_escape_hatch_listener_json configures whether to use the top level user configured escape hatch listener.
-  bool use_escape_hatch_listener = 9;
+  // balance_connections configures how the listener should balance connections.
+  BalanceConnections balance_connections = 8;
+  // escape_hatch_listener_json configures a user configured escape hatch listener.
+  string escape_hatch_listener = 9;
   // use_escape_hatch_tracing configures whether to use the top level user   configured tracing escape hatch for this listener.
   bool use_escape_hatch_tracing = 10;
 
@@ -42,6 +42,7 @@ enum Direction {
   DIRECTION_INBOUND = 1;
   DIRECTION_OUTBOUND = 2;
 }
+
 // Capabilities map to proxy functionality to enable. These enable tproxy, l7 protocol/alpn inspection, or l4 sni/alpn inspection.
 enum Capability {
   CAPABILITY_TRANSPARENT = 0;
@@ -49,19 +50,9 @@ enum Capability {
   CAPABILITY_L4_TLS_INSPECTION = 2;
 }
 
-message ConnectionConfig {
-  // balance_connections configures how the listener should balance connections.
-  BalanceConnections balance_connections = 1;
-}
-
 enum BalanceConnections {
   BALANCE_CONNECTIONS_DEFAULT = 0;
   BALANCE_CONNECTIONS_EXACT = 1;
-}
-
-message InboundConnectionConfig {
-  // max_inbound_connections specifies how many connections this destination can accept.
-  uint64 max_inbound_connections = 1;
 }
 
 message Router {
@@ -101,7 +92,8 @@ message L4Destination {
   string stat_prefix = 2;
   // intentions is a list of intentions for this destination.
   repeated L4Intention intentions = 3;
-  InboundConnectionConfig connection_config = 4;
+  // max_inbound_connections specifies how many connections this destination can accept.
+  uint64 max_inbound_connections = 4;
 }
 
 message L7Destination {
@@ -118,7 +110,8 @@ message L7Destination {
   // static_route specifies whether this is a static route that is inlined in the listener filter. This is required to
   // match existing xds config.
   bool static_route = 6;
-  InboundConnectionConfig connection_config = 7;
+  // max_inbound_connections specifies how many connections this destination can accept.
+  uint64 max_inbound_connections = 7;
 }
 
 enum L7Protocol {

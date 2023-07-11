@@ -12,14 +12,10 @@ message TLS {
   TLSParameters inbound_tls_parameters = 1;
   // outbound_tls_parameters has default TLS parameter configuration for inbound connections. These can be overridden per transport socket.
   TLSParameters outbound_tls_parameters = 2;
-  // TrustBundles is a map of peer name to trust bundle. The V2 resource tenancy field will have the peer, which will be either local, or have a peer name. The map keys would be "local" or the name of the peer if it is for a remote peer.
-  map<string, TrustBundle> trust_bundles = 3;
+  // TrustBundles is a map of peer name to trust domain. The V2 resource tenancy field will have the peer, which will be either local, or have a peer name. The map keys would be "local" or the name of the peer if it is for a remote peer. The peer name and trust domain will be used to look up CA pems for a trust domain.
+  map<string, string> trust_bundles = 3;
 }
 
-message TrustBundle {
-  // trust_domain is the name of the trust domain. It will be used to look up the CA pems for that trust domain.
-  string trust_domain = 1;
-}
 
 message TransportSocket {
   oneof connection_tls {
@@ -38,15 +34,15 @@ message TransportSocket {
 }
 
 message InboundMeshMTLS {
-  // identity is the reference to the leaf certificate to present for incoming connections.
-  LeafReference identity = 1;
+  // identity_key is UUID key to use to look up the leaf certificate in ProxyState to present for incoming connections.
+  string identity_key = 1;
   // validation_context has what is needed to validate incoming connections.
   MeshInboundValidationContext validation_context = 2;
 }
 
 message OutboundMeshMTLS {
-  // identity is the reference to the leaf certificate to present when connecting to destinations.
-  LeafReference identity = 1;
+  // identity_key is UUID key to use to look up the leaf certificate in ProxyState when connecting to destinations.
+  string identity_key = 1;
   // validation_context has what is needed to validate the destination.
   MeshOutboundValidationContext validation_context = 2;
   // sni to use when connecting to the destination.
@@ -56,10 +52,8 @@ message OutboundMeshMTLS {
 message InboundNonMeshTLS {
   // identity is the reference to the leaf certificate to present for incoming connections.
   oneof identity {
-    // inline_cert refers to a Consul Inline Certificate resource which is configured by a user.
-    LeafReference inline_cert = 1;
-    // mesh_identity refers to a Consul mesh leaf certificate.
-    LeafReference mesh_identity = 2;
+    // leaf_key is the UUID key to use to look up the leaf certificate in the ProxyState leaf certificate map.
+    string leaf_key = 1;
     // sds refers to certificates retrieved via Envoy SDS.
     SDSCertificate sds = 3;
   }
@@ -75,16 +69,16 @@ message OutboundNonMeshTLS {
 }
 
 message MeshInboundValidationContext {
-  // trust_bundle_names is which trust bundles to use for validating incoming connections. If this workload is exported
+  // trust_bundle_peer_name_keys is which trust bundles to use for validating incoming connections. If this workload is exported
   // to peers, the incoming connection could be from a different peer, requiring that trust bundle to validate the
   // connection. These could be local or peered trust bundles. This will be a key in the trust bundle map.
-  repeated string trust_bundle_names = 1;
+  repeated string trust_bundle_peer_name_keys = 1;
 }
 
 message MeshOutboundValidationContext {
-  // trust_bundle_name is which trust bundle to use for the destination. It could be the local or a peer's trust bundle.
+  // trust_bundle_peer_name_key is which trust bundle to use for the destination. It could be the local or a peer's trust bundle.
   // This will be a key in the trust bundle map.
-  string trust_bundle_name = 1;
+  string trust_bundle_peer_name_key = 1;
   // spiffe_id is one or more spiffe IDs to validate.
   repeated string spiffe_id = 2;
 }
@@ -103,6 +97,15 @@ message TLSParameters {
   TLSVersion min_version = 1;
   TLSVersion max_version = 2;
   repeated TLSCipherSuite cipher_suites = 3;
+}
+
+message InlineLeafCertificate {
+  string cert = 1;
+  string key = 2;
+}
+
+message InlineTrustBundle {
+  string ca = 1;
 }
 
 enum TLSVersion {

@@ -83,8 +83,8 @@ type Cluster struct {
 	//	*Cluster_FailoverGroup
 	//	*Cluster_EndpointGroup
 	Group isCluster_Group `protobuf_oneof:"group"`
-	// use_escape_hatch_cluster_json configures whether to use the top level user configured escape hatch.
-	UseEscapeHatchCluster bool `protobuf:"varint,3,opt,name=use_escape_hatch_cluster,json=useEscapeHatchCluster,proto3" json:"use_escape_hatch_cluster,omitempty"`
+	// escape_hatch_cluster_json configures a user configured escape hatch cluster.
+	EscapeHatchClusterJson string `protobuf:"bytes,3,opt,name=escape_hatch_cluster_json,json=escapeHatchClusterJson,proto3" json:"escape_hatch_cluster_json,omitempty"`
 }
 
 func (x *Cluster) Reset() {
@@ -140,11 +140,11 @@ func (x *Cluster) GetEndpointGroup() *EndpointGroup {
 	return nil
 }
 
-func (x *Cluster) GetUseEscapeHatchCluster() bool {
+func (x *Cluster) GetEscapeHatchClusterJson() string {
 	if x != nil {
-		return x.UseEscapeHatchCluster
+		return x.EscapeHatchClusterJson
 	}
-	return false
+	return ""
 }
 
 type isCluster_Group interface {
@@ -654,6 +654,118 @@ func (x *StaticEndpointGroup) GetConfig() *StaticEndpointGroupConfig {
 	return nil
 }
 
+type WeightedClusterGroup struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// clusters to route to by weight.
+	Clusters []*WeightedDestinationCluster `protobuf:"bytes,1,rep,name=clusters,proto3" json:"clusters,omitempty"`
+}
+
+func (x *WeightedClusterGroup) Reset() {
+	*x = WeightedClusterGroup{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *WeightedClusterGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WeightedClusterGroup) ProtoMessage() {}
+
+func (x *WeightedClusterGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WeightedClusterGroup.ProtoReflect.Descriptor instead.
+func (*WeightedClusterGroup) Descriptor() ([]byte, []int) {
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *WeightedClusterGroup) GetClusters() []*WeightedDestinationCluster {
+	if x != nil {
+		return x.Clusters
+	}
+	return nil
+}
+
+type WeightedDestinationCluster struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// name is the name of the cluster. This will be used to look up a cluster in the clusters map.
+	Name            string                  `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Weight          *wrapperspb.UInt32Value `protobuf:"bytes,2,opt,name=weight,proto3" json:"weight,omitempty"`
+	HeaderMutations []*HeaderMutation       `protobuf:"bytes,3,rep,name=header_mutations,json=headerMutations,proto3" json:"header_mutations,omitempty"`
+}
+
+func (x *WeightedDestinationCluster) Reset() {
+	*x = WeightedDestinationCluster{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *WeightedDestinationCluster) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WeightedDestinationCluster) ProtoMessage() {}
+
+func (x *WeightedDestinationCluster) ProtoReflect() protoreflect.Message {
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WeightedDestinationCluster.ProtoReflect.Descriptor instead.
+func (*WeightedDestinationCluster) Descriptor() ([]byte, []int) {
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *WeightedDestinationCluster) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WeightedDestinationCluster) GetWeight() *wrapperspb.UInt32Value {
+	if x != nil {
+		return x.Weight
+	}
+	return nil
+}
+
+func (x *WeightedDestinationCluster) GetHeaderMutations() []*HeaderMutation {
+	if x != nil {
+		return x.HeaderMutations
+	}
+	return nil
+}
+
 type DynamicEndpointGroupConfig struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -678,7 +790,7 @@ type DynamicEndpointGroupConfig struct {
 func (x *DynamicEndpointGroupConfig) Reset() {
 	*x = DynamicEndpointGroupConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[8]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -691,7 +803,7 @@ func (x *DynamicEndpointGroupConfig) String() string {
 func (*DynamicEndpointGroupConfig) ProtoMessage() {}
 
 func (x *DynamicEndpointGroupConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[8]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -704,7 +816,7 @@ func (x *DynamicEndpointGroupConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DynamicEndpointGroupConfig.ProtoReflect.Descriptor instead.
 func (*DynamicEndpointGroupConfig) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{8}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DynamicEndpointGroupConfig) GetConnectTimeout() *durationpb.Duration {
@@ -836,7 +948,7 @@ type LBPolicyLeastRequest struct {
 func (x *LBPolicyLeastRequest) Reset() {
 	*x = LBPolicyLeastRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[9]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -849,7 +961,7 @@ func (x *LBPolicyLeastRequest) String() string {
 func (*LBPolicyLeastRequest) ProtoMessage() {}
 
 func (x *LBPolicyLeastRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[9]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -862,7 +974,7 @@ func (x *LBPolicyLeastRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LBPolicyLeastRequest.ProtoReflect.Descriptor instead.
 func (*LBPolicyLeastRequest) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{9}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *LBPolicyLeastRequest) GetChoiceCount() *wrapperspb.UInt32Value {
@@ -881,7 +993,7 @@ type LBPolicyRoundRobin struct {
 func (x *LBPolicyRoundRobin) Reset() {
 	*x = LBPolicyRoundRobin{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[10]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -894,7 +1006,7 @@ func (x *LBPolicyRoundRobin) String() string {
 func (*LBPolicyRoundRobin) ProtoMessage() {}
 
 func (x *LBPolicyRoundRobin) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[10]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -907,7 +1019,7 @@ func (x *LBPolicyRoundRobin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LBPolicyRoundRobin.ProtoReflect.Descriptor instead.
 func (*LBPolicyRoundRobin) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{10}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{12}
 }
 
 type LBPolicyRandom struct {
@@ -919,7 +1031,7 @@ type LBPolicyRandom struct {
 func (x *LBPolicyRandom) Reset() {
 	*x = LBPolicyRandom{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[11]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -932,7 +1044,7 @@ func (x *LBPolicyRandom) String() string {
 func (*LBPolicyRandom) ProtoMessage() {}
 
 func (x *LBPolicyRandom) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[11]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -945,7 +1057,7 @@ func (x *LBPolicyRandom) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LBPolicyRandom.ProtoReflect.Descriptor instead.
 func (*LBPolicyRandom) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{11}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{13}
 }
 
 type LBPolicyRingHash struct {
@@ -960,7 +1072,7 @@ type LBPolicyRingHash struct {
 func (x *LBPolicyRingHash) Reset() {
 	*x = LBPolicyRingHash{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[12]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -973,7 +1085,7 @@ func (x *LBPolicyRingHash) String() string {
 func (*LBPolicyRingHash) ProtoMessage() {}
 
 func (x *LBPolicyRingHash) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[12]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -986,7 +1098,7 @@ func (x *LBPolicyRingHash) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LBPolicyRingHash.ProtoReflect.Descriptor instead.
 func (*LBPolicyRingHash) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{12}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *LBPolicyRingHash) GetMinimumRingSize() *wrapperspb.UInt64Value {
@@ -1012,7 +1124,7 @@ type LBPolicyMaglev struct {
 func (x *LBPolicyMaglev) Reset() {
 	*x = LBPolicyMaglev{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[13]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1025,7 +1137,7 @@ func (x *LBPolicyMaglev) String() string {
 func (*LBPolicyMaglev) ProtoMessage() {}
 
 func (x *LBPolicyMaglev) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[13]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1038,7 +1150,7 @@ func (x *LBPolicyMaglev) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LBPolicyMaglev.ProtoReflect.Descriptor instead.
 func (*LBPolicyMaglev) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{13}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{15}
 }
 
 type CircuitBreakers struct {
@@ -1052,7 +1164,7 @@ type CircuitBreakers struct {
 func (x *CircuitBreakers) Reset() {
 	*x = CircuitBreakers{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[14]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1065,7 +1177,7 @@ func (x *CircuitBreakers) String() string {
 func (*CircuitBreakers) ProtoMessage() {}
 
 func (x *CircuitBreakers) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[14]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1078,7 +1190,7 @@ func (x *CircuitBreakers) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CircuitBreakers.ProtoReflect.Descriptor instead.
 func (*CircuitBreakers) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{14}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CircuitBreakers) GetUpstreamLimits() *UpstreamLimits {
@@ -1101,7 +1213,7 @@ type UpstreamLimits struct {
 func (x *UpstreamLimits) Reset() {
 	*x = UpstreamLimits{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[15]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1114,7 +1226,7 @@ func (x *UpstreamLimits) String() string {
 func (*UpstreamLimits) ProtoMessage() {}
 
 func (x *UpstreamLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[15]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1127,7 +1239,7 @@ func (x *UpstreamLimits) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpstreamLimits.ProtoReflect.Descriptor instead.
 func (*UpstreamLimits) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{15}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UpstreamLimits) GetMaxConnections() *wrapperspb.UInt32Value {
@@ -1166,7 +1278,7 @@ type OutlierDetection struct {
 func (x *OutlierDetection) Reset() {
 	*x = OutlierDetection{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[16]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1179,7 +1291,7 @@ func (x *OutlierDetection) String() string {
 func (*OutlierDetection) ProtoMessage() {}
 
 func (x *OutlierDetection) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[16]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1192,7 +1304,7 @@ func (x *OutlierDetection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OutlierDetection.ProtoReflect.Descriptor instead.
 func (*OutlierDetection) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{16}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *OutlierDetection) GetInterval() *durationpb.Duration {
@@ -1243,7 +1355,7 @@ type UpstreamConnectionOptions struct {
 func (x *UpstreamConnectionOptions) Reset() {
 	*x = UpstreamConnectionOptions{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[17]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1256,7 +1368,7 @@ func (x *UpstreamConnectionOptions) String() string {
 func (*UpstreamConnectionOptions) ProtoMessage() {}
 
 func (x *UpstreamConnectionOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[17]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1269,7 +1381,7 @@ func (x *UpstreamConnectionOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpstreamConnectionOptions.ProtoReflect.Descriptor instead.
 func (*UpstreamConnectionOptions) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{17}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UpstreamConnectionOptions) GetTcpKeepaliveTime() *wrapperspb.UInt32Value {
@@ -1304,7 +1416,7 @@ type PassthroughEndpointGroupConfig struct {
 func (x *PassthroughEndpointGroupConfig) Reset() {
 	*x = PassthroughEndpointGroupConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[18]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1317,7 +1429,7 @@ func (x *PassthroughEndpointGroupConfig) String() string {
 func (*PassthroughEndpointGroupConfig) ProtoMessage() {}
 
 func (x *PassthroughEndpointGroupConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[18]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1330,7 +1442,7 @@ func (x *PassthroughEndpointGroupConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PassthroughEndpointGroupConfig.ProtoReflect.Descriptor instead.
 func (*PassthroughEndpointGroupConfig) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{18}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PassthroughEndpointGroupConfig) GetConnectTimeout() *durationpb.Duration {
@@ -1357,7 +1469,7 @@ type DNSEndpointGroupConfig struct {
 func (x *DNSEndpointGroupConfig) Reset() {
 	*x = DNSEndpointGroupConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[19]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1370,7 +1482,7 @@ func (x *DNSEndpointGroupConfig) String() string {
 func (*DNSEndpointGroupConfig) ProtoMessage() {}
 
 func (x *DNSEndpointGroupConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[19]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1383,7 +1495,7 @@ func (x *DNSEndpointGroupConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DNSEndpointGroupConfig.ProtoReflect.Descriptor instead.
 func (*DNSEndpointGroupConfig) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{19}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DNSEndpointGroupConfig) GetConnectTimeout() *durationpb.Duration {
@@ -1447,7 +1559,7 @@ type StaticEndpointGroupConfig struct {
 func (x *StaticEndpointGroupConfig) Reset() {
 	*x = StaticEndpointGroupConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[20]
+		mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1460,7 +1572,7 @@ func (x *StaticEndpointGroupConfig) String() string {
 func (*StaticEndpointGroupConfig) ProtoMessage() {}
 
 func (x *StaticEndpointGroupConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[20]
+	mi := &file_pbproxystate_v1alpha1_cluster_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1473,7 +1585,7 @@ func (x *StaticEndpointGroupConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StaticEndpointGroupConfig.ProtoReflect.Descriptor instead.
 func (*StaticEndpointGroupConfig) Descriptor() ([]byte, []int) {
-	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{20}
+	return file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *StaticEndpointGroupConfig) GetConnectTimeout() *durationpb.Duration {
@@ -1504,23 +1616,26 @@ var file_pbproxystate_v1alpha1_cluster_proto_rawDesc = []byte{
 	0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x64, 0x75, 0x72, 0x61, 0x74,
 	0x69, 0x6f, 0x6e, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x1e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
 	0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x77, 0x72, 0x61, 0x70, 0x70,
-	0x65, 0x72, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x87, 0x02, 0x0a, 0x07, 0x43, 0x6c,
-	0x75, 0x73, 0x74, 0x65, 0x72, 0x12, 0x5c, 0x0a, 0x0e, 0x66, 0x61, 0x69, 0x6c, 0x6f, 0x76, 0x65,
-	0x72, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x33, 0x2e,
-	0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
-	0x2e, 0x70, 0x72, 0x6f, 0x78, 0x79, 0x73, 0x74, 0x61, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x61, 0x6c,
-	0x70, 0x68, 0x61, 0x31, 0x2e, 0x46, 0x61, 0x69, 0x6c, 0x6f, 0x76, 0x65, 0x72, 0x47, 0x72, 0x6f,
-	0x75, 0x70, 0x48, 0x00, 0x52, 0x0d, 0x66, 0x61, 0x69, 0x6c, 0x6f, 0x76, 0x65, 0x72, 0x47, 0x72,
-	0x6f, 0x75, 0x70, 0x12, 0x5c, 0x0a, 0x0e, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x5f,
-	0x67, 0x72, 0x6f, 0x75, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x33, 0x2e, 0x68, 0x61,
+	0x65, 0x72, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x2c, 0x70, 0x62, 0x70, 0x72, 0x6f,
+	0x78, 0x79, 0x73, 0x74, 0x61, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31,
+	0x2f, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x5f, 0x6d, 0x75, 0x74, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x89, 0x02, 0x0a, 0x07, 0x43, 0x6c, 0x75, 0x73,
+	0x74, 0x65, 0x72, 0x12, 0x5c, 0x0a, 0x0e, 0x66, 0x61, 0x69, 0x6c, 0x6f, 0x76, 0x65, 0x72, 0x5f,
+	0x67, 0x72, 0x6f, 0x75, 0x70, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x33, 0x2e, 0x68, 0x61,
 	0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x70,
 	0x72, 0x6f, 0x78, 0x79, 0x73, 0x74, 0x61, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68,
-	0x61, 0x31, 0x2e, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x47, 0x72, 0x6f, 0x75, 0x70,
-	0x48, 0x00, 0x52, 0x0d, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x47, 0x72, 0x6f, 0x75,
-	0x70, 0x12, 0x37, 0x0a, 0x18, 0x75, 0x73, 0x65, 0x5f, 0x65, 0x73, 0x63, 0x61, 0x70, 0x65, 0x5f,
-	0x68, 0x61, 0x74, 0x63, 0x68, 0x5f, 0x63, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x08, 0x52, 0x15, 0x75, 0x73, 0x65, 0x45, 0x73, 0x63, 0x61, 0x70, 0x65, 0x48, 0x61,
-	0x74, 0x63, 0x68, 0x43, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x42, 0x07, 0x0a, 0x05, 0x67, 0x72,
+	0x61, 0x31, 0x2e, 0x46, 0x61, 0x69, 0x6c, 0x6f, 0x76, 0x65, 0x72, 0x47, 0x72, 0x6f, 0x75, 0x70,
+	0x48, 0x00, 0x52, 0x0d, 0x66, 0x61, 0x69, 0x6c, 0x6f, 0x76, 0x65, 0x72, 0x47, 0x72, 0x6f, 0x75,
+	0x70, 0x12, 0x5c, 0x0a, 0x0e, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x5f, 0x67, 0x72,
+	0x6f, 0x75, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x33, 0x2e, 0x68, 0x61, 0x73, 0x68,
+	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x70, 0x72, 0x6f,
+	0x78, 0x79, 0x73, 0x74, 0x61, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31,
+	0x2e, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x48, 0x00,
+	0x52, 0x0d, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x12,
+	0x39, 0x0a, 0x19, 0x65, 0x73, 0x63, 0x61, 0x70, 0x65, 0x5f, 0x68, 0x61, 0x74, 0x63, 0x68, 0x5f,
+	0x63, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x5f, 0x6a, 0x73, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x16, 0x65, 0x73, 0x63, 0x61, 0x70, 0x65, 0x48, 0x61, 0x74, 0x63, 0x68, 0x43,
+	0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x4a, 0x73, 0x6f, 0x6e, 0x42, 0x07, 0x0a, 0x05, 0x67, 0x72,
 	0x6f, 0x75, 0x70, 0x22, 0xd4, 0x01, 0x0a, 0x0d, 0x46, 0x61, 0x69, 0x6c, 0x6f, 0x76, 0x65, 0x72,
 	0x47, 0x72, 0x6f, 0x75, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x5c, 0x0a, 0x0f, 0x65, 0x6e, 0x64,
@@ -1617,7 +1732,27 @@ var file_pbproxystate_v1alpha1_cluster_proto_rawDesc = []byte{
 	0x79, 0x73, 0x74, 0x61, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e,
 	0x53, 0x74, 0x61, 0x74, 0x69, 0x63, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x47, 0x72,
 	0x6f, 0x75, 0x70, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69,
-	0x67, 0x22, 0xcf, 0x07, 0x0a, 0x1a, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x45, 0x6e, 0x64,
+	0x67, 0x22, 0x74, 0x0a, 0x14, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x65, 0x64, 0x43, 0x6c, 0x75,
+	0x73, 0x74, 0x65, 0x72, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x12, 0x5c, 0x0a, 0x08, 0x63, 0x6c, 0x75,
+	0x73, 0x74, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x40, 0x2e, 0x68, 0x61,
+	0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x70,
+	0x72, 0x6f, 0x78, 0x79, 0x73, 0x74, 0x61, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68,
+	0x61, 0x31, 0x2e, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x65, 0x64, 0x44, 0x65, 0x73, 0x74, 0x69,
+	0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x52, 0x08, 0x63,
+	0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x73, 0x22, 0xc7, 0x01, 0x0a, 0x1a, 0x57, 0x65, 0x69, 0x67,
+	0x68, 0x74, 0x65, 0x64, 0x44, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43,
+	0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x34, 0x0a, 0x06, 0x77, 0x65,
+	0x69, 0x67, 0x68, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x67, 0x6f, 0x6f,
+	0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x55, 0x49, 0x6e,
+	0x74, 0x33, 0x32, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x06, 0x77, 0x65, 0x69, 0x67, 0x68, 0x74,
+	0x12, 0x5f, 0x0a, 0x10, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x5f, 0x6d, 0x75, 0x74, 0x61, 0x74,
+	0x69, 0x6f, 0x6e, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x34, 0x2e, 0x68, 0x61, 0x73,
+	0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x70, 0x72,
+	0x6f, 0x78, 0x79, 0x73, 0x74, 0x61, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61,
+	0x31, 0x2e, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x4d, 0x75, 0x74, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x52, 0x0f, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x4d, 0x75, 0x74, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x73, 0x22, 0xcf, 0x07, 0x0a, 0x1a, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x45, 0x6e, 0x64,
 	0x70, 0x6f, 0x69, 0x6e, 0x74, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
 	0x12, 0x42, 0x0a, 0x0f, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x5f, 0x74, 0x69, 0x6d, 0x65,
 	0x6f, 0x75, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x67, 0x6f, 0x6f, 0x67,
@@ -1860,7 +1995,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_rawDescGZIP() []byte {
 }
 
 var file_pbproxystate_v1alpha1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_pbproxystate_v1alpha1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_pbproxystate_v1alpha1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_pbproxystate_v1alpha1_cluster_proto_goTypes = []interface{}{
 	(DiscoveryType)(0),                     // 0: hashicorp.consul.proxystate.v1alpha1.DiscoveryType
 	(*Cluster)(nil),                        // 1: hashicorp.consul.proxystate.v1alpha1.Cluster
@@ -1871,78 +2006,84 @@ var file_pbproxystate_v1alpha1_cluster_proto_goTypes = []interface{}{
 	(*PassthroughEndpointGroup)(nil),       // 6: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroup
 	(*DNSEndpointGroup)(nil),               // 7: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroup
 	(*StaticEndpointGroup)(nil),            // 8: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroup
-	(*DynamicEndpointGroupConfig)(nil),     // 9: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig
-	(*LBPolicyLeastRequest)(nil),           // 10: hashicorp.consul.proxystate.v1alpha1.LBPolicyLeastRequest
-	(*LBPolicyRoundRobin)(nil),             // 11: hashicorp.consul.proxystate.v1alpha1.LBPolicyRoundRobin
-	(*LBPolicyRandom)(nil),                 // 12: hashicorp.consul.proxystate.v1alpha1.LBPolicyRandom
-	(*LBPolicyRingHash)(nil),               // 13: hashicorp.consul.proxystate.v1alpha1.LBPolicyRingHash
-	(*LBPolicyMaglev)(nil),                 // 14: hashicorp.consul.proxystate.v1alpha1.LBPolicyMaglev
-	(*CircuitBreakers)(nil),                // 15: hashicorp.consul.proxystate.v1alpha1.CircuitBreakers
-	(*UpstreamLimits)(nil),                 // 16: hashicorp.consul.proxystate.v1alpha1.UpstreamLimits
-	(*OutlierDetection)(nil),               // 17: hashicorp.consul.proxystate.v1alpha1.OutlierDetection
-	(*UpstreamConnectionOptions)(nil),      // 18: hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions
-	(*PassthroughEndpointGroupConfig)(nil), // 19: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroupConfig
-	(*DNSEndpointGroupConfig)(nil),         // 20: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig
-	(*StaticEndpointGroupConfig)(nil),      // 21: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroupConfig
-	(*durationpb.Duration)(nil),            // 22: google.protobuf.Duration
-	(*TransportSocket)(nil),                // 23: hashicorp.consul.proxystate.v1alpha1.TransportSocket
-	(*wrapperspb.UInt32Value)(nil),         // 24: google.protobuf.UInt32Value
-	(*wrapperspb.UInt64Value)(nil),         // 25: google.protobuf.UInt64Value
+	(*WeightedClusterGroup)(nil),           // 9: hashicorp.consul.proxystate.v1alpha1.WeightedClusterGroup
+	(*WeightedDestinationCluster)(nil),     // 10: hashicorp.consul.proxystate.v1alpha1.WeightedDestinationCluster
+	(*DynamicEndpointGroupConfig)(nil),     // 11: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig
+	(*LBPolicyLeastRequest)(nil),           // 12: hashicorp.consul.proxystate.v1alpha1.LBPolicyLeastRequest
+	(*LBPolicyRoundRobin)(nil),             // 13: hashicorp.consul.proxystate.v1alpha1.LBPolicyRoundRobin
+	(*LBPolicyRandom)(nil),                 // 14: hashicorp.consul.proxystate.v1alpha1.LBPolicyRandom
+	(*LBPolicyRingHash)(nil),               // 15: hashicorp.consul.proxystate.v1alpha1.LBPolicyRingHash
+	(*LBPolicyMaglev)(nil),                 // 16: hashicorp.consul.proxystate.v1alpha1.LBPolicyMaglev
+	(*CircuitBreakers)(nil),                // 17: hashicorp.consul.proxystate.v1alpha1.CircuitBreakers
+	(*UpstreamLimits)(nil),                 // 18: hashicorp.consul.proxystate.v1alpha1.UpstreamLimits
+	(*OutlierDetection)(nil),               // 19: hashicorp.consul.proxystate.v1alpha1.OutlierDetection
+	(*UpstreamConnectionOptions)(nil),      // 20: hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions
+	(*PassthroughEndpointGroupConfig)(nil), // 21: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroupConfig
+	(*DNSEndpointGroupConfig)(nil),         // 22: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig
+	(*StaticEndpointGroupConfig)(nil),      // 23: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroupConfig
+	(*durationpb.Duration)(nil),            // 24: google.protobuf.Duration
+	(*TransportSocket)(nil),                // 25: hashicorp.consul.proxystate.v1alpha1.TransportSocket
+	(*wrapperspb.UInt32Value)(nil),         // 26: google.protobuf.UInt32Value
+	(*HeaderMutation)(nil),                 // 27: hashicorp.consul.proxystate.v1alpha1.HeaderMutation
+	(*wrapperspb.UInt64Value)(nil),         // 28: google.protobuf.UInt64Value
 }
 var file_pbproxystate_v1alpha1_cluster_proto_depIdxs = []int32{
 	2,  // 0: hashicorp.consul.proxystate.v1alpha1.Cluster.failover_group:type_name -> hashicorp.consul.proxystate.v1alpha1.FailoverGroup
 	4,  // 1: hashicorp.consul.proxystate.v1alpha1.Cluster.endpoint_group:type_name -> hashicorp.consul.proxystate.v1alpha1.EndpointGroup
 	4,  // 2: hashicorp.consul.proxystate.v1alpha1.FailoverGroup.endpoint_groups:type_name -> hashicorp.consul.proxystate.v1alpha1.EndpointGroup
 	3,  // 3: hashicorp.consul.proxystate.v1alpha1.FailoverGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.FailoverGroupConfig
-	22, // 4: hashicorp.consul.proxystate.v1alpha1.FailoverGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
+	24, // 4: hashicorp.consul.proxystate.v1alpha1.FailoverGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
 	5,  // 5: hashicorp.consul.proxystate.v1alpha1.EndpointGroup.dynamic:type_name -> hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroup
 	8,  // 6: hashicorp.consul.proxystate.v1alpha1.EndpointGroup.static:type_name -> hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroup
 	7,  // 7: hashicorp.consul.proxystate.v1alpha1.EndpointGroup.dns:type_name -> hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroup
 	6,  // 8: hashicorp.consul.proxystate.v1alpha1.EndpointGroup.passthrough:type_name -> hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroup
-	9,  // 9: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig
-	23, // 10: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroup.outbound_tls:type_name -> hashicorp.consul.proxystate.v1alpha1.TransportSocket
-	19, // 11: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroupConfig
-	23, // 12: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroup.outbound_tls:type_name -> hashicorp.consul.proxystate.v1alpha1.TransportSocket
-	20, // 13: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig
-	23, // 14: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroup.outbound_tls:type_name -> hashicorp.consul.proxystate.v1alpha1.TransportSocket
-	21, // 15: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroupConfig
-	22, // 16: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
-	10, // 17: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.least_request:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyLeastRequest
-	11, // 18: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.round_robin:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyRoundRobin
-	12, // 19: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.random:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyRandom
-	13, // 20: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.ring_hash:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyRingHash
-	14, // 21: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.maglev:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyMaglev
-	15, // 22: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.circuit_breakers:type_name -> hashicorp.consul.proxystate.v1alpha1.CircuitBreakers
-	17, // 23: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.outlier_detection:type_name -> hashicorp.consul.proxystate.v1alpha1.OutlierDetection
-	18, // 24: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.upstream_connection_options:type_name -> hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions
-	24, // 25: hashicorp.consul.proxystate.v1alpha1.LBPolicyLeastRequest.choice_count:type_name -> google.protobuf.UInt32Value
-	25, // 26: hashicorp.consul.proxystate.v1alpha1.LBPolicyRingHash.minimum_ring_size:type_name -> google.protobuf.UInt64Value
-	25, // 27: hashicorp.consul.proxystate.v1alpha1.LBPolicyRingHash.maximum_ring_size:type_name -> google.protobuf.UInt64Value
-	16, // 28: hashicorp.consul.proxystate.v1alpha1.CircuitBreakers.upstream_limits:type_name -> hashicorp.consul.proxystate.v1alpha1.UpstreamLimits
-	24, // 29: hashicorp.consul.proxystate.v1alpha1.UpstreamLimits.max_connections:type_name -> google.protobuf.UInt32Value
-	24, // 30: hashicorp.consul.proxystate.v1alpha1.UpstreamLimits.max_pending_requests:type_name -> google.protobuf.UInt32Value
-	24, // 31: hashicorp.consul.proxystate.v1alpha1.UpstreamLimits.max_concurrent_requests:type_name -> google.protobuf.UInt32Value
-	22, // 32: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.interval:type_name -> google.protobuf.Duration
-	24, // 33: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.consecutive_5xx:type_name -> google.protobuf.UInt32Value
-	24, // 34: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.enforcing_consecutive_5xx:type_name -> google.protobuf.UInt32Value
-	24, // 35: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.max_ejection_percent:type_name -> google.protobuf.UInt32Value
-	22, // 36: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.base_ejection_time:type_name -> google.protobuf.Duration
-	24, // 37: hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions.tcp_keepalive_time:type_name -> google.protobuf.UInt32Value
-	24, // 38: hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions.tcp_keepalive_interval:type_name -> google.protobuf.UInt32Value
-	24, // 39: hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions.tcp_keepalive_probes:type_name -> google.protobuf.UInt32Value
-	22, // 40: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
-	22, // 41: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
-	0,  // 42: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.discovery_type:type_name -> hashicorp.consul.proxystate.v1alpha1.DiscoveryType
-	15, // 43: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.circuit_breakers:type_name -> hashicorp.consul.proxystate.v1alpha1.CircuitBreakers
-	17, // 44: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.outlier_detection:type_name -> hashicorp.consul.proxystate.v1alpha1.OutlierDetection
-	18, // 45: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.upstream_connection_options:type_name -> hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions
-	22, // 46: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
-	15, // 47: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroupConfig.circuit_breakers:type_name -> hashicorp.consul.proxystate.v1alpha1.CircuitBreakers
-	48, // [48:48] is the sub-list for method output_type
-	48, // [48:48] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	11, // 9: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig
+	25, // 10: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroup.outbound_tls:type_name -> hashicorp.consul.proxystate.v1alpha1.TransportSocket
+	21, // 11: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroupConfig
+	25, // 12: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroup.outbound_tls:type_name -> hashicorp.consul.proxystate.v1alpha1.TransportSocket
+	22, // 13: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig
+	25, // 14: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroup.outbound_tls:type_name -> hashicorp.consul.proxystate.v1alpha1.TransportSocket
+	23, // 15: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroup.config:type_name -> hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroupConfig
+	10, // 16: hashicorp.consul.proxystate.v1alpha1.WeightedClusterGroup.clusters:type_name -> hashicorp.consul.proxystate.v1alpha1.WeightedDestinationCluster
+	26, // 17: hashicorp.consul.proxystate.v1alpha1.WeightedDestinationCluster.weight:type_name -> google.protobuf.UInt32Value
+	27, // 18: hashicorp.consul.proxystate.v1alpha1.WeightedDestinationCluster.header_mutations:type_name -> hashicorp.consul.proxystate.v1alpha1.HeaderMutation
+	24, // 19: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
+	12, // 20: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.least_request:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyLeastRequest
+	13, // 21: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.round_robin:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyRoundRobin
+	14, // 22: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.random:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyRandom
+	15, // 23: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.ring_hash:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyRingHash
+	16, // 24: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.maglev:type_name -> hashicorp.consul.proxystate.v1alpha1.LBPolicyMaglev
+	17, // 25: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.circuit_breakers:type_name -> hashicorp.consul.proxystate.v1alpha1.CircuitBreakers
+	19, // 26: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.outlier_detection:type_name -> hashicorp.consul.proxystate.v1alpha1.OutlierDetection
+	20, // 27: hashicorp.consul.proxystate.v1alpha1.DynamicEndpointGroupConfig.upstream_connection_options:type_name -> hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions
+	26, // 28: hashicorp.consul.proxystate.v1alpha1.LBPolicyLeastRequest.choice_count:type_name -> google.protobuf.UInt32Value
+	28, // 29: hashicorp.consul.proxystate.v1alpha1.LBPolicyRingHash.minimum_ring_size:type_name -> google.protobuf.UInt64Value
+	28, // 30: hashicorp.consul.proxystate.v1alpha1.LBPolicyRingHash.maximum_ring_size:type_name -> google.protobuf.UInt64Value
+	18, // 31: hashicorp.consul.proxystate.v1alpha1.CircuitBreakers.upstream_limits:type_name -> hashicorp.consul.proxystate.v1alpha1.UpstreamLimits
+	26, // 32: hashicorp.consul.proxystate.v1alpha1.UpstreamLimits.max_connections:type_name -> google.protobuf.UInt32Value
+	26, // 33: hashicorp.consul.proxystate.v1alpha1.UpstreamLimits.max_pending_requests:type_name -> google.protobuf.UInt32Value
+	26, // 34: hashicorp.consul.proxystate.v1alpha1.UpstreamLimits.max_concurrent_requests:type_name -> google.protobuf.UInt32Value
+	24, // 35: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.interval:type_name -> google.protobuf.Duration
+	26, // 36: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.consecutive_5xx:type_name -> google.protobuf.UInt32Value
+	26, // 37: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.enforcing_consecutive_5xx:type_name -> google.protobuf.UInt32Value
+	26, // 38: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.max_ejection_percent:type_name -> google.protobuf.UInt32Value
+	24, // 39: hashicorp.consul.proxystate.v1alpha1.OutlierDetection.base_ejection_time:type_name -> google.protobuf.Duration
+	26, // 40: hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions.tcp_keepalive_time:type_name -> google.protobuf.UInt32Value
+	26, // 41: hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions.tcp_keepalive_interval:type_name -> google.protobuf.UInt32Value
+	26, // 42: hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions.tcp_keepalive_probes:type_name -> google.protobuf.UInt32Value
+	24, // 43: hashicorp.consul.proxystate.v1alpha1.PassthroughEndpointGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
+	24, // 44: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
+	0,  // 45: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.discovery_type:type_name -> hashicorp.consul.proxystate.v1alpha1.DiscoveryType
+	17, // 46: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.circuit_breakers:type_name -> hashicorp.consul.proxystate.v1alpha1.CircuitBreakers
+	19, // 47: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.outlier_detection:type_name -> hashicorp.consul.proxystate.v1alpha1.OutlierDetection
+	20, // 48: hashicorp.consul.proxystate.v1alpha1.DNSEndpointGroupConfig.upstream_connection_options:type_name -> hashicorp.consul.proxystate.v1alpha1.UpstreamConnectionOptions
+	24, // 49: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroupConfig.connect_timeout:type_name -> google.protobuf.Duration
+	17, // 50: hashicorp.consul.proxystate.v1alpha1.StaticEndpointGroupConfig.circuit_breakers:type_name -> hashicorp.consul.proxystate.v1alpha1.CircuitBreakers
+	51, // [51:51] is the sub-list for method output_type
+	51, // [51:51] is the sub-list for method input_type
+	51, // [51:51] is the sub-list for extension type_name
+	51, // [51:51] is the sub-list for extension extendee
+	0,  // [0:51] is the sub-list for field type_name
 }
 
 func init() { file_pbproxystate_v1alpha1_cluster_proto_init() }
@@ -1951,6 +2092,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 		return
 	}
 	file_pbproxystate_v1alpha1_transport_socket_proto_init()
+	file_pbproxystate_v1alpha1_header_mutations_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Cluster); i {
@@ -2049,7 +2191,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DynamicEndpointGroupConfig); i {
+			switch v := v.(*WeightedClusterGroup); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2061,7 +2203,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LBPolicyLeastRequest); i {
+			switch v := v.(*WeightedDestinationCluster); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2073,7 +2215,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LBPolicyRoundRobin); i {
+			switch v := v.(*DynamicEndpointGroupConfig); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2085,7 +2227,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LBPolicyRandom); i {
+			switch v := v.(*LBPolicyLeastRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2097,7 +2239,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LBPolicyRingHash); i {
+			switch v := v.(*LBPolicyRoundRobin); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2109,7 +2251,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LBPolicyMaglev); i {
+			switch v := v.(*LBPolicyRandom); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2121,7 +2263,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CircuitBreakers); i {
+			switch v := v.(*LBPolicyRingHash); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2133,7 +2275,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UpstreamLimits); i {
+			switch v := v.(*LBPolicyMaglev); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2145,7 +2287,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OutlierDetection); i {
+			switch v := v.(*CircuitBreakers); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2157,7 +2299,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UpstreamConnectionOptions); i {
+			switch v := v.(*UpstreamLimits); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2169,7 +2311,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PassthroughEndpointGroupConfig); i {
+			switch v := v.(*OutlierDetection); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2181,7 +2323,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DNSEndpointGroupConfig); i {
+			switch v := v.(*UpstreamConnectionOptions); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2193,6 +2335,30 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			}
 		}
 		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PassthroughEndpointGroupConfig); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DNSEndpointGroupConfig); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pbproxystate_v1alpha1_cluster_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*StaticEndpointGroupConfig); i {
 			case 0:
 				return &v.state
@@ -2215,7 +2381,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 		(*EndpointGroup_Dns)(nil),
 		(*EndpointGroup_Passthrough)(nil),
 	}
-	file_pbproxystate_v1alpha1_cluster_proto_msgTypes[8].OneofWrappers = []interface{}{
+	file_pbproxystate_v1alpha1_cluster_proto_msgTypes[10].OneofWrappers = []interface{}{
 		(*DynamicEndpointGroupConfig_LeastRequest)(nil),
 		(*DynamicEndpointGroupConfig_RoundRobin)(nil),
 		(*DynamicEndpointGroupConfig_Random)(nil),
@@ -2228,7 +2394,7 @@ func file_pbproxystate_v1alpha1_cluster_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_pbproxystate_v1alpha1_cluster_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   21,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

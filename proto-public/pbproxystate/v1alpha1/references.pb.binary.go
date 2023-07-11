@@ -8,21 +8,31 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *LeafReference) MarshalBinary() ([]byte, error) {
+func (msg *LeafCertificateRef) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *LeafReference) UnmarshalBinary(b []byte) error {
+func (msg *LeafCertificateRef) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *CAReference) MarshalBinary() ([]byte, error) {
+func (msg *TrustBundleRef) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *CAReference) UnmarshalBinary(b []byte) error {
+func (msg *TrustBundleRef) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *EndpointRef) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *EndpointRef) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

@@ -8,6 +8,7 @@ package hashicorp.consul.proxystate.v1alpha1;
 import "pbproxystate/v1alpha1/transport_socket.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
+import "pbproxystate/v1alpha1/header_mutations.proto";
 
 message Cluster {
   // group is either a failover group or endpoint group. If this cluster needs to failover to other clusters, use the failover group. If this cluster routes directly to endpoints, use the endpoint group.
@@ -15,8 +16,8 @@ message Cluster {
     FailoverGroup failover_group = 1;
     EndpointGroup endpoint_group = 2;
   }
-  // use_escape_hatch_cluster_json configures whether to use the top level user configured escape hatch.
-  bool use_escape_hatch_cluster = 3;
+  // escape_hatch_cluster_json configures a user configured escape hatch cluster.
+  string escape_hatch_cluster_json = 3;
 
 }
 
@@ -81,6 +82,19 @@ message StaticEndpointGroup {
   string name = 1;
   // config configures how to connect to the endpoints.
   StaticEndpointGroupConfig config = 2;
+
+}
+
+message WeightedClusterGroup {
+  // clusters to route to by weight.
+  repeated WeightedDestinationCluster clusters = 1;
+}
+
+message WeightedDestinationCluster {
+  // name is the name of the cluster. This will be used to look up a cluster in the clusters map.
+  string name = 1;
+  google.protobuf.UInt32Value weight = 2;
+  repeated HeaderMutation header_mutations = 3;
 }
 
 message DynamicEndpointGroupConfig {

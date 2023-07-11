@@ -7,6 +7,8 @@ package hashicorp.consul.proxystate.v1alpha1;
 
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/duration.proto";
+import "pbproxystate/v1alpha1/cluster.proto";
+import "pbproxystate/v1alpha1/header_mutations.proto";
 
 message Route {
   // name is the name of the route.
@@ -38,14 +40,18 @@ message RouteRule {
 
 // RouteMatch has configuration to match a request.
 message RouteMatch {
+  PathMatch path_match = 1;
+  repeated HeaderMatch header_matches = 2;
+  repeated string method_matches = 3;
+  repeated QueryParameterMatch query_parameter_matches = 4;
+}
+
+message PathMatch {
   oneof path_match {
     string exact = 1;
     string prefix = 2;
     string regex = 3;
   }
-  repeated HeaderMatch header_matches = 4;
-  repeated string method_matches = 5;
-  repeated QueryParameterMatch query_parameter_matches = 6;
 }
 
 message QueryParameterMatch {
@@ -74,7 +80,7 @@ message RouteDestination {
   // destination is one or more clusters to route to.
   oneof destination{
     DestinationCluster cluster = 1;
-    WeightedDestinationClusters weighted_clusters = 2;
+    WeightedClusterGroup weighted_clusters = 2;
   }
   DestinationConfiguration destination_configuration = 3;
 }
@@ -132,57 +138,5 @@ message DestinationCluster {
   string name = 1;
 }
 
-message WeightedDestinationClusters {
-  // clusters to route to by weight.
-  repeated WeightedDestinationCluster clusters = 1;
-  google.protobuf.UInt32Value total_weight = 2;
-}
 
-message WeightedDestinationCluster {
-  // name is the name of the cluster. This will be used to look up a cluster in the clusters map.
-  string name = 1;
-  google.protobuf.UInt32Value weight = 2;
-  repeated HeaderMutation header_mutations = 3;
-}
-
-// Note: it's nice to have this list of header mutations as opposed to configuration similar to Envoy because it
-// translates more nicely from GAMMA HTTPRoute, and our existing service router config. Then xds code can handle turning
-// it into envoy xds.
-message HeaderMutation {
-  oneof action {
-    RequestHeaderAdd request_header_add = 1;
-    RequestHeaderRemove request_header_remove = 2;
-    ResponseHeaderAdd response_header_add = 3;
-    ResponseHeaderRemove response_header_remove = 4;
-
-  }
-}
-
-message RequestHeaderAdd {
-  Header header = 1;
-  AppendAction append_action = 2;
-}
-
-message RequestHeaderRemove {
-  repeated string header_keys = 1;
-}
-
-message ResponseHeaderAdd {
-  Header header = 1;
-  AppendAction append_action = 2;
-}
-
-message ResponseHeaderRemove {
-  repeated string header_keys = 1;
-}
-
-message Header {
-  string key = 1;
-  string value = 2;
-}
-
-enum AppendAction {
-  APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD = 0;
-  APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD = 1;
-}
 
