@@ -48,7 +48,7 @@ After you provision a Kubernetes cluster and set up your kubeconfig file to mana
   $ export CLUSTER2_CONTEXT=<CONTEXT for second Kubernetes cluster>
   ```
 
-### Update the Helm chart
+### Install Consul using Helm and configure peering over mesh gateways 
 
 To use cluster peering with Consul on Kubernetes deployments, update the Helm chart with [the required values](/consul/docs/k8s/connect/cluster-peering/tech-specs#helm-requirements). After updating the Helm chart, you can use the `consul-k8s` CLI to apply `values.yaml` to each cluster.
 
