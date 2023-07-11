@@ -14,15 +14,15 @@ This topic describes how to use Consul API Gateway.
 Complete the following steps to use Consul API Gateway in your network.
 
 1. Verify that the [requirements](/consul/docs/api-gateway/tech-specs) have been met.
-2. Verify that the Consul API Gateway CRDs have been installed and applied. Refer to [Installation](/consul/docs/api-gateway/install) for details.
+1. Verify that the Consul API Gateway CRDs were applied. Refer to [Installation](/consul/docs/api-gateway/install) for details.
 
 ## Configuration
 
 Configure the following resources for your environment as described in [Consul API Gateway Configuration](/consul/docs/api-gateway/configuration).
 
 1. [`Gateway`](/consul/docs/api-gateway/configuration/gateway) 
-2. [`Routes`](/consul/docs/api-gateway/configuration/routes)
-3. [`Intentions`](/consul/docs/api-gateway/configuration/intentions)
+1. [`Routes`](/consul/docs/api-gateway/configuration/routes)
+1. [`Intentions`](/consul/docs/api-gateway/configuration/intentions)
 
 
 ## Apply configurations
@@ -30,7 +30,7 @@ Configure the following resources for your environment as described in [Consul A
 Issue the `kubectl apply` command to implement the configurations:
 
 ```shell-session
-$ kubectl apply -f gateway.yaml route.yaml intentions.yaml
+$ kubectl apply -f gateway.yaml routes.yaml intentions.yaml
 ```
 
 
