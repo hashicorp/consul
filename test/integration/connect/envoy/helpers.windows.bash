@@ -923,6 +923,8 @@ function get_ca_root {
 function cacert_curl {
   local CA_ROOT="/c/workdir/caroot.pem"
   get_ca_root > $CA_ROOT
+  echo get_ca_root
+  echo "ca root ^"
   run retry_default curl --cacert $CA_ROOT -s -f -d hello  --resolve s1.ingress.consul:9998:127.0.0.1 https://s1.ingress.consul:9998
 
   [ "$status" -eq 0 ]
