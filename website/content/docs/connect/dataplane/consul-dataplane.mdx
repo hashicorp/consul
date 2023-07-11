@@ -54,6 +54,8 @@ The following options are required when starting `consul-dataplane` with the CLI
 - `-envoy-concurrency` - The number of worker threads that Envoy uses. Default is `2`. Accepted environment variable is `DP_ENVOY_CONCURRENCY`.
 - `-envoy-ready-bind-address` - The address Envoy's readiness probe is available on. Accepted environment variable is `DP_ENVOY_READY_BIND_ADDRESS`.
 - `-envoy-ready-bind-port` - The port Envoy's readiness probe is available on. Accepted environment variable is `DP_ENVOY_READY_BIND_PORT`.
+- `-graceful-port` - The port to serve HTTP endpoints for graceful operations. Accepted environment variable is `DP_GRACEFUL_PORT`.
+- `-graceful-shutdown-path` - The HTTP path to serve the graceful shutdown endpoint. Accepted environment variable is `DP_GRACEFUL_SHUTDOWN_PATH`.
 - `-grpc-port` - The Consul server gRPC port to which `consul-dataplane` connects. Default is `8502`. Accepted environment variable is `DP_CONSUL_GRPC_PORT`.
 - `-log-json` - Enables log messages in JSON format. Default is `false`. Accepted environment variable is `DP_LOG_JSON`.
 - `-log-level` - Log level of the messages to print. Available log levels are `"trace"`, `"debug"`, `"info"`, `"warn"`, and `"error"`. Default is `"info"`. Accepted environment variable is `DP_LOG_LEVEL`.
@@ -71,6 +73,8 @@ The following options are required when starting `consul-dataplane` with the CLI
 - `-service-node-id` - The ID of the Consul node to which the proxy service instance is registered. Accepted environment variable is `DP_SERVICE_NODE_ID`.
 - `-service-node-name` - The name of the Consul node to which the proxy service instance is registered. Accepted environment variable is `DP_SERVICE_NODE_NAME`.
 - `-service-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition in which the proxy service instance is registered. Accepted environment variable is `DP_SERVICE_PARTITION`.
+- `-shutdown-drain-listeners` - Wait for proxy listeners to drain before terminating the proxy container. Accepted environment variable is `DP_SHUTDOWN_DRAIN_LISTENERS`.
+- `-shutdown-grace-period-seconds` - Amount of time to wait after receiving a SIGTERM signal before terminating the proxy. Accepted environment variable is `DP_SHUTDOWN_GRACE_PERIOD_SECONDS`.
 - `-static-token` - The ACL token used to authenticate requests to Consul servers when `-credential-type` is set to `"static"`. Accepted environment variable is `DP_CREDENTIAL_STATIC_TOKEN`.
 - `-telemetry-prom-ca-certs-path` - The path to a file or directory containing CA certificates used to verify the Prometheus server's certificate. Accepted environment variable is `DP_TELEMETRY_PROM_CA_CERTS_PATH`.
 - `-telemetry-prom-cert-file` - The path to the client certificate used to serve Prometheus metrics. Accepted environment variable is `DP_TELEMETRY_PROM_CERT_FILE`.
