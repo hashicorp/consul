@@ -32,9 +32,6 @@ type preparedQueryFailoverSuite struct {
 var ac5Context = make(map[nodeKey]preparedQueryFailoverSuite)
 
 func TestPreparedQueryFailoverSuite(t *testing.T) {
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
 	t.Parallel()
 	s := preparedQueryFailoverSuite{}
 	ct := NewCommonTopo(t)
