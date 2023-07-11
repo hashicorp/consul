@@ -185,6 +185,7 @@ jobs:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   dev-build-s390x:
+    if: ${{ endsWith(github.repository, '-enterprise') }}
     needs:
     - setup
     uses: ./.github/workflows/reusable-dev-build.yml
@@ -309,6 +310,7 @@ jobs:
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
   go-test-s390x:
+    if: ${{ endsWith(github.repository, '-enterprise') }}
     needs:
     - setup
     - dev-build-s390x
@@ -316,7 +318,6 @@ jobs:
     with:
       uploaded-binary-name: 'consul-bin-s390x'
       directory: .
-      # go-arch: "s390x"
       go-test-flags: 'export GO_TEST_FLAGS="-short"'
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
@@ -478,6 +479,7 @@ jobs:
     - go-test-sdk-1-19
     - go-test-sdk-1-20
     - go-test-32bit
+    - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
     steps:
