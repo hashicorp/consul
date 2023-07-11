@@ -932,6 +932,8 @@ function cacert_curl {
 function cacert_curl_custom_host {
   local CA_ROOT="/c/workdir/caroot.pem"
   get_ca_root > $CA_ROOT
+  echo get_ca_root
+  echo "ca root ^"
   run retry_default curl --cacert $CA_ROOT -s -f -d hello --resolve test.example.com:9999:127.0.0.1 https://test.example.com:9999
 
   [ "$status" -eq 0 ]
