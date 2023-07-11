@@ -2470,6 +2470,10 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 			// sampled.
 			RandomSampling: &envoy_type_v3.Percent{Value: 0.0},
 		},
+		// Explicitly enable WebSocket upgrades for all HTTP listeners
+		UpgradeConfigs: []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
+			{UpgradeType: "websocket"},
+		},
 	}
 
 	if opts.tracing != nil {
