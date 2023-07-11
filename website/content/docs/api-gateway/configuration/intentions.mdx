@@ -1,0 +1,31 @@
+---
+layout: docs
+page_title: Intention Configuration
+description: >-
+  Intentions for Consul API Gateway control behavior for traffic into the service mesh according to rules. Learn about the required intentions and review an example configuration.
+---
+
+# Route Resource Configuration
+
+This topic describes how to create and configure `Intention` resources for Consul API Gateway. Intentions are mechanisms that control traffic communication between services in the Consul service mesh.
+
+## Create an intention
+
+The following example creates an intention for the `echo` service that allows traffic from the `api-gateway` service:
+
+<CodeBlockConfig filename="routes.yaml">
+
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceIntentions
+  metadata:
+  name: api-gateway
+  spec:
+  destination:
+    name: echo
+  sources:
+    - name: api-gateway
+      action: allow
+  ```
+
+</CodeBlockConfig>
