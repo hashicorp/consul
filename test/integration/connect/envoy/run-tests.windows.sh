@@ -411,6 +411,7 @@ function capture_logs {
 
   for cont in $services; do
     echo "Capturing log for $cont"
+    docker.exe logs "envoy_${cont}_1"
     docker.exe logs "envoy_${cont}_1" &> "${LOG_DIR}/${cont}.log" || {
         echo "EXIT CODE $?" > "${LOG_DIR}/${cont}.log"
     }
