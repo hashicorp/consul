@@ -472,10 +472,6 @@ docs: ## Point your web browser to http://localhost:3000/consul to live render d
 
 ##@ Release
 
-.PHONY: dist
-dist: ## Dist builds binaries for all platforms and packages them for distribution
-	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
-
 .PHONY: version
 version:  ## Current Consul version
 	@echo -n "Version:                    "
