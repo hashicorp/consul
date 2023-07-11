@@ -328,16 +328,6 @@ function get_envoy_cluster_config {
   "
 }
 
-function cacert_curl {
-  local RESOLVE_ADDR=$1
-  local ADDR=$2
-
-  run retry_default curl --cacert <(get_ca_root) -s -f -d hello --resolve $RESOLVE_ADDR $ADDR
-
-  [ "$status" -eq 0 ]
-  [ "$output" == *"hello"* ]
-}
-
 function get_envoy_stats_flush_interval {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
