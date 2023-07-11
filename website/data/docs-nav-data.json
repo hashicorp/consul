@@ -781,10 +781,6 @@
             "title": "Configuration",
             "routes": [
               {
-                "title": "Sameness groups",
-                "href": "/consul/docs/connect/config-entries/service-resolver"
-              },
-              {
                 "title": "Service resolver",
                 "href": "/consul/docs/connect/config-entries/service-resolver"
               },
