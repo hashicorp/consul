@@ -1,0 +1,46 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+// Note: it's nice to have this list of header mutations as opposed to configuration similar to Envoy because it
+// translates more nicely from GAMMA HTTPRoute, and our existing service router config. Then xds code can handle turning
+// it into envoy xds.
+message HeaderMutation {
+  oneof action {
+    RequestHeaderAdd request_header_add = 1;
+    RequestHeaderRemove request_header_remove = 2;
+    ResponseHeaderAdd response_header_add = 3;
+    ResponseHeaderRemove response_header_remove = 4;
+  }
+}
+
+message RequestHeaderAdd {
+  Header header = 1;
+  AppendAction append_action = 2;
+}
+
+message RequestHeaderRemove {
+  repeated string header_keys = 1;
+}
+
+message ResponseHeaderAdd {
+  Header header = 1;
+  AppendAction append_action = 2;
+}
+
+message ResponseHeaderRemove {
+  repeated string header_keys = 1;
+}
+
+message Header {
+  string key = 1;
+  string value = 2;
+}
+
+enum AppendAction {
+  APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD = 0;
+  APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD = 1;
+}
