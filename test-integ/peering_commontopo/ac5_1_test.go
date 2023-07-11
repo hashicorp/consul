@@ -121,7 +121,7 @@ func (s *serviceMeshDisabledSuite) testServiceHealthInCatalog(t *testing.T, ct *
 			Peer: peer,
 		})
 		require.NotEqual(t, s.serverSID.Name, s.Peer)
-		assertServiceHealth(t, cl, s.serverSID.Name, 0)
+		assertServiceHealth(t, cl, s.serverSID.Name, 1)
 	})
 }
 
