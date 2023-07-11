@@ -61,10 +61,10 @@ jobs:
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
-          path: C:\bin\
+          path: ${{ github.workspace }}
 
       - name: restore mode+x
-        run: chmod +x C:\bin\consul.exe
+        run: chmod +x ${{ github.workspace }}\consul.exe
 
       - name: Setup TcpDump Docker Image
         shell: bash
