@@ -29,8 +29,8 @@ import (
 const (
 	VaultCALeafCertRole = "leaf-cert"
 
-	VaultCAEnvAddr  = "CONSUL_MESH_CA_VAULT_ADDR"
-	VaultCAEnvToken = "CONSUL_MESH_CA_VAULT_TOKEN"
+	VaultCAEnvAddr  = "CONSUL_CA_VAULT_ADDR"
+	VaultCAEnvToken = "CONSUL_CA_VAULT_TOKEN"
 
 	VaultAuthMethodTypeAliCloud     = "alicloud"
 	VaultAuthMethodTypeAppRole      = "approle"

@@ -78,7 +78,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 		},
 		"both env token and auth method provided": {
 			rawConfig: map[string]interface{}{"AuthMethod": map[string]interface{}{"Type": "test"}, "Address": "http://vaultConfigAddr:8200"},
-			envConfig: map[string]string{"CONSUL_MESH_CA_VAULT_TOKEN": "test"},
+			envConfig: map[string]string{"CONSUL_CA_VAULT_TOKEN": "test"},
 			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
 		},
 		"primary no root PKI path": {
@@ -113,7 +113,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 		},
 		"vault address provided from env": {
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
-			envConfig: map[string]string{"CONSUL_MESH_CA_VAULT_ADDR": "http://vaultEnvAddr:8200"},
+			envConfig: map[string]string{"CONSUL_CA_VAULT_ADDR": "http://vaultEnvAddr:8200"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
 				Address:                "http://vaultEnvAddr:8200",
@@ -124,7 +124,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 		},
 		"vault address precedence when provided from env and config": {
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test", "Address": "http://vaultConfigAddr:8200"},
-			envConfig: map[string]string{"CONSUL_MESH_CA_VAULT_ADDR": "http://vaultEnvAddr:8200"},
+			envConfig: map[string]string{"CONSUL_CA_VAULT_ADDR": "http://vaultEnvAddr:8200"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
 				Address:                "http://vaultEnvAddr:8200",
@@ -135,7 +135,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 		},
 		"vault token provided from env": {
 			rawConfig: map[string]interface{}{"RootPKIPath": "test", "IntermediatePKIPath": "test", "Address": "http://vaultConfigAddr:8200"},
-			envConfig: map[string]string{"CONSUL_MESH_CA_VAULT_TOKEN": "test"},
+			envConfig: map[string]string{"CONSUL_CA_VAULT_TOKEN": "test"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
 				Address:                "http://vaultConfigAddr:8200",
@@ -146,7 +146,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 		},
 		"vault token precedence when provided from env and config": {
 			rawConfig: map[string]interface{}{"Token": "tokenFromConfig", "RootPKIPath": "test", "IntermediatePKIPath": "test", "Address": "http://vaultConfigAddr:8200"},
-			envConfig: map[string]string{"CONSUL_MESH_CA_VAULT_TOKEN": "tokenFromEnv"},
+			envConfig: map[string]string{"CONSUL_CA_VAULT_TOKEN": "tokenFromEnv"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
 				Address:                "http://vaultConfigAddr:8200",
@@ -157,7 +157,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 		},
 		"vault token and addr provided from env": {
 			rawConfig: map[string]interface{}{"RootPKIPath": "test", "IntermediatePKIPath": "test"},
-			envConfig: map[string]string{"CONSUL_MESH_CA_VAULT_ADDR": "http://vaultEnvAddr:8200", "CONSUL_MESH_CA_VAULT_TOKEN": "test"},
+			envConfig: map[string]string{"CONSUL_CA_VAULT_ADDR": "http://vaultEnvAddr:8200", "CONSUL_CA_VAULT_TOKEN": "test"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
 				Address:                "http://vaultEnvAddr:8200",
@@ -345,13 +345,13 @@ func TestVaultCAProvider_ConfigureFromEnv(t *testing.T) {
 		"DefaultConfigWithEnvTokenMissing": {
 			envOnlyToken:      true,
 			envOnlyAddr:       false,
-			envConfigOverride: map[string]string{"CONSUL_MESH_CA_VAULT_TOKEN": ""},
+			envConfigOverride: map[string]string{"CONSUL_CA_VAULT_TOKEN": ""},
 			expError:          "must provide a Vault token or configure a Vault auth method",
 		},
 		"DefaultConfigWithEnvAddrMissing": {
 			envOnlyToken:      true,
 			envOnlyAddr:       true,
-			envConfigOverride: map[string]string{"CONSUL_MESH_CA_VAULT_ADDR": ""},
+			envConfigOverride: map[string]string{"CONSUL_CA_VAULT_ADDR": ""},
 			expError:          "must provide a Vault address",
 		},
 	}

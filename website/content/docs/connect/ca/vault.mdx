@@ -86,14 +86,14 @@ The first key refers to the option name for use in API calls.
 The key after the slash refers to the corresponding option name in the agent configuration file.
 
 - `Address` / `address` (`string: <required>`) - The address of the Vault
-  server. You can also provide the address through the `CONSUL_MESH_CA_VAULT_ADDR` environment variable. If the address is provided through the environment variable it takes precedence over the value set in the configuration file.
+  server. You can also provide the address through the `CONSUL_CA_VAULT_ADDR` environment variable. If the address is provided through the environment variable it takes precedence over the value set in the configuration file.
 
 - `Token` / `token` (`string: ""`) - A token for accessing Vault.
   This is write-only and will not be exposed when reading the CA configuration.
   This token must have [proper privileges](#vault-acl-policies) for the PKI
   paths configured. In Consul 1.8.5 and later, if the token has the [renewable](/vault/api-docs/auth/token#renewable)
   flag set, Consul will attempt to renew its lease periodically after half the
-  duration has expired. You can also provide the token through the `CONSUL_MESH_CA_VAULT_TOKEN` environment variable. If the token is provided through the environment variable it takes precedence over the value set in the configuration file.
+  duration has expired. You can also provide the token through the `CONSUL_CA_VAULT_TOKEN` environment variable. If the token is provided through the environment variable it takes precedence over the value set in the configuration file.
 
   !> **Warning:** You must either provide a token or configure an auth method below.
 
