@@ -10,6 +10,7 @@ on:
       # Push events on the main branch
       - main
       - release/**
+      - loshz/NET-4103-build-s390x
 
 env:
   PKG_NAME: consul
