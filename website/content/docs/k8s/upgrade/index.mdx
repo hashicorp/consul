@@ -229,9 +229,7 @@ If you upgrade Consul from a version that uses client agents to a version the us
     prepareDataplanesUpgrade: true
   ```
 
-1. Now you're ready to upgrade to a consul-k8s version that supports Consul dataplanes. Consul dataplanes disables Consul clients by default since they are no longer needed
-   for fresh installs but during an upgrade you need to ensure Consul clients stay running.
-   Edit your Helm chart configuration to ensure Consul client agents stay running by setting `client.enabled` and `client.updateStrategy`:
+1. Consul dataplanes disables Consul clients by default, but during an upgrade you need to ensure Consul clients continue to run. Edit your Helm chart configuration and set the [`client.enabled`](/consul/docs/k8s/helm#v-client-enabled) field to `true` and specify an action for Consul to take during the upgrade process in the [`client.updateStrategy`](/consul/docs/k8s/helm#v-client-updatestrategy) field:
 
   ```yaml filename="values.yaml"
   client:
