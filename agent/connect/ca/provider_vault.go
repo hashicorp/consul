@@ -29,6 +29,9 @@ import (
 const (
 	VaultCALeafCertRole = "leaf-cert"
 
+	VaultCAEnvAddr  = "CONSUL_MESH_CA_VAULT_ADDR"
+	VaultCAEnvToken = "CONSUL_MESH_CA_VAULT_TOKEN"
+
 	VaultAuthMethodTypeAliCloud     = "alicloud"
 	VaultAuthMethodTypeAppRole      = "approle"
 	VaultAuthMethodTypeAWS          = "aws"
@@ -925,34 +928,26 @@ func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.Va
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
 
-	envAddr := os.Getenv(vaultapi.EnvVaultAddress)
+	envAddr := os.Getenv(VaultCAEnvAddr)
 	if config.Address == "" && envAddr == "" {
 		return nil, fmt.Errorf("must provide a Vault address")
-	}
-
-	if config.Address != "" && envAddr != "" {
-		return nil, fmt.Errorf("only one Vault address can be provided")
 	}
 
 	if envAddr != "" {
 		config.Address = envAddr
 	}
 
-	envToken := os.Getenv(vaultapi.EnvVaultToken)
+	envToken := os.Getenv(VaultCAEnvToken)
 	if config.Token == "" && envToken == "" && config.AuthMethod == nil {
 		return nil, fmt.Errorf("must provide a Vault token or configure a Vault auth method")
 	}
 
-	if config.Token != "" && envToken != "" {
-		return nil, fmt.Errorf("only one Vault token can be provided")
+	if envToken != "" {
+		config.Token = envToken
 	}
 
 	if config.Token != "" && config.AuthMethod != nil {
 		return nil, fmt.Errorf("only one of Vault token or Vault auth method can be provided, but not both")
-	}
-
-	if envToken != "" {
-		config.Token = envToken
 	}
 
 	if isPrimary && config.RootPKIPath == "" {
