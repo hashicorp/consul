@@ -239,11 +239,11 @@ The following Kubernetes resource annotations could be used on a pod to control 
   - `consul.hashicorp.com/consul-sidecar-memory-limit` - Override the default memory limit.
   - `consul.hashicorp.com/consul-sidecar-memory-request` - Override the default memory request.
 
-- `consul.hashicorp.com/enable-sidecar-proxy-lifecycle` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-lifecycle-defaultenabled)
-- `consul.hashicorp.com/enable-sidecar-proxy-shutdown-drain-listeners` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnableShutdownDrainListeners`](/consul/docs/k8s/helm#v-connectinject-lifecycle-defaultenableshutdowndrainlisteners)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultShutdownGracePeriodSeconds`](/consul/docs/k8s/helm#v-connectinject-lifecycle-defaultshutdowngraceperiodseconds)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulPort`](/consul/docs/k8s/helm#v-connectinject-lifecycle-defaultgracefulport)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulShutdownPath`](/consul/docs/k8s/helm#v-connectinject-lifecycle-defaultgracefulshutdownpath)
+- `consul.hashicorp.com/enable-sidecar-proxy-lifecycle` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenabled)
+- `consul.hashicorp.com/enable-sidecar-proxy-shutdown-drain-listeners` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnableShutdownDrainListeners`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)
+- `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultShutdownGracePeriodSeconds`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)
+- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulPort`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)
+- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulShutdownPath`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)
 
 - `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
 - `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
