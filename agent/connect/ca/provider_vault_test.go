@@ -408,7 +408,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 			},
 			certFunc: func(provider *VaultProvider) (string, error) {
 				root, err := provider.GenerateCAChain()
-				return root.PEM, err
+				return root, err
 			},
 			backendPath:         "pki-root/",
 			rootCaCreation:      true,
@@ -485,9 +485,8 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 			Service:    "foo",
 		}
 
-		root, err := provider.GenerateCAChain()
+		rootPEM, err := provider.GenerateCAChain()
 		require.NoError(t, err)
-		rootPEM := root.PEM
 		assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
 		intPEM, err := provider.ActiveLeafSigningCert()
@@ -588,9 +587,9 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		})
 
 		testutil.RunStep(t, "init", func(t *testing.T) {
-			root, err := provider1.GenerateCAChain()
+			rootPEM, err := provider1.GenerateCAChain()
 			require.NoError(t, err)
-			assertCorrectKeyType(t, tc.SigningKeyType, root.PEM)
+			assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
 
 			intPEM, err := provider1.ActiveLeafSigningCert()
 			require.NoError(t, err)
@@ -616,9 +615,9 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		})
 
 		testutil.RunStep(t, "swap", func(t *testing.T) {
-			root, err := provider2.GenerateCAChain()
+			rootPEM, err := provider2.GenerateCAChain()
 			require.NoError(t, err)
-			assertCorrectKeyType(t, tc.CSRKeyType, root.PEM)
+			assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
 
 			intPEM, err := provider2.ActiveLeafSigningCert()
 			require.NoError(t, err)
@@ -1135,14 +1134,14 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 	// This test was created to ensure that our calls to Vault
 	// returns a new Intermediate certificate and further calls
 	// to ActiveLeafSigningCert return the same new cert.
-	new, err := provider.GenerateLeafSigningCert()
+	newLeaf, err := provider.GenerateLeafSigningCert()
 	require.NoError(t, err)
 
 	newActive, err := provider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 
-	require.Equal(t, new, newActive)
-	require.NotEqual(t, orig, new)
+	require.Equal(t, newLeaf, newActive)
+	require.NotEqual(t, orig, newLeaf)
 }
 
 func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
@@ -1228,9 +1227,8 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Sign the CSR with primaryProvider.
 		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
 		require.NoError(t, err)
-		root, err := primaryProvider.GenerateCAChain()
+		rootPEM, err := primaryProvider.GenerateCAChain()
 		require.NoError(t, err)
-		rootPEM := root.PEM
 
 		// Give the new intermediate to provider to use.
 		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
@@ -1249,9 +1247,8 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Sign the CSR with primaryProvider.
 		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
 		require.NoError(t, err)
-		root, err := primaryProvider.GenerateCAChain()
+		rootPEM, err := primaryProvider.GenerateCAChain()
 		require.NoError(t, err)
-		rootPEM := root.PEM
 
 		// Give the new intermediate to provider to use.
 		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))

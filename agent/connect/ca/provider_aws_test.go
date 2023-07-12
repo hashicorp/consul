@@ -49,9 +49,8 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			provider := testAWSProvider(t, testProviderConfigPrimary(t, cfg))
 			defer provider.Cleanup(true, nil)
 
-			root, err := provider.GenerateCAChain()
+			rootPEM, err := provider.GenerateCAChain()
 			require.NoError(t, err)
-			rootPEM := root.PEM
 
 			// Ensure they use the right key type
 			rootCert, err := connect.ParseCert(rootPEM)
@@ -76,9 +75,8 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 		provider := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 		defer provider.Cleanup(true, nil)
 
-		root, err := provider.GenerateCAChain()
+		rootPEM, err := provider.GenerateCAChain()
 		require.NoError(t, err)
-		rootPEM := root.PEM
 
 		// Ensure they use the right key type
 		rootCert, err := connect.ParseCert(rootPEM)
@@ -111,9 +109,8 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 	defer p1.Cleanup(true, nil)
-	root, err := p1.GenerateCAChain()
+	rootPEM, err := p1.GenerateCAChain()
 	require.NoError(t, err)
-	rootPEM := root.PEM
 
 	p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
 	defer p2.Cleanup(true, nil)
@@ -140,9 +137,8 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		cfg1 := testProviderConfigPrimary(t, nil)
 		cfg1.State = p1State
 		p1 = testAWSProvider(t, cfg1)
-		root, err := p1.GenerateCAChain()
+		newRootPEM, err := p1.GenerateCAChain()
 		require.NoError(t, err)
-		newRootPEM := root.PEM
 
 		cfg2 := testProviderConfigPrimary(t, nil)
 		cfg2.State = p2State
@@ -174,9 +170,8 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 			"ExistingARN": p1State[AWSStateCAARNKey],
 		})
 		p1 = testAWSProvider(t, cfg1)
-		root, err := p1.GenerateCAChain()
+		newRootPEM, err := p1.GenerateCAChain()
 		require.NoError(t, err)
-		newRootPEM := root.PEM
 
 		cfg2 := testProviderConfigPrimary(t, map[string]interface{}{
 			"ExistingARN": p2State[AWSStateCAARNKey],
@@ -213,9 +208,8 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		p2 = testAWSProvider(t, cfg2)
 		require.NoError(t, p2.SetIntermediate(newIntPEM, newRootPEM, ""))
 
-		root, err = p1.GenerateCAChain()
+		newRootPEM, err = p1.GenerateCAChain()
 		require.NoError(t, err)
-		newRootPEM = root.PEM
 		newIntPEM, err = p2.ActiveLeafSigningCert()
 		require.NoError(t, err)
 

@@ -155,17 +155,17 @@ func (c *ConsulProvider) State() (map[string]string, error) {
 }
 
 // GenerateCAChain initializes a new root certificate and private key if needed.
-func (c *ConsulProvider) GenerateCAChain() (CAChainResult, error) {
+func (c *ConsulProvider) GenerateCAChain() (string, error) {
 	providerState, err := c.getState()
 	if err != nil {
-		return CAChainResult{}, err
+		return "", err
 	}
 
 	if !c.isPrimary {
-		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return "", fmt.Errorf("provider is not the root certificate authority")
 	}
 	if providerState.RootCert != "" {
-		return CAChainResult{PEM: providerState.RootCert}, nil
+		return providerState.RootCert, nil
 	}
 
 	// Generate a private key if needed
@@ -173,7 +173,7 @@ func (c *ConsulProvider) GenerateCAChain() (CAChainResult, error) {
 	if c.config.PrivateKey == "" {
 		_, pk, err := connect.GeneratePrivateKeyWithConfig(c.config.PrivateKeyType, c.config.PrivateKeyBits)
 		if err != nil {
-			return CAChainResult{}, err
+			return "", err
 		}
 		newState.PrivateKey = pk
 	} else {
@@ -184,12 +184,12 @@ func (c *ConsulProvider) GenerateCAChain() (CAChainResult, error) {
 	if c.config.RootCert == "" {
 		nextSerial, err := c.incrementAndGetNextSerialNumber()
 		if err != nil {
-			return CAChainResult{}, fmt.Errorf("error computing next serial number: %v", err)
+			return "", fmt.Errorf("error computing next serial number: %v", err)
 		}
 
 		ca, err := c.generateCA(newState.PrivateKey, nextSerial, c.config.RootCertTTL)
 		if err != nil {
-			return CAChainResult{}, fmt.Errorf("error generating CA: %v", err)
+			return "", fmt.Errorf("error generating CA: %v", err)
 		}
 		newState.RootCert = ca
 	} else {
@@ -202,10 +202,10 @@ func (c *ConsulProvider) GenerateCAChain() (CAChainResult, error) {
 		ProviderState: &newState,
 	}
 	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
-		return CAChainResult{}, err
+		return "", err
 	}
 
-	return CAChainResult{PEM: newState.RootCert}, nil
+	return newState.RootCert, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
