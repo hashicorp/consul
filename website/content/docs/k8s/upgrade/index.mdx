@@ -250,11 +250,10 @@ If you upgrade Consul from a version that uses client agents to a version the us
 
 1. If you have ACLs enabled, you will have some old ACL tokens that are now no longer needed. If you wish, you can manually clean up these tokens.
 
-   The old connect-injector tokens can be identified by the description `token created via login: {"component":"connect-injector"}`. Note that you should not delete
-   the tokens that have a description with `pod` as a key (e.g. `token created via login: {"component":"connect-injector","pod":"default/consul-connect-injector-576b65747c-9547x"}`) as those
-   are the tokens used by the new dataplane-enabled connect inject pods.
+   Outdated connect-injector tokens have the following description: `token created via login: {"component":"connect-injector"}`. Do not delete
+   the tokens that have a description where `pod` is a key, for example `token created via login: {"component":"connect-injector","pod":"default/consul-connect-injector-576b65747c-9547x"}`). The dataplane-enabled connect inject pods use these tokens.    
 
-   You can also look at the creation date for the tokens and only delete the injector tokens created before your upgrade (do not delete all old tokens as some, e.g. the server tokens, are still in use).
+   You can also review the creation date for the tokens and only delete the injector tokens created before your upgrade, but do not delete all old tokens without considering if they are still in use. Some tokens, such as the server tokens, are still necessary.
 
 ## Configuring TLS on an existing cluster
 
