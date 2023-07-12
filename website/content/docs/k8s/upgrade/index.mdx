@@ -248,7 +248,7 @@ If you upgrade Consul from a version that uses client agents to a version the us
 
 1. Now that all services and gateways are using Consul dataplanes, disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false` and running a `consul-k8s` or Helm upgrade.
 
-1. If `acls.manageSystemACLs` is set to `true`, outdated ACL tokens will persist a result of the upgrade. You can manually delete the tokens to declutter your Consul environment.
+1. If ACLs are enabled, outdated ACL tokens will persist a result of the upgrade. You can manually delete the tokens to declutter your Consul environment.
 
    Outdated connect-injector tokens have the following description: `token created via login: {"component":"connect-injector"}`. Do not delete
    the tokens that have a description where `pod` is a key, for example `token created via login: {"component":"connect-injector","pod":"default/consul-connect-injector-576b65747c-9547x"}`). The dataplane-enabled connect inject pods use these tokens.    
