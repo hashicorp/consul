@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	DefaultLeafCertTTL         = "15min"
-	DefaultIntermediateCertTTL = "1h"     // ~ 1 year = 365 * 24h
+	DefaultLeafCertTTL         = "72h"
+	DefaultIntermediateCertTTL = "8760h"  // ~ 1 year = 365 * 24h
 	DefaultRootCertTTL         = "87600h" // ~ 10 years = 365 * 24h * 10
 )
 
@@ -433,12 +433,12 @@ type CommonCAProviderConfig struct {
 	PrivateKeyBits int
 }
 
-var MinLeafCertTTL = time.Minute
+var MinLeafCertTTL = time.Hour
 var MaxLeafCertTTL = 365 * 24 * time.Hour
 
 // intermediateCertRenewInterval is the interval at which the expiration
 // of the intermediate cert is checked and renewed if necessary.
-var IntermediateCertRenewInterval = 30 * time.Minute
+var IntermediateCertRenewInterval = time.Hour
 
 func (c CommonCAProviderConfig) Validate() error {
 	if c.SkipValidate {
