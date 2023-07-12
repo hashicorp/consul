@@ -13,7 +13,7 @@ This topic provides an overview of the configuration items that enable Consul AP
 - [GatewayClass](/consul/docs/api-gateway/configuration/gatewayclass) defines a class of gateway resources that you can use as a template for creating gateways.
 - [GatewayClassConfig](/consul/docs/api-gateway/configuration/gatewayclassconfig) describes additional Consul API Gateway-related configuration parameters for the GatewayClass resource.
 - [Routes](/consul/docs/api-gateway/configuration/routes) specifies the path from the gateway to the backend service(s) client to the listener.
-- [Intentions](/consul/docs/connect/config-entries/service-intentions) specifies traffic communication rules between services in the mesh. You can also use them specify rules for communication between services outside the mesh that send traffic through Consul API gateway to services in the service mesh.
+- [Intentions](/consul/docs/connect/config-entries/service-intentions) specify traffic communication rules between services in the mesh. Intentions also enforce rules for service-to-service traffic routed through a Consul API gateway.
 
 You can create a basic Gateway object using the default [`gatewayClassName`](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) (`consul`). If you want to create custom Gateways suitable for your environment, complete the following steps:
 
