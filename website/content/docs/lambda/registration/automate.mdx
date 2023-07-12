@@ -13,7 +13,7 @@ This topic describes how to automate Lambda function registration using Consul's
 
 You can deploy the Lambda registrator to your environment to automatically register and deregister Lambda functions with Consul based on the function's tags. Refer to the [AWS Lambda tags documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html) to learn about tags. 
 
-The registrator also stores and periodically updates information required to make mTLS requests to upstream services in the AWS parameter store. This enables Lambda functions to invoke mesh services. Refer to [Invoke Services from Lambda Functions](/consul/docs/lambda/invoke-from-lambda) for additional information. 
+The registrator also stores and periodically updates information required to make mTLS requests to upstream services in the AWS parameter store. This enables Lambda functions to invoke mesh services. Refer to [Invoke Services from Lambda Functions](/docs/lambda/invoke-from-lambda) for additional information. 
 
 The registrator runs as a Lambda function that is invoked by AWS EventBridge. Refer to the [AWS EventBridge documentation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) for additional information.
 
@@ -38,7 +38,7 @@ The following diagram shows the flow of events from EventBridge into Consul:
 
 ## Requirements 
 
-Verify that your environment meets the requirements specified in [Lambda Function Registration Requirements](/consul/docs/lambda/registration).
+Verify that your environment meets the requirements specified in [Lambda Function Registration Requirements](/docs/lambda/registration).
 
 ## Configuration 
 
@@ -46,7 +46,7 @@ The Lambda registrator stores data in the AWS Parameter Store. You can configure
 
 ### Optional: Store the CA certificate in Parameter Store
 
-When Lambda registrator makes a request to Consul's [HTTP API](/consul/api-docs) over HTTPS and the Consul API is signed by a custom CA, Lambda registrator uses the CA certificate stored in AWS Parameter Store to verify the authenticity of the Consul API. Refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information. 
+When Lambda registrator makes a request to Consul's [HTTP API](/api-docs) over HTTPS and the Consul API is signed by a custom CA, Lambda registrator uses the CA certificate stored in AWS Parameter Store to verify the authenticity of the Consul API. Refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information. 
 
 You can apply the following Terraform configuration to store Consul's server CA in Parameter Store:
 
@@ -60,7 +60,7 @@ resource "aws_ssm_parameter" "ca-cert" {
 
 ### Optional: Store the ACL token in Parameter Store
 
-If [Consul access control lists (ACLs)](/consul/docs/security/acl) are enabled, Lambda registrator must present an ACL token stored in Parameter Store to access resources. You can use the Consul CLI, API, or the Terraform provider to facilitate the ACL workflow. The following procedure describes how to create and store a token from the command line:
+If [Consul access control lists (ACLs)](/docs/security/acl) are enabled, Lambda registrator must present an ACL token stored in Parameter Store to access resources. You can use the Consul CLI, API, or the Terraform provider to facilitate the ACL workflow. The following procedure describes how to create and store a token from the command line:
 
 1. Create an ACL policy that includes the following rule:
 

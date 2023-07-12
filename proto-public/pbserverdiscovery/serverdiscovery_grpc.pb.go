@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: pbserverdiscovery/serverdiscovery.proto
+// source: proto-public/pbserverdiscovery/serverdiscovery.proto
 
 package pbserverdiscovery
 
@@ -134,5 +134,5 @@ var ServerDiscoveryService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "pbserverdiscovery/serverdiscovery.proto",
+	Metadata: "proto-public/pbserverdiscovery/serverdiscovery.proto",
 }

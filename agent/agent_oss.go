@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -40,11 +37,6 @@ func (a *Agent) reloadEnterprise(conf *config.RuntimeConfig) error {
 func enterpriseConsulConfig(_ *consul.Config, _ *config.RuntimeConfig) {
 }
 
-// validateFIPSConfig is a noop stub for the func defined in agent_ent.go
-func validateFIPSConfig(_ *config.RuntimeConfig) error {
-	return nil
-}
-
 // WriteEvent is a noop stub for the func defined agent_ent.go
 func (a *Agent) WriteEvent(eventType string, payload interface{}) {
 }
@@ -69,7 +61,3 @@ func (a *Agent) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 func (a *Agent) registerEntCache() {}
 
 func (*Agent) fillEnterpriseProxyDataSources(*proxycfg.DataSources) {}
-
-func (a *Agent) writeAuditRPCEvent(_ string, _ string) interface{} {
-	return nil
-}

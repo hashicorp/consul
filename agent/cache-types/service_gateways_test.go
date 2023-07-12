@@ -1,17 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServiceGateways(t *testing.T) {
@@ -21,9 +17,9 @@ func TestServiceGateways(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedCheckServiceNodes
-	rpc.On("RPC", mock.Anything, "Internal.ServiceGateways", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "Internal.ServiceGateways", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.ServiceSpecificRequest)
+			req := args.Get(1).(*structs.ServiceSpecificRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
@@ -37,7 +33,7 @@ func TestServiceGateways(t *testing.T) {
 				},
 			}
 
-			reply := args.Get(3).(*structs.IndexedCheckServiceNodes)
+			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
 			reply.Nodes = nodes
 			reply.QueryMeta.Index = 48
 			resp = reply

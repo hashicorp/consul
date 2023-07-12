@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package set
 
 import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
+	"io/ioutil"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -69,7 +66,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	bytes, err := os.ReadFile(c.configFile.String())
+	bytes, err := ioutil.ReadFile(c.configFile.String())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading config file: %s", err))
 		return 1

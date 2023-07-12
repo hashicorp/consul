@@ -1,10 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -71,7 +69,42 @@ func TestShouldParseFile(t *testing.T) {
 }
 
 func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
-	path, err := os.MkdirTemp("", t.Name())
+	paths := setupConfigFiles(t)
+
+	b, err := newBuilder(LoadOpts{ConfigFiles: paths})
+	require.NoError(t, err)
+
+	expected := []Source{
+		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
+		FileSource{Name: paths[1], Format: "json", Data: "content b"},
+		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a"},
+		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "json", Data: "content b"},
+	}
+	require.Equal(t, expected, b.Sources)
+	require.Len(t, b.Warnings, 2)
+}
+
+func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {
+	paths := setupConfigFiles(t)
+
+	b, err := newBuilder(LoadOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
+	require.NoError(t, err)
+
+	expected := []Source{
+		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
+		FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
+		FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
+		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a"},
+		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "hcl", Data: "content b"},
+		FileSource{Name: filepath.Join(paths[3], "c.yaml"), Format: "hcl", Data: "content c"},
+	}
+	require.Equal(t, expected, b.Sources)
+}
+
+// TODO: this would be much nicer with gotest.tools/fs
+func setupConfigFiles(t *testing.T) []string {
+	t.Helper()
+	path, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(path) })
 
@@ -80,52 +113,21 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, dir := range []string{path, subpath} {
-		err = os.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
+		err = ioutil.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
 		require.NoError(t, err)
 
-		err = os.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
+		err = ioutil.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
 		require.NoError(t, err)
 
-		err = os.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
+		err = ioutil.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
 		require.NoError(t, err)
 	}
-	paths := []string{
+	return []string{
 		filepath.Join(path, "a.hcl"),
 		filepath.Join(path, "b.json"),
 		filepath.Join(path, "c.yaml"),
+		subpath,
 	}
-
-	t.Run("fail on unknown files", func(t *testing.T) {
-		_, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath)})
-		require.Error(t, err)
-	})
-
-	t.Run("skip on unknown files in dir", func(t *testing.T) {
-		b, err := newBuilder(LoadOpts{ConfigFiles: []string{subpath}})
-		require.NoError(t, err)
-
-		expected := []Source{
-			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
-			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "json", Data: "content b"},
-		}
-		require.Equal(t, expected, b.Sources)
-		require.Len(t, b.Warnings, 1)
-	})
-
-	t.Run("force config format", func(t *testing.T) {
-		b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath), ConfigFormat: "hcl"})
-		require.NoError(t, err)
-
-		expected := []Source{
-			FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-			FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
-			FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
-			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
-			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "hcl", Data: "content b"},
-			FileSource{Name: filepath.Join(subpath, "c.yaml"), Format: "hcl", Data: "content c"},
-		}
-		require.Equal(t, expected, b.Sources)
-	})
 }
 
 func TestLoad_NodeName(t *testing.T) {
@@ -137,11 +139,9 @@ func TestLoad_NodeName(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{
-				Config: Config{
-					NodeName: pString(tc.nodeName),
-					DataDir:  pString("dir"),
-				},
+			FlagValues: Config{
+				NodeName: pString(tc.nodeName),
+				DataDir:  pString("dir"),
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -179,11 +179,9 @@ func TestLoad_NodeName(t *testing.T) {
 func TestBuilder_unixPermissionsVal(t *testing.T) {
 
 	b, _ := newBuilder(LoadOpts{
-		FlagValues: FlagValuesTarget{
-			Config: Config{
-				NodeName: pString("foo"),
-				DataDir:  pString("dir"),
-			},
+		FlagValues: Config{
+			NodeName: pString("foo"),
+			DataDir:  pString("dir"),
 		},
 	})
 
@@ -262,11 +260,9 @@ func TestLoad_EmptyClientAddr(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{
-				Config: Config{
-					ClientAddr: tc.clientAddr,
-					DataDir:    pString("dir"),
-				},
+			FlagValues: Config{
+				ClientAddr: tc.clientAddr,
+				DataDir:    pString("dir"),
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -309,21 +305,6 @@ func TestBuilder_DurationVal_InvalidDuration(t *testing.T) {
 	require.Contains(t, b.err.Error(), "2 errors")
 	require.Contains(t, b.err.Error(), badDuration1)
 	require.Contains(t, b.err.Error(), badDuration2)
-}
-
-func TestBuilder_DurationValWithDefaultMin(t *testing.T) {
-	b := builder{}
-
-	// Attempt to validate that a duration of 10 hours will not error when the min val is 1 hour.
-	dur := "10h0m0s"
-	b.durationValWithDefaultMin("field2", &dur, 24*7*time.Hour, time.Hour)
-	require.NoError(t, b.err)
-
-	// Attempt to validate that a duration of 1 min will error when the min val is 1 hour.
-	dur = "0h1m0s"
-	b.durationValWithDefaultMin("field1", &dur, 24*7*time.Hour, time.Hour)
-	require.Error(t, b.err)
-	require.Contains(t, b.err.Error(), "1 error")
 }
 
 func TestBuilder_ServiceVal_MultiError(t *testing.T) {
@@ -555,23 +536,4 @@ func TestBuilder_parsePrefixFilter(t *testing.T) {
 			})
 		}
 	})
-}
-
-func TestBuidler_hostMetricsWithCloud(t *testing.T) {
-	devMode := true
-	builderOpts := LoadOpts{
-		DevMode: &devMode,
-		DefaultConfig: FileSource{
-			Name:   "test",
-			Format: "hcl",
-			Data:   `cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
-		},
-	}
-
-	result, err := Load(builderOpts)
-	require.NoError(t, err)
-	require.Empty(t, result.Warnings)
-	cfg := result.RuntimeConfig
-	require.NotNil(t, cfg)
-	require.True(t, cfg.Telemetry.EnableHostMetrics)
 }

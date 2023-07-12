@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /* eslint-env node */
 /*eslint node/no-extraneous-require: "off"*/
 'use strict';

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -15,7 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -203,27 +200,11 @@ func testRegisterConnectService(t *testing.T, s *Store, idx uint64, nodeID, serv
 	})
 }
 
-func testRegisterAPIService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
-	testRegisterGatewayService(t, s, structs.ServiceKindAPIGateway, idx, nodeID, serviceID)
-}
-
-func testRegisterTerminatingService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
-	testRegisterGatewayService(t, s, structs.ServiceKindTerminatingGateway, idx, nodeID, serviceID)
-}
-
 func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
-	testRegisterGatewayService(t, s, structs.ServiceKindIngressGateway, idx, nodeID, serviceID)
-}
-
-func testRegisterMeshService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
-	testRegisterGatewayService(t, s, structs.ServiceKindMeshGateway, idx, nodeID, serviceID)
-}
-
-func testRegisterGatewayService(t *testing.T, s *Store, kind structs.ServiceKind, idx uint64, nodeID, serviceID string) {
 	svc := &structs.NodeService{
 		ID:      serviceID,
 		Service: serviceID,
-		Kind:    kind,
+		Kind:    structs.ServiceKindIngressGateway,
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -243,7 +224,6 @@ func testRegisterGatewayService(t *testing.T, s *Store, kind structs.ServiceKind
 		t.Fatalf("bad service: %#v", result)
 	}
 }
-
 func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 	nodeID string, serviceID string, checkID types.CheckID, state string) {
 	testRegisterCheckWithPartition(t, s, idx,

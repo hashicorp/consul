@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -46,7 +42,7 @@ func (i *IntentionUpstreamsDestination) Fetch(opts cache.FetchOptions, req cache
 
 	// Fetch
 	var reply structs.IndexedServiceList
-	if err := i.RPC.RPC(context.Background(), "Internal.IntentionUpstreamsDestination", reqReal, &reply); err != nil {
+	if err := i.RPC.RPC("Internal.IntentionUpstreamsDestination", reqReal, &reply); err != nil {
 		return result, err
 	}
 

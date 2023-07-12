@@ -1,59 +1,10 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 
 set -euo pipefail
 
-upsert_config_entry primary '
-kind = "proxy-defaults"
-name = "global"
-config {
-  protocol = "http"
-}
-'
-
-upsert_config_entry primary '
-kind = "ingress-gateway"
-name = "ingress-gateway"
-Defaults {
-  MaxConnections        = 10
-  MaxPendingRequests    = 20
-  MaxConcurrentRequests = 30
-
-  PassiveHealthCheck {
-    MaxFailures  = 10
-    Interval     = 5000000000
-  }
-}
-listeners = [
-  {
-    port     = 9999
-    protocol = "http"
-    services = [
-      {
-        name = "*"
-      }
-    ]
-  },
-  {
-    port     = 9998
-    protocol = "http"
-    services = [
-      {
-        name                  = "s1"
-        hosts                 = ["test.example.com"]
-        MaxConnections        = 100
-        MaxPendingRequests    = 200
-        MaxConcurrentRequests = 300
-        PassiveHealthCheck {
-          MaxFailures  = 15
-        }
-      }
-    ]
-  }
-]
-'
+# wait for bootstrap to apply config entries
+wait_for_config_entry ingress-gateway ingress-gateway
+wait_for_config_entry proxy-defaults global
 
 register_services primary
 

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package testutils
 
 import (
@@ -21,7 +18,7 @@ func ACLAnonymous(t *testing.T) resolver.Result {
 	return resolver.Result{
 		Authorizer: acl.DenyAll(),
 		ACLIdentity: &structs.ACLToken{
-			AccessorID: acl.AnonymousTokenID,
+			AccessorID: structs.ACLTokenAnonymousID,
 		},
 	}
 }
@@ -50,7 +47,7 @@ func ACLServiceWriteAny(t *testing.T) resolver.Result {
 		service "foo" {
 			policy = "write"
 		}
-	`, nil, nil)
+	`, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
 
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -73,40 +70,6 @@ func ACLServiceRead(t *testing.T, serviceName string) resolver.Result {
 					Policy: acl.PolicyRead,
 				},
 			},
-		},
-	}
-	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
-	require.NoError(t, err)
-
-	return resolver.Result{
-		Authorizer:  authz,
-		ACLIdentity: randomACLIdentity(t),
-	}
-}
-
-func ACLOperatorRead(t *testing.T) resolver.Result {
-	t.Helper()
-
-	aclRule := &acl.Policy{
-		PolicyRules: acl.PolicyRules{
-			Operator: acl.PolicyRead,
-		},
-	}
-	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
-	require.NoError(t, err)
-
-	return resolver.Result{
-		Authorizer:  authz,
-		ACLIdentity: randomACLIdentity(t),
-	}
-}
-
-func ACLOperatorWrite(t *testing.T) resolver.Result {
-	t.Helper()
-
-	aclRule := &acl.Policy{
-		PolicyRules: acl.PolicyRules{
-			Operator: acl.PolicyWrite,
 		},
 	}
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)

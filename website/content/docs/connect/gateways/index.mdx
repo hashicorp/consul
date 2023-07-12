@@ -27,13 +27,13 @@ They operate by sniffing and extracting the server name indication (SNI) header 
 
 Mesh gateways enable the following scenarios:
 
-* **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) for additional information.
-- **Service-to-service communication across WAN-federated datacenters**. Refer to [Enabling Service-to-service Traffic Across Datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) for additional information.
-- **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployments called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Across Admin Partitions](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions) for additional information.
-- **Bridge multiple datacenters using Cluster Peering**. Since Consul 1.14.0, mesh gateways can be used to route peering control-plane traffic between peered Consul Servers. See [Mesh Gateways for Peering Control Plane Traffic](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) for more information.
-- **Service-to-service communication across peered datacenters**. Refer to [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
+* **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) for additional information.
+- **Service-to-service communication across WAN-federated datacenters**. Refer to [Enabling Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) for additional information.
+- **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployments called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Across Admin Partitions](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions) for additional information.
+- **Bridge multiple datacenters using Cluster Peering**. Since Consul 1.14.0, mesh gateways can be used to route peering control-plane traffic between peered Consul Servers. See [Mesh Gateways for Peering Control Plane Traffic](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) for more information.
+- **Service-to-service communication across peered datacenters**. Refer to [Mesh Gateways between Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers) for more information.
 
--> **Mesh gateway tutorial**: Follow the [mesh gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways) to learn concepts associated with mesh gateways.
+-> **Mesh gateway tutorial**: Follow the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways) to learn concepts associated with mesh gateways.
 
 ## Ingress Gateways
 
@@ -49,8 +49,8 @@ an ingress gateway by defining a set of listeners that can map to different sets
 Ingress gateways are tightly integrated with Consul's L7 configuration and enable dynamic routing of HTTP requests by
 attributes like the request path.
 
-For more information about ingress gateways, review the [complete documentation](/consul/docs/connect/gateways/ingress-gateway)
-and the [ingress gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-ingress-gateways).
+For more information about ingress gateways, review the [complete documentation](/docs/connect/gateways/ingress-gateway)
+and the [ingress gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-ingress-gateways).
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
 
@@ -60,18 +60,18 @@ and the [ingress gateway tutorial](/consul/tutorials/developer-mesh/service-mesh
 
 Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh
 to services outside the mesh.
-Services outside the mesh do not have sidecar proxies or are not [integrated natively](/consul/docs/connect/native).
+Services outside the mesh do not have sidecar proxies or are not [integrated natively](/docs/connect/native).
 These may be services running on legacy infrastructure or managed cloud services running on
 infrastructure you do not control.
 
-Terminating gateways effectively act as egress proxies that can represent one or more services. They terminate service mesh
+Terminating gateways effectively act as egress proxies that can represent one or more services. They terminate Connect
 mTLS connections, enforce Consul intentions, and forward requests to the appropriate destination.
 
 These gateways also simplify authorization from dynamic service addresses. Consul's intentions determine whether
 connections through the gateway are authorized. Then traditional tools like firewalls or IAM roles can authorize the
 connections from the known gateway nodes to the destination services.
 
-For more information about terminating gateways, review the [complete documentation](/consul/docs/connect/gateways/terminating-gateway)
-and the [terminating gateway tutorial](/consul/tutorials/developer-mesh/terminating-gateways-connect-external-services).
+For more information about terminating gateways, review the [complete documentation](/docs/connect/gateways/terminating-gateway)
+and the [terminating gateway tutorial](https://learn.hashicorp.com/tutorials/consul/teminating-gateways-connect-external-services).
 
 ![Terminating Gateway Architecture](/img/terminating-gateways.png)

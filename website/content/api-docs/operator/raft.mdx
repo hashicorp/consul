@@ -11,7 +11,7 @@ description: |-
 The `/operator/raft` endpoints provide tools for management of Raft the
 consensus subsystem and cluster quorum.
 
-Please see the [Consensus Protocol Guide](/consul/docs/architecture/consensus) for
+Please see the [Consensus Protocol Guide](/docs/architecture/consensus) for
 more information about Raft consensus protocol and its use.
 
 ## Read Configuration
@@ -23,10 +23,10 @@ This endpoint reads the current raft configuration.
 | `GET`  | `/operator/raft/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes     | Agent Caching | ACL Required    |
 | ---------------- | --------------------- | ------------- | --------------- |
@@ -42,7 +42,7 @@ The table below shows this endpoint's support for
   Raft configuration from any of the Consul servers. Not setting this will choose
   the default consistency mode which will forward the request to the leader for
   processing but not re-confirm the server is still the leader before returning
-  results. See [default consistency](/consul/api-docs/features/consistency#default) for more details.
+  results. See [default consistency](/api-docs/features/consistency#default) for more details.
 
 ### Sample Request
 
@@ -120,16 +120,16 @@ write privileges.
 | `DELETE` | `/operator/raft/peer` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul operator raft remove-peer`](/consul/commands/operator/raft#remove-peer).
+The corresponding CLI command is [`consul operator raft remove-peer`](/commands/operator/raft#remove-peer).
 
 ### Query Parameters
 
@@ -144,38 +144,4 @@ The corresponding CLI command is [`consul operator raft remove-peer`](/consul/co
 $ curl \
     --request DELETE \
     "http://127.0.0.1:8500/v1/operator/raft/peer?address=1.2.3.4:5678"
-```
-
-## Transfer Raft Leadership
-
-This endpoint transfers the Raft leadership from the current leader to a different Raft peer.
-The new leader is selected at random unless explicitly specified with the `id` parameter.
-
-| Method   | Path                  | Produces           |
-| -------- | ------------------------------- | ------------------ |
-| `POST` | `/operator/raft/transfer-leader` | `application/json` |
-
-The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs#authentication).
-
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
-| ---------------- | ----------------- | ------------- | ---------------- |
-| `NO`             | `none`            | `none`        | `operator:write` |
-
-The corresponding CLI command is [`consul operator raft transfer-leader`](/consul/commands/operator/raft#transfer-leader).
-
-### Query Parameters
-
-- `id` `(string: "")` - Specifies the node ID of the Raft peer to transfer leadership to.
-If empty, leadership transfers to a random server agent.
-
-### Sample Request
-
-```shell-session
-$ curl \
-    --request POST \
-    "http://127.0.0.1:8500/v1/operator/raft/transfer-leader?id=09cfc046-e74a-ad49-1aad-c2161b7fe677"
 ```

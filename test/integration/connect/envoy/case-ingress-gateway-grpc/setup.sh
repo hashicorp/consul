@@ -1,32 +1,9 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 
 set -euo pipefail
 
-upsert_config_entry primary '
-kind     = "service-defaults"
-name     = "s1"
-protocol = "grpc"
-'
-
-upsert_config_entry primary '
-kind = "ingress-gateway"
-name = "ingress-gateway"
-listeners = [
-  {
-    port     = 9999
-    protocol = "grpc"
-    services = [
-      {
-        name  = "s1"
-        hosts = ["localhost:9999"]
-      }
-    ]
-  }
-]
-'
+# wait for bootstrap to apply config entries
+wait_for_config_entry ingress-gateway ingress-gateway
 
 register_services primary
 

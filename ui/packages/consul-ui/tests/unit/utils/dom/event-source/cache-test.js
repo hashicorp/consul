@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import domEventSourceCache from 'consul-ui/utils/dom/event-source/cache';
 import { module, test } from 'qunit';
 import sinon from 'sinon';
@@ -52,7 +47,7 @@ module('Unit | Utility | dom/event-source/cache', function () {
     const Promise = createPromise();
 
     const getCache = domEventSourceCache(function () {}, EventSource, Promise);
-    assert.strictEqual(typeof getCache, 'function');
+    assert.ok(typeof getCache === 'function');
   });
   test('getCache returns a function', function (assert) {
     const EventSource = createEventSource();
@@ -61,7 +56,7 @@ module('Unit | Utility | dom/event-source/cache', function () {
     const getCache = domEventSourceCache(function () {}, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);
-    assert.strictEqual(typeof cache, 'function');
+    assert.ok(typeof cache === 'function');
   });
   test('cache creates the default EventSource and keeps it open when there is a cursor', function (assert) {
     const EventSource = createEventSource();
@@ -94,9 +89,7 @@ module('Unit | Utility | dom/event-source/cache', function () {
     assert.ok(source.calledTwice, 'promisifying source called once');
     assert.ok(retrievedEventSource instanceof Promise, 'source returns a Promise');
   });
-  test('cache creates the default EventSource and keeps it open when there is a cursor 2', function (assert) {
-    assert.expect(4);
-
+  test('cache creates the default EventSource and keeps it open when there is a cursor', function (assert) {
     const EventSource = createEventSource();
     const stub = {
       close: sinon.stub(),
@@ -125,8 +118,6 @@ module('Unit | Utility | dom/event-source/cache', function () {
     });
   });
   test("cache creates the default EventSource and closes it when there isn't a cursor", function (assert) {
-    assert.expect(4);
-
     const EventSource = createEventSource();
     const stub = {
       close: sinon.stub(),

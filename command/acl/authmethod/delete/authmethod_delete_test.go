@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package authmethoddelete
 
 import (
@@ -8,13 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
 	_ "github.com/hashicorp/consul/agent/consul/authmethod/testauth"
@@ -74,11 +70,12 @@ func TestAuthMethodDeleteCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, 1, code)
-		require.Contains(t, ui.ErrorWriter.String(), "404 (Cannot find auth method to delete)")
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Empty(t, output)
+		require.Contains(t, output, fmt.Sprintf("deleted successfully"))
+		require.Contains(t, output, "notfound")
 	})
 
 	createAuthMethod := func(t *testing.T) string {

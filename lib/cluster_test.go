@@ -1,11 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package lib
 
 import (
-	"github.com/stretchr/testify/require"
-	"math"
 	"testing"
 	"time"
 )
@@ -175,27 +170,5 @@ func TestRateScaledInterval(t *testing.T) {
 	}
 	if v := RateScaledInterval(-1, min, 10000); v != min {
 		t.Fatalf("Bad: %v", v)
-	}
-}
-
-func TestRandomStaggerWithRange(t *testing.T) {
-	type args struct {
-		min time.Duration
-		max time.Duration
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{"min-max 0", args{time.Duration(0), time.Duration(0)}},
-		{"min-max big", args{time.Duration(math.MaxInt64), time.Duration(math.MaxInt64)}},
-		{"normal case", args{time.Duration(3), time.Duration(7)}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := RandomStaggerWithRange(tt.args.min, tt.args.max)
-			require.GreaterOrEqual(t, got, tt.args.min)
-			require.LessOrEqual(t, got, tt.args.max)
-		})
 	}
 }

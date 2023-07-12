@@ -1,0 +1,299 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "default:1.2.3.4:8443",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 8443
+        }
+      },
+      "filterChains": [
+        {
+          "filterChainMatch": {
+            "serverNames": [
+              "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.rbac",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
+            },
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.api.default.default.dc1",
+                "cluster": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsParams": {
+
+                },
+                "tlsCertificates": [
+                  {
+                    "certificateChain": {
+                      "inlineString": "-----BEGIN CERTIFICATE-----\nMIICnTCCAkKgAwIBAgIRAJrvEdaRAkSltrotd/l/j2cwCgYIKoZIzj0EAwIwgbgx\nCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNj\nbzEaMBgGA1UECRMRMTAxIFNlY29uZCBTdHJlZXQxDjAMBgNVBBETBTk0MTA1MRcw\nFQYDVQQKEw5IYXNoaUNvcnAgSW5jLjE/MD0GA1UEAxM2Q29uc3VsIEFnZW50IENB\nIDk2NjM4NzM1MDkzNTU5NTIwNDk3MTQwOTU3MDY1MTc0OTg3NDMxMB4XDTIwMDQx\nNDIyMzE1MloXDTIxMDQxNDIyMzE1MlowHDEaMBgGA1UEAxMRc2VydmVyLmRjMS5j\nb25zdWwwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQ4v0FoIYI0OWmxE2MR6w5l\n0pWGhc02RpsOPj/6RS1fmXMMu7JzPzwCmkGcR16RlwwhNFKCZsWpvAjVRHf/pTp+\no4HHMIHEMA4GA1UdDwEB/wQEAwIFoDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYB\nBQUHAwIwDAYDVR0TAQH/BAIwADApBgNVHQ4EIgQgk7kABFitAy3PluyNtmzYiC7H\njSN8W/K/OXNJQAQAscMwKwYDVR0jBCQwIoAgNKbPPepvRHXSAPTc+a/BXBzFX1qJ\ny+Zi7qtjlFX7qtUwLQYDVR0RBCYwJIIRc2VydmVyLmRjMS5jb25zdWyCCWxvY2Fs\naG9zdIcEfwAAATAKBggqhkjOPQQDAgNJADBGAiEAhP4HmN5BWysWTbQWClXaWUah\nLpBGFrvc/2cCQuyEZKsCIQD6JyYCYMArtWwZ4G499zktxrFlqfX14bqyONrxtA5I\nDw==\n-----END CERTIFICATE-----\n"
+                    },
+                    "privateKey": {
+                      "inlineString": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIE3KbKXHdsa0vvC1fysQaGdoJRgjRALIolI4XJanie+coAoGCCqGSM49\nAwEHoUQDQgAEOL9BaCGCNDlpsRNjEesOZdKVhoXNNkabDj4/+kUtX5lzDLuycz88\nAppBnEdekZcMITRSgmbFqbwI1UR3/6U6fg==\n-----END EC PRIVATE KEY-----\n"
+                    }
+                  }
+                ],
+                "validationContext": {
+                  "trustedCa": {
+                    "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+                  }
+                }
+              },
+              "requireClientCertificate": true
+            }
+          }
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
+              "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.rbac",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
+            },
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.cache.default.default.dc1",
+                "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsParams": {
+
+                },
+                "tlsCertificates": [
+                  {
+                    "certificateChain": {
+                      "inlineString": "-----BEGIN CERTIFICATE-----\nMIICmjCCAkGgAwIBAgIQe1ZmC0rzRwer6jaH1YIUIjAKBggqhkjOPQQDAjCBuDEL\nMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2Nv\nMRowGAYDVQQJExExMDEgU2Vjb25kIFN0cmVldDEOMAwGA1UEERMFOTQxMDUxFzAV\nBgNVBAoTDkhhc2hpQ29ycCBJbmMuMT8wPQYDVQQDEzZDb25zdWwgQWdlbnQgQ0Eg\nODE5ODAwNjg0MDM0MTM3ODkyNDYxNTA1MDk0NDU3OTU1MTQxNjEwHhcNMjAwNjE5\nMTU1MjAzWhcNMjEwNjE5MTU1MjAzWjAcMRowGAYDVQQDExFzZXJ2ZXIuZGMxLmNv\nbnN1bDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABH2aWaaa3fpQLBayheHiKlrH\n+z53m0frfGknKjOhOPVYDVHV8x0OE01negswVQbKHAtxPf1M8Zy+WbI9rK7Ua1mj\ngccwgcQwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEF\nBQcDAjAMBgNVHRMBAf8EAjAAMCkGA1UdDgQiBCDf9CPBSUwwZvpeW73oJLTmgQE2\ntW1NKpL5t1uq9WFcqDArBgNVHSMEJDAigCCPPd/NxgZB0tq2M8pdVpPj3Cr79iTv\ni4/T1ysodfMb7zAtBgNVHREEJjAkghFzZXJ2ZXIuZGMxLmNvbnN1bIIJbG9jYWxo\nb3N0hwR/AAABMAoGCCqGSM49BAMCA0cAMEQCIFCjFZAoXq0s2ied2eIBv0i1KoW5\nIhCylnKFt6iHkyDeAiBBCByTcjHRgEQmqyPojQKoO584EFiczTub9aWdnf9tEw==\n-----END CERTIFICATE-----\n"
+                    },
+                    "privateKey": {
+                      "inlineString": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEINsen3S8xzxMrKcRZIvxXzhKDn43Tw9ttqWEFU9TqS5hoAoGCCqGSM49\nAwEHoUQDQgAEfZpZpprd+lAsFrKF4eIqWsf7PnebR+t8aScqM6E49VgNUdXzHQ4T\nTWd6CzBVBsocC3E9/UzxnL5Zsj2srtRrWQ==\n-----END EC PRIVATE KEY-----\n"
+                    }
+                  }
+                ],
+                "validationContext": {
+                  "trustedCa": {
+                    "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+                  }
+                }
+              },
+              "requireClientCertificate": true
+            }
+          }
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
+              "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.rbac",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
+            },
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.db.default.default.dc1",
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsParams": {
+
+                },
+                "tlsCertificates": [
+                  {
+                    "certificateChain": {
+                      "inlineString": "-----BEGIN CERTIFICATE-----\nMIICnTCCAkOgAwIBAgIRAKF+qDJbaOULNL1TIatrsBowCgYIKoZIzj0EAwIwgbkx\nCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNj\nbzEaMBgGA1UECRMRMTAxIFNlY29uZCBTdHJlZXQxDjAMBgNVBBETBTk0MTA1MRcw\nFQYDVQQKEw5IYXNoaUNvcnAgSW5jLjFAMD4GA1UEAxM3Q29uc3VsIEFnZW50IENB\nIDE4Nzg3MDAwNjUzMDcxOTYzNTk1ODkwNTE1ODY1NjEzMDA2MTU0NDAeFw0yMDA2\nMTkxNTMxMzRaFw0yMTA2MTkxNTMxMzRaMBwxGjAYBgNVBAMTEXNlcnZlci5kYzEu\nY29uc3VsMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdQ8Igci5f7ZvvCVsxXt9\ntLfvczD+60XHg0OC0+Aka7ZjQfbEjQwZbz/82EwPoS7Dqo3LTK4IuelOimoNNxuk\nkaOBxzCBxDAOBgNVHQ8BAf8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsG\nAQUFBwMCMAwGA1UdEwEB/wQCMAAwKQYDVR0OBCIEILzTLkfJcdWQnTMKUcai/YJq\n0RqH1pjCqtY7SOU4gGOTMCsGA1UdIwQkMCKAIMa2vNcTEC5AGfHIYARJ/4sodX0o\nLzCj3lpw7BcEzPTcMC0GA1UdEQQmMCSCEXNlcnZlci5kYzEuY29uc3Vsgglsb2Nh\nbGhvc3SHBH8AAAEwCgYIKoZIzj0EAwIDSAAwRQIgBZ/Z4GSLEc98WvT/qjTVCNTG\n1WNaAaesVbkRx+J0yl8CIQDAVoqY9ByA5vKHjnQrxWlc/JUtJz8wudg7e/OCRriP\nSg==\n-----END CERTIFICATE-----\n"
+                    },
+                    "privateKey": {
+                      "inlineString": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIN1v14FaNxgY4MgjDOOWthen8dgwB0lNMs9/j2TfrnxzoAoGCCqGSM49\nAwEHoUQDQgAEdQ8Igci5f7ZvvCVsxXt9tLfvczD+60XHg0OC0+Aka7ZjQfbEjQwZ\nbz/82EwPoS7Dqo3LTK4IuelOimoNNxukkQ==\n-----END EC PRIVATE KEY-----\n"
+                    }
+                  }
+                ],
+                "validationContext": {
+                  "trustedCa": {
+                    "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+                  }
+                }
+              },
+              "requireClientCertificate": true
+            }
+          }
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
+              "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.http_connection_manager",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "statPrefix": "upstream.web.default.default.dc1",
+                "rds": {
+                  "configSource": {
+                    "ads": {
+
+                    },
+                    "resourceApiVersion": "V3"
+                  },
+                  "routeConfigName": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.rbac",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+                      "rules": {
+
+                      }
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.aws_lambda",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.aws_lambda.v3.Config",
+                      "arn": "lambda-arn",
+                      "payloadPassthrough": true
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.router",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
+                },
+                "forwardClientCertDetails": "APPEND_FORWARD",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
+                },
+                "stripAnyHostPort": true
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsParams": {
+
+                },
+                "tlsCertificates": [
+                  {
+                    "certificateChain": {
+                      "inlineString": "-----BEGIN CERTIFICATE-----\nMIICjDCCAjKgAwIBAgIIC5llxGV1gB8wCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowDjEMMAoG\nA1UEAxMDd2ViMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEADPv1RHVNRfa2VKR\nAB16b6rZnEt7tuhaxCFpQXPj7M2omb0B9Favq5E0ivpNtv1QnFhxtPd7d5k4e+T7\nSkW1TaOCAXIwggFuMA4GA1UdDwEB/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcD\nAgYIKwYBBQUHAwEwDAYDVR0TAQH/BAIwADBoBgNVHQ4EYQRfN2Q6MDc6ODc6M2E6\nNDA6MTk6NDc6YzM6NWE6YzA6YmE6NjI6ZGY6YWY6NGI6ZDQ6MDU6MjU6NzY6M2Q6\nNWE6OGQ6MTY6OGQ6Njc6NWU6MmU6YTA6MzQ6N2Q6ZGM6ZmYwagYDVR0jBGMwYYBf\nZDE6MTE6MTE6YWM6MmE6YmE6OTc6YjI6M2Y6YWM6N2I6YmQ6ZGE6YmU6YjE6OGE6\nZmM6OWE6YmE6YjU6YmM6ODM6ZTc6NWU6NDE6NmY6ZjI6NzM6OTU6NTg6MGM6ZGIw\nWQYDVR0RBFIwUIZOc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1\nNTU1NTU1NTU1LmNvbnN1bC9ucy9kZWZhdWx0L2RjL2RjMS9zdmMvd2ViMAoGCCqG\nSM49BAMCA0gAMEUCIGC3TTvvjj76KMrguVyFf4tjOqaSCRie3nmHMRNNRav7AiEA\npY0heYeK9A6iOLrzqxSerkXXQyj5e9bE4VgUnxgPU6g=\n-----END CERTIFICATE-----\n"
+                    },
+                    "privateKey": {
+                      "inlineString": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIMoTkpRggp3fqZzFKh82yS4LjtJI+XY+qX/7DefHFrtdoAoGCCqGSM49\nAwEHoUQDQgAEADPv1RHVNRfa2VKRAB16b6rZnEt7tuhaxCFpQXPj7M2omb0B9Fav\nq5E0ivpNtv1QnFhxtPd7d5k4e+T7SkW1TQ==\n-----END EC PRIVATE KEY-----\n"
+                    }
+                  }
+                ],
+                "validationContext": {
+                  "trustedCa": {
+                    "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+                  }
+                }
+              },
+              "requireClientCertificate": true
+            }
+          }
+        },
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.sni_cluster",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.sni_cluster.v3.SniCluster"
+              }
+            },
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "terminating_gateway.default",
+                "cluster": ""
+              }
+            }
+          ]
+        }
+      ],
+      "listenerFilters": [
+        {
+          "name": "envoy.filters.listener.tls_inspector",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
+          }
+        }
+      ],
+      "trafficDirection": "INBOUND"
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "nonce": "00000001"
+}

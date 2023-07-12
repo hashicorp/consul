@@ -1,23 +1,21 @@
 ---
 layout: commands
 page_title: 'Commands: Namespace Update'
-description: |
-  The `consul namespace update` command updates an individual namespace in Consul Enterprise. Policies, roles, namespace descriptions, and metadata can be updated.
 ---
 
 # Consul Namespace Update
 
 Command: `consul namespace update`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/namespace/:name](/consul/api-docs/namespaces#update-a-namespace)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/namespace/:name](/api-docs/namespaces#update-a-namespace)
 
 <EnterpriseAlert />
 
 This `namespace update` command updates a namespaces using the CLI parameters provided.
 This was added in Consul Enterprise 1.7.2.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -36,19 +34,19 @@ with the existing namespace definition.
 
 - `-default-policy-id=<value>` - ID of a policy from the default namespace to inject for all tokens
   in this namespace. May be specified multiple times. The ACL token used with
-  this command must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules) to the linked policy.
+  this command must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules) to the linked policy.
 
 - `-default-policy-name=<value>` - Name of a policy from the default namespace to inject for all
   tokens in this namespace. May be specified multiple times. The ACL token used with
-  this command must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules) to the linked policy.
+  this command must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules) to the linked policy.
 
 - `-default-role-id=<value>` - ID of a role from the default namespace to inject for all tokens in
   this namespace. May be specified multiple times. The ACL token used with
-  this command must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules) to the linked role.
+  this command must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules) to the linked role.
 
 - `-default-role-name=<value>` - Name of a role from the default namespace to inject for all tokens
   in this namespace. May be specified multiple times. The ACL token used with
-  this command must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules) to the linked role.
+  this command must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules) to the linked role.
 
 - `-description=<string>` - A description of the namespace.
 

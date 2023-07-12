@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /* globals CodeMirror */
 export function initialize(application) {
   const appName = application.application.name;

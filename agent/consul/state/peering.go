@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -9,15 +6,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-memdb"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 const (
@@ -594,7 +591,6 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 			req.Peering.Remote = &pbpeering.RemoteInfo{
 				Partition:  existing.Remote.Partition,
 				Datacenter: existing.Remote.Datacenter,
-				Locality:   existing.Remote.Locality,
 			}
 		}
 
@@ -774,9 +770,9 @@ func exportedServicesForPeerTxn(
 	maxIdx := peering.ModifyIndex
 
 	entMeta := structs.NodeEnterpriseMetaInPartition(peering.Partition)
-	idx, exportConf, err := getSimplifiedExportedServices(tx, ws, nil, *entMeta)
+	idx, exportConf, err := getExportedServicesConfigEntryTxn(tx, ws, nil, entMeta)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to fetch simplified exported-services config entry: %w", err)
+		return 0, nil, fmt.Errorf("failed to fetch exported-services config entry: %w", err)
 	}
 	if idx > maxIdx {
 		maxIdx = idx
@@ -1019,8 +1015,17 @@ func listAllExportedServices(
 	overrides map[configentry.KindName]structs.ConfigEntry,
 	entMeta acl.EnterpriseMeta,
 ) (uint64, map[structs.ServiceName]struct{}, error) {
+	idx, export, err := getExportedServicesConfigEntryTxn(tx, ws, overrides, &entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+
 	found := make(map[structs.ServiceName]struct{})
-	idx, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, entMeta, overrides)
+	if export == nil {
+		return idx, found, nil
+	}
+
+	_, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, export, overrides)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1035,25 +1040,16 @@ func listAllExportedServices(
 func listServicesExportedToAnyPeerByConfigEntry(
 	ws memdb.WatchSet,
 	tx ReadTxn,
-	entMeta acl.EnterpriseMeta,
+	conf *structs.ExportedServicesConfigEntry,
 	overrides map[configentry.KindName]structs.ConfigEntry,
 ) (uint64, []structs.ServiceName, error) {
 	var (
-		found  = make(map[structs.ServiceName]struct{})
-		maxIdx uint64
+		entMeta = conf.GetEnterpriseMeta()
+		found   = make(map[structs.ServiceName]struct{})
+		maxIdx  uint64
 	)
-	idx, exports, err := getSimplifiedExportedServices(tx, ws, overrides, entMeta)
-	if err != nil {
-		return 0, nil, err
-	}
-	if idx > maxIdx {
-		maxIdx = idx
-	}
-	if exports == nil {
-		return 0, nil, nil
-	}
 
-	for _, svc := range exports.Services {
+	for _, svc := range conf.Services {
 		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
 
 		sawPeer := false
@@ -1412,12 +1408,17 @@ func peersForServiceTxn(
 	// Exported service config entries are scoped to partitions so they are in the default namespace.
 	partitionMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
 
-	idx, exportedServices, err := getSimplifiedExportedServices(tx, ws, nil, *partitionMeta)
+	idx, rawEntry, err := configEntryTxn(tx, ws, structs.ExportedServices, partitionMeta.PartitionOrDefault(), partitionMeta)
 	if err != nil {
 		return 0, nil, err
 	}
-	if exportedServices == nil {
-		return idx, nil, nil
+	if rawEntry == nil {
+		return idx, nil, err
+	}
+
+	entry, ok := rawEntry.(*structs.ExportedServicesConfigEntry)
+	if !ok {
+		return 0, nil, fmt.Errorf("unexpected type %T for pbpeering.Peering index", rawEntry)
 	}
 
 	var (
@@ -1437,7 +1438,7 @@ func peersForServiceTxn(
 	// 		Namespace: *,     Service: *
 	// 		Namespace: Exact, Service: *
 	// 		Namespace: Exact, Service: Exact
-	for i, service := range exportedServices.Services {
+	for i, service := range entry.Services {
 		switch {
 		case service.Namespace == structs.WildcardSpecifier:
 			wildcardNamespaceIdx = i
@@ -1468,7 +1469,7 @@ func peersForServiceTxn(
 		return idx, results, nil
 	}
 
-	for _, c := range exportedServices.Services[targetIdx].Consumers {
+	for _, c := range entry.Services[targetIdx].Consumers {
 		if c.Peer != "" {
 			results = append(results, c.Peer)
 		}

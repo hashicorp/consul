@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %tooltip-panel dt {
   cursor: pointer;
 }
@@ -11,9 +6,9 @@
   @extend %as-pseudo;
   width: 12px;
   height: 12px;
-  background-color: var(--token-color-surface-primary);
-  border-top: 1px solid var(--token-color-palette-neutral-300);
-  border-right: 1px solid var(--token-color-palette-neutral-300);
+  background-color: rgb(var(--tone-gray-000));
+  border-top: 1px solid rgb(var(--tone-gray-300));
+  border-right: 1px solid rgb(var(--tone-gray-300));
   transform: rotate(-45deg);
   position: absolute;
   left: 16px;

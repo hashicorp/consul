@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 # GPG Key ID to use for publically released builds
 HASHICORP_GPG_KEY="348FFC4C"
 

@@ -1,6 +1,0 @@
-```release-note:enhancement
-connect: for early awareness of Envoy incompatibilities, when using the `consul connect envoy` command the Envoy version will now be checked for compatibility. If incompatible Consul will error and exit.
-```
-```release-note:breaking-change
-connect: Consul will now error and exit when using the `consul connect envoy` command if the Envoy version is incompatible. To ignore this check use flag `--ignore-envoy-compatibility`
-```

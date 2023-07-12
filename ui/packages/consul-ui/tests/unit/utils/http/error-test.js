@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import HttpError from 'consul-ui/utils/http/error';
 import { module, test } from 'qunit';
 

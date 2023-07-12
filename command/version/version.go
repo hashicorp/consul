@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package version
 
 import (
@@ -9,11 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/cli"
-
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/version"
+	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -51,7 +47,6 @@ type VersionInfo struct {
 	Version      string
 	Revision     string
 	Prerelease   string
-	FIPS         string `json:",omitempty"`
 	BuildDate    time.Time
 	RPC          RPCVersionInfo
 }
@@ -80,7 +75,6 @@ func (c *cmd) Run(args []string) int {
 		Revision:     version.GitCommit,
 		Prerelease:   version.VersionPrerelease,
 		BuildDate:    buildDate,
-		FIPS:         version.GetFIPSInfo(),
 		RPC: RPCVersionInfo{
 			Default: consul.DefaultRPCProtocol,
 			Min:     int(consul.ProtocolVersionMin),

@@ -1,15 +1,13 @@
 ---
 layout: commands
 page_title: 'Commands: Snapshot Save'
-description: |
-  The `consul snapshot save` command retrieves a point-in-time snapshot of the state of the Consul servers and saves it to a specified location. Data saved in snapshots includes key/value entries, registered services in the catalog, prepared queries, sessions, and ACLs from a saved snapshot.
 ---
 
 # Consul Snapshot Save
 
 Command: `consul snapshot save`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/snapshot](/consul/api-docs/snapshot#generate-snapshot)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/snapshot](/api-docs/snapshot#generate-snapshot)
 
 The `snapshot save` command is used to retrieve an atomic, point-in-time snapshot
 of the state of the Consul servers which includes key/value entries,
@@ -31,8 +29,8 @@ the context of the server process. If you're using Systemd to manage your Consul
 processes, then adding `Environment=TMPDIR=/path/to/dir` to your Consul unit file will work.
 As a result of the Raft snapshot, Consul also saves one snapshot file at `data_dir/raft/snapshots`.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -77,5 +75,5 @@ This is useful for situations where a cluster is in a degraded state and no
 leader is available. To target a specific server for a snapshot, you can run
 the `consul snapshot save` command on that specific server.
 
-Please see the [HTTP API](/consul/api-docs/snapshot) documentation for
+Please see the [HTTP API](/api-docs/snapshot) documentation for
 more details about snapshot internals.

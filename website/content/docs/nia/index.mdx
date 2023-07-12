@@ -31,15 +31,15 @@ CTS is available as an open source and enterprise distribution. Follow the [Auto
 
   -> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
-- `Network Drivers` - CTS uses [network drivers](/consul/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
+- `Network Drivers` - CTS uses [network drivers](/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
 
 - `Network Infrastructure Automation (NIA)` - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
-- `Scheduled Tasks` - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/consul/docs/nia/configuration#schedule-condition).
+- `Scheduled Tasks` - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/docs/nia/configuration#schedule-condition).
 
 - `Services` - A service in CTS represents a service that is registered with Consul for service discovery. Services are grouped by their service names. There may be more than one instance of a particular service, each with its own unique ID. CTS monitors services based on service names and can provide service instance details to a Terraform module for network automation.
 
-- `Module Input` - A module input defines objects that provide values or metadata to the Terraform module. See [module input](/consul/docs/nia/terraform-modules#module-input) for the supported metadata and values. For example, a user can configure a Consul KV module input to provide KV pairs as variables to their respective Terraform Module.
+- `Module Input` - A module input defines objects that provide values or metadata to the Terraform module. See [module input](/docs/nia/terraform-modules#module-input) for the supported metadata and values. For example, a user can configure a Consul KV module input to provide KV pairs as variables to their respective Terraform Module.
 
   The module input can be configured in a couple of ways:
   - Setting the `condition` block's `use_as_module_input` field to true
@@ -53,15 +53,15 @@ CTS is available as an open source and enterprise distribution. Follow the [Auto
 
 - `Tasks` - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
 
-- `Terraform Cloud` - Per the [Terraform documentation](/terraform/cloud-docs), "Terraform Cloud" describes both Terraform Cloud and Terraform Enterprise, which are different distributions of the same application. Documentation will apply to both distributions unless specifically stated otherwise.
+- `Terraform Cloud` - Per the [Terraform documentation](https://www.terraform.io/cloud-docs), "Terraform Cloud" describes both Terraform Cloud and Terraform Enterprise, which are different distributions of the same application. Documentation will apply to both distributions unless specifically stated otherwise.
 
-- `Terraform Module` - A [Terraform module](/terraform/language/modules) is a container for multiple Terraform resources that are used together.
+- `Terraform Module` - A [Terraform module](https://www.terraform.io/language/modules) is a container for multiple Terraform resources that are used together.
 
-- `Terraform Provider` - A [Terraform provider](/terraform/language/providers) is responsible for understanding API interactions and exposing resources for an infrastructure type.
+- `Terraform Provider` - A [Terraform provider](https://www.terraform.io/language/providers) is responsible for understanding API interactions and exposing resources for an infrastructure type.
 
 ## Getting Started With Network Infrastructure Automation
 
-The [Network Infrastructure Automation (NIA)](/consul/tutorials/network-infrastructure-automation?utm_source=docs)
+The [Network Infrastructure Automation (NIA)](https://learn.hashicorp.com/collections/consul/network-infrastructure-automation?utm_source=docs)
 collection contains examples on how to configure CTS to
 perform Network Infrastructure Automation. The collection contains also a
 tutorial to secure your CTS configuration for a production
@@ -73,4 +73,4 @@ module.
 - [Contribute](https://github.com/hashicorp/consul-terraform-sync) to the open source project
 - [Report](https://github.com/hashicorp/consul-terraform-sync/issues) bugs or request enhancements
 - [Discuss](https://discuss.hashicorp.com/tags/c/consul/29/consul-terraform-sync) with the community or ask questions
-- [Build integrations](/consul/docs/nia/terraform-modules) for CTS
+- [Build integrations](/docs/nia/terraform-modules) for CTS

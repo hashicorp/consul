@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
@@ -8,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -28,14 +26,14 @@ import (
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
-	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/dns"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -48,20 +46,14 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-type FlagValuesTarget = decodeTarget
-
 // LoadOpts used by Load to construct and validate a RuntimeConfig.
 type LoadOpts struct {
 	// FlagValues contains the command line arguments that can also be set
 	// in a config file.
-	FlagValues FlagValuesTarget
+	FlagValues Config
 
 	// ConfigFiles is a slice of paths to config files and directories that will
 	// be loaded.
-	//
-	// It is an error for any config files to have an extension other than `hcl`
-	// or `json`, unless ConfigFormat is also set. However, non-HCL/JSON files in
-	// a config directory are merely skipped, with a warning.
 	ConfigFiles []string
 
 	// ConfigFormat forces all config files to be interpreted as this format
@@ -177,15 +169,12 @@ func newBuilder(opts LoadOpts) (*builder, error) {
 		b.Head = append(b.Head, DevSource())
 	}
 
-	cfg, warns := applyDeprecatedFlags(&opts.FlagValues)
-	b.Warnings = append(b.Warnings, warns...)
-
 	// Since the merge logic is to overwrite all fields with later
 	// values except slices which are merged by appending later values
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := splitSlicesAndValues(cfg)
+	slices, values := splitSlicesAndValues(opts.FlagValues)
 	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
 	if opts.DefaultConfig != nil {
 		b.Head = append(b.Head, opts.DefaultConfig)
@@ -234,7 +223,8 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 	if !fi.IsDir() {
 		if !shouldParseFile(path, format) {
-			return nil, fmt.Errorf("file %v has unknown extension; must be .hcl or .json, or config format must be set", path)
+			b.warn("skipping file %v, extension must be .hcl or .json, or config format must be set", path)
+			return nil, nil
 		}
 
 		src, err := newSourceFromFile(path, format)
@@ -287,7 +277,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 // newSourceFromFile creates a Source from the contents of the file at path.
 func newSourceFromFile(path string, format string) (Source, error) {
-	data, err := os.ReadFile(path)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
@@ -376,6 +366,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			c2.Services = append(c2.Services, *c2.Service)
 			c2.Service = nil
 		}
+
 		c = Merge(c, c2)
 	}
 
@@ -457,14 +448,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	sidecarMaxPort := b.portVal("ports.sidecar_max_port", c.Ports.SidecarMaxPort)
 	exposeMinPort := b.portVal("ports.expose_min_port", c.Ports.ExposeMinPort)
 	exposeMaxPort := b.portVal("ports.expose_max_port", c.Ports.ExposeMaxPort)
-	if serverPort <= 0 {
-		return RuntimeConfig{}, fmt.Errorf(
-			"server-port must be greater than zero")
-	}
-	if serfPortLAN <= 0 {
-		return RuntimeConfig{}, fmt.Errorf(
-			"serf-lan-port must be greater than zero")
-	}
 	if proxyMaxPort < proxyMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
@@ -684,6 +667,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	connectEnabled := boolVal(c.Connect.Enabled)
 	connectCAProvider := stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
+	serverlessPluginEnabled := boolVal(c.Connect.EnableServerlessPlugin)
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
@@ -828,7 +812,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
 		VersionMetadata:            stringVal(c.VersionMetadata),
-		Experiments:                c.Experiments,
 		// What is a sensible default for BuildDate?
 		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
@@ -844,7 +827,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
 		GossipLANGossipNodes:    intVal(c.GossipLAN.GossipNodes),
-		Locality:                c.Locality,
 		GossipLANProbeInterval:  b.durationVal("gossip_lan..probe_interval", c.GossipLAN.ProbeInterval),
 		GossipLANProbeTimeout:   b.durationVal("gossip_lan..probe_timeout", c.GossipLAN.ProbeTimeout),
 		GossipLANSuspicionMult:  intVal(c.GossipLAN.SuspicionMult),
@@ -875,13 +857,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
-			DataDir:                        dataDir,
-			EnablePersistence:              boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:                stringVal(c.ACL.Tokens.Default),
-			ACLAgentToken:                  stringVal(c.ACL.Tokens.Agent),
-			ACLAgentRecoveryToken:          stringVal(c.ACL.Tokens.AgentRecovery),
-			ACLReplicationToken:            stringVal(c.ACL.Tokens.Replication),
-			ACLConfigFileRegistrationToken: stringVal(c.ACL.Tokens.ConfigFileRegistration),
+			DataDir:               dataDir,
+			EnablePersistence:     boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:       stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:         stringVal(c.ACL.Tokens.Agent),
+			ACLAgentRecoveryToken: stringVal(c.ACL.Tokens.AgentRecovery),
+			ACLReplicationToken:   stringVal(c.ACL.Tokens.Replication),
 		},
 
 		// Autopilot
@@ -966,8 +947,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Bootstrap:                 boolVal(c.Bootstrap),
 		BootstrapExpect:           intVal(c.BootstrapExpect),
 		Cache: cache.Options{
-			EntryFetchRate: limitValWithDefault(
-				c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate),
+			EntryFetchRate: rate.Limit(
+				float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
 			),
 			EntryFetchMaxBurst: intValWithDefault(
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
@@ -984,11 +965,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
-		Cloud:                                  b.cloudConfigVal(c),
+		Cloud:                                  b.cloudConfigVal(c.Cloud),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
+		ConnectServerlessPluginEnabled:         serverlessPluginEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,
 		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
@@ -1063,13 +1045,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:              b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
 		RaftTrailingLogs:                  intVal(c.RaftTrailingLogs),
-		RaftLogStoreConfig:                b.raftLogStoreConfigVal(&c.RaftLogStore),
 		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
-		RequestLimitsMode:                 b.requestsLimitsModeVal(stringVal(c.Limits.RequestLimits.Mode)),
-		RequestLimitsReadRate:             limitVal(c.Limits.RequestLimits.ReadRate),
-		RequestLimitsWriteRate:            limitVal(c.Limits.RequestLimits.WriteRate),
 		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
 		RetryJoinLAN:                      b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
@@ -1090,10 +1068,11 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ServerMode:                        serverMode,
 		ServerName:                        stringVal(c.ServerName),
 		ServerPort:                        serverPort,
-		ServerRejoinAgeMax:                b.durationValWithDefaultMin("server_rejoin_age_max", c.ServerRejoinAgeMax, 24*7*time.Hour, 6*time.Hour),
 		Services:                          services,
 		SessionTTLMin:                     b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:                    skipLeaveOnInt,
+		StartJoinAddrsLAN:                 b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:                 b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		TaggedAddresses:                   c.TaggedAddresses,
 		TranslateWANAddrs:                 boolVal(c.TranslateWANAddrs),
 		TxnMaxReqLen:                      uint64Val(c.Limits.TxnMaxReqLen),
@@ -1102,13 +1081,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		UnixSocketMode:                    stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                    stringVal(c.UnixSocket.User),
 		Watches:                           c.Watches,
-		XDSUpdateRateLimit:                limitVal(c.XDS.UpdateMaxPerSecond),
+		XDSUpdateRateLimit:                rate.Limit(float64Val(c.XDS.UpdateMaxPerSecond)),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
 		LocalProxyConfigResyncInterval:    30 * time.Second,
 	}
-
-	// host metrics are enabled by default if consul is configured with HashiCorp Cloud Platform integration
-	rt.Telemetry.EnableHostMetrics = boolValWithDefault(c.Telemetry.EnableHostMetrics, rt.IsCloudEnabled())
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
 	if err != nil {
@@ -1126,6 +1102,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
+
+	if c.RaftBoltDBConfig != nil {
+		rt.RaftBoltDBConfig = *c.RaftBoltDBConfig
+	}
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
@@ -1290,10 +1270,6 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			"1 and 63 bytes.", rt.NodeName)
 	}
 
-	if err := rt.StructLocality().Validate(); err != nil {
-		return fmt.Errorf("locality is invalid: %s", err)
-	}
-
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
 		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
 	}
@@ -1372,6 +1348,9 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		return fmt.Errorf("'connect.enable_mesh_gateway_wan_federation = true' requires that 'node_name' not contain '/' characters")
 	}
 	if rt.ConnectMeshGatewayWANFederationEnabled {
+		if len(rt.StartJoinAddrsWAN) > 0 {
+			return fmt.Errorf("'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
+		}
 		if len(rt.RetryJoinWAN) > 0 {
 			return fmt.Errorf("'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
 		}
@@ -1400,19 +1379,6 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			return fmt.Errorf("CRITICAL: Deprecated data folder found at %q!\n"+
 				"Consul will refuse to boot with this directory present.\n"+
 				"See https://www.consul.io/docs/upgrade-specific.html for more information.", mdbPath)
-		}
-
-		// Raft LogStore validation
-		if rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendBoltDB &&
-			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL {
-			return fmt.Errorf("raft_logstore.backend must be one of '%s' or '%s'",
-				consul.LogStoreBackendBoltDB, consul.LogStoreBackendWAL)
-		}
-		if rt.RaftLogStoreConfig.WAL.SegmentSize < 1024*1024 {
-			return fmt.Errorf("raft_logstore.wal.segment_size_mb cannot be less than 1MB")
-		}
-		if rt.RaftLogStoreConfig.WAL.SegmentSize > 1024*1024*1024 {
-			return fmt.Errorf("raft_logstore.wal.segment_size_mb cannot be greater than 1024 (1GiB)")
 		}
 	}
 
@@ -1473,7 +1439,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 				return err
 			}
 		case structs.VaultCAProvider:
-			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig, rt.PrimaryDatacenter == rt.Datacenter); err != nil {
+			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
 				return err
 			}
 		case structs.AWSCAProvider:
@@ -1736,8 +1702,6 @@ func (b *builder) serviceKindVal(v *string) structs.ServiceKind {
 		return structs.ServiceKindTerminatingGateway
 	case string(structs.ServiceKindIngressGateway):
 		return structs.ServiceKindIngressGateway
-	case string(structs.ServiceKindAPIGateway):
-		return structs.ServiceKindAPIGateway
 	default:
 		return structs.ServiceKindTypical
 	}
@@ -1815,19 +1779,6 @@ func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
 	default:
 		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
 	}
-	return out
-}
-
-func (b *builder) requestsLimitsModeVal(v string) consulrate.Mode {
-	var out consulrate.Mode
-
-	mode, ok := consulrate.RequestLimitsModeFromName(v)
-	if !ok {
-		b.err = multierror.Append(b.err, fmt.Errorf("limits.request_limits.mode: invalid mode: %q", v))
-	} else {
-		out = mode
-	}
-
 	return out
 }
 
@@ -1960,16 +1911,6 @@ func (b *builder) durationValWithDefault(name string, v *string, defaultVal time
 	return d
 }
 
-// durationValWithDefaultMin is equivalent to durationValWithDefault, but enforces a minimum duration.
-func (b *builder) durationValWithDefaultMin(name string, v *string, defaultVal, minVal time.Duration) (d time.Duration) {
-	d = b.durationValWithDefault(name, v, defaultVal)
-	if d < minVal {
-		b.err = multierror.Append(b.err, fmt.Errorf("%s: duration '%s' cannot be less than: %s", name, *v, minVal))
-	}
-
-	return d
-}
-
 func (b *builder) durationVal(name string, v *string) (d time.Duration) {
 	return b.durationValWithDefault(name, v, 0)
 }
@@ -2061,13 +2002,7 @@ func limitVal(v *float64) rate.Limit {
 	if f < 0 {
 		return rate.Inf
 	}
-
 	return rate.Limit(f)
-}
-
-func limitValWithDefault(v *float64, defaultVal float64) rate.Limit {
-	f := float64ValWithDefault(v, defaultVal)
-	return limitVal(&f)
 }
 
 func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
@@ -2545,26 +2480,21 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	return nil
 }
 
-func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
+func (b *builder) cloudConfigVal(v *CloudConfigRaw) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
 		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
 	}
-	// Node id might get overriden in setup.go:142
-	nodeID := stringVal(v.NodeID)
-	val.NodeID = types.NodeID(nodeID)
-	val.NodeName = b.nodeName(v.NodeName)
-
-	if v.Cloud == nil {
+	if v == nil {
 		return val
 	}
 
-	val.ClientID = stringVal(v.Cloud.ClientID)
-	val.ClientSecret = stringVal(v.Cloud.ClientSecret)
-	val.AuthURL = stringVal(v.Cloud.AuthURL)
-	val.Hostname = stringVal(v.Cloud.Hostname)
-	val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
+	val.ClientID = stringVal(v.ClientID)
+	val.ClientSecret = stringVal(v.ClientSecret)
+	val.AuthURL = stringVal(v.AuthURL)
+	val.Hostname = stringVal(v.Hostname)
+	val.ScadaAddress = stringVal(v.ScadaAddress)
 
-	if resourceID := stringVal(v.Cloud.ResourceID); resourceID != "" {
+	if resourceID := stringVal(v.ResourceID); resourceID != "" {
 		val.ResourceID = resourceID
 	}
 	return val
@@ -2763,20 +2693,4 @@ func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
 	}
 
 	return telemetryAllowedPrefixes, telemetryBlockedPrefixes
-}
-
-func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStoreConfig {
-	var cfg consul.RaftLogStoreConfig
-	if raw != nil {
-		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendBoltDB)
-		cfg.DisableLogCache = boolVal(raw.DisableLogCache)
-
-		cfg.Verification.Enabled = boolVal(raw.Verification.Enabled)
-		cfg.Verification.Interval = b.durationVal("raft_logstore.verification.interval", raw.Verification.Interval)
-
-		cfg.BoltDB.NoFreelistSync = boolVal(raw.BoltDBConfig.NoFreelistSync)
-
-		cfg.WAL.SegmentSize = intVal(raw.WALConfig.SegmentSizeMB) * 1024 * 1024
-	}
-	return cfg
 }

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
@@ -10,12 +7,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -153,7 +148,7 @@ type configSnapshotConnectProxy struct {
 	// NOTE: Intentions stores a list of lists as returned by the Intentions
 	// Match RPC. So far we only use the first list as the list of matching
 	// intentions.
-	Intentions    structs.SimplifiedIntentions
+	Intentions    structs.Intentions
 	IntentionsSet bool
 
 	DestinationsUpstream watch.Map[UpstreamID, *structs.ServiceConfigEntry]
@@ -230,7 +225,7 @@ type configSnapshotTerminatingGateway struct {
 	//
 	// A key being present implies that we have gotten at least one watch reply for the
 	// service. This is logically the same as ConnectProxy.IntentionsSet==true
-	Intentions map[structs.ServiceName]structs.SimplifiedIntentions
+	Intentions map[structs.ServiceName]structs.Intentions
 
 	// WatchedLeaves is a map of ServiceName to a cancel function.
 	// This cancel function is tied to the watch of leaf certs for linked services.
@@ -644,186 +639,6 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 		!c.PeeringTrustBundlesSet
 }
 
-type upstreamIDSet map[UpstreamID]struct{}
-
-func (u upstreamIDSet) add(uid UpstreamID) {
-	u[uid] = struct{}{}
-}
-
-type routeUpstreamSet map[structs.ResourceReference]upstreamIDSet
-
-func (r routeUpstreamSet) hasUpstream(uid UpstreamID) bool {
-	for _, set := range r {
-		if _, ok := set[uid]; ok {
-			return true
-		}
-	}
-	return false
-}
-
-func (r routeUpstreamSet) set(route structs.ResourceReference, set upstreamIDSet) {
-	r[route] = set
-}
-
-func (r routeUpstreamSet) delete(route structs.ResourceReference) {
-	delete(r, route)
-}
-
-type (
-	listenerUpstreamMap    map[APIGatewayListenerKey]structs.Upstreams
-	listenerRouteUpstreams map[structs.ResourceReference]listenerUpstreamMap
-)
-
-func (l listenerRouteUpstreams) set(route structs.ResourceReference, listener APIGatewayListenerKey, upstreams structs.Upstreams) {
-	if _, ok := l[route]; !ok {
-		l[route] = make(listenerUpstreamMap)
-	}
-	l[route][listener] = upstreams
-}
-
-func (l listenerRouteUpstreams) delete(route structs.ResourceReference) {
-	delete(l, route)
-}
-
-func (l listenerRouteUpstreams) toUpstreams() map[IngressListenerKey]structs.Upstreams {
-	listeners := make(map[IngressListenerKey]structs.Upstreams, len(l))
-	for _, listenerMap := range l {
-		for listener, set := range listenerMap {
-			listeners[listener] = append(listeners[listener], set...)
-		}
-	}
-	return listeners
-}
-
-type configSnapshotAPIGateway struct {
-	ConfigSnapshotUpstreams
-
-	TLSConfig structs.GatewayTLSConfig
-
-	// GatewayConfigLoaded is used to determine if we have received the initial
-	// api-gateway config entry yet.
-	GatewayConfigLoaded bool
-	GatewayConfig       *structs.APIGatewayConfigEntry
-
-	// BoundGatewayConfigLoaded is used to determine if we have received the initial
-	// bound-api-gateway config entry yet.
-	BoundGatewayConfigLoaded bool
-	BoundGatewayConfig       *structs.BoundAPIGatewayConfigEntry
-
-	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
-	// leaf cert watch with different parameters.
-	// LeafCertWatchCancel context.CancelFunc
-
-	// Upstreams is a list of upstreams this ingress gateway should serve traffic
-	// to. This is constructed from the ingress-gateway config entry, and uses
-	// the GatewayServices RPC to retrieve them.
-	// TODO Determine if this is updated "for free" or not. If not, we might need
-	//   to do some work to populate it in handlerAPIGateway
-	Upstreams listenerRouteUpstreams
-
-	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
-	UpstreamsSet routeUpstreamSet
-
-	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
-	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
-	Certificates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
-
-	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
-	// leaf cert watch with different parameters.
-	LeafCertWatchCancel context.CancelFunc
-
-	// Listeners is the original listener config from the api-gateway config
-	// entry to save us trying to pass fields through Upstreams
-	Listeners map[string]structs.APIGatewayListener
-
-	BoundListeners map[string]structs.BoundAPIGatewayListener
-}
-
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
-	chains := []*structs.CompiledDiscoveryChain{}
-
-	// We leverage the test trust domain knowing
-	// that the domain will get overridden if
-	// there is a target to something other than an
-	// external/peered service. If the below
-	// code doesn't get a trust domain due to all the
-	// targets being external, the chain will
-	// have the domain munged anyway during synthesis.
-	trustDomain := connect.TestTrustDomain
-
-DOMAIN_LOOP:
-	for _, chain := range c.DiscoveryChain {
-		for _, target := range chain.Targets {
-			if !target.External {
-				domain := connect.TrustDomainForTarget(*target)
-				if domain != "" {
-					trustDomain = domain
-					break DOMAIN_LOOP
-				}
-			}
-		}
-	}
-
-	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, listener.Name, c.GatewayConfig)
-	synthesizer.SetHostname(listener.GetHostname())
-	for _, routeRef := range boundListener.Routes {
-		switch routeRef.Kind {
-		case structs.HTTPRoute:
-			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok || listener.Protocol != structs.ListenerProtocolHTTP {
-				continue
-			}
-			synthesizer.AddHTTPRoute(*route)
-			for _, service := range route.GetServices() {
-				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
-				if chain := c.DiscoveryChain[id]; chain != nil {
-					chains = append(chains, chain)
-				}
-			}
-		case structs.TCPRoute:
-			route, ok := c.TCPRoutes.Get(routeRef)
-			if !ok || listener.Protocol != structs.ListenerProtocolTCP {
-				continue
-			}
-			synthesizer.AddTCPRoute(*route)
-			for _, service := range route.GetServices() {
-				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
-				if chain := c.DiscoveryChain[id]; chain != nil {
-					chains = append(chains, chain)
-				}
-			}
-		default:
-			return nil, nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
-		}
-	}
-
-	if len(chains) == 0 {
-		return nil, nil, nil, nil
-	}
-
-	services, compiled, err := synthesizer.Synthesize(chains...)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// reconstruct the upstreams
-	upstreams := make([]structs.Upstream, 0, len(services))
-	for _, service := range services {
-		upstreams = append(upstreams, structs.Upstream{
-			DestinationName:      service.Name,
-			DestinationNamespace: service.NamespaceOrDefault(),
-			DestinationPartition: service.PartitionOrDefault(),
-			IngressHosts:         service.Hosts,
-			LocalBindPort:        listener.Port,
-			Config: map[string]interface{}{
-				"protocol": string(listener.Protocol),
-			},
-		})
-	}
-
-	return services, upstreams, compiled, err
-}
-
 type configSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
 
@@ -872,10 +687,16 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 		!c.MeshConfigSet
 }
 
-type APIGatewayListenerKey = IngressListenerKey
+// valid tests for two valid ingress snapshot states:
+//  1. waiting: the watch on ingress config entries is set, but none were received
+//  2. loaded: both the ingress config entry AND the leaf cert are set
+func (c *configSnapshotIngressGateway) valid() bool {
+	waiting := c.GatewayConfigLoaded && len(c.Upstreams) == 0 && c.Leaf == nil
 
-func APIGatewayListenerKeyFromListener(l structs.APIGatewayListener) APIGatewayListenerKey {
-	return APIGatewayListenerKey{Protocol: string(l.Protocol), Port: l.Port}
+	// If we have a leaf, it implies we successfully watched parent resources
+	loaded := c.GatewayConfigLoaded && c.Leaf != nil
+
+	return waiting || loaded
 }
 
 type IngressListenerKey struct {
@@ -901,7 +722,6 @@ func IngressListenerKeyFromListener(l structs.IngressListener) IngressListenerKe
 type ConfigSnapshot struct {
 	Kind                  structs.ServiceKind
 	Service               string
-	ServiceLocality       *structs.Locality
 	ProxyID               ProxyID
 	Address               string
 	Port                  int
@@ -911,7 +731,6 @@ type ConfigSnapshot struct {
 	Datacenter            string
 	IntentionDefaultAllow bool
 	Locality              GatewayKey
-	JWTProviders          map[string]*structs.JWTProviderConfigEntry
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots
@@ -927,9 +746,6 @@ type ConfigSnapshot struct {
 
 	// ingress-gateway specific
 	IngressGateway configSnapshotIngressGateway
-
-	// api-gateway specific
-	APIGateway configSnapshotAPIGateway
 }
 
 // Valid returns whether or not the snapshot has all required fields filled yet.
@@ -965,18 +781,9 @@ func (s *ConfigSnapshot) Valid() bool {
 
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
-			s.IngressGateway.Leaf != nil &&
-			s.IngressGateway.GatewayConfigLoaded &&
+			s.IngressGateway.valid() &&
 			s.IngressGateway.HostsSet &&
 			s.IngressGateway.MeshConfigSet
-
-	case structs.ServiceKindAPIGateway:
-		// TODO Is this the proper set of things to validate?
-		return s.Roots != nil &&
-			s.APIGateway.Leaf != nil &&
-			s.APIGateway.GatewayConfigLoaded &&
-			s.APIGateway.BoundGatewayConfigLoaded &&
-			s.APIGateway.MeshConfigSet
 	default:
 		return false
 	}
@@ -1010,15 +817,6 @@ func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 		snap.IngressGateway.WatchedDiscoveryChains = nil
 		// only ingress-gateway
 		snap.IngressGateway.LeafCertWatchCancel = nil
-	case structs.ServiceKindAPIGateway:
-		// common with connect-proxy and api-gateway
-		snap.APIGateway.WatchedUpstreams = nil
-		snap.APIGateway.WatchedGateways = nil
-		snap.APIGateway.WatchedDiscoveryChains = nil
-
-		// only api-gateway
-		// snap.APIGateway.LeafCertWatchCancel = nil
-		// snap.APIGateway.
 	}
 
 	return snap
@@ -1030,8 +828,6 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 		return s.ConnectProxy.Leaf
 	case structs.ServiceKindIngressGateway:
 		return s.IngressGateway.Leaf
-	case structs.ServiceKindAPIGateway:
-		return s.APIGateway.Leaf
 	case structs.ServiceKindMeshGateway:
 		return s.MeshGateway.Leaf
 	default:
@@ -1065,8 +861,6 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 		return s.ConnectProxy.MeshConfig
 	case structs.ServiceKindIngressGateway:
 		return s.IngressGateway.MeshConfig
-	case structs.ServiceKindAPIGateway:
-		return s.APIGateway.MeshConfig
 	case structs.ServiceKindTerminatingGateway:
 		return s.TerminatingGateway.MeshConfig
 	case structs.ServiceKindMeshGateway:
@@ -1098,8 +892,6 @@ func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, 
 		return &s.ConnectProxy.ConfigSnapshotUpstreams, nil
 	case structs.ServiceKindIngressGateway:
 		return &s.IngressGateway.ConfigSnapshotUpstreams, nil
-	case structs.ServiceKindAPIGateway:
-		return &s.APIGateway.ConfigSnapshotUpstreams, nil
 	default:
 		// This is a coherence check and should never fail
 		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)

@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 
 readonly PACKAGE_DIR="$(dirname "${BASH_SOURCE[0]}")"
 cd $PACKAGE_DIR
@@ -10,8 +7,6 @@ cd $PACKAGE_DIR
 deep-copy \
   -pointer-receiver \
   -o ./structs.deepcopy.go \
-  -type APIGatewayListener \
-  -type BoundAPIGatewayListener \
   -type CARoot \
   -type CheckServiceNode \
   -type CheckType \
@@ -23,16 +18,13 @@ deep-copy \
   -type DiscoveryRoute \
   -type DiscoverySplit \
   -type ExposeConfig \
-  -type ExportedServicesConfigEntry \
   -type GatewayService \
   -type GatewayServiceTLSConfig \
   -type HTTPHeaderModifiers \
-  -type HTTPRouteConfigEntry \
   -type HashPolicy \
   -type HealthCheck \
   -type IndexedCARoots \
   -type IngressListener \
-  -type InlineCertificateConfigEntry \
   -type Intention \
   -type IntentionPermission \
   -type LoadBalancer \
@@ -51,9 +43,6 @@ deep-copy \
   -type ServiceRoute \
   -type ServiceRouteDestination \
   -type ServiceRouteMatch \
-  -type TCPRouteConfigEntry \
   -type Upstream \
   -type UpstreamConfiguration \
-  -type Status \
-  -type BoundAPIGatewayConfigEntry \
   ./

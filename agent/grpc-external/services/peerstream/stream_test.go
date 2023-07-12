@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peerstream
 
 import (
@@ -14,13 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -32,12 +29,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
-	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/proto/private/pbstatus"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/pbstatus"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -572,7 +569,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	})
 
 	var lastSendAck time.Time
-	var lastSendSuccess *time.Time
+	var lastSendSuccess time.Time
 
 	client.DrainStream(t)
 
@@ -607,7 +604,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:        true,
 			LastSendSuccess:  lastSendSuccess,
-			LastAck:          &lastSendAck,
+			LastAck:          lastSendAck,
 			ExportedServices: []string{},
 		}
 		retry.Run(t, func(r *retry.R) {
@@ -644,8 +641,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:        true,
 			LastSendSuccess:  lastSendSuccess,
-			LastAck:          &lastSendAck,
-			LastNack:         &lastNack,
+			LastAck:          lastSendAck,
+			LastNack:         lastNack,
 			LastNackMessage:  lastNackMsg,
 			ExportedServices: []string{},
 		}
@@ -696,10 +693,10 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 &lastSendAck,
-			LastNack:                &lastNack,
+			LastAck:                 lastSendAck,
+			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvResourceSuccess: lastRecvResourceSuccess,
 			ExportedServices:        []string{},
 		}
 
@@ -752,11 +749,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 &lastSendAck,
-			LastNack:                &lastNack,
+			LastAck:                 lastSendAck,
+			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: &lastRecvResourceSuccess,
-			LastRecvError:           &lastRecvError,
+			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvError:           lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
 			ExportedServices:        []string{},
 		}
@@ -782,13 +779,13 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 &lastSendAck,
-			LastNack:                &lastNack,
+			LastAck:                 lastSendAck,
+			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: &lastRecvResourceSuccess,
-			LastRecvError:           &lastRecvError,
+			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvError:           lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
-			LastRecvHeartbeat:       &lastRecvHeartbeat,
+			LastRecvHeartbeat:       lastRecvHeartbeat,
 			ExportedServices:        []string{},
 		}
 
@@ -810,14 +807,14 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			Connected:               false,
 			DisconnectErrorMessage:  lastRecvErrorMsg,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 &lastSendAck,
-			LastNack:                &lastNack,
+			LastAck:                 lastSendAck,
+			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
-			DisconnectTime:          &disconnectTime,
-			LastRecvResourceSuccess: &lastRecvResourceSuccess,
-			LastRecvError:           &lastRecvError,
+			DisconnectTime:          disconnectTime,
+			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvError:           lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
-			LastRecvHeartbeat:       &lastRecvHeartbeat,
+			LastRecvHeartbeat:       lastRecvHeartbeat,
 			ExportedServices:        []string{},
 		}
 
@@ -1256,7 +1253,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			disconnectTime := ptr(it.StaticNow())
+			disconnectTime := it.StaticNow()
 			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.False(r, status.Connected)
@@ -1426,7 +1423,7 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 		},
 	}))
 
-	// Receive ExportedService, ExportedServiceList, and PeeringTrustBundle subscription requests from server
+	// Receive a services and roots subscription request pair from server
 	receivedSub1, err := client.Recv()
 	require.NoError(t, err)
 	receivedSub2, err := client.Recv()

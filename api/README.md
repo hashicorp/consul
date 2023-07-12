@@ -1,36 +1,30 @@
-# Consul API Client
+Consul API client
+=================
 
-This package provides the `api` package which provides programmatic access to the full Consul API.
+This package provides the `api` package which attempts to
+provide programmatic access to the full Consul API.
 
-The full documentation is available on [Godoc](https://godoc.org/github.com/hashicorp/consul/api).
+Currently, all of the Consul APIs included in version 0.6.0 are supported.
 
-## Usage
+Documentation
+=============
 
-Below is an example of using the Consul client. To run the example, you must first
-[install Consul](https://developer.hashicorp.com/consul/downloads) and 
-[Go](https://go.dev/doc/install).
+The full documentation is available on [Godoc](https://godoc.org/github.com/hashicorp/consul/api)
 
-To run the client API, create a new Go module.
+Usage
+=====
 
-```shell
-go mod init consul-demo
-```
-
-Copy the example code into a file called `main.go` in the directory where the module is defined.
-As seen in the example, the Consul API is often imported with the alias `capi`.
+Below is an example of using the Consul client:
 
 ```go
 package main
 
-import (
-	"fmt"
-
-	capi "github.com/hashicorp/consul/api"
-)
+import "github.com/hashicorp/consul/api"
+import "fmt"
 
 func main() {
 	// Get a new client
-	client, err := capi.NewClient(capi.DefaultConfig())
+	client, err := api.NewClient(api.DefaultConfig())
 	if err != nil {
 		panic(err)
 	}
@@ -39,7 +33,7 @@ func main() {
 	kv := client.KV()
 
 	// PUT a new KV pair
-	p := &capi.KVPair{Key: "REDIS_MAXCLIENTS", Value: []byte("1000")}
+	p := &api.KVPair{Key: "REDIS_MAXCLIENTS", Value: []byte("1000")}
 	_, err = kv.Put(p, nil)
 	if err != nil {
 		panic(err)
@@ -54,23 +48,19 @@ func main() {
 }
 ```
 
-Install the Consul API dependency with `go mod tidy`.
+To run this example, start a Consul server:
 
-In a separate terminal window, start a local Consul server.
-
-```shell
-consul agent -dev -node machine
+```bash
+consul agent -dev
 ```
 
-Run the example.
+Copy the code above into a file such as `main.go`.
 
-```shell
-go run .
-```
+Install and run. You'll see a key (`REDIS_MAXCLIENTS`) and value (`1000`) printed.
 
-You should get the following result printed to the terminal.
-
-```shell
+```bash
+$ go get
+$ go run main.go
 KV: REDIS_MAXCLIENTS 1000
 ```
 

@@ -1,11 +1,22 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package acl
 
 import (
+	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
+
+	"github.com/hashicorp/hcl"
+	"github.com/hashicorp/hcl/hcl/ast"
+	hclprinter "github.com/hashicorp/hcl/hcl/printer"
+	"github.com/hashicorp/hcl/hcl/token"
+)
+
+type SyntaxVersion int
+
+const (
+	SyntaxCurrent SyntaxVersion = iota
+	SyntaxLegacy
 )
 
 const (
@@ -286,7 +297,7 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 	return nil
 }
 
-func parse(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
+func parseCurrent(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
 	p, err := decodeRules(rules, conf, meta)
 	if err != nil {
 		return nil, err
@@ -303,10 +314,126 @@ func parse(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Policy, err
 	return p, nil
 }
 
+// TODO(ACL-Legacy-Compat): remove in phase 2
+func parseLegacy(rules string, conf *Config) (*Policy, error) {
+	p := &Policy{}
+
+	type LegacyPolicy struct {
+		Agents          []*AgentRule         `hcl:"agent,expand"`
+		Keys            []*KeyRule           `hcl:"key,expand"`
+		Nodes           []*NodeRule          `hcl:"node,expand"`
+		Services        []*ServiceRule       `hcl:"service,expand"`
+		Sessions        []*SessionRule       `hcl:"session,expand"`
+		Events          []*EventRule         `hcl:"event,expand"`
+		PreparedQueries []*PreparedQueryRule `hcl:"query,expand"`
+		Keyring         string               `hcl:"keyring"`
+		Operator        string               `hcl:"operator"`
+		// NOTE: mesh resources not supported here
+	}
+
+	lp := &LegacyPolicy{}
+
+	if err := hcl.Decode(lp, rules); err != nil {
+		return nil, fmt.Errorf("Failed to parse ACL rules: %v", err)
+	}
+
+	// Validate the agent policy
+	for _, ap := range lp.Agents {
+		if !isPolicyValid(ap.Policy, false) {
+			return nil, fmt.Errorf("Invalid agent policy: %#v", ap)
+		}
+
+		p.AgentPrefixes = append(p.AgentPrefixes, ap)
+	}
+
+	// Validate the key policy
+	for _, kp := range lp.Keys {
+		if !isPolicyValid(kp.Policy, true) {
+			return nil, fmt.Errorf("Invalid key policy: %#v", kp)
+		}
+
+		if err := kp.EnterpriseRule.Validate(kp.Policy, conf); err != nil {
+			return nil, fmt.Errorf("Invalid key enterprise policy: %#v, got error: %v", kp, err)
+		}
+
+		p.KeyPrefixes = append(p.KeyPrefixes, kp)
+	}
+
+	// Validate the node policies
+	for _, np := range lp.Nodes {
+		if !isPolicyValid(np.Policy, false) {
+			return nil, fmt.Errorf("Invalid node policy: %#v", np)
+		}
+		if err := np.EnterpriseRule.Validate(np.Policy, conf); err != nil {
+			return nil, fmt.Errorf("Invalid node enterprise policy: %#v, got error: %v", np, err)
+		}
+
+		p.NodePrefixes = append(p.NodePrefixes, np)
+	}
+
+	// Validate the service policies
+	for _, sp := range lp.Services {
+		if !isPolicyValid(sp.Policy, false) {
+			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
+		}
+		if sp.Intentions != "" && !isPolicyValid(sp.Intentions, false) {
+			return nil, fmt.Errorf("Invalid service intentions policy: %#v", sp)
+		}
+		if err := sp.EnterpriseRule.Validate(sp.Policy, conf); err != nil {
+			return nil, fmt.Errorf("Invalid service enterprise policy: %#v, got error: %v", sp, err)
+		}
+
+		p.ServicePrefixes = append(p.ServicePrefixes, sp)
+	}
+
+	// Validate the session policies
+	for _, sp := range lp.Sessions {
+		if !isPolicyValid(sp.Policy, false) {
+			return nil, fmt.Errorf("Invalid session policy: %#v", sp)
+		}
+
+		p.SessionPrefixes = append(p.SessionPrefixes, sp)
+	}
+
+	// Validate the user event policies
+	for _, ep := range lp.Events {
+		if !isPolicyValid(ep.Policy, false) {
+			return nil, fmt.Errorf("Invalid event policy: %#v", ep)
+		}
+
+		p.EventPrefixes = append(p.EventPrefixes, ep)
+	}
+
+	// Validate the prepared query policies
+	for _, pq := range lp.PreparedQueries {
+		if !isPolicyValid(pq.Policy, false) {
+			return nil, fmt.Errorf("Invalid query policy: %#v", pq)
+		}
+
+		p.PreparedQueryPrefixes = append(p.PreparedQueryPrefixes, pq)
+	}
+
+	// Validate the keyring policy - this one is allowed to be empty
+	if lp.Keyring != "" && !isPolicyValid(lp.Keyring, false) {
+		return nil, fmt.Errorf("Invalid keyring policy: %#v", lp.Keyring)
+	} else {
+		p.Keyring = lp.Keyring
+	}
+
+	// Validate the operator policy - this one is allowed to be empty
+	if lp.Operator != "" && !isPolicyValid(lp.Operator, false) {
+		return nil, fmt.Errorf("Invalid operator policy: %#v", lp.Operator)
+	} else {
+		p.Operator = lp.Operator
+	}
+
+	return p, nil
+}
+
 // NewPolicyFromSource is used to parse the specified ACL rules into an
 // intermediary set of policies, before being compiled into
 // the ACL
-func NewPolicyFromSource(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
+func NewPolicyFromSource(rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
 	if rules == "" {
 		// Hot path for empty source
 		return &Policy{}, nil
@@ -314,7 +441,15 @@ func NewPolicyFromSource(rules string, conf *Config, meta *EnterprisePolicyMeta)
 
 	var policy *Policy
 	var err error
-	policy, err = parse(rules, conf, meta)
+	switch syntax {
+	// TODO(ACL-Legacy-Compat): remove and remove as argument from function
+	case SyntaxLegacy:
+		policy, err = parseLegacy(rules, conf)
+	case SyntaxCurrent:
+		policy, err = parseCurrent(rules, conf, meta)
+	default:
+		return nil, fmt.Errorf("Invalid rules version: %d", syntax)
+	}
 	return policy, err
 }
 
@@ -346,4 +481,57 @@ func takesPrecedenceOver(a, b string) bool {
 	}
 
 	return false
+}
+
+func TranslateLegacyRules(policyBytes []byte) ([]byte, error) {
+	parsed, err := hcl.ParseBytes(policyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse rules: %v", err)
+	}
+
+	rewritten := ast.Walk(parsed, func(node ast.Node) (ast.Node, bool) {
+		switch n := node.(type) {
+		case *ast.ObjectItem:
+			if len(n.Keys) < 1 {
+				return node, true
+			}
+
+			txt := n.Keys[0].Token.Text
+			if n.Keys[0].Token.Type == token.STRING {
+				txt, err = strconv.Unquote(txt)
+				if err != nil {
+					return node, true
+				}
+			}
+
+			switch txt {
+			case "policy":
+				n.Keys[0].Token.Text = "policy"
+			case "agent":
+				n.Keys[0].Token.Text = "agent_prefix"
+			case "key":
+				n.Keys[0].Token.Text = "key_prefix"
+			case "node":
+				n.Keys[0].Token.Text = "node_prefix"
+			case "query":
+				n.Keys[0].Token.Text = "query_prefix"
+			case "service":
+				n.Keys[0].Token.Text = "service_prefix"
+			case "session":
+				n.Keys[0].Token.Text = "session_prefix"
+			case "event":
+				n.Keys[0].Token.Text = "event_prefix"
+			}
+		}
+
+		return node, true
+	})
+
+	buffer := new(bytes.Buffer)
+
+	if err := hclprinter.Fprint(buffer, rewritten); err != nil {
+		return nil, fmt.Errorf("Failed to output new rules: %v", err)
+	}
+
+	return buffer.Bytes(), nil
 }

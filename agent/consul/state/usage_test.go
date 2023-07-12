@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -179,25 +176,16 @@ func TestStateStore_Usage_ServiceUsage(t *testing.T) {
 	testRegisterConnectNativeService(t, s, 13, "node1", "service-native")
 	testRegisterConnectNativeService(t, s, 14, "node2", "service-native")
 	testRegisterConnectNativeService(t, s, 15, "node2", "service-native-1")
-	testRegisterIngressService(t, s, 16, "node1", "ingress")
-	testRegisterMeshService(t, s, 17, "node1", "mesh")
-	testRegisterTerminatingService(t, s, 18, "node1", "terminating")
-	testRegisterAPIService(t, s, 19, "node1", "api")
-	testRegisterAPIService(t, s, 20, "node2", "api")
 
 	ws := memdb.NewWatchSet()
 	idx, usage, err := s.ServiceUsage(ws)
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(20))
-	require.Equal(t, 9, usage.Services)
-	require.Equal(t, 13, usage.ServiceInstances)
+	require.Equal(t, idx, uint64(15))
+	require.Equal(t, 5, usage.Services)
+	require.Equal(t, 8, usage.ServiceInstances)
 	require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 	require.Equal(t, 3, usage.ConnectServiceInstances[connectNativeInstancesTable])
 	require.Equal(t, 6, usage.BillableServiceInstances)
-	require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindAPIGateway)])
-	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindIngressGateway)])
-	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindTerminatingGateway)])
-	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindMeshGateway)])
 
 	testRegisterSidecarProxy(t, s, 16, "node2", "service2")
 

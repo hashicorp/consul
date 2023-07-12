@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { get } from '@ember/object';
 import { EmberChangeset as Changeset } from 'ember-changeset';
 const CHANGES = '_changes';

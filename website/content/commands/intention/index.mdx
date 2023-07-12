@@ -1,27 +1,26 @@
 ---
 layout: commands
 page_title: 'Commands: Intention'
-description: >-
-  The `consul intention` command interacts with service intentions to secure service mesh traffic. It exposes top-level commands for interacting with intentions. It was deprecated in Consul v1.9.0. To interact with intentions, use `consul config` instead.
 ---
 
 # Consul Intention
 
 Command: `consul intention`
 
-The `intention` command is used to interact with service mesh
-[intentions](/consul/docs/connect/intentions). It exposes commands for
+The `intention` command is used to interact with Connect
+[intentions](/docs/connect/intentions). It exposes commands for
 creating, updating, reading, deleting, checking, and managing intentions.
 This command is available in Consul 1.2 and later.
 
-Use the 
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) configuration entry or the [HTTP
-API](/consul/api-docs/connect/intentions) to manage intentions.
+Intentions are managed primarily via
+[`service-intentions`](/docs/connect/config-entries/service-intentions) config
+entries after Consul 1.9. Intentions may also be managed via the [HTTP
+API](/api-docs/connect/intentions).
 
 ~> **Deprecated** - This command is deprecated in Consul 1.9.0 in favor of
-using the [config entry CLI command](/consul/commands/config/write). To create an
+using the [config entry CLI command](/commands/config/write). To create an
 intention, create or modify a
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/docs/connect/config-entries/service-intentions) config
 entry for the destination.
 
 ## Usage

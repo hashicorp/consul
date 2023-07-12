@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package discover
 
 import (
@@ -9,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/config"
 )
 
@@ -32,7 +29,7 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 		return nil, err
 	}
 
-	client, err := hcpclient.NewClient(cfg.CloudConfig)
+	client, err := hcp.NewClient(cfg.CloudConfig)
 	if err != nil {
 		return nil, err
 	}

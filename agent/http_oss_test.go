@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -191,6 +188,7 @@ func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
 			req, _ := http.NewRequest(method, uri, nil)
 			req.RemoteAddr = "192.168.1.2:5555"
 			resp := httptest.NewRecorder()
+
 			a.enableDebug.Store(true)
 
 			a.srv.handler().ServeHTTP(resp, req)

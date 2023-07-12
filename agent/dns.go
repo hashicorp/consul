@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -424,7 +421,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// TODO: Replace ListNodes with an internal RPC that can do the filter
 	// server side to avoid transferring the entire node list.
-	if err := d.agent.RPC(context.Background(), "Catalog.ListNodes", &args, &out); err == nil {
+	if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err == nil {
 		for _, n := range out.Nodes {
 			lookup := serviceLookup{
 				// Peering PTR lookups are currently not supported, so we don't
@@ -460,7 +457,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		}
 
 		var sout structs.IndexedServiceNodes
-		if err := d.agent.RPC(context.Background(), "Catalog.ServiceNodes", &sargs, &sout); err == nil {
+		if err := d.agent.RPC("Catalog.ServiceNodes", &sargs, &sout); err == nil {
 			for _, n := range sout.ServiceNodes {
 				if n.ServiceAddress == serviceAddress {
 					ptr := &dns.PTR{
@@ -776,63 +773,54 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		localities, err := d.parseSamenessGroupLocality(cfg, querySuffixes, invalid)
-		if err != nil {
-			return err
+		locality, ok := d.parseLocality(querySuffixes, cfg)
+		if !ok {
+			return invalid()
 		}
 
-		// Loop over the localities and return as soon as a lookup is successful
-		for _, locality := range localities {
-			d.logger.Debug("labels", "querySuffixes", querySuffixes)
-
-			lookup := serviceLookup{
-				Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
-				PeerName:          locality.peer,
-				Connect:           false,
-				Ingress:           false,
-				MaxRecursionLevel: maxRecursionLevel,
-				EnterpriseMeta:    locality.EnterpriseMeta,
-			}
-			// Only one of dc or peer can be used.
-			if lookup.PeerName != "" {
-				lookup.Datacenter = ""
-			}
-
-			// Support RFC 2782 style syntax
-			if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
-				// Grab the tag since we make nuke it if it's tcp
-				tag := queryParts[1][1:]
-
-				// Treat _name._tcp.service.consul as a default, no need to filter on that tag
-				if tag == "tcp" {
-					tag = ""
-				}
-
-				lookup.Tag = tag
-				lookup.Service = queryParts[0][1:]
-				// _name._tag.service.consul
-			} else {
-				// Consul 0.3 and prior format for SRV queries
-				// Support "." in the label, re-join all the parts
-				tag := ""
-				if n >= 2 {
-					tag = strings.Join(queryParts[:n-1], ".")
-				}
-
-				lookup.Tag = tag
-				lookup.Service = queryParts[n-1]
-				// tag[.tag].name.service.consul
-			}
-
-			err = d.serviceLookup(cfg, lookup, req, resp)
-			// Return if we are error free right away, otherwise loop again if we can
-			if err == nil {
-				return nil
-			}
+		lookup := serviceLookup{
+			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
+			PeerName:          locality.peer,
+			Connect:           false,
+			Ingress:           false,
+			MaxRecursionLevel: maxRecursionLevel,
+			EnterpriseMeta:    locality.EnterpriseMeta,
+		}
+		// Only one of dc or peer can be used.
+		if lookup.PeerName != "" {
+			lookup.Datacenter = ""
 		}
 
-		// We've exhausted all DNS possibilities so return here
-		return err
+		// Support RFC 2782 style syntax
+		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
+
+			// Grab the tag since we make nuke it if it's tcp
+			tag := queryParts[1][1:]
+
+			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
+			if tag == "tcp" {
+				tag = ""
+			}
+
+			lookup.Tag = tag
+			lookup.Service = queryParts[0][1:]
+			// _name._tag.service.consul
+			return d.serviceLookup(cfg, lookup, req, resp)
+		}
+
+		// Consul 0.3 and prior format for SRV queries
+		// Support "." in the label, re-join all the parts
+		tag := ""
+		if n >= 2 {
+			tag = strings.Join(queryParts[:n-1], ".")
+		}
+
+		lookup.Tag = tag
+		lookup.Service = queryParts[n-1]
+
+		// tag[.tag].name.service.consul
+		return d.serviceLookup(cfg, lookup, req, resp)
+
 	case "connect":
 		if len(queryParts) < 1 {
 			return invalid()
@@ -884,7 +872,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		}
 
 		var out string
-		if err := d.agent.RPC(context.Background(), "Catalog.VirtualIPForService", &args, &out); err != nil {
+		if err := d.agent.RPC("Catalog.VirtualIPForService", &args, &out); err != nil {
 			return err
 		}
 		if out != "" {
@@ -958,11 +946,10 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		return d.nodeLookup(cfg, lookup, req, resp)
 
 	case "query":
-		n := len(queryParts)
 		datacenter := d.agent.config.Datacenter
 
 		// ensure we have a query name
-		if n < 1 {
+		if len(queryParts) < 1 {
 			return invalid()
 		}
 
@@ -970,23 +957,8 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		query := ""
-
-		// If the first and last DNS query parts begin with _, this is an RFC 2782 style SRV lookup.
-		// This allows for prepared query names to include "." (for backwards compatibility).
-		// Otherwise, this is a standard prepared query lookup.
-		if n >= 2 && strings.HasPrefix(queryParts[0], "_") && strings.HasPrefix(queryParts[n-1], "_") {
-			// The last DNS query part is the protocol field (ignored).
-			// All prior parts are the prepared query name or ID.
-			query = strings.Join(queryParts[:n-1], ".")
-
-			// Strip leading underscore
-			query = query[1:]
-		} else {
-			// Allow a "." in the query name, just join all the parts.
-			query = strings.Join(queryParts, ".")
-		}
-
+		// Allow a "." in the query name, just join all the parts.
+		query := strings.Join(queryParts, ".")
 		err := d.preparedQueryLookup(cfg, datacenter, query, remoteAddr, req, resp, maxRecursionLevel)
 		return ecsNotGlobalError{error: err}
 
@@ -1055,7 +1027,7 @@ func (d *DNSServer) trimDomain(query string) string {
 		longer, shorter = shorter, longer
 	}
 
-	if strings.HasSuffix(query, "."+strings.TrimLeft(longer, ".")) {
+	if strings.HasSuffix(query, longer) {
 		return strings.TrimSuffix(query, longer)
 	}
 	return strings.TrimSuffix(query, shorter)
@@ -1147,7 +1119,7 @@ RPC:
 		}
 		out = *reply
 	} else {
-		if err := d.agent.RPC(context.Background(), "Catalog.NodeServices", &args, &out); err != nil {
+		if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 			return nil, err
 		}
 	}
@@ -1611,7 +1583,7 @@ RPC:
 
 		out = *reply
 	} else {
-		if err := d.agent.RPC(context.Background(), "PreparedQuery.Execute", &args, &out); err != nil {
+		if err := d.agent.RPC("PreparedQuery.Execute", &args, &out); err != nil {
 			return nil, err
 		}
 	}

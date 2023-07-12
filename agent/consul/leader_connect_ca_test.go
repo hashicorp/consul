@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -259,8 +256,8 @@ type mockCAProvider struct {
 
 func (m *mockCAProvider) Configure(cfg ca.ProviderConfig) error { return nil }
 func (m *mockCAProvider) State() (map[string]string, error)     { return nil, nil }
-func (m *mockCAProvider) GenerateCAChain() (ca.CAChainResult, error) {
-	return ca.CAChainResult{PEM: m.rootPEM}, nil
+func (m *mockCAProvider) GenerateRoot() (ca.RootResult, error) {
+	return ca.RootResult{PEM: m.rootPEM}, nil
 }
 func (m *mockCAProvider) GenerateIntermediateCSR() (string, string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
@@ -270,13 +267,13 @@ func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) err
 	m.callbackCh <- "provider/SetIntermediate"
 	return nil
 }
-func (m *mockCAProvider) ActiveLeafSigningCert() (string, error) {
+func (m *mockCAProvider) ActiveIntermediate() (string, error) {
 	if m.intermediatePem == "" {
 		return m.rootPEM, nil
 	}
 	return m.intermediatePem, nil
 }
-
+func (m *mockCAProvider) GenerateIntermediate() (string, error)                     { return "", nil }
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
 func (m *mockCAProvider) SignIntermediate(*x509.CertificateRequest) (string, error) { return "", nil }
 func (m *mockCAProvider) CrossSignCA(*x509.Certificate) (string, error)             { return "", nil }
@@ -566,7 +563,7 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	deps := newDefaultDeps(t, conf1)
 	deps.Logger = logger
 
-	s1, err := NewServer(conf1, deps, grpc.NewServer(), nil, logger)
+	s1, err := NewServer(conf1, deps, grpc.NewServer())
 	require.NoError(t, err)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -574,7 +571,7 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	// Wait til CA root is setup
 	retry.Run(t, func(r *retry.R) {
 		var out structs.IndexedCARoots
-		r.Check(s1.RPC(context.Background(), "ConnectCA.Roots", structs.DCSpecificRequest{
+		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
 			Datacenter: conf1.Datacenter,
 		}, &out))
 	})

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { andOr } from 'consul-ui/utils/filter';
 import predicates from 'consul-ui/filter/predicates/intention';
 import { module, test } from 'qunit';

@@ -1,23 +1,18 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <div
+  class={{class-map
+    'consul-peer-form-token-actions'
+  }}
   ...attributes
 >
-  <Hds::ButtonSet>
-    <Hds::Button
-      @text='Copy token'
-      @color='primary'
-      ...attributes
-      {{with-copyable @token}}
-    />
-    <Hds::Button
-      @text='Close'
-      type='reset'
-      @color='secondary'
-      {{on 'click' @onclose}}
-    />
-  </Hds::ButtonSet>
+  <Action
+    ...attributes
+    {{with-copyable @token}}
+  >
+    Copy token
+  </Action>
+  <Action
+    {{on 'click' @onclose}}
+  >
+    Close
+  </Action>
 </div>

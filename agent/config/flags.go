@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
@@ -60,8 +57,8 @@ func AddFlags(fs *flag.FlagSet, f *LoadOpts) {
 	add(&f.FlagValues.Ports.GRPCTLS, "grpc-tls-port", "Sets the gRPC-TLS API port to listen on.")
 	add(&f.FlagValues.Ports.HTTP, "http-port", "Sets the HTTP API port to listen on.")
 	add(&f.FlagValues.Ports.HTTPS, "https-port", "Sets the HTTPS API port to listen on.")
-	add(&f.FlagValues.StartJoinAddrsLAN, "join", "(deprecated) An alias for -retry-join. The -join flag will be removed in a future release.")
-	add(&f.FlagValues.StartJoinAddrsWAN, "join-wan", "(deprecated) An alias for -retry-join-wan. The -join-wan flag will be removed in a future release.")
+	add(&f.FlagValues.StartJoinAddrsLAN, "join", "Address of an agent to join at start time. Can be specified multiple times.")
+	add(&f.FlagValues.StartJoinAddrsWAN, "join-wan", "Address of an agent to join -wan at start time. Can be specified multiple times.")
 	add(&f.FlagValues.LogLevel, "log-level", "Log level of the agent.")
 	add(&f.FlagValues.LogJSON, "log-json", "Output logs in JSON format.")
 	add(&f.FlagValues.LogFile, "log-file", "Path to the file the logs get written to")
@@ -100,24 +97,4 @@ func AddFlags(fs *flag.FlagSet, f *LoadOpts) {
 	add(&f.FlagValues.UIConfig.ContentPath, "ui-content-path", "Sets the external UI path to a string. Defaults to: /ui/ ")
 	add(&f.FlagValues.UIConfig.Dir, "ui-dir", "Path to directory containing the web UI resources.")
 	add(&f.HCL, "hcl", "hcl config fragment. Can be specified multiple times.")
-}
-
-func applyDeprecatedFlags(d *FlagValuesTarget) (Config, []string) {
-	dep := d.DeprecatedConfig
-
-	var warns []string
-	if len(dep.StartJoinAddrsLAN) > 0 {
-		d.Config.RetryJoinLAN = append(d.Config.RetryJoinLAN, dep.StartJoinAddrsLAN...)
-		warns = append(warns, deprecatedFlagWarning("-join", "-retry-join"))
-	}
-
-	if len(dep.StartJoinAddrsWAN) > 0 {
-		d.Config.RetryJoinWAN = append(d.Config.RetryJoinWAN, dep.StartJoinAddrsWAN...)
-		warns = append(warns, deprecatedFlagWarning("-join-wan", "-retry-join-wan"))
-	}
-	return d.Config, warns
-}
-
-func deprecatedFlagWarning(old, new string) string {
-	return fmt.Sprintf("The flag '%v' is deprecated. Use the '%v' flag instead.", old, new)
 }

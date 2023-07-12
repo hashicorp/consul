@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -24,7 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -143,15 +140,21 @@ advertise_addr_wan = "` + ip + `" `
 		leaderPeers   = make(map[string]int)
 	)
 	runOnce := func(t *testing.T, tc testcase) {
-		conn, err := tc.agent.baseDeps.GRPCConnPool.ClientConn("dc1")
-		require.NoError(t, err)
-		testConn(t, conn, standardPeers)
+		testutil.RunStep(t, "standard peers", func(t *testing.T) {
+			conn, err := tc.agent.baseDeps.GRPCConnPool.ClientConn("dc1")
+			require.NoError(t, err)
+			testConn(t, conn, standardPeers)
+		})
 
-		leaderConn, err := tc.agent.baseDeps.GRPCConnPool.ClientConnLeader()
-		require.NoError(t, err)
-		testConn(t, leaderConn, leaderPeers)
+		testutil.RunStep(t, "leader peers", func(t *testing.T) {
+			leaderConn, err := tc.agent.baseDeps.GRPCConnPool.ClientConnLeader()
+			require.NoError(t, err)
+			testConn(t, leaderConn, leaderPeers)
+		})
 
-		checkPeeringList(t, tc.agent, tc.prevCount)
+		testutil.RunStep(t, "check peering list before", func(t *testing.T) {
+			checkPeeringList(t, tc.agent, tc.prevCount)
+		})
 
 		body := &pbpeering.GenerateTokenRequest{
 			PeerName: tc.peerName,
@@ -167,10 +170,12 @@ advertise_addr_wan = "` + ip + `" `
 		tc.agent.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
 
-		var r pbpeering.GenerateTokenResponse
-		require.NoError(t, json.NewDecoder(resp.Body).Decode(&r))
+		var out pbpeering.GenerateTokenResponse
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
 
-		checkPeeringList(t, tc.agent, tc.prevCount+1)
+		testutil.RunStep(t, "check peering list after", func(t *testing.T) {
+			checkPeeringList(t, tc.agent, tc.prevCount+1)
+		})
 	}
 
 	// Try the procedure on all agents to force N-1 of them to leader-forward.
@@ -188,12 +193,10 @@ advertise_addr_wan = "` + ip + `" `
 	}
 
 	testutil.RunStep(t, "ensure we got the right mixture of responses", func(t *testing.T) {
-		assert.Len(t, standardPeers, 3)
-
 		// Each server talks to a single leader.
 		assert.Len(t, leaderPeers, 1)
 		for p, n := range leaderPeers {
-			assert.Equal(t, 3, n, "peer %q expected 3 uses", p)
+			assert.Equal(t, 3, n, "leader peer %q expected 3 uses", p)
 		}
 	})
 

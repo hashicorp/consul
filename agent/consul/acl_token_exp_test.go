@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -10,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -60,7 +56,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	aclEp := ACL{srv: s1}
+	acl := ACL{srv: s1}
 
 	initialManagementTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
 	require.NoError(t, err)
@@ -72,7 +68,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 		}
 
 		var res structs.ACLTokenListResponse
-		err = aclEp.TokenList(&req, &res)
+		err = acl.TokenList(&req, &res)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -95,7 +91,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 		// The initial management token and the anonymous token are always
 		// going to be present and global.
 		expectGlobal = append(expectGlobal, initialManagementTokenAccessorID)
-		expectGlobal = append(expectGlobal, acl.AnonymousTokenID)
+		expectGlobal = append(expectGlobal, structs.ACLTokenAnonymousID)
 
 		if local {
 			expectLocal = append(expectLocal, expect...)

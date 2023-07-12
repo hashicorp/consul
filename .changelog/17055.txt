@@ -1,3 +1,0 @@
-```release-note:bug
-gateways: Fix an bug where targeting a virtual service defined by a service-resolver was broken for HTTPRoutes.
-```

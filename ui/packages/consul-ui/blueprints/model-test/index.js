@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /*eslint node/no-extraneous-require: "off"*/
 const useTestFrameworkDetector = require('@ember-data/private-build-infra/src/utilities/test-framework-detector');
 

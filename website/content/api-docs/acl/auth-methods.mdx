@@ -14,7 +14,7 @@ The `/acl/auth-method` endpoints [create](#create-an-auth-method),
 ACL auth methods in Consul.
 
 For more information on how to setup ACLs, please check
-the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
+the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 ## Create an Auth Method
 
@@ -25,16 +25,16 @@ This endpoint creates a new ACL auth method.
 | `PUT`  | `/acl/auth-method` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl auth-method create`](/consul/commands/acl/auth-method/create).
+The corresponding CLI command is [`consul acl auth-method create`](/commands/acl/auth-method/create).
 
 ### Query Parameters
 
@@ -49,7 +49,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/consul/comma
 
 - `Type` `(string: <required>)` - The type of auth method being configured.
   This field is immutable. For allowed values see the [auth method
-  documentation](/consul/docs/security/acl/auth-methods).
+  documentation](/docs/security/acl/auth-methods).
 
 - `Description` `(string: "")` - Free form human readable description of the
   auth method.
@@ -59,7 +59,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/consul/comma
 
 - `MaxTokenTTL` `(duration: 0s)` - This specifies the maximum life of any token
   created by this auth method. When set it will initialize the
-  [`ExpirationTime`](/consul/api-docs/acl/tokens#expirationtime) field on all tokens
+  [`ExpirationTime`](/api-docs/acl/tokens#expirationtime) field on all tokens
   to a value of `Token.CreateTime + AuthMethod.MaxTokenTTL`. This field is not
   persisted beyond its initial use. Can be specified in the form of `"60s"` or
   `"5m"` (i.e., 60 seconds or 5 minutes, respectively). This value must be no
@@ -74,7 +74,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/consul/comma
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
-  method documentation](/consul/docs/security/acl/auth-methods).
+  method documentation](/docs/security/acl/auth-methods).
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the auth method you create. This field takes precedence over the `ns` query parameter,
@@ -156,16 +156,16 @@ auth method exists with the given name, a 404 is returned instead of a
 | `GET`  | `/acl/auth-method/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl auth-method read`](/consul/commands/acl/auth-method/read).
+The corresponding CLI command is [`consul acl auth-method read`](/commands/acl/auth-method/read).
 
 ### Path Parameters
 
@@ -208,16 +208,16 @@ This endpoint updates an existing ACL auth method.
 | `PUT`  | `/acl/auth-method/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl auth-method update`](/consul/commands/acl/auth-method/update).
+The corresponding CLI command is [`consul acl auth-method update`](/commands/acl/auth-method/update).
 
 ### Path Parameters
 
@@ -246,7 +246,7 @@ The corresponding CLI command is [`consul acl auth-method update`](/consul/comma
 
 - `MaxTokenTTL` `(duration: 0s)` - This specifies the maximum life of any token
   created by this auth method. When set it will initialize the
-  [`ExpirationTime`](/consul/api-docs/acl/tokens#expirationtime) field on all tokens
+  [`ExpirationTime`](/api-docs/acl/tokens#expirationtime) field on all tokens
   to a value of `Token.CreateTime + AuthMethod.MaxTokenTTL`. This field is not
   persisted beyond its initial use. Can be specified in the form of `"60s"` or
   `"5m"` (i.e., 60 seconds or 5 minutes, respectively). This value must be no
@@ -261,7 +261,7 @@ The corresponding CLI command is [`consul acl auth-method update`](/consul/comma
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
-  method documentation](/consul/docs/security/acl/auth-methods).
+  method documentation](/docs/security/acl/auth-methods).
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the auth method you update. This field takes precedence over the `ns` query parameter,
@@ -336,8 +336,8 @@ $ curl --request PUT \
 This endpoint deletes an ACL auth method.
 
 ~> Deleting an auth method will also immediately delete all associated
-[binding rules](/consul/api-docs/acl/binding-rules) as well as any
-outstanding [tokens](/consul/api-docs/acl/tokens) created from this auth method.
+[binding rules](/api-docs/acl/binding-rules) as well as any
+outstanding [tokens](/api-docs/acl/tokens) created from this auth method.
 
 | Method   | Path                     | Produces           |
 | -------- | ------------------------ | ------------------ |
@@ -347,16 +347,16 @@ Even though the return type is application/json, the value is either true or
 false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl auth-method delete`](/consul/commands/acl/auth-method/delete).
+The corresponding CLI command is [`consul acl auth-method delete`](/commands/acl/auth-method/delete).
 
 ### Path Parameters
 
@@ -389,16 +389,16 @@ This endpoint lists all the ACL auth methods.
 | `GET`  | `/acl/auth-methods` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl auth-method list`](/consul/commands/acl/auth-method/list).
+The corresponding CLI command is [`consul acl auth-method list`](/commands/acl/auth-method/list).
 
 ### Query Parameters
 

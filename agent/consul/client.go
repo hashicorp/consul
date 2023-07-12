@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -19,7 +15,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -267,7 +262,7 @@ func (c *Client) KeyManagerLAN() *serf.KeyManager {
 }
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
-func (c *Client) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// This is subtle but we start measuring the time on the client side
 	// right at the time of the first request, vs. on the first retry as
 	// is done on the server side inside forward(). This is because the
@@ -275,10 +270,8 @@ func (c *Client) RPC(ctx context.Context, method string, args interface{}, reply
 	// starting the timer here we won't potentially double up the delay.
 	// TODO (slackpad) Plumb a deadline here with a context.
 	firstCheck := time.Now()
-	retryCount := 0
-	previousJitter := time.Duration(0)
+
 TRY:
-	retryCount++
 	manager, server := c.router.FindLANRoute()
 	if server == nil {
 		return structs.ErrNoServers
@@ -302,16 +295,7 @@ TRY:
 
 	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
 	info, _ := args.(structs.RPCInfo)
-	retryableMessages := []error{
-		// If we are chunking and it doesn't seem to have completed, try again.
-		ErrChunkingResubmit,
-
-		// These rate limit errors are returned before the handler is called, so are
-		// safe to retry.
-		rpcRate.ErrRetryElsewhere,
-	}
-
-	if retry := canRetry(info, rpcErr, firstCheck, c.config, retryableMessages); !retry {
+	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
 		c.logger.Error("RPC failed to server",
 			"method", method,
 			"server", server.Addr,
@@ -328,9 +312,7 @@ TRY:
 	)
 
 	// We can wait a bit and retry!
-	jitter := lib.RandomStaggerWithRange(previousJitter, getWaitTime(c.config.RPCHoldTimeout, retryCount))
-	previousJitter = jitter
-
+	jitter := lib.RandomStagger(c.config.RPCHoldTimeout / structs.JitterFraction)
 	select {
 	case <-time.After(jitter):
 		goto TRY

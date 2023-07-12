@@ -1,192 +1,171 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <TabularCollection
-  class='consul-intention-list-table'
+  class="consul-intention-list-table"
   ...attributes
   @items={{@items}}
   @rowHeight={{59}}
-  as |item index|
->
-  <BlockSlot @name='header'>
-    <th class='source'>Source</th>
-    <th class='intent'>&nbsp;</th>
-    <th class='destination'>Destination</th>
-    <th class='permissions'>
-      Permissions
-      <span>
-        <Tooltip>Permissions intercept an Intention's traffic using Layer 7 criteria, such as path
-          prefixes and http headers.</Tooltip>
-      </span>
-    </th>
-    <th class='meta'>&nbsp;</th>
-  </BlockSlot>
-  <BlockSlot @name='row'>
-    <td class='source' data-test-intention={{item.ID}}>
-      <a
-        href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
-        data-test-intention-source={{item.SourceName}}
+as |item index|>
+    <BlockSlot @name="header">
+        <th class="source">Source</th>
+        <th class="intent">&nbsp;</th>
+        <th class="destination">Destination</th>
+        <th class="permissions">
+          Permissions
+          <span>
+            <Tooltip>Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers.</Tooltip>
+          </span>
+        </th>
+        <th class="meta">&nbsp;</th>
+    </BlockSlot>
+    <BlockSlot @name="row">
+        <td class="source" data-test-intention={{item.ID}}>
+          <a href={{href-to (or @routeName 'dc.intentions.edit') item.ID}} data-test-intention-source={{item.SourceName}}>
+            {{#if (eq item.SourceName '*') }}
+              All Services (*)
+            {{else}}
+              {{item.SourceName}}
+            {{/if}}
+            {{! TODO: slugify }}
+            <em class="consul-intention-list-table__meta-info">
+              <Consul::Bucket::List
+                @item={{hash
+                  Namespace=item.SourceNS
+                  Partition=item.SourcePartition
+                  PeerName=item.SourcePeer
+                }}
+                @nspace="-"
+                @partition="-"
+              />
+            </em>
+          </a>
+        </td>
+        <td class="intent intent-{{slugify item.Action}}" data-test-intention-action={{item.Action}}>
+          <strong>{{capitalize (or item.Action "App aware")}}</strong>
+        </td>
+        <td class="destination" data-test-intention-destination={{item.DestinationName}}>
+          <span>
+            {{#if (eq item.DestinationName '*') }}
+              All Services (*)
+            {{else}}
+              {{item.DestinationName}}
+            {{/if}}
+            {{#if (or (can 'use nspaces') (can 'use partitions'))}}
+            {{! TODO: slugify }}
+            <em>
+              <span
+                class={{concat 'partition-' (or item.DestinationPartition 'default')}}
+              >{{or item.DestinationPartition 'default'}}</span> / <span
+                class={{concat 'nspace-' (or item.DestinationNS 'default')}}
+              >{{or item.DestinationNS 'default'}}</span>
+            </em>
+            {{/if}}
+          </span>
+        </td>
+        <td class="permissions">
+          {{#if (gt item.Permissions.length 0)}}
+            <span>{{pluralize item.Permissions.length 'Permission'}}</span>
+          {{/if}}
+        </td>
+        <td class="meta">
+        {{#if item.IsManagedByCRD}}
+          <Consul::ExternalSource @item={{item}} @label="Managed by CRD" />
+        {{/if}}
+        </td>
+    </BlockSlot>
+    <BlockSlot @name="actions" as |index change checked|>
+      <PopoverMenu
+        @expanded={{if (eq checked index) true false}}
+        @onchange={{action change index}} @keyboardAccess={{false}}
       >
-        {{#if (eq item.SourceName '*')}}
-          All Services (*)
-        {{else}}
-          {{item.SourceName}}
-        {{/if}}
-        {{! TODO: slugify }}
-        <em class='consul-intention-list-table__meta-info'>
-          <Consul::Bucket::List
-            @item={{hash
-              Namespace=item.SourceNS
-              Partition=item.SourcePartition
-              PeerName=item.SourcePeer
-            }}
-            @nspace='-'
-            @partition='-'
-          />
-        </em>
-      </a>
-    </td>
-    <td class='intent intent-{{slugify item.Action}}' data-test-intention-action={{item.Action}}>
-      <strong>{{capitalize (or item.Action 'App aware')}}</strong>
-    </td>
-    <td class='destination' data-test-intention-destination={{item.DestinationName}}>
-      <span>
-        {{#if (eq item.DestinationName '*')}}
-          All Services (*)
-        {{else}}
-          {{item.DestinationName}}
-        {{/if}}
-        {{#if (or (can 'use nspaces') (can 'use partitions'))}}
-          {{! TODO: slugify }}
-          <em>
-            <span class={{concat 'partition-' (or item.DestinationPartition 'default')}}>{{or
-                item.DestinationPartition
-                'default'
-              }}</span>
-            /
-            <span class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or
-                item.DestinationNS
-                'default'
-              }}</span>
-          </em>
-        {{/if}}
-      </span>
-    </td>
-    <td class='permissions'>
-      {{#if (gt item.Permissions.length 0)}}
-        <span>{{pluralize item.Permissions.length 'Permission'}}</span>
-      {{/if}}
-    </td>
-    <td class='meta'>
-      {{#if item.IsManagedByCRD}}
-        <Consul::ExternalSource @item={{item}} @label='Managed by CRD' />
-      {{/if}}
-    </td>
-  </BlockSlot>
-  <BlockSlot @name='actions' as |index change checked|>
-    <PopoverMenu
-      @expanded={{if (eq checked index) true false}}
-      @onchange={{action change index}}
-      @keyboardAccess={{false}}
-    >
-      <BlockSlot @name='trigger'>
-        More
-      </BlockSlot>
-      <BlockSlot @name='menu' as |confirm send keypressClick change|>
-        {{#if (can 'write intention' item=item)}}
-          <li role='none'>
-            <a
-              role='menuitem'
-              tabindex='-1'
-              href={{href-to (or routeName 'dc.intentions.edit') item.ID}}
-            >Edit</a>
-          </li>
-          <li role='none' class='dangerous'>
-            <label
-              for={{confirm}}
-              role='menuitem'
-              tabindex='-1'
-              onkeypress={{keypressClick}}
-              data-test-delete
-            >Delete</label>
-            <div role='menu'>
-              <InformedAction class='warning'>
-                <:header>
-                  Confirm Delete
-                </:header>
-                <:body>
-                  <p>
-                    Are you sure you want to delete this intention?
-                  </p>
-                </:body>
-                <:actions as |Actions|>
-                  <Actions.Action class='dangerous'>
-                    <Action
-                      class='type-delete'
-                      tabindex='-1'
-                      {{on 'click' (queue (action change) (action @delete item))}}
-                    >
-                      Delete
-                    </Action>
-                  </Actions.Action>
-                  <Actions.Action>
-                    <Action @for={{confirm}}>
-                      Cancel
-                    </Action>
-                  </Actions.Action>
-                </:actions>
-              </InformedAction>
-            </div>
-          </li>
-        {{else if (can 'view CRD intention' item=item)}}
-          <li role='none'>
-            <div role='menu'>
-              <InformedAction>
-                <:header>
-                  <span class='flex flex-nowrap items-center'>
-                    <FlightIcon @name='kubernetes-color' class='mr-1.5' />
+        <BlockSlot @name="trigger">
+          More
+        </BlockSlot>
+        <BlockSlot @name="menu" as |confirm send keypressClick change|>
+        {{#if (can "write intention" item=item)}}
+            <li role="none">
+              <a role="menuitem" tabindex="-1" href={{href-to (or routeName 'dc.intentions.edit') item.ID}}>Edit</a>
+            </li>
+            <li role="none" class="dangerous">
+              <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
+              <div role="menu">
+                <InformedAction
+                  class="warning"
+                >
+                  <:header>
+                    Confirm Delete
+                  </:header>
+                  <:body>
+                    <p>
+                      Are you sure you want to delete this intention?
+                    </p>
+                  </:body>
+                  <:actions as |Actions|>
+                    <Actions.Action class="dangerous">
+                      <Action
+                        class="type-delete"
+                        tabindex="-1"
+                        {{on 'click' (queue (action change) (action @delete item))}}
+                      >
+                        Delete
+                      </Action>
+                    </Actions.Action>
+                    <Actions.Action>
+                      <Action
+                        @for={{confirm}}
+                      >
+                        Cancel
+                      </Action>
+                    </Actions.Action>
+                  </:actions>
+                </InformedAction>
+              </div>
+            </li>
+          {{else if (can "view CRD intention" item=item)}}
+            <li role="none">
+              <div role="menu">
+                <InformedAction
+                  class="info kubernetes"
+                >
+                  <:header>
                     Managed by CRD
-                  </span>
-                </:header>
-                <:body>
-                  <p>
-                    This intention is being managed through an Intention Custom Resource in your
-                    Kubernetes cluster. It is view only in the UI.
-                  </p>
-                </:body>
-                <:actions as |Actions|>
-                  <Actions.Action>
-                    <Action
-                      tabindex='-1'
-                      class='action'
-                      @href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
-                    >
-                      View
-                    </Action>
-                  </Actions.Action>
-                  <Actions.Action>
-                    <Action @onclick={{action change}}>
-                      Cancel
-                    </Action>
-                  </Actions.Action>
-                </:actions>
-              </InformedAction>
-            </div>
-          </li>
-        {{else}}
-          <li role='none'>
-            <a
-              role='menuitem'
-              tabindex='-1'
-              href={{href-to (or routeName 'dc.intentions.edit') item.ID}}
-            >
-              View
-            </a>
-          </li>
-        {{/if}}
-      </BlockSlot>
-    </PopoverMenu>
-  </BlockSlot>
+                  </:header>
+                  <:body>
+                    <p>
+                      This intention is being managed through an Intention Custom Resource in your Kubernetes cluster. It is view only in the UI.
+                    </p>
+                  </:body>
+                  <:actions as |Actions|>
+                    <Actions.Action>
+                      <Action
+                        tabindex="-1"
+                        class="action"
+                        @href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
+                      >
+                        View
+                      </Action>
+                    </Actions.Action>
+                    <Actions.Action>
+                      <Action
+                        @onclick={{action change}}
+                      >
+                        Cancel
+                      </Action>
+                    </Actions.Action>
+                  </:actions>
+                </InformedAction>
+              </div>
+            </li>
+          {{else}}
+            <li role="none">
+              <a
+                role="menuitem"
+                tabindex="-1"
+                href={{href-to (or routeName 'dc.intentions.edit') item.ID}}
+              >
+                View
+              </a>
+            </li>
+          {{/if}}
+        </BlockSlot>
+      </PopoverMenu>
+    </BlockSlot>
 </TabularCollection>

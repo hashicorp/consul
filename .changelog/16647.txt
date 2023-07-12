@@ -1,3 +1,0 @@
-```release-note:bug
-raft_logstore: Fixes a bug where restoring a snapshot when using the experimental WAL storage backend causes a panic.
-```

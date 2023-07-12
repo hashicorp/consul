@@ -1,14 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import mergeChecks from 'consul-ui/utils/merge-checks';
 import { module, test } from 'qunit';
 
 module('Unit | Utility | merge-checks', function () {
   test('it works', function (assert) {
-    assert.expect(4);
     [
       {
         desc: 'One list of checks, not exposed',

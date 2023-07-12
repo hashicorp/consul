@@ -1,0 +1,341 @@
+---
+layout: docs
+page_title: Service Mesh Intentions
+description: >-
+  Intentions define communication permissions in the service mesh between microservices. Learn about configuration basics, wildcard intentions, precedence and match order, and protecting intention management with ACLs.
+---
+
+# Service Mesh Intentions
+
+-> **1.9.0 and later:** This guide only applies in Consul versions 1.9.0 and
+later. The documentation for the legacy intentions system is
+[here](/docs/connect/intentions-legacy).
+
+Intentions define access control for services via Connect and are used to
+control which services may establish connections or make requests. Intentions
+can be managed via the API, CLI, or UI.
+
+Intentions are enforced on inbound connections or requests by the
+[proxy](/docs/connect/proxies) or within a [natively integrated
+application](/docs/connect/native).
+
+Depending upon the [protocol] in use by the destination service, you can define
+intentions to control Connect traffic authorization either at networking layer
+4 (e.g. TCP) and application layer 7 (e.g. HTTP):
+
+- **Identity-based** - All intentions may enforce access based on identities
+  encoded within [TLS
+  certificates](/docs/connect/connect-internals#mutual-transport-layer-security-mtls).
+  This allows for coarse all-or-nothing access control between pairs of
+  services. These work with for services with any [protocol] as they only
+  require awareness of the TLS handshake that wraps the opaque TCP connection.
+  These can also be thought of as **L4 intentions**.
+
+- **Application-aware** - Some intentions may additionally enforce access based
+  on [L7 request
+  attributes](/docs/connect/config-entries/service-intentions#permissions) in
+  addition to connection identity. These may only be defined for services with
+  a [protocol] that is HTTP-based. These can also be thought of as **L7
+  intentions**.
+
+At any given point in time, between any pair of services **only one intention
+controls authorization**. This may be either an L4 intention or an L7
+intention, but at any given point in time only one of those applies.
+
+The [intention match API](/api-docs/connect/intentions#list-matching-intentions)
+should be periodically called to retrieve all relevant intentions for the
+target destination. After verifying the TLS client certificate, the cached
+intentions should be consulted for each incoming connection/request to
+determine if it should be accepted or rejected.
+
+The default intention behavior is defined by the [`default_policy`](/docs/agent/config/config-files#acl_default_policy) configuration.
+If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
+If is set to `deny`, then all connections or requests will be denied by default.
+
+## Intention Basics
+
+You can define a [`service-intentions`](/docs/connect/config-entries/service-intentions) configuration entry to create and manage intentions, as well as manage intentions through the Consul UI. You can also perform some intention-related tasks using the API and CLI commands. Refer to the [API](/api-docs/connect/intentions) and [CLI](/commands/intention) documentation for details.
+
+The following example shows a `service-intentions` configuration entry that specifies two intentions. Refer to the [`service-intentions`](/docs/connect/config-entries/service-intentions) documentation for the full data model and additional examples.
+
+<CodeTabs>
+
+```hcl
+Kind = "service-intentions"
+Name = "db"
+Sources = [
+  {
+    Name   = "web"
+    Action = "deny"
+  },
+  {
+    Name   = "api"
+    Action = "allow"
+  }
+]
+```
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "db",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "web"
+    },
+    {
+      "Action": "allow",
+      "Name": "api"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+This configuration entry defines two intentions with a common destination of `db`. The
+first intention above is a deny intention with a source of `web`. This says
+that connections from web to db are not allowed and the connection will be
+rejected. The second intention is an allow intention with a source of `api`.
+This says that connections from api to db are allowed and connections will be
+accepted.
+
+### Wildcard Intentions
+
+You can use the `*` wildcard to match service names when defining an intention source or destination. The wildcard matches _any_ value, which enables you to set a wide initial scope when configuring intentions.
+
+The wildcard is supported in Consul Enterprise `namespace` fields (see [Namespaces](/docs/enterprise/namespaces) for additional information), but it _is not supported_ in `partition` fields (see [Admin Partitions](/docs/enterprise/admin-partitions) for additional information).
+
+In the following example, the `web` service cannot connect to _any_ service:
+
+<CodeTabs>
+
+```hcl
+Kind = "service-intentions"
+Name = "*"
+Sources = [
+  {
+    Name   = "web"
+    Action = "deny"
+  }
+]
+```
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "*",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "web"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+The `db` service is configured to deny all connection in the following example:
+
+<CodeTabs>
+
+```hcl
+Kind = "service-intentions"
+Name = "db"
+Sources = [
+  {
+    Name   = "*"
+    Action = "deny"
+  }
+]
+```
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "db",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "*"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+<EnterpriseAlert inline /> This example grants Prometheus access to any service in
+any namespace.
+
+<CodeTabs>
+
+```hcl
+Kind = "service-intentions"
+Name = "*"
+Namespace = "*"
+Sources = [
+  {
+    Name      = "prometheus"
+    Namespace = "monitoring"
+    Action = "allow"
+  }
+]
+```
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "*",
+  "Namespace": "*",
+  "Sources": [
+    {
+      "Action": "allow",
+      "Name": "prometheus",
+      "Namespace": "monitoring"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+### Enforcement
+
+For services that define their [protocol] as TCP, intentions mediate the
+ability to **establish new connections**. When an intention is modified,
+existing connections will not be affected. This means that changing a
+connection from "allow" to "deny" today _will not_ kill the connection.
+
+For services that define their protocol as HTTP-based, intentions mediate the
+ability to **issue new requests**.
+
+When an intention is modified, requests received after the modification will
+use the latest intention rules to enforce access. This means that though
+changing a connection from "allow" to "deny" today will not kill the
+connection, it will correctly block new requests from being processed.
+
+## Precedence and Match Order
+
+Intentions are matched in an implicit order based on specificity, preferring
+deny over allow. Specificity is determined by whether a value is an exact
+specified value or is the wildcard value `*`.
+The full precedence table is shown below and is evaluated
+top to bottom, with larger numbers being evaluated first.
+
+| Source Namespace | Source Name | Destination Namespace | Destination Name | Precedence |
+| ---------------- | ----------- | --------------------- | ---------------- | ---------- |
+| Exact            | Exact       | Exact                 | Exact            | 9          |
+| Exact            | `*`         | Exact                 | Exact            | 8          |
+| `*`              | `*`         | Exact                 | Exact            | 7          |
+| Exact            | Exact       | Exact                 | `*`              | 6          |
+| Exact            | `*`         | Exact                 | `*`              | 5          |
+| `*`              | `*`         | Exact                 | `*`              | 4          |
+| Exact            | Exact       | `*`                   | `*`              | 3          |
+| Exact            | `*`         | `*`                   | `*`              | 2          |
+| `*`              | `*`         | `*`                   | `*`              | 1          |
+
+The precedence value can be read from a
+[field](/docs/connect/config-entries/service-intentions#precedence) on the
+`service-intentions` configuration entry after it is modified. Precedence cannot be
+manually overridden today.
+
+The numbers in the table above are not stable. Their ordering will remain
+fixed but the actual number values may change in the future.
+
+-> <EnterpriseAlert inline /> - Namespaces are an Enterprise feature. In Consul
+OSS the only allowable value for either namespace field is `"default"`. Other
+rows in this table are not applicable.
+
+## Intention Management Permissions
+
+Intention management can be protected by [ACLs](/docs/security/acl).
+Permissions for intentions are _destination-oriented_, meaning the ACLs
+for managing intentions are looked up based on the destination value
+of the intention, not the source.
+
+Intention permissions are by default implicitly granted at `read` level
+when granting `service:read` or `service:write`. This is because a
+service registered that wants to use Connect needs `intentions:read`
+for its own service name in order to know whether or not to authorize
+connections. The following ACL policy will implicitly grant `intentions:read`
+(note _read_) for service `web`.
+
+<CodeTabs>
+
+```hcl
+service "web" {
+  policy = "write"
+}
+```
+
+```json
+{
+  "service": [
+    {
+      "web": [
+        {
+          "policy": "write"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+It is possible to explicitly specify intention permissions. For example,
+the following policy will allow a service to be discovered without granting
+access to read intentions for it.
+
+```hcl
+service "web" {
+  policy = "read"
+  intentions = "deny"
+}
+```
+
+Note that `intentions:read` is required for a token that a Connect-enabled
+service uses to register itself or its proxy. If the token used does not
+have `intentions:read` then the agent will be unable to resolve intentions
+for the service and so will not be able to authorize any incoming connections.
+
+~> **Security Note:** Explicitly allowing `intentions:write` on the token you
+provide to a service instance at registration time opens up a significant
+additional vulnerability. Although you may trust the service _team_ to define
+which inbound connections they accept, using a combined token for registration
+allows a compromised instance to to redefine the intentions which allows many
+additional attack vectors and may be hard to detect. We strongly recommend only
+delegating `intentions:write` using tokens that are used by operations teams or
+orchestrators rather than spread via application config, or only manage
+intentions with management tokens.
+
+## Performance and Intention Updates
+
+The intentions for services registered with a Consul agent are cached
+locally on that agent. They are then updated via a background blocking query
+against the Consul servers.
+
+Supported [proxies] (such as [Envoy]) also cache this data within their own
+configuration so that inbound connections or requests require no Consul agent
+involvement during authorization. All actions in the data path of connections
+happen within the proxy.
+
+Updates to intentions are propagated nearly instantly to agents since agents
+maintain a continuous blocking query in the background for intention updates
+for registered services. Proxies similarly use blocking queries to update
+their local configurations quickly.
+
+Because all the intention data is cached locally, the agents or proxies can
+fail static. Even if the agents are severed completely from the Consul servers,
+or the proxies are severed completely from their local Consul agent, inbound
+connection authorization continues to work indefinitely. Changes to intentions
+will not be picked up until the partition heals, but will then automatically
+take effect when connectivity is restored.
+
+[protocol]: /docs/connect/config-entries/service-defaults#protocol
+[proxies]: /docs/connect/proxies
+[envoy]: /docs/connect/proxies/envoy

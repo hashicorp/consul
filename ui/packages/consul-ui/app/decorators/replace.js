@@ -1,9 +1,4 @@
 /**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
-/**
  * Simple replacing decorator, with the primary usecase for avoiding null API
  * errors by decorating model attributes: @replace(null, []) @attr() Tags;
  */

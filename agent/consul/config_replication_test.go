@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +12,85 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
+
+func TestReplication_ConfigSort(t *testing.T) {
+	newDefaults := func(name, protocol string) *structs.ServiceConfigEntry {
+		return &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     name,
+			Protocol: protocol,
+		}
+	}
+	newResolver := func(name string, timeout time.Duration) *structs.ServiceResolverConfigEntry {
+		return &structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           name,
+			ConnectTimeout: timeout,
+		}
+	}
+
+	type testcase struct {
+		configs []structs.ConfigEntry
+		expect  []structs.ConfigEntry
+	}
+
+	cases := map[string]testcase{
+		"none": {},
+		"one": {
+			configs: []structs.ConfigEntry{
+				newDefaults("web", "grpc"),
+			},
+			expect: []structs.ConfigEntry{
+				newDefaults("web", "grpc"),
+			},
+		},
+		"just kinds": {
+			configs: []structs.ConfigEntry{
+				newResolver("web", 33*time.Second),
+				newDefaults("web", "grpc"),
+			},
+			expect: []structs.ConfigEntry{
+				newDefaults("web", "grpc"),
+				newResolver("web", 33*time.Second),
+			},
+		},
+		"just names": {
+			configs: []structs.ConfigEntry{
+				newDefaults("db", "grpc"),
+				newDefaults("api", "http2"),
+			},
+			expect: []structs.ConfigEntry{
+				newDefaults("api", "http2"),
+				newDefaults("db", "grpc"),
+			},
+		},
+		"all": {
+			configs: []structs.ConfigEntry{
+				newResolver("web", 33*time.Second),
+				newDefaults("web", "grpc"),
+				newDefaults("db", "grpc"),
+				newDefaults("api", "http2"),
+			},
+			expect: []structs.ConfigEntry{
+				newDefaults("api", "http2"),
+				newDefaults("db", "grpc"),
+				newDefaults("web", "grpc"),
+				newResolver("web", 33*time.Second),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			configSort(tc.configs)
+			require.Equal(t, tc.expect, tc.configs)
+			// and it should be stable
+			configSort(tc.configs)
+			require.Equal(t, tc.expect, tc.configs)
+		})
+	}
+}
 
 func TestReplication_ConfigEntries(t *testing.T) {
 	if testing.Short() {
@@ -61,7 +137,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		}
 
 		out := false
-		require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
+		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 		entries = append(entries, arg.Entry)
 	}
 
@@ -79,7 +155,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 	}
 
 	out := false
-	require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
+	require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 	entries = append(entries, arg.Entry)
 
 	checkSame := func(t *retry.R) error {
@@ -132,7 +208,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		}
 
 		out := false
-		require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
+		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 	}
 
 	arg = structs.ConfigEntryRequest{
@@ -148,7 +224,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
+	require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 
 	// Wait for the replica to converge.
 	retry.Run(t, func(r *retry.R) {
@@ -163,7 +239,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		}
 
 		var out structs.ConfigEntryDeleteResponse
-		require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Delete", &arg, &out))
+		require.NoError(t, s1.RPC("ConfigEntry.Delete", &arg, &out))
 	}
 
 	// Wait for the replica to converge.
@@ -223,7 +299,7 @@ func TestReplication_ConfigEntries_GraphValidationErrorDuringReplication(t *test
 		}
 
 		out := false
-		require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
+		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 	}
 
 	// Try to join which should kick off replication.

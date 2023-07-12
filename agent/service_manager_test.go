@@ -1,12 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -422,11 +419,9 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 				{
-					Upstream: structs.PeeredServiceName{
-						ServiceName: structs.NewServiceName("redis", nil),
-					},
+					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -472,11 +467,9 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 				{
-					Upstream: structs.PeeredServiceName{
-						ServiceName: structs.NewServiceName("redis", nil),
-					},
+					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -653,11 +646,9 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 				{
-					Upstream: structs.PeeredServiceName{
-						ServiceName: structs.NewServiceName("redis", nil),
-					},
+					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -788,7 +779,7 @@ func testApplyConfigEntries(t *testing.T, a *TestAgent, entries ...structs.Confi
 			Entry:      entry,
 		}
 		var out bool
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", args, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Apply", args, &out))
 	}
 }
 
@@ -812,7 +803,7 @@ func expectJSONFile(t *testing.T, file string, expect interface{}, fixupContentB
 	expected, err := json.Marshal(expect)
 	require.NoError(t, err)
 
-	content, err := os.ReadFile(file)
+	content, err := ioutil.ReadFile(file)
 	require.NoError(t, err)
 
 	if fixupContentBeforeCompareFn != nil {
@@ -829,8 +820,8 @@ func fixPersistedServiceConfigForTest(content []byte) ([]byte, error) {
 		return nil, err
 	}
 	// Sort the output, since it's randomized and causes flaky tests otherwise.
-	sort.Slice(parsed.Defaults.UpstreamConfigs, func(i, j int) bool {
-		return parsed.Defaults.UpstreamConfigs[i].Upstream.String() < parsed.Defaults.UpstreamConfigs[j].Upstream.String()
+	sort.Slice(parsed.Defaults.UpstreamIDConfigs, func(i, j int) bool {
+		return parsed.Defaults.UpstreamIDConfigs[i].Upstream.ID < parsed.Defaults.UpstreamIDConfigs[j].Upstream.ID
 	})
 	out, err := json.Marshal(parsed)
 	if err != nil {

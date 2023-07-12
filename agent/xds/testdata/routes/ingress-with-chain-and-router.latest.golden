@@ -275,7 +275,7 @@
                 "timeout": "33s"
               }
             },
-            {
+	    {
               "match": {
                 "prefix": "/idle-timeout"
               },

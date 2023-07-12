@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 const not = `(n't| not)?`;
 export default function (scenario, assert, lastNthRequest) {
   // lastNthRequest should return a

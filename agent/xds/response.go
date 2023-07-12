@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -8,18 +5,18 @@ import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 func createResponse(typeURL string, version, nonce string, resources []proto.Message) (*envoy_discovery_v3.DiscoveryResponse, error) {
-	anys := make([]*anypb.Any, 0, len(resources))
+	anys := make([]*any.Any, 0, len(resources))
 	for _, r := range resources {
 		if r == nil {
 			continue
 		}
-		if any, ok := r.(*anypb.Any); ok {
+		if any, ok := r.(*any.Any); ok {
 			anys = append(anys, any)
 			continue
 		}
@@ -27,7 +24,7 @@ func createResponse(typeURL string, version, nonce string, resources []proto.Mes
 		if err != nil {
 			return nil, err
 		}
-		anys = append(anys, &anypb.Any{
+		anys = append(anys, &any.Any{
 			TypeUrl: typeURL,
 			Value:   data,
 		})
@@ -65,12 +62,12 @@ func makeAddress(ip string, port int) *envoy_core_v3.Address {
 	}
 }
 
-func makeUint32Value(n int) *wrapperspb.UInt32Value {
-	return &wrapperspb.UInt32Value{Value: uint32(n)}
+func makeUint32Value(n int) *wrappers.UInt32Value {
+	return &wrappers.UInt32Value{Value: uint32(n)}
 }
 
-func makeBoolValue(n bool) *wrapperspb.BoolValue {
-	return &wrapperspb.BoolValue{Value: n}
+func makeBoolValue(n bool) *wrappers.BoolValue {
+	return &wrappers.BoolValue{Value: n}
 }
 
 func makeEnvoyRegexMatch(patt string) *envoy_matcher_v3.RegexMatcher {
