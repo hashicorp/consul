@@ -377,7 +377,7 @@ jobs:
       version: ${{ needs.set-product-version.outputs.product-version }}
       zip_name: consul_${{ needs.set-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
 
-    if: !${{ matrix.arch == 's390x' && !endsWith(github.repository, '-enterprise') }}
+    if: ${{ endsWith(github.repository, '-enterprise') }} || ${{ matrix.arch != 's390x' }}
     name: Verify ${{ matrix.arch }} linux binary
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
