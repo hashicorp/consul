@@ -991,6 +991,29 @@ func TestAPI_RequestToHTTP(t *testing.T) {
 	}
 }
 
+func TestAPI_RequestToHTTP_PrefixedWithSlashes(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	c.config.Address = "/tmp/mysocket.sock"
+	r := c.newRequest("DELETE", "/v1/kv/foo")
+	q := &QueryOptions{
+		Datacenter: "foo",
+	}
+	r.setQueryOptions(q)
+	req, err := r.toHTTP()
+	require.NoError(t, err)
+	// validate that socket communications that do not use the host, detect
+	// slashes in the host name and replace it with local host.
+	// this is required since go started validating req.host in 1.20.6.
+	// prior to that they would strip out the slahes for you.  They removed that
+	// behavior and added more strict validation as part of a CVE.
+	// https://github.com/golang/go/issues/11206
+	require.Equal(t, "localhost", req.Host)
+
+}
+
 func TestAPI_ParseQueryMeta(t *testing.T) {
 	t.Parallel()
 	resp := &http.Response{
@@ -1038,7 +1061,7 @@ func TestAPI_UnixSocket(t *testing.T) {
 	socket := filepath.Join(tempDir, "test.sock")
 
 	c, s := makeClientWithConfig(t, func(c *Config) {
-		c.Address = "unix://" + socket
+		c.Address = "localhost"
 	}, func(c *testutil.TestServerConfig) {
 		c.Addresses = &testutil.TestAddressConfig{
 			HTTP: "unix://" + socket,

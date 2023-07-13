@@ -1000,6 +1000,10 @@ func (r *request) toHTTP() (*http.Request, error) {
 		return nil, err
 	}
 
+	if strings.HasPrefix(r.url.Host, "/") {
+		r.url.Host = "localhost"
+	}
+
 	req.URL.Host = r.url.Host
 	req.URL.Scheme = r.url.Scheme
 	req.Host = r.url.Host
