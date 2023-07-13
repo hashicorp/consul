@@ -370,10 +370,13 @@ jobs:
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      # checking to see if 1.26.4 fails
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          # pinning this to 1.20.5 because this issue in go-testcontainers occurs
+          # in 1.20.6 with the error "http: invalid Host header, host port waiting failed"
+          # https://github.com/testcontainers/testcontainers-go/issues/1359
+          # go-version-file: 'go.mod'
+          go-version: '1.20.5'
       - run: go env
       - name: docker env
         run: |
@@ -486,10 +489,13 @@ jobs:
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      # checking to see if 1.26.4 fails
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          # pinning this to 1.20.5 because this issue in go-testcontainers occurs
+          # in 1.20.6 with the error "http: invalid Host header, host port waiting failed"
+          # https://github.com/testcontainers/testcontainers-go/issues/1359
+          # go-version-file: 'go.mod'
+          go-version: '1.20.5'
       - run: go env
 
       # Get go binary from workspace
