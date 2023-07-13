@@ -624,7 +624,7 @@ jobs:
         run: chmod +x consul
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
-      - name: Peering commonTopo Integration Tests
+      - name: Peering Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test-integ/peering_commontopo
@@ -637,6 +637,7 @@ jobs:
             -- \
             go test \
             -tags "${{ env.GOTAGS }}" \
+            -commontopo \
             -timeout=30m \
             -json . \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
