@@ -10,23 +10,23 @@ import (
 )
 
 const (
-	ProxyConfigurationKind = "ProxyConfiguration"
+	UpstreamsConfigurationKind = "UpstreamsConfiguration"
 )
 
 var (
-	ProxyConfigurationV1Alpha1Type = &pbresource.Type{
+	UpstreamsConfigurationV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: VersionV1Alpha1,
-		Kind:         ProxyConfigurationKind,
+		Kind:         UpstreamsConfigurationKind,
 	}
 
-	ProxyConfigurationType = ProxyConfigurationV1Alpha1Type
+	UpstreamsConfigurationType = UpstreamsConfigurationV1Alpha1Type
 )
 
-func RegisterProxyConfiguration(r resource.Registry) {
+func RegisterUpstreamsConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ProxyConfigurationV1Alpha1Type,
-		Proto:    &pbmesh.ProxyConfiguration{},
+		Type:     UpstreamsConfigurationV1Alpha1Type,
+		Proto:    &pbmesh.UpstreamsConfiguration{},
 		Validate: nil,
 	})
 }
