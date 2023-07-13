@@ -26,10 +26,24 @@ env:
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    name: Setup
+    outputs:
+      compute-small: ${{ steps.runners.outputs.compute-small }}
+      compute-medium: ${{ steps.runners.outputs.compute-medium }}
+      compute-large: ${{ steps.runners.outputs.compute-large }}
+      compute-xl: ${{ steps.runners.outputs.compute-xl }}
+      enterprise: ${{ steps.runners.outputs.enterprise }}
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - id: runners
+        run: .github/scripts/get_runner_classes_windows.sh
+
   dev-build:
     uses: ./.github/workflows/reusable-dev-build-windows.yml
     with:
-      runs-on: 'windows-2019'
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul.exe'
     secrets:
@@ -38,7 +52,7 @@ jobs:
   envoy-integration-test:
     needs:
       - dev-build
-    runs-on: 'windows-2019'
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
