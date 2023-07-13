@@ -16,16 +16,16 @@ import "pbmesh/v1alpha1/transport_socket.proto";
 import "pbresource/resource.proto";
 
 message ProxyStateTemplate {
-  // partially filled out ProxyState. The Endpoints, LeafCertificates and TrustBundles fields will need filling in.
+  // proxy_state is the partially filled out ProxyState resource. The Endpoints, LeafCertificates and TrustBundles fields will need filling in after the resource is stored.
   ProxyState proxy_state = 1;
 
-  // map of arbitrary string names to endpoint refs that need fetching by the proxy state controller
+  // required_endpoints is a map of arbitrary string names to endpoint refs that need fetching by the proxy state controller.
   map<string, EndpointRef> required_endpoints = 2;
 
-  // map of arbitrary string names to leaf certificates that need fetching/generation by the proxy state controller
+  // required_leaf_certificates is a map of arbitrary string names to leaf certificates that need fetching/generation by the proxy state controller.
   map<string, LeafCertificateRef> required_leaf_certificates = 3;
 
-  // map of arbitrary string names to trust bundle refs that need fetching by the proxy state controller
+  // required_trust_bundles is a map of arbitrary string names to trust bundle refs that need fetching by the proxy state controller.
   map<string, TrustBundleRef> required_trust_bundles = 4;
 }
 
@@ -38,12 +38,12 @@ message ProxyState {
   map<string, Cluster> clusters = 3;
   // routes is a map from route name to routes. The keys are referenced from listeners.
   map<string, Route> routes = 4;
-  // endpoints is a map from cluster name to fully inlined endpoints.
-  map<string, InlineEndpoints> endpoints = 5;
-  // leaf certificates is a map from UUID to fully inlined leaf certificates.
-  map<string, InlineLeafCertificate> leaf_certificates = 6;
-  // trust bundles is a map from peer name to fully inlined trust bundles.
-  map<string, InlineTrustBundle> trust_bundles = 7;
+  // endpoints is a map from cluster name to endpoints.
+  map<string, Endpoints> endpoints = 5;
+  // leaf certificates is a map from UUID to leaf certificates.
+  map<string, LeafCertificate> leaf_certificates = 6;
+  // trust bundles is a map from peer name to trust bundles.
+  map<string, TrustBundle> trust_bundles = 7;
   // tls has TLS configuration for this proxy.
   TLS tls = 8;
   // intention_default_allow is the default action for intentions. This determines how the Envoy RBAC filters are generated.

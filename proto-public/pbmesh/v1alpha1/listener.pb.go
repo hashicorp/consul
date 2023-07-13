@@ -200,7 +200,7 @@ type Listener struct {
 	BalanceConnections BalanceConnections `protobuf:"varint,8,opt,name=balance_connections,json=balanceConnections,proto3,enum=hashicorp.consul.mesh.v1alpha1.BalanceConnections" json:"balance_connections,omitempty"`
 	// escape_hatch_listener_json configures a user configured escape hatch listener.
 	EscapeHatchListener string `protobuf:"bytes,9,opt,name=escape_hatch_listener,json=escapeHatchListener,proto3" json:"escape_hatch_listener,omitempty"`
-	// use_escape_hatch_tracing configures whether to use the top level user   configured tracing escape hatch for this listener.
+	// use_escape_hatch_tracing configures whether to use the top level user configured tracing escape hatch for this listener.
 	UseEscapeHatchTracing bool `protobuf:"varint,10,opt,name=use_escape_hatch_tracing,json=useEscapeHatchTracing,proto3" json:"use_escape_hatch_tracing,omitempty"`
 }
 

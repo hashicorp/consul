@@ -33,7 +33,7 @@ message Listener {
   BalanceConnections balance_connections = 8;
   // escape_hatch_listener_json configures a user configured escape hatch listener.
   string escape_hatch_listener = 9;
-  // use_escape_hatch_tracing configures whether to use the top level user   configured tracing escape hatch for this listener.
+  // use_escape_hatch_tracing configures whether to use the top level user configured tracing escape hatch for this listener.
   bool use_escape_hatch_tracing = 10;
 }
 

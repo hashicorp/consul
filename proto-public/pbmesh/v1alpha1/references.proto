@@ -22,8 +22,8 @@ message TrustBundleRef {
 }
 
 message EndpointRef {
-  // name is the name of the Endpoints. This should match the cluster name.
-  string name = 1;
   // id is the ServiceEndpoints resource id.
-  hashicorp.consul.resource.ID id = 2;
+  hashicorp.consul.resource.ID id = 1;
+  // port is the name of the port in the ServiceEndpoints to generate the Endpoints from.
+  string port = 2;
 }

@@ -9,13 +9,13 @@ import "google/protobuf/wrappers.proto";
 import "pbmesh/v1alpha1/address.proto";
 import "pbmesh/v1alpha1/upstreams.proto";
 
-message InlineEndpoints {
+message Endpoints {
   // name is the name of the Endpoints. This should match the cluster name.
   string name = 1;
-  repeated InlineEndpoint endpoints = 2;
+  repeated Endpoint endpoints = 2;
 }
 
-message InlineEndpoint {
+message Endpoint {
   oneof address {
     HostPortAddress host_port = 1;
     UnixSocketAddress unix_socket = 2;

@@ -118,21 +118,21 @@ func (msg *TLSParameters) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InlineLeafCertificate) MarshalBinary() ([]byte, error) {
+func (msg *LeafCertificate) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InlineLeafCertificate) UnmarshalBinary(b []byte) error {
+func (msg *LeafCertificate) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InlineTrustBundle) MarshalBinary() ([]byte, error) {
+func (msg *TrustBundle) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InlineTrustBundle) UnmarshalBinary(b []byte) error {
+func (msg *TrustBundle) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

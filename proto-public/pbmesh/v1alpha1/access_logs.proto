@@ -17,8 +17,10 @@ message AccessLogs {
   string path = 4;
   // The presence of one format string or the other implies the access log string encoding.
   // Defining both is invalid.
-  string json_format = 5;
-  string text_format = 6;
+  oneof format {
+    string json = 5;
+    string text = 6;
+  }
 }
 
 enum LogSinkType {

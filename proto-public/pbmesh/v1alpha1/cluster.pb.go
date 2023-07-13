@@ -462,8 +462,6 @@ func (x *DynamicEndpointGroup) GetOutboundTls() *TransportSocket {
 	return nil
 }
 
-// PassthroughEndpointGroup does not have any endpoints, so when traversing this in XDS code generation, we should check that there is NO reference to endpoints that matches this cluster's name.
-// xds note: always use lbpolicy: cluster provided and original dest type
 type PassthroughEndpointGroup struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

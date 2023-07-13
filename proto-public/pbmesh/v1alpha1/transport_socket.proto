@@ -99,12 +99,12 @@ message TLSParameters {
   repeated TLSCipherSuite cipher_suites = 3;
 }
 
-message InlineLeafCertificate {
+message LeafCertificate {
   string cert = 1;
   string key = 2;
 }
 
-message InlineTrustBundle {
+message TrustBundle {
   string ca = 1;
 }
 

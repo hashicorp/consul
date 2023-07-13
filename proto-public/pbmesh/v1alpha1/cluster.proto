@@ -56,8 +56,6 @@ message DynamicEndpointGroup {
   TransportSocket outbound_tls = 3;
 }
 
-// PassthroughEndpointGroup does not have any endpoints, so when traversing this in XDS code generation, we should check that there is NO reference to endpoints that matches this cluster's name.
-// xds note: always use lbpolicy: cluster provided and original dest type
 message PassthroughEndpointGroup {
   // name will be the name of the Envoy cluster created by this endpoint group.
   string name = 1;
