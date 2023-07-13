@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/internal/resource"
 	"io"
 	"net"
 	"os"
@@ -72,8 +73,6 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
@@ -439,9 +438,6 @@ type Server struct {
 	// run by the Server
 	routineManager *routine.Manager
 
-	// typeRegistry contains Consul's registered resource types.
-	typeRegistry resource.Registry
-
 	// internalResourceServiceClient is a client that can be used to communicate
 	// with the Resource Service in-process (i.e. not via the network) without auth.
 	// It should only be used for purely-internal workloads, such as controllers.
@@ -526,7 +522,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
-		typeRegistry:            resource.NewRegistry(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -794,7 +789,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize external gRPC server
-	s.setupExternalGRPC(config, logger)
+	s.setupExternalGRPC(config, flat.Registry, logger)
 
 	// Initialize internal gRPC server.
 	//
@@ -803,14 +798,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 
-	if err := s.setupInternalResourceService(logger); err != nil {
+	if err := s.setupInternalResourceService(flat.Registry, logger); err != nil {
 		return nil, err
 	}
 	s.controllerManager = controller.NewManager(
 		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerResources(flat)
+	s.registerControllers(flat)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -861,18 +856,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	return s, nil
 }
 
-func (s *Server) registerResources(deps Deps) {
+func (s *Server) registerControllers(deps Deps) {
 	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
-		catalog.RegisterTypes(s.typeRegistry)
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-
-		mesh.RegisterTypes(s.typeRegistry)
 	}
 
 	reaper.RegisterControllers(s.controllerManager)
 
 	if s.config.DevMode {
-		demo.RegisterTypes(s.typeRegistry)
 		demo.RegisterControllers(s.controllerManager)
 	}
 }
@@ -1269,7 +1260,7 @@ func (s *Server) setupRPC() error {
 }
 
 // Initialize and register services on external gRPC server.
-func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger) {
+func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registry, logger hclog.Logger) {
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1335,18 +1326,18 @@ func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger) {
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    s.typeRegistry,
+		Registry:    typeRegistry,
 		Backend:     s.raftStorageBackend,
 		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.resource"),
 	}).Register(s.externalGRPCServer)
 }
 
-func (s *Server) setupInternalResourceService(logger hclog.Logger) error {
+func (s *Server) setupInternalResourceService(typeRegistry resource.Registry, logger hclog.Logger) error {
 	server := grpc.NewServer()
 
 	resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    s.typeRegistry,
+		Registry:    typeRegistry,
 		Backend:     s.raftStorageBackend,
 		ACLResolver: resolver.DANGER_NO_AUTH{},
 		Logger:      logger.Named("grpc-api.resource"),
