@@ -51,6 +51,7 @@ jobs:
 
   envoy-integration-test:
     needs:
+      - setup
       - dev-build
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     permissions:
