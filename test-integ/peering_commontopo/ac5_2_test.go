@@ -32,14 +32,7 @@ type preparedQueryFailoverSuite struct {
 var ac5Context = make(map[nodeKey]preparedQueryFailoverSuite)
 
 func TestPreparedQueryFailoverSuite(t *testing.T) {
-	t.Parallel()
-	s := preparedQueryFailoverSuite{}
-	ct := NewCommonTopo(t)
-	s.ct = ct
-
-	s.setup(t, ct)
-	ct.Launch(t)
-	s.test(t, ct)
+	testFuncMustNotShareCommonTopo(t, []commonTopoSuite{&preparedQueryFailoverSuite{}}, false)
 }
 
 func (s *preparedQueryFailoverSuite) testName() string {

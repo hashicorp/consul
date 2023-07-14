@@ -26,7 +26,7 @@ var serviceMeshDisabledSuites []commonTopoSuite = []commonTopoSuite{
 }
 
 func TestServiceMeshDisabledSuite(t *testing.T) {
-	testFuncMayReuseCpmmonTopo(t, serviceMeshDisabledSuites)
+	testFuncMayShareCommonTopo(t, serviceMeshDisabledSuites)
 }
 
 func (s *serviceMeshDisabledSuite) testName() string {

@@ -15,7 +15,7 @@ var ac1BasicSuites []commonTopoSuite = []commonTopoSuite{
 }
 
 func TestAC1Basic(t *testing.T) {
-	testFuncMayReuseCpmmonTopo(t, ac1BasicSuites)
+	testFuncMayShareCommonTopo(t, ac1BasicSuites)
 }
 
 type ac1BasicSuite struct {
@@ -40,8 +40,6 @@ type ac1BasicSuite struct {
 	upstreamHTTP *topology.Upstream
 	upstreamTCP  *topology.Upstream
 }
-
-var _ commonTopoSuite = (*ac1BasicSuite)(nil)
 
 func (s *ac1BasicSuite) testName() string {
 	return fmt.Sprintf("ac1 basic %s->%s", s.DC, s.Peer)

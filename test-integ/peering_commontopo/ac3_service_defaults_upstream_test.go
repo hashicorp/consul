@@ -24,7 +24,7 @@ var ac3SvcDefaultsSuites []commonTopoSuite = []commonTopoSuite{
 }
 
 func TestAC3SvcDefaults(t *testing.T) {
-	testFuncMayReuseCpmmonTopo(t, ac3SvcDefaultsSuites)
+	testFuncMayShareCommonTopo(t, ac3SvcDefaultsSuites)
 }
 
 type ac3SvcDefaultsSuite struct {
@@ -40,8 +40,6 @@ type ac3SvcDefaultsSuite struct {
 
 	upstream *topology.Upstream
 }
-
-var _ commonTopoSuite = (*ac3SvcDefaultsSuite)(nil)
 
 func (s *ac3SvcDefaultsSuite) testName() string {
 	return fmt.Sprintf("ac3 service defaults upstreams %s -> %s", s.DC, s.Peer)

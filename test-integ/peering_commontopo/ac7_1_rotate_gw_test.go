@@ -11,29 +11,11 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-// TestRotateGW ensures that peered services continue to be able to talk to their
-// upstreams during a mesh gateway rotation
-// NOTE: because suiteRotateGW needs to mutate the topo, we actually *DO NOT* share a topo
 func TestRotateGW(t *testing.T) {
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-	for _, s := range rotateGWSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range rotateGWSuites {
-		// no parallel because these call Relaunch
-		t.Run(s.testName(), func(t *testing.T) {
-			s.test(t, ct)
-		})
-	}
-}
-
-var rotateGWSuites []*suiteRotateGW = []*suiteRotateGW{
-	{DC: "dc1", Peer: "dc2"},
-	{DC: "dc2", Peer: "dc1"},
+	testFuncMustNotShareCommonTopo(t, []commonTopoSuite{
+		&suiteRotateGW{DC: "dc1", Peer: "dc2"},
+		&suiteRotateGW{DC: "dc2", Peer: "dc1"},
+	}, false)
 }
 
 type suiteRotateGW struct {
@@ -50,8 +32,6 @@ type suiteRotateGW struct {
 
 	newMGWNodeName string
 }
-
-var _ commonTopoSuite = (*suiteRotateGW)(nil)
 
 func (s *suiteRotateGW) testName() string {
 	return fmt.Sprintf("ac7.1 rotate mesh gateway %s->%s", s.DC, s.Peer)

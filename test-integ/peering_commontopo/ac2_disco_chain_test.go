@@ -16,7 +16,7 @@ var ac2DiscoChainSuites []commonTopoSuite = []commonTopoSuite{
 }
 
 func TestAC2DiscoChain(t *testing.T) {
-	testFuncMayReuseCpmmonTopo(t, ac2DiscoChainSuites)
+	testFuncMayShareCommonTopo(t, ac2DiscoChainSuites)
 }
 
 type ac2DiscoChainSuite struct {
@@ -25,8 +25,6 @@ type ac2DiscoChainSuite struct {
 
 	clientSID topology.ServiceID
 }
-
-var _ commonTopoSuite = (*ac2DiscoChainSuite)(nil)
 
 func (s *ac2DiscoChainSuite) testName() string {
 	return fmt.Sprintf("ac2 disco chain %s->%s", s.DC, s.Peer)

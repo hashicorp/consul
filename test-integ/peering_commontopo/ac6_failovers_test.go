@@ -12,16 +12,8 @@ import (
 )
 
 // NOTE: because AC6 needs to mutate the topo, we actually *DO NOT* share a topo
-
 func TestAC6Failovers(t *testing.T) {
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-	s := ac6FailoversSuite{}
-	s.setup(t, ct)
-	ct.Launch(t)
-	s.test(t, ct)
+	testFuncMustNotShareCommonTopo(t, []commonTopoSuite{&ac6FailoversSuite{}}, false)
 }
 
 type nodeKey struct {
@@ -43,8 +35,6 @@ type ac6FailoversContext struct {
 type ac6FailoversSuite struct {
 	ac6 map[nodeKey]ac6FailoversContext
 }
-
-var _ commonTopoSuite = (*ac6FailoversSuite)(nil)
 
 func (s *ac6FailoversSuite) testName() string {
 	return "ac6 failovers"

@@ -18,22 +18,10 @@ import (
 // TestAC7_2RotateLeader ensures that after a leader rotation, information continues to replicate to peers
 // NOTE: because suiteRotateLeader needs to mutate the topo, we actually *DO NOT* share a topo
 func TestAC7_2RotateLeader(t *testing.T) {
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-	for _, s := range ac7_2RotateLeaderSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range ac7_2RotateLeaderSuites {
-		t.Run(s.testName(), func(t *testing.T) { s.test(t, ct) })
-	}
-}
-
-var ac7_2RotateLeaderSuites []*ac7_2RotateLeaderSuite = []*ac7_2RotateLeaderSuite{
-	{DC: "dc1", Peer: "dc2"},
-	{DC: "dc2", Peer: "dc1"},
+	testFuncMustNotShareCommonTopo(t, []commonTopoSuite{
+		&ac7_2RotateLeaderSuite{DC: "dc1", Peer: "dc2"},
+		&ac7_2RotateLeaderSuite{DC: "dc2", Peer: "dc1"},
+	}, false)
 }
 
 type ac7_2RotateLeaderSuite struct {
@@ -48,8 +36,6 @@ type ac7_2RotateLeaderSuite struct {
 
 	upstream *topology.Upstream
 }
-
-var _ commonTopoSuite = (*ac7_2RotateLeaderSuite)(nil)
 
 func (s *ac7_2RotateLeaderSuite) testName() string {
 	return fmt.Sprintf("ac7.2 rotate leader %s->%s", s.DC, s.Peer)

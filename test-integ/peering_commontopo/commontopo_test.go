@@ -20,6 +20,47 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
+// Test that use commonTopo should implement commonTopoSuite.
+//
+// Tests that use commonTopo are either cooperative or non-cooperative. Non-cooperative
+// uses of commonTopo include is anything that may interfere with other tests, namely
+// mutations, such as:
+// - any calls to commonTopo.Relaunch; this is generally disruptive to other tests
+// - stopping or disabling nodes
+// - ...
+//
+// Cooperative tests should just call testFuncMayReuseCommonTopo() to ensure they
+// are run in the correct `sharetopo` mode. They should also ensure they are included
+// in the commonTopoSuites slice in TestSuitesOnSharedTopo.
+//
+//
+
+type commonTopoSuite interface {
+	testName() string
+	setup(*testing.T, *commonTopo)
+	test(*testing.T, *commonTopo)
+}
+
+func testFuncMustNotShareCommonTopo(t *testing.T, suites []commonTopoSuite, parallelTestPhases bool) {
+	if allowParallelCommonTopo {
+		t.Parallel()
+	}
+	ct := NewCommonTopo(t)
+	for _, s := range suites {
+		s.setup(t, ct)
+	}
+	ct.Launch(t)
+	for _, s := range suites {
+		s := s
+		t.Run(s.testName(), func(t *testing.T) {
+			if parallelTestPhases {
+				t.Parallel()
+			}
+			s.test(t, ct)
+		})
+	}
+}
+
 // commonTopo helps create a shareable topology configured to represent
 // the common denominator between tests.
 //
@@ -175,6 +216,10 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 	if t.Failed() {
 		t.Fatal("failing fast: post-Launch assertions failed")
 	}
+}
+
+func TestJustCommonTopo(t *testing.T) {
+	testFuncMayShareCommonTopo(t, []commonTopoSuite{})
 }
 
 // PeerName is how you'd address a remote dc+partition locally
