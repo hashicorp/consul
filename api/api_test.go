@@ -1061,7 +1061,7 @@ func TestAPI_UnixSocket(t *testing.T) {
 	socket := filepath.Join(tempDir, "test.sock")
 
 	c, s := makeClientWithConfig(t, func(c *Config) {
-		c.Address = "localhost"
+		c.Address = "unix://" + socket
 	}, func(c *testutil.TestServerConfig) {
 		c.Addresses = &testutil.TestAddressConfig{
 			HTTP: "unix://" + socket,
