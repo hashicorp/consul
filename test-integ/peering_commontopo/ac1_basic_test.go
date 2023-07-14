@@ -9,30 +9,13 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-var ac1BasicSuites []*ac1BasicSuite = []*ac1BasicSuite{
-	{DC: "dc1", Peer: "dc2"},
-	{DC: "dc2", Peer: "dc1"},
+var ac1BasicSuites []commonTopoSuite = []commonTopoSuite{
+	&ac1BasicSuite{DC: "dc1", Peer: "dc2"},
+	&ac1BasicSuite{DC: "dc2", Peer: "dc1"},
 }
 
 func TestAC1Basic(t *testing.T) {
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-	for _, s := range ac1BasicSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range ac1BasicSuites {
-		s := s
-		t.Run(s.testName(), func(t *testing.T) {
-			t.Parallel()
-			s.test(t, ct)
-		})
-	}
+	testFuncMayReuseCpmmonTopo(t, ac1BasicSuites)
 }
 
 type ac1BasicSuite struct {

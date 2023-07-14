@@ -20,30 +20,13 @@ type serviceMeshDisabledSuite struct {
 	clientSID topology.ServiceID
 }
 
-var (
-	serviceMeshDisabledSuites []*serviceMeshDisabledSuite = []*serviceMeshDisabledSuite{
-		{DC: "dc1", Peer: "dc2"},
-		{DC: "dc2", Peer: "dc1"},
-	}
-)
+var serviceMeshDisabledSuites []commonTopoSuite = []commonTopoSuite{
+	&serviceMeshDisabledSuite{DC: "dc1", Peer: "dc2"},
+	&serviceMeshDisabledSuite{DC: "dc2", Peer: "dc1"},
+}
 
 func TestServiceMeshDisabledSuite(t *testing.T) {
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
-	t.Parallel()
-	ct := NewCommonTopo(t)
-	for _, s := range serviceMeshDisabledSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range serviceMeshDisabledSuites {
-		s := s
-		t.Run(fmt.Sprintf("%s_%s", s.DC, s.Peer), func(t *testing.T) {
-			t.Parallel()
-			s.test(t, ct)
-		})
-	}
+	testFuncMayReuseCpmmonTopo(t, serviceMeshDisabledSuites)
 }
 
 func (s *serviceMeshDisabledSuite) testName() string {

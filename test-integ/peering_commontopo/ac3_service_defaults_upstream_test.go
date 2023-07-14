@@ -18,31 +18,13 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 )
 
-var ac3SvcDefaultsSuites []*ac3SvcDefaultsSuite = []*ac3SvcDefaultsSuite{
-	{DC: "dc1", Peer: "dc2"},
-	{DC: "dc2", Peer: "dc1"},
+var ac3SvcDefaultsSuites []commonTopoSuite = []commonTopoSuite{
+	&ac3SvcDefaultsSuite{DC: "dc1", Peer: "dc2"},
+	&ac3SvcDefaultsSuite{DC: "dc2", Peer: "dc1"},
 }
 
 func TestAC3SvcDefaults(t *testing.T) {
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-
-	for _, s := range ac3SvcDefaultsSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range ac3SvcDefaultsSuites {
-		s := s
-		t.Run(s.testName(), func(t *testing.T) {
-			t.Parallel()
-			s.test(t, ct)
-		})
-	}
+	testFuncMayReuseCpmmonTopo(t, ac3SvcDefaultsSuites)
 }
 
 type ac3SvcDefaultsSuite struct {
