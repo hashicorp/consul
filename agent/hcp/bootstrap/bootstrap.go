@@ -298,21 +298,23 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.Boot
 			return "", fmt.Errorf("failed to persist bootstrap config: %w", err)
 		}
 
-		if err := validateManagementToken(bsCfg.ManagementToken); err != nil {
-			return "", fmt.Errorf("invalid management token: %w", err)
-		}
-		if err := persistManagementToken(dir, bsCfg.ManagementToken); err != nil {
-			return "", fmt.Errorf("failed to persist HCP management token: %w", err)
+		if bsCfg.ManagementToken != "" {
+			if err := validateManagementToken(bsCfg.ManagementToken); err != nil {
+				return "", fmt.Errorf("invalid management token: %w", err)
+			}
+			if err := persistManagementToken(dir, bsCfg.ManagementToken); err != nil {
+				return "", fmt.Errorf("failed to persist HCP management token: %w", err)
+			}
 		}
 
-		if err := persistSucessMarker(dir); err != nil {
+		if err := persistSuccessMarker(dir); err != nil {
 			return "", fmt.Errorf("failed to persist success marker: %w", err)
 		}
 	}
 	return cfgJSON, nil
 }
 
-func persistSucessMarker(dir string) error {
+func persistSuccessMarker(dir string) error {
 	name := filepath.Join(dir, successFileName)
 	return os.WriteFile(name, []byte(""), 0600)
 
@@ -454,7 +456,8 @@ func loadManagementToken(dir string) (string, error) {
 	name := filepath.Join(dir, tokenFileName)
 	bytes, err := os.ReadFile(name)
 	if os.IsNotExist(err) {
-		return "", errors.New("configuration files on disk are incomplete, missing: " + name)
+		// A missing management token is not an error, if none was provided by HCP
+		return "", nil
 	}
 	if err != nil {
 		return "", fmt.Errorf("failed to read: %w", err)
