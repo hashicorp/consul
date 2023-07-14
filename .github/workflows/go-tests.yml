@@ -290,7 +290,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-      go-version: "1.19.10"
+      go-version: "1.19"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read    
@@ -309,12 +309,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-      # pinning this to 1.20.5 because this issue in go-testcontainers occurs
-      # in 1.20.6 with the error "http: invalid Host header, host port waiting failed"
-      # https://github.com/testcontainers/testcontainers-go/issues/1359
-      # remove setting this when the above issue is fixed so that the reusable
-      # job will just get the go version from go.mod.
-      go-version: "1.20.5"
+      go-version: "1.20"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read    
@@ -352,6 +347,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: "1.20"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read    
