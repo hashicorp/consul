@@ -193,7 +193,7 @@ func AgentMembersMapAddrVer(s *HTTPHandlers, req *http.Request) (map[string]stri
 	if acl.IsDefaultPartition(filter.Partition) {
 		filter.AllSegments = true
 	}
-	
+
 	lanMembers, err := s.agent.delegate.LANMembers(filter)
 	if err != nil {
 		return nil, err
