@@ -962,6 +962,17 @@ func (r *request) toHTTP() (*http.Request, error) {
 		return nil, err
 	}
 
+	// validate that socket communications that do not use the host, detect
+	// slashes in the host name and replace it with local host.
+	// this is required since go started validating req.host in 1.20.6 and 1.19.11.
+	// prior to that they would strip out the slashes for you.  They removed that
+	// behavior and added more strict validation as part of a CVE.
+	// https://github.com/golang/go/issues/60374
+	// the hope is that
+	if strings.HasPrefix(r.url.Host, "/") {
+		r.url.Host = "localhost"
+	}
+
 	req.URL.Host = r.url.Host
 	req.URL.Scheme = r.url.Scheme
 	req.Host = r.url.Host
