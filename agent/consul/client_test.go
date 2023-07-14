@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/internal/resource"
 	"net"
 	"os"
 	"strings"
@@ -576,6 +577,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
+		Registry:                 resource.NewRegistry(),
 	}
 }
 
