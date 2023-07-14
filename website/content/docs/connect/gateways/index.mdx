@@ -17,8 +17,6 @@ This topic provides an overview of the gateway features shipped with Consul. Gat
 
 ## Mesh Gateways
 
--> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
-
 Mesh gateways enable service mesh traffic to be routed between different Consul datacenters and admin partitions. The datacenters or partitions can reside
 in different clouds or runtime environments where general interconnectivity between all services in all datacenters
 isn't feasible.
@@ -35,9 +33,37 @@ Mesh gateways enable the following scenarios:
 
 -> **Mesh gateway tutorial**: Follow the [mesh gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways) to learn concepts associated with mesh gateways.
 
+## API Gateways
+
+API gateways enable network access, from outside a service mesh, to services running in a Consul service mesh. The
+systems accessing the services in the mesh, may be within your organizational network or external to it. This type of
+network traffic is commonly called _north-south_ network traffic because it refers to the flow of data into and out of
+a specific environment.
+
+API gateways solve the following primary use cases:
+
+- **Control access at the point of entry**: Set the protocols of external connection
+  requests and secure inbound connections with TLS certificates from trusted
+  providers, such as Verisign and Let's Encrypt.
+- **Simplify traffic management**: Load balance requests across services and route
+  traffic to the appropriate service by matching one or more criteria, such as
+  hostname, path, header presence or value, and HTTP method.
+
+Refer to the following documentation for information on how to configure and deploy API gateways:
+- [API Gateways on VMs](/consul/docs/connect/gateways/api-gateway/usage)
+- [API Gateways for Kubernetes](/consul/docs/api-gateway).
+
+
 ## Ingress Gateways
 
--> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
+<Note>
+
+Ingress gateway is deprecated and will not be enhanced beyond its current capabilities. Ingress gateway is fully supported
+in this version but will be removed in a future release of Consul.
+
+Consul's API gateway is the recommended alternative to ingress gateway.
+
+</Note>
 
 Ingress gateways enable connectivity within your organizational network from services outside the Consul service mesh
 to services in the mesh. To accept ingress traffic from the public internet, use Consul's
@@ -55,8 +81,6 @@ and the [ingress gateway tutorial](/consul/tutorials/developer-mesh/service-mesh
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
 
 ## Terminating Gateways
-
--> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
 Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh
 to services outside the mesh.
