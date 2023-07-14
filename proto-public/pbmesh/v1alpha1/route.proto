@@ -80,7 +80,7 @@ message RouteDestination {
   // destination is one or more clusters to route to.
   oneof destination {
     DestinationCluster cluster = 1;
-    WeightedClusterGroup weighted_clusters = 2;
+    L7WeightedClusterGroup weighted_clusters = 2;
   }
   DestinationConfiguration destination_configuration = 3;
 }

@@ -82,12 +82,23 @@ message StaticEndpointGroup {
   StaticEndpointGroupConfig config = 2;
 }
 
-message WeightedClusterGroup {
+message L4WeightedClusterGroup {
   // clusters to route to by weight.
-  repeated WeightedDestinationCluster clusters = 1;
+  repeated L4WeightedDestinationCluster clusters = 1;
 }
 
-message WeightedDestinationCluster {
+message L7WeightedClusterGroup {
+  // clusters to route to by weight.
+  repeated L7WeightedDestinationCluster clusters = 1;
+}
+
+message L4WeightedDestinationCluster {
+  // name is the name of the cluster. This will be used to look up a cluster in the clusters map.
+  string name = 1;
+  google.protobuf.UInt32Value weight = 2;
+}
+
+message L7WeightedDestinationCluster {
   // name is the name of the cluster. This will be used to look up a cluster in the clusters map.
   string name = 1;
   google.protobuf.UInt32Value weight = 2;

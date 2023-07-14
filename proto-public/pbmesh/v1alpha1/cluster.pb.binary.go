@@ -88,22 +88,42 @@ func (msg *StaticEndpointGroup) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *WeightedClusterGroup) MarshalBinary() ([]byte, error) {
+func (msg *L4WeightedClusterGroup) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *WeightedClusterGroup) UnmarshalBinary(b []byte) error {
+func (msg *L4WeightedClusterGroup) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *WeightedDestinationCluster) MarshalBinary() ([]byte, error) {
+func (msg *L7WeightedClusterGroup) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *WeightedDestinationCluster) UnmarshalBinary(b []byte) error {
+func (msg *L7WeightedClusterGroup) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *L4WeightedDestinationCluster) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *L4WeightedDestinationCluster) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *L7WeightedDestinationCluster) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *L7WeightedDestinationCluster) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
