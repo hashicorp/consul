@@ -22,7 +22,8 @@ env:
   GOTESTSUM_VERSION: "1.10.1"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
-  CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'consul' }}
+  CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   setup:
@@ -474,7 +475,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.14", "1.15"]
+        consul-version: [ "1.15", "1.16"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       ENVOY_VERSION: "1.24.6"
