@@ -68,7 +68,7 @@ func (s *preparedQueryFailoverSuite) setupDC(ct *commonTopo, clu, peerClu *topol
 	}
 
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			clu.Datacenter,
 			clientSID,
 			func(s *topology.Service) {
@@ -88,7 +88,7 @@ func (s *preparedQueryFailoverSuite) setupDC(ct *commonTopo, clu, peerClu *topol
 	ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
 			nil,
@@ -123,7 +123,7 @@ func (s *preparedQueryFailoverSuite) setupDC3(ct *commonTopo, clu, peer1, peer2 
 
 	// disable service mesh for client in DC3
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			clu.Datacenter,
 			clientSID,
 			func(s *topology.Service) {
@@ -151,7 +151,7 @@ func (s *preparedQueryFailoverSuite) setupDC3(ct *commonTopo, clu, peer1, peer2 
 	ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
 			nil,

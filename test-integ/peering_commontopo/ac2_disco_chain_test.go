@@ -52,7 +52,7 @@ func (s *ac2DiscoChainSuite) setup(t *testing.T, ct *commonTopo) {
 	peer := LocalPeerName(peerClu, "default")
 
 	// Make an HTTP server with discovery chain config entries
-	server := NewFortioServiceWithDefaults(
+	server := newFortioServiceWithDefaults(
 		clu.Datacenter,
 		topology.ServiceID{
 			Name:      "ac2-disco-chain-svc",
@@ -114,7 +114,7 @@ func (s *ac2DiscoChainSuite) setup(t *testing.T, ct *commonTopo) {
 		Name:      "ac2-client",
 		Partition: partition,
 	}
-	client := NewFortioServiceWithDefaults(
+	client := newFortioServiceWithDefaults(
 		clu.Datacenter,
 		clientSID,
 		func(s *topology.Service) {

@@ -5,10 +5,10 @@ import (
 
 	"testing"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	"github.com/hashicorp/consul/testingconsul/topology"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,7 +72,7 @@ func (s *serviceMeshDisabledSuite) setup(t *testing.T, ct *commonTopo) {
 
 	// disable service mesh for client in s.DC
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			clu.Datacenter,
 			clientSID,
 			func(s *topology.Service) {
@@ -91,7 +91,7 @@ func (s *serviceMeshDisabledSuite) setup(t *testing.T, ct *commonTopo) {
 	ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
 			nil,
@@ -142,4 +142,3 @@ func (s *serviceMeshDisabledSuite) testProxyDisabledInDC2(t *testing.T, cl *api.
 		require.NotContains(t, services, expected, fmt.Sprintf("error: should not create proxy for service: %s", services))
 	})
 }
-

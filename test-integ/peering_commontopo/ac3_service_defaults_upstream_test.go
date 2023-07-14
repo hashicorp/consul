@@ -92,7 +92,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 		Partition: partition,
 	}
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			clu.Datacenter,
 			sid,
 			func(s *topology.Service) {
@@ -130,7 +130,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 	clientNode := ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			peerClu.Datacenter,
 			serverSID,
 			nil,

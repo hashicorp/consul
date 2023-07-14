@@ -106,7 +106,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 			Partition: partition,
 		}
 		svc := serviceExt{
-			Service: NewFortioServiceWithDefaults(
+			Service: newFortioServiceWithDefaults(
 				clu.Datacenter,
 				sid,
 				func(s *topology.Service) {
@@ -139,7 +139,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 	httpClient, httpClientNode := setupClientServiceAndConfigs("http")
 
 	httpServer := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			peerClu.Datacenter,
 			httpServerSID,
 			nil,
@@ -170,7 +170,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 		},
 	}
 	tcpServer := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Service: newFortioServiceWithDefaults(
 			peerClu.Datacenter,
 			tcpServerSID,
 			nil,

@@ -65,7 +65,7 @@ func (s *ac7_2RotateLeaderSuite) setup(t *testing.T, ct *commonTopo) {
 	peer := LocalPeerName(peerClu, "default")
 	cluPeerName := LocalPeerName(clu, "default")
 
-	server := NewFortioServiceWithDefaults(
+	server := newFortioServiceWithDefaults(
 		peerClu.Datacenter,
 		topology.ServiceID{
 			Name:      prefix + "server-http",
@@ -84,7 +84,7 @@ func (s *ac7_2RotateLeaderSuite) setup(t *testing.T, ct *commonTopo) {
 		Peer:      peer,
 	}
 	// create client in us
-	client := NewFortioServiceWithDefaults(
+	client := newFortioServiceWithDefaults(
 		clu.Datacenter,
 		topology.ServiceID{
 			Name:      prefix + "client",

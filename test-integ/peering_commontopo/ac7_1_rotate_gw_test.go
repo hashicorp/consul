@@ -66,7 +66,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 	peer := LocalPeerName(peerClu, "default")
 	cluPeerName := LocalPeerName(clu, "default")
 
-	server := NewFortioServiceWithDefaults(
+	server := newFortioServiceWithDefaults(
 		peerClu.Datacenter,
 		topology.ServiceID{
 			Name:      prefix + "server-http",
@@ -87,7 +87,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 		Peer:         peer,
 	}
 	// create client in us
-	client := NewFortioServiceWithDefaults(
+	client := newFortioServiceWithDefaults(
 		clu.Datacenter,
 		topology.ServiceID{
 			Name:      prefix + "client",
@@ -146,7 +146,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 
 	// add a second mesh gateway "new"
 	s.newMGWNodeName = fmt.Sprintf("new-%s-default-mgw", clu.Name)
-	clu.Nodes = append(clu.Nodes, NewTopologyMeshGatewaySet(
+	clu.Nodes = append(clu.Nodes, newTopologyMeshGatewaySet(
 		topology.NodeKindClient,
 		"default",
 		s.newMGWNodeName,

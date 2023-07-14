@@ -87,7 +87,7 @@ func (s *ac6FailoversSuite) setupAC6Failovers(ct *commonTopo, clu, peerClu *topo
 			Name:      "ac6-failover-svc",
 			Partition: partition,
 		}
-		server := NewFortioServiceWithDefaults(
+		server := newFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
 			nil,
@@ -147,7 +147,7 @@ func (s *ac6FailoversSuite) setupAC6Failovers(ct *commonTopo, clu, peerClu *topo
 			Name:      "ac6-client",
 			Partition: partition,
 		}
-		client := NewFortioServiceWithDefaults(
+		client := newFortioServiceWithDefaults(
 			clu.Datacenter,
 			clientSID,
 			func(s *topology.Service) {
@@ -245,7 +245,7 @@ func (s *ac6FailoversSuite) setupAC6FailoversDC3(ct *commonTopo, clu, peer1, pee
 	partition := "default"
 
 	// Make an HTTP server
-	server := NewFortioServiceWithDefaults(
+	server := newFortioServiceWithDefaults(
 		clu.Datacenter,
 		topology.ServiceID{
 			Name:      "ac6-failover-svc",
