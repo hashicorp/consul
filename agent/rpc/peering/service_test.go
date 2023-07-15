@@ -8,13 +8,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/internal/resource"
 	"net"
 	"os"
 	"path"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"

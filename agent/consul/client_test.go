@@ -7,13 +7,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/internal/resource"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"

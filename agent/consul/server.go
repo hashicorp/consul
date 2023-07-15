@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/internal/resource"
 	"io"
 	"net"
 	"os"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-connlimit"
