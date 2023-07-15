@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/internal/resource"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
@@ -576,6 +578,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
+		Registry:                 resource.NewRegistry(),
 	}
 }
 
