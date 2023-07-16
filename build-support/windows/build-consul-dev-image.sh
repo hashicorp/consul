@@ -11,4 +11,4 @@ GOLDFLAGS=" -X $GIT_IMPORT.Version=$VERSION -X $GIT_IMPORT.VersionPrerelease=dev
 
 go build -ldflags "$GOLDFLAGS" -o ./dist/ .
 
-docker build -t build-support/windows/consul:${VERSION}-dev -f build-support/windows/Dockerfile-consul-dev-windows . --build-arg VERSION=${VERSION}
+docker build -t windows/consul:${VERSION}-dev -f build-support/windows/Dockerfile-consul-dev-windows . --build-arg VERSION=${VERSION}
