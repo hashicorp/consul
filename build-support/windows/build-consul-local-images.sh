@@ -81,7 +81,7 @@ docker build -t "${HASHICORP_DOCKER_PROXY}/windows/openzipkin" -f Dockerfile-ope
 # Build windows/consul:${VERSION} Image
 echo " "
 echo "Build windows/consul:${VERSION} Image"
-docker build -t "windows/consul:${VERSION}" -f ../Dockerfile-windows ../ --build-arg VERSION=${VERSION}
+docker build -t "windows/consul:${VERSION}" -f ../../Dockerfile-windows ../../ --build-arg VERSION=${VERSION}
 
 
 # Build windows/consul:${VERSION}-local Image
