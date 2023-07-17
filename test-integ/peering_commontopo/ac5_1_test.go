@@ -5,7 +5,7 @@ import (
 
 	"testing"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
@@ -142,4 +142,3 @@ func (s *serviceMeshDisabledSuite) testProxyDisabledInDC2(t *testing.T, cl *api.
 		require.NotContains(t, services, expected, fmt.Sprintf("error: should not create proxy for service: %s", services))
 	})
 }
-

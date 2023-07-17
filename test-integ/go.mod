@@ -3,11 +3,10 @@ module github.com/hashicorp/consul/test-integ
 go 1.20
 
 require (
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/hashicorp/consul/api v1.22.0
 	github.com/hashicorp/consul/sdk v0.14.0
 	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230628201853-bdf4fad7c5a5
-	github.com/hashicorp/consul/testingconsul v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/testing/deployer v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/itchyny/gojq v0.12.13
 	github.com/mitchellh/copystructure v1.2.0
@@ -29,6 +28,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/containerd/containerd v1.7.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v23.0.6+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -100,5 +100,5 @@ replace (
 	github.com/hashicorp/consul/proto-public => ../proto-public
 	github.com/hashicorp/consul/sdk => ../sdk
 	github.com/hashicorp/consul/test/integration/consul-container => ../test/integration/consul-container
-	github.com/hashicorp/consul/testingconsul => ../testingconsul
+	github.com/hashicorp/consul/testing/deployer => ../testing/deployer
 )
