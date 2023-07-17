@@ -1,3 +1,0 @@
-```release-note:improvement
-http: accept query parameters `datacenter`, `ap` (enterprise-only), and `namespace` (enterprise-only). Both short-hand and long-hand forms of these query params are now supported via the HTTP API (dc/datacenter, ap/partition, ns/namespace).
-```

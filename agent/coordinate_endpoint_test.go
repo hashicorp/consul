@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -134,7 +130,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 			Address:    "127.0.0.1",
 		}
 		var reply struct{}
-		if err := a.RPC(context.Background(), "Catalog.Register", &req, &reply); err != nil {
+		if err := a.RPC("Catalog.Register", &req, &reply); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -147,7 +143,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
 	var out struct{}
-	if err := a.RPC(context.Background(), "Coordinate.Update", &arg1, &out); err != nil {
+	if err := a.RPC("Coordinate.Update", &arg1, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -156,7 +152,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		Node:       "bar",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	if err := a.RPC(context.Background(), "Coordinate.Update", &arg2, &out); err != nil {
+	if err := a.RPC("Coordinate.Update", &arg2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(300 * time.Millisecond)
@@ -217,7 +213,7 @@ func TestCoordinate_Node(t *testing.T) {
 			Address:    "127.0.0.1",
 		}
 		var reply struct{}
-		if err := a.RPC(context.Background(), "Catalog.Register", &req, &reply); err != nil {
+		if err := a.RPC("Catalog.Register", &req, &reply); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -230,7 +226,7 @@ func TestCoordinate_Node(t *testing.T) {
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
 	var out struct{}
-	if err := a.RPC(context.Background(), "Coordinate.Update", &arg1, &out); err != nil {
+	if err := a.RPC("Coordinate.Update", &arg1, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -239,7 +235,7 @@ func TestCoordinate_Node(t *testing.T) {
 		Node:       "bar",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	if err := a.RPC(context.Background(), "Coordinate.Update", &arg2, &out); err != nil {
+	if err := a.RPC("Coordinate.Update", &arg2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(300 * time.Millisecond)
@@ -280,7 +276,7 @@ func TestCoordinate_Update(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 	var reply struct{}
-	if err := a.RPC(context.Background(), "Catalog.Register", &reg, &reply); err != nil {
+	if err := a.RPC("Catalog.Register", &reg, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -308,7 +304,7 @@ func TestCoordinate_Update(t *testing.T) {
 	// Query back and check the coordinates are present.
 	args := structs.NodeSpecificRequest{Node: "foo", Datacenter: "dc1"}
 	var coords structs.IndexedCoordinates
-	if err := a.RPC(context.Background(), "Coordinate.Node", &args, &coords); err != nil {
+	if err := a.RPC("Coordinate.Node", &args, &coords); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -345,8 +341,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("valid token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/coordinate/update", jsonReader(body))
-		req.Header.Add("X-Consul-Token", "root")
+		req, _ := http.NewRequest("PUT", "/v1/coordinate/update?token=root", jsonReader(body))
 		if _, err := a.srv.CoordinateUpdate(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}

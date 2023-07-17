@@ -1,3 +1,0 @@
-```release-note:improvement
-command: Allow creating ACL Token TTL with greater than 24 hours with the -expires-ttl flag.
-```

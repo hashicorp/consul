@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
@@ -25,8 +22,8 @@ func TestMerge(t *testing.T) {
 				{RaftProtocol: pInt(2)},
 				{ServerMode: pBool(false)},
 				{ServerMode: pBool(true)},
-				{RetryJoinLAN: []string{"a"}},
-				{RetryJoinLAN: []string{"b"}},
+				{StartJoinAddrsLAN: []string{"a"}},
+				{StartJoinAddrsLAN: []string{"b"}},
 				{NodeMeta: map[string]string{"a": "b"}},
 				{NodeMeta: map[string]string{"c": "d"}},
 				{NodeMeta: map[string]string{"c": "e"}},
@@ -34,10 +31,10 @@ func TestMerge(t *testing.T) {
 				{Ports: Ports{DNS: pInt(2), HTTP: pInt(3)}},
 			},
 			Config{
-				AdvertiseAddrLAN: pString("b"),
-				RaftProtocol:     pInt(2),
-				ServerMode:       pBool(true),
-				RetryJoinLAN:     []string{"a", "b"},
+				AdvertiseAddrLAN:  pString("b"),
+				RaftProtocol:      pInt(2),
+				ServerMode:        pBool(true),
+				StartJoinAddrsLAN: []string{"a", "b"},
 				NodeMeta: map[string]string{
 					"a": "b",
 					"c": "e",

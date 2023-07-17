@@ -1,3 +1,0 @@
-```release-note:breaking-change
-api: The `/v1/health/connect/` and `/v1/health/ingress/` endpoints now immediately return 403 "Permission Denied" errors whenever a token with insufficient `service:read` permissions is provided. Prior to this change, the endpoints returned a success code with an empty result list when a token with insufficient permissions was provided.
-```

@@ -1,7 +1,4 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 
 # Ensure that the environment variables required to configure and invoke the Lambda function are present, otherwise skip.
 # Note that `set | grep ...` is used here because we cannot check the vars directly. If they are unbound the test will

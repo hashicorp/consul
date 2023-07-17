@@ -6,6 +6,7 @@ Local:            false
 Auth Method:      bar (Namespace: baz)
 Create Time:      2020-05-22 18:52:31 +0000 UTC
 Expiration Time:  2020-05-22 19:52:31 +0000 UTC
+Legacy:           false
 Policies:
    beb04680-815b-4d7c-9e33-3d707c24672c - hobbiton
    18788457-584c-4812-80d3-23d403148a90 - bywater

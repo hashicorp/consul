@@ -1,12 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package create
 
 import (
 	"crypto"
 	"crypto/x509"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -132,9 +130,9 @@ func expectFiles(t *testing.T, caPath, keyPath string) (*x509.Certificate, crypt
 		t.Fatalf("private key file %s: permissions: want: %o; have: %o", keyPath, want, have)
 	}
 
-	caData, err := os.ReadFile(caPath)
+	caData, err := ioutil.ReadFile(caPath)
 	require.NoError(t, err)
-	keyData, err := os.ReadFile(keyPath)
+	keyData, err := ioutil.ReadFile(keyPath)
 	require.NoError(t, err)
 
 	ca, err := connect.ParseCert(string(caData))

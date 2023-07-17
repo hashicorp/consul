@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peerstream
 
 import (
@@ -8,14 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peerstream
 
 import (
@@ -10,12 +7,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/pbservice"
 )
 
 // subscriptionState is a collection of working state tied to a peerID subscription.
@@ -169,15 +166,15 @@ func (p *pendingPayload) Add(id string, correlationID string, raw interface{}) e
 
 func hashProtobuf(res proto.Message) (string, error) {
 	h := sha256.New()
-	marshaller := proto.MarshalOptions{
-		Deterministic: true,
-	}
+	buffer := proto.NewBuffer(nil)
+	buffer.SetDeterministic(true)
 
-	data, err := marshaller.Marshal(res)
+	err := buffer.Marshal(res)
 	if err != nil {
 		return "", err
 	}
-	h.Write(data)
+	h.Write(buffer.Bytes())
+	buffer.Reset()
 
 	return hex.EncodeToString(h.Sum(nil)), nil
 }

@@ -7,7 +7,7 @@ description: >-
 
 # Register a Service Mesh Proxy Outside of a Service Registration
 
-This topic describes how to declare a service mesh proxy in a service definition. The `kind` must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
+This topic describes how to declare a proxy as a `connect-proxy` in service definitions. The `kind` must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
 
 
 ## Configuration
@@ -53,7 +53,7 @@ You can specify several additional parameters to configure the proxy to meet you
 
 ### Example
 
-In the following example, a proxy named `redis-proxy` is registered as a service mesh proxy. It proxies to the `redis` service and is available at port `8181`. As a result, any service mesh clients searching for a mesh-capable endpoint for `redis` will find this proxy.
+In the following example, a proxy named `redis-proxy` is registered as a service mesh proxy. It proxies to the `redis` service and is available at port `8181`. As a result, any service mesh clients searching for a Connect-capable endpoint for `redis` will find this proxy.
 
 <CodeTabs heading="Minimal example of a service mesh proxy">
 
@@ -90,7 +90,7 @@ Specify the following parameters in the `proxy` code block to configure a sideca
 * `local_service_port`: Integer value that specifies the port that the proxy should use to connect to the _local_ service instance. Refer to the [proxy parameters reference](#local-service-port) for details.
 * `local_service_address`: String value that specifies the IP address or hostname that the proxy should use to connect to the _local_ service. Refer to the [proxy parameters reference](#local-service-address) for details.
 
-See [Sidecar Service Registration](/consul/docs/connect/registration/sidecar-service) for additional information about configuring service mesh proxies as sidecars.
+See [Sidecar Service Registration](/docs/connect/registration/sidecar-service) for additional information about configuring service mesh proxies as sidecars.
 
 ### Complete Configuration Example
 
@@ -174,7 +174,7 @@ You can configure the service mesh proxy to create listeners for upstream servic
 | `local_bind_socket_mode` | String value that specifies a Unix octal that configures file permissions for the socket. | Optional | None |
 | `destination_type` | String value that specifies the type of discovery query the proxy should use for finding service mesh instances. The following values are supported: <li>`service`: Queries for upstream `service` types. </li><li> `prepared_query`: Queries for upstream prepared queries.</li> | Optional | `service` |
 | `datacenter` | String value that specifies the datacenter to issue the discovery query to. | Optional | Defaults to the local datacenter. |
-| `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/consul/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/consul/docs/connect/proxies/envoy#proxy-upstream-config-options) | Optional | None |
+| `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/docs/connect/proxies/envoy#proxy-upstream-config-options) | Optional | None |
 | `mesh_gateway` | Object that defines the mesh gateway configuration for the proxy. Refer to the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for configuration details. | Optional | None |
 
 ### Upstream Configuration Examples
@@ -378,7 +378,7 @@ The following examples show all possible mesh gateway configurations.
 The following examples show possible configurations to expose HTTP paths through Envoy.
 
 Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
-non-mesh-enabled applications to contact an HTTP endpoint.
+non-Connect-enabled applications to contact an HTTP endpoint.
 Some examples include: exposing a `/metrics` path for Prometheus or `/healthz` for kubelet liveness checks.
  
 Note that the examples in this topic use snake case, which is a convention that separates words with underscores, because the format is supported in configuration files and API registrations.
@@ -428,8 +428,8 @@ Note that the examples in this topic use snake case, which is a convention that 
 
 - `checks` `(bool: false)` - If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
   Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-  [advertise address](/consul/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
-  [expose_min_port](/consul/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/consul/docs/agent/config/config-files#expose_max_port).
+  [advertise address](/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
+  [expose_min_port](/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/docs/agent/config/config-files#expose_max_port).
   This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
   Consul on Kubernetes, and Consul agents run in their own pods.
 - `paths` `array<Path>: []` - A list of paths to expose through Envoy.

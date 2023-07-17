@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import RepositoryService from 'consul-ui/services/repository';
 import { set } from '@ember/object';
 import { ACCESS_READ } from 'consul-ui/abilities/base';

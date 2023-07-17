@@ -1,14 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@layer utilities {
-  .consul-surface-nav {
-    background: var(--token-color-palette-neutral-700);
-  }
-}

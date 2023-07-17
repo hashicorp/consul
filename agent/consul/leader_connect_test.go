@@ -1,12 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,7 +13,7 @@ import (
 	"time"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/go-uuid"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 
@@ -254,7 +252,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 			retry.Run(t, func(r *retry.R) {
 				_, caRoot = getCAProviderWithLock(s1)
 				secondaryProvider, _ = getCAProviderWithLock(s2)
-				intermediatePEM, err = secondaryProvider.ActiveLeafSigningCert()
+				intermediatePEM, err = secondaryProvider.ActiveIntermediate()
 				require.NoError(r, err)
 
 				// Sanity check CA is using the correct key type
@@ -581,7 +579,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 
 	// Get the original intermediate
 	secondaryProvider, _ := getCAProviderWithLock(s2)
-	oldIntermediatePEM, err := secondaryProvider.ActiveLeafSigningCert()
+	oldIntermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(t, err)
 	require.NotEmpty(t, oldIntermediatePEM)
 
@@ -617,7 +615,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 		}
 		var reply interface{}
 
-		require.NoError(t, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	var updatedRoot *structs.CARoot
@@ -634,7 +632,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	// Wait for dc2's intermediate to be refreshed.
 	var intermediatePEM string
 	retry.Run(t, func(r *retry.R) {
-		intermediatePEM, err = secondaryProvider.ActiveLeafSigningCert()
+		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
 		r.Check(err)
 		if intermediatePEM == oldIntermediatePEM {
 			r.Fatal("not a new intermediate")
@@ -856,7 +854,7 @@ func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 		require.NotNil(r, provider)
 		require.NotNil(r, activeRoot)
 
-		activeIntermediate, err := provider.ActiveLeafSigningCert()
+		activeIntermediate, err := provider.ActiveIntermediate()
 		require.NoError(r, err)
 
 		intermediateCert, err := connect.ParseCert(activeIntermediate)
@@ -957,7 +955,7 @@ func TestCAManager_Initialize_FixesSigningKeyID_Secondary(t *testing.T) {
 		require.NotNil(r, provider)
 		require.NotNil(r, activeRoot)
 
-		activeIntermediate, err := provider.ActiveLeafSigningCert()
+		activeIntermediate, err := provider.ActiveIntermediate()
 		require.NoError(r, err)
 
 		intermediateCert, err := connect.ParseCert(activeIntermediate)
@@ -1013,7 +1011,7 @@ func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	args := structs.DCSpecificRequest{Datacenter: "dc2"}
 	var dc2PrimaryRoots structs.IndexedCARoots
-	require.NoError(t, s2.RPC(context.Background(), "ConnectCA.Roots", &args, &dc2PrimaryRoots))
+	require.NoError(t, s2.RPC("ConnectCA.Roots", &args, &dc2PrimaryRoots))
 	require.Len(t, dc2PrimaryRoots.Roots, 1)
 
 	// Shutdown s2 and restart it with the dc1 as the primary
@@ -1036,12 +1034,12 @@ func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		args = structs.DCSpecificRequest{Datacenter: "dc1"}
 		var dc1Roots structs.IndexedCARoots
-		require.NoError(r, s1.RPC(context.Background(), "ConnectCA.Roots", &args, &dc1Roots))
+		require.NoError(r, s1.RPC("ConnectCA.Roots", &args, &dc1Roots))
 		require.Len(r, dc1Roots.Roots, 1)
 
 		args = structs.DCSpecificRequest{Datacenter: "dc2"}
 		var dc2SecondaryRoots structs.IndexedCARoots
-		require.NoError(r, s3.RPC(context.Background(), "ConnectCA.Roots", &args, &dc2SecondaryRoots))
+		require.NoError(r, s3.RPC("ConnectCA.Roots", &args, &dc2SecondaryRoots))
 
 		// dc2's TrustDomain should have changed to the primary's
 		require.Equal(r, dc2SecondaryRoots.TrustDomain, dc1Roots.TrustDomain)
@@ -1146,13 +1144,13 @@ func TestCAManager_Initialize_SecondaryBeforePrimary(t *testing.T) {
 		require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
 
 		secondaryProvider, _ := getCAProviderWithLock(s2)
-		inter, err := secondaryProvider.ActiveLeafSigningCert()
+		inter, err := secondaryProvider.ActiveIntermediate()
 		require.NoError(r, err)
 		require.NotEmpty(r, inter, "should have valid intermediate")
 	})
 
 	secondaryProvider, _ := getCAProviderWithLock(s2)
-	intermediatePEM, err := secondaryProvider.ActiveLeafSigningCert()
+	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(t, err)
 
 	_, caRoot := getCAProviderWithLock(s1)
@@ -1194,7 +1192,7 @@ func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *struc
 		Datacenter: datacenter,
 	}
 	var rootList structs.IndexedCARoots
-	if err := s.RPC(context.Background(), "ConnectCA.Roots", rootReq, &rootList); err != nil {
+	if err := s.RPC("ConnectCA.Roots", rootReq, &rootList); err != nil {
 		return nil, nil, err
 	}
 
@@ -1354,24 +1352,20 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 
 func TestNewCARoot(t *testing.T) {
 	type testCase struct {
-		name            string
-		pem             string
-		intermediatePem string
-		expected        *structs.CARoot
-		expectedErr     string
+		name        string
+		pem         string
+		expected    *structs.CARoot
+		expectedErr string
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		root, err := newCARoot(ca.CAChainResult{
-			PEM:             tc.pem,
-			IntermediatePEM: tc.intermediatePem,
-		}, "provider-name", "cluster-id")
+		root, err := newCARoot(tc.pem, "provider-name", "cluster-id")
 		if tc.expectedErr != "" {
 			testutil.RequireErrorContains(t, err, tc.expectedErr)
 			return
 		}
 		require.NoError(t, err)
-		assert.DeepEqual(t, tc.expected, root)
+		assert.DeepEqual(t, root, tc.expected)
 	}
 
 	// Test certs can be generated with
@@ -1468,28 +1462,6 @@ func TestNewCARoot(t *testing.T) {
 				PrivateKeyBits:      256,
 			},
 		},
-		{
-			// Although the intermediate pem doesn't have pem as the issuer
-			// as in a real certificate chain, we are testing that the IntermediateCerts
-			// are being populated and that the signing key is from the intermediatePem.
-			name:            "pem with intermediate pem",
-			pem:             readTestData(t, "cert-with-rsa-4096-key.pem"),
-			intermediatePem: readTestData(t, "cert-with-ec-256-key.pem"),
-			expected: &structs.CARoot{
-				ID:                  "3a:6a:e3:e2:2d:44:85:5a:e9:44:3b:ef:d2:90:78:83:7f:61:a2:84",
-				Name:                "Provider-Name CA Primary Cert",
-				SerialNumber:        5186695743100577491,
-				SigningKeyID:        "97:4d:17:81:64:f8:b4:af:05:e8:6c:79:c5:40:3b:0e:3e:8b:c0:ae:38:51:54:8a:2f:05:db:e3:e8:e4:24:ec",
-				ExternalTrustDomain: "cluster-id",
-				NotBefore:           time.Date(2019, 10, 17, 11, 53, 15, 0, time.UTC),
-				NotAfter:            time.Date(2029, 10, 17, 11, 53, 15, 0, time.UTC),
-				RootCert:            readTestData(t, "cert-with-rsa-4096-key.pem"),
-				IntermediateCerts:   []string{readTestData(t, "cert-with-ec-256-key.pem")},
-				Active:              true,
-				PrivateKeyType:      "rsa",
-				PrivateKeyBits:      4096,
-			},
-		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1501,7 +1473,7 @@ func TestNewCARoot(t *testing.T) {
 func readTestData(t *testing.T, name string) string {
 	t.Helper()
 	path := filepath.Join("testdata", name)
-	bs, err := os.ReadFile(path)
+	bs, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed reading fixture file %s: %s", name, err)
 	}
@@ -1615,7 +1587,7 @@ func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment
 		var reply interface{}
 
 		retry.Run(t, func(r *retry.R) {
-			require.NoError(r, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
+			require.NoError(r, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
 		})
 	}
 
@@ -1657,7 +1629,7 @@ func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *te
 		var reply interface{}
 
 		retry.Run(t, func(r *retry.R) {
-			require.NoError(r, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
+			require.NoError(r, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
 		})
 	}
 

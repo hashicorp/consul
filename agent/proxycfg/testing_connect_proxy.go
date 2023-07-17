@@ -1,20 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -23,11 +17,11 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	assert.True(t, dbChain.Default)
 
 	var (
-		upstreams   = structs.TestUpstreams(t, false)
+		upstreams   = structs.TestUpstreams(t)
 		dbUpstream  = upstreams[0]
 		geoUpstream = upstreams[1]
 
@@ -48,7 +42,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.SimplifiedIntentions{}, // no intentions defined
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -97,25 +91,19 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 func TestConfigSnapshotDiscoveryChain(
 	t testing.T,
 	variation string,
-	enterprise bool,
 	nsFn func(ns *structs.NodeService),
 	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
-	var entMeta acl.EnterpriseMeta
-	if enterprise {
-		entMeta = acl.NewEnterpriseMetaWithPartition("ap1", "ns1")
-	}
-
 	var (
-		upstreams   = structs.TestUpstreams(t, enterprise)
+		upstreams   = structs.TestUpstreams(t)
 		geoUpstream = upstreams[1]
 
 		geoUID = NewUpstreamID(&geoUpstream)
 
-		webSN = structs.ServiceIDString("web", &entMeta)
+		webSN = structs.ServiceIDString("web", nil)
 	)
 
 	baseEvents := testSpliceEvents([]UpdateEvent{
@@ -129,7 +117,7 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.SimplifiedIntentions{}, // no intentions defined
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: meshConfigEntryID,
@@ -148,7 +136,7 @@ func TestConfigSnapshotDiscoveryChain(
 			},
 		},
 	}, setupTestVariationConfigEntriesAndSnapshot(
-		t, variation, enterprise, upstreams, additionalEntries...,
+		t, variation, upstreams, additionalEntries...,
 	))
 
 	return testConfigSnapshotFixture(t, &structs.NodeService{
@@ -167,7 +155,6 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		Meta:            nil,
 		TaggedAddresses: nil,
-		EnterpriseMeta:  entMeta,
 	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
 }
 
@@ -188,7 +175,7 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.SimplifiedIntentions{}, // no intentions defined
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -293,59 +280,11 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.SimplifiedIntentions{}, // no intentions defined
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("grpc", nil),
 			Result:        []structs.CheckType{},
-		},
-	})
-}
-
-// TestConfigSnapshotTelemetryCollector returns a fully populated snapshot using a discovery chain
-func TestConfigSnapshotTelemetryCollector(t testing.T) *ConfigSnapshot {
-	// DiscoveryChain without an UpstreamConfig should yield a
-	// filter chain when in transparent proxy mode
-	var (
-		collector      = structs.NewServiceName(api.TelemetryCollectorName, nil)
-		collectorUID   = NewUpstreamIDFromServiceName(collector)
-		collectorChain = discoverychain.TestCompileConfigEntries(t, api.TelemetryCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-	)
-
-	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
-		ns.Proxy.Config = map[string]interface{}{
-			"envoy_telemetry_collector_bind_socket_dir": "/tmp/consul/telemetry-collector",
-		}
-	}, []UpdateEvent{
-		{
-			CorrelationID: meshConfigEntryID,
-			Result: &structs.ConfigEntryResponse{
-				Entry: nil,
-			},
-		},
-		{
-			CorrelationID: "discovery-chain:" + collectorUID.String(),
-			Result: &structs.DiscoveryChainResponse{
-				Chain: collectorChain,
-			},
-		},
-		{
-			CorrelationID: fmt.Sprintf("upstream-target:%s.default.default.dc1:", api.TelemetryCollectorName) + collectorUID.String(),
-			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: []structs.CheckServiceNode{
-					{
-						Node: &structs.Node{
-							Address:    "8.8.8.8",
-							Datacenter: "dc1",
-						},
-						Service: &structs.NodeService{
-							Service: api.TelemetryCollectorName,
-							Address: "9.9.9.9",
-							Port:    9090,
-						},
-					},
-				},
-			},
 		},
 	})
 }

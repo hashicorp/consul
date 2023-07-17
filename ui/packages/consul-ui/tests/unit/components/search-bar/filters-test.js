@@ -1,14 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { filters } from 'consul-ui/components/search-bar/utils';
 import { module, test } from 'qunit';
 
 module('Unit | Component | search-bar/filters', function () {
   test('it correctly reshapes the filter data', function (assert) {
-    assert.expect(5);
     [
       // basic filter, returns a single filter button when clicked
       // resets selected/queryparam to empty

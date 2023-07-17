@@ -1,10 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package lock
 
 import (
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -66,7 +63,7 @@ func TestLockCommand(t *testing.T) {
 	}
 
 	// Check for the file
-	_, err := os.ReadFile(filePath)
+	_, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -95,7 +92,7 @@ func TestLockCommand_NoShell(t *testing.T) {
 	}
 
 	// Check for the file
-	_, err := os.ReadFile(filePath)
+	_, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -124,7 +121,7 @@ func TestLockCommand_TryLock(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := os.ReadFile(filePath)
+	_, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -162,7 +159,7 @@ func TestLockCommand_TrySemaphore(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := os.ReadFile(filePath)
+	_, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -200,7 +197,7 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := os.ReadFile(filePath)
+	_, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -239,7 +236,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := os.ReadFile(filePath)
+	_, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -278,7 +275,7 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := os.ReadFile(filePath)
+	_, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -317,7 +314,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := os.ReadFile(filePath)
+	_, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

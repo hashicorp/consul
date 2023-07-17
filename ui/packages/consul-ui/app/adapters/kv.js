@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Adapter from './application';
 import isFolder from 'consul-ui/utils/isFolder';
 import keyToArray from 'consul-ui/utils/keyToArray';

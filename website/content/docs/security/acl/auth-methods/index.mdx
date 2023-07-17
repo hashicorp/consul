@@ -27,17 +27,17 @@ integrations allow for these credentials to be used to create ACL tokens with
 properly-scoped policies without additional operator intervention.
 
 In Consul 1.5.0 the focus is around simplifying the creation of tokens with the
-privileges necessary to participate in a [service mesh](/consul/docs/connect)
-with minimal operator intervention.
+privileges necessary to participate in a [Connect](/docs/connect)
+service mesh with minimal operator intervention.
 
 ## Supported Types
 
 | Types                                             | Consul Version                    |
 | ------------------------------------------------- | --------------------------------- |
-| [`kubernetes`](/consul/docs/security/acl/auth-methods/kubernetes) | 1.5.0+                            |
-| [`jwt`](/consul/docs/security/acl/auth-methods/jwt)               | 1.8.0+                            |
-| [`oidc`](/consul/docs/security/acl/auth-methods/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
-| [`aws-iam`](/consul/docs/security/acl/auth-methods/aws-iam)       | 1.12.0+                           |
+| [`kubernetes`](/docs/security/acl/auth-methods/kubernetes) | 1.5.0+                            |
+| [`jwt`](/docs/security/acl/auth-methods/jwt)               | 1.8.0+                            |
+| [`oidc`](/docs/security/acl/auth-methods/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
+| [`aws-iam`](/docs/security/acl/auth-methods/aws-iam)       | 1.12.0+                           |
 
 ## Operator Configuration
 
@@ -48,7 +48,7 @@ using the API or command line before they can be used by applications.
   details about how to authenticate application credentials. Successful
   validation of application credentials will return a set of trusted identity
   attributes (such as a username). These can be managed with the `consul acl auth-method` subcommands or the corresponding [API
-  endpoints](/consul/api-docs/acl/auth-methods). The specific details of
+  endpoints](/api-docs/acl/auth-methods). The specific details of
   configuration are type dependent and described in their own documentation
   pages.
 
@@ -56,10 +56,10 @@ using the API or command line before they can be used by applications.
   how to translate trusted identity attributes from each auth method into
   privileges assigned to the ACL token that is created. These can be managed
   with the `consul acl binding-rule` subcommands or the corresponding [API
-  endpoints](/consul/api-docs/acl/binding-rules).
+  endpoints](/api-docs/acl/binding-rules).
 
 -> **Note** - To configure auth methods in any connected secondary datacenter,
-[ACL token replication](/consul/docs/agent/config/config-files#acl_enable_token_replication)
+[ACL token replication](/docs/agent/config/config-files#acl_enable_token_replication)
 must be enabled. Auth methods require the ability to create local tokens which
 is restricted to the primary datacenter and any secondary datacenters with ACL
 token replication enabled.
@@ -67,8 +67,8 @@ token replication enabled.
 ## Binding Rules
 
 Binding rules allow an operator to express a systematic way of automatically
-linking [roles](/consul/docs/security/acl/acl-roles) and [service
-identities](/consul/docs/security/acl/acl-roles#service-identities) to newly created
+linking [roles](/docs/security/acl/acl-roles) and [service
+identities](/docs/security/acl/acl-roles#service-identities) to newly created
 tokens without operator intervention.
 
 Successful authentication with an auth method returns a set of trusted
@@ -82,12 +82,12 @@ Each binding rule is composed of two portions:
 - **Selector** - A logical query that must match the trusted identity
   attributes for the binding rule to be applicable to a given login attempt.
   The syntax uses github.com/hashicorp/go-bexpr which is shared with the [API
-  filtering feature](/consul/api-docs/features/filtering). For example:
+  filtering feature](/api-docs/features/filtering). For example:
   `"serviceaccount.namespace==default and serviceaccount.name!=vault"`
 
 - **Bind Type and Name** - A binding rule can bind a token to a
-  [role](/consul/docs/security/acl/acl-roles) or to a [service
-  identity](/consul/docs/security/acl/acl-roles#service-identities) by name. The name
+  [role](/docs/security/acl/acl-roles) or to a [service
+  identity](/docs/security/acl/acl-roles#service-identities) by name. The name
   can be specified with a plain string or the bind name can be lightly
   templated using [HIL syntax](https://github.com/hashicorp/hil) to interpolate
   the same values that are usable by the `Selector` syntax. For example:
@@ -104,7 +104,7 @@ bearer token for a Consul ACL token by using the login process:
 ![diagram of auth method login](/img/auth-methods.svg)
 
 1. Applications use the `consul login` subcommand or the [login API
-   endpoint](/consul/api-docs/acl#login-to-auth-method) to authenticate to a
+   endpoint](/api-docs/acl#login-to-auth-method) to authenticate to a
    specific auth method using their local Consul client. Applications provide
    both the name of the auth method and a secret bearer token during login.
 
@@ -130,7 +130,7 @@ bearer token for a Consul ACL token by using the login process:
 8. The Consul client returns the token details back to the application.
 
 9. (later) Applications SHOULD use the `consul logout` subcommand or the
-   [logout API endpoint](/consul/api-docs/acl#logout-from-auth-method) to destroy
+   [logout API endpoint](/api-docs/acl#logout-from-auth-method) to destroy
    their token when it is no longer required.
 
 For more details about specific auth methods and how to configure them, click

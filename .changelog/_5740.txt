@@ -1,3 +1,0 @@
-```release-note:feature
-api: (Enterprise only) Add `POST /v1/operator/audit-hash` endpoint to calculate the hash of the data used by the audit log hash function and salt.
-```

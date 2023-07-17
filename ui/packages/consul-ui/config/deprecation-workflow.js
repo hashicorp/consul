@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /* eslint-disable no-undef */
 self.deprecationWorkflow = self.deprecationWorkflow || {};
 self.deprecationWorkflow.config = {

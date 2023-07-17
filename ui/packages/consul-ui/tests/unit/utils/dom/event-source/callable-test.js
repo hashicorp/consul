@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import domEventSourceCallable, { defaultRunner } from 'consul-ui/utils/dom/event-source/callable';
 import { module, test } from 'qunit';
 import sinon from 'sinon';
@@ -58,7 +53,7 @@ module('Unit | Utility | dom/event-source/callable', function () {
       dispatchEvent: sinon.stub(),
     };
     defaultRunner(target, configuration, isClosed);
-    assert.equal(then.callCount, 10);
+    assert.ok(then.callCount == 10);
     assert.ok(target.dispatchEvent.calledOnce);
   });
   test('it calls the defaultRunner', function (assert) {

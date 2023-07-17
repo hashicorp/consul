@@ -11,7 +11,7 @@ description: >-
 
 - **Simplified Service Mesh Deployments with Consul Dataplane:** Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. A new component `consul-dataplane` is now injected as a sidecar-proxy instead of plain Envoy. `consul-dataplane` manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers. All service mesh consul-k8s components are configured to talk directly to Consul servers.
 
-- **Cluster Peering GA with Peering over Mesh Gateways:** This version promotes Cluster Peering, a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. Cluster Peering on Consul K8s now enables [Cluster Peering with Control Plane traffic routed via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) by default instead of provisioning load balancers using the `servers.exposeServers` stanza. In addtion, failover for service to service traffic over Cluster Peering can be configured through the `failover.targets` field in the [ServiceResolver](/consul/docs/connect/config-entries/service-resolver#targets) CRD.  
+- **Cluster Peering GA with Peering over Mesh Gateways:** This version promotes Cluster Peering, a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. Cluster Peering on Consul K8s now enables [Cluster Peering with Control Plane traffic routed via Mesh Gateways](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) by default instead of provisioning load balancers using the `servers.exposeServers` stanza. In addtion, failover for service to service traffic over Cluster Peering can be configured through the `failover.targets` field in the [ServiceResolver](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver#targets) CRD.  
   
 - **Consul API Gateway 0.5.0 Support:** Support to run Consul API Gateway without clients and allow Consul API Gateway to directly connect to Consul servers. 
 
@@ -19,7 +19,7 @@ description: >-
 
 - `client.enabled` now defaults to `false`. Setting it to true will deploy client agents, however, none of the consul-k8s components will use clients for their operation. For Vault on Kubernetes using Consul deployed on Kubernetes as a storage backend, `client.enabled` should be set to `true` prior to upgrading.
 - `externalServers.grpcPort` default is now 8502 instead of 8503.
-- `sync-catalog` now communicates directly to Consul servers. When communicating to servers outside of Kubernetes, use the `externalServers.hosts` stanza as described in [Join External Servers to Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes). 
+- `sync-catalog` now communicates directly to Consul servers. When communicating to servers outside of Kubernetes, use the `externalServers.hosts` stanza as described in [Join External Servers to Consul on Kubernetes](/docs/k8s/deployment-configurations/servers-outside-kubernetes). 
 - Consul snapshot agent runs as a sidecar to Consul servers. <EnterpriseAlert inline />
   - `client.snapshotAgent` values are moved to `server.snapshotAgent`, with the exception of the following values: `client.snaphostAgent.replicas`, `client.snaphostAgent.serviceAccount`
   - `global.secretsBackend.vault.consulSnapshotAgentRole` value is now removed. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets. 
@@ -39,14 +39,14 @@ description: >-
 
 ~> **Note:** Consul 1.13.x and 1.12.x is not supported. Please use Consul K8s 0.49.x if you want to use Consul 1.13.x or 1.12.x. 
 - Consul 1.14.x. 
-- Consul Dataplane v1.0.x. Refer to [Envoy and Consul Dataplane](/consul/docs/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version. 
+- Consul Dataplane v1.0.x. Refer to [Envoy and Consul Dataplane](/docs/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version. 
 - Kubernetes 1.22.x - 1.25.x
 - `kubectl` 1.22.x - 1.25.x 
 - Helm 3.6+
 
 ## Upgrading
 
-For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/k8s/upgrade)
+For detailed information on upgrading, please refer to the [Upgrades page](/docs/k8s/upgrade)
 
 ## Known Issues
 
@@ -61,7 +61,3 @@ The changelogs for this major release version and any maintenance versions are l
 ~> **Note:** The following link takes you to the changelogs on the GitHub website.
 
 - [1.0.0](https://github.com/hashicorp/consul-k8s/releases/tag/v1.0.0)
-- [1.0.1](https://github.com/hashicorp/consul-k8s/releases/tag/v1.0.1)
-- [1.0.2](https://github.com/hashicorp/consul-k8s/releases/tag/v1.0.2)
-- [1.0.3](https://github.com/hashicorp/consul-k8s/releases/tag/v1.0.3)
-- [1.0.4](https://github.com/hashicorp/consul-k8s/releases/tag/v1.0.4)

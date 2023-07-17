@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package tokendelete
 
 import (
@@ -8,12 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTokenDeleteCommand_noTabs(t *testing.T) {
@@ -58,7 +54,7 @@ func TestTokenDeleteCommand(t *testing.T) {
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-token=root",
-		"-accessor-id=" + token.AccessorID,
+		"-id=" + token.AccessorID,
 	}
 
 	code := cmd.Run(args)
@@ -73,6 +69,5 @@ func TestTokenDeleteCommand(t *testing.T) {
 		token.AccessorID,
 		&api.QueryOptions{Token: "root"},
 	)
-	assert.ErrorContains(t, err, "Unexpected response code: 403")
-	assert.ErrorContains(t, err, "ACL not found")
+	assert.EqualError(t, err, "Unexpected response code: 403 (ACL not found)")
 }

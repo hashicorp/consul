@@ -30,9 +30,9 @@ load helpers
   CLUSTER_THRESHOLD=$(get_envoy_cluster_config localhost:19000 s2.default.primary | jq '.circuit_breakers.thresholds[0]')
   echo $CLUSTER_THRESHOLD
 
-  MAX_CONNS=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.max_connections')
-  MAX_PENDING_REQS=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.max_pending_requests')
-  MAX_REQS=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.max_requests')
+  MAX_CONNS=$(echo $CLUSTER_THRESHOLD | jq  --raw-output '.max_connections')
+  MAX_PENDING_REQS=$(echo $CLUSTER_THRESHOLD | jq  --raw-output '.max_pending_requests')
+  MAX_REQS=$(echo $CLUSTER_THRESHOLD | jq  --raw-output '.max_requests')
 
   echo "MAX_CONNS = $MAX_CONNS"
   echo "MAX_PENDING_REQS = $MAX_PENDING_REQS"

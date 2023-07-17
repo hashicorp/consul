@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 (function(doc, appName) {
   const fs = new Map(
     Object.entries(JSON.parse(doc.querySelector(`[data-${appName}-fs]`).textContent))

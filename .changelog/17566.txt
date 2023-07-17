@@ -1,3 +1,0 @@
-```release-note:bug
-xds: Fixed a bug where modifying ACLs on a token being actively used for an xDS connection caused all xDS updates to fail.
-```

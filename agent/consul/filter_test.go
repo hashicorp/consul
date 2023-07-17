@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -13,7 +10,7 @@ import (
 
 func TestFilter_DirEnt(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource(testFilterRules, nil, nil)
+	policy, _ := acl.NewPolicyFromSource(testFilterRules, acl.SyntaxLegacy, nil, nil)
 	aclR, _ := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 
 	type tcase struct {
@@ -55,7 +52,7 @@ func TestFilter_DirEnt(t *testing.T) {
 
 func TestFilter_TxnResults(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource(testFilterRules, nil, nil)
+	policy, _ := acl.NewPolicyFromSource(testFilterRules, acl.SyntaxLegacy, nil, nil)
 	aclR, _ := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 
 	type tcase struct {
@@ -104,16 +101,16 @@ func TestFilter_TxnResults(t *testing.T) {
 }
 
 var testFilterRules = `
-key_prefix "" {
+key "" {
 	policy = "deny"
 }
-key_prefix "foo/" {
+key "foo/" {
 	policy = "read"
 }
-key_prefix "foo/priv/" {
+key "foo/priv/" {
 	policy = "deny"
 }
-key_prefix "zip/" {
+key "zip/" {
 	policy = "read"
 }
 `

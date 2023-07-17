@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -16,7 +13,7 @@ func (s *HTTPHandlers) StatusLeader(resp http.ResponseWriter, req *http.Request)
 	}
 
 	var out string
-	if err := s.agent.RPC(req.Context(), "Status.Leader", &args, &out); err != nil {
+	if err := s.agent.RPC("Status.Leader", &args, &out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -29,7 +26,7 @@ func (s *HTTPHandlers) StatusPeers(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	var out []string
-	if err := s.agent.RPC(req.Context(), "Status.Peers", &args, &out); err != nil {
+	if err := s.agent.RPC("Status.Peers", &args, &out); err != nil {
 		return nil, err
 	}
 	return out, nil

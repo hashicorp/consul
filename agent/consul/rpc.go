@@ -1,16 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"strings"
 	"time"
@@ -30,7 +25,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -246,9 +240,6 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCGRPC:
 		s.grpcHandler.Handle(conn)
 
-	case pool.RPCRaftForwarding:
-		s.handleRaftForwarding(conn)
-
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.rpcLogger().Error("unrecognized RPC byte",
@@ -316,9 +307,6 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 
 	case pool.ALPN_RPCGRPC:
 		s.grpcHandler.Handle(tlsConn)
-
-	case pool.ALPN_RPCRaftForwarding:
-		s.handleRaftForwarding(tlsConn)
 
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
@@ -428,21 +416,13 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		}
 
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
-			//EOF or closed are not considered as errors.
-			if err == io.EOF || strings.Contains(err.Error(), "closed") {
-				return
+			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
+				s.rpcLogger().Error("RPC error",
+					"conn", logConn(conn),
+					"error", err,
+				)
+				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
-
-			metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
-			// When a rate-limiting error is returned, it's already logged, so skip logging.
-			if errors.Is(err, rate.ErrRetryLater) || errors.Is(err, rate.ErrRetryElsewhere) {
-				return
-			}
-
-			s.rpcLogger().Error("RPC error",
-				"conn", logConn(conn),
-				"error", err,
-			)
 			return
 		}
 		metrics.IncrCounter([]string{"rpc", "request"}, 1)
@@ -500,19 +480,6 @@ func (s *Server) handleRaftRPC(conn net.Conn) {
 
 	metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
 	s.raftLayer.Handoff(conn)
-}
-
-func (s *Server) handleRaftForwarding(conn net.Conn) {
-	if tlsConn, ok := conn.(*tls.Conn); ok {
-		err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
-		if err != nil {
-			s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft forwarding")
-			conn.Close()
-			return
-		}
-	}
-
-	s.raftStorageBackend.HandleConnection(conn)
 }
 
 func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
@@ -579,23 +546,8 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 	return c.lr.Read(b)
 }
 
-func getWaitTime(rpcHoldTimeout time.Duration, retryCount int) time.Duration {
-	const backoffMultiplier = 2.0
-
-	rpcHoldTimeoutInMilli := int(rpcHoldTimeout.Milliseconds())
-	initialBackoffInMilli := rpcHoldTimeoutInMilli / structs.JitterFraction
-
-	if initialBackoffInMilli < 1 {
-		initialBackoffInMilli = 1
-	}
-
-	waitTimeInMilli := initialBackoffInMilli * int(math.Pow(backoffMultiplier, float64(retryCount-1)))
-
-	return time.Duration(waitTimeInMilli) * time.Millisecond
-}
-
 // canRetry returns true if the request and error indicate that a retry is safe.
-func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config, retryableMessages []error) bool {
+func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
 	if info != nil {
 		timedOut, timeoutError := info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime)
 		if timeoutError != nil {
@@ -617,10 +569,9 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config, 
 		return true
 	}
 
-	for _, m := range retryableMessages {
-		if err != nil && strings.Contains(err.Error(), m.Error()) {
-			return true
-		}
+	// If we are chunking and it doesn't seem to have completed, try again.
+	if err != nil && strings.Contains(err.Error(), ErrChunkingResubmit.Error()) {
+		return true
 	}
 
 	// Reads are safe to retry for stream errors, such as if a server was
@@ -752,10 +703,7 @@ func (s *Server) canServeReadRequest(info structs.RPCInfo) bool {
 // See the comment for forwardRPC for more details.
 func (s *Server) forwardRequestToLeader(info structs.RPCInfo, forwardToLeader func(leader *metadata.Server) error) (handled bool, err error) {
 	firstCheck := time.Now()
-	retryCount := 0
-	previousJitter := time.Duration(0)
 CHECK_LEADER:
-	retryCount++
 	// Fail fast if we are in the process of leaving
 	select {
 	case <-s.leaveCh:
@@ -779,18 +727,9 @@ CHECK_LEADER:
 		}
 	}
 
-	retryableMessages := []error{
-		// If we are chunking and it doesn't seem to have completed, try again.
-		ErrChunkingResubmit,
-
-		rate.ErrRetryLater,
-	}
-
-	if retry := canRetry(info, rpcErr, firstCheck, s.config, retryableMessages); retry {
+	if retry := canRetry(info, rpcErr, firstCheck, s.config); retry {
 		// Gate the request until there is a leader
-		jitter := lib.RandomStaggerWithRange(previousJitter, getWaitTime(s.config.RPCHoldTimeout, retryCount))
-		previousJitter = jitter
-
+		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
 		select {
 		case <-time.After(jitter):
 			goto CHECK_LEADER
@@ -922,19 +861,21 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 }
 
 // raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
-// raftApplyEncoded.
+// raftApplyWithEncoder.
 func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.Encode)
 }
 
 // raftApplyProtobuf encodes the msg using protobuf and calls raft.Apply. See
-// raftApplyEncoded.
+// raftApplyWithEncoder.
 func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
 }
 
 // raftApplyWithEncoder encodes a message, and then calls raft.Apply with the
-// encoded message. See raftApplyEncoded.
+// encoded message. Returns the FSM response along with any errors. If the
+// FSM.Apply response is an error it will be returned as the error return
+// value with a nil response.
 func (s *Server) raftApplyWithEncoder(
 	t structs.MessageType,
 	msg interface{},
@@ -947,13 +888,7 @@ func (s *Server) raftApplyWithEncoder(
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}
-	return s.raftApplyEncoded(t, buf)
-}
 
-// raftApplyEncoded calls raft.Apply with the encoded message. Returns the FSM
-// response along with any errors. If the FSM.Apply response is an error it will
-// be returned as the error return value with a nil response.
-func (s *Server) raftApplyEncoded(t structs.MessageType, buf []byte) (any, error) {
 	// Warn if the command is very large
 	if n := len(buf); n > raftWarnSize {
 		s.rpcLogger().Warn("Attempting to apply large raft entry", "size_in_bytes", n)
@@ -1059,53 +994,37 @@ func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
 	}
 }
 
-func (s *Server) consistentReadWithContext(ctx context.Context) error {
+// consistentRead is used to ensure we do not perform a stale
+// read. This is done by verifying leadership before the read.
+func (s *Server) ConsistentRead() error {
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
 		return err // fail fast if leader verification fails
 	}
-
+	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
 	if s.isReadyForConsistentReads() {
 		return nil
 	}
+	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
+	deadline := time.Now().Add(s.config.RPCHoldTimeout)
 
-	// Poll until the context reaches its deadline, or for RPCHoldTimeout if the
-	// context has no deadline.
-	pollFor := s.config.RPCHoldTimeout
-	if deadline, ok := ctx.Deadline(); ok {
-		pollFor = time.Until(deadline)
-	}
+	for time.Now().Before(deadline) {
 
-	interval := pollFor / structs.JitterFraction
-	if interval <= 0 {
-		return structs.ErrNotReadyForConsistentReads
-	}
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for {
 		select {
-		case <-ticker.C:
-			if s.isReadyForConsistentReads() {
-				return nil
-			}
-		case <-ctx.Done():
-			return structs.ErrNotReadyForConsistentReads
+		case <-time.After(jitter):
+			// Drop through and check before we loop again.
+
 		case <-s.shutdownCh:
 			return fmt.Errorf("shutdown waiting for leader")
 		}
+
+		if s.isReadyForConsistentReads() {
+			return nil
+		}
 	}
-}
 
-// ConsistentRead is used to ensure we do not perform a stale
-// read. This is done by verifying leadership before the read.
-func (s *Server) ConsistentRead() error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.config.RPCHoldTimeout)
-	defer cancel()
-
-	return s.consistentReadWithContext(ctx)
+	return structs.ErrNotReadyForConsistentReads
 }
 
 // RPCQueryTimeout calculates the timeout for the query, ensures it is

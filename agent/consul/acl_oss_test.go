@@ -1,13 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
 package consul
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
@@ -30,7 +26,7 @@ func testRoleForIDEnterprise(string) (bool, *structs.ACLRole, error) {
 type EnterpriseACLResolverTestDelegate struct{}
 
 // RPC stub for the EnterpriseACLResolverTestDelegate
-func (d *EnterpriseACLResolverTestDelegate) RPC(context.Context, string, interface{}, interface{}) (bool, error) {
+func (d *EnterpriseACLResolverTestDelegate) RPC(string, interface{}, interface{}) (bool, error) {
 	return false, nil
 }
 

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -18,13 +15,11 @@ import (
 	gogrpc "google.golang.org/grpc"
 
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
-	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -42,7 +37,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	require.NoError(t, err)
 	defer server.Shutdown()
 
-	client, resolverBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
+	client, builder := newClientWithGRPCResolver(t, configureTLS, clientConfigVerifyOutgoing)
 
 	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
@@ -63,13 +58,13 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 			},
 		}
 		var out struct{}
-		require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
+		require.NoError(t, server.RPC("Catalog.Register", &req, &out))
 	}
 
 	// Start a Subscribe call to our streaming endpoint from the client.
 	{
 		pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-			Servers:               resolverBuilder,
+			Servers:               builder,
 			TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
 			UseTLSForDC:           client.tlsConfigurator.UseTLS,
 			DialingFromServer:     true,
@@ -113,7 +108,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	// Start a Subscribe call to our streaming endpoint from the server's loopback client.
 	{
 		pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-			Servers:               resolverBuilder,
+			Servers:               builder,
 			TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
 			UseTLSForDC:           client.tlsConfigurator.UseTLS,
 			DialingFromServer:     true,
@@ -192,7 +187,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	defer server.Shutdown()
 
 	// Set up a client with valid certs and verify_outgoing = true
-	client, resolverBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
+	client, builder := newClientWithGRPCResolver(t, configureTLS, clientConfigVerifyOutgoing)
 
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
@@ -200,7 +195,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	joinLAN(t, client, server)
 
 	pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-		Servers:               resolverBuilder,
+		Servers:               builder,
 		TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
 		UseTLSForDC:           client.tlsConfigurator.UseTLS,
 		DialingFromServer:     true,
@@ -284,7 +279,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	codec := rpcClient(t, server)
 	defer codec.Close()
 
-	client, resolverBuilder := newClientWithGRPCPlumbing(t)
+	client, builder := newClientWithGRPCResolver(t)
 
 	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
@@ -306,7 +301,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 			},
 		}
 		var out struct{}
-		require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
+		require.NoError(t, server.RPC("Catalog.Register", &req, &out))
 	}
 
 	// Start background writer
@@ -331,7 +326,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 				return
 			}
 			var out struct{}
-			require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
+			require.NoError(t, server.RPC("Catalog.Register", &req, &out))
 			req.Service.Port++
 			if req.Service.Port > 100 {
 				return
@@ -341,7 +336,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	}()
 
 	pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-		Servers:               resolverBuilder,
+		Servers:               builder,
 		TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
 		UseTLSForDC:           client.tlsConfigurator.UseTLS,
 		DialingFromServer:     true,
@@ -375,41 +370,36 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 		"at least some of the subscribers should have received non-snapshot updates")
 }
 
-func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
+func newClientWithGRPCResolver(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
 	_, config := testClientConfig(t)
 	for _, op := range ops {
 		op(config)
 	}
 
-	resolverBuilder := resolver.NewServerResolverBuilder(newTestResolverConfig(t,
+	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t,
 		"client."+config.Datacenter+"."+string(config.NodeID),
 		config.Datacenter,
 		"client",
 	))
 
-	resolver.Register(resolverBuilder)
+	resolver.Register(builder)
 	t.Cleanup(func() {
-		resolver.Deregister(resolverBuilder.Authority())
+		resolver.Deregister(builder.Authority())
 	})
-
-	balancerBuilder := balancer.NewBuilder(resolverBuilder.Authority(), testutil.Logger(t))
-	balancerBuilder.Register()
-	t.Cleanup(balancerBuilder.Deregister)
 
 	deps := newDefaultDeps(t, config)
 	deps.Router = router.NewRouter(
 		deps.Logger,
 		config.Datacenter,
 		fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter),
-		grpc.NewTracker(resolverBuilder, balancerBuilder),
-	)
+		builder)
 
 	client, err := NewClient(config, deps)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		client.Shutdown()
 	})
-	return client, resolverBuilder
+	return client, builder
 }
 
 type testLogger interface {

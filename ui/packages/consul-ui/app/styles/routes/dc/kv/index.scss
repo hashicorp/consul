@@ -1,16 +1,11 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 html[data-route^='dc.kv'] .type-toggle {
   float: right;
   margin-bottom: 0 !important;
 }
 html[data-route^='dc.kv.edit'] h2 {
-  @extend %display-400-semibold;
+  @extend %h200;
   border-bottom: var(--decor-border-200);
-  border-color: var(--token-color-surface-interactive-active);
+  border-color: rgb(var(--tone-gray-200));
   padding-bottom: 0.2em;
   margin-bottom: 0.5em;
 }

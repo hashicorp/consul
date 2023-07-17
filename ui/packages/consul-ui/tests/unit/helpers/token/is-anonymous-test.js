@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { isAnonymous } from 'consul-ui/helpers/token/is-anonymous';
 import { module, test } from 'qunit';
 

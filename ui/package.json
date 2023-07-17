@@ -21,9 +21,11 @@
   },
   "resolutions": {
     "xmlhttprequest-ssl": "^1.6.3",
-    "ember-basic-dropdown": "3.0.21"
+    "ember-basic-dropdown": "3.0.21",
+    "ember-changeset": "3.10.1",
+    "validated-changeset": "0.10.0"
   },
   "engines": {
-    "node": ">=14 <=16"
+    "node": ">=10 <=14"
   }
 }

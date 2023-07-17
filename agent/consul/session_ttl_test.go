@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -325,7 +321,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 	var out struct{}
-	if err := s1.RPC(context.Background(), "Catalog.Register", &node, &out); err != nil {
+	if err := s1.RPC("Catalog.Register", &node, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

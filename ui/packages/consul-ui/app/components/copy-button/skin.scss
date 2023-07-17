@@ -1,27 +1,22 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %copy-button {
-  color: var(--token-color-foreground-action);
-  --icon-color: transparent;
+  color: rgb(var(--tone-blue-500));
+  --icon-color: var(--transparent);
 }
 %copy-button::before {
   @extend %with-copy-action-mask, %as-pseudo;
-  --icon-color: var(--token-color-foreground-faint);
+  --icon-color: rgb(var(--tone-gray-500));
 }
 %copy-button::after {
-  --icon-color: var(--token-color-surface-strong);
+  --icon-color: rgb(var(--tone-gray-050));
 }
 %copy-button:hover:not(:disabled):not(:active),
 %copy-button:focus {
-  color: var(--token-color-foreground-action);
-  --icon-color: var(--token-color-surface-strong);
+  color: rgb(var(--tone-blue-500));
+  --icon-color: rgb(var(--tone-gray-050));
 }
 %copy-button:hover::before {
-  --icon-color: var(--token-color-foreground-action);
+  --icon-color: rgb(var(--tone-blue-500));
 }
 %copy-button:active {
-  --icon-color: var(--token-color-surface-interactive-active);
+  --icon-color: rgb(var(--tone-gray-200));
 }

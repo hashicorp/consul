@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -10,7 +7,6 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
 
 	"github.com/mitchellh/copystructure"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -18,7 +14,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -101,7 +98,6 @@ func Test_makeLoadAssignment(t *testing.T) {
 	tests := []struct {
 		name        string
 		clusterName string
-		locality    *structs.Locality
 		endpoints   []loadAssignmentEndpointGroup
 		want        *envoy_endpoint_v3.ClusterLoadAssignment
 	}{
@@ -212,125 +208,12 @@ func Test_makeLoadAssignment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeLoadAssignment(
-				&proxycfg.ConfigSnapshot{ServiceLocality: tt.locality},
 				tt.clusterName,
-				nil,
 				tt.endpoints,
 				proxycfg.GatewayKey{Datacenter: "dc1"},
 			)
 			require.Equal(t, tt.want, got)
-
-			if tt.locality == nil {
-				got := makeLoadAssignment(
-					&proxycfg.ConfigSnapshot{ServiceLocality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"}},
-					tt.clusterName,
-					nil,
-					tt.endpoints,
-					proxycfg.GatewayKey{Datacenter: "dc1"},
-				)
-				require.Equal(t, tt.want, got)
-			}
 		})
-	}
-}
-
-type endpointTestCase struct {
-	name               string
-	create             func(t testinf.T) *proxycfg.ConfigSnapshot
-	overrideGoldenName string
-}
-
-func makeEndpointDiscoChainTests(enterprise bool) []endpointTestCase {
-	return []endpointTestCase{
-		{
-			name: "connect-proxy-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-chain-and-overrides",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-chain-and-failover",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-default-chain-and-custom-cluster",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "myservice",
-						})
-				}, nil)
-			},
-		},
-		{
-			name: "splitter-with-resolver-redirect",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
-			},
-		},
 	}
 }
 
@@ -342,7 +225,11 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	tests := []endpointTestCase{
+	tests := []struct {
+		name               string
+		create             func(t testinf.T) *proxycfg.ConfigSnapshot
+		overrideGoldenName string
+	}{
 		{
 			name: "mesh-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -374,6 +261,95 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "connect-proxy-with-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-external-sni",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-and-overrides",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-default-chain-and-custom-cluster",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
+			},
+		},
+		{
+			name: "splitter-with-resolver-redirect",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", nil, nil)
+			},
+		},
+		{
 			name: "mesh-gateway-service-subsets",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "service-subsets2", nil, nil)
@@ -390,12 +366,6 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"default", nil, nil, nil)
-			},
-		},
-		{
-			name: "ingress-gateway-nil-config-entry",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
 			},
 		},
 		{
@@ -522,11 +492,9 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, makeEndpointDiscoChainTests(false)...)
-
-	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
-	for _, envoyVersion := range xdscommon.EnvoyVersions {
-		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
+	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
+		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
@@ -537,10 +505,10 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change
 					// golden files for every test case and so not be any use!
-					testcommon.SetupTLSRootsAndLeaf(t, snap)
+					setupTLSRootsAndLeaf(t, snap)
 
 					// Need server just for logger dependency
-					g := NewResourceGenerator(testutil.Logger(t), nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					endpoints, err := g.endpointsFromSnapshot(snap)

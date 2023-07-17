@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Component from '@ember/component';
 
 export default Component.extend({
@@ -22,7 +17,7 @@ export default Component.extend({
       return !items.findBy('Name', term);
     },
     add: function (name, changeset, value) {
-      if (!(changeset.get(name) || []).includes(value)) {
+      if (!(changeset.get(name) || []).includes(value) && value.isNew) {
         changeset.pushObject(name, value);
         changeset.validate();
       }

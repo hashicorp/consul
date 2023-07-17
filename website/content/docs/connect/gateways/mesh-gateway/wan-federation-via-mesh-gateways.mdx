@@ -9,13 +9,13 @@ description: >-
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
 
-~> This topic requires familiarity with [mesh gateways](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters).
+~> This topic requires familiarity with [mesh gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters).
 
 WAN federation via mesh gateways allows for Consul servers in different datacenters
 to be federated exclusively through mesh gateways.
 
 When setting up a
-[multi-datacenter](/consul/tutorials/networking/federation-gossip-wan)
+[multi-datacenter](https://learn.hashicorp.com/consul/security-networking/datacenters)
 Consul cluster, operators must ensure that all Consul servers in every
 datacenter must be directly connectable over their WAN-advertised network
 address from each other.
@@ -38,7 +38,7 @@ Sometimes this prerequisite is difficult or undesirable to meet:
 
 Operators looking to simplify their WAN deployment and minimize the exposed
 security surface area can elect to join these datacenters together using [mesh
-gateways](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) to do so.
+gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) to do so.
 
 [![WAN federation with mesh gateways](/img/wan-federation-connectivity-mesh-gateways.png)](/img/wan-federation-connectivity-mesh-gateways.png)
 
@@ -63,7 +63,7 @@ means you could introduce a set of firewall rules prohibiting `10.0.0.0/24`
 from sending any traffic at all to `10.1.2.0/24` for security isolation.
 
 You may already have configured [mesh
-gateways](/consul/tutorials/developer-mesh/service-mesh-gateways)
+gateways](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways)
 to allow for services in the service mesh to freely connect between datacenters
 regardless of the lateral connectivity of the nodes hosting the Consul client
 agents.
@@ -102,7 +102,7 @@ each datacenter otherwise the WAN will become only partly connected.
 
 There are a few necessary additional pieces of configuration beyond those
 required for standing up a
-[multi-datacenter](/consul/tutorials/networking/federation-gossip-wan)
+[multi-datacenter](https://learn.hashicorp.com/consul/security-networking/datacenters)
 Consul cluster.
 
 Consul servers in the _primary_ datacenter should add this snippet to the
@@ -126,8 +126,9 @@ connect {
 }
 ```
 
-The [`retry_join_wan`](/consul/docs/agent/config/config-files#retry_join_wan) addresses are
-only used for the [traditional federation process](/consul/docs/k8s/deployment-configurations/multi-cluster#traditional-wan-federation).
+The [`start_join_wan`](/docs/agent/config/config-files#start_join_wan) or
+[`retry_join_wan`](/docs/agent/config/config-files#retry_join_wan) are
+only used for the [traditional federation process](/docs/k8s/deployment-configurations/multi-cluster#traditional-wan-federation).
 They must be omitted when federating Consul servers via gateways.
 
 -> The `primary_gateways` configuration can also use `go-discover` syntax just
@@ -181,7 +182,7 @@ expected result:
   their _local_ ip addresses and are listed as `alive`.
 
 - Ensure any API request that activates datacenter request forwarding. such as
-  [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/consul/api-docs/catalog#dc-1)
+  [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/api-docs/catalog#dc-1)
   succeeds.
 
 ### Upgrading the primary gateways
@@ -194,7 +195,7 @@ If the primary gateways are upgraded, and their previous instances are decommiss
 before the updates are propagated, then the primary datacenter will become unreachable.
 
 To safely upgrade primary gateways, we recommend that you apply one of the following policies:
-- Avoid decommissioning primary gateway IP addresses. This is because the [primary_gateways](/consul/docs/agent/config/config-files#primary_gateways) addresses configured on the secondary servers act as a fallback mechanism for re-establishing connectivity to the primary.
+- Avoid decommissioning primary gateway IP addresses. This is because the [primary_gateways](/docs/agent/config/config-files#primary_gateways) addresses configured on the secondary servers act as a fallback mechanism for re-establishing connectivity to the primary.
 
 - Verify that addresses of the new mesh gateways in the primary were propagated
 to the secondary datacenters before decommissioning the old mesh gateways in the primary.

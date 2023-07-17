@@ -1,9 +1,0 @@
-```release-note:improvement
-connect: Warn if ACLs are enabled but a token is not provided to envoy
-```
-
-```release-note:improvement
-telemetry: Added a `consul.xds.server.streamsUnauthenticated` metric to track 
-the number of active xDS streams handled by the server that are unauthenticated
-because ACLs are not enabled or ACL tokens were missing.
-````

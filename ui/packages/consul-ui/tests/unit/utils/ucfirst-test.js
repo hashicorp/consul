@@ -1,15 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, test } from 'qunit';
 import ucfirst from 'consul-ui/utils/ucfirst';
 
 module('Unit | Utils | ucfirst', function () {
   test('it returns the first letter in uppercase', function (assert) {
-    assert.expect(4);
-
     [
       {
         test: 'hello world',

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -10,11 +7,9 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/go-version"
-
-	"github.com/hashicorp/consul/agent/consul/gateways"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-version"
 )
 
 const (
@@ -56,7 +51,6 @@ func (s *Server) startConnectLeader(ctx context.Context) error {
 	s.leaderRoutineManager.Start(ctx, caRootMetricRoutineName, rootCAExpiryMonitor(s).Monitor)
 	s.leaderRoutineManager.Start(ctx, caSigningMetricRoutineName, signingCAExpiryMonitor(s).Monitor)
 	s.leaderRoutineManager.Start(ctx, virtualIPCheckRoutineName, s.runVirtualIPVersionCheck)
-	s.leaderRoutineManager.Start(ctx, configEntryControllersRoutineName, s.runConfigEntryControllers)
 
 	return s.startIntentionConfigEntryMigration(ctx)
 }
@@ -69,35 +63,6 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(caRootMetricRoutineName)
 	s.leaderRoutineManager.Stop(caSigningMetricRoutineName)
 	s.leaderRoutineManager.Stop(virtualIPCheckRoutineName)
-	s.leaderRoutineManager.Stop(configEntryControllersRoutineName)
-}
-
-func (s *Server) runConfigEntryControllers(ctx context.Context) error {
-	updater := &gateways.Updater{
-		UpdateWithStatus: func(entry structs.ControlledConfigEntry) error {
-			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
-				Op:    structs.ConfigEntryUpsertWithStatusCAS,
-				Entry: entry,
-			})
-			return err
-		},
-		Update: func(entry structs.ConfigEntry) error {
-			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
-				Op:    structs.ConfigEntryUpsertCAS,
-				Entry: entry,
-			})
-			return err
-		},
-		Delete: func(entry structs.ConfigEntry) error {
-			_, err := s.leaderRaftApply("ConfigEntry.Delete", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
-				Op:    structs.ConfigEntryDeleteCAS,
-				Entry: entry,
-			})
-			return err
-		},
-	}
-	logger := s.logger.Named(logging.APIGatewayController)
-	return gateways.NewAPIGatewayController(s.fsm, s.publisher, updater, logger).Run(ctx)
 }
 
 func (s *Server) runCARootPruning(ctx context.Context) error {

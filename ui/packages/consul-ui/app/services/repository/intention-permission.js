@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import RepositoryService from 'consul-ui/services/repository';
 const modelName = 'intention-permission';
 export default class IntentionPermissionService extends RepositoryService {

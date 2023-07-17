@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <SearchBar class='consul-service-search-bar' ...attributes @filter={{@filter}}>
   <:status as |search|>
 
@@ -107,7 +102,7 @@
             {{t 'common.consul.service'}}
           </Option>
           <Optgroup @label={{t 'common.consul.gateway'}}>
-            {{#each (array 'api-gateway' 'ingress-gateway' 'terminating-gateway' 'mesh-gateway') as |kind|}}
+            {{#each (array 'ingress-gateway' 'terminating-gateway' 'mesh-gateway') as |kind|}}
               <Option @value={{kind}} @selected={{includes kind @filter.kind.value}}>
                 {{t (concat 'common.consul.' kind)}}
               </Option>
@@ -131,11 +126,33 @@
         @multiple={{true}}
         as |components|
       >
-        <Consul::SourcesSelect 
-          @components={{components}}
-          @filter={{@filter}}
-          @sources={{this.sortedSources}}
-        />
+        <BlockSlot @name='selected'>
+          <span>
+            {{t 'common.search.source'}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name='options'>
+          {{#let components.Option as |Option|}}
+            {{#if (gt @sources.length 0)}}
+              <Option
+                class='consul'
+                @value='consul'
+                @selected={{includes 'consul' @filter.source.value}}
+              >
+                {{t 'common.brand.consul'}}
+              </Option>
+              {{#each this.sortedSources as |source|}}
+                <Option
+                  class={{source}}
+                  @value={{source}}
+                  @selected={{includes source @filter.source.value}}
+                >
+                  {{t (concat 'common.brand.' source)}}
+                </Option>
+              {{/each}}
+            {{/if}}
+          {{/let}}
+        </BlockSlot>
       </search.Select>
     {{/if}}
   </:filter>

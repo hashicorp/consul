@@ -7,7 +7,7 @@ description: >-
 
 # Service Mesh Observability Overview
 
-In order to take advantage of the service mesh's L7 observability features you will need
+In order to take advantage of Connect's L7 observability features you will need
 to:
 
 - Deploy sidecar proxies that are capable of emitting metrics with each of your
@@ -17,14 +17,14 @@ to:
 - Define the upstreams for each of your services.
 
 If you are using Envoy as your sidecar proxy, you will need to [enable
-gRPC](/consul/docs/agent/config/config-files#grpc_port) on your client agents. To define the
+gRPC](/docs/agent/config/config-files#grpc_port) on your client agents. To define the
 metrics destination and service protocol you may want to enable [configuration
-entries](/consul/docs/agent/config/config-files#config_entries) and [centralized service
-configuration](/consul/docs/agent/config/config-files#enable_central_service_config).
+entries](/docs/agent/config/config-files#config_entries) and [centralized service
+configuration](/docs/agent/config/config-files#enable_central_service_config).
 
 ### Kubernetes
 If you are using Kubernetes, the Helm chart can simplify much of the configuration needed to enable observability. See
-our [Kubernetes observability docs](/consul/docs/k8s/connect/observability/metrics) for more information.
+our [Kubernetes observability docs](/docs/k8s/connect/observability/metrics) for more information.
 
 ### Metrics destination
 
@@ -39,7 +39,7 @@ config {
 }
 ```
 
-Find other possible metrics syncs in the [Envoy documentation](/consul/docs/connect/proxies/envoy#bootstrap-configuration).
+Find other possible metrics syncs in the [Connect Envoy documentation](/docs/connect/proxies/envoy#bootstrap-configuration).
 
 ### Service protocol
 

@@ -13,7 +13,7 @@ Command: `consul connect redirect-traffic`
 
 The connect redirect-traffic command is used to apply traffic redirection rules to enforce
 all traffic to go through the [Envoy proxy](https://envoyproxy.io) when using [Consul
-service mesh](/consul/docs/connect/) in the Transparent Proxy mode.
+Service Mesh](/docs/connect/) in the Transparent Proxy mode.
 
 This command requires `iptables` command line utility to be installed,
 and as a result, this command can currently only run on linux.
@@ -38,7 +38,7 @@ Usage: `consul connect redirect-traffic [options]`
 
 - `-consul-dns-port` - The port of the Consul DNS resolver. If provided, DNS queries will be redirected to the provided IP address for name resolution.
 
-- `-proxy-id` - The [proxy service](/consul/docs/connect/registration/service-registration) ID.
+- `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
   This service ID must already be registered with the local agent.
 
 - `-proxy-inbound-port` - The inbound port that the proxy is listening on.

@@ -1,19 +1,15 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .topology-metrics-status-error,
 .topology-metrics-status-loader {
-  @extend %body-200-regular;
-  color: var(--token-color-foreground-faint);
+  font-weight: normal;
+  font-size: 0.875rem;
+  color: rgb(var(--tone-gray-500));
   text-align: center;
   margin: 0 auto !important;
   display: block;
 
   span::before {
     @extend %with-info-circle-outline-mask, %as-pseudo;
-    background-color: var(--token-color-foreground-faint);
+    background-color: rgb(var(--tone-gray-500));
   }
 }
 

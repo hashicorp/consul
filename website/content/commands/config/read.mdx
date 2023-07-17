@@ -1,23 +1,21 @@
 ---
 layout: commands
 page_title: 'Commands: Config Read'
-description: >-
-  The `consul config read` outputs the JSON representation of a configuration entry identified by kind or name.
 ---
 
 # Consul Config Read
 
 Command: `consul config read`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/config/:kind/:name](/consul/api-docs/config#get-configuration)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/config/:kind/:name](/api-docs/config#get-configuration)
 
 The `config read` command reads the config entry specified by the given
 kind and name and outputs its JSON representation. See the
-[configuration entries docs](/consul/docs/agent/config-entries) for more
+[configuration entries docs](/docs/agent/config-entries) for more
 details about configuration entries.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required<sup>1</sup>              |
@@ -28,7 +26,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 | Config Entry Kind   | Required ACL      |
 | ------------------- | ----------------- |
-| api-gateway         | `mesh:read`       |
 | ingress-gateway     | `service:read`    |
 | proxy-defaults      | `<none>`          |
 | service-defaults    | `service:read`    |

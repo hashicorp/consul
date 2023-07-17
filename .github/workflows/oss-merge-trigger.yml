@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 name: Trigger OSS to Enterprise Merge
 on:
   pull_request_target:
@@ -8,7 +5,7 @@ on:
       - closed
     branches:
       - main
-      - release/**
+      - 'release/*.*.x'
 
 jobs:
   trigger-oss-merge:

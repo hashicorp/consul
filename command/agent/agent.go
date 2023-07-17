@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-hclog"
 	mcli "github.com/mitchellh/cli"
@@ -22,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -120,6 +117,40 @@ func (c *cmd) startupUpdateCheck(config *config.RuntimeConfig) {
 	}()
 }
 
+// startupJoin is invoked to handle any joins specified to take place at start time
+func (c *cmd) startupJoin(agent *agent.Agent, cfg *config.RuntimeConfig) error {
+	if len(cfg.StartJoinAddrsLAN) == 0 {
+		return nil
+	}
+
+	c.logger.Info("Joining cluster")
+	// NOTE: For partitioned servers you are only capable of using start join
+	// to join nodes in the default partition.
+	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN, agent.AgentEnterpriseMeta())
+	if err != nil {
+		return err
+	}
+
+	c.logger.Info("Join completed. Initial agents synced with", "agent_count", n)
+	return nil
+}
+
+// startupJoinWan is invoked to handle any joins -wan specified to take place at start time
+func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) error {
+	if len(cfg.StartJoinAddrsWAN) == 0 {
+		return nil
+	}
+
+	c.logger.Info("Joining wan cluster")
+	n, err := agent.JoinWAN(cfg.StartJoinAddrsWAN)
+	if err != nil {
+		return err
+	}
+
+	c.logger.Info("Join wan completed. Initial agents synced with", "agent_count", n)
+	return nil
+}
+
 func (c *cmd) run(args []string) int {
 	ui := &mcli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -169,7 +200,7 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 	if res.RuntimeConfig.IsCloudEnabled() {
-		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
+		client, err := hcp.NewClient(res.RuntimeConfig.Cloud)
 		if err != nil {
 			ui.Error("error building HCP HTTP client: " + err.Error())
 			return 1
@@ -183,7 +214,7 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
-	bd, err := agent.NewBaseDeps(loader, logGate, nil)
+	bd, err := agent.NewBaseDeps(loader, logGate)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1
@@ -202,7 +233,7 @@ func (c *cmd) run(args []string) int {
 	if config.Logging.LogJSON {
 		// Hide all non-error output when JSON logging is enabled.
 		ui.Ui = &cli.BasicUI{
-			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: io.Discard},
+			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: ioutil.Discard},
 		}
 	}
 
@@ -212,33 +243,31 @@ func (c *cmd) run(args []string) int {
 	if config.ServerMode {
 		segment = "<all>"
 	}
-	ui.Info(fmt.Sprintf("           Version: '%s'", c.versionHuman))
+	ui.Info(fmt.Sprintf("          Version: '%s'", c.versionHuman))
 	if strings.Contains(c.versionHuman, "dev") {
-		ui.Info(fmt.Sprintf("          Revision: '%s'", c.revision))
+		ui.Info(fmt.Sprintf("         Revision: '%s'", c.revision))
 	}
-	ui.Info(fmt.Sprintf("        Build Date: '%s'", c.buildDate))
-	ui.Info(fmt.Sprintf("           Node ID: '%s'", config.NodeID))
-	ui.Info(fmt.Sprintf("         Node name: '%s'", config.NodeName))
+	ui.Info(fmt.Sprintf("       Build Date: '%s'", c.buildDate))
+	ui.Info(fmt.Sprintf("          Node ID: '%s'", config.NodeID))
+	ui.Info(fmt.Sprintf("        Node name: '%s'", config.NodeName))
 	if ap := config.PartitionOrEmpty(); ap != "" {
-		ui.Info(fmt.Sprintf("         Partition: '%s'", ap))
+		ui.Info(fmt.Sprintf("        Partition: '%s'", ap))
 	}
-	ui.Info(fmt.Sprintf("        Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	ui.Info(fmt.Sprintf("            Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("       Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
+	ui.Info(fmt.Sprintf("       Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	ui.Info(fmt.Sprintf("           Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	ui.Info(fmt.Sprintf("      Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
 		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.GRPCTLSPort, config.DNSPort))
-	ui.Info(fmt.Sprintf("      Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+	ui.Info(fmt.Sprintf("     Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
-	ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
-	ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
-	ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
+	ui.Info(fmt.Sprintf("Gossip Encryption: %t", config.EncryptKey != ""))
+	ui.Info(fmt.Sprintf(" Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	if config.ServerMode {
 		ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
 	}
-	ui.Info(fmt.Sprintf("ACL Default Policy: %s", config.ACLResolverSettings.ACLDefaultPolicy))
-	ui.Info(fmt.Sprintf("         HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
+	ui.Info(fmt.Sprintf("        HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
 		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
-	ui.Info(fmt.Sprintf("          gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
-	ui.Info(fmt.Sprintf("  Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
+	ui.Info(fmt.Sprintf("         gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
+	ui.Info(fmt.Sprintf(" Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
 		config.TLS.InternalRPC.VerifyIncoming, config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyServerHostname, config.TLS.InternalRPC.TLSMinVersion))
 	// Enable log streaming
 	ui.Output("")
@@ -260,6 +289,16 @@ func (c *cmd) run(args []string) int {
 
 	if !config.DisableUpdateCheck && !config.DevMode {
 		c.startupUpdateCheck(config)
+	}
+
+	if err := c.startupJoin(agent, config); err != nil {
+		c.logger.Error(err.Error())
+		return 1
+	}
+
+	if err := c.startupJoinWan(agent, config); err != nil {
+		c.logger.Error(err.Error())
+		return 1
 	}
 
 	// Let the agent know we've finished registration
