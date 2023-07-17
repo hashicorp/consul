@@ -190,7 +190,11 @@ func AgentMembersMapAddrVer(s *HTTPHandlers, req *http.Request) (map[string]stri
 	filter := consul.LANMemberFilter{
 		Partition: entMeta.PartitionOrDefault(),
 	}
-	filter.AllSegments = true
+
+	if acl.IsDefaultPartition(filter.Partition) {
+		filter.AllSegments = true
+	}
+
 	lanMembers, err := s.agent.delegate.LANMembers(filter)
 	if err != nil {
 		return nil, err
