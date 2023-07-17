@@ -1,0 +1,40 @@
+resource "docker_container" "{{.Node.DockerName}}" {
+  name         = "{{.Node.DockerName}}"
+  network_mode = "container:${docker_container.{{.PodName}}.id}"
+  image        = docker_image.{{.ImageResource}}.latest
+  restart      = "always"
+
+  env = [
+      "CONSUL_UID=0",
+      "CONSUL_GID=0",
+      "CONSUL_LICENSE={{.EnterpriseLicense}}",
+{{- range .Env }}
+      "{{.}}",
+{{- end}}
+  ]
+
+{{- range $k, $v := .Labels }}
+  labels {
+    label = "{{ $k }}"
+    value = "{{ $v }}"
+  }
+{{- end }}
+
+  command = [
+    "agent",
+    "-hcl",
+	<<-EOT
+{{ .HCL }}
+EOT
+  ]
+
+  volumes {
+    volume_name    = "{{.Node.DockerName}}"
+    container_path = "/consul/data"
+  }
+
+  volumes {
+    volume_name = "{{.TLSVolumeName}}"
+    container_path = "/consul/config/certs"
+  }
+}
