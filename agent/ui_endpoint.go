@@ -113,7 +113,18 @@ RPC:
 		return nil, err
 	}
 
+	// Get version info for all serf members into a map of key-address,value-version.
+	// This logic of calling 'AgentMembersMapAddrVer()' and inserting version info in this func
+	// can be discarded in future releases ( may be after 3 or 4 minor releases),
+	// when all the nodes are registered with consul-version in nodemeta.
+	var err error
+	mapAddrVer, err := AgentMembersMapAddrVer(s, req)
+	if err != nil {
+		return nil, err
+	}
+
 	// Use empty list instead of nil
+	// Also check if consul-version exists in Meta, else add it
 	for _, info := range out.Dump {
 		if info.Services == nil {
 			info.Services = make([]*structs.NodeService, 0)
@@ -121,18 +132,41 @@ RPC:
 		if info.Checks == nil {
 			info.Checks = make([]*structs.HealthCheck, 0)
 		}
+		// Check if Node Meta - 'consul-version' already exists by virtue of adding
+		// 'consul-version' during node registration itself.
+		// If not, get it from mapAddrVer.
+		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
+			if _, okver := mapAddrVer[info.Address]; okver {
+				if info.Meta == nil {
+					info.Meta = make(map[string]string)
+				}
+				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
+			}
+		}
 	}
 	if out.Dump == nil {
 		out.Dump = make(structs.NodeDump, 0)
 	}
 
 	// Use empty list instead of nil
+	// Also check if consul-version exists in Meta, else add it
 	for _, info := range out.ImportedDump {
 		if info.Services == nil {
 			info.Services = make([]*structs.NodeService, 0)
 		}
 		if info.Checks == nil {
 			info.Checks = make([]*structs.HealthCheck, 0)
+		}
+		// Check if Node Meta - 'consul-version' already exists by virtue of adding
+		// 'consul-version' during node registration itself.
+		// If not, get it from mapAddrVer.
+		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
+			if _, okver := mapAddrVer[info.Address]; okver {
+				if info.Meta == nil {
+					info.Meta = make(map[string]string)
+				}
+				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
+			}
 		}
 	}
 
@@ -156,6 +190,7 @@ func AgentMembersMapAddrVer(s *HTTPHandlers, req *http.Request) (map[string]stri
 	filter := consul.LANMemberFilter{
 		Partition: entMeta.PartitionOrDefault(),
 	}
+
 	if acl.IsDefaultPartition(filter.Partition) {
 		filter.AllSegments = true
 	}
@@ -216,6 +251,16 @@ RPC:
 		return nil, err
 	}
 
+	// Get version info for all serf members into a map of key-address,value-version.
+	// This logic of calling 'AgentMembersMapAddrVer()' and inserting version info in this func
+	// can be discarded in future releases ( may be after 3 or 4 minor releases),
+	// when all the nodes are registered with consul-version in nodemeta.
+	var err error
+	mapAddrVer, err := AgentMembersMapAddrVer(s, req)
+	if err != nil {
+		return nil, err
+	}
+
 	// Return only the first entry
 	if len(out.Dump) > 0 {
 		info := out.Dump[0]
@@ -224,6 +269,17 @@ RPC:
 		}
 		if info.Checks == nil {
 			info.Checks = make([]*structs.HealthCheck, 0)
+		}
+		// Check if Node Meta - 'consul-version' already exists by virtue of adding
+		// 'consul-version' during node registration itself.
+		// If not, get it from mapAddrVer.
+		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
+			if _, okver := mapAddrVer[info.Address]; okver {
+				if info.Meta == nil {
+					info.Meta = make(map[string]string)
+				}
+				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
+			}
 		}
 		return info, nil
 	}

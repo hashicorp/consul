@@ -1087,6 +1087,13 @@ AFTER_CHECK:
 		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
 	)
 
+	// Get consul version from serf member
+	// add this as node meta in catalog register request
+	buildVersion, err := metadata.Build(&member)
+	if err != nil {
+		return err
+	}
+
 	// Register with the catalog.
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
@@ -1102,6 +1109,9 @@ AFTER_CHECK:
 			Output:  structs.SerfCheckAliveOutput,
 		},
 		EnterpriseMeta: *nodeEntMeta,
+		NodeMeta: map[string]string{
+			structs.MetaConsulVersion: buildVersion.String(),
+		},
 	}
 	if node != nil {
 		req.TaggedAddresses = node.TaggedAddresses

@@ -1,0 +1,3 @@
+```release-note:feature
+ui: consul version is displayed in nodes list with filtering and sorting based on versions
+```
