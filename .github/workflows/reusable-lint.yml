@@ -34,7 +34,7 @@ jobs:
         - "envoyextensions"
         - "troubleshoot"
         - "test/integration/consul-container"
-        - "testingconsul"
+        - "testing/deployer"
       fail-fast: true
     name: lint ${{ matrix.directory }}
     steps:
