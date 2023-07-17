@@ -53,7 +53,7 @@ QUIET=
 endif
 
 ifeq ("$(GOTAGS)","")
-CONSUL_COMPAT_TEST_IMAGE=consul
+CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul
 else
 CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul-enterprise
 endif
