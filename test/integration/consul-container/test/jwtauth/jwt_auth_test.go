@@ -76,8 +76,8 @@ func TestJWTAuthConnectService(t *testing.T) {
 	configureIntentions(t, cluster)
 
 	baseURL := fmt.Sprintf("http://localhost:%d", clientPort)
-	// fails without jwt headers
-	doRequest(t, baseURL, http.StatusUnauthorized, "")
+	// TODO(roncodingenthusiast): update test to reflect jwt-auth filter in metadata mode
+	doRequest(t, baseURL, http.StatusOK, "")
 	// succeeds with jwt
 	doRequest(t, baseURL, http.StatusOK, jwt)
 }
