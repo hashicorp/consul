@@ -457,7 +457,7 @@ func loadManagementToken(dir string) (string, error) {
 	bytes, err := os.ReadFile(name)
 	if os.IsNotExist(err) {
 		// A missing management token is not an error, if none was provided by HCP
-		return "", nil
+		return "", errors.New("configuration files on disk are incomplete, missing: " + name)
 	}
 	if err != nil {
 		return "", fmt.Errorf("failed to read: %w", err)

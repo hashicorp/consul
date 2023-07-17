@@ -372,7 +372,7 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 			existingCluster:        true,
 			disableManagementToken: true,
 			expect: expect{
-				loaded: true,
+				loaded: false,
 			},
 		},
 		"existing cluster no files": {
@@ -398,7 +398,7 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 		"new cluster with no token": {
 			disableManagementToken: true,
 			expect: expect{
-				loaded: true,
+				loaded: false,
 			},
 		},
 		"new cluster some files": {
