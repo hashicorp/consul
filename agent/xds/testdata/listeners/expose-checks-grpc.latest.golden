@@ -3,92 +3,84 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "db:127.0.0.1:9191",
+      "name": "exposed_path_grpchealthv1HealthCheck:1.2.3.4:21501",
       "address": {
         "socketAddress": {
-          "address": "127.0.0.1",
-          "portValue": 9191
+          "address": "1.2.3.4",
+          "portValue": 21501
         }
       },
       "filterChains": [
         {
+          "filterChainMatch": {
+            "sourcePrefixRanges": [
+              {
+                "addressPrefix": "127.0.0.1",
+                "prefixLen": 8
+              },
+              {
+                "addressPrefix": "192.0.2.1",
+                "prefixLen": 32
+              },
+              {
+                "addressPrefix": "::1",
+                "prefixLen": 128
+              }
+            ]
+          },
           "filters": [
             {
-              "name": "envoy.filters.network.tcp_proxy",
+              "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.db.default.default.dc1",
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "statPrefix": "exposed_path_filter_grpchealthv1HealthCheck_21501",
+                "routeConfig": {
+                  "name": "exposed_path_filter_grpchealthv1HealthCheck_21501",
+                  "virtualHosts": [
+                    {
+                      "name": "exposed_path_filter_grpchealthv1HealthCheck_21501",
+                      "domains": [
+                        "*"
+                      ],
+                      "routes": [
+                        {
+                          "match": {
+                            "path": "/grpc.health.v1.Health/Check"
+                          },
+                          "route": {
+                            "cluster": "exposed_cluster_9090"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.router",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {}
+                },
+                "http2ProtocolOptions": {}
               }
             }
           ]
         }
       ],
-      "trafficDirection": "OUTBOUND"
+      "trafficDirection": "INBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "outbound_listener:127.0.0.1:1234",
+      "name": "public_listener:1.2.3.4:9090",
       "address": {
         "socketAddress": {
-          "address": "127.0.0.1",
-          "portValue": 1234
-        }
-      },
-      "defaultFilterChain": {
-        "filters": [
-          {
-            "name": "envoy.filters.network.tcp_proxy",
-            "typedConfig": {
-              "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-              "statPrefix": "upstream.original-destination",
-              "cluster": "original-destination"
-            }
-          }
-        ]
-      },
-      "listenerFilters": [
-        {
-          "name": "envoy.filters.listener.original_dst",
-          "typedConfig": {
-            "@type": "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
-          }
-        }
-      ],
-      "trafficDirection": "OUTBOUND"
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "prepared_query:geo-cache:127.10.10.10:8181",
-      "address": {
-        "socketAddress": {
-          "address": "127.10.10.10",
-          "portValue": 8181
-        }
-      },
-      "filterChains": [
-        {
-          "filters": [
-            {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.prepared_query_geo-cache",
-                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
-              }
-            }
-          ]
-        }
-      ],
-      "trafficDirection": "OUTBOUND"
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "public_listener:0.0.0.0:9999",
-      "address": {
-        "socketAddress": {
-          "address": "0.0.0.0",
-          "portValue": 9999
+          "address": "1.2.3.4",
+          "portValue": 9090
         }
       },
       "filterChains": [
@@ -135,29 +127,6 @@
               },
               "requireClientCertificate": true
             }
-          }
-        },
-        {
-          "filterChainMatch": {
-            "destinationPort": 8080
-          },
-          "filters": [
-            {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "permissive_public_listener",
-                "cluster": "local_app"
-              }
-            }
-          ]
-        }
-      ],
-      "listenerFilters": [
-        {
-          "name": "envoy.filters.listener.original_dst",
-          "typedConfig": {
-            "@type": "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
           }
         }
       ],
