@@ -743,7 +743,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `server_rejoin_age_max` - controls the allowed maximum age of a stale server attempting to rejoin a cluster.
   If a server is not running for this period, then it will refuse to start up again until an operator intervenes. This is to protect
   clusters from instability caused by decommissioned servers accidentally being started again.
-  Note: the default value is 7d and the minimum value is 6h.
+  Note: the default value is 168h (equal to 7d) and the minimum value is 6h.
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
 
