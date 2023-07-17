@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/testingconsul/sprawl/internal/runner"
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
+	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
 const dockerfileEnvoy = `

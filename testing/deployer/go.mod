@@ -1,4 +1,4 @@
-module github.com/hashicorp/consul/testingconsul
+module github.com/hashicorp/consul/testing/deployer
 
 go 1.20
 

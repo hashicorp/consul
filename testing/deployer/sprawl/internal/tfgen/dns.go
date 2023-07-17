@@ -8,8 +8,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
-	"github.com/hashicorp/consul/testingconsul/util"
+	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/hashicorp/consul/testing/deployer/util"
 )
 
 func (g *Generator) getCoreDNSContainer(

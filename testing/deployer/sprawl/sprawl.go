@@ -17,11 +17,11 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 
-	"github.com/hashicorp/consul/testingconsul/sprawl/internal/runner"
-	"github.com/hashicorp/consul/testingconsul/sprawl/internal/secrets"
-	"github.com/hashicorp/consul/testingconsul/sprawl/internal/tfgen"
-	"github.com/hashicorp/consul/testingconsul/topology"
-	"github.com/hashicorp/consul/testingconsul/util"
+	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
+	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
+	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/tfgen"
+	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/hashicorp/consul/testing/deployer/util"
 )
 
 // TODO: manage workdir externally without chdir

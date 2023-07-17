@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
+	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
 // TODO: this is definitely a grpc resolver/balancer issue to look into
