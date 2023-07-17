@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/hashicorp/consul/testingconsul/util/internal/ipamutils"
+	"github.com/hashicorp/consul/testing/deployer/util/internal/ipamutils"
 )
 
 // GetPossibleDockerNetworkSubnets returns a copy of the global-scope network list.

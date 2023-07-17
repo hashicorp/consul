@@ -7,8 +7,8 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/testingconsul/topology"
-	"github.com/hashicorp/consul/testingconsul/util"
+	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/hashicorp/consul/testing/deployer/util"
 )
 
 func (s *Sprawl) registerAllServicesToAgents() error {
