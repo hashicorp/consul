@@ -323,34 +323,6 @@ test-module/%:
 test-race: ## Test race
 	$(MAKE) GOTEST_FLAGS=-race
 
-.PHONY: test-docker
-test-docker: linux go-build-image ## Running tests within a docker container
-	@# -ti run in the foreground showing stdout
-	@# --rm removes the container once its finished running
-	@# GO_MODCACHE_VOL - args for mapping in the go module cache
-	@# GO_BUILD_CACHE_VOL - args for mapping in the go build cache
-	@# All the env vars are so we pass through all the relevant bits of information
-	@# Needed for running the tests
-	@# We map in our local linux_amd64 bin directory as thats where the linux dep
-	@#   target dropped the binary. We could build the binary in the container too
-	@#   but that might take longer as caching gets weird
-	@# Lastly we map the source dir here to the /consul workdir
-	@echo "Running tests within a docker container"
-	@docker run -ti --rm \
-		-e 'GOTEST_FLAGS=$(GOTEST_FLAGS)' \
-		-e 'GOTAGS=$(GOTAGS)' \
-		-e 'GIT_COMMIT=$(GIT_COMMIT)' \
-		-e 'GIT_COMMIT_YEAR=$(GIT_COMMIT_YEAR)' \
-		-e 'GIT_DIRTY=$(GIT_DIRTY)' \
-		$(TEST_PARALLELIZATION) \
-		$(TEST_DOCKER_RESOURCE_CONSTRAINTS) \
-		$(TEST_MODCACHE_VOL) \
-		$(TEST_BUILDCACHE_VOL) \
-		-v $(MAIN_GOPATH)/bin/linux_amd64/:/go/bin \
-		-v $(shell pwd):/consul \
-		$(GO_BUILD_TAG) \
-		make test-internal
-
 .PHONY: other-consul
 other-consul: ## Checking for other consul instances
 	@echo "--> Checking for other consul instances"
