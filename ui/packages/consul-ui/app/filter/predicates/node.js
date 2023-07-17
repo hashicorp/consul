@@ -9,4 +9,5 @@ export default {
     warning: (item, value) => item.Status === value,
     critical: (item, value) => item.Status === value,
   },
+  version: (item, value) => item.Version.includes(value + '.'),
 };
