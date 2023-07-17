@@ -781,10 +781,6 @@
             "title": "Configuration",
             "routes": [
               {
-                "title": "Sameness groups",
-                "href": "/consul/docs/connect/config-entries/service-resolver"
-              },
-              {
                 "title": "Service resolver",
                 "href": "/consul/docs/connect/config-entries/service-resolver"
               },
@@ -1070,11 +1066,6 @@
       {
         "title": "Sentinel",
         "path": "agent/sentinel"
-      },
-      {
-        "title": "RPC",
-        "path": "agent/rpc",
-        "hidden": true
       },
       {
         "title": "Experimental WAL LogStore",

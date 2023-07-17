@@ -33,6 +33,10 @@ on:
         required: false
         type: string
         default: ""
+      go-version:
+        required: false
+        type: string
+        default: ""
     secrets:
       elevated-github-token:
         required: true
@@ -42,7 +46,7 @@ on:
         required: true
 env:
   TEST_RESULTS: /tmp/test-results
-  GOTESTSUM_VERSION: 1.8.2
+  GOTESTSUM_VERSION: "1.10.1"
   GOARCH: ${{inputs.go-arch}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
   GOTAGS: ${{ inputs.go-tags}}
@@ -59,6 +63,12 @@ jobs:
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        if: ${{ inputs.go-version != '' }}
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        if: ${{ inputs.go-version == '' }}
         with:
           go-version-file: 'go.mod'
           cache: true

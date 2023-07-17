@@ -19,9 +19,13 @@ You can set global limits on the rate of read and write requests that affect ind
 
 1. Set arbitrary limits to begin understanding the upper boundary of RPC and gRPC loads in your network. Refer to [Initialize rate limit settings](/consul/docs/agent/limits/usage/init-rate-limits) for additional information.    
 
-1. Monitor the metrics and logs and readjust the initial configurations as necessary. Refer to [Monitor rate limit data](/consul/docs/agent/limits/usage/monitor-rate-limit-data)  
+1. Monitor the metrics and logs and readjust the initial configurations as necessary. Refer to [Monitor rate limit data](/consul/docs/agent/limits/usage/monitor-rate-limits)
 
-1. Define your final operational limits based on your observations. If you are defining global rate limits, refer to [Set global traffic rate limits](/consul/docs/agent/limits/usage/set-global-rate-limits) for additional information. For information about setting limits per source IP address, refer to [Limit traffic rates for a source IP](/consul/docs/agent/limits/usage/set-source-ip-rate-limits). Note that setting limits per source IP requires Consul Enterprise.
+1. Define your final operational limits based on your observations. If you are defining global rate limits, refer to [Set global traffic rate limits](/consul/docs/agent/limits/usage/set-global-traffic-rate-limits) for additional information. For information about setting limits per source IP address, refer to [Limit traffic rates for a source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips).
+
+<EnterpriseAlert>
+Setting limits per source IP requires Consul Enterprise.
+</EnterpriseAlert>
 
 ### Order of operations
 
