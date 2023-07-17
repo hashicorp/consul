@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package health
 
 import (
@@ -8,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/rpcclient"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -26,14 +22,12 @@ func TestClient_ServiceNodes_BackendRouting(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		c := &Client{
-			Client: rpcclient.Client{
-				NetRPC:              &fakeNetRPC{},
-				Cache:               &fakeCache{},
-				ViewStore:           &fakeViewStore{},
-				CacheName:           "cache-no-streaming",
-				UseStreamingBackend: true,
-				QueryOptionDefaults: config.ApplyDefaultQueryOptions(&config.RuntimeConfig{}),
-			},
+			NetRPC:              &fakeNetRPC{},
+			Cache:               &fakeCache{},
+			ViewStore:           &fakeViewStore{},
+			CacheName:           "cache-no-streaming",
+			UseStreamingBackend: true,
+			QueryOptionDefaults: config.ApplyDefaultQueryOptions(&config.RuntimeConfig{}),
 		}
 
 		_, _, err := c.ServiceNodes(context.Background(), tc.req)
@@ -205,13 +199,11 @@ func TestClient_Notify_BackendRouting(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		c := &Client{
-			Client: rpcclient.Client{
-				NetRPC:              &fakeNetRPC{},
-				Cache:               &fakeCache{},
-				ViewStore:           &fakeViewStore{},
-				CacheName:           "cache-no-streaming",
-				UseStreamingBackend: true,
-			},
+			NetRPC:              &fakeNetRPC{},
+			Cache:               &fakeCache{},
+			ViewStore:           &fakeViewStore{},
+			CacheName:           "cache-no-streaming",
+			UseStreamingBackend: true,
 		}
 
 		err := c.Notify(context.Background(), tc.req, "cid", nil)
@@ -258,15 +250,13 @@ func TestClient_Notify_BackendRouting(t *testing.T) {
 func TestClient_ServiceNodes_SetsDefaults(t *testing.T) {
 	store := &fakeViewStore{}
 	c := &Client{
-		Client: rpcclient.Client{
-			ViewStore:           store,
-			CacheName:           "cache-no-streaming",
-			UseStreamingBackend: true,
-			QueryOptionDefaults: config.ApplyDefaultQueryOptions(&config.RuntimeConfig{
-				MaxQueryTime:     200 * time.Second,
-				DefaultQueryTime: 100 * time.Second,
-			}),
-		},
+		ViewStore:           store,
+		CacheName:           "cache-no-streaming",
+		UseStreamingBackend: true,
+		QueryOptionDefaults: config.ApplyDefaultQueryOptions(&config.RuntimeConfig{
+			MaxQueryTime:     200 * time.Second,
+			DefaultQueryTime: 100 * time.Second,
+		}),
 	}
 
 	req := structs.ServiceSpecificRequest{

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Component from '@ember/component';
 import { get, set, computed } from '@ember/object';
 import { alias, not, equal } from '@ember/object/computed';
@@ -47,7 +42,7 @@ export default Component.extend({
 
   changeset: computed('item', function () {
     const changeset = this.change.changesetFor(name, this.item || this.repo.create());
-    if (changeset.isPristine) {
+    if (changeset.isNew) {
       changeset.validate();
     }
     return changeset;

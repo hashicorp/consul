@@ -1,16 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/leafcert"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerIngressGateway struct {
@@ -95,6 +92,11 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
+
+		// We set this even if the response is empty so that we know the watch is set,
+		// but we don't block if the ingress config entry is unset for this gateway
+		snap.IngressGateway.GatewayConfigLoaded = true
+
 		if resp.Entry == nil {
 			return nil
 		}
@@ -103,7 +105,6 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 		}
 
-		snap.IngressGateway.GatewayConfigLoaded = true
 		snap.IngressGateway.TLSConfig = gatewayConf.TLS
 		if gatewayConf.Defaults != nil {
 			snap.IngressGateway.Defaults = *gatewayConf.Defaults
@@ -222,7 +223,7 @@ func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *
 		snap.IngressGateway.LeafCertWatchCancel()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
+	err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 		Datacenter:     s.source.Datacenter,
 		Token:          s.token,
 		Service:        s.service,

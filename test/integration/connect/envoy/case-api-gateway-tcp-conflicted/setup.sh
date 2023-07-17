@@ -1,7 +1,4 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 
 set -euo pipefail
 
@@ -42,7 +39,6 @@ services = [
 ]
 parents = [
   {
-    kind = "api-gateway"
     name = "api-gateway"
   }
 ]

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -59,7 +56,6 @@ func TestUIEndpoint_MetricsProxy_ACLDeny(t *testing.T) {
 	defer a.Shutdown()
 
 	a.enableDebug.Store(true)
-
 	h := a.srv.handler()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")

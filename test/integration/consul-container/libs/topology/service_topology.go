@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package topology
 
 import (
@@ -45,7 +42,7 @@ func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
 
 	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, false)
+	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticClientServiceName), nil)

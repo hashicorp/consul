@@ -1,16 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package operator
 
 import (
 	"context"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pboperator"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 )

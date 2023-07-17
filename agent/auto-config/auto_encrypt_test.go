@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package autoconf
 
 import (
@@ -20,7 +17,6 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/retry"
@@ -348,9 +344,10 @@ func TestAutoEncrypt_TokenUpdate(t *testing.T) {
 	})
 
 	leafCtx, leafCancel := context.WithCancel(context.Background())
-	testAC.mcfg.leafCerts.On("Notify",
+	testAC.mcfg.cache.On("Notify",
 		mock.Anything,
-		&leafcert.ConnectCALeafRequest{
+		cachetype.ConnectCALeafName,
+		&cachetype.ConnectCALeafRequest{
 			Datacenter: "dc1",
 			Agent:      "autoconf",
 			Token:      newToken,
@@ -430,14 +427,14 @@ func TestAutoEncrypt_CertUpdate(t *testing.T) {
 		NotAfter: secondCert.ValidBefore,
 	}).Once()
 
-	req := leafcert.ConnectCALeafRequest{
+	req := cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Agent:      "autoconf",
 		Token:      testAC.originalToken,
 		DNSSAN:     defaultDNSSANs,
 		IPSAN:      defaultIPSANs,
 	}
-	require.True(t, testAC.mcfg.leafCerts.sendNotification(context.Background(), req.Key(), cache.UpdateEvent{
+	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        secondCert,
 		Meta: cache.ResultMeta{
@@ -538,14 +535,14 @@ func TestAutoEncrypt_Fallback(t *testing.T) {
 
 	// now that all the mocks are set up we can trigger the whole thing by sending the second expired cert
 	// as a cache update event.
-	req := leafcert.ConnectCALeafRequest{
+	req := cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Agent:      "autoconf",
 		Token:      testAC.originalToken,
 		DNSSAN:     defaultDNSSANs,
 		IPSAN:      defaultIPSANs,
 	}
-	require.True(t, testAC.mcfg.leafCerts.sendNotification(context.Background(), req.Key(), cache.UpdateEvent{
+	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        secondCert,
 		Meta: cache.ResultMeta{

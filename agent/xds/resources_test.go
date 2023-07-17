@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -334,7 +331,7 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 
 	service := structs.NewServiceName("service", nil)
 	serviceUID := proxycfg.NewUpstreamIDFromServiceName(service)
-	serviceChain := discoverychain.TestCompileConfigEntries(t, "service", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+	serviceChain := discoverychain.TestCompileConfigEntries(t, "service", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 	return []goldenTestCase{
 		{
@@ -367,27 +364,20 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 							}},
 						},
 					}
-				},
-					[]structs.BoundRoute{
-						&structs.TCPRouteConfigEntry{
-							Kind: structs.TCPRoute,
-							Name: "route",
-							Services: []structs.TCPService{{
-								Name: "service",
-							}},
-							Parents: []structs.ResourceReference{
-								{
-									Kind: structs.APIGateway,
-									Name: "api-gateway",
-								},
-							},
-						},
-					}, []structs.InlineCertificateConfigEntry{{
-						Kind:        structs.InlineCertificate,
-						Name:        "certificate",
-						PrivateKey:  gatewayTestPrivateKey,
-						Certificate: gatewayTestCertificate,
-					}}, nil)
+				}, []structs.BoundRoute{
+					&structs.TCPRouteConfigEntry{
+						Kind: structs.TCPRoute,
+						Name: "route",
+						Services: []structs.TCPService{{
+							Name: "service",
+						}},
+					},
+				}, []structs.InlineCertificateConfigEntry{{
+					Kind:        structs.InlineCertificate,
+					Name:        "certificate",
+					PrivateKey:  gatewayTestPrivateKey,
+					Certificate: gatewayTestCertificate,
+				}}, nil)
 			},
 		},
 		{
@@ -415,29 +405,10 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 						Kind: structs.HTTPRoute,
 						Name: "route",
 						Rules: []structs.HTTPRouteRule{{
-							Filters: structs.HTTPFilters{
-								Headers: []structs.HTTPHeaderFilter{
-									{
-										Add: map[string]string{
-											"X-Header-Add": "added",
-										},
-										Set: map[string]string{
-											"X-Header-Set": "set",
-										},
-										Remove: []string{"X-Header-Remove"},
-									},
-								},
-							},
 							Services: []structs.HTTPService{{
 								Name: "service",
 							}},
 						}},
-						Parents: []structs.ResourceReference{
-							{
-								Kind: structs.APIGateway,
-								Name: "api-gateway",
-							},
-						},
 					},
 				}, nil, []proxycfg.UpdateEvent{{
 					CorrelationID: "discovery-chain:" + serviceUID.String(),

@@ -10,7 +10,7 @@ The `/query` endpoints create, update, destroy, and execute prepared queries.
 
 Prepared queries allow you to register a complex service query and then execute
 it later by specifying the query ID or name. Consul returns a set of healthy nodes that provide a given
-service. Refer to
+service. Refer to 
 [Enable Dynamic DNS Queries](/consul/docs/services/discovery/dns-dynamic-lookups) for additional information.
 
 Check the [Geo Failover tutorial](/consul/tutorials/developer-discovery/automate-geo-failover) for details and
@@ -177,22 +177,13 @@ The table below shows this endpoint's support for
   - `Service` `(string: <required>)` - Specifies the name of the service to
     query.
 
-  - `SamenessGroup` `(string: "")` <EnterpriseAlert inline /> - Specifies a Sameness group to forward the
-  query to. The `SamenessGroup` will forward to its members in the order defined, returning on the first
-  healthy query. `SamenessGroup` is mutually exclusive with `Failover` as `SamenessGroup` members will be used
-  in place of a defined list of failovers.
-
   - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul namespace
-    to query. If not provided the query will use Consul default namespace for resolution. When combined with
-  `SamenessGroup` this will specify the namespaces in which the `SamenessGroup` will resolve all members listed.
+    to query. If not provided the query will use Consul default namespace for resolution.
 
-  - `Partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul partition
-  to query. If not provided the query will use Consul's default partition for resolution. When combined with
-  `SamenessGroup`, this will specify the partition where the `SamenessGroup` exists.
-
-  - `Failover` Determines what happens if no healthy nodes are available in the local datacenter when
+  - `Failover` contains two fields, both of which are optional, and determine
+    what happens if no healthy nodes are available in the local datacenter when
     the query is executed. It allows the use of nodes in other datacenters with
-    very little configuration. This field is mutually exclusive with `SamenessGroup`.
+    very little configuration.
 
     - `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up
       to `NearestN` other datacenters based on their estimated network round
@@ -220,12 +211,6 @@ The table below shows this endpoint's support for
 
       - `Datacenter` `(string: "")` - Specifies a WAN federated datacenter to forward the
         query to.
-
-      - `Partition` `(string: "")` <EnterpriseAlert inline /> - Specifies a Partition to forward the
-      query to.
-
-      - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies a Namespace to forward the
-      query to.
 
   - `IgnoreCheckIDs` `(array<string>: nil)` - Specifies a list of check IDs that
     should be ignored when filtering unhealthy instances. This is mostly useful

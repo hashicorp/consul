@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
@@ -8,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/leafcert"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -56,7 +53,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 
 	snap.TerminatingGateway.WatchedServices = make(map[structs.ServiceName]context.CancelFunc)
 	snap.TerminatingGateway.WatchedIntentions = make(map[structs.ServiceName]context.CancelFunc)
-	snap.TerminatingGateway.Intentions = make(map[structs.ServiceName]structs.SimplifiedIntentions)
+	snap.TerminatingGateway.Intentions = make(map[structs.ServiceName]structs.Intentions)
 	snap.TerminatingGateway.WatchedLeaves = make(map[structs.ServiceName]context.CancelFunc)
 	snap.TerminatingGateway.ServiceLeaves = make(map[structs.ServiceName]*structs.IssuedCert)
 	snap.TerminatingGateway.WatchedConfigs = make(map[structs.ServiceName]context.CancelFunc)
@@ -172,7 +169,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			// This cert is used to terminate mTLS connections on the service's behalf
 			if _, ok := snap.TerminatingGateway.WatchedLeaves[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
+				err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 					Datacenter:     s.source.Datacenter,
 					Token:          s.token,
 					Service:        svc.Service.Name,
@@ -366,7 +363,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 		}
 
 	case strings.HasPrefix(u.CorrelationID, serviceIntentionsIDPrefix):
-		resp, ok := u.Result.(structs.SimplifiedIntentions)
+		resp, ok := u.Result.(structs.Intentions)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}

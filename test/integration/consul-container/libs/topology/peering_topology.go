@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package topology
 
 import (
@@ -151,7 +148,7 @@ func BasicPeeringTwoClustersSetup(
 
 		// Create a service and proxy instance
 		var err error
-		clientSidecarService, err = libservice.CreateAndRegisterStaticClientSidecar(clientNode, DialingPeerName, true, false)
+		clientSidecarService, err = libservice.CreateAndRegisterStaticClientSidecar(clientNode, DialingPeerName, true)
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy", nil)
@@ -244,10 +241,6 @@ func NewCluster(
 		cluster, err = libcluster.NewN(t, *serverConf, config.NumServers)
 	}
 	require.NoError(t, err)
-	// builder generates certs for us, so copy them back
-	if opts.InjectAutoEncryption {
-		cluster.CACert = serverConf.CACert
-	}
 
 	var retryJoin []string
 	for i := 0; i < config.NumServers; i++ {

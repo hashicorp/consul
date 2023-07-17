@@ -66,5 +66,3 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
-/go.work
-/go.work.sum

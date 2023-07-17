@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 dc:
   show:
     title: Cluster Overview
@@ -8,8 +5,8 @@ dc:
       title: Server status
       unassigned: Unassigned Zones
       tolerance:
-        link-text: Learn how to improve fault tolerance
-        link: /architecture/improving-consul-resilience#strategies-to-increase-fault-tolerance
+        link: |
+          <a href="{CONSUL_DOCS_URL}/architecture/improving-consul-resilience#strategies-to-increase-fault-tolerance" target="_blank" rel="noopener noreferrer">Learn how to improve fault tolerance</a>
         header: Server fault tolerance
         immediate:
           header: Immediate
@@ -37,16 +34,25 @@ dc:
             </p>
       documentation:
         title: Learn More
-        links:
-          license-expiration:
-            text: License expiration
-            link: '/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire'
-          renewing-license:
-            text: Renewing a license
-            link: '/enterprise/license/faq#q-how-can-i-renew-a-license'
-          applying-new-license:
-            text: Applying a new license
-            link: '/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise'
+        body: |
+          <ul>
+            <li>
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire" target="_blank" rel="noopener noreferrer">
+                License expiration
+              </a>
+            </li>
+            <li>
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-how-can-i-renew-a-license" target="_blank" rel="noopener noreferrer">
+                Renewing a license
+              </a>
+            </li>
+            <li>
+              <a href="{CONSUL_DOCS_LEARN_URL}/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise" target="_blank" rel="noopener noreferrer">
+                Applying a new license
+              </a>
+            </li>
+          </ul>
+
   nodes:
     index:
       agentless:
@@ -152,7 +158,7 @@ dc:
             <div>
             {items, select,
               0 {Services must be exported from one peer to another to enable service communication across two peers. There don't seem to be any services imported from {name} yet, or you may not have <code>services:read</code> permissions to access to this view.}
-              other {No services where found matching that search, or you may not have access to view the services you are searching for.}
+              other {No services were found matching that search, or you may not have access to view the services you are searching for.}
             }
             </div>
       exported:
@@ -162,7 +168,7 @@ dc:
             <div>
             {items, select,
               0 {Services must be exported from one peer to another to enable service communication across two peers. There don't seem to be any services exported to {name} yet, or you may not have <code>services:read</code> permissions to access to this view.}
-              other {No services where found matching that search, or you may not have access to view the services you are searching for.}
+              other {No services were found matching that search, or you may not have access to view the services you are searching for.}
             }
             </div>
 
@@ -248,14 +254,21 @@ dc:
           </p>
         critical-serf-notice:
           header: Failing serf check
-          body: This instance has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
+          body: |
+            <p>
+              This instance has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
+            </p>
       upstreams:
         tproxy-mode:
           header: Transparent proxy mode
-          body: The upstreams listed on this page have been defined in a proxy registration. There may be more upstreams, though, as "transparent" mode is enabled on this proxy.
-          footer:
-            link: "/connect/transparent-proxy"
-            text: Read the documentation
+          body: |
+            <p>
+              The upstreams listed on this page have been defined in a proxy registration. There may be more upstreams, though, as "transparent" mode is enabled on this proxy.
+            </p>
+          footer: |
+            <p>
+              <a href="{CONSUL_DOCS_URL}/connect/transparent-proxy" target="_blank" rel="noopener noreferrer">Read the documentation
+            </p>
         empty: |
           <p>
             This Service Instance has no Upstreams{items, select,
@@ -275,39 +288,45 @@ dc:
           default-allow:
             header: Restrict which services can connect
             body: Your current ACL settings allow all services to connect to each other. Either create a deny intention between all services, or set your default ACL policy to deny to improve your security posture and make this topology view reflect the actual upstreams and downstreams of this service.
-            footer:
-              link-text: Create a wildcard deny Intention
-              icon: plus
+            footer: |
+              <p>
+                <a href="{route_intentions}">Create a wildcard deny Intention</a>
+              </p>
           wildcard-intention:
             header: Restrict which services can connect
             body: There is currently a wildcard Intention that allows all services to connect to each other. Change the action of that Intention to deny to improve your security posture and have this topology view reflect the actual upstreams and downstreams of this service.
-            footer:
-              link-text: Edit wildcard intentions
-              icon: edit
+            footer: |
+              <p>
+                <a href="{route_intentions}">Edit wildcard intentions</a>
+              </p>
           not-defined-intention:
             header: Add upstream to allow traffic
             body: An Intention was defined that allows traffic between services, but those services are unable to communicate. Define an explicit upstream in the service definition or enable transparent proxy to fix this.
-            footer:
-              link: '{CONSUL_DOCS_URL}/connect/registration/service-registration#upstreams'
-              link-text: Learn how to add upstreams
+            footer: |
+              <p>
+                <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#upstreams" target="_blank" rel="noopener noreferrer">Learn how to add upstreams</a>
+              </p>
           no-dependencies:
             header: No dependencies
             body: The service you are viewing currently has no dependencies. You will only see metrics for the current service until dependencies are added.
-            footer:
-              link: '{CONSUL_DOCS_URL}/connect/registration/service-registration#upstream-configuration-reference'
-              link-text: Read the documentation
+            footer: |
+              <p>
+                <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#upstream-configuration-reference" target="_blank" rel="noopener noreferrer">Read the documentation</a>
+              </p>
           acls-disabled:
             header: Restrict which services can connect
             body: Your current ACL settings allow all services to connect to each other. Either create a deny intention between all services, or enable ACLs and set your default ACL policy to deny to improve your security posture and make this topology view reflect the actual upstreams and downstreams of this service.
-            footer:
-              link: '{ CONSUL_DOCS_URL }/security/acl/acl-system#configuring-acls'
-              link-text: Read the documentation
+            footer: |
+              <p>
+                <a href="{CONSUL_DOCS_URL}/security/acl/acl-system#configuring-acls" target="_blank" rel="noopener noreferrer">Read the documentation</a>
+              </p>
           no-intentions:
             header: Add Intention to allow traffic
             body: There is an upstream registered for this service, but that upstream cannot receive traffic without creating an allow intention.
-            footer:
-              link-text: Edit Intentions
-              icon: edit
+            footer: |
+              <p>
+                <a href="{route_intentions}">Edit Intentions</a>
+              </p>
       intentions:
         index:
           empty:

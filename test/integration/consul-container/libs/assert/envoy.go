@@ -1,12 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package assert
 
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -15,29 +11,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // GetEnvoyListenerTCPFilters validates that proxy was configured with tcp protocol and one rbac listener filter
 func GetEnvoyListenerTCPFilters(t *testing.T, adminPort int) {
-	require.True(t, adminPort > 0)
-
-	GetEnvoyListenerTCPFiltersWithClient(
-		t,
-		cleanhttp.DefaultClient(),
-		fmt.Sprintf("localhost:%d", adminPort),
-	)
-}
-func GetEnvoyListenerTCPFiltersWithClient(
-	t *testing.T,
-	client *http.Client,
-	addr string,
-) {
 	var (
 		dump string
 		err  error
@@ -47,7 +29,7 @@ func GetEnvoyListenerTCPFiltersWithClient(
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		dump, _, err = GetEnvoyOutputWithClient(client, addr, "config_dump", map[string]string{})
+		dump, _, err = GetEnvoyOutput(adminPort, "config_dump", map[string]string{})
 		if err != nil {
 			r.Fatal("could not fetch envoy configuration")
 		}
@@ -70,55 +52,30 @@ func GetEnvoyListenerTCPFiltersWithClient(
 	require.Contains(t, filteredResult, "envoy.filters.network.tcp_proxy")
 }
 
-// func GetEnvoyOutputWithClient(client *http.Client, addr string, path string, query map[string]string) (string, int, error) {
-
 // AssertUpstreamEndpointStatus validates that proxy was configured with provided clusterName in the healthStatus
 func AssertUpstreamEndpointStatus(t *testing.T, adminPort int, clusterName, healthStatus string, count int) {
-	require.True(t, adminPort > 0)
-	AssertUpstreamEndpointStatusWithClient(
-		t,
-		cleanhttp.DefaultClient(),
-		fmt.Sprintf("localhost:%d", adminPort),
-		clusterName,
-		healthStatus,
-		count,
+	var (
+		clusters string
+		err      error
 	)
-}
-func AssertUpstreamEndpointStatusWithClient(
-	t *testing.T,
-	client *http.Client,
-	addr string,
-	clusterName string,
-	healthStatus string,
-	count int,
-) {
-	require.NotNil(t, client)
-	require.NotEmpty(t, addr)
 	failer := func() *retry.Timer {
 		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		clusters, statusCode, err := GetEnvoyOutputWithClient(client, addr, "clusters", map[string]string{"format": "json"})
+		clusters, _, err = GetEnvoyOutput(adminPort, "clusters", map[string]string{"format": "json"})
 		if err != nil {
 			r.Fatal("could not fetch envoy clusters")
 		}
-		require.Equal(r, 200, statusCode)
 
-		filter := fmt.Sprintf(
-			`.cluster_statuses[]
-			| select(.name|contains("%s"))
-			| [.host_statuses[].health_status.eds_health_status]
-			| [select(.[] == "%s")]
-			| length`,
-			clusterName, healthStatus)
+		filter := fmt.Sprintf(`.cluster_statuses[] | select(.name|contains("%s")) | [.host_statuses[].health_status.eds_health_status] | [select(.[] == "%s")] | length`, clusterName, healthStatus)
 		results, err := utils.JQFilter(clusters, filter)
-		require.NoErrorf(r, err, "could not found cluster name %s in \n%s", clusterName, clusters)
-		require.Len(r, results, 1) // the final part of the pipeline is "length" which only ever returns 1 result
+		require.NoErrorf(r, err, "could not found cluster name %s", clusterName)
 
-		result, err := strconv.Atoi(results[0])
+		resultToString := strings.Join(results, " ")
+		result, err := strconv.Atoi(resultToString)
 		assert.NoError(r, err)
-		require.Equal(r, count, result, "original results: %v", clusters)
+		require.Equal(r, count, result)
 	})
 }
 
@@ -280,12 +237,8 @@ func AssertEnvoyRunning(t *testing.T, port int) {
 
 func GetEnvoyOutput(port int, path string, query map[string]string) (string, int, error) {
 	client := cleanhttp.DefaultClient()
-	return GetEnvoyOutputWithClient(client, fmt.Sprintf("localhost:%d", port), path, query)
-}
-
-func GetEnvoyOutputWithClient(client *http.Client, addr string, path string, query map[string]string) (string, int, error) {
 	var u url.URL
-	u.Host = addr
+	u.Host = fmt.Sprintf("localhost:%d", port)
 	u.Scheme = "http"
 	if path != "" {
 		u.Path = path

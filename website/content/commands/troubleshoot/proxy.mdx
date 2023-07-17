@@ -31,7 +31,6 @@ The following example illustrates how to troubleshoot Consul service mesh config
 
   ```shell-session
   $ consul troubleshoot proxy -upstream-ip 10.4.6.160
-
   ==> Validation
    ✓ Certificates are valid
    ✓ Envoy has 0 rejected configurations
@@ -52,7 +51,6 @@ The following example troubleshoots Consul service mesh configuration and networ
 
   ```shell-session
   $ consul-k8s troubleshoot proxy -upstream-envoy-id db
-
   ==> Validation
    ✓ Certificates are valid
    ✓ Envoy has 0 rejected configurations
@@ -61,7 +59,6 @@ The following example troubleshoots Consul service mesh configuration and networ
    ✓ Route for upstream "db" found
    ✓ Cluster "db.default.dc1.internal.e08fa6d6-e91e-dfe0.consul" for upstream "db" found
    ✓ Healthy endpoints for cluster "db.default.dc1.internal.e08fa6d6-e91e-dfe0.consul" for upstream "db" found
-
   If you are still experiencing issues, you can:
   -> Check intentions to ensure the upstream allows traffic from this source
   -> If using transparent proxy, ensure DNS resolution is to the same IP you have verified here

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -144,6 +141,7 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 			uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), path)
 			req, _ := http.NewRequest("OPTIONS", uri, nil)
 			resp := httptest.NewRecorder()
+
 			a.enableDebug.Store(true)
 			a.srv.handler().ServeHTTP(resp, req)
 			allMethods := append([]string{"OPTIONS"}, methods...)
@@ -192,7 +190,6 @@ func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
 			req.RemoteAddr = "192.168.1.2:5555"
 			resp := httptest.NewRecorder()
 			a.enableDebug.Store(true)
-
 			a.srv.handler().ServeHTTP(resp, req)
 
 			require.Equal(t, http.StatusForbidden, resp.Code, "%s %s", method, path)

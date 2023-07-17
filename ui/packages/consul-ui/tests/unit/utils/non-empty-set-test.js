@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import nonEmptySet from 'consul-ui/utils/non-empty-set';
 import { module, test } from 'qunit';
 

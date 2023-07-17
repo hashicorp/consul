@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <Route
   @name={{routeName}}
 as |route|>
@@ -76,14 +71,19 @@ as |dc partition nspace id item create|}}
         </div>
   {{/if}}
   {{#if (eq (policy/typeof item) 'policy-management')}}
-    <Hds::Alert @type="inline" @icon="star-fill" class="mb-3 mt-2" as |A|>
-      <A.Title>Management</A.Title>
-      <A.Description>This global-management token is built into Consul's policy system. You can apply this special policy to tokens for full access. This policy is not editable or removeable, but can be ignored by not applying it to any tokens.</A.Description>
-      <A.Link::Standalone @text='Learn more'
-                          @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#builtin-policies"
-                          @icon='docs-link'
-                          @iconPosition='trailing' />
-    </Hds::Alert>
+    <Notice
+      class="policy-management"
+      @type="none"
+    as |notice|>
+      <notice.Header>
+        <h3>Management</h3>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          This global-management token is built into Consul's policy system. You can apply this special policy to tokens for full access. This policy is not editable or removeable, but can be ignored by not applying it to any tokens. Learn more in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#builtin-policies" target="_blank" rel="noopener noreferrer">documentation</a>.
+        </p>
+      </notice.Body>
+    </Notice>
     <div class="definition-table">
       <dl>
         <dt>Name</dt>

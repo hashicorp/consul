@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -19,7 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -37,7 +33,13 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindIngressGateway:
 		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		return s.routesForAPIGateway(cfgSnap)
+		// TODO Find a cleaner solution, can't currently pass unexported property types
+		var err error
+		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+		if err != nil {
+			return nil, err
+		}
+		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesForTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
@@ -425,82 +427,6 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	return result, nil
 }
 
-// routesForAPIGateway returns the xDS API representation of the "routes" in the snapshot.
-func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	var result []proto.Message
-
-	readyUpstreamsList := getReadyListeners(cfgSnap)
-
-	for _, readyUpstreams := range readyUpstreamsList {
-		listenerCfg := readyUpstreams.listenerCfg
-		// Do not create any route configuration for TCP listeners
-		if listenerCfg.Protocol != structs.ListenerProtocolHTTP {
-			continue
-		}
-
-		routeRef := readyUpstreams.routeReference
-		listenerKey := readyUpstreams.listenerKey
-
-		defaultRoute := &envoy_route_v3.RouteConfiguration{
-			Name: listenerKey.RouteName(),
-			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the reasonable value of true to prevent
-			// null-routing traffic.
-			ValidateClusters: makeBoolValue(true),
-		}
-
-		route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
-		if !ok {
-			return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
-		}
-
-		// Reformat the route here since discovery chains were indexed earlier using the
-		// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
-		// convert our route to use the same naming convention, we won't find any chains below.
-		reformatedRoutes := discoverychain.ReformatHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
-
-		for _, reformatedRoute := range reformatedRoutes {
-			reformatedRoute := reformatedRoute
-
-			upstream := buildHTTPRouteUpstream(reformatedRoute, listenerCfg)
-			uid := proxycfg.NewUpstreamID(&upstream)
-			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
-			if chain == nil {
-				s.Logger.Debug("Discovery chain not found for flattened route", "discovery chain ID", uid)
-				continue
-			}
-
-			domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
-
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
-			if err != nil {
-				return nil, err
-			}
-
-			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
-		}
-
-		if len(defaultRoute.VirtualHosts) > 0 {
-			result = append(result, defaultRoute)
-		}
-	}
-
-	return result, nil
-}
-
-func buildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener structs.APIGatewayListener) structs.Upstream {
-	return structs.Upstream{
-		DestinationName:      route.GetName(),
-		DestinationNamespace: route.NamespaceOrDefault(),
-		DestinationPartition: route.PartitionOrDefault(),
-		IngressHosts:         route.Hostnames,
-		LocalBindPort:        listener.Port,
-		Config: map[string]interface{}{
-			"protocol": string(listener.Protocol),
-		},
-	}
-}
-
 func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
 	opts := make([]*envoy_core_v3.HeaderValueOption, 0, len(vals))
 	for k, v := range vals {
@@ -585,11 +511,6 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	}
 
 	return domains
-}
-
-func generateUpstreamAPIsDomains(listenerKey proxycfg.APIGatewayListenerKey, u structs.Upstream, hosts []string) []string {
-	u.IngressHosts = hosts
-	return generateUpstreamIngressDomains(listenerKey, u)
 }
 
 func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
@@ -918,11 +839,11 @@ func (s *ResourceGenerator) makeRouteActionForChainCluster(
 	chain *structs.CompiledDiscoveryChain,
 	forMeshGateway bool,
 ) (*envoy_route_v3.Route_Route, bool) {
-	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
-	if clusterName == "" {
+	td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
+	if !ok {
 		return nil, false
 	}
-	return makeRouteActionFromName(clusterName), true
+	return makeRouteActionFromName(td.clusterName), true
 }
 
 func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
@@ -951,8 +872,8 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		}
 		targetID := nextNode.Resolver.Target
 
-		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
-		if clusterName == "" {
+		targetOptions, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
+		if !ok {
 			continue
 		}
 
@@ -962,7 +883,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		totalWeight += weight
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
 			Weight: makeUint32Value(weight),
-			Name:   clusterName,
+			Name:   targetOptions.clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
 			return nil, err

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package maps
 
 func SliceOfKeys[K comparable, V any](m map[K]V) []K {

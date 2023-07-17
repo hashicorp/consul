@@ -39,19 +39,18 @@ Consul supports **four major Envoy releases** at the beginning of each major Con
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
-| 1.16.x              | 1.26.2, 1.25.7, 1.24.8, 1.23.10                                                    |
 | 1.15.x              | 1.25.6, 1.24.7, 1.23.9, 1.22.11                                                    |
 | 1.14.x              | 1.24.0, 1.23.1, 1.22.5, 1.21.5                                                     |
+| 1.13.x              | 1.23.1, 1.22.5, 1.21.5, 1.20.7                                                     |
 
 ### Envoy and Consul Dataplane
 
 The Consul dataplane component was introduced in Consul v1.14 as a way to manage Envoy proxies without the use of Consul clients. Each new minor version of Consul is released with a new minor version of Consul dataplane, which packages both Envoy and the `consul-dataplane` binary in a single container image. For backwards compatability reasons, each new minor version of Consul will also support the previous minor version of Consul dataplane to allow for seamless upgrades. In addition, each minor version of Consul will support the next minor version of Consul dataplane to allow for extended dataplane support via newer versions of Envoy.
 
-| Consul Version      | Default `consul-dataplane` Version                          | Other compatible `consul-dataplane` Versions | 
-| ------------------- | ------------------------------------------------------------|----------------------------------------------|
-| 1.16.x              | 1.2.x (Envoy 1.26.x)                                        | 1.1.x (Envoy 1.25.x)                         |
-| 1.15.x              | 1.1.x (Envoy 1.25.x)                                        | 1.2.x (Envoy 1.26.x), 1.0.x (Envoy 1.24.x)   |
-| 1.14.x              | 1.0.x (Envoy 1.24.x)                                        | 1.1.x (Envoy 1.25.x)                         |
+| Consul Version      | Consul Dataplane Version (Bundled Envoy Version)  |
+| ------------------- | ------------------------------------------------- |
+| 1.15.x              | 1.1.x (Envoy 1.25.x), 1.0.x (Envoy 1.24.x)        |
+| 1.14.x              | 1.1.x (Envoy 1.25.x), 1.0.x (Envoy 1.24.x)        |
 
 ## Getting Started
 
@@ -417,13 +416,6 @@ definition](/consul/docs/connect/registration/service-registration) or
     host will be actually ejected when the proxy detects an outlier status
     through consecutive errors in the 500 code range. If not specified, Consul
     uses the proxy's default value. For example, `100` for Envoy proxy.
-  - `max_ejection_percent` - The maximum percentage of hosts that can be ejected
-    from a upstream cluster due to passive health check failures. If not specified,
-    inherits Envoy's default of 10% or at least one host.
-  - `base_ejection_time` - The base time that a host is ejected for. The real 
-     time is equal to the base time multiplied by the number of times the host has 
-     been ejected and is capped by max_ejection_time (Default 300s). If not 
-     speficied, inherits Envoy's default value of 30s.
 
 - `balance_outbound_connections` - Specifies the strategy for balancing outbound connections
   across Envoy worker threads. Consul service mesh Envoy integration supports the

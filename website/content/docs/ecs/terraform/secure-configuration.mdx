@@ -121,7 +121,7 @@ Follow the instructions described in [Create a task definition](/consul/docs/ecs
 
 The secret stores the gossip encryption key that the Consul clients use.
 
-<CodeBlockConfig>
+<CodeBlock>
 
 ```hcl
 resource "aws_secretsmanager_secret" "gossip_key" {
@@ -134,7 +134,7 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
 }
 ```
 
-</CodeBlockConfig>
+</CodeBlock>
 
 ### Enable secure deployment
 

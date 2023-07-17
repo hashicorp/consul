@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 export default function (P = Promise, timeout = setTimeout) {
   // var interval;
   return function (milliseconds, cb = function () {}) {

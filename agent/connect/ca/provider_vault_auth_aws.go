@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package ca
 
 import (
@@ -29,7 +26,7 @@ func NewAWSAuthClient(authMethod *structs.VaultAuthMethod) *VaultAuthClient {
 		"pkcs7",                   // EC2 PKCS7
 		"iam_http_request_method", // IAM
 	}
-	if legacyCheck(authMethod.Params, keys...) {
+	if containsVaultLoginParams(authMethod, keys...) {
 		return authClient
 	}
 
@@ -72,6 +69,13 @@ func (g *AWSLoginDataGenerator) GenerateLoginData(authMethod *structs.VaultAuthM
 	if err != nil {
 		return nil, fmt.Errorf("aws auth failed to generate login data: %w", err)
 	}
+
+	// If a Vault role name is specified, we need to manually add this
+	role, ok := authMethod.Params["role"]
+	if ok {
+		loginData["role"] = role
+	}
+
 	return loginData, nil
 }
 

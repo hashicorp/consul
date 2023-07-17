@@ -23,7 +23,7 @@ If ACLs are enabled, the querying service must present a token linked to permiss
 
 - [Prepared query rules](/consul/docs/security/acl/acl-rules#prepared-query-rules)
 - [Service rules](/consul/docs/security/acl/acl-rules#service-rules)
-- [Node rules](/consul/docs/security/acl/acl-rules#node-rules)
+- [Node rules](/consul/docs/security/acl/acl-rules#node-rules) 
 
 ## Create prepared queries
 
@@ -45,22 +45,22 @@ Refer to the [prepared query reference](/consul/api-docs/query#create-prepared-q
           "Near": "node1",
           "OnlyPassing": false,
           "Tags": ["primary", "!experimental"],
-          "NodeMeta": {
-            "instance_type": "m3.large"
+          "NodeMeta": { 
+            "instance_type": "m3.large" 
+            },
+          "ServiceMeta": { 
+            "environment": "production" 
+            }
           },
-          "ServiceMeta": {
-            "environment": "production"
-          }
-        },
         "DNS": {
           "TTL": "10s"
-        }
+          }
     }
     ```
 
  Refer to the [prepared query configuration reference](/consul/api-docs/query#create-prepared-query) for information about all available options.
 
-1. Send the query in a POST request to the [`/query` API endpoint](/consul/api-docs/query). If the request is successful, Consul prints an ID for the prepared query.
+1. Send the query in a POST request to the [`/query` API endpoint](/consul/api-docs/query). If the request is successful, Consul prints an ID for the prepared query. 
 
     In the following example, the prepared query configuration is stored in the `payload.json` file:
 
@@ -74,7 +74,7 @@ Refer to the [prepared query reference](/consul/api-docs/query#create-prepared-q
     ```shell-session
     $ curl http://127.0.0.1:8500/v1/query/14af5ff-29e6-e972-dcf8-6ee602137127/execute\?near\=_agent
     ```
-
+ 
 ## Execute prepared queries
 
 You can execute a prepared query using the standard lookup format or the strict RFC 2782 SRV lookup.
@@ -82,7 +82,7 @@ You can execute a prepared query using the standard lookup format or the strict 
 ### Standard lookup
 
 Use the following format to execute a prepared query using the standard lookup format:
-
+ 
 ```
 <query name or id>.query[.<datacenter>].<domain>
 ```
@@ -103,7 +103,7 @@ For additional information about following the RFC 2782 SRV lookup format in Con
 
 The `datacenter` subdomain is optional. By default, the lookup queries the datacenter of this Consul agent.
 
-The `query name` or `id` subdomain is the name or ID of an existing prepared query.
+The `query name` or `id` subdomain is the name or ID of an existing prepared query. 
 
 ## Results
 

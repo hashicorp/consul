@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package awslambda
 
 import (
@@ -28,8 +25,6 @@ import (
 var _ extensioncommon.BasicExtension = (*awsLambda)(nil)
 
 type awsLambda struct {
-	extensioncommon.BasicExtensionAdapter
-
 	ARN                string
 	PayloadPassthrough bool
 	InvocationMode     string
@@ -72,18 +67,15 @@ func (a *awsLambda) CanApply(config *extensioncommon.RuntimeConfig) bool {
 
 // PatchRoute modifies the routing configuration for a service of kind TerminatingGateway. If the kind is
 // not TerminatingGateway, then it can not be modified.
-func (a *awsLambda) PatchRoute(p extensioncommon.RoutePayload) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	cfg := p.RuntimeConfig
-	if cfg.Kind != api.ServiceKindTerminatingGateway {
-		return p.Message, false, nil
+func (a *awsLambda) PatchRoute(r *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	if r.Kind != api.ServiceKindTerminatingGateway {
+		return route, false, nil
 	}
 
 	// Only patch outbound routes.
-	if p.IsInbound() {
-		return p.Message, false, nil
+	if extensioncommon.IsRouteToLocalAppCluster(route) {
+		return route, false, nil
 	}
-
-	route := p.Message
 
 	for _, virtualHost := range route.VirtualHosts {
 		for _, route := range virtualHost.Routes {
@@ -104,17 +96,15 @@ func (a *awsLambda) PatchRoute(p extensioncommon.RoutePayload) (*envoy_route_v3.
 }
 
 // PatchCluster patches the provided envoy cluster with data required to support an AWS lambda function
-func (a *awsLambda) PatchCluster(p extensioncommon.ClusterPayload) (*envoy_cluster_v3.Cluster, bool, error) {
+func (a *awsLambda) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
 	// Only patch outbound clusters.
-	if p.IsInbound() {
-		return p.Message, false, nil
+	if extensioncommon.IsLocalAppCluster(c) {
+		return c, false, nil
 	}
 
-	transportSocket, err := extensioncommon.MakeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
+	transportSocket, err := makeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
 		Sni: "*.amazonaws.com",
 	})
-
-	c := p.Message
 
 	if err != nil {
 		return c, false, fmt.Errorf("failed to make transport socket: %w", err)
@@ -173,11 +163,9 @@ func (a *awsLambda) PatchCluster(p extensioncommon.ClusterPayload) (*envoy_clust
 
 // PatchFilter patches the provided envoy filter with an inserted lambda filter being careful not to
 // overwrite the http filters.
-func (a *awsLambda) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
-	filter := p.Message
-
+func (a *awsLambda) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter, isInboundListener bool) (*envoy_listener_v3.Filter, bool, error) {
 	// Only patch outbound filters.
-	if p.IsInbound() {
+	if isInboundListener {
 		return filter, false, nil
 	}
 
@@ -193,7 +181,7 @@ func (a *awsLambda) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listene
 		return filter, false, errors.New("error unmarshalling filter")
 	}
 
-	lambdaHttpFilter, err := extensioncommon.MakeEnvoyHTTPFilter(
+	lambdaHttpFilter, err := makeEnvoyHTTPFilter(
 		"envoy.filters.http.aws_lambda",
 		&envoy_lambda_v3.Config{
 			Arn:                a.ARN,
@@ -228,7 +216,7 @@ func (a *awsLambda) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listene
 	config.StripPortMode = &envoy_http_v3.HttpConnectionManager_StripAnyHostPort{
 		StripAnyHostPort: true,
 	}
-	newFilter, err := extensioncommon.MakeFilter("envoy.filters.network.http_connection_manager", config)
+	newFilter, err := makeFilter("envoy.filters.network.http_connection_manager", config)
 	if err != nil {
 		return filter, false, errors.New("error making new filter")
 	}

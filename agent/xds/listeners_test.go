@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -1095,25 +1092,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 						Type:                structs.StdErrLogSinkType,
 						TextFormat:          "CUSTOM FORMAT %START_TIME%",
 					}
-				},
-					nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tproxy-and-permissive-mtls",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
-					ns.Proxy.Mode = structs.ProxyModeTransparent
-				},
-					nil)
-			},
-		},
-		{
-			name: "connect-proxy-without-tproxy-and-permissive-mtls",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
 				},
 					nil)
 			},

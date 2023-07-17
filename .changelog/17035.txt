@@ -1,3 +1,0 @@
-```release-note:feature
-mesh: Add new permissive mTLS mode that allows sidecar proxies to forward incoming traffic unmodified to the application. This adds `AllowEnablingPermissiveMutualTLS` setting to the mesh config entry and the `MutualTLSMode` setting to proxy-defaults and service-defaults.
-```

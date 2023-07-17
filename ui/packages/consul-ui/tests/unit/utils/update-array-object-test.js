@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import updateArrayObject from 'consul-ui/utils/update-array-object';
 import { module, test } from 'qunit';
 

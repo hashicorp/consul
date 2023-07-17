@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package service
 
 import (
@@ -10,7 +7,6 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -147,10 +143,9 @@ func (g ConnectContainer) GetStatus() (string, error) {
 }
 
 type SidecarConfig struct {
-	Name         string
-	ServiceID    string
-	Namespace    string
-	EnableTProxy bool
+	Name      string
+	ServiceID string
+	Namespace string
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
@@ -167,19 +162,29 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarCfg.Name)
 	containerName := utils.RandName(namePrefix)
 
+	envoyVersion := getEnvoyVersion()
 	agentConfig := node.GetConfig()
+	buildargs := map[string]*string{
+		"ENVOY_VERSION": utils.StringToPointer(envoyVersion),
+		"CONSUL_IMAGE":  utils.StringToPointer(agentConfig.DockerImage()),
+	}
+
+	dockerfileCtx, err := getDevContainerDockerfile()
+	if err != nil {
+		return nil, err
+	}
+	dockerfileCtx.BuildArgs = buildargs
+
 	internalAdminPort, err := node.ClaimAdminPort()
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("agent image name", agentConfig.DockerImage())
-	imageVersion := utils.SideCarVersion(agentConfig.DockerImage())
 	req := testcontainers.ContainerRequest{
-		Image:      fmt.Sprintf("consul-envoy:%s", imageVersion),
-		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
-		AutoRemove: false,
-		Name:       containerName,
+		FromDockerfile: dockerfileCtx,
+		WaitingFor:     wait.ForLog("").WithStartupTimeout(100 * time.Second),
+		AutoRemove:     false,
+		Name:           containerName,
 		Cmd: []string{
 			"consul", "connect", "envoy",
 			"-sidecar-for", sidecarCfg.ServiceID,
@@ -189,26 +194,6 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 			"--log-level", envoyLogLevel,
 		},
 		Env: make(map[string]string),
-	}
-
-	if sidecarCfg.EnableTProxy {
-		req.Entrypoint = []string{"/bin/tproxy-startup.sh"}
-		req.Env["REDIRECT_TRAFFIC_ARGS"] = strings.Join(
-			[]string{
-				"-exclude-inbound-port", fmt.Sprint(internalAdminPort),
-				"-exclude-inbound-port", "8300",
-				"-exclude-inbound-port", "8301",
-				"-exclude-inbound-port", "8302",
-				"-exclude-inbound-port", "8500",
-				"-exclude-inbound-port", "8502",
-				"-exclude-inbound-port", "8600",
-				"-consul-dns-ip", "127.0.0.1",
-				"-consul-dns-port", "8600",
-				"-proxy-id", fmt.Sprintf("%s-sidecar-proxy", sidecarCfg.ServiceID),
-			},
-			" ",
-		)
-		req.CapAdd = append(req.CapAdd, "NET_ADMIN")
 	}
 
 	nodeInfo := node.GetInfo()

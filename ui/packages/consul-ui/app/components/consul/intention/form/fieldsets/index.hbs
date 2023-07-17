@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <div
   ...attributes
   class="consul-intention-fieldsets"
@@ -194,14 +189,13 @@
   </fieldset>
 {{#if (eq (or item.Action '') '')}}
   <fieldset class="permissions">
-    <Hds::Button
-      @text='Add permission'
-      @size='small'
-      @color='tertiary'
-      @icon='plus'
+    <button
       data-test-create-permission
+      type="button"
       {{on "click" (action this.openModal)}}
-    />
+    >
+      Add permission
+    </button>
     <h2>Permissions</h2>
 {{#if (gt item.Permissions.length 0) }}
     <Consul::Intention::Notice::Permissions />
@@ -223,23 +217,11 @@
         </p>
       </BlockSlot>
       <BlockSlot @name="actions">
-        <li>
-          <Hds::Link::Standalone
-            @text='Documentation'
-            @href="{{env 'CONSUL_DOCS_URL'}}/commands/intention"
-            @icon='docs-link'
-            @iconPosition='trailing'
-            @size='small'
-          />
+        <li class="docs-link">
+          <a href="{{env 'CONSUL_DOCS_URL'}}/commands/intention" rel="noopener noreferrer" target="_blank">Documentation</a>
         </li>
-        <li>
-          <Hds::Link::Standalone
-            @text='Read the guide'
-            @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect"
-            @icon='learn-link'
-            @iconPosition='trailing'
-            @size='small'
-          />
+        <li class="learn-link">
+          <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Read the guide</a>
         </li>
       </BlockSlot>
     </EmptyState>
@@ -267,20 +249,22 @@
       </Consul::Intention::Permission::Form>
     </BlockSlot>
     <BlockSlot @name="actions">
-      <Hds::ButtonSet>
-        <Hds::Button
-          @text='Save'
-          data-test-intention-permission-submit
-          @color='primary'
-          disabled={{if (not this.permissionForm.isDirty) 'disabled'}}
-          onclick={{queue (action this.permissionForm.submit) (action modal.close)}}
-        />
-        <Hds::Button
-          @text='Cancel'
-          @color='secondary'
-          onclick={{queue (action this.permissionForm.reset) (action modal.close)}}
-        />
-      </Hds::ButtonSet>
+      <button
+        type="button"
+        data-test-intention-permission-submit
+        class="type-submit"
+        disabled={{if (not this.permissionForm.isDirty) 'disabled'}}
+        onclick={{queue (action this.permissionForm.submit) (action modal.close)}}
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        class="type-cancel"
+        onclick={{queue (action this.permissionForm.reset) (action modal.close)}}
+      >
+        Cancel
+      </button>
     </BlockSlot>
   </ModalDialog>
 

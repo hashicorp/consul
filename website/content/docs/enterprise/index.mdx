@@ -2,7 +2,7 @@
 layout: docs
 page_title: Consul Enterprise
 description: >-
-  Consul Enterprise is a paid offering that extends Consul’s open source functions to support large and complex deployments. Learn about scaling infrastructure, simplifying operations, and making networks more resilient with Enterprise. Evaluate Enteprise features with the feature availability and compatibility matrix.
+  Consul Enterprise is a paid offering that extends Consul’s open source functions to support large and complex deployments. Learn about scaling infrastructure, simplifying operations, and making networks more resilient with Enterprise.
 ---
 
 # Consul Enterprise
@@ -19,7 +19,6 @@ The following features are [available in several forms of Consul Enterprise](#co
 ### Multi-Tenancy
 - [Admin Partitions](/consul/docs/enterprise/admin-partitions): Define administrative boundaries between tenants within a single Consul datacenter
 - [Namespaces](/consul/docs/enterprise/namespaces): Define resource boundaries within a single admin partition for further organizational flexibility
-- [Sameness Groups](/consul/docs/connect/config-entries/samenes-group): Define partitions and cluster peers as members of a group with identical services
 
 ### Resiliency
 - [Automated Backups](/consul/docs/enterprise/backups): Configure the automatic backup of Consul state
@@ -84,10 +83,7 @@ Available Enterprise features per Consul form and license include:
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)    | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc) | No                                      | Yes                 | Yes                                               |
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)          | Not applicable                          | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Sameness Groups](/consul/docs/connect/config-entries/samenes-group) | No | Yes | N/A |
 | [Sentinel for KV](/consul/docs/enterprise/sentinel)             | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips) | All tiers | Yes | With Governance and Policy module |
-
 
 [HashiCorp Cloud Platform (HCP) Consul]: https://cloud.hashicorp.com/products/consul
 [Consul Enterprise]: https://www.hashicorp.com/products/consul/
@@ -112,9 +108,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#9989;  |  &#10060;  |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  &#9989;  |  &#9989;   |   &#9989;  |
-| [Sameness Groups](/consul/docs/connect/config-entries/samenes-group)    |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |   &#9989;  |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips) | &#9989; | &#9989; | &#9989; |
 
 </Tab>
 
@@ -132,9 +126,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#10060; |  &#10060;  |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  &#10060; |  &#10060;  |  &#10060;  |
-| [Sameness Groups](/consul/docs/connect/config-entries/samenes-group)    |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |  &#9989;  |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips) | &#9989; | &#9989; | &#9989; |
 
 </Tab>
 
@@ -152,9 +144,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#10060; |  &#10060;  |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#10060; |  &#10060;  |  &#10060;  |
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  n/a      |  n/a       |  n/a       |
-| [Sameness Groups](/consul/docs/connect/config-entries/samenes-group)    |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |   &#9989;  |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips) | &#9989; | &#9989; | &#9989; |
 
 </Tab>
 </Tabs>

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -19,11 +16,11 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func makeRBACNetworkFilter(
-	intentions structs.SimplifiedIntentions,
+	intentions structs.Intentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
@@ -38,7 +35,7 @@ func makeRBACNetworkFilter(
 }
 
 func makeRBACHTTPFilter(
-	intentions structs.SimplifiedIntentions,
+	intentions structs.Intentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
@@ -52,7 +49,7 @@ func makeRBACHTTPFilter(
 }
 
 func intentionListToIntermediateRBACForm(
-	intentions structs.SimplifiedIntentions,
+	intentions structs.Intentions,
 	localInfo rbacLocalInfo,
 	isHTTP bool,
 	trustBundlesByPeer map[string]*pbpeering.PeeringTrustBundle,
@@ -232,40 +229,16 @@ func intentionToIntermediateRBACForm(
 		rixn.Source.TrustDomain = bundle.TrustDomain
 	}
 
-	if isHTTP && ixn.JWT != nil {
-		var c []*JWTInfo
-		for _, prov := range ixn.JWT.Providers {
-			if len(prov.VerifyClaims) > 0 {
-				c = append(c, makeJWTInfos(prov, nil, 0))
-			}
-		}
-		if len(c) > 0 {
-			rixn.jwtInfos = c
-		}
-	}
-
 	if len(ixn.Permissions) > 0 {
 		if isHTTP {
 			rixn.Action = intentionActionLayer7
 			rixn.Permissions = make([]*rbacPermission, 0, len(ixn.Permissions))
-			for k, perm := range ixn.Permissions {
-				rbacPerm := rbacPermission{
+			for _, perm := range ixn.Permissions {
+				rixn.Permissions = append(rixn.Permissions, &rbacPermission{
 					Definition: perm,
 					Action:     intentionActionFromString(perm.Action),
 					Perm:       convertPermission(perm),
-				}
-				if perm.JWT != nil {
-					var c []*JWTInfo
-					for _, prov := range perm.JWT.Providers {
-						if len(prov.VerifyClaims) > 0 {
-							c = append(c, makeJWTInfos(prov, perm, k))
-						}
-					}
-					if len(c) > 0 {
-						rbacPerm.jwtInfos = c
-					}
-				}
-				rixn.Permissions = append(rixn.Permissions, &rbacPerm)
+				})
 			}
 		} else {
 			// In case L7 intentions slip through to here, treat them as deny intentions.
@@ -278,16 +251,7 @@ func intentionToIntermediateRBACForm(
 	return rixn
 }
 
-func makeJWTInfos(p *structs.IntentionJWTProvider, perm *structs.IntentionPermission, permKey int) *JWTInfo {
-	return &JWTInfo{Claims: p.VerifyClaims, MetadataPayloadKey: buildPayloadInMetadataKey(p.Name, perm, permKey)}
-}
-
 type intentionAction int
-
-type JWTInfo struct {
-	Claims             []*structs.IntentionJWTClaimVerification
-	MetadataPayloadKey string
-}
 
 const (
 	intentionActionDeny intentionAction = iota
@@ -326,11 +290,6 @@ type rbacIntention struct {
 	Action      intentionAction
 	Permissions []*rbacPermission
 	Precedence  int
-
-	// JWTInfo is used to track intentions' JWT information
-	// This information is used to update HTTP filters for
-	// JWT Payload & claims validation
-	jwtInfos []*JWTInfo
 
 	// Skip is field used to indicate that this intention can be deleted in the
 	// final pass. Items marked as true should generally not escape the method
@@ -403,11 +362,6 @@ type rbacPermission struct {
 	Action   intentionAction
 	Perm     *envoy_rbac_v3.Permission
 	NotPerms []*envoy_rbac_v3.Permission
-
-	// JWTInfo is used to track intentions' JWT information
-	// This information is used to update HTTP filters for
-	// JWT Payload & claims validation
-	jwtInfos []*JWTInfo
 
 	// Skip is field used to indicate that this permission can be deleted in
 	// the final pass. Items marked as true should generally not escape the
@@ -521,7 +475,7 @@ type rbacLocalInfo struct {
 //
 // Which really is just an allow-list of [A, C AND NOT(B)]
 func makeRBACRules(
-	intentions structs.SimplifiedIntentions,
+	intentions structs.Intentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	isHTTP bool,
@@ -574,10 +528,6 @@ func makeRBACRules(
 
 	var principalsL4 []*envoy_rbac_v3.Principal
 	for i, rbacIxn := range rbacIxns {
-		var infos []*JWTInfo
-		if isHTTP {
-			infos = collectJWTInfos(rbacIxn)
-		}
 		if rbacIxn.Action == intentionActionLayer7 {
 			if len(rbacIxn.Permissions) == 0 {
 				panic("invalid state: L7 intention has no permissions")
@@ -586,14 +536,9 @@ func makeRBACRules(
 				panic("invalid state: L7 permissions present for TCP service")
 			}
 
-			rbacPrincipals := optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal})
-			if len(infos) > 0 {
-				claimsPrincipal := jwtInfosToPrincipals(infos)
-				rbacPrincipals = combineBasePrincipalWithJWTPrincipals(rbacPrincipals, claimsPrincipal)
-			}
 			// For L7: we should generate one Policy per Principal and list all of the Permissions
 			policy := &envoy_rbac_v3.Policy{
-				Principals:  rbacPrincipals,
+				Principals:  optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal}),
 				Permissions: make([]*envoy_rbac_v3.Permission, 0, len(rbacIxn.Permissions)),
 			}
 			for _, perm := range rbacIxn.Permissions {
@@ -603,11 +548,6 @@ func makeRBACRules(
 		} else {
 			// For L4: we should generate one big Policy listing all Principals
 			principalsL4 = append(principalsL4, rbacIxn.ComputedPrincipal)
-			// Append JWT principals to list of principals
-			if len(infos) > 0 {
-				claimsPrincipal := jwtInfosToPrincipals(infos)
-				principalsL4 = combineBasePrincipalWithJWTPrincipals(principalsL4, claimsPrincipal)
-			}
 		}
 	}
 	if len(principalsL4) > 0 {
@@ -621,109 +561,6 @@ func makeRBACRules(
 		rbac.Policies = nil
 	}
 	return rbac
-}
-
-// combineBasePrincipalWithJWTPrincipals ensure each RBAC/Network principal is associated with
-// the JWT principal
-func combineBasePrincipalWithJWTPrincipals(p []*envoy_rbac_v3.Principal, cp *envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {
-	res := make([]*envoy_rbac_v3.Principal, 0)
-
-	for _, principal := range p {
-		if principal != nil && cp != nil {
-			p := andPrincipals([]*envoy_rbac_v3.Principal{principal, cp})
-			res = append(res, p)
-		}
-	}
-	return res
-}
-
-// collectJWTInfos extracts all the collected JWTInfos top level infos
-// and permission level infos and returns them as a single array
-func collectJWTInfos(rbacIxn *rbacIntention) []*JWTInfo {
-	infos := make([]*JWTInfo, 0, len(rbacIxn.jwtInfos))
-
-	if len(rbacIxn.jwtInfos) > 0 {
-		infos = append(infos, rbacIxn.jwtInfos...)
-	}
-	for _, perm := range rbacIxn.Permissions {
-		infos = append(infos, perm.jwtInfos...)
-	}
-
-	return infos
-}
-
-func jwtInfosToPrincipals(c []*JWTInfo) *envoy_rbac_v3.Principal {
-	ps := make([]*envoy_rbac_v3.Principal, 0)
-
-	for _, jwtInfo := range c {
-		if jwtInfo != nil {
-			for _, claim := range jwtInfo.Claims {
-				ps = append(ps, jwtClaimToPrincipal(claim, jwtInfo.MetadataPayloadKey))
-			}
-		}
-	}
-	return orPrincipals(ps)
-}
-
-// jwtClaimToPrincipal takes in a payloadkey which is the metadata key. This key is generated by using provider name,
-// permission index with a jwt_payload prefix. See buildPayloadInMetadataKey in agent/xds/jwt_authn.go
-//
-// This uniquely generated payloadKey is the first segment in the path to validate the JWT claims. The subsequent segments
-// come from the Path included in the IntentionJWTClaimVerification param.
-func jwtClaimToPrincipal(c *structs.IntentionJWTClaimVerification, payloadKey string) *envoy_rbac_v3.Principal {
-	segments := pathToSegments(c.Path, payloadKey)
-
-	return &envoy_rbac_v3.Principal{
-		Identifier: &envoy_rbac_v3.Principal_Metadata{
-			Metadata: &envoy_matcher_v3.MetadataMatcher{
-				Filter: jwtEnvoyFilter,
-				Path:   segments,
-				Value: &envoy_matcher_v3.ValueMatcher{
-					MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
-						StringMatch: &envoy_matcher_v3.StringMatcher{
-							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-								Exact: c.Value,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-// pathToSegments generates an array of MetadataMatcher_PathSegment that starts with the payloadkey
-// and is followed by all existing strings in the path.
-//
-// eg. calling: pathToSegments([]string{"perms", "roles"}, "jwt_payload_okta") should return the following:
-//
-//	[]*envoy_matcher_v3.MetadataMatcher_PathSegment{
-//		{
-//			Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "jwt_payload_okta"},
-//		},
-//		{
-//			Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "perms"},
-//		},
-//		{
-//			Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "roles"},
-//		},
-//	},
-func pathToSegments(paths []string, payloadKey string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
-
-	segments := make([]*envoy_matcher_v3.MetadataMatcher_PathSegment, 0, len(paths))
-	segments = append(segments, makeSegment(payloadKey))
-
-	for _, p := range paths {
-		segments = append(segments, makeSegment(p))
-	}
-
-	return segments
-}
-
-func makeSegment(key string) *envoy_matcher_v3.MetadataMatcher_PathSegment {
-	return &envoy_matcher_v3.MetadataMatcher_PathSegment{
-		Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: key},
-	}
 }
 
 func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {
@@ -750,13 +587,13 @@ func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Princi
 //
 // (backend/* -> default/*) was dropped because it is already known that any service
 // in the backend namespace can target default/web.
-func removeSameSourceIntentions(intentions structs.SimplifiedIntentions) structs.SimplifiedIntentions {
+func removeSameSourceIntentions(intentions structs.Intentions) structs.Intentions {
 	if len(intentions) < 2 {
 		return intentions
 	}
 
 	var (
-		out        = make(structs.SimplifiedIntentions, 0, len(intentions))
+		out        = make(structs.Intentions, 0, len(intentions))
 		changed    = false
 		seenSource = make(map[structs.PeeredServiceName]struct{})
 	)

@@ -22,11 +22,11 @@ Configure your [`Gateway`](/consul/docs/api-gateway/configuration/gateway) and [
 
   <CodeBlockConfig hideClipboard filename="values.yaml">
 
-  ```yaml
-    apiGateway:
-      enabled: true
-      managedGatewayClass:
-  ```
+    ```yaml
+      apiGateway:
+        enabled: true
+        managedGatewayClass:
+    ```
 
   </CodeBlockConfig>
 
@@ -34,9 +34,9 @@ Configure your [`Gateway`](/consul/docs/api-gateway/configuration/gateway) and [
 
 Issue the `kubectl apply` command to implement the configurations:
 
-```shell-session
-$ kubectl apply -f gateway.yaml routes.yaml
-```
+  ```shell-session
+    $ kubectl apply -f gateway.yaml routes.yaml
+  ```
 
 
 <!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596

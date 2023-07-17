@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -171,6 +168,7 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 			GatewayReasonAccepted,
 		},
 		ConditionStatusFalse: {
+			GatewayListenerReasonInvalidCertificateRef, // TODO: remove this in follow up PR
 			GatewayReasonInvalidCertificates,
 		},
 		ConditionStatusUnknown: {},

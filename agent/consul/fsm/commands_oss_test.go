@@ -1,12 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package fsm
 
 import (
 	"bytes"
-	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -16,17 +11,11 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/internal/storage"
-	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-raftchunking"
@@ -1510,49 +1499,6 @@ func TestFSM_ConfigEntry_DeleteCAS(t *testing.T) {
 	require.True(t, didDelete)
 }
 
-func TestFSM_Resources(t *testing.T) {
-	t.Parallel()
-
-	logger := testutil.Logger(t)
-
-	handle := &testRaftHandle{}
-	storageBackend := newStorageBackend(t, handle)
-	fsm := NewFromDeps(Deps{
-		Logger:         logger,
-		NewStateStore:  func() *state.Store { return state.NewStateStore(nil) },
-		StorageBackend: storageBackend,
-	})
-	handle.apply = func(msg []byte) (any, error) {
-		buf := append(
-			[]byte{uint8(structs.ResourceOperationType)},
-			msg...,
-		)
-		return fsm.Apply(makeLog(buf)), nil
-	}
-
-	resource, err := storageBackend.WriteCAS(context.Background(), &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type: &pbresource.Type{
-				Group:        "test",
-				GroupVersion: "v1",
-				Kind:         "foo",
-			},
-			Tenancy: &pbresource.Tenancy{
-				Partition: "default",
-				PeerName:  "local",
-				Namespace: "default",
-			},
-			Name: "bar",
-			Uid:  "a",
-		},
-	})
-	require.NoError(t, err)
-
-	storedResource, err := storageBackend.Read(context.Background(), storage.EventualConsistency, resource.Id)
-	require.NoError(t, err)
-	prototest.AssertDeepEqual(t, resource, storedResource)
-}
-
 // This adapts another test by chunking the encoded data and then performing
 // out-of-order applies of half the logs. It then snapshots, restores to a new
 // FSM, and applies the rest. The goal is to verify that chunking snapshotting
@@ -1565,14 +1511,8 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	t.Parallel()
 
 	logger := testutil.Logger(t)
-
-	fsm := NewFromDeps(Deps{
-		Logger: logger,
-		NewStateStore: func() *state.Store {
-			return state.NewStateStore(nil)
-		},
-		StorageBackend: newStorageBackend(t, nil),
-	})
+	fsm, err := New(nil, logger)
+	require.NoError(t, err)
 
 	var logOfLogs [][]*raft.Log
 	for i := 0; i < 10; i++ {
@@ -1647,13 +1587,8 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	err = snap.Persist(sink)
 	require.NoError(t, err)
 
-	fsm2 := NewFromDeps(Deps{
-		Logger: logger,
-		NewStateStore: func() *state.Store {
-			return state.NewStateStore(nil)
-		},
-		StorageBackend: newStorageBackend(t, nil),
-	})
+	fsm2, err := New(nil, logger)
+	require.NoError(t, err)
 	err = fsm2.Restore(sink)
 	require.NoError(t, err)
 
@@ -1779,28 +1714,4 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 			assert.NotNil(t, resp)
 		}
 	}
-}
-
-func newStorageBackend(t *testing.T, handle raftstorage.Handle) *raftstorage.Backend {
-	t.Helper()
-
-	backend, err := raftstorage.NewBackend(handle, testutil.Logger(t))
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	go backend.Run(ctx)
-
-	return backend
-}
-
-type testRaftHandle struct {
-	apply func(msg []byte) (any, error)
-}
-
-func (h *testRaftHandle) Apply(msg []byte) (any, error)              { return h.apply(msg) }
-func (testRaftHandle) IsLeader() bool                                { return true }
-func (testRaftHandle) EnsureStrongConsistency(context.Context) error { return nil }
-func (testRaftHandle) DialLeader() (*grpc.ClientConn, error) {
-	return nil, errors.New("DialLeader not implemented")
 }

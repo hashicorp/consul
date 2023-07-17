@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package extensioncommon
 
 import (
@@ -20,7 +17,7 @@ func makeTestRuntimeConfig() RuntimeConfig {
 			sn: {
 				EnvoyID:           "eid",
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
-				SNIs: map[string]struct{}{
+				SNI: map[string]struct{}{
 					"sni1": {},
 					"sni2": {},
 				},

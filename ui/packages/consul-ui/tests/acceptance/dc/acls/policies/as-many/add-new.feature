@@ -39,8 +39,8 @@ Feature: dc / acls / policies / as many / add new: Add new policy
             Name: New-Policy
     ---
     Then the url should be /datacenter/acls/[Model]s
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Where:
     -------------
     | Model     |
@@ -62,8 +62,8 @@ Feature: dc / acls / policies / as many / add new: Add new policy
           - ServiceName: New-Service-Identity
     ---
     Then the url should be /datacenter/acls/[Model]s
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Where:
     -------------
     | Model     |
@@ -86,8 +86,8 @@ Feature: dc / acls / policies / as many / add new: Add new policy
             Datacenter: datacenter
     ---
     Then the url should be /datacenter/acls/[Model]s
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Where:
     -------------
     | Model     |

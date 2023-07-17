@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package autoconf
 
 import (
@@ -21,13 +18,12 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
-	"github.com/hashicorp/consul/proto/private/pbconfig"
+	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -567,8 +563,9 @@ func TestGoRoutineManagement(t *testing.T) {
 	})
 
 	leafReq := ac.leafCertRequest()
-	mcfg.leafCerts.On("Notify",
+	mcfg.cache.On("Notify",
 		mock.Anything,
+		cachetype.ConnectCALeafName,
 		&leafReq,
 		leafWatchID,
 		mock.Anything,
@@ -717,9 +714,10 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 		mock.Anything,
 	).Return(nil).Once()
 
-	mcfg.leafCerts.On("Notify",
+	mcfg.cache.On("Notify",
 		mock.Anything,
-		&leafcert.ConnectCALeafRequest{
+		cachetype.ConnectCALeafName,
+		&cachetype.ConnectCALeafRequest{
 			Datacenter: "dc1",
 			Agent:      "autoconf",
 			Token:      originalToken,
@@ -874,9 +872,10 @@ func TestTokenUpdate(t *testing.T) {
 	})
 
 	leafCtx, leafCancel := context.WithCancel(context.Background())
-	testAC.mcfg.leafCerts.On("Notify",
+	testAC.mcfg.cache.On("Notify",
 		mock.Anything,
-		&leafcert.ConnectCALeafRequest{
+		cachetype.ConnectCALeafName,
+		&cachetype.ConnectCALeafRequest{
 			Datacenter: "dc1",
 			Agent:      "autoconf",
 			Token:      newToken,
@@ -973,14 +972,14 @@ func TestCertUpdate(t *testing.T) {
 		NotAfter: secondCert.ValidBefore,
 	}).Once()
 
-	req := leafcert.ConnectCALeafRequest{
+	req := cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Agent:      "autoconf",
 		Token:      testAC.originalToken,
 		DNSSAN:     defaultDNSSANs,
 		IPSAN:      defaultIPSANs,
 	}
-	require.True(t, testAC.mcfg.leafCerts.sendNotification(context.Background(), req.Key(), cache.UpdateEvent{
+	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        secondCert,
 		Meta: cache.ResultMeta{
@@ -1100,14 +1099,14 @@ func TestFallback(t *testing.T) {
 
 	// now that all the mocks are set up we can trigger the whole thing by sending the second expired cert
 	// as a cache update event.
-	req := leafcert.ConnectCALeafRequest{
+	req := cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Agent:      "autoconf",
 		Token:      testAC.originalToken,
 		DNSSAN:     defaultDNSSANs,
 		IPSAN:      defaultIPSANs,
 	}
-	require.True(t, testAC.mcfg.leafCerts.sendNotification(context.Background(), req.Key(), cache.UpdateEvent{
+	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        secondCert,
 		Meta: cache.ResultMeta{

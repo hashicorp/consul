@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -21,6 +18,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -40,14 +38,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 )
 
 func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
@@ -6914,27 +6910,14 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		require.Equal(t, issued, issued2)
 	}
 
-	replyCh := make(chan *httptest.ResponseRecorder, 1)
-
-	go func(index string) {
-		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
-		a.srv.h.ServeHTTP(resp, req)
-
-		replyCh <- resp
-	}(index)
-
 	// Set a new CA
 	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// Issue a blocking query to ensure that the cert gets updated appropriately
 	t.Run("test blocking queries update leaf cert", func(t *testing.T) {
-		var resp *httptest.ResponseRecorder
-		select {
-		case resp = <-replyCh:
-		case <-time.After(500 * time.Millisecond):
-			t.Fatal("blocking query did not wake up during rotation")
-		}
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
+		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
 		require.NoError(t, dec.Decode(issued2))
@@ -8095,32 +8078,6 @@ func TestAgent_HostBadACL(t *testing.T) {
 	_, err := a.srv.AgentHost(resp, req)
 	assert.EqualError(t, err, "ACL not found")
 	assert.Equal(t, http.StatusOK, resp.Code)
-}
-
-func TestAgent_Version(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	dc1 := "dc1"
-	a := NewTestAgent(t, `
-		primary_datacenter = "`+dc1+`"
-	`)
-	defer a.Shutdown()
-
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/version", nil)
-	// req.Header.Add("X-Consul-Token", "initial-management")
-	resp := httptest.NewRecorder()
-	respRaw, err := a.srv.AgentVersion(resp, req)
-	assert.Nil(t, err)
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.NotNil(t, respRaw)
-
-	obj := respRaw.(*version.BuildInfo)
-	assert.NotNil(t, obj.HumanVersion)
 }
 
 // Thie tests that a proxy with an ExposeConfig is returned as expected.
