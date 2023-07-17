@@ -1,59 +1,52 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
-//go:build linux || darwin
-// +build linux darwin
+//go:build windows
+// +build windows
 
 package envoy
 
 import (
 	"errors"
 	"fmt"
+	"github.com/natefinch/npipe"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 	"time"
-
-	"golang.org/x/sys/unix"
 )
 
 func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	pipeFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
 
-	err := syscall.Mkfifo(pipeFile, 0600)
-	if err != nil {
-		return pipeFile, err
-	}
-
 	binary, args, err := execArgs("connect", "envoy", "pipe-bootstrap", pipeFile)
 	if err != nil {
 		return pipeFile, err
 	}
 
-	// Exec the pipe-bootstrap internal sub-command which will write the bootstrap
-	// from STDIN to the named pipe (once Envoy opens it) and then clean up the
-	// file for us.
-	cmd := exec.Command(binary, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	stdin, err := cmd.StdinPipe()
+	// Dial the named pipe
+	pipeConn, err := npipe.Dial(pipeFile)
 	if err != nil {
 		return pipeFile, err
 	}
+	defer pipeConn.Close()
+
+	// Start the command to connect to the named pipe
+	cmd := exec.Command(binary, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = pipeConn
+
+	// Start the command
 	err = cmd.Start()
 	if err != nil {
 		return pipeFile, err
 	}
 
 	// Write the config
-	n, err := stdin.Write(bootstrapJSON)
-	// Close STDIN whether it was successful or not
-	_ = stdin.Close()
+	n, err := pipeConn.Write(bootstrapJSON)
 	if err != nil {
 		return pipeFile, err
 	}
+
 	if n < len(bootstrapJSON) {
 		return pipeFile, fmt.Errorf("failed writing boostrap to child STDIN: %s", err)
 	}
@@ -67,10 +60,23 @@ func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	return pipeFile, nil
 }
 
+func startProc(binary string, args []string) (p *os.Process, err error) {
+	if binary, err = exec.LookPath(binary); err == nil {
+		var procAttr os.ProcAttr
+		procAttr.Files = []*os.File{os.Stdin,
+			os.Stdout, os.Stderr}
+		p, err := os.StartProcess(binary, args, &procAttr)
+		if err == nil {
+			return p, nil
+		}
+	}
+	return nil, err
+}
+
 func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []byte) error {
-	pipeFile, err := makeBootstrapPipe(bootstrapJSON)
+	tempFile, err := makeBootstrapPipe(bootstrapJSON)
 	if err != nil {
-		os.RemoveAll(pipeFile)
+		os.RemoveAll(tempFile)
 		return err
 	}
 	// We don't defer a cleanup since we are about to Exec into Envoy which means
@@ -85,16 +91,18 @@ func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []b
 	disableHotRestart := !hasHotRestartOption(prefixArgs, suffixArgs)
 
 	// First argument needs to be the executable name.
-	envoyArgs := []string{binary}
+	envoyArgs := []string{}
 	envoyArgs = append(envoyArgs, prefixArgs...)
-	envoyArgs = append(envoyArgs, "--config-path", pipeFile)
 	if disableHotRestart {
 		envoyArgs = append(envoyArgs, "--disable-hot-restart")
 	}
 	envoyArgs = append(envoyArgs, suffixArgs...)
+	envoyArgs = append(envoyArgs, "--config-path", tempFile)
 
 	// Exec
-	if err = unix.Exec(binary, envoyArgs, os.Environ()); err != nil {
+	if proc, err := startProc(binary, envoyArgs); err == nil {
+		proc.Wait()
+	} else if err != nil {
 		return errors.New("Failed to exec envoy: " + err.Error())
 	}
 

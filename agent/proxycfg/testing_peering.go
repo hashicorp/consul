@@ -4,13 +4,25 @@
 package proxycfg
 
 import (
+	"bytes"
+	"text/template"
+
 	"github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshot(t, false)
+}
+
+func TestConfigSnapshotPeeringWithListenerOverride(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshot(t, true)
+}
+
+func testConfigSnapshot(t testing.T, listenerOverride bool) *ConfigSnapshot {
 	var (
 		paymentsUpstream = structs.Upstream{
 			DestinationName: "payments",
@@ -34,6 +46,20 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 			paymentsUpstream,
 			refundsUpstream,
 		}
+
+		if listenerOverride {
+			if ns.Proxy.Upstreams[0].Config == nil {
+				ns.Proxy.Upstreams[0].Config = map[string]interface{}{}
+			}
+
+			uid := NewUpstreamID(&ns.Proxy.Upstreams[0])
+
+			ns.Proxy.Upstreams[0].Config["envoy_listener_json"] =
+				customListenerJSON(t, customListenerJSONOptions{
+					Name: uid.EnvoyID() + ":custom-upstream",
+				})
+		}
+
 	}, []UpdateEvent{
 		{
 			CorrelationID: peerTrustBundleIDPrefix + "cloud",
@@ -380,3 +406,53 @@ func TestConfigSnapshotPeeringLocalMeshGateway(t testing.T) *ConfigSnapshot {
 		},
 	})
 }
+
+var (
+	customListenerJSONTemplate = template.Must(template.New("").Parse(customListenerJSONTpl))
+)
+
+func customListenerJSON(t testing.T, opts customListenerJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	require.NoError(t, customListenerJSONTemplate.Execute(&buf, opts))
+	return buf.String()
+}
+
+type customListenerJSONOptions struct {
+	Name       string
+	TLSContext string
+}
+
+const customListenerJSONTpl = `{
+	"@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+	"name": "{{ .Name }}",
+	"address": {
+		"socketAddress": {
+			"address": "11.11.11.11",
+			"portValue": 11111
+		}
+	},
+	"filterChains": [
+		{
+			{{ if .TLSContext -}}
+			"transport_socket": {
+				"name": "tls",
+				"typed_config": {
+					"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+					{{ .TLSContext }}
+				}
+			},
+			{{- end }}
+			"filters": [
+				{
+					"name": "envoy.filters.network.tcp_proxy",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+							"cluster": "random-cluster",
+							"statPrefix": "foo-stats"
+						}
+				}
+			]
+		}
+	]
+}`
