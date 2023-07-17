@@ -252,5 +252,5 @@ func AssertFortioNameWithClient(t *testing.T, urlbase string, name string, reqHo
 func AssertContainerState(t *testing.T, service libservice.Service, state string) {
 	containerStatus, err := service.GetStatus()
 	require.NoError(t, err)
-	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", containerStatus, state))
+	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", state, containerStatus))
 }

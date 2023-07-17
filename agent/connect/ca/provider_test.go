@@ -113,7 +113,7 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 				TLSSkipVerify:          true,
 			},
 			parseFunc: func(t *testing.T, raw map[string]interface{}) interface{} {
-				config, err := ParseVaultCAConfig(raw, true)
+				config, err := ParseVaultCAConfig(raw)
 				require.NoError(t, err)
 				return config
 			},

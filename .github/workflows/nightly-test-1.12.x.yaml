@@ -1,28 +1,27 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly Test 1.16.x
+name: Nightly Test 1.12.x
 on:
   schedule:
     - cron: '0 4 * * *'
   workflow_dispatch: {}
 
 env:
-  EMBER_PARTITION_TOTAL: 4        # Has to be changed in tandem with the matrix.partition
-  BRANCH: "release/1.16.x"
-  BRANCH_NAME: "release-1.16.x"   # Used for naming artifacts
-  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  EMBER_PARTITION_TOTAL: 4      # Has to be changed in tandem with the matrix.partition
+  BRANCH: "release/1.12.x"
+  BRANCH_NAME: "release-1.12.x" # Used for naming artifacts
 
 jobs:
   frontend-test-workspace-node:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@v2
         with:
           ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+      - uses: actions/setup-node@v3
         with:
           node-version: 14
           cache: 'yarn'
@@ -49,12 +48,12 @@ jobs:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 0
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@v2
         with:
           ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+      - uses: actions/setup-node@v3
         with:
           node-version: 14
           cache: 'yarn'
@@ -71,7 +70,7 @@ jobs:
         run: make build-ci
 
       - name: Upload OSS Frontend
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@v3
         with:
           name: frontend-oss-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -88,12 +87,12 @@ jobs:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@v2
         with:
           ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+      - uses: actions/setup-node@v3
         with:
           node-version: 14
           cache: 'yarn'
@@ -105,7 +104,7 @@ jobs:
         run: make deps
 
       - name: Download OSS Frontend
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@v3
         with:
           name: frontend-oss-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -121,12 +120,12 @@ jobs:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 1
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@v2
         with:
           ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+      - uses: actions/setup-node@v3
         with:
           node-version: 14
           cache: 'yarn'
@@ -143,7 +142,7 @@ jobs:
         run: make build-ci
 
       - name: Upload ENT Frontend
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@v3
         with:
           name: frontend-ent-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -160,12 +159,12 @@ jobs:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@v2
         with:
           ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+      - uses: actions/setup-node@v3
         with:
           node-version: 14
           cache: 'yarn'
@@ -177,7 +176,7 @@ jobs:
         run: make deps
 
       - name: Download ENT Frontend
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@v3
         with:
           name: frontend-ent-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -191,12 +190,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [frontend-build-ent]
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@v2
         with:
           ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+      - uses: actions/setup-node@v3
         with:
           node-version: 14
           cache: 'yarn'
@@ -208,7 +207,7 @@ jobs:
         run: make deps
 
       - name: Download ENT Frontend
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@v3
         with:
           name: frontend-ent-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -224,7 +223,7 @@ jobs:
     steps:
       - name: Slack Notification
         id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        uses: slackapi/slack-github-action@v1.19
         with:
           payload: |
             {

@@ -101,7 +101,6 @@ func Test_makeLoadAssignment(t *testing.T) {
 	tests := []struct {
 		name        string
 		clusterName string
-		locality    *structs.Locality
 		endpoints   []loadAssignmentEndpointGroup
 		want        *envoy_endpoint_v3.ClusterLoadAssignment
 	}{
@@ -212,24 +211,11 @@ func Test_makeLoadAssignment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeLoadAssignment(
-				&proxycfg.ConfigSnapshot{ServiceLocality: tt.locality},
 				tt.clusterName,
-				nil,
 				tt.endpoints,
 				proxycfg.GatewayKey{Datacenter: "dc1"},
 			)
 			require.Equal(t, tt.want, got)
-
-			if tt.locality == nil {
-				got := makeLoadAssignment(
-					&proxycfg.ConfigSnapshot{ServiceLocality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"}},
-					tt.clusterName,
-					nil,
-					tt.endpoints,
-					proxycfg.GatewayKey{Datacenter: "dc1"},
-				)
-				require.Equal(t, tt.want, got)
-			}
 		})
 	}
 }

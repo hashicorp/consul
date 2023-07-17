@@ -592,43 +592,6 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	}
 }
 
-func TestStructs_Locality_Validate(t *testing.T) {
-	type testCase struct {
-		locality *Locality
-		err      string
-	}
-	cases := map[string]testCase{
-		"nil": {
-			nil,
-			"",
-		},
-		"region only": {
-			&Locality{Region: "us-west-1"},
-			"",
-		},
-		"region and zone": {
-			&Locality{Region: "us-west-1", Zone: "us-west-1a"},
-			"",
-		},
-		"zone only": {
-			&Locality{Zone: "us-west-1a"},
-			"zone cannot be set without region",
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			err := tc.locality.Validate()
-			if tc.err == "" {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.err)
-			}
-		})
-	}
-}
-
 func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 	type testCase struct {
 		Modify func(*NodeService)
@@ -1188,13 +1151,6 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 				}
 			},
 			"",
-		},
-		{
-			"connect-proxy: invalid locality",
-			func(x *NodeService) {
-				x.Locality = &Locality{Zone: "bad"}
-			},
-			"zone cannot be set without region",
 		},
 	}
 

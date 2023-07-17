@@ -21,6 +21,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/version"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -40,14 +44,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 )
 
 func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
@@ -1506,7 +1508,8 @@ func TestAgent_Self(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, cs[a.config.SegmentName], val.Coord)
 
-			delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
+			delete(val.Meta, structs.MetaSegmentKey)    // Added later, not in config.
+			delete(val.Meta, structs.MetaConsulVersion) // Added later, not in config.
 			require.Equal(t, a.config.NodeMeta, val.Meta)
 
 			if tc.expectXDS {

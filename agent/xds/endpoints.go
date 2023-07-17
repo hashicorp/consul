@@ -135,9 +135,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		endpoints, ok := cfgSnap.ConnectProxy.PreparedQueryEndpoints[uid]
 		if ok {
 			la := makeLoadAssignment(
-				cfgSnap,
 				clusterName,
-				nil,
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
@@ -160,9 +158,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
 			if ok {
 				la := makeLoadAssignment(
-					cfgSnap,
 					name,
-					nil,
 					[]loadAssignmentEndpointGroup{
 						{Endpoints: endpoints},
 					},
@@ -228,9 +224,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
 
 			la := makeLoadAssignment(
-				cfgSnap,
 				clusterName,
-				nil,
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
@@ -245,9 +239,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 
 			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
 			la := makeLoadAssignment(
-				cfgSnap,
 				clusterName,
-				nil,
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
@@ -417,9 +409,7 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 		for subsetName, groups := range clusterEndpoints {
 			clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			la := makeLoadAssignment(
-				cfgSnap,
 				clusterName,
-				nil,
 				groups,
 				cfgSnap.Locality,
 			)
@@ -454,9 +444,7 @@ func (s *ResourceGenerator) makeEndpointsForOutgoingPeeredServices(
 			groups := []loadAssignmentEndpointGroup{{Endpoints: serviceGroup.Nodes, OnlyPassing: false}}
 
 			la := makeLoadAssignment(
-				cfgSnap,
 				clusterName,
-				nil,
 				groups,
 				// Use an empty key here so that it never matches. This will force the mesh gateway to always
 				// reference the remote mesh gateway's wan addr.
@@ -618,9 +606,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 			return la, nil
 		}
 		la = makeLoadAssignment(
-			cfgSnap,
 			clusterName,
-			nil,
 			[]loadAssignmentEndpointGroup{
 				{Endpoints: localGw},
 			},
@@ -640,9 +626,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 		return nil, nil
 	}
 	la = makeLoadAssignment(
-		cfgSnap,
 		clusterName,
-		nil,
 		[]loadAssignmentEndpointGroup{
 			{Endpoints: endpoints},
 		},
@@ -772,9 +756,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			}
 
 			la := makeLoadAssignment(
-				cfgSnap,
 				clusterName,
-				ti.PrioritizeByLocality,
 				[]loadAssignmentEndpointGroup{endpointGroup},
 				gatewayKey,
 			)
@@ -860,7 +842,7 @@ type loadAssignmentEndpointGroup struct {
 	OverrideHealth envoy_core_v3.HealthStatus
 }
 
-func makeLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, policy *structs.DiscoveryPrioritizeByLocality, endpointGroups []loadAssignmentEndpointGroup, localKey proxycfg.GatewayKey) *envoy_endpoint_v3.ClusterLoadAssignment {
+func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localKey proxycfg.GatewayKey) *envoy_endpoint_v3.ClusterLoadAssignment {
 	cla := &envoy_endpoint_v3.ClusterLoadAssignment{
 		ClusterName: clusterName,
 		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(endpointGroups)),
@@ -874,46 +856,35 @@ func makeLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, po
 		}
 	}
 
-	var priority uint32
+	for priority, endpointGroup := range endpointGroups {
+		endpoints := endpointGroup.Endpoints
+		es := make([]*envoy_endpoint_v3.LbEndpoint, 0, len(endpoints))
 
-	for _, endpointGroup := range endpointGroups {
-		endpointsByLocality, err := groupedEndpoints(cfgSnap.ServiceLocality, policy, endpointGroup.Endpoints)
+		for _, ep := range endpoints {
+			// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
+			_, addr, port := ep.BestAddress(!localKey.Matches(ep.Node.Datacenter, ep.Node.PartitionOrDefault()))
+			healthStatus, weight := calculateEndpointHealthAndWeight(ep, endpointGroup.OnlyPassing)
 
-		if err != nil {
-			continue
-		}
-
-		for _, endpoints := range endpointsByLocality {
-			es := make([]*envoy_endpoint_v3.LbEndpoint, 0, len(endpointGroup.Endpoints))
-
-			for _, ep := range endpoints {
-				// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
-				_, addr, port := ep.BestAddress(!localKey.Matches(ep.Node.Datacenter, ep.Node.PartitionOrDefault()))
-				healthStatus, weight := calculateEndpointHealthAndWeight(ep, endpointGroup.OnlyPassing)
-
-				if endpointGroup.OverrideHealth != envoy_core_v3.HealthStatus_UNKNOWN {
-					healthStatus = endpointGroup.OverrideHealth
-				}
-
-				endpoint := &envoy_endpoint_v3.Endpoint{
-					Address: makeAddress(addr, port),
-				}
-				es = append(es, &envoy_endpoint_v3.LbEndpoint{
-					HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
-						Endpoint: endpoint,
-					},
-					HealthStatus:        healthStatus,
-					LoadBalancingWeight: makeUint32Value(weight),
-				})
+			if endpointGroup.OverrideHealth != envoy_core_v3.HealthStatus_UNKNOWN {
+				healthStatus = endpointGroup.OverrideHealth
 			}
 
-			cla.Endpoints = append(cla.Endpoints, &envoy_endpoint_v3.LocalityLbEndpoints{
-				Priority:    priority,
-				LbEndpoints: es,
+			endpoint := &envoy_endpoint_v3.Endpoint{
+				Address: makeAddress(addr, port),
+			}
+			es = append(es, &envoy_endpoint_v3.LbEndpoint{
+				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+					Endpoint: endpoint,
+				},
+				HealthStatus:        healthStatus,
+				LoadBalancingWeight: makeUint32Value(weight),
 			})
-
-			priority++
 		}
+
+		cla.Endpoints = append(cla.Endpoints, &envoy_endpoint_v3.LocalityLbEndpoints{
+			Priority:    uint32(priority),
+			LbEndpoints: es,
+		})
 	}
 
 	return cla
