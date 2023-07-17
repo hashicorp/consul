@@ -27,8 +27,22 @@
                     }
                   },
                   {
-                    "orIds": {
+                    "andIds": {
                       "ids": [
+                        { 
+                          "metadata": {
+                            "filter":"envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_okta"},
+                              {"key": "iss"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.okta-issuer"
+                              }
+                            }
+                          }
+                        },
                         { 
                           "metadata": {
                             "filter":"envoy.filters.http.jwt_authn",
