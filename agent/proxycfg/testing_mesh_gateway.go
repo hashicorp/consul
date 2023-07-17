@@ -23,9 +23,10 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 	roots, _ := TestCertsForMeshGateway(t)
 
 	var (
-		populateServices    = true
-		useFederationStates = false
-		deleteCrossDCEntry  = false
+		populateServices      = true
+		useFederationStates   = false
+		deleteCrossDCEntry    = false
+		meshGatewayFederation = false
 	)
 
 	switch variant {
@@ -34,6 +35,11 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		populateServices = true
 		useFederationStates = true
 		deleteCrossDCEntry = true
+	case "mesh-gateway-federation":
+		populateServices = true
+		useFederationStates = true
+		deleteCrossDCEntry = true
+		meshGatewayFederation = true
 	case "newer-info-in-federation-states":
 		populateServices = true
 		useFederationStates = true
@@ -447,6 +453,63 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		})
 	}
 
+	var serverSNIFn ServerSNIFunc
+	if meshGatewayFederation {
+
+		// reproduced from tlsutil/config.go
+		serverSNIFn = func(dc, nodeName string) string {
+			// Strip the trailing '.' from the domain if any
+			domain := "consul"
+
+			if nodeName == "" || nodeName == "*" {
+				return "server." + dc + "." + domain
+			}
+
+			return nodeName + ".server." + dc + "." + domain
+		}
+
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
+			{
+				CorrelationID: consulServerListWatchID,
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "node1",
+								Address:    "127.0.0.1",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								Meta: map[string]string{
+									"grpc_port":     "8502",
+									"grpc_tls_port": "8503",
+								},
+							},
+						},
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "node2",
+								Address:    "127.0.0.2",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								Meta: map[string]string{
+									"grpc_port":     "8502",
+									"grpc_tls_port": "8503",
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+	}
+
 	return testConfigSnapshotFixture(t, &structs.NodeService{
 		Kind:    structs.ServiceKindMeshGateway,
 		Service: "mesh-gateway",
@@ -466,7 +529,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 				Port:    443,
 			},
 		},
-	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+	}, nsFn, serverSNIFn, testSpliceEvents(baseEvents, extraUpdates))
 }
 
 func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {

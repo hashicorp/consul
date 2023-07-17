@@ -19,10 +19,10 @@ env:
   TEST_RESULTS_ARTIFACT_NAME: test-results
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
-  GOTESTSUM_VERSION: "1.9.0"
+  GOTESTSUM_VERSION: "1.10.1"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
-  CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'consul' }}
+  CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
@@ -372,7 +372,11 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          # pinning this to 1.20.5 because this issue in go-testcontainers occurs
+          # in 1.20.6 with the error "http: invalid Host header, host port waiting failed"
+          # https://github.com/testcontainers/testcontainers-go/issues/1359
+          # go-version-file: 'go.mod'
+          go-version: '1.20.5'
       - run: go env
       - name: docker env
         run: |
@@ -475,7 +479,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.14", "1.15"]
+        consul-version: [ "1.15", "1.16"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       ENVOY_VERSION: "1.24.6"
@@ -487,7 +491,11 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          # pinning this to 1.20.5 because this issue in go-testcontainers occurs
+          # in 1.20.6 with the error "http: invalid Host header, host port waiting failed"
+          # https://github.com/testcontainers/testcontainers-go/issues/1359
+          # go-version-file: 'go.mod'
+          go-version: '1.20.5'
       - run: go env
 
       # Get go binary from workspace

@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -70,6 +71,7 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
@@ -196,6 +198,9 @@ type delegate interface {
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
 	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
+
+	// ResourceServiceClient is a client for the gRPC Resource Service.
+	ResourceServiceClient() pbresource.ResourceServiceClient
 
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
@@ -415,6 +420,8 @@ type Agent struct {
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
+
+	enableDebug atomic.Bool
 }
 
 // New process the desired options and creates a new Agent.
@@ -596,6 +603,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	c.NodeID = a.config.NodeID
 	// Overwrite the configuration.
 	a.config = c
+
+	a.enableDebug.Store(c.EnableDebug)
 
 	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
@@ -1126,13 +1135,13 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 			httpServer := &http.Server{
 				Addr:           l.Addr().String(),
 				TLSConfig:      tlscfg,
-				Handler:        srv.handler(a.config.EnableDebug),
+				Handler:        srv.handler(),
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
 			if scada.IsCapability(l.Addr()) {
 				// wrap in http2 server handler
-				httpServer.Handler = h2c.NewHandler(srv.handler(a.config.EnableDebug), &http2.Server{})
+				httpServer.Handler = h2c.NewHandler(srv.handler(), &http2.Server{})
 			}
 
 			// Load the connlimit helper into the server
@@ -3994,6 +4003,7 @@ func (a *Agent) loadMetadata(conf *config.RuntimeConfig) error {
 		meta[k] = v
 	}
 	meta[structs.MetaSegmentKey] = conf.SegmentName
+	meta[structs.MetaConsulVersion] = conf.Version
 	return a.State.LoadMetadata(meta)
 }
 
@@ -4289,6 +4299,9 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
+
+	a.enableDebug.Store(newCfg.EnableDebug)
+	a.config.EnableDebug = newCfg.EnableDebug
 
 	return nil
 }

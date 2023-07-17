@@ -278,15 +278,22 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 
 func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 	cases := map[string]struct {
-		expErr error
+		expErr     error
+		authMethod structs.VaultAuthMethod
 	}{
-		"valid login data": {},
+		"valid login data": {
+			authMethod: structs.VaultAuthMethod{},
+		},
+		"with role": {
+			expErr:     nil,
+			authMethod: structs.VaultAuthMethod{Type: "aws", MountPath: "", Params: map[string]interface{}{"role": "test-role"}},
+		},
 	}
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			ldg := &AWSLoginDataGenerator{credentials: credentials.AnonymousCredentials}
-			loginData, err := ldg.GenerateLoginData(&structs.VaultAuthMethod{})
+			loginData, err := ldg.GenerateLoginData(&c.authMethod)
 			if c.expErr != nil {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), c.expErr.Error())
@@ -306,6 +313,10 @@ func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 				val, exists := loginData[key]
 				require.True(t, exists, "missing expected key: %s", key)
 				require.NotEmpty(t, val, "expected non-empty value for key: %s", key)
+			}
+
+			if c.authMethod.Params["role"] != nil {
+				require.Equal(t, c.authMethod.Params["role"], loginData["role"])
 			}
 		})
 	}

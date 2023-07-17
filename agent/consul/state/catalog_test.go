@@ -4837,6 +4837,9 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	}
 
 	// Register some nodes
+	// node1 is registered withOut any nodemeta, and a consul service with id
+	// 'consul' is added later with meta 'version'. The expected node must have
+	// meta 'consul-version' with same value
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
@@ -4845,6 +4848,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	testRegisterService(t, s, 3, "node1", "service2")
 	testRegisterService(t, s, 4, "node2", "service1")
 	testRegisterService(t, s, 5, "node2", "service2")
+	// Register consul service with meta 'version' for node1
+	testRegisterServiceWithMeta(t, s, 10, "node1", "consul", map[string]string{"version": "1.17.0"})
 
 	// Register service-level checks
 	testRegisterCheck(t, s, 6, "node1", "service1", "check1", api.HealthPassing)
@@ -4895,6 +4900,19 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 			},
 			Services: []*structs.NodeService{
 				{
+					ID:      "consul",
+					Service: "consul",
+					Address: "1.1.1.1",
+					Meta:    map[string]string{"version": "1.17.0"},
+					Port:    1111,
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 10,
+						ModifyIndex: 10,
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+				{
 					ID:      "service1",
 					Service: "service1",
 					Address: "1.1.1.1",
@@ -4921,6 +4939,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
+			Meta: map[string]string{"consul-version": "1.17.0"},
 		},
 		&structs.NodeInfo{
 			Node:      "node2",
@@ -4988,7 +5007,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 9 {
+	if idx != 10 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	require.Len(t, dump, 1)
@@ -4999,8 +5018,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 9 {
-		t.Fatalf("bad index: %d", 9)
+	if idx != 10 {
+		t.Fatalf("bad index: %d", idx)
 	}
 	if !reflect.DeepEqual(dump, expect) {
 		t.Fatalf("bad: %#v", dump[0].Services[0])
