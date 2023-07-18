@@ -6,12 +6,15 @@ package client
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
+	"github.com/hashicorp/go-multierror"
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
@@ -328,4 +331,33 @@ func (t *TelemetryConfig) DefaultLabels(cfg config.CloudConfig) map[string]strin
 	}
 
 	return labels
+}
+
+// FilterRegex returns a valid regex used to filter metrics.
+// It will fail if there are 0 valid regex filters given.
+func (t *TelemetryConfig) FilterRegex() (*regexp.Regexp, error) {
+	var mErr error
+	filters := t.MetricsConfig.Filters
+	validFilters := make([]string, 0, len(filters))
+	for _, filter := range filters {
+		_, err := regexp.Compile(filter)
+		if err != nil {
+			mErr = multierror.Append(mErr, fmt.Errorf("compilation of filter %q failed: %w", filter, err))
+			continue
+		}
+		validFilters = append(validFilters, filter)
+	}
+
+	if len(validFilters) == 0 {
+		return nil, multierror.Append(mErr, fmt.Errorf("no valid filters"))
+	}
+
+	// Combine the valid regex strings with an OR.
+	finalRegex := strings.Join(validFilters, "|")
+	composedRegex, err := regexp.Compile(finalRegex)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile regex: %w", err)
+	}
+
+	return composedRegex, nil
 }
