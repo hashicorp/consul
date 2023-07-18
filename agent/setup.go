@@ -260,6 +260,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	d.XDSStreamLimiter = limiter.NewSessionLimiter()
 
+	d.Registry = consul.NewTypeRegistry()
+
 	return d, nil
 }
 

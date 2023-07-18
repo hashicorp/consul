@@ -89,6 +89,30 @@ func (_m *MockProvider) CrossSignCA(_a0 *x509.Certificate) (string, error) {
 	return r0, r1
 }
 
+// GenerateCAChain provides a mock function with given fields:
+func (_m *MockProvider) GenerateCAChain() (string, error) {
+	ret := _m.Called()
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func() (string, error)); ok {
+		return rf()
+	}
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GenerateIntermediateCSR provides a mock function with given fields:
 func (_m *MockProvider) GenerateIntermediateCSR() (string, string, error) {
 	ret := _m.Called()
@@ -118,30 +142,6 @@ func (_m *MockProvider) GenerateIntermediateCSR() (string, string, error) {
 	}
 
 	return r0, r1, r2
-}
-
-// GenerateCAChain provides a mock function with given fields:
-func (_m *MockProvider) GenerateCAChain() (CAChainResult, error) {
-	ret := _m.Called()
-
-	var r0 CAChainResult
-	var r1 error
-	if rf, ok := ret.Get(0).(func() (CAChainResult, error)); ok {
-		return rf()
-	}
-	if rf, ok := ret.Get(0).(func() CAChainResult); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(CAChainResult)
-	}
-
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
 }
 
 // SetIntermediate provides a mock function with given fields: intermediatePEM, rootPEM, opaque

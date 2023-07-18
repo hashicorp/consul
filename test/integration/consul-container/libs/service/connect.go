@@ -167,14 +167,13 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarCfg.Name)
 	containerName := utils.RandName(namePrefix)
 
-	agentConfig := node.GetConfig()
 	internalAdminPort, err := node.ClaimAdminPort()
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("agent image name", agentConfig.DockerImage())
-	imageVersion := utils.SideCarVersion(agentConfig.DockerImage())
+	fmt.Println("agent image name", nodeConfig.DockerImage())
+	imageVersion := utils.SideCarVersion(nodeConfig.DockerImage())
 	req := testcontainers.ContainerRequest{
 		Image:      fmt.Sprintf("consul-envoy:%s", imageVersion),
 		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
@@ -236,6 +235,21 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 		req.Env["CONSUL_GRPC_CACERT"] = "/ca.pem"
 	} else {
 		req.Env["CONSUL_GRPC_ADDR"] = fmt.Sprintf("http://127.0.0.1:%d", 8502)
+	}
+
+	if nodeConfig.ACLEnabled {
+		client := node.GetClient()
+		token, _, err := client.ACL().TokenCreate(&api.ACLToken{
+			ServiceIdentities: []*api.ACLServiceIdentity{
+				{ServiceName: sidecarCfg.ServiceID},
+			},
+		}, nil)
+
+		if err != nil {
+			return nil, err
+		}
+
+		req.Env["CONSUL_HTTP_TOKEN"] = token.SecretID
 	}
 
 	var (
