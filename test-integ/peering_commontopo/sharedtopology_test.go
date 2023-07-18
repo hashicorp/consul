@@ -23,7 +23,7 @@ type sharedTopoSuite interface {
 	test(*testing.T, *commonTopo)
 }
 
-var flagNoShareTopo = flag.Bool("no-share-topo", false, "do not share topology; run each test in its own")
+var flagNoShareTopo = flag.Bool("no-share-topo", false, "do not share topology; run each test in its own isolated topology")
 
 func runShareableSuites(t *testing.T, suites []sharedTopoSuite) {
 	t.Helper()
