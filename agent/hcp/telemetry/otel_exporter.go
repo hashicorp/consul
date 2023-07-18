@@ -13,19 +13,26 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 )
 
+// EndpointProvider provides the endpoint where metrics are exported to by the OTELExporter.
+// EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
+// This abstraction layer offers flexibility, in particular for dynamic configuration or changes to the endpoint.
+type EndpointProvider interface {
+	GetEndpoint() *url.URL
+}
+
 // OTELExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
 // The exporter is used by a OTEL Metrics SDK PeriodicReader to export aggregated metrics.
 // This allows us to use a custom client - HCP authenticated MetricsClient.
 type OTELExporter struct {
-	client   hcpclient.MetricsClient
-	endpoint *url.URL
+	client           hcpclient.MetricsClient
+	endpointProvider EndpointProvider
 }
 
-// NewOTELExporter returns a configured OTELExporter
-func NewOTELExporter(client hcpclient.MetricsClient, endpoint *url.URL) *OTELExporter {
+// NewOTELExporter returns a configured OTELExporter.
+func NewOTELExporter(client hcpclient.MetricsClient, endpointProvider EndpointProvider) *OTELExporter {
 	return &OTELExporter{
-		client:   client,
-		endpoint: endpoint,
+		client:           client,
+		endpointProvider: endpointProvider,
 	}
 }
 
@@ -58,7 +65,9 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 	if isEmpty(otlpMetrics) {
 		return nil
 	}
-	err := e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint.String())
+
+	endpoint := e.endpointProvider.GetEndpoint()
+	err := e.client.ExportMetrics(ctx, otlpMetrics, endpoint.String())
 	if err != nil {
 		goMetrics.IncrCounter(internalMetricExportFailure, 1)
 		return fmt.Errorf("failed to export metrics: %w", err)
