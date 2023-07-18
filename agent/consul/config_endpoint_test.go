@@ -983,7 +983,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 		})
 	})
 
-	testutil.RunStep(t, "delete in dc1 again - should be fine", func(t *testing.T) {
+	testutil.RunStep(t, "delete in dc1 again - will error", func(t *testing.T) {
 		args := structs.ConfigEntryRequest{
 			Datacenter: "dc1",
 			Entry: &structs.ServiceConfigEntry{
@@ -992,8 +992,22 @@ func TestConfigEntry_Delete(t *testing.T) {
 			},
 		}
 		var out structs.ConfigEntryDeleteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
-		require.True(t, out.Deleted)
+		err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out)
+		require.Error(t, err)
+
+	})
+
+	testutil.RunStep(t, "delete non-existent config entry in dc1 - will error", func(t *testing.T) {
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "nonexistentconfig",
+			},
+		}
+		var out structs.ConfigEntryDeleteResponse
+		err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out)
+		require.Error(t, err)
 	})
 }
 

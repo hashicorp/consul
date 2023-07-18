@@ -143,7 +143,10 @@ func (c *ConfigEntry) shouldSkipOperation(args *structs.ConfigEntryRequest) (boo
 	case structs.ConfigEntryUpsert, structs.ConfigEntryUpsertCAS:
 		return c.shouldSkipUpsertOperation(currentEntry, args.Entry)
 	case structs.ConfigEntryDelete, structs.ConfigEntryDeleteCAS:
-		return (currentEntry == nil), nil
+		if currentEntry == nil {
+			return false, fmt.Errorf("config entry Kind %q Name %q not found", args.Entry.GetKind(), args.Entry.GetName())
+		}
+		return false, nil
 	default:
 		return false, fmt.Errorf("invalid config entry operation type: %v", args.Op)
 	}
