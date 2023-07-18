@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net/url"
 	"regexp"
+
 	"strings"
 	"sync"
 	"time"
@@ -23,12 +23,16 @@ import (
 // DefaultExportInterval is a default time interval between export of aggregated metrics.
 const DefaultExportInterval = 10 * time.Second
 
+type ConfigProvider interface {
+	GetLabels() map[string]string
+	GetFilters() *regexp.Regexp
+}
+
 // OTELSinkOpts is used to provide configuration when initializing an OTELSink using NewOTELSink.
 type OTELSinkOpts struct {
-	Reader  otelsdk.Reader
-	Ctx     context.Context
-	Filters []string
-	Labels  map[string]string
+	Reader         otelsdk.Reader
+	Ctx            context.Context
+	ConfigProvider ConfigProvider
 }
 
 // OTELSink captures and aggregates telemetry data as per the OpenTelemetry (OTEL) specification.
@@ -38,7 +42,7 @@ type OTELSink struct {
 	// spaceReplacer cleans the flattened key by removing any spaces.
 	spaceReplacer *strings.Replacer
 	logger        hclog.Logger
-	filters       *regexp.Regexp
+	cfgProvider   ConfigProvider
 
 	// meterProvider is an OTEL MeterProvider, the entrypoint to the OTEL Metrics SDK.
 	// It handles reading/export of aggregated metric data.
@@ -68,8 +72,8 @@ type OTELSink struct {
 // NewOTELReader returns a configured OTEL PeriodicReader to export metrics every X seconds.
 // It configures the reader with a custom OTELExporter with a MetricsClient to transform and export
 // metrics in OTLP format to an external url.
-func NewOTELReader(client client.MetricsClient, url *url.URL, exportInterval time.Duration) otelsdk.Reader {
-	exporter := NewOTELExporter(client, url)
+func NewOTELReader(client client.MetricsClient, endpointProvider EndpointProvider, exportInterval time.Duration) otelsdk.Reader {
+	exporter := NewOTELExporter(client, endpointProvider)
 	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
 }
 
@@ -85,28 +89,19 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 		return nil, fmt.Errorf("ferror: provide valid context")
 	}
 
+	if opts.ConfigProvider == nil {
+		return nil, fmt.Errorf("ferror: provide valid config provider")
+	}
+
 	logger := hclog.FromContext(opts.Ctx).Named("otel_sink")
 
-	filterList, err := newFilterRegex(opts.Filters)
-	if err != nil {
-		logger.Error("Failed to initialize all filters", "error", err)
-	}
-
-	attrs := make([]attribute.KeyValue, 0, len(opts.Labels))
-	for k, v := range opts.Labels {
-		kv := attribute.KeyValue{
-			Key:   attribute.Key(k),
-			Value: attribute.StringValue(v),
-		}
-		attrs = append(attrs, kv)
-	}
 	// Setup OTEL Metrics SDK to aggregate, convert and export metrics periodically.
-	res := resource.NewWithAttributes("", attrs...)
+	res := resource.NewSchemaless()
 	meterProvider := otelsdk.NewMeterProvider(otelsdk.WithResource(res), otelsdk.WithReader(opts.Reader))
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
 
 	return &OTELSink{
-		filters:              filterList,
+		cfgProvider:          opts.ConfigProvider,
 		spaceReplacer:        strings.NewReplacer(" ", "_"),
 		logger:               logger,
 		meterProvider:        meterProvider,
@@ -138,12 +133,12 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.filters.MatchString(k) {
+	if !o.cfgProvider.GetFilters().MatchString(k) {
 		return
 	}
 
 	// Set value in global Gauge store.
-	o.gaugeStore.Set(k, float64(val), toAttributes(labels))
+	o.gaugeStore.Set(k, float64(val), o.labelsToAttributes(labels))
 
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
@@ -166,7 +161,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.filters.MatchString(k) {
+	if !o.cfgProvider.GetFilters().MatchString(k) {
 		return
 	}
 
@@ -184,7 +179,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 		o.histogramInstruments[k] = inst
 	}
 
-	attrs := toAttributes(labels)
+	attrs := o.labelsToAttributes(labels)
 	inst.Record(context.TODO(), float64(val), otelmetric.WithAttributes(attrs...))
 }
 
@@ -192,7 +187,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.filters.MatchString(k) {
+	if !o.cfgProvider.GetFilters().MatchString(k) {
 		return
 	}
 
@@ -211,7 +206,7 @@ func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gom
 		o.counterInstruments[k] = inst
 	}
 
-	attrs := toAttributes(labels)
+	attrs := o.labelsToAttributes(labels)
 	inst.Add(context.TODO(), float64(val), otelmetric.WithAttributes(attrs...))
 }
 
@@ -228,17 +223,30 @@ func (o *OTELSink) flattenKey(parts []string) string {
 	return buf.String()
 }
 
-// toAttributes converts go metrics Labels into OTEL format []attributes.KeyValue
-func toAttributes(labels []gometrics.Label) []attribute.KeyValue {
-	if len(labels) == 0 {
+// labelsToAttributes converts go metrics and provider labels into OTEL format []attributes.KeyValue
+func (o *OTELSink) labelsToAttributes(goMetricsLabels []gometrics.Label) []attribute.KeyValue {
+	providerLabels := o.cfgProvider.GetLabels()
+
+	length := len(goMetricsLabels) + len(providerLabels)
+	if length == 0 {
 		return nil
 	}
-	attrs := make([]attribute.KeyValue, len(labels))
-	for i, label := range labels {
-		attrs[i] = attribute.KeyValue{
+	attrs := make([]attribute.KeyValue, 0, length)
+
+	// Convert Go Metrics labels.
+	for _, label := range goMetricsLabels {
+		attrs = append(attrs, attribute.KeyValue{
 			Key:   attribute.Key(label.Name),
 			Value: attribute.StringValue(label.Value),
-		}
+		})
+	}
+
+	// Convert config provider labels.
+	for k, v := range providerLabels {
+		attrs = append(attrs, attribute.KeyValue{
+			Key:   attribute.Key(k),
+			Value: attribute.StringValue(v),
+		})
 	}
 
 	return attrs
