@@ -44,7 +44,7 @@ type ac3SvcDefaultsSuite struct {
 var _ commonTopoSuite = (*ac3SvcDefaultsSuite)(nil)
 
 func (s *ac3SvcDefaultsSuite) testName() string {
-	return fmt.Sprintf("ac3 service defaults upstreams %s -> %s", s.DC, s.Peer)
+	return fmt.Sprintf("ac3 service defaults upstreams %s->%s", s.DC, s.Peer)
 }
 
 // creates clients in s.DC and servers in s.Peer

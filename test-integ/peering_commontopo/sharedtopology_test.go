@@ -17,7 +17,7 @@ func TestSuitesOnSharedTopo(t *testing.T) {
 	commonTopoSuites = append(commonTopoSuites, ac2DiscoChainSuites...)
 	commonTopoSuites = append(commonTopoSuites, ac3SvcDefaultsSuites...)
 	commonTopoSuites = append(commonTopoSuites, ac4ProxyDefaultsSuites...)
-	commonTopoSuites = append(commonTopoSuites, serviceMeshDisabledSuites...)
+	commonTopoSuites = append(commonTopoSuites, ac5_1NoSvcMeshSuites...)
 
 	for _, s := range commonTopoSuites {
 		s.setup(t, ct)

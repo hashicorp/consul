@@ -5,14 +5,14 @@ import (
 
 	"testing"
 
-	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/stretchr/testify/require"
 )
 
-type serviceMeshDisabledSuite struct {
+type ac5_1NoSvcMeshSuite struct {
 	DC   string
 	Peer string
 
@@ -21,22 +21,22 @@ type serviceMeshDisabledSuite struct {
 }
 
 var (
-	serviceMeshDisabledSuites []commonTopoSuite = []commonTopoSuite{
-		&serviceMeshDisabledSuite{DC: "dc1", Peer: "dc2"},
-		&serviceMeshDisabledSuite{DC: "dc2", Peer: "dc1"},
+	ac5_1NoSvcMeshSuites []commonTopoSuite = []commonTopoSuite{
+		&ac5_1NoSvcMeshSuite{DC: "dc1", Peer: "dc2"},
+		&ac5_1NoSvcMeshSuite{DC: "dc2", Peer: "dc1"},
 	}
 )
 
 func TestAC5ServiceMeshDisabledSuite(t *testing.T) {
-	setupAndRunTestSuite(t, serviceMeshDisabledSuites, true, true)
+	setupAndRunTestSuite(t, ac5_1NoSvcMeshSuites, true, true)
 }
 
-func (s *serviceMeshDisabledSuite) testName() string {
-	return "Service mesh disabled assertions"
+func (s *ac5_1NoSvcMeshSuite) testName() string {
+	return fmt.Sprintf("ac5.1 no service mesh %s->%s", s.DC, s.Peer)
 }
 
 // creates clients in s.DC and servers in s.Peer
-func (s *serviceMeshDisabledSuite) setup(t *testing.T, ct *commonTopo) {
+func (s *ac5_1NoSvcMeshSuite) setup(t *testing.T, ct *commonTopo) {
 	clu := ct.ClusterByDatacenter(t, s.DC)
 	peerClu := ct.ClusterByDatacenter(t, s.Peer)
 
@@ -90,7 +90,7 @@ func (s *serviceMeshDisabledSuite) setup(t *testing.T, ct *commonTopo) {
 	s.serverSID = serverSID
 }
 
-func (s *serviceMeshDisabledSuite) test(t *testing.T, ct *commonTopo) {
+func (s *ac5_1NoSvcMeshSuite) test(t *testing.T, ct *commonTopo) {
 	dc := ct.Sprawl.Topology().Clusters[s.DC]
 	peer := ct.Sprawl.Topology().Clusters[s.Peer]
 	cl := ct.APIClientForCluster(t, dc)
@@ -100,7 +100,7 @@ func (s *serviceMeshDisabledSuite) test(t *testing.T, ct *commonTopo) {
 	s.testProxyDisabledInDC2(t, cl, peerName)
 }
 
-func (s *serviceMeshDisabledSuite) testServiceHealthInCatalog(t *testing.T, ct *commonTopo, cl *api.Client, peer string) {
+func (s *ac5_1NoSvcMeshSuite) testServiceHealthInCatalog(t *testing.T, ct *commonTopo, cl *api.Client, peer string) {
 	t.Run("validate service health in catalog", func(t *testing.T) {
 		libassert.CatalogServiceExists(t, cl, s.clientSID.Name, &api.QueryOptions{
 			Peer: peer,
@@ -110,7 +110,7 @@ func (s *serviceMeshDisabledSuite) testServiceHealthInCatalog(t *testing.T, ct *
 	})
 }
 
-func (s *serviceMeshDisabledSuite) testProxyDisabledInDC2(t *testing.T, cl *api.Client, peer string) {
+func (s *ac5_1NoSvcMeshSuite) testProxyDisabledInDC2(t *testing.T, cl *api.Client, peer string) {
 	t.Run("service mesh is disabled", func(t *testing.T) {
 		var (
 			services map[string][]string

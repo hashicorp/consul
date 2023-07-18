@@ -34,7 +34,7 @@ func TestAC4ProxyDefaults(t *testing.T) {
 }
 
 func (s *ac4ProxyDefaultsSuite) testName() string {
-	return fmt.Sprintf("ac4 proxy defaults %s_%s", s.DC, s.Peer)
+	return fmt.Sprintf("ac4 proxy defaults %s->%s", s.DC, s.Peer)
 }
 
 // creates clients in s.DC and servers in s.Peer
