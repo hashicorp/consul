@@ -41,8 +41,6 @@ type ac3SvcDefaultsSuite struct {
 	upstream *topology.Upstream
 }
 
-var _ sharedTopoSuite = (*ac3SvcDefaultsSuite)(nil)
-
 func (s *ac3SvcDefaultsSuite) testName() string {
 	return fmt.Sprintf("ac3 service defaults upstreams %s->%s", s.DC, s.Peer)
 }
