@@ -281,10 +281,12 @@ const bootstrapTemplate = `{
   "dynamic_resources": {
     "lds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "cds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "ads_config": {

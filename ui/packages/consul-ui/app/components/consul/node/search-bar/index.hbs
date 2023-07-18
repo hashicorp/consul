@@ -19,12 +19,14 @@
       )
   )
 
-  (t (concat "components.consul.node.search-bar." search.status.value)
-      default=(array
-        (concat "common.search." search.status.value)
-        (concat "common.consul." search.status.value)
-        (concat "common.brand." search.status.value)
-      )
+  (if search.status.value 
+    search.status.value 
+    (t (concat "components.consul.node.search-bar." search.status.value)
+        default=(array
+          (concat "common.search." search.status.value)
+          (concat "common.consul." search.status.value)
+          (concat "common.brand." search.status.value)
+        ))
   )
 
 as |key value|}}
@@ -95,6 +97,27 @@ as |key value|}}
   {{/let}}
         </BlockSlot>
       </search.Select>
+      <search.Select
+        class="type-version"
+        @position="left"
+        @onchange={{action @filter.version.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{t "common.consul.version"}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+        {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        {{#each @versions as |version|}}
+          <Option @value={{version}} @selected={{includes version @filter.version.value}}>
+            {{concat version ".x" }}
+          </Option>
+        {{/each}}
+        {{/let}}
+        </BlockSlot>
+      </search.Select>
     </:filter>
     <:sort as |search|>
       <search.Select
@@ -112,6 +135,8 @@ as |key value|}}
                   (array "Node:desc" (t "common.sort.alpha.desc"))
                   (array "Status:asc" (t "common.sort.status.asc"))
                   (array "Status:desc" (t "common.sort.status.desc"))
+                  (array "Version:asc" (t "common.sort.version.asc"))
+                  (array "Version:desc" (t "common.sort.version.desc"))
                 ))
               as |selectable|
             }}
@@ -128,6 +153,10 @@ as |key value|}}
           <Optgroup @label={{t "common.consul.node-name"}}>
             <Option @value="Node:asc" @selected={{eq "Node:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
             <Option @value="Node:desc" @selected={{eq "Node:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
+          </Optgroup>
+          <Optgroup @label={{t "common.consul.version"}}>
+            <Option @value="Version:asc" @selected={{eq "Version:asc" @sort.value}}>{{t "common.sort.version.asc"}}</Option>
+            <Option @value="Version:desc" @selected={{eq "Version:desc" @sort.value}}>{{t "common.sort.version.desc"}}</Option>
           </Optgroup>
   {{/let}}
         </BlockSlot>

@@ -3,85 +3,35 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "exposed_path_debug:1.2.3.4:21500",
+      "name": "payments?peer=cloud:custom-upstream",
       "address": {
         "socketAddress": {
-          "address": "1.2.3.4",
-          "portValue": 21500
+          "address": "11.11.11.11",
+          "portValue": 11111
         }
       },
       "filterChains": [
         {
-          "filterChainMatch": {
-            "sourcePrefixRanges": [
-              {
-                "addressPrefix": "127.0.0.1",
-                "prefixLen": 8
-              },
-              {
-                "addressPrefix": "192.0.2.1",
-                "prefixLen": 32
-              },
-              {
-                "addressPrefix": "::1",
-                "prefixLen": 128
-              }
-            ]
-          },
           "filters": [
             {
-              "name": "envoy.filters.network.http_connection_manager",
+              "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "exposed_path_filter_debug_21500",
-                "routeConfig": {
-                  "name": "exposed_path_filter_debug_21500",
-                  "virtualHosts": [
-                    {
-                      "name": "exposed_path_filter_debug_21500",
-                      "domains": [
-                        "*"
-                      ],
-                      "routes": [
-                        {
-                          "match": {
-                            "path": "/debug"
-                          },
-                          "route": {
-                            "cluster": "exposed_cluster_8181"
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "httpFilters": [
-                  {
-                    "name": "envoy.filters.http.router",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
-                    }
-                  }
-                ],
-                "tracing": {
-                  "randomSampling": {
-
-                  }
-                }
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "foo-stats",
+                "cluster": "random-cluster"
               }
             }
           ]
         }
-      ],
-      "trafficDirection": "INBOUND"
+      ]
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "public_listener:1.2.3.4:8080",
+      "name": "public_listener:0.0.0.0:9999",
       "address": {
         "socketAddress": {
-          "address": "1.2.3.4",
-          "portValue": 8080
+          "address": "0.0.0.0",
+          "portValue": 9999
         }
       },
       "filterChains": [
@@ -91,9 +41,7 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {
-
-                },
+                "rules": {},
                 "statPrefix": "connect_authz"
               }
             },
@@ -111,9 +59,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -136,6 +82,31 @@
         }
       ],
       "trafficDirection": "INBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "refunds?peer=cloud:127.0.0.1:9090",
+      "address": {
+        "socketAddress": {
+          "address": "127.0.0.1",
+          "portValue": 9090
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream_peered.refunds.default.cloud",
+                "cluster": "refunds.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "trafficDirection": "OUTBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
