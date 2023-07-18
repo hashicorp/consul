@@ -12,34 +12,50 @@ features address the organizational complexities of collaboration, operations, s
 If you have purchased or wish to try out Consul Enterprise,
 refer to [how to access Consul Enterprise](#access-consul-enterprise).
 
-## Enterprise Features
+## Enterprise features
 
 The following features are [available in several forms of Consul Enterprise](#consul-enterprise-feature-availability).
 
 ### Multi-Tenancy
+
 - [Admin Partitions](/consul/docs/enterprise/admin-partitions): Define administrative boundaries between tenants within a single Consul datacenter
 - [Namespaces](/consul/docs/enterprise/namespaces): Define resource boundaries within a single admin partition for further organizational flexibility
 - [Sameness Groups](/consul/docs/connect/config-entries/samenes-group): Define partitions and cluster peers as members of a group with identical services
 
 ### Resiliency
+
 - [Automated Backups](/consul/docs/enterprise/backups): Configure the automatic backup of Consul state
 - [Redundancy Zones](/consul/docs/enterprise/redundancy): Deploy backup voting Consul servers to efficiently improve Consul fault tolerance
 
 ### Scalability
+
 - [Read Replicas](/consul/docs/enterprise/read-scale): Deploy non-voting Consul servers to enhance the scalability of read requests
 
-### Operational Simplification
+### Operational simplification
+
 - [Automated Upgrades](/consul/docs/enterprise/upgrades): Ease upgrades by automating the transition from existing to newly deployed Consul servers
 - [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise): Leverage the enhanced network infrastructure automation capabilities of the enterprise version of Consul-Terraform-Sync
 
-### Complex Network Topology Support
+### Complex network topology support
+
 - [Network Areas](/consul/docs/enterprise/federation): Support complex network topologies between federated Consul datacenters with pairwise federation rather than full mesh federation
 - [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview): Support complex network topologies within a Consul datacenter by enforcing boundaries in Consul client gossip traffic
 
 ### Governance
+
 - [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc): Manage user access to Consul through an OIDC identity provider instead of Consul ACL tokens directly
 - [Audit Logging](/consul/docs/enterprise/audit-logging): Understand Consul access and usage patterns by reviewing access to the Consul HTTP API 
 - [Sentinel for KV](/consul/docs/enterprise/sentinel): Policy-as-code framework for defining advanced key-value storage access control policies
+
+### Regulatory compliance
+
+- [FIPS 140-2 Compliance](/consul/docs/enterprise/fips): Leverage FIPS builds of Consul Enterprise to ensure your Consul deployments are secured with BoringCrypto and CNGCrypto, and compliant with FIPS 140-2.
+
+  <Note>
+
+  FIPS 140-2 builds of Consul Enterprise support all runtimes (VMs, Kubernetes) except for Lambda and ECS. In addition, HCP does not currently support FIPS builds of Consul Enterprise.
+
+  </Note>
 
 ## Access Consul Enterprise
 
@@ -62,7 +78,7 @@ to the Consul Enterprise binary that grants access to the desired features.
 
 Contact your [HashiCorp Support contact](https://support.hashicorp.com/) for a development license.
 
-## Consul Enterprise Feature Availability
+## Consul Enterprise feature availability
 
 The Consul Enterprise features that are available depend on your license and the runtimes you use in your deployment.
 
@@ -79,6 +95,7 @@ Available Enterprise features per Consul form and license include:
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)   | All tiers                               | Yes                 | Yes                                               |
 | [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise) | All tiers                               | Yes                 | Yes                                               |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale) | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
+| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips) | No                                      | Yes                 | No |
 | [Namespaces](/consul/docs/enterprise/namespaces)                | All tiers                               | Yes                 | With Governance and Policy module                 |
 | [Network Areas](/consul/docs/enterprise/federation)             | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)    | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
@@ -107,6 +124,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#9989;  |  &#9989;   |   &#9989;  |
+| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                   |  &#9989;  |  &#9989;   |   &#10060;  |
 | [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                     |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#9989;  |  &#10060;  |  &#10060;  |
@@ -127,6 +145,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#10060; |  &#10060;  |  &#10060;  |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#10060; |  &#10060;  |  &#10060;  |
+| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                   |  &#9989;  |  &#9989;   |   &#10060;  |
 | [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                     |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#10060; |  &#10060;  |  &#10060;  |
@@ -147,6 +166,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#10060; |  &#10060;  |  &#10060;  |
+| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                   |  &#10060; |  &#10060;  |  &#10060;  |
 | [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                     |  &#10060; |  &#10060;  |  &#10060;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#10060; |  &#10060;  |  &#10060;  |
