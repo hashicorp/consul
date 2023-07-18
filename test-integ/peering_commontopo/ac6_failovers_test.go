@@ -11,8 +11,9 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
-// NOTE: because AC6 needs to mutate the topo, we actually *DO NOT* share a topo
-
+// note: unlike other *Suite structs that are per-peering direction,
+// this one is special and does all directions itself, because the
+// setup is not exactly symmetrical
 type ac6FailoversSuite struct {
 	ac6 map[nodeKey]ac6FailoversContext
 }
@@ -28,16 +29,13 @@ type nodeKey struct {
 	partition string
 }
 
-// note: unlike other *Suite structs that are per-peering direction,
-// this one is special and does all directions itself, because the
-// setup is not exactly symmetrical
-
+// Note: this test cannot share topo
 func TestAC6Failovers(t *testing.T) {
-	setupAndRunTestSuite(t, []commonTopoSuite{&ac6FailoversSuite{}}, false, false)
-}
-
-func (s *ac6FailoversSuite) testName() string {
-	return "ac6 failovers"
+	ct := NewCommonTopo(t)
+	s := &ac6FailoversSuite{}
+	s.setup(t, ct)
+	ct.Launch(t)
+	s.test(t, ct)
 }
 
 func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {

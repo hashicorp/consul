@@ -30,17 +30,23 @@ type ac7_2RotateLeaderSuite struct {
 	upstream *topology.Upstream
 }
 
-var ac7_2RotateLeaderSuites []commonTopoSuite = []commonTopoSuite{
-	&ac7_2RotateLeaderSuite{DC: "dc1", Peer: "dc2"},
-	&ac7_2RotateLeaderSuite{DC: "dc2", Peer: "dc1"},
-}
-
 func TestAC7_2RotateLeader(t *testing.T) {
-	setupAndRunTestSuite(t, ac7_2RotateLeaderSuites, false, false)
-}
-
-func (s *ac7_2RotateLeaderSuite) testName() string {
-	return fmt.Sprintf("ac7.2 rotate leader %s->%s", s.DC, s.Peer)
+	suites := []*ac7_2RotateLeaderSuite{
+		{DC: "dc1", Peer: "dc2"},
+		{DC: "dc2", Peer: "dc1"},
+	}
+	ct := NewCommonTopo(t)
+	for _, s := range suites {
+		s.setup(t, ct)
+	}
+	ct.Launch(t)
+	for _, s := range suites {
+		s := s
+		t.Run(fmt.Sprintf("%s->%s", s.DC, s.Peer), func(t *testing.T) {
+			// no t.Parallel() due to Relaunch
+			s.test(t, ct)
+		})
+	}
 }
 
 // makes client in clu, server in peerClu

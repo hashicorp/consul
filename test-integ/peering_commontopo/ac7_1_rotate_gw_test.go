@@ -30,17 +30,23 @@ type suiteRotateGW struct {
 	newMGWNodeName string
 }
 
-var rotateGWSuites []commonTopoSuite = []commonTopoSuite{
-	&suiteRotateGW{DC: "dc1", Peer: "dc2"},
-	&suiteRotateGW{DC: "dc2", Peer: "dc1"},
-}
-
 func TestRotateGW(t *testing.T) {
-	setupAndRunTestSuite(t, rotateGWSuites, false, false)
-}
-
-func (s *suiteRotateGW) testName() string {
-	return fmt.Sprintf("ac7.1 rotate mesh gateway %s->%s", s.DC, s.Peer)
+	suites := []*suiteRotateGW{
+		{DC: "dc1", Peer: "dc2"},
+		{DC: "dc2", Peer: "dc1"},
+	}
+	ct := NewCommonTopo(t)
+	for _, s := range suites {
+		s.setup(t, ct)
+	}
+	ct.Launch(t)
+	for _, s := range suites {
+		s := s
+		t.Run(fmt.Sprintf("%s->%s", s.DC, s.Peer), func(t *testing.T) {
+			// no t.Parallel() due to Relaunch
+			s.test(t, ct)
+		})
+	}
 }
 
 func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {

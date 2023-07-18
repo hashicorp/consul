@@ -31,11 +31,11 @@ type ac5_2PQFailoverSuite struct {
 var ac5_2Context = make(map[nodeKey]ac5_2PQFailoverSuite)
 
 func TestAC5PreparedQueryFailover(t *testing.T) {
-	setupAndRunTestSuite(t, []commonTopoSuite{&ac5_2PQFailoverSuite{}}, false, false)
-}
-
-func (s *ac5_2PQFailoverSuite) testName() string {
-	return "ac5.2 prepared query failover"
+	ct := NewCommonTopo(t)
+	s := &ac5_2PQFailoverSuite{}
+	s.setup(t, ct)
+	ct.Launch(t)
+	s.test(t, ct)
 }
 
 func (s *ac5_2PQFailoverSuite) setup(t *testing.T, ct *commonTopo) {
@@ -223,7 +223,7 @@ func (s *ac5_2PQFailoverSuite) test(t *testing.T, ct *commonTopo) {
 	for _, tc := range tcs {
 		client := ct.APIClientForCluster(t, tc.cluster)
 
-		t.Run(s.testName(), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%#v", tc), func(t *testing.T) {
 			svc := ac5_2Context[nodeKey{tc.cluster.Name, partition}]
 			require.NotNil(t, svc.serverSID.Name, "expected service name to not be nil")
 			require.NotNil(t, svc.nodeServer, "expected node server to not be nil")

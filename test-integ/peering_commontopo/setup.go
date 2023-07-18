@@ -25,22 +25,13 @@ type commonTopoSuite interface {
 
 var commonTopologyFlag = flag.Bool("commontopo", false, "run tests with common topology")
 
-func commonTopologyTest(t *testing.T) {
-	t.Helper()
+// WARNING: commonTopo suites should generally *not* be run in parallel. They create
+// many Docker containers and, lacking a mechanism to throttle number of Docker
+// containers (or CPU/RAM) specifically, we just run them in serial
+func runShareableSuites(t *testing.T, suites []commonTopoSuite) {
 	if *commonTopologyFlag {
-		t.Skip(`Skipping: duplicate test run. See "TestSuitesOnSharedTopo"`)
+		t.Skip(`Will run as part of "TestSuitesOnSharedTopo"`)
 	}
-}
-
-func setupAndRunTestSuite(t *testing.T, suites []commonTopoSuite, shareTopology, runParallel bool) {
-	if shareTopology {
-		commonTopologyTest(t)
-	}
-
-	if runParallel {
-		t.Parallel()
-	}
-
 	ct := NewCommonTopo(t)
 	for _, s := range suites {
 		s.setup(t, ct)
@@ -49,9 +40,7 @@ func setupAndRunTestSuite(t *testing.T, suites []commonTopoSuite, shareTopology,
 	for _, s := range suites {
 		s := s
 		t.Run(s.testName(), func(t *testing.T) {
-			if runParallel {
-				t.Parallel()
-			}
+			t.Parallel()
 			s.test(t, ct)
 		})
 	}

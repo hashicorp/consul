@@ -24,7 +24,7 @@ var ac3SvcDefaultsSuites []commonTopoSuite = []commonTopoSuite{
 }
 
 func TestAC3SvcDefaults(t *testing.T) {
-	setupAndRunTestSuite(t, ac3SvcDefaultsSuites, true, true)
+	runShareableSuites(t, ac3SvcDefaultsSuites)
 }
 
 type ac3SvcDefaultsSuite struct {

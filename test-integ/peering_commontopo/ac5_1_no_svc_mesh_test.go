@@ -28,7 +28,7 @@ var (
 )
 
 func TestAC5ServiceMeshDisabledSuite(t *testing.T) {
-	setupAndRunTestSuite(t, ac5_1NoSvcMeshSuites, true, true)
+	runShareableSuites(t, ac5_1NoSvcMeshSuites)
 }
 
 func (s *ac5_1NoSvcMeshSuite) testName() string {

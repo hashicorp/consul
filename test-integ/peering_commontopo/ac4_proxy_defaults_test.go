@@ -30,7 +30,7 @@ var ac4ProxyDefaultsSuites []commonTopoSuite = []commonTopoSuite{
 }
 
 func TestAC4ProxyDefaults(t *testing.T) {
-	setupAndRunTestSuite(t, ac4ProxyDefaultsSuites, true, true)
+	runShareableSuites(t, ac4ProxyDefaultsSuites)
 }
 
 func (s *ac4ProxyDefaultsSuite) testName() string {

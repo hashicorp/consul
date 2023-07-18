@@ -33,10 +33,6 @@ func TestSuitesOnSharedTopo(t *testing.T) {
 }
 
 func TestCommonTopologySetup(t *testing.T) {
-	if !*commonTopologyFlag {
-		t.Skip(`Skipping: run "go test -commontopo" to run this test suite`)
-	}
-	t.Parallel()
 	ct := NewCommonTopo(t)
 	ct.Launch(t)
 }

@@ -38,7 +38,7 @@ var ac1BasicSuites []commonTopoSuite = []commonTopoSuite{
 }
 
 func TestAC1Basic(t *testing.T) {
-	setupAndRunTestSuite(t, ac1BasicSuites, true, true)
+	runShareableSuites(t, ac1BasicSuites)
 }
 
 func (s *ac1BasicSuite) testName() string {

@@ -23,7 +23,7 @@ var ac2DiscoChainSuites []commonTopoSuite = []commonTopoSuite{
 }
 
 func TestAC2DiscoChain(t *testing.T) {
-	setupAndRunTestSuite(t, ac2DiscoChainSuites, true, true)
+	runShareableSuites(t, ac2DiscoChainSuites)
 }
 
 func (s *ac2DiscoChainSuite) testName() string {
