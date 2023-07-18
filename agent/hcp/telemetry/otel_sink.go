@@ -229,11 +229,11 @@ func (o *OTELSink) labelsToAttributes(goMetricsLabels []gometrics.Label) []attri
 
 	length := len(goMetricsLabels) + len(providerLabels)
 	if length == 0 {
-		return nil
+		return []attribute.KeyValue{}
 	}
-	attrs := make([]attribute.KeyValue, 0, length)
 
-	// Convert Go Metrics labels.
+	attrs := make([]attribute.KeyValue, 0, length)
+	// Convert provider labels to OTEL attributes.
 	for _, label := range goMetricsLabels {
 		attrs = append(attrs, attribute.KeyValue{
 			Key:   attribute.Key(label.Name),
@@ -241,7 +241,7 @@ func (o *OTELSink) labelsToAttributes(goMetricsLabels []gometrics.Label) []attri
 		})
 	}
 
-	// Convert config provider labels.
+	// Convert provider labels to OTEL attributes.
 	for k, v := range providerLabels {
 		attrs = append(attrs, attribute.KeyValue{
 			Key:   attribute.Key(k),
