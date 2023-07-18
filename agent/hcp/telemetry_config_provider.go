@@ -84,7 +84,7 @@ func NewTelemetryConfigProvider(opts *TelemetryConfigProviderOpts) *telemetryCon
 // run continously checks for updates to the telemetry configuration by
 // making a request to HCP, and verifying for any updated fields.
 func (t *telemetryConfigProvider) run(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(t.refreshInterval))
+	ticker := time.NewTicker(t.refreshInterval)
 	defer ticker.Stop()
 	for {
 		select {
