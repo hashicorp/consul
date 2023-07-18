@@ -34,7 +34,7 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.Que
 			r.Fatal("error reading service data")
 		}
 		if len(services) == 0 {
-			r.Fatal("did not find catalog entry for ", svc)
+			r.Fatalf("did not find catalog entry for %q with opts %#v", svc, opts)
 		}
 	})
 }
