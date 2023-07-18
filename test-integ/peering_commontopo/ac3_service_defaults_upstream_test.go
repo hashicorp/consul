@@ -18,7 +18,7 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 )
 
-var ac3SvcDefaultsSuites []commonTopoSuite = []commonTopoSuite{
+var ac3SvcDefaultsSuites []sharedTopoSuite = []sharedTopoSuite{
 	&ac3SvcDefaultsSuite{DC: "dc1", Peer: "dc2"},
 	&ac3SvcDefaultsSuite{DC: "dc2", Peer: "dc1"},
 }
@@ -41,7 +41,7 @@ type ac3SvcDefaultsSuite struct {
 	upstream *topology.Upstream
 }
 
-var _ commonTopoSuite = (*ac3SvcDefaultsSuite)(nil)
+var _ sharedTopoSuite = (*ac3SvcDefaultsSuite)(nil)
 
 func (s *ac3SvcDefaultsSuite) testName() string {
 	return fmt.Sprintf("ac3 service defaults upstreams %s->%s", s.DC, s.Peer)

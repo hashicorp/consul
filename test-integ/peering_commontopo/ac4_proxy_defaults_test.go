@@ -24,7 +24,7 @@ type ac4ProxyDefaultsSuite struct {
 	upstream  *topology.Upstream
 }
 
-var ac4ProxyDefaultsSuites []commonTopoSuite = []commonTopoSuite{
+var ac4ProxyDefaultsSuites []sharedTopoSuite = []sharedTopoSuite{
 	&ac4ProxyDefaultsSuite{DC: "dc1", Peer: "dc2"},
 	&ac4ProxyDefaultsSuite{DC: "dc2", Peer: "dc1"},
 }

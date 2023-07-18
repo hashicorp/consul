@@ -21,7 +21,7 @@ type ac5_1NoSvcMeshSuite struct {
 }
 
 var (
-	ac5_1NoSvcMeshSuites []commonTopoSuite = []commonTopoSuite{
+	ac5_1NoSvcMeshSuites []sharedTopoSuite = []sharedTopoSuite{
 		&ac5_1NoSvcMeshSuite{DC: "dc1", Peer: "dc2"},
 		&ac5_1NoSvcMeshSuite{DC: "dc2", Peer: "dc1"},
 	}

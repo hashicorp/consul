@@ -32,7 +32,7 @@ type ac1BasicSuite struct {
 	upstreamTCP  *topology.Upstream
 }
 
-var ac1BasicSuites []commonTopoSuite = []commonTopoSuite{
+var ac1BasicSuites []sharedTopoSuite = []sharedTopoSuite{
 	&ac1BasicSuite{DC: "dc1", Peer: "dc2"},
 	&ac1BasicSuite{DC: "dc2", Peer: "dc1"},
 }

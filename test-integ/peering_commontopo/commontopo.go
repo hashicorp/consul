@@ -22,7 +22,7 @@ import (
 //
 // Use NewCommonTopo to create.
 //
-// Compatible suites should implement commonTopoSuite.
+// Compatible suites should implement sharedTopoSuite.
 //
 // Style:
 //   - avoid referencing components using strings, prefer IDs like Service ID, etc.

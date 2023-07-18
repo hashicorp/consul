@@ -17,7 +17,7 @@ type ac2DiscoChainSuite struct {
 	clientSID topology.ServiceID
 }
 
-var ac2DiscoChainSuites []commonTopoSuite = []commonTopoSuite{
+var ac2DiscoChainSuites []sharedTopoSuite = []sharedTopoSuite{
 	&ac2DiscoChainSuite{DC: "dc1", Peer: "dc2"},
 	&ac2DiscoChainSuite{DC: "dc2", Peer: "dc1"},
 }

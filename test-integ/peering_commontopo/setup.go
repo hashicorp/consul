@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Test that use commonTopo should implement commonTopoSuite.
+// Test that use commonTopo should implement sharedTopoSuite.
 //
 // Tests that use commonTopo are either cooperative or non-cooperative. Non-cooperative
 // uses of commonTopo include is anything that may interfere with other tests, namely
@@ -17,19 +17,16 @@ import (
 // Cooperative tests should just call testFuncMayReuseCommonTopo() to ensure they
 // are run in the correct `sharetopo` mode. They should also ensure they are included
 // in the commonTopoSuites slice in TestSuitesOnSharedTopo.
-type commonTopoSuite interface {
+type sharedTopoSuite interface {
 	testName() string
 	setup(*testing.T, *commonTopo)
 	test(*testing.T, *commonTopo)
 }
 
-var commonTopologyFlag = flag.Bool("commontopo", false, "run tests with common topology")
+var flagNoShareTopo = flag.Bool("no-share-topo", false, "do not share topology; run each test in its own")
 
-// WARNING: commonTopo suites should generally *not* be run in parallel. They create
-// many Docker containers and, lacking a mechanism to throttle number of Docker
-// containers (or CPU/RAM) specifically, we just run them in serial
-func runShareableSuites(t *testing.T, suites []commonTopoSuite) {
-	if *commonTopologyFlag {
+func runShareableSuites(t *testing.T, suites []sharedTopoSuite) {
+	if !*flagNoShareTopo {
 		t.Skip(`Will run as part of "TestSuitesOnSharedTopo"`)
 	}
 	ct := NewCommonTopo(t)

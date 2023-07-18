@@ -4,26 +4,26 @@ import (
 	"testing"
 )
 
-// Tests compatible with commonTopo should implement commonTopoSuite and be added
-// to the commonTopoSuites slice inside.
+// Tests that can share topo must implement sharedTopoSuite and be appended to the sharedTopoSuites
+// slice inside
 func TestSuitesOnSharedTopo(t *testing.T) {
-	if !*commonTopologyFlag {
-		t.Skip(`Skipping: run "go test -commontopo" to run this test suite`)
+	if *flagNoShareTopo {
+		t.Skip(`shared topo suites disabled by -no-share-topo`)
 	}
 	ct := NewCommonTopo(t)
 
-	commonTopoSuites := []commonTopoSuite{}
-	commonTopoSuites = append(commonTopoSuites, ac1BasicSuites...)
-	commonTopoSuites = append(commonTopoSuites, ac2DiscoChainSuites...)
-	commonTopoSuites = append(commonTopoSuites, ac3SvcDefaultsSuites...)
-	commonTopoSuites = append(commonTopoSuites, ac4ProxyDefaultsSuites...)
-	commonTopoSuites = append(commonTopoSuites, ac5_1NoSvcMeshSuites...)
+	sharedTopoSuites := []sharedTopoSuite{}
+	sharedTopoSuites = append(sharedTopoSuites, ac1BasicSuites...)
+	sharedTopoSuites = append(sharedTopoSuites, ac2DiscoChainSuites...)
+	sharedTopoSuites = append(sharedTopoSuites, ac3SvcDefaultsSuites...)
+	sharedTopoSuites = append(sharedTopoSuites, ac4ProxyDefaultsSuites...)
+	sharedTopoSuites = append(sharedTopoSuites, ac5_1NoSvcMeshSuites...)
 
-	for _, s := range commonTopoSuites {
+	for _, s := range sharedTopoSuites {
 		s.setup(t, ct)
 	}
 	ct.Launch(t)
-	for _, s := range commonTopoSuites {
+	for _, s := range sharedTopoSuites {
 		s := s
 		t.Run(s.testName(), func(t *testing.T) {
 			t.Parallel()
