@@ -26,6 +26,7 @@ func TestSink(t *testing.T) {
 					Endpoint: "https://test.com",
 					MetricsConfig: &client.MetricsConfig{
 						Endpoint: "https://test.com",
+						Filters:  []string{"test"},
 					},
 				}, nil)
 			},

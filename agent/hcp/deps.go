@@ -83,11 +83,27 @@ func sink(
 		return nil
 	}
 
+	filters, err := telemetryCfg.FilterRegex()
+	if err != nil {
+		logger.Error("failed to parse regex filters", "error", err)
+	}
+
+	cfgProvider := NewTelemetryConfigProvider(&TelemetryConfigProviderOpts{
+		ctx:             ctx,
+		endpoint:        u,
+		labels:          telemetryCfg.DefaultLabels(cfg),
+		filters:         filters,
+		cloudCfg:        cfg,
+		hcpClient:       hcpClient,
+		refreshInterval: defaultRefreshInterval,
+	})
+
+	r := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
+
 	sinkOpts := &telemetry.OTELSinkOpts{
-		Ctx:     ctx,
-		Reader:  telemetry.NewOTELReader(metricsClient, u, telemetry.DefaultExportInterval),
-		Labels:  telemetryCfg.DefaultLabels(cfg),
-		Filters: telemetryCfg.MetricsConfig.Filters,
+		Ctx:            ctx,
+		Reader:         r,
+		ConfigProvider: cfgProvider,
 	}
 
 	sink, err := telemetry.NewOTELSink(sinkOpts)
