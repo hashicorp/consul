@@ -7,14 +7,13 @@ description: >-
 
 # Create a replication token
 
-This topic describes how to configure an ACL token for ACL replication between WAN-federated datacenters.
+This topic describes how to configure an ACL token for ACL replication between WAN-federated datacenters. If your Consul clusters are connected through peer connections, ACL replication is not required. To learn more about cluster peering, refer to the [comparison between WAN federation and cluster peering](/consul/docs/connect/cluster-peering#compared-with-wan-federation).
 
 ## Introduction
 
 Consul agents must present a token linked to policies that grant the appropriate set of permissions.
-Specify the [`replication`](/consul/docs/agent/config/config-files#acl_tokens_replication) token on each server in a non-primary datacenter. To learn about configuring ACL replication, refer to the ACL Replication for Multiple Datacenters tutorial.
+Specify the [`replication`](/consul/docs/agent/config/config-files#acl_tokens_replication) token on each server in a non-primary datacenter. For hands-on instructions on how to configure ACL replication across datacenters, refer to the [ACL Replication for Multiple Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters) tutorial.
 
--> Note: ACL replication is only supported for WAN-federated datacenters. When using cluster peering to connect Consul datacenters, ACL replication is not required. To learn more about cluster peering, refer to Differences between WAN federation and cluster peering.
 
 ## Requirements
 

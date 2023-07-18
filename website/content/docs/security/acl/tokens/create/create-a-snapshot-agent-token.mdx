@@ -11,10 +11,6 @@ This topic describes how to create a token for the Consul snapshot agent.
 
 <EnterpriseAlert />
 
-~> The [`agent`](/consul/commands/snapshot/agent) subcommand described here is
-available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
-version 0.7.1 and later. All other [snapshot subcommands](/consul/commands/snapshot)
-are available in the open source version of Consul.
 
 ## Introduction
 
@@ -24,7 +20,10 @@ servers and either saves them locally or pushes them to a remote storage service
 ## Requirements
 
 Core ACL functionality is available in all versions of Consul.
+### `agent` command requirements
 
+The [`agent`](/consul/commands/snapshot/agent) subcommand requires [Consul Enterprise](https://www.hashicorp.com/products/consul/). All other [snapshot subcommands](/consul/commands/snapshot)
+are available in the open source version of Consul.
 The Consul snapshot agent must present a token linked to policies that grant the following set of permissions.
 
 * `acl:write`: Enables the agent read and snapshot ACL data

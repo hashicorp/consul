@@ -11,7 +11,7 @@ This topic describes how to create a token for the Consul External Service Monit
 
 ## Introduction
 
-Consul External Service Monitor (ESM) can monitor third party or external services in contexts where it is not possible to run a Consul agent. To learn more about Consul ESM, refer to the [Register External Services with Consul Service Discovery](/consul/tutorials/developer-discovery/service-registration-external-services) tutorial.
+Consul external service monitor (ESM) can monitor third-party or external services in contexts where you are unable to run a Consul agent. To learn more about Consul ESM, refer to the [Register External Services with Consul Service Discovery](/consul/tutorials/developer-discovery/service-registration-external-services) tutorial.
 
 
 ## Requirements
@@ -28,7 +28,7 @@ Consul ESM must present a token linked to policies that grant the following perm
 * `session:write`: Enables Consul ESM is registered to acquire a leader lock
 * `acl:read`: (Enterprise-only) Enables Consul ESM to scan namespaces for nodes and health checks to monitor
 
--> Note: Consul ESM does not currently support non-default partitions.
+Consul ESM only supports `default` admin partitions.
 
 @include 'create-token-requirements.mdx'
 
