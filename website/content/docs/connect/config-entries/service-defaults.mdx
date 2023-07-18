@@ -1447,6 +1447,7 @@ spec:
 ```
 
 </CodeTabs>
+Updates made in Consul [1.14.4](https://github.com/hashicorp/consul/pull/16000) refined the handling of Transparent proxy, service-defaults, and proxy-defaults for implicit upstreams. Specifically, the 1.14.4 update improved the logic used to fetch and merge upstream configurations, allowing for more consistent fallback to wildcard configurations across various upstream types. When upgrading to 1.14.5, users must explicitly use *upstreamConfig* within the ServiceDefaults definition to set default limits and individual overrides like protocol for upstreams. If not set, the envoy sidecars will default to the proxy-defaults configuration.
 
 </Tab>
 </Tabs>
