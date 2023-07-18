@@ -24,31 +24,13 @@ type ac4ProxyDefaultsSuite struct {
 	upstream  *topology.Upstream
 }
 
-var ac4ProxyDefaultsSuites []*ac4ProxyDefaultsSuite = []*ac4ProxyDefaultsSuite{
-	{DC: "dc1", Peer: "dc2"},
-	{DC: "dc2", Peer: "dc1"},
+var ac4ProxyDefaultsSuites []commonTopoSuite = []commonTopoSuite{
+	&ac4ProxyDefaultsSuite{DC: "dc1", Peer: "dc2"},
+	&ac4ProxyDefaultsSuite{DC: "dc2", Peer: "dc1"},
 }
 
-func TestProxyDefaults(t *testing.T) {
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-
-	for _, s := range ac4ProxyDefaultsSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range ac4ProxyDefaultsSuites {
-		s := s
-		t.Run(s.testName(), func(t *testing.T) {
-			t.Parallel()
-			s.test(t, ct)
-		})
-	}
+func TestAC4ProxyDefaults(t *testing.T) {
+	setupAndRunTestSuite(t, ac4ProxyDefaultsSuites, true, true)
 }
 
 func (s *ac4ProxyDefaultsSuite) testName() string {

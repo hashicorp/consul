@@ -9,32 +9,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-var ac1BasicSuites []*ac1BasicSuite = []*ac1BasicSuite{
-	{DC: "dc1", Peer: "dc2"},
-	{DC: "dc2", Peer: "dc1"},
-}
-
-func TestAC1Basic(t *testing.T) {
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-	for _, s := range ac1BasicSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range ac1BasicSuites {
-		s := s
-		t.Run(s.testName(), func(t *testing.T) {
-			t.Parallel()
-			s.test(t, ct)
-		})
-	}
-}
-
 type ac1BasicSuite struct {
 	// inputs
 	DC   string
@@ -58,7 +32,14 @@ type ac1BasicSuite struct {
 	upstreamTCP  *topology.Upstream
 }
 
-var _ commonTopoSuite = (*ac1BasicSuite)(nil)
+var ac1BasicSuites []commonTopoSuite = []commonTopoSuite{
+	&ac1BasicSuite{DC: "dc1", Peer: "dc2"},
+	&ac1BasicSuite{DC: "dc2", Peer: "dc1"},
+}
+
+func TestAC1Basic(t *testing.T) {
+	setupAndRunTestSuite(t, ac1BasicSuites, true, true)
+}
 
 func (s *ac1BasicSuite) testName() string {
 	return fmt.Sprintf("ac1 basic %s->%s", s.DC, s.Peer)

@@ -21,29 +21,14 @@ type serviceMeshDisabledSuite struct {
 }
 
 var (
-	serviceMeshDisabledSuites []*serviceMeshDisabledSuite = []*serviceMeshDisabledSuite{
-		{DC: "dc1", Peer: "dc2"},
-		{DC: "dc2", Peer: "dc1"},
+	serviceMeshDisabledSuites []commonTopoSuite = []commonTopoSuite{
+		&serviceMeshDisabledSuite{DC: "dc1", Peer: "dc2"},
+		&serviceMeshDisabledSuite{DC: "dc2", Peer: "dc1"},
 	}
 )
 
-func TestServiceMeshDisabledSuite(t *testing.T) {
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
-	t.Parallel()
-	ct := NewCommonTopo(t)
-	for _, s := range serviceMeshDisabledSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range serviceMeshDisabledSuites {
-		s := s
-		t.Run(fmt.Sprintf("%s_%s", s.DC, s.Peer), func(t *testing.T) {
-			t.Parallel()
-			s.test(t, ct)
-		})
-	}
+func TestAC5ServiceMeshDisabledSuite(t *testing.T) {
+	setupAndRunTestSuite(t, serviceMeshDisabledSuites, true, true)
 }
 
 func (s *serviceMeshDisabledSuite) testName() string {

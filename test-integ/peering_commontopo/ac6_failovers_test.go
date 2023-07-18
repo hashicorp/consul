@@ -13,22 +13,9 @@ import (
 
 // NOTE: because AC6 needs to mutate the topo, we actually *DO NOT* share a topo
 
-func TestAC6Failovers(t *testing.T) {
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-	s := ac6FailoversSuite{}
-	s.setup(t, ct)
-	ct.Launch(t)
-	s.test(t, ct)
+type ac6FailoversSuite struct {
+	ac6 map[nodeKey]ac6FailoversContext
 }
-
-type nodeKey struct {
-	dc        string
-	partition string
-}
-
 type ac6FailoversContext struct {
 	clientSID topology.ServiceID
 	serverSID topology.ServiceID
@@ -36,15 +23,18 @@ type ac6FailoversContext struct {
 	// used to remove the node and trigger failover
 	serverNode topology.NodeID
 }
+type nodeKey struct {
+	dc        string
+	partition string
+}
 
 // note: unlike other *Suite structs that are per-peering direction,
 // this one is special and does all directions itself, because the
 // setup is not exactly symmetrical
-type ac6FailoversSuite struct {
-	ac6 map[nodeKey]ac6FailoversContext
-}
 
-var _ commonTopoSuite = (*ac6FailoversSuite)(nil)
+func TestAC6Failovers(t *testing.T) {
+	setupAndRunTestSuite(t, []commonTopoSuite{&ac6FailoversSuite{}}, false, false)
+}
 
 func (s *ac6FailoversSuite) testName() string {
 	return "ac6 failovers"

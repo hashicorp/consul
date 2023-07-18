@@ -10,6 +10,7 @@
 .vagrant/
 /pkg
 bin/
+workdir/
 changelog.tmp
 exit-code
 Thumbs.db

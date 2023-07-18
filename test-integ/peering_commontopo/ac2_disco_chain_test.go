@@ -10,28 +10,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-var ac2DiscoChainSuites []*ac2DiscoChainSuite = []*ac2DiscoChainSuite{
-	{DC: "dc1", Peer: "dc2"},
-	{DC: "dc2", Peer: "dc1"},
-}
-
-func TestAC2DiscoChain(t *testing.T) {
-	if !*FlagNoReuseCommonTopo {
-		t.Skip("NoReuseCommonTopo unset")
-	}
-	if allowParallelCommonTopo {
-		t.Parallel()
-	}
-	ct := NewCommonTopo(t)
-	for _, s := range ac2DiscoChainSuites {
-		s.setup(t, ct)
-	}
-	ct.Launch(t)
-	for _, s := range ac2DiscoChainSuites {
-		t.Run(s.testName(), func(t *testing.T) { s.test(t, ct) })
-	}
-}
-
 type ac2DiscoChainSuite struct {
 	DC   string
 	Peer string
@@ -39,7 +17,14 @@ type ac2DiscoChainSuite struct {
 	clientSID topology.ServiceID
 }
 
-var _ commonTopoSuite = (*ac2DiscoChainSuite)(nil)
+var ac2DiscoChainSuites []commonTopoSuite = []commonTopoSuite{
+	&ac2DiscoChainSuite{DC: "dc1", Peer: "dc2"},
+	&ac2DiscoChainSuite{DC: "dc2", Peer: "dc1"},
+}
+
+func TestAC2DiscoChain(t *testing.T) {
+	setupAndRunTestSuite(t, ac2DiscoChainSuites, true, true)
+}
 
 func (s *ac2DiscoChainSuite) testName() string {
 	return fmt.Sprintf("ac2 disco chain %s->%s", s.DC, s.Peer)

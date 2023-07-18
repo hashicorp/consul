@@ -26,20 +26,12 @@ type preparedQueryFailoverSuite struct {
 	clientSID  topology.ServiceID
 	serverSID  topology.ServiceID
 	nodeServer topology.NodeID
-	ct         *commonTopo
 }
 
 var ac5Context = make(map[nodeKey]preparedQueryFailoverSuite)
 
-func TestPreparedQueryFailoverSuite(t *testing.T) {
-	t.Parallel()
-	s := preparedQueryFailoverSuite{}
-	ct := NewCommonTopo(t)
-	s.ct = ct
-
-	s.setup(t, ct)
-	ct.Launch(t)
-	s.test(t, ct)
+func TestAC5PreparedQueryFailoverSuite(t *testing.T) {
+	setupAndRunTestSuite(t, []commonTopoSuite{&preparedQueryFailoverSuite{}}, false, false)
 }
 
 func (s *preparedQueryFailoverSuite) testName() string {
@@ -176,12 +168,12 @@ func (s *preparedQueryFailoverSuite) setupDC3(ct *commonTopo, clu, peer1, peer2 
 	}
 }
 
-func (s *preparedQueryFailoverSuite) createPreparedQuery(t *testing.T, c *api.Client, serviceName, partition string) (*api.PreparedQueryDefinition, *api.PreparedQuery) {
+func (s *preparedQueryFailoverSuite) createPreparedQuery(t *testing.T, ct *commonTopo, c *api.Client, serviceName, partition string) (*api.PreparedQueryDefinition, *api.PreparedQuery) {
 	var (
 		peers []string
 		err   error
 	)
-	peers = append(peers, LocalPeerName(s.ct.DC2, partition), LocalPeerName(s.ct.DC3, partition))
+	peers = append(peers, LocalPeerName(ct.DC2, partition), LocalPeerName(ct.DC3, partition))
 
 	def := &api.PreparedQueryDefinition{
 		Name: "ac5-prepared-query",
@@ -237,15 +229,15 @@ func (s *preparedQueryFailoverSuite) test(t *testing.T, ct *commonTopo) {
 			require.NotNil(t, svc.nodeServer, "expected node server to not be nil")
 
 			assertServiceHealth(t, client, svc.serverSID.Name, 1)
-			def, _ := s.createPreparedQuery(t, client, svc.serverSID.Name, partition)
+			def, _ := s.createPreparedQuery(t, ct, client, svc.serverSID.Name, partition)
 			s.testPreparedQueryZeroFailover(t, client, def, tc.cluster)
-			s.testPreparedQuerySingleFailover(t, client, def, tc.cluster, tc.peer, partition)
-			s.testPreparedQueryTwoFailovers(t, client, def, tc.cluster, tc.peer, tc.targetCluster, partition)
+			s.testPreparedQuerySingleFailover(t, ct, client, def, tc.cluster, tc.peer, partition)
+			s.testPreparedQueryTwoFailovers(t, ct, client, def, tc.cluster, tc.peer, tc.targetCluster, partition)
 
 			// delete failing health check in peer cluster & validate single failover
-			s.testPQSingleFailover(t, client, def, tc.cluster, tc.peer, partition)
+			s.testPQSingleFailover(t, ct, client, def, tc.cluster, tc.peer, partition)
 			// delete failing health check in cluster & validate zero failover
-			s.testPQZeroFailover(t, client, def, tc.cluster, tc.peer, partition)
+			s.testPQZeroFailover(t, ct, client, def, tc.cluster, tc.peer, partition)
 		})
 	}
 }
@@ -270,13 +262,13 @@ func (s *preparedQueryFailoverSuite) testPreparedQueryZeroFailover(t *testing.T,
 	})
 }
 
-func (s *preparedQueryFailoverSuite) testPreparedQuerySingleFailover(t *testing.T, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
+func (s *preparedQueryFailoverSuite) testPreparedQuerySingleFailover(t *testing.T, ct *commonTopo, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
 	t.Run(fmt.Sprintf("prepared query with single failover %s", cluster.Name), func(t *testing.T) {
-		cfg := s.ct.Sprawl.Config()
+		cfg := ct.Sprawl.Config()
 		svc := ac5Context[nodeKey{cluster.Name, partition}]
 
 		nodeCfg := DisableNode(t, cfg, cluster.Name, svc.nodeServer)
-		require.NoError(t, s.ct.Sprawl.Relaunch(nodeCfg))
+		require.NoError(t, ct.Sprawl.Relaunch(nodeCfg))
 
 		// assert server health status
 		assertServiceHealth(t, cl, svc.serverSID.Name, 0)
@@ -301,14 +293,14 @@ func (s *preparedQueryFailoverSuite) testPreparedQuerySingleFailover(t *testing.
 	})
 }
 
-func (s *preparedQueryFailoverSuite) testPreparedQueryTwoFailovers(t *testing.T, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu, targetCluster *topology.Cluster, partition string) {
+func (s *preparedQueryFailoverSuite) testPreparedQueryTwoFailovers(t *testing.T, ct *commonTopo, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu, targetCluster *topology.Cluster, partition string) {
 	t.Run(fmt.Sprintf("prepared query with two failovers %s", cluster.Name), func(t *testing.T) {
-		cfg := s.ct.Sprawl.Config()
+		cfg := ct.Sprawl.Config()
 
 		svc := ac5Context[nodeKey{peerClu.Name, partition}]
 
 		cfg = DisableNode(t, cfg, peerClu.Name, svc.nodeServer)
-		require.NoError(t, s.ct.Sprawl.Relaunch(cfg))
+		require.NoError(t, ct.Sprawl.Relaunch(cfg))
 
 		// assert server health status
 		assertServiceHealth(t, cl, ac5Context[nodeKey{cluster.Name, partition}].serverSID.Name, 0) // cluster: failing
@@ -333,14 +325,14 @@ func (s *preparedQueryFailoverSuite) testPreparedQueryTwoFailovers(t *testing.T,
 	})
 }
 
-func (s *preparedQueryFailoverSuite) testPQSingleFailover(t *testing.T, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
+func (s *preparedQueryFailoverSuite) testPQSingleFailover(t *testing.T, ct *commonTopo, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
 	t.Run(fmt.Sprintf("delete failing health check in %s and validate single failover %s", peerClu.Name, cluster.Name), func(t *testing.T) {
-		cfg := s.ct.Sprawl.Config()
+		cfg := ct.Sprawl.Config()
 
 		svc := ac5Context[nodeKey{peerClu.Name, partition}]
 
 		cfg = EnableNode(t, cfg, peerClu.Name, svc.nodeServer)
-		require.NoError(t, s.ct.Sprawl.Relaunch(cfg))
+		require.NoError(t, ct.Sprawl.Relaunch(cfg))
 
 		queryDef, _, err := cl.PreparedQuery().Get(def.ID, nil)
 		require.NoError(t, err)
@@ -360,14 +352,14 @@ func (s *preparedQueryFailoverSuite) testPQSingleFailover(t *testing.T, cl *api.
 	})
 }
 
-func (s *preparedQueryFailoverSuite) testPQZeroFailover(t *testing.T, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
+func (s *preparedQueryFailoverSuite) testPQZeroFailover(t *testing.T, ct *commonTopo, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
 	t.Run(fmt.Sprintf("delete failing health check in %s and validate zero failover %s", cluster.Name, cluster.Name), func(t *testing.T) {
-		cfg := s.ct.Sprawl.Config()
+		cfg := ct.Sprawl.Config()
 
 		svc := ac5Context[nodeKey{cluster.Name, partition}]
 
 		cfg = EnableNode(t, cfg, cluster.Name, svc.nodeServer)
-		require.NoError(t, s.ct.Sprawl.Relaunch(cfg))
+		require.NoError(t, ct.Sprawl.Relaunch(cfg))
 
 		// assert server health status
 		assertServiceHealth(t, cl, ac5Context[nodeKey{cluster.Name, partition}].serverSID.Name, 1) // cluster: passing
