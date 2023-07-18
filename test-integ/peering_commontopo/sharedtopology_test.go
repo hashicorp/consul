@@ -26,8 +26,13 @@ type sharedTopoSuite interface {
 var flagNoShareTopo = flag.Bool("no-share-topo", false, "do not share topology; run each test in its own")
 
 func runShareableSuites(t *testing.T, suites []sharedTopoSuite) {
+	t.Helper()
 	if !*flagNoShareTopo {
-		t.Skip(`Will run as part of "TestSuitesOnSharedTopo"`)
+		names := []string{}
+		for _, s := range suites {
+			names = append(names, s.testName())
+		}
+		t.Skipf(`Will run as part of "TestSuitesOnSharedTopo": %v`, names)
 	}
 	ct := NewCommonTopo(t)
 	for _, s := range suites {
