@@ -231,6 +231,95 @@ func TestOTELSink(t *testing.T) {
 	isSame(t, expectedSinkMetrics, collected)
 }
 
+func TestLabelsToAttributes(t *testing.T) {
+	for name, test := range map[string]struct {
+		providerLabels         map[string]string
+		goMetricsLabels        []gometrics.Label
+		expectedOTELAttributes []attribute.KeyValue
+	}{
+		"emptyLabels": {
+			expectedOTELAttributes: []attribute.KeyValue{},
+		},
+		"emptyGoMetricsLabels": {
+			providerLabels: map[string]string{
+				"node_id": "test",
+			},
+			expectedOTELAttributes: []attribute.KeyValue{
+				{
+					Key:   attribute.Key("node_id"),
+					Value: attribute.StringValue("test"),
+				},
+			},
+		},
+		"emptyProviderLabels": {
+			goMetricsLabels: []gometrics.Label{
+				{
+					Name:  "server_type",
+					Value: "internal",
+				},
+			},
+			expectedOTELAttributes: []attribute.KeyValue{
+				{
+					Key:   attribute.Key("server_type"),
+					Value: attribute.StringValue("internal"),
+				},
+			},
+		},
+		"combinedLabels": {
+			goMetricsLabels: []gometrics.Label{
+				{
+					Name:  "server_type",
+					Value: "internal",
+				},
+				{
+					Name:  "method",
+					Value: "get",
+				},
+			},
+			providerLabels: map[string]string{
+				"node_id":   "test",
+				"node_name": "labels_test",
+			},
+			expectedOTELAttributes: []attribute.KeyValue{
+				{
+					Key:   attribute.Key("server_type"),
+					Value: attribute.StringValue("internal"),
+				},
+				{
+					Key:   attribute.Key("method"),
+					Value: attribute.StringValue("get"),
+				},
+				{
+					Key:   attribute.Key("node_id"),
+					Value: attribute.StringValue("test"),
+				},
+				{
+					Key:   attribute.Key("node_name"),
+					Value: attribute.StringValue("labels_test"),
+				},
+			},
+		},
+	} {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			opts := &OTELSinkOpts{
+				Reader: metric.NewManualReader(),
+				Ctx:    ctx,
+				ConfigProvider: &mockConfigProvider{
+					filter: "raft|autopilot",
+					labels: test.providerLabels,
+				},
+			}
+			sink, err := NewOTELSink(opts)
+			require.NoError(t, err)
+
+			require.Equal(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
+		})
+	}
+}
+
 func TestOTELSink_Race(t *testing.T) {
 	reader := metric.NewManualReader()
 	ctx := context.Background()
