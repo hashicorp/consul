@@ -1,13 +1,13 @@
 ---
 layout: docs
-page_title: Create tokens for for Consul External Service Monitor
+page_title: Create tokens for for Consul external service monitor
 description: >-
-  Learn how to create ACL tokens for the Consul External Service Monitor
+  Learn how to create ACL tokens for the Consul external service monitor
 ---
 
 # Create a Consul ESM token
 
-This topic describes how to create a token for the Consul External Service Monitor.
+This topic describes how to create a token for the Consul external service monitor.
 
 ## Introduction
 
@@ -36,7 +36,7 @@ Consul ESM only supports `default` admin partitions.
 
 To create a token for Consul ESM, you must define a policy, register the policy with Consul, and link the policy to a token.
 
-### Define a custom policy
+### Define a policy
 
 You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
@@ -118,7 +118,7 @@ After defining the policy, you can register the policy with Consul using the com
 
 Run the `consul acl policy create` command and specify the policy rules to create a policy. Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
 
-The following example registers a custom policy defined in `esm-policy.hcl`.
+The following example registers a policy defined in `esm-policy.hcl`.
 
 ```shell-session
 $ consul acl policy create \
@@ -195,7 +195,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 To create a token for Consul ESM, you must define a policy, register the policy with Consul, and link the policy to a token.
 
-### Define a custom policy
+### Define a policy
 
 You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 

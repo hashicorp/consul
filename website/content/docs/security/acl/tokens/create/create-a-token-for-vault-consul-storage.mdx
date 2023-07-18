@@ -90,7 +90,7 @@ After defining the policy, you can register the policy with Consul using the com
 
 Run the `consul acl policy create` command and specify the policy rules to create a policy. Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
 
-The following example registers a custom policy defined in `vault-storage-backend.hcl`.
+The following example registers a policy defined in `vault-storage-backend.hcl`.
 
 ```shell-session
 $ consul acl policy create -partition "default" -namespace "default" \
@@ -104,7 +104,7 @@ $ consul acl policy create -partition "default" -namespace "default" \
 
 Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
 
-The following example registers the custom policy defined in `vault-storage-backend.hcl`. You must embed policy rules in the `Rules` field of the request body.
+The following example registers the policy defined in `vault-storage-backend.hcl`. You must embed policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \

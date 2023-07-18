@@ -11,7 +11,9 @@ This topic describes how to create a token that enables the Consul DNS to query 
 
 ## Introduction
 
-A Consul agent must be configured with a token linked to policies that grant the appropriate set of permissions. 
+The Consul binary ships with a DNS server that you can use for service discovery in your network. The agent that fulfills DNS lookups requires appropriate ACL permissions to discover services, nodes, and prepared queries registered in Consul.
+
+A Consul agent must be configured with a token linked to policies that grant the appropriate set of permissions.
 
 Specify the [`default`](/consul/docs/agent/config/config-files#acl_tokens_default) token to the Consul agent to authorize the agent to respond to DNS queries. Refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview) for details on configuring and using Consul DNS.
 

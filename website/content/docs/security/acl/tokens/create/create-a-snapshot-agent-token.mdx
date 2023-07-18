@@ -11,7 +11,6 @@ This topic describes how to create a token for the Consul snapshot agent.
 
 <EnterpriseAlert />
 
-
 ## Introduction
 
 The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul
@@ -20,10 +19,13 @@ servers and either saves them locally or pushes them to a remote storage service
 ## Requirements
 
 Core ACL functionality is available in all versions of Consul.
+
 ### `agent` command requirements
 
-The [`agent`](/consul/commands/snapshot/agent) subcommand requires [Consul Enterprise](https://www.hashicorp.com/products/consul/). All other [snapshot subcommands](/consul/commands/snapshot)
-are available in the open source version of Consul.
+The [`agent`](/consul/commands/snapshot/agent) subcommand requires [Consul Enterprise](https://www.hashicorp.com/products/consul/). All other [`snapshot` subcommands](/consul/commands/snapshot) are available in the open source version of Consul.
+
+### Snapshot agent ACL requirements
+
 The Consul snapshot agent must present a token linked to policies that grant the following set of permissions.
 
 * `acl:write`: Enables the agent read and snapshot ACL data
@@ -37,7 +39,7 @@ The Consul snapshot agent must present a token linked to policies that grant the
 
 To create a token for the snapshot agent, you must define a policy, register the policy with Consul, and link the policy to a token.
 
-### Define a custom policy
+### Define a policy
 
 You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
@@ -93,7 +95,7 @@ You can specify an admin partition and namespace when creating policies in Consu
 
 Run the `consul acl policy create` command and specify the policy rules to create a policy. Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
 
-The following example registers a custom policy defined in `snapshot-agent.hcl`:
+The following example registers a policy defined in `snapshot-agent.hcl`:
 
 ```shell-session
 $ consul acl policy create -partition "default" -namespace "default" \
@@ -107,7 +109,7 @@ $ consul acl policy create -partition "default" -namespace "default" \
 
 Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
 
-The following example registers the custom policy defined in `snapshot-agent.hcl`. You must embed policy rules in the `Rules` field of the request body.
+The following example registers the policy defined in `snapshot-agent.hcl`. You must embed policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
