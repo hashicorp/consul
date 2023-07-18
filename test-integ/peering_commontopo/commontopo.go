@@ -1,9 +1,12 @@
 package peering
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
+	"text/tabwriter"
 	"time"
 
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
@@ -121,7 +124,7 @@ func (ct *commonTopo) Launch(t *testing.T) {
 // tests that use Relaunch might want to call this again afterwards
 func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 	t.Logf("TESTING RELATIONSHIPS: \n%s",
-		RenderRelationships(ComputeRelationships(ct.Sprawl.Topology())),
+		renderRelationships(computeRelationships(ct.Sprawl.Topology())),
 	)
 
 	// check that exports line up as expected
@@ -368,7 +371,7 @@ func setupGlobals(clu *topology.Cluster) {
 // Assumes that the LAN network name is equal to datacenter name.
 func addMeshGateways(c *topology.Cluster, kind topology.NodeKind) {
 	for _, p := range c.Partitions {
-		c.Nodes = topology.MergeSlices(c.Nodes, NewTopologyMeshGatewaySet(
+		c.Nodes = topology.MergeSlices(c.Nodes, newTopologyMeshGatewaySet(
 			kind,
 			p.Name,
 			fmt.Sprintf("%s-%s-mgw", c.Name, p.Name),
@@ -384,7 +387,7 @@ func clusterWithJustServers(name string, numServers int) *topology.Cluster {
 		Enterprise: utils.IsEnterprise(),
 		Name:       name,
 		Datacenter: name,
-		Nodes: NewTopologyServerSet(
+		Nodes: newTopologyServerSet(
 			name+"-server",
 			numServers,
 			[]string{name, "wan"},
@@ -438,4 +441,170 @@ func injectTenancies(clu *topology.Cluster) {
 			},
 		)
 	}
+}
+
+func newTopologyServerSet(
+	namePrefix string,
+	num int,
+	networks []string,
+	mutateFn func(i int, node *topology.Node),
+) []*topology.Node {
+	var out []*topology.Node
+	for i := 1; i <= num; i++ {
+		name := namePrefix + strconv.Itoa(i)
+
+		node := &topology.Node{
+			Kind: topology.NodeKindServer,
+			Name: name,
+		}
+		for _, net := range networks {
+			node.Addresses = append(node.Addresses, &topology.Address{Network: net})
+		}
+
+		if mutateFn != nil {
+			mutateFn(i, node)
+		}
+
+		out = append(out, node)
+	}
+	return out
+}
+
+func newTopologyMeshGatewaySet(
+	nodeKind topology.NodeKind,
+	partition string,
+	namePrefix string,
+	num int,
+	networks []string,
+	mutateFn func(i int, node *topology.Node),
+) []*topology.Node {
+	var out []*topology.Node
+	for i := 1; i <= num; i++ {
+		name := namePrefix + strconv.Itoa(i)
+
+		node := &topology.Node{
+			Kind:      nodeKind,
+			Partition: partition,
+			Name:      name,
+			Services: []*topology.Service{{
+				ID:             topology.ServiceID{Name: "mesh-gateway"},
+				Port:           8443,
+				EnvoyAdminPort: 19000,
+				IsMeshGateway:  true,
+			}},
+		}
+		for _, net := range networks {
+			node.Addresses = append(node.Addresses, &topology.Address{Network: net})
+		}
+
+		if mutateFn != nil {
+			mutateFn(i, node)
+		}
+
+		out = append(out, node)
+	}
+	return out
+}
+
+const HashicorpDockerProxy = "docker.mirror.hashicorp.services"
+
+func NewFortioServiceWithDefaults(
+	cluster string,
+	sid topology.ServiceID,
+	mut func(s *topology.Service),
+) *topology.Service {
+	const (
+		httpPort  = 8080
+		grpcPort  = 8079
+		adminPort = 19000
+	)
+	sid.Normalize()
+
+	svc := &topology.Service{
+		ID:             sid,
+		Image:          HashicorpDockerProxy + "/fortio/fortio",
+		Port:           httpPort,
+		EnvoyAdminPort: adminPort,
+		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
+		Env: []string{
+			"FORTIO_NAME=" + cluster + "::" + sid.String(),
+		},
+		Command: []string{
+			"server",
+			"-http-port", strconv.Itoa(httpPort),
+			"-grpc-port", strconv.Itoa(grpcPort),
+			"-redirect-port", "-disabled",
+		},
+	}
+	if mut != nil {
+		mut(svc)
+	}
+	return svc
+}
+
+// computeRelationships will analyze a full topology and generate all of the
+// downstream/upstream information for all of them.
+func computeRelationships(topo *topology.Topology) []Relationship {
+	var out []Relationship
+	for _, cluster := range topo.Clusters {
+		for _, n := range cluster.Nodes {
+			for _, s := range n.Services {
+				for _, u := range s.Upstreams {
+					out = append(out, Relationship{
+						Caller:   s,
+						Upstream: u,
+					})
+				}
+			}
+		}
+	}
+	return out
+}
+
+// renderRelationships will take the output of ComputeRelationships and display
+// it in tabular form.
+func renderRelationships(ships []Relationship) string {
+	var buf bytes.Buffer
+	w := tabwriter.NewWriter(&buf, 0, 0, 3, ' ', tabwriter.Debug)
+	fmt.Fprintf(w, "DOWN\tnode\tservice\tport\tUP\tservice\t\n")
+	for _, r := range ships {
+		fmt.Fprintf(w,
+			"%s\t%s\t%s\t%d\t%s\t%s\t\n",
+			r.downCluster(),
+			r.Caller.Node.ID().String(),
+			r.Caller.ID.String(),
+			r.Upstream.LocalPort,
+			r.upCluster(),
+			r.Upstream.ID.String(),
+		)
+	}
+	fmt.Fprintf(w, "\t\t\t\t\t\t\n")
+
+	w.Flush()
+	return buf.String()
+}
+
+type Relationship struct {
+	Caller   *topology.Service
+	Upstream *topology.Upstream
+}
+
+func (r Relationship) String() string {
+	return fmt.Sprintf(
+		"%s on %s in %s via :%d => %s in %s",
+		r.Caller.ID.String(),
+		r.Caller.Node.ID().String(),
+		r.downCluster(),
+		r.Upstream.LocalPort,
+		r.Upstream.ID.String(),
+		r.upCluster(),
+	)
+}
+
+func (r Relationship) downCluster() string {
+	return r.Caller.Node.Cluster
+}
+
+func (r Relationship) upCluster() string {
+	return r.Upstream.Cluster
 }
