@@ -136,6 +136,65 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
 			},
 		},
+		{
+			name: "connect-proxy-with-jwt-config-entry-with-local",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+				},
+					[]proxycfg.UpdateEvent{
+						{
+							CorrelationID: "jwt-provider",
+							Result: &structs.IndexedConfigEntries{
+								Kind: "jwt-provider",
+								Entries: []structs.ConfigEntry{
+									&structs.JWTProviderConfigEntry{
+										Name: "okta",
+										JSONWebKeySet: &structs.JSONWebKeySet{
+											Local: &structs.LocalJWKS{
+												JWKS: "aGVsbG8gd29ybGQK",
+											},
+										},
+										Locations: []*structs.JWTLocation{
+											{
+												QueryParam: &structs.JWTLocationQueryParam{
+													Name: "token",
+												},
+											},
+											{
+												Cookie: &structs.JWTLocationCookie{
+													Name: "token",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							CorrelationID: "intentions",
+							Result: structs.SimplifiedIntentions{
+								{
+									SourceName:      "*",
+									DestinationName: "db",
+									Permissions: []*structs.IntentionPermission{
+										{
+											JWT: &structs.IntentionJWTRequirement{
+												Providers: []*structs.IntentionJWTProvider{
+													{
+														Name: "okta",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				)
+			},
+		},
 	}
 }
 
