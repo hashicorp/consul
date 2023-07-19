@@ -124,8 +124,7 @@ jobs:
             case-ingress-gateway-sds,
             case-lua,
             case-terminating-gateway-subsets,
-            case-mesh-to-lambda"
-          >> "$GITHUB_OUTPUT"
+            case-mesh-to-lambda" >> "$GITHUB_OUTPUT"
 
   envoy-integration-test:
     needs:
