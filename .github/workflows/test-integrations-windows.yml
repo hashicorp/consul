@@ -140,7 +140,7 @@ jobs:
       matrix:
         envoy-version: [ "1.23.10", "1.24.8", "1.25.7", "1.26.2" ]
         xds-target: [ "server", "client" ]
-        test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
+        test-cases: ${{ (needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
       XDS_TARGET: ${{ matrix.xds-target }}
@@ -181,7 +181,7 @@ jobs:
         shell: bash
         run: cd build-support/windows && ./build-consul-dev-image.sh
 
-      - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
+      - name: Envoy Integration Tests for windows ${{ matrix.test-cases }}
         shell: bash
         if: always()
         env:
