@@ -4,15 +4,10 @@
 name: test-integrations-windows
 
 on:
-  pull_request:
-    branches-ignore:
-      - stable-website
-      - 'docs/**'
-      - 'ui/**'
-      - 'mktg-**' # Digital Team Terraform-generated branch prefix
-      - 'backport/docs/**'
-      - 'backport/ui/**'
-      - 'backport/mktg-**'
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # Run nightly at 12AM UTC/8PM EST/5PM PST.
+    - cron: '0 0 * * *'
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
