@@ -34,7 +34,7 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.Que
 			r.Fatal("error reading service data")
 		}
 		if len(services) == 0 {
-			r.Fatal("did not find catalog entry for ", svc)
+			r.Fatalf("did not find catalog entry for %q with opts %#v", svc, opts)
 		}
 	})
 }
@@ -252,5 +252,5 @@ func AssertFortioNameWithClient(t *testing.T, urlbase string, name string, reqHo
 func AssertContainerState(t *testing.T, service libservice.Service, state string) {
 	containerStatus, err := service.GetStatus()
 	require.NoError(t, err)
-	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", containerStatus, state))
+	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", state, containerStatus))
 }

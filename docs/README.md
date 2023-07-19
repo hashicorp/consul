@@ -55,7 +55,7 @@ contain other important source related to Consul.
 * [.changelog] contains markdown files that are used by [hashicorp/go-changelog] to produce the
   [CHANGELOG.md].
 * [build-support] contains bash functions and scripts used to automate.
-  development tasks. Generally these scripts are called from the [GNUmakefile].
+  development tasks. Generally these scripts are called from the [Makefile].
 * [grafana] contains the source for a [Grafana dashboard] that can be used to
   monitor Consul.
 
@@ -66,7 +66,7 @@ contain other important source related to Consul.
 [hashicorp/go-changelog]: https://github.com/hashicorp/go-changelog
 [CHANGELOG.md]: https://github.com/hashicorp/consul/blob/main/CHANGELOG.md
 [build-support]: https://github.com/hashicorp/consul/tree/main/build-support
-[GNUmakefile]: https://github.com/hashicorp/consul/tree/main/GNUmakefile
+[Makefile]: https://github.com/hashicorp/consul/tree/main/Makefile
 [Grafana dashboard]: https://grafana.com/grafana/dashboards
 [grafana]: https://github.com/hashicorp/consul/tree/main/grafana
 

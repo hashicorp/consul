@@ -7,30 +7,112 @@
         "consul-intentions-layer7-0": {
           "permissions": [
             {
-              "urlPath": {
-                "path": {
-                  "exact": "/v1/secret"
-                }
+              "andRules": {
+                "rules": [
+                  {
+                    "urlPath": {
+                      "path": {
+                        "exact": "/v1/secret"
+                      }
+                    }
+                  },
+                  {
+                    "andRules": {
+                      "rules": [
+                        {
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_auth0"},
+                              {"key": "iss"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.auth0-issuer"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_auth0"},
+                              {"key": "perms"},
+                              {"key": "role"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "admin"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             },
             {
               "andRules": {
                 "rules": [
                   {
-                    "urlPath": {
-                      "path": {
-                        "exact": "/v1/admin"
-                      }
+                    "andRules": {
+                      "rules": [
+                        {
+                          "urlPath": {
+                            "path": {
+                              "exact": "/v1/admin"
+                            }
+                          }
+                        },
+                        {
+                          "notRule": {
+                            "urlPath": {
+                              "path": {
+                                "exact": "/v1/secret"
+                              }
+                            }
+                          }
+                        }
+                      ]
                     }
                   },
                   {
-                    "notRule": {
-                      "urlPath": {
-                        "path": {
-                          "exact": "/v1/secret"
-                        }
-                      }
-                    }
+                     "andRules": {
+                        "rules": [
+                          {
+                            "metadata": {
+                              "filter": "envoy.filters.http.jwt_authn",
+                              "path": [
+                                {"key": "jwt_payload_auth0"},
+                                {"key": "iss"}
+                              ],
+                              "value": {
+                                "stringMatch": {
+                                  "exact": "mytest.auth0-issuer"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "metadata": {
+                              "filter": "envoy.filters.http.jwt_authn",
+                              "path": [
+                                {"key": "jwt_payload_auth0"},
+                                {"key": "perms"},
+                                {"key": "role"}
+                              ],
+                              "value": {
+                                "stringMatch": {
+                                  "exact": "admin"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                     }
                   }
                 ]
               }
@@ -53,8 +135,22 @@
                     }
                   },
                   {
-                    "orIds": {
+                    "andIds": {
                       "ids": [
+                        { 
+                          "metadata": {
+                            "filter":"envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_okta"},
+                              {"key": "iss"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.okta-issuer"
+                              }
+                            }
+                          }
+                        },
                         { 
                           "metadata": {
                             "filter":"envoy.filters.http.jwt_authn",
@@ -65,36 +161,6 @@
                             "value": {
                               "stringMatch": {
                                 "exact": "testing"
-                              }
-                            }
-                          }
-                        },
-                        { 
-                          "metadata": {
-                            "filter":"envoy.filters.http.jwt_authn",
-                            "path": [
-                              {"key": "jwt_payload_auth0_0"},
-                              {"key": "perms"},
-                              {"key": "role"}
-                            ],
-                            "value": {
-                              "stringMatch": {
-                                "exact": "admin"
-                              }
-                            }
-                          }
-                        },
-                        { 
-                          "metadata": {
-                            "filter":"envoy.filters.http.jwt_authn",
-                            "path": [
-                              {"key": "jwt_payload_auth0_1"},
-                              {"key": "perms"},
-                              {"key": "role"}
-                            ],
-                            "value": {
-                              "stringMatch": {
-                                "exact": "admin"
                               }
                             }
                           }

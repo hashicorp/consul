@@ -1,4 +1,4 @@
-name: reusable-dev-build 
+name: reusable-dev-build
 
 on:
   workflow_call:

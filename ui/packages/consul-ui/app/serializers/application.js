@@ -156,6 +156,10 @@ export default class ApplicationSerializer extends Serializer {
     // ember-data methods so we have the opportunity to do this on a per-model
     // level
     const meta = this.normalizeMeta(store, modelClass, normalizedPayload, id, requestType);
+    // get distinct consul versions from list and add it as meta
+    if (modelClass.modelName === 'node' && requestType === 'query') {
+      meta.versions = this.getDistinctConsulVersions(normalizedPayload);
+    }
     if (requestType !== 'query') {
       normalizedPayload.meta = meta;
     }
@@ -214,5 +218,46 @@ export default class ApplicationSerializer extends Serializer {
 
   normalizePayload(payload, id, requestType) {
     return payload;
+  }
+
+  // getDistinctConsulVersions will be called only for nodes and query request type
+  // the list of versions is to be added as meta to resp, without changing original response structure
+  // hence this function is added in application.js
+  getDistinctConsulVersions(payload) {
+    // create a Set and add version with only major.minor : ex-1.24.6 as 1.24
+    let versionSet = new Set();
+    payload.forEach(function (item) {
+      if (item.Meta && item.Meta['consul-version'] !== '') {
+        const split = item.Meta['consul-version'].split('.');
+        versionSet.add(split[0] + '.' + split[1]);
+      }
+    });
+
+    const versionArray = Array.from(versionSet);
+
+    // Sort the array in descending order using a custom comparison function
+    versionArray.sort((a, b) => {
+      // Split the versions into arrays of numbers
+      const versionA = a.split('.').map((part) => {
+        const number = Number(part);
+        return isNaN(number) ? 0 : number;
+      });
+      const versionB = b.split('.').map((part) => {
+        const number = Number(part);
+        return isNaN(number) ? 0 : number;
+      });
+
+      const minLength = Math.min(versionA.length, versionB.length);
+
+      // start with comparing major version num, if equal then compare minor
+      for (let i = 0; i < minLength; i++) {
+        if (versionA[i] !== versionB[i]) {
+          return versionB[i] - versionA[i];
+        }
+      }
+      return versionB.length - versionA.length;
+    });
+
+    return versionArray; //sorted array
   }
 }

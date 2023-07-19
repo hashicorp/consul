@@ -162,7 +162,9 @@ func TestInlineCertificate(t *testing.T) {
 				PrivateKey:  tooShortPrivateKey,
 				Certificate: "foo",
 			},
-			validateErr: "key length must be at least 2048 bits",
+			// non-FIPS: "key length must be at least 2048 bits"
+			// FIPS: "key length invalid: only RSA lengths of 2048, 3072, and 4096 are allowed in FIPS mode"
+			validateErr: "key length",
 		},
 		"mismatched certificate": {
 			entry: &InlineCertificateConfigEntry{

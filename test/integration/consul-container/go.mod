@@ -13,6 +13,7 @@ require (
 	github.com/hashicorp/consul/envoyextensions v0.3.0-rc1
 	github.com/hashicorp/consul/proto-public v0.4.0-rc1
 	github.com/hashicorp/consul/sdk v0.14.0-rc1
+	github.com/hashicorp/consul/testing/deployer v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-uuid v1.0.3
@@ -84,7 +85,7 @@ require (
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
-	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
@@ -102,4 +103,5 @@ replace (
 	github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
 	github.com/hashicorp/consul/proto-public => ../../../proto-public
 	github.com/hashicorp/consul/sdk => ../../../sdk
+	github.com/hashicorp/consul/testing/deployer => ../../../testing/deployer
 )
