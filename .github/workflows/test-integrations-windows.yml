@@ -49,6 +49,8 @@ jobs:
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
+  # NOTE: Jobs needs to be added here manually. Jobs when run together on windows fails intermittently.
+  # So they are run independently of each other.
   envoy-integration-test:
     needs:
       - setup
