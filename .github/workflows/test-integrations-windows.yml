@@ -55,18 +55,20 @@ jobs:
 # https://www.phillipsj.net/posts/windows-curl-and-self-signed-certs/
 # case-ingress-gateway-tls,
 
-  generate-envoy-job-matrices:
-    needs: [ setup ]
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    name: Generate Envoy Job Matrices
-    outputs:
-      envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: Generate Envoy Job Matrix
-        id: set-matrix
-        run: |
-          echo -n "case-api-gateway-http-hostnames,
+  envoy-integration-test:
+    needs:
+      - setup
+      - dev-build
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        envoy-version: [ "1.23.10", "1.24.8", "1.25.7", "1.26.2" ]
+        xds-target: [ "server", "client" ]
+        test-cases: ["case-api-gateway-http-hostnames,
             case-api-gateway-http-simple,
             case-api-gateway-http-splitter-targets,
             case-api-gateway-http-tls-overlapping-hosts,
@@ -124,23 +126,7 @@ jobs:
             case-ingress-gateway-sds,
             case-lua,
             case-terminating-gateway-subsets,
-            case-mesh-to-lambda" >> "$GITHUB_OUTPUT"
-
-  envoy-integration-test:
-    needs:
-      - setup
-      - generate-envoy-job-matrices
-      - dev-build
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        envoy-version: [ "1.23.10", "1.24.8", "1.25.7", "1.26.2" ]
-        xds-target: [ "server", "client" ]
-        test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
+            case-mesh-to-lambda"]
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
       XDS_TARGET: ${{ matrix.xds-target }}
