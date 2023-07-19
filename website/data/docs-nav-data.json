@@ -1708,10 +1708,6 @@
         "href": "/docs/nia/enterprise"
       },
       {
-        "title": "Sentinel",
-        "path": "enterprise/sentinel"
-      },
-      {
         "title": "License",
         "routes": [
           {
