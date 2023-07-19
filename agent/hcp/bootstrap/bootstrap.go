@@ -351,12 +351,9 @@ func persistTLSCerts(dir string, serverCert, serverKey string, caCerts []string)
 	return nil
 }
 
-// Basic validation to ensure a UUID was loaded.
+// Basic validation to ensure a UUID was loaded and assumes the token is non-empty
 func validateManagementToken(token string) error {
-	if token == "" {
-		return errors.New("missing HCP management token")
-	}
-
+	// note: we assume that the token is not an empty string
 	if _, err := uuid.ParseUUID(token); err != nil {
 		return errors.New("management token is not a valid UUID")
 	}
