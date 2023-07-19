@@ -54,7 +54,7 @@ QUIET=
 endif
 
 ifeq ("$(GOTAGS)","")
-CONSUL_COMPAT_TEST_IMAGE=consul
+CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul
 else
 CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul-enterprise
 endif
@@ -66,13 +66,6 @@ BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
 ENVOY_VERSION?='1.25.4'
 
-################
-# CI Variables #
-################
-CI_DEV_DOCKER_NAMESPACE?=hashicorpdev
-CI_DEV_DOCKER_IMAGE_NAME?=consul
-CI_DEV_DOCKER_WORKDIR?=bin/
-################
 CONSUL_VERSION?=$(shell cat version/VERSION)
 
 TEST_MODCACHE?=1
@@ -153,23 +146,27 @@ ifdef SKIP_DOCKER_BUILD
 ENVOY_INTEG_DEPS=noop
 endif
 
-all: dev-build
+##@ Build
+
+.PHONY: all
+all: dev-build ## Command running by default
 
 # used to make integration dependencies conditional
 noop: ;
 
-# dev creates binaries for testing locally - these are put into ./bin
-dev: dev-build
+.PHONY: dev
+dev: dev-build ## Dev creates binaries for testing locally - these are put into ./bin
 
-dev-build:
+.PHONY: dev-build
+dev-build: ## Same as dev
 	mkdir -p bin
 	CGO_ENABLED=0 go install -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 	# rm needed due to signature caching (https://apple.stackexchange.com/a/428388)
 	rm -f ./bin/consul
 	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
-
-dev-docker-dbg: dev-docker
+.PHONY: dev-docker-dbg
+dev-docker-dbg: dev-docker ## Build containers for debug mode
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
@@ -181,7 +178,8 @@ dev-docker-dbg: dev-docker
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Dbg.dockerfile $(CURDIR)/pkg/bin/
 
-dev-docker: linux dev-build
+.PHONY: dev-docker
+dev-docker: linux dev-build ## Build and tag docker images in dev env
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
@@ -196,12 +194,14 @@ dev-docker: linux dev-build
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 	docker tag 'consul:local'  '$(CONSUL_COMPAT_TEST_IMAGE):local'
 
-check-remote-dev-image-env:
+.PHONY: check-remote-dev-image-env
+check-remote-dev-image-env: ## Check remote dev image env
 ifndef REMOTE_DEV_IMAGE
 	$(error REMOTE_DEV_IMAGE is undefined: set this image to <your_docker_repo>/<your_docker_image>:<image_tag>, e.g. hashicorp/consul-k8s-dev:latest)
 endif
 
-remote-docker: check-remote-dev-image-env
+.PHONY: remote-docker
+remote-docker: check-remote-dev-image-env ## Remote docker
 	$(MAKE) GOARCH=amd64 linux
 	$(MAKE) GOARCH=arm64 linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
@@ -218,36 +218,58 @@ remote-docker: check-remote-dev-image-env
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
-# In CI, the linux binary will be attached from a previous step at bin/. This make target
-# should only run in CI and not locally.
-ci.dev-docker:
-	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull hashicorp/consul:$(CONSUL_IMAGE_VERSION) >/dev/null
-	@echo "Building Consul Development container - $(CI_DEV_DOCKER_IMAGE_NAME)"
-	@docker build $(NOCACHE) $(QUIET) -t '$(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)' \
-	--build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
-	--label COMMIT_SHA=$(CIRCLE_SHA1) \
-	--label PULL_REQUEST=$(CIRCLE_PULL_REQUEST) \
-	--label CIRCLE_BUILD_URL=$(CIRCLE_BUILD_URL) \
-	$(CI_DEV_DOCKER_WORKDIR) -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
-	@echo $(DOCKER_PASS) | docker login -u="$(DOCKER_USER)" --password-stdin
-	@echo "Pushing dev image to: https://cloud.docker.com/u/hashicorpdev/repository/docker/hashicorpdev/consul"
-	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)
-ifeq ($(CIRCLE_BRANCH), main)
-	@docker tag $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT) $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
-	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
-endif
-
-# linux builds a linux binary compatible with the source platform
-linux:
+linux:  ## Linux builds a linux binary compatible with the source platform
 	@mkdir -p ./pkg/bin/linux_$(GOARCH)
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -o ./pkg/bin/linux_$(GOARCH) -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
-# dist builds binaries for all platforms and packages them for distribution
-dist:
-	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
+.PHONY: go-mod-tidy
+go-mod-tidy: $(foreach mod,$(GO_MODULES),go-mod-tidy/$(mod)) ## Run go mod tidy in every module
 
-cover: cov
+.PHONY: mod-tidy/%
+go-mod-tidy/%:
+	@echo "--> Running go mod tidy ($*)"
+	@cd $* && go mod tidy
+
+##@ Checks
+
+.PHONY: fmt
+fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod)) ## Format go modules
+
+.PHONY: fmt/%
+fmt/%:
+	@echo "--> Running go fmt ($*)"
+	@cd $* && gofmt -s -l -w .
+
+.PHONY: lint
+lint: $(foreach mod,$(GO_MODULES),lint/$(mod)) lint-container-test-deps ## Lint go modules and test deps
+
+.PHONY: lint/%
+lint/%:
+	@echo "--> Running golangci-lint ($*)"
+	@cd $* && GOWORK=off golangci-lint run --build-tags '$(GOTAGS)'
+	@echo "--> Running lint-consul-retry ($*)"
+	@cd $* && GOWORK=off lint-consul-retry
+	@echo "--> Running enumcover ($*)"
+	@cd $* && GOWORK=off enumcover ./...
+
+# check that the test-container module only imports allowlisted packages
+# from the root consul module. Generally we don't want to allow these imports.
+# In a few specific instances though it is okay to import test definitions and
+# helpers from some of the packages in the root module.
+.PHONY: lint-container-test-deps
+lint-container-test-deps: ## Check that the test-container module only imports allowlisted packages from the root consul module.
+	@echo "--> Checking container tests for bad dependencies"
+	@cd test/integration/consul-container && \
+		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
+			github.com/hashicorp/consul \
+			internal/catalog/catalogtest
+
+##@ Testing
+
+.PHONY: cover
+cover: cov ## Run tests and generate coverage report
+
+.PHONY: cov
 cov: other-consul dev-build
 	go test -tags '$(GOTAGS)' ./... -coverprofile=coverage.out
 	cd sdk && go test -tags '$(GOTAGS)' ./... -coverprofile=../coverage.sdk.part
@@ -256,17 +278,11 @@ cov: other-consul dev-build
 	rm -f coverage.{sdk,api}.part
 	go tool cover -html=coverage.out
 
+.PHONY: test
 test: other-consul dev-build lint test-internal
 
-.PHONY: go-mod-tidy
-go-mod-tidy: $(foreach mod,$(GO_MODULES),go-mod-tidy/$(mod))
-
-.PHONY: mod-tidy/%
-go-mod-tidy/%:
-	@echo "--> Running go mod tidy ($*)"
-	@cd $* && go mod tidy
-
-test-internal:
+.PHONY: test-internal
+test-internal: ## Test internal
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
 	@# Dump verbose output to test.log so we can surface test names on failure but
@@ -295,159 +311,43 @@ test-internal:
 	@grep '^FAIL' test.log || true
 	@if [ "$$(cat exit-code)" == "0" ] ; then echo "PASS" ; exit 0 ; else exit 1 ; fi
 
-test-all: other-consul dev-build lint $(foreach mod,$(GO_MODULES),test-module/$(mod))
+.PHONY: test-all
+test-all: other-consul dev-build lint $(foreach mod,$(GO_MODULES),test-module/$(mod)) ## Test all
 
+.PHONY: test-module/%
 test-module/%:
 	@echo "--> Running go test ($*)"
 	cd $* && go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' ./...
 
-test-race:
+.PHONY: test-race
+test-race: ## Test race
 	$(MAKE) GOTEST_FLAGS=-race
 
-test-docker: linux go-build-image
-	@# -ti run in the foreground showing stdout
-	@# --rm removes the container once its finished running
-	@# GO_MODCACHE_VOL - args for mapping in the go module cache
-	@# GO_BUILD_CACHE_VOL - args for mapping in the go build cache
-	@# All the env vars are so we pass through all the relevant bits of information
-	@# Needed for running the tests
-	@# We map in our local linux_amd64 bin directory as thats where the linux dep
-	@#   target dropped the binary. We could build the binary in the container too
-	@#   but that might take longer as caching gets weird
-	@# Lastly we map the source dir here to the /consul workdir
-	@echo "Running tests within a docker container"
-	@docker run -ti --rm \
-		-e 'GOTEST_FLAGS=$(GOTEST_FLAGS)' \
-		-e 'GOTAGS=$(GOTAGS)' \
-		-e 'GIT_COMMIT=$(GIT_COMMIT)' \
-		-e 'GIT_COMMIT_YEAR=$(GIT_COMMIT_YEAR)' \
-		-e 'GIT_DIRTY=$(GIT_DIRTY)' \
-		$(TEST_PARALLELIZATION) \
-		$(TEST_DOCKER_RESOURCE_CONSTRAINTS) \
-		$(TEST_MODCACHE_VOL) \
-		$(TEST_BUILDCACHE_VOL) \
-		-v $(MAIN_GOPATH)/bin/linux_amd64/:/go/bin \
-		-v $(shell pwd):/consul \
-		$(GO_BUILD_TAG) \
-		make test-internal
-
-other-consul:
+.PHONY: other-consul
+other-consul: ## Checking for other consul instances
 	@echo "--> Checking for other consul instances"
 	@if ps -ef | grep 'consul agent' | grep -v grep ; then \
 		echo "Found other running consul agents. This may affect your tests." ; \
 		exit 1 ; \
 	fi
-	
-.PHONY: fmt
-fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod)) 
 
-.PHONY: fmt/%
-fmt/%:
-	@echo "--> Running go fmt ($*)"
-	@cd $* && gofmt -s -l -w .
-
-.PHONY: lint
-lint: $(foreach mod,$(GO_MODULES),lint/$(mod)) lint-container-test-deps
-
-.PHONY: lint/%
-lint/%:
-	@echo "--> Running golangci-lint ($*)"
-	@cd $* && GOWORK=off golangci-lint run --build-tags '$(GOTAGS)'
-	@echo "--> Running lint-consul-retry ($*)"
-	@cd $* && GOWORK=off lint-consul-retry
-	@echo "--> Running enumcover ($*)"
-	@cd $* && GOWORK=off enumcover ./...
-
-# check that the test-container module only imports allowlisted packages
-# from the root consul module. Generally we don't want to allow these imports.
-# In a few specific instances though it is okay to import test definitions and
-# helpers from some of the packages in the root module.
-.PHONY: lint-container-test-deps
-lint-container-test-deps:
-	@echo "--> Checking container tests for bad dependencies"
-	@cd test/integration/consul-container && \
-		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
-			github.com/hashicorp/consul \
-			internal/catalog/catalogtest
-
-# Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
-ui: ui-docker
-
-# Build the static web ui with yarn. This is the version to commit.
-.PHONY: ui-regen
-ui-regen:
-	cd $(CURDIR)/ui && make && cd ..
-	rm -rf $(CURDIR)/agent/uiserver/dist
-	mv $(CURDIR)/ui/packages/consul-ui/dist $(CURDIR)/agent/uiserver/
-
-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh
-
-.PHONY: lint-tools
-lint-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -lint
-
-.PHONY: proto-tools
-proto-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -protobuf
-
-.PHONY: codegen-tools
-codegen-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
-
-.PHONY: deep-copy
-deep-copy: codegen-tools
-	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
-	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
-	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
-
-version:
-	@echo -n "Version:                    "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
-	@echo -n "Version + release:          "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r
-	@echo -n "Version + git:              "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
-	@echo -n "Version + release + git:    "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
-
-
-docker-images: go-build-image ui-build-image
-
-go-build-image:
-	@echo "Building Golang build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
-
-ui-build-image:
-	@echo "Building UI build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
-
-# Builds consul in a docker container and then dumps executable into ./pkg/bin/...
-consul-docker: go-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
-
-ui-docker: ui-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
-
-# Build image used to run integration tests locally.
-docker-envoy-integ:
-	$(MAKE) GOARCH=amd64 linux
-	docker build \
-      --platform linux/amd64 $(NOCACHE) $(QUIET) \
-      -t 'consul:local' \
-      --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
-      $(CURDIR)/pkg/bin/linux_amd64 \
-      -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
-
-# Run integration tests.
 # Use GO_TEST_FLAGS to run specific tests:
 #      make test-envoy-integ GO_TEST_FLAGS="-run TestEnvoy/case-basic"
 # NOTE: Always uses amd64 images, even when running on M1 macs, to match CI/CD environment.
-test-envoy-integ: $(ENVOY_INTEG_DEPS)
+.PHONY: test-envoy-integ
+test-envoy-integ: $(ENVOY_INTEG_DEPS) ## Run integration tests.
 	@go test -v -timeout=30m -tags integration $(GO_TEST_FLAGS) ./test/integration/connect/envoy
 
+# NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
+.PHONY: test-compat-integ-setup
+test-compat-integ-setup: dev-docker
+	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
+	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+	@#  'consul-envoy:target-version' is needed by compatibility integ test
+	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+
 .PHONY: test-compat-integ
-test-compat-integ: test-compat-integ-setup
+test-compat-integ: test-compat-integ-setup ## Test compat integ
 ifeq ("$(GOTESTSUM_PATH)","")
 	@cd ./test/integration/consul-container && \
 	go test \
@@ -476,16 +376,8 @@ else
 		--latest-version latest
 endif
 
-# NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
-.PHONY: test-compat-integ-setup
-test-compat-integ-setup: dev-docker
-	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
-	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
-	@#  'consul-envoy:target-version' is needed by compatibility integ test
-	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-
 .PHONY: test-metrics-integ
-test-metrics-integ: test-compat-integ-setup
+test-metrics-integ: test-compat-integ-setup ## Test metrics integ
 	@cd ./test/integration/consul-container && \
 		go test -v -timeout=7m ./test/metrics \
 		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
@@ -493,21 +385,113 @@ test-metrics-integ: test-compat-integ-setup
 		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
 		--latest-version latest
 
-test-connect-ca-providers:
+.PHONY: test-connect-ca-providers
+test-connect-ca-providers: ## Running /agent/connect/ca tests in verbose mode
 	@echo "Running /agent/connect/ca tests in verbose mode"
 	@go test -v ./agent/connect/ca
 	@go test -v ./agent/consul -run Vault
 	@go test -v ./agent -run Vault
 
+##@ UI
+
+.PHONY: ui
+ui: ui-docker ## Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
+
+.PHONY: ui-regen
+ui-regen: ## Build the static web ui with yarn. This is the version to commit.
+	cd $(CURDIR)/ui && make && cd ..
+	rm -rf $(CURDIR)/agent/uiserver/dist
+	mv $(CURDIR)/ui/packages/consul-ui/dist $(CURDIR)/agent/uiserver/
+
+.PHONY: ui-build-image
+ui-build-image: ## Building UI build container
+	@echo "Building UI build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
+
+.PHONY: ui-docker
+ui-docker: ui-build-image ## Builds ui within docker container and copy all the relevant artifacts out of the containers back to the source
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
+
+##@ Tools
+
+.PHONY: tools
+tools: ## Installs various supporting Go tools.
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh
+
+.PHONY: lint-tools
+lint-tools: ## Install tools for linting
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -lint
+
+.PHONY: codegen-tools
+codegen-tools: ## Install tools for codegen
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
+
+.PHONY: deep-copy
+deep-copy: codegen-tools ## Deep copy
+	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
+
+print-%  : ; @echo $($*) ## utility to echo a makefile variable (i.e. 'make print-GOPATH')
+
+.PHONY: module-versions
+module-versions: ## Print a list of modules which can be updated. Columns are: module current_version date_of_current_version latest_version
+	@go list -m -u -f '{{if .Update}} {{printf "%-50v %-40s" .Path .Version}} {{with .Time}} {{ .Format "2006-01-02" -}} {{else}} {{printf "%9s" ""}} {{end}}   {{ .Update.Version}} {{end}}' all
+
+.PHONY: docs
+docs: ## Point your web browser to http://localhost:3000/consul to live render docs from ./website/
+	make -C website
+
+##@ Release
+
+.PHONY: version
+version:  ## Current Consul version
+	@echo -n "Version:                    "
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
+	@echo -n "Version + release:          "
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r
+	@echo -n "Version + git:              "
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
+	@echo -n "Version + release + git:    "
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
+
+.PHONY: docker-images
+docker-images: go-build-image ui-build-image
+
+.PHONY: go-build-image
+go-build-image: ## Building Golang build container
+	@echo "Building Golang build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
+
+.PHONY: consul-docker
+consul-docker: go-build-image ## Builds consul in a docker container and then dumps executable into ./pkg/bin/...
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
+
+.PHONY: docker-envoy-integ
+docker-envoy-integ: ## Build image used to run integration tests locally.
+	$(MAKE) GOARCH=amd64 linux
+	docker build \
+      --platform linux/amd64 $(NOCACHE) $(QUIET) \
+      -t 'consul:local' \
+      --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+      $(CURDIR)/pkg/bin/linux_amd64 \
+      -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+
+##@ Proto
+
 .PHONY: proto
-proto: proto-tools proto-gen proto-mocks
+proto: proto-tools proto-gen proto-mocks ## Protobuf setup command
+
+.PHONY: proto-tools
+proto-tools: ## Install tools for protobuf
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -protobuf
 
 .PHONY: proto-gen
-proto-gen: proto-tools
+proto-gen: proto-tools ## Regenerates all Go files from protobuf definitions
 	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh
 
 .PHONY: proto-mocks
-proto-mocks:
+proto-mocks: ## Proto mocks
 	for dir in $(MOCKED_PB_DIRS) ; do \
 		cd proto-public && \
 		rm -f $$dir/mock*.go && \
@@ -515,11 +499,11 @@ proto-mocks:
 	done
 
 .PHONY: proto-format
-proto-format: proto-tools
+proto-format: proto-tools ## Proto format
 	@buf format -w
 
 .PHONY: proto-lint
-proto-lint: proto-tools
+proto-lint: proto-tools ## Proto lint
 	@buf lint 
 	@for fn in $$(find proto -name '*.proto'); do \
 		if [[ "$$fn" = "proto/private/pbsubscribe/subscribe.proto" ]]; then \
@@ -534,21 +518,14 @@ proto-lint: proto-tools
 		fi \
 	done
 
-# utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
-print-%  : ; @echo $($*)
-
-.PHONY: module-versions
-# Print a list of modules which can be updated.
-# Columns are: module current_version date_of_current_version latest_version
-module-versions:
-	@go list -m -u -f '{{if .Update}} {{printf "%-50v %-40s" .Path .Version}} {{with .Time}} {{ .Format "2006-01-02" -}} {{else}} {{printf "%9s" ""}} {{end}}   {{ .Update.Version}} {{end}}' all
+##@ Envoy
 
 .PHONY: envoy-library
-envoy-library:
+envoy-library: ## Ensures that all of the protobuf packages present in the github.com/envoyproxy/go-control-plane library are referenced in the consul codebase
 	@$(SHELL) $(CURDIR)/build-support/scripts/envoy-library-references.sh
 
 .PHONY: envoy-regen
-envoy-regen:
+envoy-regen: ## Regenerating envoy golden files
 	$(info regenerating envoy golden files)
 	@for d in endpoints listeners routes clusters rbac; do \
 		if [[ -d "agent/xds/testdata/$${d}" ]]; then \
@@ -559,17 +536,18 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-# Point your web browser to http://localhost:3000/consul to live render docs from ./website/
-.PHONY: docs
-docs:
-	make -C website
+##@ Help
 
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk commands is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
 .PHONY: help
-help:
-	$(info available make targets)
-	$(info ----------------------)
-	@grep "^[a-z0-9-][a-z0-9.-]*:" GNUmakefile  | cut -d':' -f1 | sort
-
-.PHONY: all bin dev dist cov test test-internal cover lint ui tools
-.PHONY: docker-images go-build-image ui-build-image consul-docker ui-docker
-.PHONY: version test-envoy-integ
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
