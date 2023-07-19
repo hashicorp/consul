@@ -510,21 +510,22 @@ jobs:
           go test -v -timeout=30m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-splitter-peering-ingress-gateways" -win=true
 
-      #      - name: Envoy Integration Tests for windows case-consul-exec
-      #        if: always()
-      #        shell: bash
-      #        env:
-      #          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-      #          GOTESTSUM_FORMAT: standard-verbose
-      #          COMPOSE_INTERACTIVE_NO_CLI: 1
-      #          LAMBDA_TESTS_ENABLED: "true"
-      #          # tput complains if this isn't set to something.
-      #          TERM: ansi
-      #        run: |
-      #          # shellcheck disable=SC2001
-      #          echo "Running Integration Test case-consul-exec"
-      #          # shellcheck disable=SC2001
-      #          go test -v -timeout=30m -tags integration \
+      # This test runs fine on windows machine but fails on CI
+      # - name: Envoy Integration Tests for windows case-consul-exec
+      #     if: always()
+      #     shell: bash
+      #     env:
+      #       GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+      #       GOTESTSUM_FORMAT: standard-verbose
+      #       COMPOSE_INTERACTIVE_NO_CLI: 1
+      #       LAMBDA_TESTS_ENABLED: "true"
+      #       # tput complains if this isn't set to something.
+      #       TERM: ansi
+      #      run: |
+      #        #shellcheck disable=SC2001
+      #        echo "Running Integration Test case-consul-exec"
+      #        # shellcheck disable=SC2001
+      #        go test -v -timeout=30m -tags integration \
       #            ./test/integration/connect/envoy -run="TestEnvoy/case-consul-exec" -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peer-control-plane-mgw
