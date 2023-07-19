@@ -12,17 +12,17 @@ import (
 	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type clusterTestCase struct {
@@ -210,6 +210,63 @@ func TestClustersFromSnapshot(t *testing.T) {
 										CipherSuites: []types.TLSCipherSuite{
 											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+		},
+		{
+			name: "connect-proxy-with-jwt-config-entry-with-local",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "jwt-provider",
+						Result: &structs.IndexedConfigEntries{
+							Kind: "jwt-provider",
+							Entries: []structs.ConfigEntry{
+								&structs.JWTProviderConfigEntry{
+									Name: "okta",
+									JSONWebKeySet: &structs.JSONWebKeySet{
+										Local: &structs.LocalJWKS{
+											JWKS: "xxx",
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+		},
+		{
+			name: "connect-proxy-with-jwt-config-entry-with-remote-jwks",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "jwt-provider",
+						Result: &structs.IndexedConfigEntries{
+							Kind: "jwt-provider",
+							Entries: []structs.ConfigEntry{
+								&structs.JWTProviderConfigEntry{
+									Name: "okta",
+									JSONWebKeySet: &structs.JSONWebKeySet{
+										Remote: &structs.RemoteJWKS{
+											RequestTimeoutMs:    1000,
+											FetchAsynchronously: true,
+											URI:                 "https://test.test.com",
+											JWKSCluster: &structs.JWKSCluster{
+												DiscoveryType:  structs.DiscoveryTypeStatic,
+												ConnectTimeout: time.Duration(5) * time.Second,
+												TLSCertificates: &structs.JWKSTLSCertificate{
+													TrustedCA: &structs.JWKSTLSCertTrustedCA{
+														Filename: "mycert.crt",
+													},
+												},
+											},
 										},
 									},
 								},
@@ -1234,4 +1291,104 @@ func TestParseJWTRemoteURL(t *testing.T) {
 // UID is just a convenience function to aid in writing tests less verbosely.
 func UID(input string) proxycfg.UpstreamID {
 	return proxycfg.UpstreamIDFromString(input)
+}
+
+func TestMakeJWTCertValidationContext(t *testing.T) {
+	tests := map[string]struct {
+		jwksCluster *structs.JWKSCluster
+		expected    *envoy_tls_v3.CertificateValidationContext
+	}{
+		"when nil": {
+			jwksCluster: nil,
+			expected:    &envoy_tls_v3.CertificateValidationContext{},
+		},
+		"when trustedCA with filename": {
+			jwksCluster: &structs.JWKSCluster{
+				TLSCertificates: &structs.JWKSTLSCertificate{
+					TrustedCA: &structs.JWKSTLSCertTrustedCA{
+						Filename: "file.crt",
+					},
+				},
+			},
+			expected: &envoy_tls_v3.CertificateValidationContext{
+				TrustedCa: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_Filename{
+						Filename: "file.crt",
+					},
+				},
+			},
+		},
+		"when trustedCA with environment variable": {
+			jwksCluster: &structs.JWKSCluster{
+				TLSCertificates: &structs.JWKSTLSCertificate{
+					TrustedCA: &structs.JWKSTLSCertTrustedCA{
+						EnvironmentVariable: "MY_ENV",
+					},
+				},
+			},
+			expected: &envoy_tls_v3.CertificateValidationContext{
+				TrustedCa: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_EnvironmentVariable{
+						EnvironmentVariable: "MY_ENV",
+					},
+				},
+			},
+		},
+		"when trustedCA with inline string": {
+			jwksCluster: &structs.JWKSCluster{
+				TLSCertificates: &structs.JWKSTLSCertificate{
+					TrustedCA: &structs.JWKSTLSCertTrustedCA{
+						InlineString: "<my ca cert>",
+					},
+				},
+			},
+			expected: &envoy_tls_v3.CertificateValidationContext{
+				TrustedCa: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_InlineString{
+						InlineString: "<my ca cert>",
+					},
+				},
+			},
+		},
+		"when trustedCA with inline bytes": {
+			jwksCluster: &structs.JWKSCluster{
+				TLSCertificates: &structs.JWKSTLSCertificate{
+					TrustedCA: &structs.JWKSTLSCertTrustedCA{
+						InlineBytes: []byte{1, 2, 3},
+					},
+				},
+			},
+			expected: &envoy_tls_v3.CertificateValidationContext{
+				TrustedCa: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_InlineBytes{
+						InlineBytes: []byte{1, 2, 3},
+					},
+				},
+			},
+		},
+		"when caCertificateProviderInstance": {
+			jwksCluster: &structs.JWKSCluster{
+				TLSCertificates: &structs.JWKSTLSCertificate{
+					CaCertificateProviderInstance: &structs.JWKSTLSCertProviderInstance{
+						InstanceName:    "<my-instance-name>",
+						CertificateName: "<my-cert>.crt",
+					},
+				},
+			},
+			expected: &envoy_tls_v3.CertificateValidationContext{
+				CaCertificateProviderInstance: &envoy_tls_v3.CertificateProviderPluginInstance{
+					InstanceName:    "<my-instance-name>",
+					CertificateName: "<my-cert>.crt",
+				},
+			},
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			vc := makeJWTCertValidationContext(tt.jwksCluster)
+
+			require.Equal(t, tt.expected, vc)
+		})
+	}
 }
