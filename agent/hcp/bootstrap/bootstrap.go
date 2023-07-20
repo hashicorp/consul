@@ -295,6 +295,8 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcp.BootstrapC
 			return "", fmt.Errorf("failed to persist bootstrap config: %w", err)
 		}
 
+		// HCP only returns the management token if it requires Consul to
+		// initialize it
 		if bsCfg.ManagementToken != "" {
 			if err := validateManagementToken(bsCfg.ManagementToken); err != nil {
 				return "", fmt.Errorf("invalid management token: %w", err)
