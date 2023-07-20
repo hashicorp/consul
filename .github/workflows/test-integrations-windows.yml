@@ -83,9 +83,9 @@ jobs:
           {
             echo -n "envoy-matrix="
             find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
-              | grep -v case-wasm \
-              | grep -v case-consul-exec \
-              | grep -v case-ingress-gateway-tls \
+              | grep -z -v "case-wasm" \
+              | grep -z -v "case-consul-exec" \
+              | grep -z -v "case-ingress-gateway-tls" \
               | xargs -0 -n 1 basename \
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
