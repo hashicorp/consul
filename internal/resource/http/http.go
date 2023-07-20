@@ -1,10 +1,12 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -12,13 +14,13 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func NewHandler(client pbresource.ResourceServiceClient, registry resource.Registry) http.Handler {
+func NewHandler(client pbresource.ResourceServiceClient, registry resource.Registry, parseToken func(req *http.Request, token *string)) http.Handler {
 	mux := http.NewServeMux()
 	for _, t := range registry.Types() {
 		// Individual Resource Endpoints.
 		prefix := fmt.Sprintf("/%s/%s/%s/", t.Type.Group, t.Type.GroupVersion, t.Type.Kind)
 		fmt.Println("REGISTERED URLS: ", prefix)
-		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client}))
+		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken}))
 	}
 
 	return mux
@@ -32,24 +34,28 @@ type writeRequest struct {
 }
 
 type resourceHandler struct {
-	reg    resource.Registration
-	client pbresource.ResourceServiceClient
+	reg        resource.Registration
+	client     pbresource.ResourceServiceClient
+	parseToken func(req *http.Request, token *string)
 }
 
 func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var token string
+	h.parseToken(r, &token)
+	ctx := metadata.AppendToOutgoingContext(r.Context(), "x-consul-token", token)
 	switch r.Method {
 	case http.MethodGet:
-		h.handleRead(w, r)
+		h.handleRead(w, r, ctx)
 	case http.MethodPut:
-		h.handleWrite(w, r)
+		h.handleWrite(w, r, ctx)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 }
 
-func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request) {
-	rsp, err := h.client.Read(r.Context(), &pbresource.ReadRequest{
+func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Type:    h.reg.Type,
 			Tenancy: tenancy(r),
@@ -70,7 +76,7 @@ func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request) {
 	w.Write(output)
 }
 
-func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request) {
+func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 	// do we introduce logger in this server?
 	//logger := hclog.New(&hclog.LoggerOptions{Name: "xinyi"})
 	//logger.Debug("DECODING ERROR", "error", err.Error())
@@ -93,7 +99,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rsp, err := h.client.Write(r.Context(), &pbresource.WriteRequest{
+	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    h.reg.Type,

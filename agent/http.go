@@ -265,6 +265,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 			resourcehttp.NewHandler(
 				s.agent.delegate.ResourceServiceClient(),
 				s.agent.baseDeps.Registry,
+				s.parseToken,
 			),
 		),
 	)
