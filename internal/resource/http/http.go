@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
+	"strings"
 
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -24,7 +26,7 @@ func NewHandler(
 	mux := http.NewServeMux()
 	for _, t := range registry.Types() {
 		// Individual Resource Endpoints.
-		prefix := fmt.Sprintf("/%s/%s/%s/", t.Type.Group, t.Type.GroupVersion, t.Type.Kind)
+		prefix := strings.ToLower(fmt.Sprintf("/%s/%s/%s/", t.Type.Group, t.Type.GroupVersion, t.Type.Kind))
 		logger.Info("Registered resource endpoint", "endpoint", prefix)
 		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken, logger}))
 	}
@@ -62,10 +64,15 @@ func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	tenancyInfo, _ := checkURL(r)
+	if tenancyInfo == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Type:    h.reg.Type,
-			Tenancy: tenancy(r),
+			Tenancy: tenancyInfo,
 			Name:    r.URL.Path,
 		},
 	})
@@ -88,13 +95,13 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	// convert req data to struct
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return
+		w.Write([]byte("Request body didn't follow schema."))
 	}
 	// struct to proto message
 	data := h.reg.Proto.ProtoReflect().New().Interface()
 	if err := protojson.Unmarshal(req.Data, data); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Request body didn't follow schema."))
 	}
 	// proto message to any
 	anyProtoMsg, err := anypb.New(data)
@@ -104,12 +111,21 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 
+	tenancyInfo, resourceName := checkURL(r)
+	if tenancyInfo == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Missing partition, peer_name or namespace in the query params"))
+	}
+	if resourceName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Missing resource name in the URL"))
+	}
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    h.reg.Type,
-				Tenancy: tenancy(r),
-				Name:    r.URL.Path,
+				Tenancy: tenancyInfo,
+				Name:    resourceName,
 			},
 			Version:  req.Version,
 			Metadata: req.Metadata,
@@ -131,17 +147,23 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	w.Write(output)
 }
 
-func tenancy(r *http.Request) *pbresource.Tenancy {
-	// are partition peername and namespace required fields?
+func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string) {
 	params := r.URL.Query()
 	partition := params.Get("partition")
-	peername := params.Get("peer_name")
+	peerName := params.Get("peer_name")
 	namespace := params.Get("namespace")
-	return &pbresource.Tenancy{
-		Partition: partition,
-		PeerName:  peername,
-		Namespace: namespace,
+	if partition == "" || peerName == "" || namespace == "" {
+		tenancy = nil
+	} else {
+		tenancy = &pbresource.Tenancy{
+			Partition: partition,
+			PeerName:  peerName,
+			Namespace: namespace,
+		}
 	}
+	resourceName = path.Base(r.URL.Path)
+
+	return
 }
 
 func jsonMarshal(res *pbresource.Resource) ([]byte, error) {

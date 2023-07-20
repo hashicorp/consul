@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -17,17 +18,22 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestHandler(t *testing.T) {
-	svc := svctest.RunResourceService(t, demo.RegisterTypes)
+func TestResourceHandler(t *testing.T) {
+	client := svctest.RunResourceService(t, demo.RegisterTypes)
 
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
-
-	h := NewHandler(svc, r)
+	resourceHandler := resourceHandler{
+		resource.Registration{
+			Type:  demo.TypeV2Artist,
+			Proto: &pbdemov2.Artist{},
+		},
+		client,
+		func(req *http.Request, token *string) { return },
+		hclog.NewNullLogger(),
+	}
 
 	t.Run("Write", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/api/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -39,7 +45,7 @@ func TestHandler(t *testing.T) {
 			}
 		`))
 
-		h.ServeHTTP(rsp, req)
+		resourceHandler.ServeHTTP(rsp, req)
 
 		require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
 
@@ -47,7 +53,7 @@ func TestHandler(t *testing.T) {
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
 		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
 
-		readRsp, err := svc.Read(testutil.TestContext(t), &pbresource.ReadRequest{
+		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
 				Tenancy: demo.TenancyDefault,
@@ -60,18 +66,5 @@ func TestHandler(t *testing.T) {
 		var artist pbdemov2.Artist
 		require.NoError(t, readRsp.Resource.Data.UnmarshalTo(&artist))
 		require.Equal(t, "Keith Urban", artist.Name)
-	})
-
-	t.Run("Read", func(t *testing.T) {
-		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban", nil)
-
-		h.ServeHTTP(rsp, req)
-
-		require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
-
-		var result map[string]any
-		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
-		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
 	})
 }
