@@ -214,7 +214,6 @@ jobs:
   test-integrations-success:
     needs:
       - envoy-integration-test
-      - upgrade-integration-test
     runs-on: 'ubuntu-latest'
     if: ${{ always() }}
     steps:
