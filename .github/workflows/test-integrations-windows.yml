@@ -99,6 +99,8 @@ jobs:
         shell: bash
         run: cd build-support/windows && ./build-consul-dev-image.sh
 
+      # https://hashicorp.atlassian.net/browse/NET-4973
+      # ^ Ticket to figure out why grouping test case is failing on Windows Machine
       - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
         shell: bash
         if: always()
@@ -508,6 +510,7 @@ jobs:
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-splitter-peering-ingress-gateways" -win=true
 
       # This test runs fine on windows machine but fails on CI
+      # Task to be picked later on - https://hashicorp.atlassian.net/browse/NET-4972
       # - name: Envoy Integration Tests for windows case-consul-exec
       #     if: always()
       #     shell: bash
@@ -1174,10 +1177,26 @@ jobs:
           token: ${{ steps.vault-auth.outputs.token }}
           secrets: |
             kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+            
+      - name: Prepare datadog-ci
+        shell: bash
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/download/v2.17.2/datadog-ci_win-x64.exe" --output "C:/datadog-ci"
+          chmod +x C:/datadog-ci
+
+      - name: Upload coverage
+        # do not run on forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: C:/datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   test-integrations-success:
     needs:
       - envoy-integration-test
+      - upgrade-integration-test
     runs-on: 'ubuntu-latest'
     if: ${{ always() }}
     steps:
