@@ -40,6 +40,8 @@ jobs:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - id: runners
         run: .github/scripts/get_runner_classes_windows.sh
+      - name: checking test
+        run: cat .github/scripts/get_runner_classes_windows.sh
 
   dev-build:
     uses: ./.github/workflows/reusable-dev-build-windows.yml
