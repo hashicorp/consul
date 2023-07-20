@@ -15,6 +15,7 @@ case "$GITHUB_REPOSITORY" in
         echo "compute-large=['self-hosted', 'windows', 'large']" >> "$GITHUB_OUTPUT"
         # m5d.8xlarge is equivalent to our xl custom runner in OSS
         echo "compute-xl=['self-hosted', 'ondemand', 'windows', 'type=m5d.8xlarge']" >> "$GITHUB_OUTPUT"
+        echo "compute-linux-small=['custom-linux-s-consul-latest']" >> "$GITHUB_OUTPUT"
         ;;
     *)
         # shellcheck disable=SC2129
@@ -22,5 +23,6 @@ case "$GITHUB_REPOSITORY" in
         echo "compute-medium=['windows-2019']" >> "$GITHUB_OUTPUT"
         echo "compute-large=['windows-2019']" >> "$GITHUB_OUTPUT"
         echo "compute-xl=['windows-2019']" >> "$GITHUB_OUTPUT"
+        echo "compute-linux-small=['custom-linux-s-consul-latest']" >> "$GITHUB_OUTPUT"
         ;;
 esac
