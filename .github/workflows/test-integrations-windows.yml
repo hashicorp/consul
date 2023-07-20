@@ -30,7 +30,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Setup
     outputs:
-      compute-linux-small: ${{ steps.runner.outputs.compute-linux-small }}
       compute-small: ${{ steps.runners.outputs.compute-small }}
       compute-medium: ${{ steps.runners.outputs.compute-medium }}
       compute-large: ${{ steps.runners.outputs.compute-large }}
@@ -40,8 +39,6 @@ jobs:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - id: runners
         run: .github/scripts/get_runner_classes_windows.sh
-      - name: checking test
-        run: cat .github/scripts/get_runner_classes_windows.sh
 
   dev-build:
     uses: ./.github/workflows/reusable-dev-build-windows.yml
@@ -57,7 +54,7 @@ jobs:
   #  Skipping case-wasm because - https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter
   generate-envoy-job-matrices:
     needs: [ setup ]
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-linux-small) }}
+    runs-on: ubuntu-latest
     name: Generate Envoy Job Matrices
     outputs:
       envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
