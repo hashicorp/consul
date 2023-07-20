@@ -266,6 +266,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 				s.agent.delegate.ResourceServiceClient(),
 				s.agent.baseDeps.Registry,
 				s.parseToken,
+				s.agent.logger.Named(logging.HTTP),
 			),
 		),
 	)

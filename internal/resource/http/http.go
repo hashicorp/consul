@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -14,13 +15,17 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func NewHandler(client pbresource.ResourceServiceClient, registry resource.Registry, parseToken func(req *http.Request, token *string)) http.Handler {
+func NewHandler(
+	client pbresource.ResourceServiceClient,
+	registry resource.Registry,
+	parseToken func(req *http.Request, token *string),
+	logger hclog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	for _, t := range registry.Types() {
 		// Individual Resource Endpoints.
 		prefix := fmt.Sprintf("/%s/%s/%s/", t.Type.Group, t.Type.GroupVersion, t.Type.Kind)
 		fmt.Println("REGISTERED URLS: ", prefix)
-		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken}))
+		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken, logger}))
 	}
 
 	return mux
@@ -37,6 +42,7 @@ type resourceHandler struct {
 	reg        resource.Registration
 	client     pbresource.ResourceServiceClient
 	parseToken func(req *http.Request, token *string)
+	logger     hclog.Logger
 }
 
 func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +94,6 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 
 	data := h.reg.Proto.ProtoReflect().New().Interface()
 	if err := protojson.Unmarshal(req.Data, data); err != nil {
-		fmt.Println("UNMARSHAL REQUEST ERROR", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -127,11 +132,15 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 }
 
 func tenancy(r *http.Request) *pbresource.Tenancy {
-	// TODO: Read querystring parameters.
+	// are partition peername and namespace required fields?
+	params := r.URL.Query()
+	partition := params.Get("partition")
+	peername := params.Get("peer_name")
+	namespace := params.Get("namespace")
 	return &pbresource.Tenancy{
-		Partition: "default",
-		PeerName:  "local",
-		Namespace: "default",
+		Partition: partition,
+		PeerName:  peername,
+		Namespace: namespace,
 	}
 }
 
