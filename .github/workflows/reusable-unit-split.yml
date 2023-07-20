@@ -37,6 +37,10 @@ on:
         required: false
         type: string
         default: ""
+      cachekey_GOMODCACHE:
+        required: false
+        type: string
+        default: ""
     secrets:
       elevated-github-token:
         required: true
@@ -61,9 +65,11 @@ jobs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # TODO: not too sure why we do this setup for every package?
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version-file: 'go.mod'
+          cache: false
       - id: set-matrix
         run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
 
@@ -91,8 +97,15 @@ jobs:
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version-file: 'go.mod'
-          cache: true
+          cache: false
+      - name: restore GOMODCACHE
+        uses: actions/cache/restore@v3
+        if: "${{ inputs.cachekey_GOMODCACHE != '' }}"
+        with:
+          key: "${{inputs.cachekey_GOMODCACHE}}"
+          path: ~/go/pkg/mod      
       - run: mkdir -p ${{env.TEST_RESULTS}}
+      # expect this to be instant if cache hit
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download

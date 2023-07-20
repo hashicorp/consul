@@ -112,10 +112,12 @@ jobs:
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version-file: 'go.mod'
+        cache: false
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
     - name: Notify Slack
       if: ${{ failure() }}
       run: .github/scripts/notify_slack.sh
+
 
   lint-container-test-deps:
     needs:
@@ -173,14 +175,44 @@ jobs:
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
+  # TODO: matrix?
+  go-cache-key-GOMODCACHE_root:
+    needs:
+    - setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    env:
+      GOMODULENAME: "github.com/hashicorp/consul"
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - id: main
+        run: |
+          .github/scripts/cachekey_GOMODCACHE.sh
+    outputs:
+      key: "${{ steps.main.outputs.cachekey_GOMODCACHE }}"
+
+  # TODO: matrix?
+  go-mod-download_root:
+    needs:
+    - setup
+    - go-cache-key-GOMODCACHE_root
+    uses: ./.github/workflows/reusable-go-mod-download.yml
+    with:
+      directory: "."
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_root.outputs.key }}"
+      repository-name: ${{ github.repository }}
+      # XL is probably overkill?
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+
   # create a development build
   dev-build:
     needs:
     - setup
+    - go-cache-key-GOMODCACHE_root
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_root.outputs.key }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -194,6 +226,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       go-arch: "s390x"
       repository-name: ${{ github.repository }}
+      # TODO: cachekey
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -233,6 +266,7 @@ jobs:
   go-test-oss:
     needs:
     - setup
+    - go-cache-key-GOMODCACHE_root
     - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
@@ -241,6 +275,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: ""
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_root.outputs.key }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read

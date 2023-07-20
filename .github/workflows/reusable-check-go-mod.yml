@@ -13,6 +13,9 @@ on:
     secrets:
       elevated-github-token:
         required: true
+    outputs:
+      go-version:
+        value: "${{ jobs.check-go-mod.outputs.go-version }}"
 jobs:
   check-go-mod:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
@@ -23,7 +26,8 @@ jobs:
     - name: Setup Git
       if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
       run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - id: setup_go 
+      uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version-file: 'go.mod'
     - run: go mod tidy
@@ -36,3 +40,6 @@ jobs:
     - name: Notify Slack
       if: ${{ failure() }}
       run: .github/scripts/notify_slack.sh
+    
+    outputs:
+      go-version: "${{ steps.setup_go.outputs.go-version }}"

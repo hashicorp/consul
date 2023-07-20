@@ -1,0 +1,88 @@
+name: reusable-go-test-build 
+
+on:
+  workflow_call:
+    inputs:
+      directory:
+        required: true
+        type: string
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: true
+        type: string
+      cachekey_GOMODCACHE:
+        required: false
+        type: string
+      package-names-command:
+        required: false
+        type: string
+        default: 'go list -tags "$GOTAGS" ./...'
+      go-arch:
+        required: false
+        type: string
+        default: ""
+      go-test-flags:
+        required: false
+        type: string
+        default: ""
+      go-tags:
+        required: false
+        type: string
+        default: ""
+      repository-name:
+        required: true
+        type: string
+    secrets:
+      elevated-github-token:
+        required: true
+      consul-license:
+        required: true
+      datadog-api-key:
+        required: true
+env:
+  # TODO: the default should probably be derived from the runner
+  GOARCH: ${{ inputs.go-arch == '' && 'amd64' || inputs.go-arch }}
+  GOTAGS: ${{ inputs.go-tags}}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  
+jobs:
+  go-test:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    steps:      
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
+      - id: setup_go
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version-file: '${{inputs.directory}}/go.mod'
+          cache: false
+      - id: vars
+        working-directory: ${{inputs.directory}}
+        run: |
+          echo "{key_GOMODCACHE}={GOMODCACHEv0:$(go list -m)}" >> "$GITHUB_OUTPUT"
+          # TODO: does GOTAGS need escaping? normalizing? sorting?
+          # TODO: other flags?
+          echo "{key_GOCACHE}={GOCACHEv0:$(go list -m):${{ steps.setup_go.outputs.go-version }}:${[ env.GOARCH }}:${{ env.GOTAGS }}" >> "$GITHUB_OUTPUT"
+      - name: restore GOMODCACHE
+        uses: actions/cache/restore@v3
+        with:
+          key: "${{steps.vars.outputs.key_GOMODCACHE}}"
+          path: ~/go/pkg/mod
+      - name: restore GOCACHE
+        uses: actions/cache/restore@v3
+        with:
+          key: "${{steps.vars.outputs.key_GOCACHE}}"
+          path: ~/.cache/go-build
+      - name: Build tests 
+        working-directory: ${{inputs.directory}}
+        run: |
+            PACKAGE_NAMES=$(${{inputs.package-names-command}})
+            go test -tags "${{env.GOTAGS}}" -c ${PACKAGE_NAMES}
+      - name: save GOCACHE
+        uses: actions/cache/save@v3
+        with:
+          key: "${{steps.vars.outputs.key_GOCACHE}}"
+          path: ~/.cache/go-build
