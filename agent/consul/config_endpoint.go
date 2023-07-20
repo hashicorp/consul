@@ -144,7 +144,7 @@ func (c *ConfigEntry) shouldSkipOperation(args *structs.ConfigEntryRequest) (boo
 		return c.shouldSkipUpsertOperation(currentEntry, args.Entry)
 	case structs.ConfigEntryDelete, structs.ConfigEntryDeleteCAS:
 		if currentEntry == nil {
-			return false, fmt.Errorf("config entry Kind %q Name %q not found", args.Entry.GetKind(), args.Entry.GetName())
+			return true, fmt.Errorf("config entry Kind %q Name %q not found", args.Entry.GetKind(), args.Entry.GetName())
 		}
 		return false, nil
 	default:

@@ -994,7 +994,6 @@ func TestConfigEntry_Delete(t *testing.T) {
 		var out structs.ConfigEntryDeleteResponse
 		err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out)
 		require.Error(t, err)
-
 	})
 
 	testutil.RunStep(t, "delete non-existent config entry in dc1 - will error", func(t *testing.T) {
@@ -1006,8 +1005,10 @@ func TestConfigEntry_Delete(t *testing.T) {
 			},
 		}
 		var out structs.ConfigEntryDeleteResponse
+		errStr := fmt.Sprintf("config entry Kind %q Name %q not found", args.Entry.GetKind(), args.Entry.GetName())
 		err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out)
 		require.Error(t, err)
+		require.EqualError(t, err, errStr)
 	})
 }
 
