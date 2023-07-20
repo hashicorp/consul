@@ -42,7 +42,12 @@
                 },
                 "http2ProtocolOptions": {
 
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ]
@@ -91,7 +96,12 @@
                 },
                 "http2ProtocolOptions": {
 
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],
