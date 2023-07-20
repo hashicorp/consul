@@ -1,3 +1,6 @@
 ```release-note:improvement
-cli: return error when delete non-existent config entry with `consul config delete`command
+cli: return error when delete non-existent config entry with `consul config delete` command
+```
+```release-note:breaking-change
+http: `DELETE /v1/config` endpoint now immediately return error when non-existent config entry is provided. Prior to this change, the endpoint return a success code with an empty result
 ```
