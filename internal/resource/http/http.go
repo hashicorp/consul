@@ -25,7 +25,7 @@ func NewHandler(
 	for _, t := range registry.Types() {
 		// Individual Resource Endpoints.
 		prefix := fmt.Sprintf("/%s/%s/%s/", t.Type.Group, t.Type.GroupVersion, t.Type.Kind)
-		logger.Info("Registered resource endpoint: ", prefix)
+		logger.Info("Registered resource endpoint", "endpoint", prefix)
 		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken, logger}))
 	}
 
@@ -100,7 +100,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	anyProtoMsg, err := anypb.New(data)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("Failed to convert proto message to any type: ", err)
+		h.logger.Error("Failed to convert proto message to any type", "error", err)
 		return
 	}
 
@@ -118,14 +118,14 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("Failed to write to GRPC resource: ", err)
+		h.logger.Error("Failed to write to GRPC resource", "error", err)
 		return
 	}
 
 	output, err := jsonMarshal(rsp.Resource)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("Failed to unmarshal GRPC resource response: ", err)
+		h.logger.Error("Failed to unmarshal GRPC resource response", "error", err)
 		return
 	}
 	w.Write(output)
