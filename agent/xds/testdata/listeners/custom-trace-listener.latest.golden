@@ -94,9 +94,7 @@
                     "name": "envoy.filters.http.rbac",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules": {
-
-                      }
+                      "rules": {}
                     }
                   },
                   {
@@ -111,9 +109,7 @@
                             "key": "trust-domain",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {
-
-                                },
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\1"
@@ -127,9 +123,7 @@
                             "key": "partition",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {
-
-                                },
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\2"
@@ -143,9 +137,7 @@
                             "key": "namespace",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {
-
-                                },
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\3"
@@ -159,9 +151,7 @@
                             "key": "datacenter",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {
-
-                                },
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\4"
@@ -175,9 +165,7 @@
                             "key": "service",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {
-
-                                },
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\5"
@@ -227,7 +215,12 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],
@@ -236,9 +229,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {
