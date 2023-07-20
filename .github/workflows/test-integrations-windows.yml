@@ -165,13 +165,8 @@ jobs:
           echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
           # shellcheck disable=SC2001
           sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})" -win=true
+          go test -v -timeout=30m -tags integration \
+            ./test/integration/connect/envoy -run="TestEnvoy/(${{ matrix.test-cases }})" -win=true
 
         # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
