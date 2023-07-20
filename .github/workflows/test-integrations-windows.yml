@@ -150,7 +150,7 @@ jobs:
 
       # https://hashicorp.atlassian.net/browse/NET-4973
       # ^ Ticket to figure out why grouping test case is failing on Windows Machine
-      - name: Envoy Integration Tests for windows case-terminating-gateway-subsets
+      - name: Envoy Integration Tests for windows
         shell: bash
         if: always()
         env:
@@ -171,7 +171,7 @@ jobs:
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --jsonfile /tmp/jsonfile/go-test.log \
               --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
+              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})" -win=true
 
         # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
