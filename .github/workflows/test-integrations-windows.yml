@@ -49,11 +49,54 @@ jobs:
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
+  #  Skipping case-ingress-gateway-tls because of - cacert is not available in curl windows
+  #  https://www.phillipsj.net/posts/windows-curl-and-self-signed-certs/
+  #  Skipping case-wasm because - https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter
+  generate-envoy-job-matrices:
+    needs: [ setup ]
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    name: Generate Envoy Job Matrices
+    outputs:
+      envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: Generate Envoy Job Matrix
+        id: set-matrix
+        env:
+          # this is further going to multiplied in envoy-integration tests by the
+          # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
+          # multiplied by 8 based on these values:
+          # envoy-version: ["1.23.10", "1.24.8", "1.25.7", "1.26.2"]
+          # xds-target: ["server", "client"]
+          TOTAL_RUNNERS: 4
+          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
+        run: |
+          NUM_RUNNERS=$TOTAL_RUNNERS
+          NUM_DIRS=$(find ./test/integration/connect/envoy -mindepth 1 -maxdepth 1 -type d | wc -l)
+
+          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
+            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
+            NUM_RUNNERS=$((NUM_DIRS-1))
+          fi
+          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
+          NUM_RUNNERS=$((NUM_RUNNERS-1))
+          {
+            echo -n "envoy-matrix="
+            find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
+              | grep -v case-wasm \
+              | grep -v case-consul-exec \
+              | grep -v case-ingress-gateway-tls \
+              | xargs -0 -n 1 basename \
+              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
+              | jq --compact-output 'map(join("|"))'
+          } >> "$GITHUB_OUTPUT"
+
   # NOTE: Jobs needs to be added here manually. Jobs when run together on windows fails intermittently.
   # So they are run independently of each other.
   envoy-integration-test:
     needs:
       - setup
+      - generate-envoy-job-matrices
       - dev-build
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     permissions:
@@ -64,6 +107,7 @@ jobs:
       matrix:
         envoy-version: [ "1.23.10", "1.24.8", "1.25.7", "1.26.2" ]
         xds-target: [ "server", "client" ]
+        test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
       XDS_TARGET: ${{ matrix.xds-target }}
@@ -106,7 +150,6 @@ jobs:
 
       # https://hashicorp.atlassian.net/browse/NET-4973
       # ^ Ticket to figure out why grouping test case is failing on Windows Machine
-
       - name: Envoy Integration Tests for windows case-terminating-gateway-subsets
         shell: bash
         if: always()
@@ -119,64 +162,16 @@ jobs:
           TERM: ansi
         run: |
           # shellcheck disable=SC2001
-          echo "Running Integration Test case-terminating-gateway-subsets"
+          echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
-            ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-subsets" -win=true
-
-      #      Skipping this because - https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter
-      #      - name: Envoy Integration Tests for windows case-wasm
-      #        shell: bash
-      #        env:
-      #          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-      #          GOTESTSUM_FORMAT: standard-verbose
-      #          COMPOSE_INTERACTIVE_NO_CLI: 1
-      #          LAMBDA_TESTS_ENABLED: "true"
-      #          # tput complains if this isn't set to something.
-      #          TERM: ansi
-      #        run: |
-      #          # shellcheck disable=SC2001
-      #          echo "Running Integration Test case-wasm"
-      #          # shellcheck disable=SC2001
-      #          go test -v -timeout=30m -tags integration \
-      #            ./test/integration/connect/envoy -run="TestEnvoy/case-wasm" -win=true
-
-      #     Skipping because of - cacert is not available in curl windows
-      #     https://www.phillipsj.net/posts/windows-curl-and-self-signed-certs/
-      #      - name: Envoy Integration Tests for windows case-ingress-gateway-tls
-      #        shell: bash
-      #        if: always()
-      #        env:
-      #          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-      #          GOTESTSUM_FORMAT: standard-verbose
-      #          COMPOSE_INTERACTIVE_NO_CLI: 1
-      #          LAMBDA_TESTS_ENABLED: "true"
-      #          # tput complains if this isn't set to something.
-      #          TERM: ansi
-      #        run: |
-      #          # shellcheck disable=SC2001
-      #          echo "Running Integration Test case-ingress-gateway-tls"
-      #          # shellcheck disable=SC2001
-      #          go test -v -timeout=30m -tags integration \
-      #            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-tls" -win=true
-
-      - name: Envoy Integration Tests for windows case-mesh-to-lambda
-        shell: bash
-        if: always()
-        env:
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          LAMBDA_TESTS_ENABLED: "true"
-          # tput complains if this isn't set to something.
-          TERM: ansi
-        run: |
-          # shellcheck disable=SC2001
-          echo "Running Integration Test case-mesh-to-lambda"
-          # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
-            ./test/integration/connect/envoy -run="TestEnvoy/case-mesh-to-lambda" -win=true
-
+          sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+              --debug \
+              --rerun-fails \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --jsonfile /tmp/jsonfile/go-test.log \
+              --packages=./test/integration/connect/envoy \
+              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
 
         # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
