@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -24,7 +25,7 @@ func NewHandler(
 	for _, t := range registry.Types() {
 		// Individual Resource Endpoints.
 		prefix := fmt.Sprintf("/%s/%s/%s/", t.Type.Group, t.Type.GroupVersion, t.Type.Kind)
-		fmt.Println("REGISTERED URLS: ", prefix)
+		logger.Info("Registered resource endpoint: ", prefix)
 		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken, logger}))
 	}
 
@@ -83,24 +84,23 @@ func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx
 }
 
 func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	// do we introduce logger in this server?
-	//logger := hclog.New(&hclog.LoggerOptions{Name: "xinyi"})
-	//logger.Debug("DECODING ERROR", "error", err.Error())
 	var req writeRequest
+	// convert req data to struct
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
+	// struct to proto message
 	data := h.reg.Proto.ProtoReflect().New().Interface()
 	if err := protojson.Unmarshal(req.Data, data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	a, err := anypb.New(data)
+	// proto message to any
+	anyProtoMsg, err := anypb.New(data)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to convert proto message to any type: ", err)
 		return
 	}
 
@@ -113,19 +113,19 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 			},
 			Version:  req.Version,
 			Metadata: req.Metadata,
-			Data:     a,
+			Data:     anyProtoMsg,
 		},
 	})
 	if err != nil {
-		fmt.Println("WRITE ERROR", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to write to GRPC resource: ", err)
 		return
 	}
 
 	output, err := jsonMarshal(rsp.Resource)
 	if err != nil {
-		fmt.Println("UNMARSHAL RESPONSE ERROR", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to unmarshal GRPC resource response: ", err)
 		return
 	}
 	w.Write(output)
