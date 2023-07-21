@@ -51,7 +51,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20220810130054-c7d1c02cb6cf // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/docker/distribution v2.8.1+incompatible // indirect
+	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/docker v23.0.6+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
