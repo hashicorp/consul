@@ -14,7 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Service, libservice.Service) {
+// CreateServices
+func CreateServices(t *testing.T, cluster *libcluster.Cluster, protocol string) (libservice.Service, libservice.Service) {
 	node := cluster.Agents[0]
 	client := node.GetClient()
 
@@ -22,7 +23,7 @@ func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 	serviceDefault := &api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     libservice.StaticServerServiceName,
-		Protocol: "http",
+		Protocol: protocol,
 	}
 
 	ok, _, err := client.ConfigEntries().Set(serviceDefault, nil)
@@ -35,6 +36,10 @@ func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 		ID:       "static-server",
 		HTTPPort: 8080,
 		GRPCPort: 8079,
+	}
+
+	if protocol == "grpc" {
+		serviceOpts.RegisterGRPC = true
 	}
 
 	// Create a service and proxy instance
