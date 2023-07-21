@@ -13,15 +13,15 @@ on:
       repository-name:
         required: true
         type: string
+    outputs:
       cachekey_GOMODCACHE:
-        required: true
-        type: string
+        value: "${{ jobs.main.outputs.key }}"
 
 env:
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
   
 jobs:
-  go-test:
+  main:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     steps:      
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -29,21 +29,27 @@ jobs:
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-
       - id: setup_go
         uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version-file: '${{inputs.directory}}/go.mod'
           cache: false
+      - id: cachekey
+        working-directory: "${{ inputs.directory }}"
+        run: |
+          GOMODULENAME="$(go list -m)"
+          .github/scripts/cachekey_GOMODCACHE.sh 
       - name: restore GOMODCACHE
         uses: actions/cache/restore@v3
         with:
-          key: "${{inputs.cachekey_GOMODCACHE}}"
+          key: "${{steps.cachekey.outputs.cachekey_GOMODCACHE}}"
           path: ~/go/pkg/mod
       - run: go mod download
         working-directory: ${{inputs.directory}}
       - name: save GOMODCACHE
         uses: actions/cache/save@v3
         with:
-          key: "${{inputs.cachekey_GOMODCACHE}}"
+          key: "${{steps.cachekey.outputs.cachekey_GOMODCACHE}}"
           path: ~/go/pkg/mod
+    outputs:
+      key: "${{ steps.cachekey.outputs.cachekey_GOMODCACHE }}"
