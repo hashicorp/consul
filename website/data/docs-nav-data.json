@@ -1573,6 +1573,10 @@
             "path": "enterprise/license/overview"
           },
           {
+            "title": "Utilization reporting",
+            "path": "enterprise/license/utilization-reporting"
+          },
+          {
             "title": "FAQ",
             "path": "enterprise/license/faq"
           }
