@@ -17,7 +17,7 @@ on:
       go-arch:
         required: false
         type: string
-        default: ""
+        default: "amd64"
       cachekey_GOMODCACHE:
         required: false
         type: string
@@ -48,7 +48,7 @@ jobs:
       - run: go mod download
       - name: Build
         env:
-          GOARCH: ${{ inputs.goarch }}
+          GOARCH: ${{ inputs.go-arch }}
         run: make dev
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2

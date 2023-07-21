@@ -13,7 +13,7 @@ on:
       go-arch:
         required: false
         type: string
-        default: ""
+        default: "amd64"
       uploaded-binary-name:
         required: false
         type: string
