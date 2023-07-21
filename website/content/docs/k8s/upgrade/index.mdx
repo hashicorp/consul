@@ -13,7 +13,7 @@ This topic describes considerations and strategies for upgrading Consul deployme
 
 As of Consul v1.14.0, Kubernetes deployments use [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. If you upgrade Consul from a version that uses client agents to a version that uses dataplanes, you must follow specific steps to update your Helm chart and remove client agents from the existing deployment. Refer to [Upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplane) for more information.
 
-The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs` library and command line tool](https://github.com/hashicorp/go-netaddrs) for more information.
+The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs`](https://github.com/hashicorp/go-netaddrs) library and command line tool for more information.
 
 ## Upgrade types
 
