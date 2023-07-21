@@ -37,7 +37,7 @@ jobs:
       - id: cachekey
         working-directory: "${{ inputs.directory }}"
         run: |
-          GOMODULENAME="$(go list -m)"
+          GOMODULENAME="$(go list -m)" \
           .github/scripts/cachekey_GOMODCACHE.sh 
       - name: restore GOMODCACHE
         uses: actions/cache/restore@v3
