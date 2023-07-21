@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package gateways
 
 import (
@@ -56,7 +53,12 @@ func TestAPIGatewayCreate(t *testing.T) {
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.APIClient(0)
 
-	namespace := getOrCreateNamespace(t, client)
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
 
 	// Create a gateway
 	// We intentionally do this before creating the config entries
@@ -121,7 +123,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 
 	// make sure the gateway/route come online
 	// make sure config entries have been properly created
-	checkGatewayConfigEntry(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
+	checkGatewayConfigEntry(t, client, gatewayName, namespace)
 	checkTCPRouteConfigEntry(t, client, routeName, namespace)
 
 	port, err := gatewayService.GetPort(listenerPortOne)
@@ -146,11 +148,11 @@ func conditionStatusIsValue(typeName string, statusValue string, conditions []ap
 	return false
 }
 
-func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName string, opts *api.QueryOptions) {
+func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName string, namespace string) {
 	t.Helper()
 
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayName, opts)
+		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayName, &api.QueryOptions{Namespace: namespace})
 		if err != nil {
 			t.Log("error constructing request", err)
 			return false
@@ -165,26 +167,7 @@ func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName strin
 	}, time.Second*10, time.Second*1)
 }
 
-func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, opts *api.QueryOptions) {
-	t.Helper()
-
-	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, opts)
-		if err != nil {
-			t.Log("error constructing request", err)
-			return false
-		}
-		if entry == nil {
-			t.Log("returned entry is nil")
-			return false
-		}
-
-		apiEntry := entry.(*api.HTTPRouteConfigEntry)
-		return isBound(apiEntry.Status.Conditions)
-	}, time.Second*10, time.Second*1)
-}
-
-func checkHTTPRouteConfigEntryExists(t *testing.T, client *api.Client, routeName string, namespace string) {
+func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, namespace string) {
 	t.Helper()
 
 	require.Eventually(t, func() bool {
@@ -198,8 +181,8 @@ func checkHTTPRouteConfigEntryExists(t *testing.T, client *api.Client, routeName
 			return false
 		}
 
-		_ = entry.(*api.HTTPRouteConfigEntry)
-		return true
+		apiEntry := entry.(*api.HTTPRouteConfigEntry)
+		return isBound(apiEntry.Status.Conditions)
 	}, time.Second*10, time.Second*1)
 }
 

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 export const defaultRunner = function (target, configuration, isClosed) {
   if (isClosed(target)) {
     target.dispatchEvent({ type: 'close' });

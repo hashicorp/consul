@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <div
   class="consul-partition-form"
   ...attributes
@@ -89,37 +84,34 @@ as |State Guard ChartAction dispatch state|>
   </fieldset>
 
   <div>
-    <Hds::ButtonSet>
-
-
 {{#if (and (is "new partition" item=item) (can "create partitions")) }}
-  <Hds::Button
-    @text='Save'
-    type='submit'
-    disabled={{or (is "pristine partition" item=item) (state-matches state "error")}}
-  />
+      <Action
+        @type="submit"
+        {{disabled (or (is "pristine partition" item=item) (state-matches state "error"))}}
+      >
+        Save
+      </Action>
 {{else if (not readOnly)}}
-  <Hds::Button
-    @text='Save'
-    type='submit'
-  />
+      <Action @type="submit">Save</Action>
 {{/if}}
-      <Hds::Button
-        @text='Cancel'
-        type='reset'
-        @color='secondary'
-        {{on 'click' (if @oncancel (fn (optional @oncancel item)) (fn (optional @onsubmit item)))}}
-      />
+
+      <Action
+        @type="reset"
+        {{on 'click' (if @oncancel (fn @oncancel item) (fn @onsubmit item))}}
+      >
+        Cancel
+      </Action>
 
 {{#if (and (not (is "new partition" item=item)) (can "delete partition" item=item))}}
       <ConfirmationDialog @message="Are you sure you want to delete this Partition?">
         <BlockSlot @name="action" as |confirm|>
-          <Hds::Button
-            @text='Delete'
+          <Action
             data-test-delete
-            @color='critical'
+            class="type-delete"
             {{on 'click' (fn confirm (fn writer.delete item))}}
-          />
+          >
+            Delete
+          </Action>
         </BlockSlot>
         <BlockSlot @name="dialog" as |execute cancel message|>
           <DeleteConfirmation
@@ -130,7 +122,7 @@ as |State Guard ChartAction dispatch state|>
         </BlockSlot>
       </ConfirmationDialog>
 {{/if}}
-    </Hds::ButtonSet>
+
   </div>
 
 </StateChart>

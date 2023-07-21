@@ -1,12 +1,31 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 @import './custom-query';
 
+// TODO: Setup only the CSS props we actually need here
+// potentially see if our compiler can automatically remove
+// unused CSS props
 :root {
-  --typo-action: var(--token-color-foreground-action);
-  --decor-error: var(--token-color-foreground-critical);
-  --typo-contrast: var(--token-color-hashicorp-brand);
+  /* base brand colors */
+  --tone-brand-050: var(--tone-magenta-050);
+  --tone-brand-100: var(--tone-strawberry-100);
+  /* --tone-brand-200: var(--tone-strawberry-200) */
+  /* --tone-brand-300: var(--tone-strawberry-300) */
+  /* --tone-brand-400: var(--tone-strawberry-400) */
+  /* --tone-brand-500: var(--tone-strawberry-500) */
+  /* temporary strawberry-like color until its replaced by a numbered one */
+  --tone-brand-600: 224 56 117;
+  /* --tone-brand-700: var(--tone-strawberry-700) */
+  --tone-brand-800: var(--tone-magenta-800);
+  /* --tone-brand-900: var(--tone-strawberry-900) */
+
+  /* themeable ui colors */
+  --typo-action-500: rgb(var(--tone-blue-500));
+  --decor-error-500: rgb(var(--tone-red-500));
+  --typo-contrast-999: rgb(var(--tone-gray-999));
+
+  /* themeable brand colors */
+  --typo-brand-050: rgb(var(--tone-brand-050));
+  --typo-brand-600: rgb(var(--tone-brand-600));
+  --decor-brand-600: rgb(var(--tone-brand-600));
+  --swatch-brand-600: rgb(var(--tone-brand-600));
+  --swatch-brand-800: rgb(var(--tone-brand-800));
 }

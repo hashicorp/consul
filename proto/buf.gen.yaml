@@ -1,13 +1,14 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/hashicorp/consul/proto
-    override:
-      buf.build/hashicorp/consul: github.com/hashicorp/consul/proto-public
+    # this is not github.com/hashicorp/consul/proto because we are going
+    # to execute buf generate from the top level directory so that the filepaths
+    # contain the full path within the repo. This avoids registration conflicts
+    # in protocolbuffers/protobuf-go when Consul starts. Those conflicts would
+    # have been due to a protobuf file being registered to a global registry
+    # using a relative file name.
+    default: github.com/hashicorp/consul
 plugins:
   - name: go
     out: .

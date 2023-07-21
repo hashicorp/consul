@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import domNormalizeEvent from 'consul-ui/utils/dom/normalize-event';
 import { module, test } from 'qunit';
 

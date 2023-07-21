@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
@@ -9,11 +6,10 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func setupTestVariationConfigEntriesAndSnapshot(
@@ -60,8 +56,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	}
 	dbChainID := structs.ChainID(dbOpts)
 	makeChainID := func(opts structs.DiscoveryTargetOpts) string {
-		finalOpts := structs.MergeDiscoveryTargetOpts(dbOpts, opts)
-		return structs.ChainID(finalOpts)
+		return structs.ChainID(structs.MergeDiscoveryTargetOpts(dbOpts, opts))
 	}
 
 	switch variation {
@@ -100,11 +95,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		})
 	case "failover-to-cluster-peer":
-		uid := UpstreamID{
-			Name:           "db",
-			Peer:           "cluster-01",
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
-		}
 		events = append(events, UpdateEvent{
 			CorrelationID: "peer-trust-bundle:cluster-01",
 			Result: &pbpeering.TrustBundleReadResponse{
@@ -116,6 +106,10 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		})
+		uid := UpstreamID{
+			Name: "db",
+			Peer: "cluster-01",
+		}
 		if enterprise {
 			uid.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), "ns9")
 		}
@@ -257,8 +251,8 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "lb-resolver":
 	case "register-to-terminating-gateway":
 	default:
-		extraEvents := extraUpdateEvents(t, variation, dbUID)
-		events = append(events, extraEvents...)
+		t.Fatalf("unexpected variation: %q", variation)
+		return nil
 	}
 
 	return events
@@ -273,7 +267,6 @@ func setupTestVariationDiscoveryChain(
 ) *structs.CompiledDiscoveryChain {
 	// Compile a chain.
 	var (
-		peers        []*pbpeering.Peering
 		entries      []structs.ConfigEntry
 		compileSetup func(req *discoverychain.CompileRequest)
 	)
@@ -926,22 +919,15 @@ func setupTestVariationDiscoveryChain(
 			},
 		)
 	default:
-		e, p := extraDiscoChainConfig(t, variation, entMeta)
-
-		entries = append(entries, e...)
-		peers = append(peers, p...)
+		t.Fatalf("unexpected variation: %q", variation)
+		return nil
 	}
 
 	if len(additionalEntries) > 0 {
 		entries = append(entries, additionalEntries...)
 	}
 
-	set := configentry.NewDiscoveryChainSet()
-
-	set.AddEntries(entries...)
-	set.AddPeers(peers...)
-
-	return discoverychain.TestCompileConfigEntries(t, "db", entMeta.NamespaceOrDefault(), entMeta.PartitionOrDefault(), "dc1", connect.TestClusterID+".consul", compileSetup, set)
+	return discoverychain.TestCompileConfigEntries(t, "db", entMeta.NamespaceOrDefault(), entMeta.PartitionOrDefault(), "dc1", connect.TestClusterID+".consul", compileSetup, entries...)
 }
 
 func httpMatch(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {

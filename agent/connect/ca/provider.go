@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package ca
 
 import (
@@ -17,16 +14,12 @@ import (
 // on servers and CA provider.
 var ErrRateLimited = errors.New("operation rate limited by CA provider")
 
-// PrimaryUsesIntermediate is an optional interface that CA providers may implement
+// PrimaryUsesIntermediate is an optional interface  that CA providers may implement
 // to indicate that they use an intermediate cert in the primary datacenter as
 // well as the secondary. This is used when determining whether to run the
 // intermediate renewal routine in the primary.
 type PrimaryUsesIntermediate interface {
-	// GenerateLeafSigningCert returns a new intermediate signing cert and sets it to
-	// the active intermediate. If multiple intermediates are needed to complete
-	// the chain from the signing certificate back to the active root, they should
-	// all by bundled here.
-	GenerateLeafSigningCert() (string, error)
+	PrimaryUsesIntermediate()
 }
 
 // ProviderConfig encapsulates all the data Consul passes to `Configure` on a
@@ -91,12 +84,12 @@ type Provider interface {
 	// in the Provider struct so it won't change after being returned.
 	State() (map[string]string, error)
 
-	// ActiveLeafSigningCert returns the current signing cert used by this provider
+	// ActiveIntermediate returns the current signing cert used by this provider
 	// for generating SPIFFE leaf certs. Note that this must not change except
-	// when Consul requests the change via GenerateLeafSigningCert. Changing the
+	// when Consul requests the change via GenerateIntermediate. Changing the
 	// signing cert will break Consul's assumptions about which validation paths
 	// are active.
-	ActiveLeafSigningCert() (string, error)
+	ActiveIntermediate() (string, error)
 
 	// Sign signs a leaf certificate used by Connect proxies from a CSR. The PEM
 	// returned should include only the leaf certificate as all Intermediates
@@ -125,22 +118,25 @@ type Provider interface {
 }
 
 type PrimaryProvider interface {
-	// GenerateCAChain is called:
+	// GenerateRoot is called:
 	//   * to initialize the CA system when a server is elected as a raft leader
 	//   * when the CA configuration is updated in a way that might require
 	//     generating a new root certificate.
 	//
-	// In both cases GenerateCAChain is always called on a newly created provider
+	// In both cases GenerateRoot is always called on a newly created provider
 	// after calling Provider.Configure, and before any other calls to the
 	// provider.
 	//
-	// Depending on the provider and its configuration, GenerateCAChain may return
-	// a single root certificate or a chain of certs.
-	// The first certificate must be the primary CA used to sign intermediates for
-	// secondary datacenters, and the last certificate must be the trusted CA.
-	// The provider should return an existing CA chain if one exists or generate a
-	// new one and return it.
-	GenerateCAChain() (string, error)
+	// The provider should return an existing root certificate if one exists,
+	// otherwise it should generate a new root certificate and return it.
+	GenerateRoot() (RootResult, error)
+
+	// GenerateIntermediate returns a new intermediate signing cert and sets it to
+	// the active intermediate. If multiple intermediates are needed to complete
+	// the chain from the signing certificate back to the active root, they should
+	// all by bundled here.
+	// TODO: replace with GenerateLeafSigningCert (https://github.com/hashicorp/consul/issues/12386)
+	GenerateIntermediate() (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
 	// URI SAN matches the local one and that basic constraints for a CA
@@ -196,8 +192,10 @@ type SecondaryProvider interface {
 	SetIntermediate(intermediatePEM, rootPEM, opaque string) error
 }
 
-// CAChainResult is the result returned by PrimaryProvider.GenerateCAChain.
-type CAChainResult struct {
+// RootResult is the result returned by PrimaryProvider.GenerateRoot.
+//
+// TODO: rename this struct
+type RootResult struct {
 	// PEM encoded bundle of CA certificates. The first certificate must be the
 	// primary CA used to sign intermediates for secondary datacenters, and the
 	// last certificate must be the trusted CA.
@@ -205,11 +203,6 @@ type CAChainResult struct {
 	// If there is only a single certificate in the bundle then it will be used
 	// as both the primary CA and the trusted CA.
 	PEM string
-
-	// IntermediatePEM is an encoded bundle of CA certificates used only by
-	// providers that use an intermediate CA to sign leaf certificates (e.g.
-	// Vault). Its issuer should form a chain leading to the trusted CA in PEM.
-	IntermediatePEM string
 }
 
 // NeedsStop is an optional interface that allows a CA to define a function

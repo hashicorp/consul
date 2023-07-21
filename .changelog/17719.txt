@@ -1,3 +1,0 @@
-```release-note:security
-Bump Dockerfile base image to `alpine:3.18`. 
- ```

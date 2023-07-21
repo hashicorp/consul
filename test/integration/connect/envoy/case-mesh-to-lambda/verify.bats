@@ -7,7 +7,7 @@ load helpers
 }
 
 @test "s1 has lambda http filter for l1" {
-  assert_lambda_envoy_dynamic_http_filter_exists localhost:19000 $AWS_LAMBDA_ARN
+  assert_lambda_envoy_dynamic_http_filter_exists localhost:19000 l1 $AWS_LAMBDA_ARN
 }
 
 @test "terminating gateway has lambda cluster for l2" {
@@ -15,7 +15,7 @@ load helpers
 }
 
 @test "terminating gateway has lambda http filter for l2" {
-  assert_lambda_envoy_dynamic_http_filter_exists localhost:20000 $AWS_LAMBDA_ARN
+  assert_lambda_envoy_dynamic_http_filter_exists localhost:20000 l2 $AWS_LAMBDA_ARN
 }
 
 @test "s1 can call l1 through its sidecar-proxy" {

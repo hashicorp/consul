@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 import { module, test } from 'qunit';
 

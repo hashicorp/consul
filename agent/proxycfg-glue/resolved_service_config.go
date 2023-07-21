@@ -1,10 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfgglue
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/go-memdb"
 
@@ -38,6 +36,10 @@ type serverResolvedServiceConfig struct {
 func (s *serverResolvedServiceConfig) Notify(ctx context.Context, req *structs.ServiceConfigRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
 	if req.Datacenter != s.deps.Datacenter {
 		return s.remoteSource.Notify(ctx, req, correlationID, ch)
+	}
+
+	if len(req.UpstreamIDs) != 0 {
+		return errors.New("ServerResolvedServiceConfig does not support the legacy UpstreamIDs parameter")
 	}
 
 	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,

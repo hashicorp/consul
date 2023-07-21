@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %main-nav-horizontal > ul,
 %main-nav-horizontal-panel {
   display: flex;
@@ -21,6 +16,8 @@
 %main-nav-horizontal-menu-panel {
   z-index: 400;
   /* TODO: We should probably make menu-panel default to left hand side*/
+  left: 0;
+  right: auto;
   top: 28px !important;
 }
 %main-nav-horizontal-action {

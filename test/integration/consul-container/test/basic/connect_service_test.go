@@ -1,13 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package basic
 
 import (
 	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -25,7 +20,6 @@ import (
 //   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
 	t.Parallel()
-
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers:                1,
 		NumClients:                1,
@@ -39,7 +33,7 @@ func TestBasicConnectService(t *testing.T) {
 		},
 	})
 
-	_, clientService := topology.CreateServices(t, cluster, "http")
+	_, clientService := topology.CreateServices(t, cluster)
 	_, port := clientService.GetAddr()
 	_, adminPort := clientService.GetAdminAddr()
 
@@ -49,55 +43,4 @@ func TestBasicConnectService(t *testing.T) {
 	libassert.AssertContainerState(t, clientService, "running")
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
-}
-
-func TestConnectGRPCService_WithInputConfig(t *testing.T) {
-	serverHclConfig := `
-datacenter = "dc2"
-data_dir = "/non-existent/conssul-data-dir"
-node_name = "server-1"
-
-bind_addr = "0.0.0.0"
-max_query_time = "800s"
-	`
-
-	clientHclConfig := `
-datacenter = "dc2"
-data_dir = "/non-existent/conssul-data-dir"
-node_name = "client-1"
-
-bind_addr = "0.0.0.0"
-max_query_time = "900s"
-	`
-
-	cluster, _, _ := topology.NewClusterWithConfig(t, &topology.ClusterConfig{
-		NumServers:                1,
-		NumClients:                1,
-		ApplyDefaultProxySettings: true,
-		BuildOpts: &libcluster.BuildOptions{
-			Datacenter:             "dc1",
-			InjectAutoEncryption:   true,
-			InjectGossipEncryption: true,
-			AllowHTTPAnyway:        true,
-		},
-	},
-		serverHclConfig,
-		clientHclConfig,
-	)
-
-	// Verify the provided server config is merged to agent config
-	serverConfig := cluster.Agents[0].GetConfig()
-	require.Contains(t, serverConfig.JSON, "\"max_query_time\":\"800s\"")
-
-	clientConfig := cluster.Agents[1].GetConfig()
-	require.Contains(t, clientConfig.JSON, "\"max_query_time\":\"900s\"")
-
-	_, clientService := topology.CreateServices(t, cluster, "grpc")
-	_, port := clientService.GetAddr()
-	_, adminPort := clientService.GetAdminAddr()
-
-	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
-	libassert.GRPCPing(t, fmt.Sprintf("localhost:%d", port))
-
-	// time.Sleep(9999 * time.Second)
 }

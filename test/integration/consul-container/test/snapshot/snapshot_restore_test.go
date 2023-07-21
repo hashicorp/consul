@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package snapshot
 
 import (
@@ -41,7 +38,7 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 		NumClients: 0,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:      "dc1",
-			ConsulImageName: utils.GetTargetImageName(),
+			ConsulImageName: utils.TargetImageName,
 			ConsulVersion:   utils.TargetVersion,
 			LogStore:        logStore,
 		},
@@ -70,7 +67,7 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 		NumClients: 0,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:      "dc1",
-			ConsulImageName: utils.GetTargetImageName(),
+			ConsulImageName: utils.TargetImageName,
 			ConsulVersion:   utils.TargetVersion,
 			LogStore:        logStore,
 		},
@@ -82,14 +79,9 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 	libcluster.WaitForMembers(t, client2, 3)
 
 	// Restore the saved snapshot
-	retry.RunWith(libcluster.LongFailer(), t, func(r *retry.R) {
-		require.NoError(r, client2.Snapshot().Restore(nil, snapshot))
-	})
+	require.NoError(t, client2.Snapshot().Restore(nil, snapshot))
 
 	libcluster.WaitForLeader(t, cluster2, client2)
-
-	leader, err := cluster2.Leader()
-	require.NoError(t, err)
 
 	followers, err := cluster2.Followers()
 	require.NoError(t, err)
@@ -98,17 +90,6 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 	// use a follower api client and set `AllowStale` to true
 	// to test the follower snapshot install code path as well.
 	fc := followers[0].GetClient()
-	lc := leader.GetClient()
-
-	retry.Run(t, func(r *retry.R) {
-		self, err := lc.Agent().Self()
-		require.NoError(r, err)
-		LeaderLogIndex := self["Stats"]["raft"].(map[string]interface{})["last_log_index"].(string)
-		self, err = fc.Agent().Self()
-		require.NoError(r, err)
-		followerLogIndex := self["Stats"]["raft"].(map[string]interface{})["last_log_index"].(string)
-		require.Equal(r, LeaderLogIndex, followerLogIndex)
-	})
 
 	// Follower might not have finished loading snapshot yet which means attempts
 	// could return nil or "key not found" for a while.

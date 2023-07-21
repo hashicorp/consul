@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Component from '@ember/component';
 import { get, set, computed } from '@ember/object';
 import { alias, equal, not } from '@ember/object/computed';

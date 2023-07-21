@@ -1,58 +1,58 @@
 {
-  "versionInfo": "00000001",
-  "resources": [
+  "versionInfo":  "00000001",
+  "resources":  [
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "grpc:1.2.3.4:8080",
-      "address": {
-        "socketAddress": {
-          "address": "1.2.3.4",
-          "portValue": 8080
+      "@type":  "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name":  "grpc:1.2.3.4:8080",
+      "address":  {
+        "socketAddress":  {
+          "address":  "1.2.3.4",
+          "portValue":  8080
         }
       },
-      "filterChains": [
+      "filterChains":  [
         {
-          "filters": [
+          "filters":  [
             {
-              "name": "envoy.filters.network.http_connection_manager",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream_8080",
-                "rds": {
-                  "configSource": {
-                    "ads": {},
-                    "resourceApiVersion": "V3"
+              "name":  "envoy.filters.network.http_connection_manager",
+              "typedConfig":  {
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "statPrefix":  "ingress_upstream_8080",
+                "rds":  {
+                  "configSource":  {
+                    "ads":  {},
+                    "resourceApiVersion":  "V3"
                   },
-                  "routeConfigName": "8080"
+                  "routeConfigName":  "8080"
                 },
-                "httpFilters": [
+                "httpFilters":  [
                   {
-                    "name": "envoy.filters.http.grpc_stats",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.grpc_stats.v3.FilterConfig",
-                      "statsForAllMethods": true
+                    "name":  "envoy.filters.http.grpc_stats",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_stats.v3.FilterConfig",
+                      "statsForAllMethods":  true
                     }
                   },
                   {
-                    "name": "envoy.filters.http.grpc_http1_bridge",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.grpc_http1_bridge.v3.Config"
+                    "name":  "envoy.filters.http.grpc_http1_bridge",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_http1_bridge.v3.Config"
                     }
                   },
                   {
-                    "name": "envoy.filters.http.router",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    "name":  "envoy.filters.http.router",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
                     }
                   }
                 ],
-                "tracing": {
-                  "randomSampling": {}
+                "tracing":  {
+                  "randomSampling":  {}
                 },
-                "http2ProtocolOptions": {},
-                "upgradeConfigs": [
+                "http2ProtocolOptions":  {},
+                "upgradeConfigs":  [
                   {
-                    "upgradeType": "websocket"
+                    "upgradeType":  "websocket"
                   }
                 ]
               }
@@ -60,9 +60,9 @@
           ]
         }
       ],
-      "trafficDirection": "OUTBOUND"
+      "trafficDirection":  "OUTBOUND"
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "typeUrl":  "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "nonce":  "00000001"
 }

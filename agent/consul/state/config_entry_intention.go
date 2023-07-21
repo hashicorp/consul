@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -79,122 +76,6 @@ func (s *ServiceIntentionLegacyIDIndex) PrefixFromArgs(args ...interface{}) ([]b
 	return val, nil
 }
 
-type SamenessGroupMemberIndex struct {
-}
-
-// Compile-time assert that these interfaces hold to ensure that the
-// methods correctly exist across the oss/ent split.
-var _ memdb.Indexer = (*SamenessGroupMemberIndex)(nil)
-var _ memdb.MultiIndexer = (*SamenessGroupMemberIndex)(nil)
-
-func (s *SamenessGroupMemberIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
-	entry, ok := obj.(structs.ConfigEntry)
-	if !ok {
-		return false, nil, fmt.Errorf("object is not a ConfigEntry")
-	}
-
-	sg, ok := entry.(*structs.SamenessGroupConfigEntry)
-	if !ok {
-		return false, nil, nil
-	}
-
-	vals := make([][]byte, 0)
-	for _, m := range sg.AllMembers() {
-		if m.Partition == "" {
-			continue
-		}
-
-		// add 1 for null separator after each string
-		buf := newIndexBuilder(len(m.Partition) + 1)
-		buf.String(m.Partition)
-		vals = append(vals, buf.Bytes())
-	}
-
-	if len(vals) == 0 {
-		return false, nil, nil
-	}
-
-	return true, vals, nil
-}
-
-func (s *SamenessGroupMemberIndex) FromArgs(args ...interface{}) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("must provide only a single argument")
-	}
-	arg, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("argument must be a string: %#v", args[0])
-	}
-	buf := newIndexBuilder(len(arg) + 1)
-	buf.String(arg)
-	// Add the null character as a terminator
-	return buf.Bytes(), nil
-}
-
-type ServiceIntentionSourceSamenessGroupIndex struct {
-}
-
-// Compile-time assert that these interfaces hold to ensure that the
-// methods correctly exist across the oss/ent split.
-var _ memdb.Indexer = (*ServiceIntentionSourceSamenessGroupIndex)(nil)
-var _ memdb.MultiIndexer = (*ServiceIntentionSourceSamenessGroupIndex)(nil)
-
-func (s *ServiceIntentionSourceSamenessGroupIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
-	entry, ok := obj.(structs.ConfigEntry)
-	if !ok {
-		return false, nil, fmt.Errorf("object is not a ConfigEntry")
-	}
-
-	ixnEntry, ok := entry.(*structs.ServiceIntentionsConfigEntry)
-	if !ok {
-		return false, nil, nil
-	}
-
-	vals := make([][]byte, 0, len(ixnEntry.Sources))
-	for _, src := range ixnEntry.Sources {
-		sg := src.SamenessGroup
-		if sg == "" {
-			continue
-		}
-
-		sn := structs.ServiceName{
-			Name:           src.Name,
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(ixnEntry.PartitionOrDefault(), src.NamespaceOrDefault()),
-		}.String()
-
-		// add 2 for null separator after each string
-		buf := newIndexBuilder(len(sg) + len(sn) + 2)
-		buf.String(sg)
-		buf.String(sn)
-		vals = append(vals, buf.Bytes())
-	}
-
-	if len(vals) == 0 {
-		return false, nil, nil
-	}
-
-	return true, vals, nil
-}
-
-func (s *ServiceIntentionSourceSamenessGroupIndex) FromArgs(args ...interface{}) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("must provide only a single argument")
-	}
-	arg, ok := args[0].(structs.ServiceNameWithSamenessGroup)
-	if !ok {
-		return nil, fmt.Errorf("argument must be a structs.ServiceID: %#v", args[0])
-	}
-	// Intention queries cannot use a peered service as a source
-	sg := arg.SamenessGroup
-	sn := arg.ServiceName.String()
-	// add 2 for null separator after each string
-	buf := newIndexBuilder(len(sg) + len(sn) + 2)
-	buf.String(sg)
-	buf.String(sn)
-	// Add the null character as a terminator
-	return buf.Bytes(), nil
-}
-
 type ServiceIntentionSourceIndex struct {
 }
 
@@ -220,10 +101,6 @@ func (s *ServiceIntentionSourceIndex) FromObject(obj interface{}) (bool, [][]byt
 
 	vals := make([][]byte, 0, len(ixnEntry.Sources))
 	for _, src := range ixnEntry.Sources {
-		if src.SamenessGroup != "" {
-			continue
-		}
-
 		peer := src.Peer
 		if peer == "" {
 			peer = structs.LocalPeerKeyword
@@ -402,11 +279,6 @@ func readSourceIntentionsFromConfigEntriesTxn(
 		if err != nil {
 			return 0, nil, err
 		}
-
-		results, err = readSourceSamenessIntentionsFromConfigEntriesForServiceTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, results, targetType)
-		if err != nil {
-			return 0, nil, err
-		}
 	}
 
 	// Sort the results by precedence
@@ -419,11 +291,12 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
-	sourceEntMeta *acl.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	results structs.Intentions,
 	targetType structs.IntentionTargetType,
 ) (structs.Intentions, error) {
-	sn := structs.NewServiceName(serviceName, sourceEntMeta)
+	sn := structs.NewServiceName(serviceName, entMeta)
+
 	iter, err := tx.Get(tableConfigEntries, indexSource, sn)
 	if err != nil {
 		return nil, fmt.Errorf("failed config entry lookup: %s", err)
@@ -433,58 +306,35 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(
 	for v := iter.Next(); v != nil; v = iter.Next() {
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
 		entMeta := entry.DestinationServiceName().EnterpriseMeta
-
-		kind, err := serviceIntentionsToGatewayServiceKind(tx, entry.DestinationServiceName().Name, entMeta)
-		if err != nil {
-			return nil, err
+		// if we have a wildcard namespace or partition assume we are querying a service intention
+		// as destination intentions will never be queried as wildcard
+		kind := structs.GatewayServiceKindService
+		if entMeta.NamespaceOrDefault() != acl.WildcardName && entMeta.PartitionOrDefault() != acl.WildcardName {
+			kind, err = GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+			if err != nil {
+				return nil, err
+			}
 		}
-
 		for _, src := range entry.Sources {
 			if src.SourceServiceName() == sn {
-				canAdd, err := intentionMatches(targetType, kind, entry.HasWildcardDestination())
-				if err != nil {
-					return nil, err
-				}
-
-				if canAdd {
-					results = append(results, entry.ToIntention(src))
+				switch targetType {
+				case structs.IntentionTargetService:
+					if kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown {
+						results = append(results, entry.ToIntention(src))
+					}
+				case structs.IntentionTargetDestination:
+					// wildcard is needed here to be able to consider destinations in the wildcard intentions
+					if kind == structs.GatewayServiceKindDestination || entry.HasWildcardDestination() {
+						results = append(results, entry.ToIntention(src))
+					}
+				default:
+					return nil, fmt.Errorf("invalid target type")
 				}
 			}
 		}
 	}
 
 	return results, nil
-}
-
-func serviceIntentionsToGatewayServiceKind(tx ReadTxn, serviceName string, entMeta acl.EnterpriseMeta) (structs.GatewayServiceKind, error) {
-	var err error
-	kind := structs.GatewayServiceKindService
-
-	// if we have a wildcard namespace or partition assume we are querying a service intention
-	// as destination intentions will never be queried as wildcard
-	if entMeta.NamespaceOrDefault() != acl.WildcardName && entMeta.PartitionOrDefault() != acl.WildcardName {
-		kind, err = GatewayServiceKind(tx, serviceName, &entMeta)
-		if err != nil {
-			return kind, err
-		}
-	}
-
-	return kind, nil
-}
-
-func intentionMatches(targetType structs.IntentionTargetType, kind structs.GatewayServiceKind, wildcardDestination bool) (bool, error) {
-	var canAdd bool
-	switch targetType {
-	case structs.IntentionTargetService:
-		canAdd = kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown
-	case structs.IntentionTargetDestination:
-		// wildcard is needed here to be able to consider destinations in the wildcard intentions
-		canAdd = kind == structs.GatewayServiceKindDestination || wildcardDestination
-	default:
-		return false, fmt.Errorf("invalid target type")
-	}
-
-	return canAdd, nil
 }
 
 func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, error) {

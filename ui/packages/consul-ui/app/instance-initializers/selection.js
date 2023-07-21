@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { env } from 'consul-ui/env';
 
 const SECONDARY_BUTTON = 2;

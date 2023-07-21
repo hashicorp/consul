@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import domEventSourceStorage from 'consul-ui/utils/dom/event-source/storage';
 import { module, test } from 'qunit';
 
