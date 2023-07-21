@@ -6,6 +6,7 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v1alpha1;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/wrappers.proto";
 import "pbcatalog/v1alpha1/protocol.proto";
 import "pbcatalog/v1alpha1/selector.proto";
 import "pbmesh/v1alpha1/connection.proto";
@@ -73,18 +74,18 @@ message UpstreamConfig {
 message UpstreamLimits {
   // max_connections is the maximum number of connections the local proxy can
   // make to the upstream service.
-  int32 max_connections = 1;
+  google.protobuf.UInt32Value max_connections = 1;
 
   // max_pending_requests is the maximum number of requests that will be queued
   // waiting for an available connection. This is mostly applicable to HTTP/1.1
   // clusters since all HTTP/2 requests are streamed over a single
   // connection.
-  int32 max_pending_requests = 2;
+  google.protobuf.UInt32Value max_pending_requests = 2;
 
   // max_concurrent_requests is the maximum number of in-flight requests that will be allowed
   // to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
   // clusters since all HTTP/1.1 requests are limited by MaxConnections.
-  int32 max_concurrent_requests = 3;
+  google.protobuf.UInt32Value max_concurrent_requests = 3;
 }
 
 message PassiveHealthCheck {
