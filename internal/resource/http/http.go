@@ -8,7 +8,9 @@ import (
 	"path"
 	"strings"
 
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -104,8 +106,25 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		},
 	})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("Failed to write to GRPC resource", "error", err)
+		if e, ok := status.FromError(err); ok {
+			switch e.Code() {
+			case codes.PermissionDenied:
+				w.WriteHeader(http.StatusForbidden)
+				h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
+			case codes.Internal:
+				w.WriteHeader(http.StatusInternalServerError)
+				h.logger.Error("Failed to write to GRPC resource: Internal error", "error", err)
+			case codes.Aborted:
+				w.WriteHeader(http.StatusInternalServerError)
+				h.logger.Error("Failed to write to GRPC resource: GRPC aborted", "error", err)
+			default:
+				w.WriteHeader(http.StatusInternalServerError)
+				h.logger.Error("Failed to write to GRPC resource", "error", err)
+			}
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Error("Failed to write to GRPC resource: not able to parse error returned", "error", err)
+		}
 		return
 	}
 
