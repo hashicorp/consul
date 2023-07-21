@@ -371,7 +371,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "amd64", "arm", "arm64", "s390x"]
+        arch: ["386", "amd64", "arm", "arm64"]
       fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
