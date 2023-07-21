@@ -35,7 +35,6 @@ jobs:
           go-version-file: '${{inputs.directory}}/go.mod'
           cache: false
       - id: cachekey
-        working-directory: "${{ inputs.directory }}"
         run: |
           GOMODULENAME="$(go list -m)" \
           .github/scripts/cachekey_GOMODCACHE.sh 
