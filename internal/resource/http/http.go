@@ -53,41 +53,12 @@ func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.parseToken(r, &token)
 	ctx := metadata.AppendToOutgoingContext(r.Context(), "x-consul-token", token)
 	switch r.Method {
-	case http.MethodGet:
-		h.handleRead(w, r, ctx)
 	case http.MethodPut:
 		h.handleWrite(w, r, ctx)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-}
-
-func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	tenancyInfo, _ := checkURL(r)
-	if tenancyInfo == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
-		Id: &pbresource.ID{
-			Type:    h.reg.Type,
-			Tenancy: tenancyInfo,
-			Name:    r.URL.Path,
-		},
-	})
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	output, err := jsonMarshal(rsp.Resource)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Write(output)
 }
 
 func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ctx context.Context) {
