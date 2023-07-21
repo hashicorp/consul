@@ -57,6 +57,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbautoconf"
@@ -322,6 +323,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					Tokens:          new(token.Store),
 					TLSConfigurator: tlsConf,
 					GRPCConnPool:    &fakeGRPCConnPool{},
+					Registry:        resource.NewRegistry(),
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
@@ -344,6 +346,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 			require.NoError(t, err)
 
 			a, err := New(bd)
+			a.delegate = &delegateMock{}
 			require.NoError(t, err)
 
 			a.startLicenseManager(testutil.TestContext(t))
@@ -5477,6 +5480,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 			Tokens:          new(token.Store),
 			TLSConfigurator: tlsConf,
 			GRPCConnPool:    &fakeGRPCConnPool{},
+			Registry:        resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{
@@ -5499,6 +5503,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	agent.delegate = &delegateMock{}
 	require.NoError(t, err)
 
 	agent.startLicenseManager(testutil.TestContext(t))
@@ -6073,6 +6078,7 @@ func TestAgent_startListeners(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
+			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{},
@@ -6091,6 +6097,7 @@ func TestAgent_startListeners(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	agent.delegate = &delegateMock{}
 	require.NoError(t, err)
 
 	// use up an address
@@ -6213,6 +6220,7 @@ func TestAgent_startListeners_scada(t *testing.T) {
 			HCP: hcp.Deps{
 				Provider: pvd,
 			},
+			Registry: resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
@@ -6230,6 +6238,7 @@ func TestAgent_startListeners_scada(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	agent.delegate = &delegateMock{}
 	require.NoError(t, err)
 
 	_, err = agent.startListeners([]net.Addr{c})
@@ -6273,6 +6282,7 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
+			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
@@ -6284,6 +6294,7 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 		Config:      leafcert.Config{},
 	})
 	agent, err := New(bd)
+	agent.delegate = &delegateMock{}
 	require.NoError(t, err)
 
 	// Test that an ErrNotExist OS error is treated as ok.
