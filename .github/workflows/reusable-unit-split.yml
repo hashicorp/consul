@@ -121,6 +121,16 @@ jobs:
       - name: Make sure consul is executable
         run: chmod +x $GITHUB_WORKSPACE/${{inputs.directory}}/consul
       - run: go env
+      # build and run are split out so we can monitor timing
+      # TODO: actually run the test binary?
+      - name: build tests
+        working-directory: ${{inputs.directory}}
+        run: |
+          # separate the list
+          PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
+          for p in $PACKAGE_NAMES; do
+            go test -tags="${{env.GOTAGS}}" -c $p
+          done
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
@@ -128,6 +138,7 @@ jobs:
           PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
           # PACKAGE_NAMES="${{ matrix.package }}"
 
+          # TODO: not sure why this is floating here all by itself
           ${{inputs.go-test-flags}}
           
           # some tests expect this umask, and arm images have a different default
