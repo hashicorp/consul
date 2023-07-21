@@ -41,6 +41,7 @@ message Header {
 }
 
 enum AppendAction {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD = 0;
   APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD = 1;
 }

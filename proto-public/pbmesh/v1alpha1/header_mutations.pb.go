@@ -26,6 +26,7 @@ const (
 type AppendAction int32
 
 const (
+	// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
 	AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD    AppendAction = 0
 	AppendAction_APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD AppendAction = 1
 )

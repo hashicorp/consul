@@ -6,7 +6,6 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v1alpha1;
 
 import "google/protobuf/wrappers.proto";
-import "pbmesh/v1alpha1/address.proto";
 import "pbmesh/v1alpha1/connection.proto";
 import "pbmesh/v1alpha1/intentions.proto";
 import "pbmesh/v1alpha1/transport_socket.proto";
@@ -46,6 +45,7 @@ enum Direction {
 
 // Capabilities map to proxy functionality to enable. These enable tproxy, l7 protocol/alpn inspection, or l4 sni/alpn inspection.
 enum Capability {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   CAPABILITY_TRANSPARENT = 0;
   CAPABILITY_L7_PROTOCOL_INSPECTION = 1;
   CAPABILITY_L4_TLS_INSPECTION = 2;
@@ -112,9 +112,9 @@ message L7Destination {
 
 enum L7Protocol {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
-  PROTOCOL_HTTP = 0;
-  PROTOCOL_HTTP2 = 1;
-  PROTOCOL_GRPC = 2;
+  L7_PROTOCOL_HTTP = 0;
+  L7_PROTOCOL_HTTP2 = 1;
+  L7_PROTOCOL_GRPC = 2;
 }
 
 message SNIDestination {

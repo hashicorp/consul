@@ -25,6 +25,7 @@ message Endpoint {
 }
 
 enum HealthStatus {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   HEALTH_STATUS_UNKNOWN = 0;
   HEALTH_STATUS_HEALTHY = 1;
   HEALTH_STATUS_UNHEALTHY = 2;

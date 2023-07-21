@@ -168,6 +168,7 @@ message DNSEndpointGroupConfig {
 }
 
 enum DiscoveryType {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   DISCOVERY_TYPE_LOGICAL = 0;
   DISCOVERY_TYPE_STRICT = 1;
 }

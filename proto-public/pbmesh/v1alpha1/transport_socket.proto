@@ -5,7 +5,6 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1;
 
-import "pbmesh/v1alpha1/references.proto";
 
 message TLS {
   // inbound_tls_parameters has default TLS parameter configuration for inbound connections. These can be overridden per
@@ -109,6 +108,7 @@ message TrustBundle {
 }
 
 enum TLSVersion {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   TLS_VERSION_AUTO = 0;
   TLS_VERSION_1_0 = 1;
   TLS_VERSION_1_1 = 2;
@@ -119,6 +119,7 @@ enum TLSVersion {
 }
 
 enum TLSCipherSuite {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   TLS_CIPHER_SUITE_ECDHE_ECDSA_AES128_GCM_SHA256 = 0;
   TLS_CIPHER_SUITE_ECDHE_ECDSA_CHACHA20_POLY1305 = 1;
   TLS_CIPHER_SUITE_ECDHE_RSA_AES128_GCM_SHA256 = 2;

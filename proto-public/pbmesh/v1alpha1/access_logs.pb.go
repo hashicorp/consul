@@ -26,6 +26,7 @@ const (
 type LogSinkType int32
 
 const (
+	// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
 	LogSinkType_LOG_SINK_TYPE_DEFAULT LogSinkType = 0
 	LogSinkType_LOG_SINK_TYPE_FILE    LogSinkType = 1
 	LogSinkType_LOG_SINK_TYPE_STDERR  LogSinkType = 2

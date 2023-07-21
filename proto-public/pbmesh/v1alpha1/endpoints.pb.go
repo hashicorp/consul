@@ -27,6 +27,7 @@ const (
 type HealthStatus int32
 
 const (
+	// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
 	HealthStatus_HEALTH_STATUS_UNKNOWN   HealthStatus = 0
 	HealthStatus_HEALTH_STATUS_HEALTHY   HealthStatus = 1
 	HealthStatus_HEALTH_STATUS_UNHEALTHY HealthStatus = 2

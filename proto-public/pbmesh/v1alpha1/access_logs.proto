@@ -24,6 +24,7 @@ message AccessLogs {
 }
 
 enum LogSinkType {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   LOG_SINK_TYPE_DEFAULT = 0;
   LOG_SINK_TYPE_FILE = 1;
   LOG_SINK_TYPE_STDERR = 2;

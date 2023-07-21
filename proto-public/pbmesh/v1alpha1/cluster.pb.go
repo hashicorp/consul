@@ -28,6 +28,7 @@ const (
 type DiscoveryType int32
 
 const (
+	// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
 	DiscoveryType_DISCOVERY_TYPE_LOGICAL DiscoveryType = 0
 	DiscoveryType_DISCOVERY_TYPE_STRICT  DiscoveryType = 1
 )
