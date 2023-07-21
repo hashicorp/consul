@@ -190,6 +190,20 @@ jobs:
     outputs:
       key: "${{ steps.main.outputs.cachekey_GOMODCACHE }}"
 
+  go-cache-key-GOMODCACHE_api:
+    needs:
+    - setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    env:
+      GOMODULENAME: "github.com/hashicorp/consul/api"
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - id: main
+        run: |
+          .github/scripts/cachekey_GOMODCACHE.sh
+    outputs:
+      key: "${{ steps.main.outputs.cachekey_GOMODCACHE }}"
+
   # TODO: matrix?
   go-mod-download_root:
     needs:
@@ -199,6 +213,18 @@ jobs:
     with:
       directory: "."
       cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_root.outputs.key }}"
+      repository-name: ${{ github.repository }}
+      # XL is probably overkill?
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+
+  go-mod-download_api:
+    needs:
+    - setup
+    - go-cache-key-GOMODCACHE_api
+    uses: ./.github/workflows/reusable-go-mod-download.yml
+    with:
+      directory: "."
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_api.outputs.key }}"
       repository-name: ${{ github.repository }}
       # XL is probably overkill?
       runs-on: ${{ needs.setup.outputs.compute-xl }}
@@ -288,6 +314,7 @@ jobs:
     if: ${{ endsWith(github.repository, '-enterprise') }}
     needs:
     - setup
+    - go-cache-key-GOMODCACHE_root
     - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
@@ -296,6 +323,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_root.outputs.key }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -308,6 +336,7 @@ jobs:
     needs:
     - setup
     - dev-build
+    - go-cache-key-GOMODCACHE_root
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
@@ -316,6 +345,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_root.outputs.key }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -328,6 +358,7 @@ jobs:
     needs:
     - setup
     - dev-build
+    - go-cache-key-GOMODCACHE_root
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
@@ -336,6 +367,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_root.outputs.key }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -349,6 +381,7 @@ jobs:
     needs:
     - setup
     - dev-build-s390x
+    - go-cache-key-GOMODCACHE_root
     uses: ./.github/workflows/reusable-unit.yml
     with:
       uploaded-binary-name: 'consul-bin-s390x'
@@ -357,6 +390,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_root.outputs.key }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -405,6 +439,7 @@ jobs:
     needs:
     - setup
     - dev-build
+    - go-cache-key-GOMODCACHE_api
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: api
@@ -412,6 +447,8 @@ jobs:
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.19"
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_api.outputs.key }}"
+
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -424,6 +461,7 @@ jobs:
     needs:
     - setup
     - dev-build
+    - go-cache-key-GOMODCACHE_api
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: api
@@ -431,6 +469,7 @@ jobs:
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.20"
+      cachekey_GOMODCACHE: "${{ needs.go-cache-key-GOMODCACHE_api.outputs.key }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
