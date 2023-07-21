@@ -1,0 +1,32 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+message AccessLogs {
+  // enabled enables access logging.
+  bool enabled = 1;
+  // disable_listener_logs turns off just listener logs for connections rejected by Envoy because they don't
+  // have a matching listener filter.
+  bool disable_listener_logs = 2;
+  // type selects the output for logs: "file", "stderr". "stdout"
+  LogSinkType type = 3;
+  // path is the output file to write logs
+  string path = 4;
+  // The presence of one format string or the other implies the access log string encoding.
+  // Defining both is invalid.
+  oneof format {
+    string json = 5;
+    string text = 6;
+  }
+}
+
+enum LogSinkType {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  LOG_SINK_TYPE_DEFAULT = 0;
+  LOG_SINK_TYPE_FILE = 1;
+  LOG_SINK_TYPE_STDERR = 2;
+  LOG_SINK_TYPE_STDOUT = 3;
+}

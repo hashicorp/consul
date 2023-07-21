@@ -107,9 +107,7 @@
                     "name": "envoy.filters.http.rbac",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules": {
-
-                      }
+                      "rules": {}
                     }
                   },
                   {
@@ -120,13 +118,14 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
-
-                  }
+                  "randomSampling": {}
                 },
-                "http2ProtocolOptions": {
-
-                }
+                "http2ProtocolOptions": {},
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],
@@ -135,9 +134,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {

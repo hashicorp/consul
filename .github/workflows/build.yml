@@ -26,7 +26,7 @@ jobs:
       pre-version: ${{ steps.set-product-version.outputs.prerelease-product-version }}
       shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: set product version
         id: set-product-version
         uses: hashicorp/actions-set-product-version@v1
@@ -65,7 +65,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
       - name: 'Checkout directory'
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Generate metadata file
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@v1
@@ -84,23 +84,23 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.4", goos: "linux", goarch: "386"}
-          - {go: "1.20.4", goos: "linux", goarch: "amd64"}
-          - {go: "1.20.4", goos: "linux", goarch: "arm"}
-          - {go: "1.20.4", goos: "linux", goarch: "arm64"}
-          - {go: "1.20.4", goos: "freebsd", goarch: "386"}
-          - {go: "1.20.4", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.20.4", goos: "windows", goarch: "386"}
-          - {go: "1.20.4", goos: "windows", goarch: "amd64"}
-          - {go: "1.20.4", goos: "solaris", goarch: "amd64"}
+          - {go: "1.20.6", goos: "linux", goarch: "386"}
+          - {go: "1.20.6", goos: "linux", goarch: "amd64"}
+          - {go: "1.20.6", goos: "linux", goarch: "arm"}
+          - {go: "1.20.6", goos: "linux", goarch: "arm64"}
+          - {go: "1.20.6", goos: "freebsd", goarch: "386"}
+          - {go: "1.20.6", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.20.6", goos: "windows", goarch: "386"}
+          - {go: "1.20.6", goos: "windows", goarch: "amd64"}
+          - {go: "1.20.6", goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
           node-version: '14'
           cache: 'yarn'
@@ -181,15 +181,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.4", goos: "linux", goarch: "s390x"}
+          - {go: "1.20.6", goos: "linux", goarch: "s390x"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
           node-version: '14'
           cache: 'yarn'
@@ -232,15 +232,15 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64", "arm64" ]
-        go: [ "1.20.4" ]
+        go: [ "1.20.6" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
           node-version: '14'
           cache: 'yarn'
@@ -288,7 +288,7 @@ jobs:
       version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
       # This naming convention will be used ONLY for per-commit dev images
@@ -322,7 +322,7 @@ jobs:
       version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - uses: hashicorp/actions-docker-build@v1
         with:
           version: ${{env.version}}
@@ -342,7 +342,7 @@ jobs:
       version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
       # This naming convention will be used ONLY for per-commit dev images
@@ -371,7 +371,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "amd64", "arm", "arm64", "s390x"]
+        arch: ["386", "amd64", "arm", "arm64"]
       fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
@@ -379,7 +379,7 @@ jobs:
 
     name: Verify ${{ matrix.arch }} linux binary
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
 
       - name: Download ${{ matrix.arch  }} zip
@@ -389,7 +389,7 @@ jobs:
           name: ${{ env.zip_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # v2.1.0
+        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
         if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
         with:
           # this should be a comma-separated string as opposed to an array
@@ -412,7 +412,7 @@ jobs:
 
     name: Verify amd64 darwin binary
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Download amd64 darwin zip
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
@@ -439,7 +439,7 @@ jobs:
 
     name: Verify ${{ matrix.arch }} debian package
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Set package version
         run: |
@@ -455,7 +455,7 @@ jobs:
           name: ${{ env.pkg_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # v2.1.0
+        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
         with:
           platforms: all
 
@@ -476,7 +476,7 @@ jobs:
 
     name: Verify ${{ matrix.arch }} rpm
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Set package version
         run: |
@@ -492,7 +492,7 @@ jobs:
           name: ${{ env.pkg_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # v2.1.0
+        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
         with:
           platforms: all
 
