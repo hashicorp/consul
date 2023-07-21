@@ -64,7 +64,7 @@ env:
   
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
     outputs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
       go-version: ${{ steps.setup_go.outputs.go-version }}
