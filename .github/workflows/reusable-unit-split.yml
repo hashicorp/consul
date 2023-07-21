@@ -84,6 +84,8 @@ jobs:
           path: ~/go/pkg/mod       
       - id: set-matrix
         run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
+      # TODO: prime the cache in a job before this one so it can be shared 
+      # between compatible invocations
       - id: cachekey
         working-directory: "${{ inputs.directory }}"
         run: |
@@ -94,10 +96,14 @@ jobs:
         with:
           key: "${{ steps.cachekey.outputs.cachekey_GOCACHE }}"
           path: ~/.cache/go-build
-      - name: build tests
+      - name: build all test packages
         run: |
           # for some reason go test -c ./... is not possible
-          for p in $(go list ./...); do
+          # stolen from set_test_package_matrix, lists only packages with tests in them
+          packages=$(go list -json="ImportPath,TestGoFiles" ./... | \
+            jq --compact-output '. | select(.TestGoFiles != null) | .ImportPath' | \
+            jq --slurp --compact-output -r '.[]')
+          for p in ${packages}; do
             go test -c "$p"
           done
       - name: save GOCACHE
