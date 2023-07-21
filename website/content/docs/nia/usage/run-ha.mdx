@@ -1,14 +1,16 @@
 ---
 layout: docs
-page_title: Run Consul-Terraform-Sync with High Availability
+page_title: Run Consul-Terraform-Sync with high availability
 description: >-
   Improve network automation resiliency by enabling high availability for Consul-Terraform-Sync. HA enables persistent task and event data so that CTS functions as expected during a failover event.
 ---
 
-# Run Consul-Terraform-Sync with High Availability
+# Run Consul-Terraform-Sync with high availability
+
 <EnterpriseAlert>
-  Licenses are only required for Consul-Terraform-Sync (CTS) Enterprise
+  An enterpise license is only required for enterprise distributions of Consul-Terraform-Sync (CTS).
 </EnterpriseAlert>
+
 This topic describes how to run Consul-Terraform-Sync (CTS) configured for high availability. High availability is an enterprise capability that ensures that all changes to Consul that occur during a failover transition are processed and that CTS continues to operate as expected.
 
 ## Introduction
@@ -120,9 +122,9 @@ When high availability is enabled, CTS persists task and event data. Refer to [S
 
 You can use the following methods for modifying tasks when high availability is enabled. We recommend choosing a single method to make all task configuration changes because inconsistencies between the state and the configuration can occur when mixing methods.
 
-### Delete and recreate the task (recommended)
+### Delete and recreate the task 
  
-Use the CTS API to identify the CTS leader instance as well as delete and replace a task. 
+We recommend deleting and recreating a task if you need to make a modification. Use the CTS API to identify the CTS leader instance and replace a task. 
 
 1. Identify the leader CTS instance by either making a call to the [`status/cluster` API endpoint](/consul/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
 
@@ -143,7 +145,7 @@ Use the CTS API to identify the CTS leader instance as well as delete and replac
   --request POST \  
   --data @payload.json \
   localhost:8558/v1/tasks
-``` 
+  ``` 
   
   You can also use the [`task-create` command](/consul/docs/nia/cli/task#task-create) to complete this step.
 
