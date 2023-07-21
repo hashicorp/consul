@@ -5,7 +5,6 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1;
 
-
 message TLS {
   // inbound_tls_parameters has default TLS parameter configuration for inbound connections. These can be overridden per
   // transport socket.
