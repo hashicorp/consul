@@ -26,6 +26,10 @@ on:
         required: false
         type: number
         default: 1
+      go-build-flags:
+        required: false
+        type: string
+        default: ""
       go-test-flags:
         required: false
         type: string
@@ -83,8 +87,8 @@ jobs:
       - id: cachekey
         working-directory: "${{ inputs.directory }}"
         run: |
-          # kind:go-version:module-name:GOARCH:GOTAGS
-          echo "cachekey_GOCACHE=GOCACHEv0:${{ steps.setup_go.outputs.go-version }}:$(go list -m):${GOARCH}:${GOTAGS}" >> "$GITHUB_OUTPUT"
+          # kind:go-version:GOARCH:GOTAGS:GOBUILDFLAGS
+          echo "cachekey_GOCACHE=GOCACHEv0:${{ steps.setup_go.outputs.go-version }}:${GOARCH}:${GOTAGS}:${GOBUILDFLAGS}" >> "$GITHUB_OUTPUT"
       - name: restore GOCACHE
         uses: actions/cache/restore@v3
         with:
