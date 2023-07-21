@@ -72,7 +72,7 @@ func TestAccessLogs(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, set)
 
-	serverService, clientService := topology.CreateServices(t, cluster)
+	serverService, clientService := topology.CreateServices(t, cluster, "http")
 	_, port := clientService.GetAddr()
 
 	// Validate Custom JSON

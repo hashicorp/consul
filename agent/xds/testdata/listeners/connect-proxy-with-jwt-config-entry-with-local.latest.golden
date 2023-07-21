@@ -231,7 +231,12 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],

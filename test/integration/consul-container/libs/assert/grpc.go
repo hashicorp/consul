@@ -26,6 +26,7 @@ func GRPCPing(t *testing.T, addr string) {
 	var msg *fgrpc.PingMessage
 	retries := 0
 	retry.RunWith(&retry.Timer{Timeout: time.Minute, Wait: 25 * time.Millisecond}, t, func(r *retry.R) {
+		t.Logf("making grpc call to %s", addr)
 		retries += 1
 		msg, err = pingCl.Ping(context.Background(), &fgrpc.PingMessage{
 			// use addr as payload so we have something variable to check against
