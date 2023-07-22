@@ -32,6 +32,8 @@ on:
     secrets:
       elevated-github-token:
         required: true
+env:
+  GOARCH: "${{ inputs.go-arch }}"
 jobs:
   build:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
