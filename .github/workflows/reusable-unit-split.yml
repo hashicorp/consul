@@ -102,6 +102,13 @@ jobs:
           for p in ${packages}; do
             go test -c "$p"
           done
+      # github doesn't let you overwrite a cache, so we just delete it first
+      - name: delete old GOCACHE
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete --confirm -B "$GITHUB_REF" "${{ inputs.cachekey_GOCACHE }}" || true
+        env:
+          GITHUB_TOKEN: "${{ secrets.elevated-github-token}}"
       - name: save GOCACHE
         uses: actions/cache/save@v3
         with:
