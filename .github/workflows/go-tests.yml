@@ -246,7 +246,6 @@ jobs:
   #   - dev-build-arm64
   #   uses: ./.github/workflows/reusable-unit-split.yml
   #   with:
-  #     directory: .
   #     uploaded-binary-name: 'consul-bin-arm64'
   #     runner-count: 12
   #     runs-on: "['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']"
@@ -264,12 +263,11 @@ jobs:
     - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
-      directory: .
       runner-count: 12
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      # TODO: why set this? it's always the same?
       repository-name: ${{ github.repository }}
-      go-tags: ""
-      go-version: "1.20.6"
+      cachekey_GOCACHE: "${{ needs.dev-build.outputs.cachekey_GOCACHE }}"
       cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -287,7 +285,6 @@ jobs:
   #   - dev-build
   #   uses: ./.github/workflows/reusable-unit-split.yml
   #   with:
-  #     directory: .
   #     runner-count: 12
   #     runs-on: ${{ needs.setup.outputs.compute-xl }}
   #     repository-name: ${{ github.repository }}

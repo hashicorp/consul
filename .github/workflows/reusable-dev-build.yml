@@ -18,26 +18,41 @@ on:
         required: false
         type: string
         default: "amd64"
+      go-version:
+        required: false
+        type: string
+        default: "1.20.6"
       cachekey_GOMODCACHE:
         required: false
         type: string
         default: ""
+    outputs:
+      cachekey_GOCACHE:
+        value: "${{ jobs.build.outputs.cachekey_GOCACHE }}"
     secrets:
       elevated-github-token:
         required: true
 jobs:
   build:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
+    outputs:
+      cachekey_GOCACHE: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - id: setup_go 
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: "${{ inputs.go-version }}"
           cache: false
+      - id: cachekey_GOCACHE
+        run: |
+          GOVERSION="${{ steps.setup_go.outputs.go-version }}" \
+          GOPACKAGENAME="$( go -list -m )" \
+          .github/scripts/cachekey_GOCACHE.sh
       - name: restore GOMODCACHE
         uses: actions/cache/restore@v3
         if: "${{ inputs.cachekey_GOMODCACHE != '' }}"
@@ -46,10 +61,20 @@ jobs:
           path: ~/go/pkg/mod 
       # this should take no time at all, since we should hit GOMODCACHE
       - run: go mod download
+      - name: restore GOCACHE
+        uses: actions/cache/restore@v3
+        with:
+          key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
+          path: ~/.cache/go-build
       - name: Build
         env:
           GOARCH: ${{ inputs.go-arch }}
         run: make dev
+      - name: save GOCACHE
+        uses: actions/cache/save@v3
+        with:
+          key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
+          path: ~/.cache/go-build
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:

@@ -3,9 +3,6 @@ name: reusable-unit-split
 on:
   workflow_call:
     inputs:
-      directory:
-        required: true
-        type: string
       runs-on:
         description: An expression indicating which kind of runners to use.
         required: true
@@ -18,10 +15,6 @@ on:
         required: false
         type: string
         default: "consul-bin" 
-      args:
-        required: false
-        type: string
-        default: ""
       runner-count: 
         required: false
         type: number
@@ -46,6 +39,10 @@ on:
         type: string
         default: "1.20.6"
       cachekey_GOMODCACHE:
+        required: false
+        type: string
+        default: ""
+      cachekey_GOCACHE:
         required: false
         type: string
         default: ""
@@ -90,15 +87,11 @@ jobs:
         run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
       # TODO: prime the cache in a job before this one so it can be shared 
       # between compatible invocations
-      - id: cachekey
-        working-directory: "${{ inputs.directory }}"
-        run: |
-          # kind:go-version:GOARCH:GOTAGS:GOBUILDFLAGS
-          echo "cachekey_GOCACHE=GOCACHEv0:${{ steps.setup_go.outputs.go-version }}:${GOARCH}:${GOTAGS}:${GOBUILDFLAGS}" >> "$GITHUB_OUTPUT"
       - name: restore GOCACHE
         uses: actions/cache/restore@v3
+        if: "${{ inputs.cachekey_GOCACHE != '' }}"
         with:
-          key: "${{ steps.cachekey.outputs.cachekey_GOCACHE }}"
+          key: "${{ inputs.cachekey_GOCACHE }}"
           path: ~/.cache/go-build
       - name: build all test packages
         run: |
@@ -113,7 +106,7 @@ jobs:
       - name: save GOCACHE
         uses: actions/cache/save@v3
         with:
-          key: "${{ steps.cachekey.outputs.cachekey_GOCACHE }}"
+          key: "${{ inputs.cachekey_GOCACHE }}"
           path: ~/.cache/go-build
 
   go-test:
