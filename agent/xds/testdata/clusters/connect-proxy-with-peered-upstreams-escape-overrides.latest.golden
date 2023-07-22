@@ -28,11 +28,10 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "type": "LOGICAL_DNS",
-      "connectTimeout": "5s",
+      "name": "payments?peer=cloud:custom-upstream",
+      "connectTimeout": "15s",
       "loadAssignment": {
-        "clusterName": "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+        "clusterName": "payments?peer=cloud:custom-upstream",
         "endpoints": [
           {
             "lbEndpoints": [
@@ -40,26 +39,15 @@
                 "endpoint": {
                   "address": {
                     "socketAddress": {
-                      "address": "123.us-east-1.elb.notaws.com",
+                      "address": "1.2.3.4",
                       "portValue": 8443
                     }
                   }
-                },
-                "healthStatus": "HEALTHY",
-                "loadBalancingWeight": 1
+                }
               }
             ]
           }
         ]
-      },
-      "circuitBreakers": {},
-      "dnsRefreshRate": "10s",
-      "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-        "maxEjectionPercent": 100
-      },
-      "commonLbConfig": {
-        "healthyPanicThreshold": {}
       },
       "transportSocket": {
         "name": "tls",

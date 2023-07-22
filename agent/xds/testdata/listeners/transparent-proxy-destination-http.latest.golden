@@ -48,9 +48,7 @@
                 "statPrefix": "upstream.destination.443.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "rds": {
                   "configSource": {
-                    "ads": {
-
-                    },
+                    "ads": {},
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "destination.443.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
@@ -64,10 +62,13 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
-
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
                   }
-                }
+                ]
               }
             }
           ]
@@ -84,9 +85,7 @@
                 "statPrefix": "upstream.destination.9093.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "rds": {
                   "configSource": {
-                    "ads": {
-
-                    },
+                    "ads": {},
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "destination.9093.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
@@ -100,10 +99,13 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
-
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
                   }
-                }
+                ]
               }
             }
           ]
@@ -166,9 +168,7 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {
-
-                },
+                "rules": {},
                 "statPrefix": "connect_authz"
               }
             },
@@ -186,9 +186,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {

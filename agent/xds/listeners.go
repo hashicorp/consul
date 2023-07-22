@@ -167,7 +167,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil, err
 			}
 
-			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false, false)
+			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false)
 			if clusterName == "" {
 				continue
 			}
@@ -2469,6 +2469,10 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 			// explicitly propagates trace headers that indicate this should be
 			// sampled.
 			RandomSampling: &envoy_type_v3.Percent{Value: 0.0},
+		},
+		// Explicitly enable WebSocket upgrades for all HTTP listeners
+		UpgradeConfigs: []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
+			{UpgradeType: "websocket"},
 		},
 	}
 

@@ -41,6 +41,7 @@ Also see the [FAQ](./faq.md).
 1. [Integration Tests](../test/integration/connect/envoy/README.md)
 1. [Upgrade Tests](../test/integration/consul-container/test/upgrade/README.md)
 1. [Remote Debugging Integration Tests](../test/integration/consul-container/test/debugging.md)
+1. [Peering Common Topology Tests](../test-integ/peering_commontopo/README.md)
 
 ## Important Directories
 
