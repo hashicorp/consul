@@ -54,7 +54,7 @@ var (
 	ComputedRoutesType                  = types.ComputedRoutesType
 )
 
-// RegisterTypes adds all resource types within the "catalog" API group
+// RegisterTypes adds all resource types within the "mesh" API group
 // to the given type registry
 func RegisterTypes(r resource.Registry) {
 	types.Register(r)

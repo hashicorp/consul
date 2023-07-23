@@ -117,7 +117,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 		// cause this service to be rereconciled.
 		r.workloadMap.TrackIDForSelector(req.ID, serviceData.service.GetWorkloads())
 
-		// Now read and umarshal all workloads selected by the service. It is imperative
+		// Now read and unmarshal all workloads selected by the service. It is imperative
 		// that this happens after we notify the selection tracker to be tracking that
 		// selection criteria. If the order were reversed we could potentially miss
 		// workload creations that should be selected if they happen after gathering
