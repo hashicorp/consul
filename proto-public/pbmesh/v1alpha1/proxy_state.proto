@@ -19,7 +19,7 @@ message ProxyStateTemplate {
   // proxy_state is the partially filled out ProxyState resource. The Endpoints, LeafCertificates and TrustBundles fields will need filling in after the resource is stored.
   ProxyState proxy_state = 1;
 
-  // required_endpoints is a map of arbitrary string names to endpoint refs that need fetching by the proxy state controller.
+  // required_endpoints is a map of cluster names to endpoint refs that need fetching by the proxy state controller.
   map<string, EndpointRef> required_endpoints = 2;
 
   // required_leaf_certificates is a map of arbitrary string names to leaf certificates that need fetching/generation by the proxy state controller.
@@ -30,8 +30,9 @@ message ProxyStateTemplate {
 }
 
 message ProxyState {
-  // id is this proxy's ID.
-  hashicorp.consul.resource.ID id = 1;
+  // id is this proxy's identity. This should correspond to the workload identity that this proxy of
+  // the workload this proxy represents.
+  hashicorp.consul.resource.Reference identity = 1;
   // listeners is a list of listeners for this proxy.
   repeated Listener listeners = 2;
   // clusters is a map from cluster name to clusters. The keys are referenced from listeners or routes.
