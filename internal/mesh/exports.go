@@ -4,6 +4,8 @@
 package mesh
 
 import (
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )
@@ -52,8 +54,14 @@ var (
 	ComputedRoutesType                  = types.ComputedRoutesType
 )
 
-// RegisterTypes adds all resource types within the "catalog" API group
+// RegisterTypes adds all resource types within the "mesh" API group
 // to the given type registry
 func RegisterTypes(r resource.Registry) {
 	types.Register(r)
+}
+
+// RegisterControllers registers controllers for the mesh types with
+// the given controller Manager.
+func RegisterControllers(mgr *controller.Manager) {
+	controllers.Register(mgr)
 }
