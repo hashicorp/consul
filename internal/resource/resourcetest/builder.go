@@ -118,6 +118,14 @@ func (b *resourceBuilder) ID() *pbresource.ID {
 	return b.resource.Id
 }
 
+func (b *resourceBuilder) Reference() *pbresource.Reference {
+	return &pbresource.Reference{
+		Name:    b.resource.Id.Name,
+		Tenancy: b.resource.Id.Tenancy,
+		Type:    b.resource.Id.Type,
+	}
+}
+
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 
@@ -135,7 +143,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 			Resource: res,
 		})
 
-		if err == nil || res.Id.Uid != "" || status.Code(err) != codes.FailedPrecondition {
+		if err == nil || res.Id.Uid != "" || status.Code(err) == codes.FailedPrecondition {
 			return
 		}
 
@@ -144,6 +152,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		} else {
 			// other errors are unexpected and should cause an immediate failure
 			r.Stop(err)
+			return
 		}
 	})
 

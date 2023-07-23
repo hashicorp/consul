@@ -31,7 +31,7 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 				return authorizer.ToAllowAuthorizer().ServiceReadAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
 			},
 			Write: func(authorizer acl.Authorizer, p *pbresource.Resource) error {
-				return acl.PermissionDenied("ProxyStateTemplate is not writable")
+				return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(resource.AuthorizerContext(p.Id.Tenancy))
 			},
 			List: func(authorizer acl.Authorizer, tenancy *pbresource.Tenancy) error {
 				// No-op List permission as we want to default to filter resource resources

@@ -44,6 +44,17 @@ var (
 	HealthChecksV1Alpha1Type     = types.HealthChecksV1Alpha1Type
 	DNSPolicyV1Alpha1Type        = types.DNSPolicyV1Alpha1Type
 
+	// Resource Types for the latest version.
+
+	WorkloadType         = types.WorkloadV1Alpha1Type
+	ServiceType          = types.ServiceV1Alpha1Type
+	ServiceEndpointsType = types.ServiceEndpointsV1Alpha1Type
+	VirtualIPsType       = types.VirtualIPsV1Alpha1Type
+	NodeType             = types.NodeV1Alpha1Type
+	HealthStatusType     = types.HealthStatusV1Alpha1Type
+	HealthChecksType     = types.HealthChecksV1Alpha1Type
+	DNSPolicyType        = types.DNSPolicyV1Alpha1Type
+
 	// Controller Statuses
 	NodeHealthStatusKey              = nodehealth.StatusKey
 	NodeHealthStatusConditionHealthy = nodehealth.StatusConditionHealthy

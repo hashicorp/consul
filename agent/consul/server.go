@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/armon/go-metrics"
@@ -875,6 +876,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 func (s *Server) registerControllers(deps Deps) {
 	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+		mesh.RegisterControllers(s.controllerManager)
 	}
 
 	reaper.RegisterControllers(s.controllerManager)
