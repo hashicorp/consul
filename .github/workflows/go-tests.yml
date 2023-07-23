@@ -2,14 +2,13 @@ name: go-tests
 
 on:
   pull_request:
-    branches-ignore:
-      - stable-website
+    paths-ignore: 
+      - '.changelog/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'contributing/**'
       - 'docs/**'
       - 'ui/**'
-      - 'mktg-**' # Digital Team Terraform-generated branches' prefix
-      - 'backport/docs/**'
-      - 'backport/ui/**'
-      - 'backport/mktg-**'
+      - 'website/**'
   push:
     branches:
       # Push events on the main branch
