@@ -1210,6 +1210,10 @@
             "path": "enterprise/license/overview"
           },
           {
+            "title": "Automated License Utilization Reporting",
+            "path": "enterprise/license/utilization-reporting"
+          },
+          {
             "title": "FAQ",
             "path": "enterprise/license/faq"
           }
@@ -1247,8 +1251,8 @@
             "path": "api-gateway/usage/usage"
           },
           {
-          "title": "Reroute HTTP Requests",
-          "path": "api-gateway/usage/reroute-http-requests"
+            "title": "Reroute HTTP Requests",
+            "path": "api-gateway/usage/reroute-http-requests"
           },
           {
             "title": "Route Traffic to Peered Services",
@@ -1257,8 +1261,7 @@
           {
             "title": "Error Messages",
             "path": "api-gateway/usage/errors"
-          }              
-              
+          }
         ]
       },
       {
