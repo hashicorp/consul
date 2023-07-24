@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package hashicorp.consul.internal.protohcl.testproto;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+
+message Primitives {
+  double double_val = 1;
+  float float_val = 2;
+  int32 int32_val = 3;
+  int64 int64_val = 4;
+  uint32 uint32_val = 5;
+  uint64 uint64_val = 6;
+  sint32 sint32_val = 7;
+  sint64 sint64_val = 8;
+  fixed32 fixed32_val = 9;
+  fixed64 fixed64_val = 10;
+  sfixed32 sfixed32_val = 11;
+  sfixed64 sfixed64_val = 12;
+  bool bool_val = 13;
+  string string_val = 14;
+  bytes byte_val = 15;
+}
+
+enum Protocol {
+  PROTOCOL_UNSPECIFIED = 0;
+  PROTOCOL_TCP = 1;
+  PROTOCOL_UDP = 2;
+}
+
+message NestedAndCollections {
+  Primitives primitives = 1;
+  repeated Primitives primitives_list = 2;
+  map<string, Primitives> primitives_map = 3;
+  map<string, Protocol> protocol_map = 4;
+  repeated int32 int_list = 5;
+}
+
+message Wrappers {
+  google.protobuf.DoubleValue double_val = 1;
+  google.protobuf.FloatValue float_val = 2;
+  google.protobuf.Int32Value int32_val = 3;
+  google.protobuf.Int64Value int64_val = 4;
+  google.protobuf.UInt32Value uint32_val = 5;
+  google.protobuf.UInt64Value uint64_val = 6;
+  google.protobuf.BoolValue bool_val = 13;
+  google.protobuf.StringValue string_val = 14;
+  google.protobuf.BytesValue bytes_val = 15;
+}
+
+message OneOf {
+  oneof data {
+    int32 int32_val = 1;
+    Primitives primitives = 2;
+    // note repeated fields (including maps) are not allowed in oneofs
+  }
+}
+
+message NonDynamicWellKnown {
+  google.protobuf.Empty empty_val = 1;
+  google.protobuf.Timestamp timestamp_val = 2;
+  google.protobuf.Duration duration_val = 3;
+}
+
+message DynamicWellKnown {
+  google.protobuf.Any any_val = 1;
+  google.protobuf.Struct struct_val = 2;
+}
