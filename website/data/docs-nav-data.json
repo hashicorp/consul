@@ -1417,6 +1417,10 @@
             "path": "enterprise/license/overview"
           },
           {
+            "title": "Automated License Utilization Reporting",
+            "path": "enterprise/license/utilization-reporting"
+          },
+          {
             "title": "FAQ",
             "path": "enterprise/license/faq"
           }
