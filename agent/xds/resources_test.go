@@ -165,8 +165,12 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotPeering,
 		},
 		{
-			name:   "connect-proxy-with-peered-upstreams-listener-override",
-			create: proxycfg.TestConfigSnapshotPeeringWithListenerOverride,
+			name:   "connect-proxy-with-peered-upstreams-escape-overrides",
+			create: proxycfg.TestConfigSnapshotPeeringWithEscapeOverrides,
+		},
+		{
+			name:   "connect-proxy-with-peered-upstreams-http2",
+			create: proxycfg.TestConfigSnapshotPeeringWithHTTP2,
 		},
 		{
 			name:   "transparent-proxy-with-peered-upstreams",
@@ -251,7 +255,11 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 		{
 			name: "mesh-gateway-with-imported-peered-services",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "imported-services", nil, nil)
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "imported-services", func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"envoy_dns_discovery_type": "STRICT_DNS",
+					}
+				}, nil)
 			},
 		},
 		{

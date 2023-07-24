@@ -6,8 +6,9 @@ package structs
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 // TestRegisterRequest returns a RegisterRequest for registering a typical service.
@@ -47,11 +48,11 @@ func TestRegisterIngressGateway(t testing.T) *RegisterRequest {
 }
 
 // TestNodeService returns a *NodeService representing a valid regular service: "web".
-func TestNodeService(t testing.T) *NodeService {
-	return TestNodeServiceWithName(t, "web")
+func TestNodeService() *NodeService {
+	return TestNodeServiceWithName("web")
 }
 
-func TestNodeServiceWithName(t testing.T, name string) *NodeService {
+func TestNodeServiceWithName(name string) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindTypical,
 		Service: name,

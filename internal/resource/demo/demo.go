@@ -133,6 +133,7 @@ func RegisterTypes(r resource.Registry) {
 			List:  makeListACL(TypeV1Artist),
 		},
 		Validate: validateV1ArtistFn,
+		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -143,6 +144,7 @@ func RegisterTypes(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV1Album),
 		},
+		Scope: resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -155,6 +157,7 @@ func RegisterTypes(r resource.Registry) {
 		},
 		Validate: validateV2ArtistFn,
 		Mutate:   mutateV2ArtistFn,
+		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -165,6 +168,7 @@ func RegisterTypes(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV2Album),
 		},
+		Scope: resource.ScopeNamespace,
 	})
 }
 

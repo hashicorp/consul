@@ -766,8 +766,12 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				Kind: structs.ServiceResolver,
 				Name: "api",
 				Subsets: map[string]structs.ServiceResolverSubset{
+					"v1": {
+						Filter: "Service.Meta.Version == 1",
+					},
 					"v2": {
-						Filter: "Service.Meta.version == v2",
+						Filter:      "Service.Meta.Version == 2",
+						OnlyPassing: true,
 					},
 				},
 			},
@@ -817,6 +821,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		var (
 			dbSN  = structs.NewServiceName("db", nil)
 			altSN = structs.NewServiceName("alt", nil)
+			apiSN = structs.NewServiceName("api", nil)
 
 			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
 		)
@@ -826,6 +831,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		discoChains[dbSN] = dbChain
 		endpoints[dbSN] = TestUpstreamNodes(t, "db")
 		endpoints[altSN] = TestUpstreamNodes(t, "alt")
+		endpoints[apiSN] = TestUpstreamNodesWithServiceSubset(t, "api")
 
 		extraUpdates = append(extraUpdates,
 			UpdateEvent{
@@ -849,7 +855,29 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 					},
 				},
 			},
+			UpdateEvent{
+				CorrelationID: serviceResolversWatchID,
+				Result: &structs.IndexedConfigEntries{
+					Kind: structs.ServiceResolver,
+					Entries: []structs.ConfigEntry{
+						&structs.ServiceResolverConfigEntry{
+							Kind: structs.ServiceResolver,
+							Name: "api",
+							Subsets: map[string]structs.ServiceResolverSubset{
+								"v1": {
+									Filter: "Service.Meta.Version == 1",
+								},
+								"v2": {
+									Filter:      "Service.Meta.Version == 2",
+									OnlyPassing: true,
+								},
+							},
+						},
+					},
+				},
+			},
 		)
+
 	case "peer-through-mesh-gateway":
 
 		extraUpdates = append(extraUpdates,

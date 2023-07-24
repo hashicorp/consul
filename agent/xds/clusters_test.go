@@ -32,6 +32,14 @@ type clusterTestCase struct {
 	overrideGoldenName string
 }
 
+func uint32ptr(i uint32) *uint32 {
+	return &i
+}
+
+func durationPtr(d time.Duration) *time.Duration {
+	return &d
+}
+
 func makeClusterDiscoChainTests(enterprise bool) []clusterTestCase {
 	return []clusterTestCase{
 		{
@@ -49,6 +57,14 @@ func makeClusterDiscoChainTests(enterprise bool) []clusterTestCase {
 			name: "connect-proxy-with-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-http2",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http2"
+				}, nil)
 			},
 		},
 		{
@@ -314,6 +330,42 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "custom-upstream-with-prepared-query",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+
+						switch ns.Proxy.Upstreams[i].DestinationName {
+						case "db":
+							if ns.Proxy.Upstreams[i].Config == nil {
+								ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+							}
+
+							uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
+
+							// Triggers an override with the presence of the escape hatch listener
+							ns.Proxy.Upstreams[i].DestinationType = structs.UpstreamDestTypePreparedQuery
+
+							ns.Proxy.Upstreams[i].Config["envoy_cluster_json"] =
+								customClusterJSON(t, customClusterJSONOptions{
+									Name: uid.EnvoyID() + ":custom-upstream",
+								})
+
+						// Also test that http2 options are triggered.
+						// A separate upstream without an override is required to test
+						case "geo-cache":
+							if ns.Proxy.Upstreams[i].Config == nil {
+								ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+							}
+							ns.Proxy.Upstreams[i].Config["protocol"] = "http2"
+						default:
+							continue
+						}
+					}
+				}, nil)
+			},
+		},
+		{
 			name: "custom-timeouts",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -328,6 +380,20 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
 						"enforcing_consecutive_5xx": float64(80),
+						"max_failures":              float64(5),
+						"interval":                  float64(10 * time.Second),
+						"max_ejection_percent":      float64(100),
+						"base_ejection_time":        float64(10 * time.Second),
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "custom-passive-healthcheck-zero-consecutive_5xx",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
+						"enforcing_consecutive_5xx": float64(0),
 						"max_failures":              float64(5),
 						"interval":                  float64(10 * time.Second),
 						"max_ejection_percent":      float64(100),
@@ -432,6 +498,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "expose-checks",
+			create: proxycfg.TestConfigSnapshotExposeChecks,
+		},
+		{
 			name:   "expose-paths-grpc-new-cluster-http1",
 			create: proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
 		},
@@ -445,6 +515,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name: "mesh-gateway-using-federation-states",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "federation-states", nil, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-using-federation-control-plane",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "mesh-gateway-federation", nil, nil)
 			},
 		},
 		{
@@ -628,8 +704,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 					func(entry *structs.IngressGatewayConfigEntry) {
 						entry.Listeners[0].Services[0].MaxConnections = 4096
 						entry.Listeners[0].Services[0].PassiveHealthCheck = &structs.PassiveHealthCheck{
-							Interval:    5000000000,
-							MaxFailures: 10,
+							Interval:           5000000000,
+							MaxFailures:        10,
+							MaxEjectionPercent: uint32ptr(90),
 						}
 					}, nil)
 			},
@@ -649,6 +726,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 								Interval:                5000000000,
 								MaxFailures:             10,
 								EnforcingConsecutive5xx: &enforcingConsecutive5xx,
+								MaxEjectionPercent:      uint32ptr(90),
 							},
 						}
 					}, nil)
@@ -667,6 +745,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							PassiveHealthCheck: &structs.PassiveHealthCheck{
 								Interval:                5000000000,
 								EnforcingConsecutive5xx: &defaultEnforcingConsecutive5xx,
+								MaxEjectionPercent:      uint32ptr(80),
 							},
 						}
 						enforcingConsecutive5xx := uint32(50)
@@ -675,6 +754,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 						entry.Listeners[0].Services[0].PassiveHealthCheck = &structs.PassiveHealthCheck{
 							Interval:                8000000000,
 							EnforcingConsecutive5xx: &enforcingConsecutive5xx,
+							MaxEjectionPercent:      uint32ptr(90),
+							BaseEjectionTime:        durationPtr(12 * time.Second),
 						}
 					}, nil)
 			},
@@ -930,6 +1011,41 @@ func customAppClusterJSON(t testinf.T, opts customClusterJSONOptions) string {
 	t.Helper()
 	var buf bytes.Buffer
 	err := customAppClusterJSONTemplate.Execute(&buf, opts)
+	require.NoError(t, err)
+	return buf.String()
+}
+
+var customClusterJSONTpl = `{
+	"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+	"name": "{{ .Name }}",
+	"connectTimeout": "15s",
+	"loadAssignment": {
+		"clusterName": "{{ .Name }}",
+		"endpoints": [
+			{
+				"lbEndpoints": [
+					{
+						"endpoint": {
+							"address": {
+								"socketAddress": {
+									"address": "1.2.3.4",
+									"portValue": 8443
+								}
+							}
+						}
+					}
+				]
+			}
+		]
+	}
+}`
+
+var customClusterJSONTemplate = template.Must(template.New("").Parse(customClusterJSONTpl))
+
+func customClusterJSON(t testinf.T, opts customClusterJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := customClusterJSONTemplate.Execute(&buf, opts)
 	require.NoError(t, err)
 	return buf.String()
 }
