@@ -99,9 +99,7 @@ jobs:
           packages=$(go list -json="ImportPath,TestGoFiles" ./... | \
             jq --compact-output '. | select(.TestGoFiles != null) | .ImportPath' | \
             jq --slurp --compact-output -r '.[]')
-          for p in ${packages}; do
-            go test -c "$p"
-          done
+          echo "${packages}" | parallel go test -c
       # github doesn't let you overwrite a cache, so we just delete it first
       - name: delete old GOCACHE
         run: |
