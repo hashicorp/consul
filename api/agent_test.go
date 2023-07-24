@@ -168,7 +168,7 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 
 	members, err = agent.MembersOpts(MembersOpts{
 		WAN:    true,
-		Filter: `Tags["dc"] == notExist`,
+		Filter: `Tags["dc"] == "not-Exist"`,
 	})
 	if err != nil {
 		t.Fatalf("err: %v", err)
