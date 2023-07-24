@@ -36,6 +36,7 @@ jobs:
           cache: false
       - id: cachekey
         run: |
+          gosumfile="${{ format('{{0}}/go.sum', inputs.directory) }}"
           GOMODULENAME="$(cd "${{ inputs.directory }}" && go list -m)" \
           GOSUMHASH="${{ hashFiles(format('{{0}}/go.sum', inputs.directory)) }}" \
           .github/scripts/cachekey_GOMODCACHE.sh 
