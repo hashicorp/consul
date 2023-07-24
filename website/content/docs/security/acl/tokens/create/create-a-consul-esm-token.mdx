@@ -40,7 +40,7 @@ To create a token for Consul ESM, you must define a policy, register the policy 
 
 You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following example policy is defined in a file. The policy grants the appropriate permissions for Consul ESM running on an agent named `agent1` to monitor two nodes named `node1` and `node2`. It allows Consul ESM to register into the catalog as the `consul-esm` service and write keys with the prefix `consul-esm/` in the Consul KV store.
+The following example policy is defined in a file. The policy grants the appropriate permissions for Consul ESM running on an agent with the node name `agent1` to monitor two nodes named `node1` and `node2`. It allows Consul ESM to register into the catalog as the `consul-esm` service and write keys with the prefix `consul-esm/` in the Consul KV store.
 
 <CodeTabs>
 
