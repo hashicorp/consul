@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/internal/protohcl/testproto"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/internal/protohcl/testproto"
 )
 
 func TestPrimitives(t *testing.T) {
@@ -186,9 +187,20 @@ func TestOneOf(t *testing.T) {
 func TestAny(t *testing.T) {
 	hcl := `
 		any_val {
-			type = "hashicorp.consul.internal.protohcl.testproto.Primitives"
-			uint32_val = 42
+		    type_url = "hashicorp.consul.internal.protohcl.testproto.Primitives"
+		    uint32_val = 42
 		}
+
+		any_list = [
+			{
+				type_url = "hashicorp.consul.internal.protohcl.testproto.Primitives"
+				uint32_val = 123
+			},
+			{
+				type_url = "hashicorp.consul.internal.protohcl.testproto.Wrappers"
+				uint32_val = 321
+			}
+		]
 	`
 	var out testproto.DynamicWellKnown
 

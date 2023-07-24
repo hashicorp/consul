@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func protoPrimitiveFromCty(desc protoreflect.FieldDescriptor, val cty.Value) (protoreflect.Value, error) {
+func decodeAttributeToPrimitive(desc protoreflect.FieldDescriptor, val cty.Value) (protoreflect.Value, error) {
 	switch kind := desc.Kind(); kind {
 	case protoreflect.BoolKind:
 		return protoBoolFromCty(val)

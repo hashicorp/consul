@@ -70,4 +70,5 @@ message NonDynamicWellKnown {
 message DynamicWellKnown {
   google.protobuf.Any any_val = 1;
   google.protobuf.Struct struct_val = 2;
+  repeated google.protobuf.Any any_list = 3;
 }

@@ -2,15 +2,10 @@ package protohcl
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -45,64 +40,6 @@ const (
 	wellKnownBlock
 	wellKnownAttribute
 )
-
-const (
-	wellKnownTypeAny = "google.protobuf.Any"
-)
-
-type AnyTypeProvider interface {
-	AnyType(UnmarshalContext, hcl.Body) (protoreflect.FullName, hcl.Body, error)
-}
-
-type AnyTypeURLProvider struct {
-	TypeURLFieldName string
-}
-
-func (p *AnyTypeURLProvider) AnyType(_ UnmarshalContext, body hcl.Body) (protoreflect.FullName, hcl.Body, error) {
-	typeURLFieldName := "type"
-	if p != nil {
-		typeURLFieldName = p.TypeURLFieldName
-	}
-	// the initial schema we are going to use should just parse out the type url
-	schema := hcl.BodySchema{
-		Attributes: []hcl.AttributeSchema{
-			{
-				Name:     typeURLFieldName,
-				Required: true,
-			},
-		},
-	}
-
-	// bodyRemains will be all the unparsed attributes/blocks
-	typeContent, bodyRemains, diags := body.PartialContent(&schema)
-	if diags.HasErrors() {
-		return "", nil, diags
-	}
-
-	attr, ok := typeContent.Attributes[typeURLFieldName]
-	if !ok {
-		return "", nil, fmt.Errorf("error decoding Any from HCL: no %q field specified", typeURLFieldName)
-	}
-
-	attrVal, diags := attr.Expr.Value(nil)
-	if diags.HasErrors() {
-		return "", nil, diags
-	}
-
-	typeURL, err := stringFromCty(attrVal)
-	if err != nil {
-		return "", nil, err
-	}
-
-	slashIdx := strings.LastIndex(typeURL, "/")
-	typeName := typeURL
-	// strip all "hostname" parts of the URL path
-	if slashIdx > 1 && slashIdx+1 < len(typeURL) {
-		typeName = typeURL[slashIdx+1:]
-	}
-
-	return protoreflect.FullName(typeName), bodyRemains, nil
-}
 
 // wellKnownTypeSchemaHint returns what sort of syntax should be used to represent
 // the well known type field.
@@ -153,7 +90,7 @@ func wellKnownTypeSchemaHint(desc protoreflect.FieldDescriptor) wktSchemaHint {
 	}
 }
 
-func wellKnownTypeDecode(desc protoreflect.FieldDescriptor, val cty.Value) (bool, protoreflect.Value, error) {
+func decodeAttributeToWellKnownType(desc protoreflect.FieldDescriptor, val cty.Value) (bool, protoreflect.Value, error) {
 	if desc.Kind() != protoreflect.MessageKind {
 		return false, protoreflect.Value{}, nil
 	}
@@ -198,8 +135,6 @@ func wellKnownTypeDecode(desc protoreflect.FieldDescriptor, val cty.Value) (bool
 	case "google.protobuf.Struct":
 		protoVal, err := protoStructFromCty(val)
 		return true, protoVal, err
-	case "google.protobuf.Any":
-		return true, protoreflect.Value{}, fmt.Errorf("well-known Any unsupported")
 	default:
 		return false, protoreflect.Value{}, nil
 	}
@@ -480,46 +415,4 @@ func protoStructListValueFromCty(val cty.Value) (*structpb.ListValue, error) {
 	return &structpb.ListValue{
 		Values: values,
 	}, nil
-}
-
-func protoAnyFromCty(val cty.Value) (protoreflect.Value, error) {
-	return protoreflect.Value{}, fmt.Errorf("Any type cannot be coded from a single cty Value")
-}
-
-func (u UnmarshalOptions) decodeWellKnownAnyFromHCLBody(body hcl.Body, msg protoreflect.Message) error {
-	var typeProvider AnyTypeProvider = &AnyTypeURLProvider{TypeURLFieldName: "type"}
-	if u.AnyTypeProvider != nil {
-		typeProvider = u.AnyTypeProvider
-	}
-
-	typeName, bodyRemains, err := typeProvider.AnyType(nil, body)
-	if err != nil {
-		return fmt.Errorf("error getting type for Any field: %w", err)
-	}
-
-	// the type.googleapis.come/ should be optional
-	mt, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(typeName))
-	if err != nil {
-		return fmt.Errorf("error looking up type information for %s: %w", typeName, err)
-	}
-
-	newMsg := mt.New()
-
-	err = u.decodeHCLBody(bodyRemains, newMsg)
-	if err != nil {
-		return err
-	}
-
-	enc, err := proto.Marshal(newMsg.Interface())
-	if err != nil {
-		return fmt.Errorf("error marshalling Any data as protobuf value: %w", err)
-	}
-
-	anyValue := msg.Interface().(*anypb.Any)
-
-	// This will look like <proto package>.<proto Message name> and not quite like a full URL with a path
-	anyValue.TypeUrl = string(newMsg.Descriptor().FullName())
-	anyValue.Value = enc
-
-	return nil
 }
