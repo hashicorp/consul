@@ -187,7 +187,7 @@ jobs:
           --rerun-fails-report=/tmp/gotestsum-rerun-fails \
           --packages="$PACKAGE_NAMES" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
-          -tags="${{env.GOTAGS}}" \
+          -tags="${{env.GOTAGS}}" -p 2 \
           ${GO_TEST_FLAGS-} \
           -cover -coverprofile=coverage.txt
 

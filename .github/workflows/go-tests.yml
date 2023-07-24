@@ -263,8 +263,8 @@ jobs:
     - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
-      # TODO: how long does 1 runner take to run them all?
-      runner-count: 1
+      # TODO: if this is bigger than the number of packages, the script hangs :P
+      runner-count: 234
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       # TODO: why set this? it's always the same?
       repository-name: ${{ github.repository }}
