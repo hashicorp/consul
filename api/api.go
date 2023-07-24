@@ -989,8 +989,10 @@ func (r *request) toHTTP() (*http.Request, error) {
 	// this is required since go started validating req.host in 1.20.6 and 1.19.11.
 	// prior to that they would strip out the slashes for you.  They removed that
 	// behavior and added more strict validation as part of a CVE.
-	// https://github.com/golang/go/issues/60374
-	// the hope is that
+	// This issue is being tracked by the Go team:
+	// https://github.com/golang/go/issues/61431
+	// If there is a resolution in this issue, we will remove this code.
+	// In the time being, this is the accepted workaround.
 	if strings.HasPrefix(r.url.Host, "/") {
 		r.url.Host = "localhost"
 	}
