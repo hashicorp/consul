@@ -165,6 +165,21 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 	}
 
 	require.Equal(t, 1, len(members))
+
+	members, err = agent.MembersOpts(MembersOpts{
+		WAN:    true,
+		Filter: `Tags["dc"] == notExist`,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	require.Equal(t, 0, len(members))
+
+	_, err = agent.MembersOpts(MembersOpts{
+		WAN:    true,
+		Filter: `Tags["dc"] == invalid-bexpr-value`,
+	})
+	require.ErrorContains(t, err, "Failed to create boolean expression evaluator")
 }
 
 func TestAPI_AgentMembers(t *testing.T) {
