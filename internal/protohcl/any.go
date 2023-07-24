@@ -76,7 +76,7 @@ func (u UnmarshalOptions) decodeAny(ctx *UnmarshalContext, decoder MessageDecode
 	}
 
 	// the type.googleapis.come/ should be optional
-	mt, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(typeName))
+	mt, err := protoregistry.GlobalTypes.FindMessageByName(typeName)
 	if err != nil {
 		return fmt.Errorf("error looking up type information for %s: %w", typeName, err)
 	}

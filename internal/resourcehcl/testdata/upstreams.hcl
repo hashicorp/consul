@@ -17,7 +17,7 @@ Data {
 
       DestinationPort = "tcp"
 
-      TCP = {
+      IpPort = {
         Port = 1234
       }
     }
