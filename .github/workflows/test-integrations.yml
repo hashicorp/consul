@@ -5,13 +5,14 @@ name: test-integrations
 
 on:
   pull_request:
-    paths-ignore:
-      - '.changelog/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - 'contributing/**'
+    branches-ignore:
+      - stable-website
       - 'docs/**'
       - 'ui/**'
-      - 'website/**'
+      - 'mktg-**' # Digital Team Terraform-generated branch prefix
+      - 'backport/docs/**'
+      - 'backport/ui/**'
+      - 'backport/mktg-**'
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
