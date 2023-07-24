@@ -33,7 +33,7 @@ func TestResourceHandler(t *testing.T) {
 
 	t.Run("Write", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/api/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -66,5 +66,18 @@ func TestResourceHandler(t *testing.T) {
 		var artist pbdemov2.Artist
 		require.NoError(t, readRsp.Resource.Data.UnmarshalTo(&artist))
 		require.Equal(t, "Keith Urban", artist.Name)
+	})
+
+	t.Run("Read", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", nil)
+
+		resourceHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
+
+		var result map[string]any
+		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
+		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
 	})
 }

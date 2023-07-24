@@ -57,6 +57,8 @@ func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPut:
 		h.handleWrite(w, r, ctx)
+	case http.MethodGet:
+		h.handleRead(w, r, ctx)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -106,25 +108,38 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		},
 	})
 	if err != nil {
-		if e, ok := status.FromError(err); ok {
-			switch e.Code() {
-			case codes.PermissionDenied:
-				w.WriteHeader(http.StatusForbidden)
-				h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
-			case codes.Internal:
-				w.WriteHeader(http.StatusInternalServerError)
-				h.logger.Error("Failed to write to GRPC resource: Internal error", "error", err)
-			case codes.Aborted:
-				w.WriteHeader(http.StatusInternalServerError)
-				h.logger.Error("Failed to write to GRPC resource: GRPC aborted", "error", err)
-			default:
-				w.WriteHeader(http.StatusInternalServerError)
-				h.logger.Error("Failed to write to GRPC resource", "error", err)
-			}
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			h.logger.Error("Failed to write to GRPC resource: not able to parse error returned", "error", err)
-		}
+		handleResponseError(err, w, h)
+		return
+	}
+
+	output, err := jsonMarshal(rsp.Resource)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to unmarshal GRPC resource response", "error", err)
+		return
+	}
+	w.Write(output)
+}
+
+func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	tenancyInfo, resourceName := checkURL(r)
+	if tenancyInfo == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Missing partition, peer_name or namespace in the query params"))
+	}
+	if resourceName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Missing resource name in the URL"))
+	}
+	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Type:    h.reg.Type,
+			Tenancy: tenancyInfo,
+			Name:    resourceName,
+		},
+	})
+	if err != nil {
+		handleResponseError(err, w, h)
 		return
 	}
 
@@ -169,4 +184,29 @@ func jsonMarshal(res *pbresource.Resource) ([]byte, error) {
 
 	delete(stuff["data"].(map[string]any), "@type")
 	return json.MarshalIndent(stuff, "", "  ")
+}
+
+func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
+	if e, ok := status.FromError(err); ok {
+		switch e.Code() {
+		case codes.PermissionDenied:
+			w.WriteHeader(http.StatusForbidden)
+			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
+		case codes.Internal:
+			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Error("Failed to write to GRPC resource: Internal error", "error", err)
+		case codes.Aborted:
+			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Error("Failed to write to GRPC resource: GRPC aborted", "error", err)
+		case codes.NotFound:
+			w.WriteHeader(http.StatusNotFound)
+			h.logger.Info("Failed to write to GRPC resource: Not found", "error", err)
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Error("Failed to write to GRPC resource", "error", err)
+		}
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to write to GRPC resource: not able to parse error returned", "error", err)
+	}
 }
