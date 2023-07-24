@@ -1593,6 +1593,10 @@
             "path": "enterprise/license/overview"
           },
           {
+            "title": "Automated license utilization ",
+            "path": "enterprise/license/utilization-reporting"
+          },
+          {
             "title": "FAQ",
             "path": "enterprise/license/faq"
           }
