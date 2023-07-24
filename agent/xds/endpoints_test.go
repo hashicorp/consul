@@ -10,6 +10,7 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 
 	"github.com/mitchellh/copystructure"
@@ -359,6 +360,12 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			name: "mesh-gateway-newer-information-in-federation-states",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "newer-info-in-federation-states", nil, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-using-federation-control-plane",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "mesh-gateway-federation", nil, nil)
 			},
 		},
 		{
