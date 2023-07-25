@@ -81,7 +81,7 @@ Modifications:
 
 1. The Consul datacenter name is `dc1`. The datacenter name in each federated
    cluster **must be unique**.
-1. ACLs are enabled in the above config file. When ACLs are enabled, primary clusters must be able to make requests to the Kubernetes API URLs of secondary clusters. To disable ACLs for testing purposes, change the following settings:
+1. ACLs are enabled in the template configuration. When ACLs are enabled, primary clusters must be able to make requests to the Kubernetes API URLs of secondary clusters. To disable ACLs for testing purposes, change the following settings:
 
    ```yaml
    global:
