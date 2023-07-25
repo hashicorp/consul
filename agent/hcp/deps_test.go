@@ -30,17 +30,17 @@ func TestSink(t *testing.T) {
 			},
 			expectedSink: true,
 		},
-		"noSinkWhenServerNotRegisteredWithCCM": {
-			expect: func(mockClient *client.MockClient) {
-				mt := mockTelemetryConfig(1*time.Second, nil, nil)
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mt, nil)
-			},
-		},
 		"noSinkWhenFetchTelemetryConfigFails": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("fetch failed"))
 			},
 			wantErr: "failed to fetch telemetry config",
+		},
+		"noSinkWhenServerNotRegisteredWithCCM": {
+			expect: func(mockClient *client.MockClient) {
+				mt := mockTelemetryConfig(1*time.Second, nil, nil)
+				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mt, nil)
+			},
 		},
 		"noSinkWhenTelemetryConfigProviderInitFails": {
 			expect: func(mockClient *client.MockClient) {
