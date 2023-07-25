@@ -198,6 +198,7 @@ jobs:
           go tool test2json -t -p $PACKAGE_NAME \
           ./test.bin \
           -test.v \
+          -test.parallel=4 \
           ${GO_TEST_FLAGS-}"
 
       # NOTE: ENT specific step as we store secrets in Vault.
