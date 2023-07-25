@@ -6,9 +6,26 @@ description: >-
 
 # Automated license utilization reporting
 
-Automated license utilization reporting sends license utilization data to HashiCorp without requiring you to manually collect and report them. It also enables you to review your license usage with the monitoring solution you already use, such as Splunk and Datadog, as you optimize and manage your deployments. You can use these reports to understand how much more you can deploy under your current contract, which can help you protect against overutilization and budget for predicted consumption.  
+This topic describes how to enable automated license utilization reporting in Consul Enterprise. This feature automatically sends license utilization data to HashiCorp so that you do not have to manually collect and report it. It also enables you to review your license usage with the monitoring solution you already use, such as Splunk and Datadog, as you optimize and manage your deployments.
 
-Automated reporting shares the minimum data required to validate license utilization as defined in our contracts. This data mostly consists of computed metrics, and it will never contain Personal Identifiable Information (PII) or other sensitive information. Automated reporting shares the data with HashiCorp using a secure unidirectional HTTPS API and makes an auditable record in the product logs each time it submits a report.
+## Introduction
+
+You can use automated license utilization report to understand how much additional networking infrastructure you can deploy under your current contract. This feature helps you protect against overutilization and budget for predicted consumption.
+
+Automated reporting shares the minimum data required to validate license utilization as defined in our contracts. This data mostly consists of computed metrics, and it will never contain Personal Identifiable Information (PII) or other sensitive information. Automated reporting shares the data with HashiCorp using a secure unidirectional HTTPS API and makes an auditable record in the product logs each time it submits a report. This process is GDPR-compliant.
+
+## Requirements
+
+Automated license utilization reporting does not support _air-gapped installations_, which are systems with no network interfaces.
+
+The following versions of Consul Enterprise support automated license utilization reporting:
+
+- Consul Enterprise v1.16.0 and newer.
+- Patch releases of Consul Enterprise v1.15.4 and newer.
+- Patch releases of Consul Enterprise v1.14.8 and newer.
+- Patch releases of Consul Enterprise v1.13.9 and newer.
+
+Download a supported release from the [Consul Versions](https://releases.hashicorp.com/consul/) page.
 
 ## Enable automated reporting
 
@@ -17,30 +34,20 @@ Before you enable automated reporting, make sure that outbound network traffic i
 To enable automated reporting, complete the following steps:
 
 1. [Allow outbound HTTPS traffic on port 443](#allow-outbound-https-traffic)
-1. Upgrade to Consul Enterprise v1.16.0 or newer (#upgrade-to-consul-enterprise)
-1. Check product logs(#check-product-logs)
+1. [Check product logs](#check-product-logs)
 
 ### Allow outbound HTTPS traffic on port 443
 
-Make sure that your network allows HTTPS egress on port 443 from `https://reporting.hashicorp.services` by allow-listing the following IP addresses:
+Make sure that your network allows HTTPS egress on port 443 from `https://reporting.hashicorp.services` by adding the following IP adddresses to your allow-list:
 
 - `100.20.70.12`
 - `35.166.5.222`
 - `23.95.85.111`
 - `44.215.244.1`
 
-### Upgrade to Consul Enterprise v1.16.0 or newer
-
-Upgrade to a release that supports license utilization reporting. These [releases](https://releases.hashicorp.com/consul/) include:
-
-- Consul Enterprise 1.16.0 and newer.
-- Consul Enterprise 1.15.4 and newer.
-- Consul Enterprise 1.14.8 and newer.
-- Consul Enterprise 1.13.9 and newer.
-
 ### Check product logs
 
-Automatic license utilization reporting starts sending data within 24 hours. Check the product logs for records that the data sent successfully.
+Automatic license utilization reporting starts sending data within roughly 24 hours. Check the product logs for records that the data sent successfully.
 
 <CodeBlockConfig hideClipboard>
 
@@ -77,7 +84,7 @@ If your installation is air-gapped or your network does not allow the correct eg
 
 </CodeBlockConfig>
 
-In this case, reconfigure your network to allow egress and check back in 24 hours. 
+In this case, reconfigure your network to allow egress and check the logs again in roughly 24 hours to confirm that automated reporting works correctly. 
 
 ## Opt out
 
@@ -102,7 +109,7 @@ reporting {
 }
 ```
 
-When you opt out using an environment variable, once you restart your system it will provide a startup message confirming that you have disabled automated reporting. Set the following environment variable to disable automated reporting:
+When opting out using an environment variable, the system provides a startup message confirming that you have disabled automated reporting. Set the following environment variable to disable automated reporting:
 
 <CodeBlockConfig>
 
@@ -119,7 +126,7 @@ $ consul reload
 ```
 
 
-Check your product logs 24 hours after opting out to make sure that the system is not trying to send reports. Keep in mind that if your configuration file and environment variable differ, the environment variable setting takes precedence.
+Check your product logs roughly 24 hours after opting out to make sure that the system is not trying to send reports. Keep in mind that if your configuration file and environment variable differ, the environment variable setting takes precedence.
 
 ## Example payloads
 

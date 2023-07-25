@@ -36,6 +36,10 @@ func uint32ptr(i uint32) *uint32 {
 	return &i
 }
 
+func durationPtr(d time.Duration) *time.Duration {
+	return &d
+}
+
 func makeClusterDiscoChainTests(enterprise bool) []clusterTestCase {
 	return []clusterTestCase{
 		{
@@ -376,6 +380,20 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
 						"enforcing_consecutive_5xx": float64(80),
+						"max_failures":              float64(5),
+						"interval":                  float64(10 * time.Second),
+						"max_ejection_percent":      float64(100),
+						"base_ejection_time":        float64(10 * time.Second),
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "custom-passive-healthcheck-zero-consecutive_5xx",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
+						"enforcing_consecutive_5xx": float64(0),
 						"max_failures":              float64(5),
 						"interval":                  float64(10 * time.Second),
 						"max_ejection_percent":      float64(100),
@@ -737,6 +755,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							Interval:                8000000000,
 							EnforcingConsecutive5xx: &enforcingConsecutive5xx,
 							MaxEjectionPercent:      uint32ptr(90),
+							BaseEjectionTime:        durationPtr(12 * time.Second),
 						}
 					}, nil)
 			},
