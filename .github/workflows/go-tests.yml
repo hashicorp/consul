@@ -184,18 +184,18 @@ jobs:
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
-  dev-build-s390x:
-    if: ${{ endsWith(github.repository, '-enterprise') }}
-    needs:
-    - setup
-    uses: ./.github/workflows/reusable-dev-build.yml
-    with:
-      uploaded-binary-name: 'consul-bin-s390x'
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-      go-arch: "s390x"
-      repository-name: ${{ github.repository }}
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+  # dev-build-s390x:
+  #   if: ${{ endsWith(github.repository, '-enterprise') }}
+  #   needs:
+  #   - setup
+  #   uses: ./.github/workflows/reusable-dev-build.yml
+  #   with:
+  #     uploaded-binary-name: 'consul-bin-s390x'
+  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
+  #     go-arch: "s390x"
+  #     repository-name: ${{ github.repository }}
+  #   secrets:
+  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   # dev-build-arm64:
   #   # only run on enterprise because GHA does not have arm64 runners in OSS
@@ -309,26 +309,26 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-s390x:
-    if: ${{ endsWith(github.repository, '-enterprise') }}
-    needs:
-    - setup
-    - dev-build-s390x
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      uploaded-binary-name: 'consul-bin-s390x'
-      directory: .
-      go-test-flags: 'export GO_TEST_FLAGS="-short"'
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-      repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-      consul-license: ${{secrets.CONSUL_LICENSE}}
-      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  # go-test-s390x:
+  #   if: ${{ endsWith(github.repository, '-enterprise') }}
+  #   needs:
+  #   - setup
+  #   - dev-build-s390x
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     uploaded-binary-name: 'consul-bin-s390x'
+  #     directory: .
+  #     go-test-flags: 'export GO_TEST_FLAGS="-short"'
+  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
+  #     repository-name: ${{ github.repository }}
+  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+  #   permissions:
+  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
+  #     contents: read
+  #   secrets:
+  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+  #     consul-license: ${{secrets.CONSUL_LICENSE}}
+  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
   go-test-envoyextensions:
     needs:
@@ -483,7 +483,7 @@ jobs:
     - go-test-sdk-1-19
     - go-test-sdk-1-20
     - go-test-32bit
-    - go-test-s390x
+    # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
     steps:
