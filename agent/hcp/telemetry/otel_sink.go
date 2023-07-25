@@ -132,7 +132,7 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.cfgProvider.GetFilters().MatchString(k) {
+	if !o.allowedMetric(k) {
 		return
 	}
 
@@ -160,7 +160,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.cfgProvider.GetFilters().MatchString(k) {
+	if !o.allowedMetric(k) {
 		return
 	}
 
@@ -186,7 +186,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.cfgProvider.GetFilters().MatchString(k) {
+	if !o.allowedMetric(k) {
 		return
 	}
 
@@ -220,6 +220,15 @@ func (o *OTELSink) flattenKey(parts []string) string {
 	o.spaceReplacer.WriteString(buf, joined)
 
 	return buf.String()
+}
+
+// filter checks the filter allowlist, if it exists, to verify if this metric should be recorded.
+func (o *OTELSink) allowedMetric(key string) bool {
+	if o.cfgProvider.GetFilters() != nil {
+		return o.cfgProvider.GetFilters().MatchString(key)
+	}
+
+	return true
 }
 
 // labelsToAttributes converts go metrics and provider labels into OTEL format []attributes.KeyValue
