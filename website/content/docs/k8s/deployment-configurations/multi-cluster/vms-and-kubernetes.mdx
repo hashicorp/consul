@@ -19,7 +19,7 @@ be federated with Kubernetes datacenters.
 
 ## Kubernetes as the Primary
 
-Just like with Kubernetes, one datacenter must be the [primary](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter). If your primary datacenter is running on Kubernetes, use the Helm config from the [Primary Datacenter](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
+One Consul datacenter must be the [primary](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter). If your primary datacenter is running on Kubernetes, use the Helm config from the [Primary Datacenter](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
 
 Once installed on Kubernetes, and with the `ProxyDefaults` [resource created](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#proxydefaults),
 you'll need to export the following information from the primary Kubernetes cluster:
