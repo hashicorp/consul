@@ -31,9 +31,47 @@ func TestResourceHandler(t *testing.T) {
 		hclog.NewNullLogger(),
 	}
 
-	t.Run("Write", func(t *testing.T) {
+	t.Run("should return bad request due to missing resource name", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/api/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+			{
+				"metadata": {
+					"foo": "bar"
+				},
+				"data": {
+					"name": "Keith Urban",
+					"genre": "GENRE_COUNTRY"
+				}
+			}
+		`))
+
+		resourceHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusBadRequest, rsp.Result().StatusCode)
+	})
+
+	t.Run("should return bad request due to wrong schema", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+			{
+				"metadata": {
+					"foo": "bar"
+				},
+				"tada": {
+					"name": "Keith Urban",
+					"genre": "GENRE_COUNTRY"
+				}
+			}
+		`))
+
+		resourceHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusBadRequest, rsp.Result().StatusCode)
+	})
+
+	t.Run("should write to the resource backend", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -52,6 +90,7 @@ func TestResourceHandler(t *testing.T) {
 		var result map[string]any
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
 		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
+		require.Equal(t, "keith-urban", result["id"].(map[string]any)["name"])
 
 		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{

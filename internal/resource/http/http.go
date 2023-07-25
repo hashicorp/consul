@@ -134,6 +134,9 @@ func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string
 		}
 	}
 	resourceName = path.Base(r.URL.Path)
+	if resourceName == "." || resourceName == "/" {
+		resourceName = ""
+	}
 
 	return
 }
