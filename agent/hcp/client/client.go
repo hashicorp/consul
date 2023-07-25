@@ -6,15 +6,13 @@ package client
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-hclog"
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
@@ -38,21 +36,6 @@ type Client interface {
 	DiscoverServers(ctx context.Context) ([]string, error)
 }
 
-// MetricsConfig holds metrics specific configuration for the TelemetryConfig.
-// The endpoint field overrides the TelemetryConfig endpoint.
-type MetricsConfig struct {
-	Filters  []string
-	Endpoint string
-}
-
-// TelemetryConfig contains configuration for telemetry data forwarded by Consul servers
-// to the HCP Telemetry gateway.
-type TelemetryConfig struct {
-	Endpoint      string
-	Labels        map[string]string
-	MetricsConfig *MetricsConfig
-}
-
 type BootstrapConfig struct {
 	Name            string
 	BootstrapExpect int
@@ -70,9 +53,10 @@ type hcpClient struct {
 	gnm      hcpgnm.ClientService
 	tgw      hcptelemetry.ClientService
 	resource resource.Resource
+	logger   hclog.Logger
 }
 
-func NewClient(cfg config.CloudConfig) (Client, error) {
+func NewClient(cfg config.CloudConfig, ctx context.Context) (Client, error) {
 	client := &hcpClient{
 		cfg: cfg,
 	}
@@ -90,6 +74,7 @@ func NewClient(cfg config.CloudConfig) (Client, error) {
 
 	client.gnm = hcpgnm.New(client.hc, nil)
 	client.tgw = hcptelemetry.New(client.hc, nil)
+	client.logger = hclog.FromContext(ctx).Named("hcp_client")
 
 	return client, nil
 }
@@ -115,10 +100,14 @@ func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig,
 
 	resp, err := c.tgw.AgentTelemetryConfig(params, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch from HCP: %w", err)
 	}
 
-	return convertTelemetryConfig(resp)
+	if err := validateAgentTelemetryConfigPayload(resp); err != nil {
+		return nil, fmt.Errorf("invalid response payload: %w", err)
+	}
+
+	return convertAgentTelemetryResponse(resp, c.logger, c.cfg)
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
@@ -274,90 +263,4 @@ func (c *hcpClient) DiscoverServers(ctx context.Context) ([]string, error) {
 	}
 
 	return servers, nil
-}
-
-// convertTelemetryConfig validates the AgentTelemetryConfig payload and converts it into a TelemetryConfig object.
-func convertTelemetryConfig(resp *hcptelemetry.AgentTelemetryConfigOK) (*TelemetryConfig, error) {
-	if resp.Payload == nil {
-		return nil, fmt.Errorf("missing payload")
-	}
-
-	if resp.Payload.TelemetryConfig == nil {
-		return nil, fmt.Errorf("missing telemetry config")
-	}
-
-	payloadConfig := resp.Payload.TelemetryConfig
-	var metricsConfig MetricsConfig
-	if payloadConfig.Metrics != nil {
-		metricsConfig.Endpoint = payloadConfig.Metrics.Endpoint
-		metricsConfig.Filters = payloadConfig.Metrics.IncludeList
-	}
-	return &TelemetryConfig{
-		Endpoint:      payloadConfig.Endpoint,
-		Labels:        payloadConfig.Labels,
-		MetricsConfig: &metricsConfig,
-	}, nil
-}
-
-// Enabled verifies if telemetry is enabled by ensuring a valid endpoint has been retrieved.
-// It returns full metrics endpoint and true if a valid endpoint was obtained.
-func (t *TelemetryConfig) Enabled() (string, bool) {
-	endpoint := t.Endpoint
-	if override := t.MetricsConfig.Endpoint; override != "" {
-		endpoint = override
-	}
-
-	if endpoint == "" {
-		return "", false
-	}
-
-	// The endpoint from Telemetry Gateway is a domain without scheme, and without the metrics path, so they must be added.
-	return endpoint + metricsGatewayPath, true
-}
-
-// DefaultLabels returns a set of <key, value> string pairs that must be added as attributes to all exported telemetry data.
-func (t *TelemetryConfig) DefaultLabels(cfg config.CloudConfig) map[string]string {
-	labels := make(map[string]string)
-	nodeID := string(cfg.NodeID)
-	if nodeID != "" {
-		labels["node_id"] = nodeID
-	}
-	if cfg.NodeName != "" {
-		labels["node_name"] = cfg.NodeName
-	}
-
-	for k, v := range t.Labels {
-		labels[k] = v
-	}
-
-	return labels
-}
-
-// FilterRegex returns a valid regex used to filter metrics.
-// It will fail if there are 0 valid regex filters given.
-func (t *TelemetryConfig) FilterRegex() (*regexp.Regexp, error) {
-	var mErr error
-	filters := t.MetricsConfig.Filters
-	validFilters := make([]string, 0, len(filters))
-	for _, filter := range filters {
-		_, err := regexp.Compile(filter)
-		if err != nil {
-			mErr = multierror.Append(mErr, fmt.Errorf("compilation of filter %q failed: %w", filter, err))
-			continue
-		}
-		validFilters = append(validFilters, filter)
-	}
-
-	if len(validFilters) == 0 {
-		return nil, multierror.Append(mErr, fmt.Errorf("no valid filters"))
-	}
-
-	// Combine the valid regex strings with an OR.
-	finalRegex := strings.Join(validFilters, "|")
-	composedRegex, err := regexp.Compile(finalRegex)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile regex: %w", err)
-	}
-
-	return composedRegex, nil
 }
