@@ -884,18 +884,18 @@ func aclPolicySetTxn(tx WriteTxn, idx uint64, policy *structs.ACLPolicy) error {
 	}
 
 	if existing != nil {
-		if policy.ID == structs.ACLPolicyGlobalManagementID {
+		if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
 			// Only the name and description are modifiable
 			// Here we specifically check that the rules on the global management policy
 			// are identical to the correct policy rules within the binary. This is opposed
 			// to checking against the current rules to allow us to update the rules during
 			// upgrades.
-			if policy.Rules != structs.ACLPolicyGlobalManagement {
-				return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
+			if policy.Rules != builtinPolicy.Rules {
+				return fmt.Errorf("Changing the Rules for the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 
 			if policy.Datacenters != nil && len(policy.Datacenters) != 0 {
-				return fmt.Errorf("Changing the Datacenters of the builtin global-management policy is not permitted")
+				return fmt.Errorf("Changing the Datacenters of the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 		}
 	}
@@ -1062,8 +1062,8 @@ func aclPolicyDeleteTxn(tx WriteTxn, idx uint64, value string, fn aclPolicyGetFn
 
 	policy := rawPolicy.(*structs.ACLPolicy)
 
-	if policy.ID == structs.ACLPolicyGlobalManagementID {
-		return fmt.Errorf("Deletion of the builtin global-management policy is not permitted")
+	if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
+		return fmt.Errorf("Deletion of the builtin %s policy is not permitted", builtinPolicy.Name)
 	}
 
 	return aclPolicyDeleteWithPolicy(tx, policy, idx)

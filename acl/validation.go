@@ -3,17 +3,21 @@
 
 package acl
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 const (
 	ServiceIdentityNameMaxLength = 256
 	NodeIdentityNameMaxLength    = 256
+	PolicyNameMaxLength          = 128
 )
 
 var (
 	validServiceIdentityName = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
 	validNodeIdentityName    = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
-	validPolicyName          = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
+	validPolicyName          = regexp.MustCompile(`^[A-Za-z0-9\-_]+/?[A-Za-z0-9\-_]*$`)
 	validRoleName            = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,256}$`)
 	validAuthMethodName      = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 )
@@ -43,6 +47,14 @@ func IsValidNodeIdentityName(name string) bool {
 // IsValidPolicyName returns true if the provided name can be used as an
 // ACLPolicy Name.
 func IsValidPolicyName(name string) bool {
+	if len(name) < 1 || len(name) > PolicyNameMaxLength {
+		return false
+	}
+
+	if strings.HasPrefix(name, "/") || strings.HasPrefix(name, ReservedBuiltinPrefix) {
+		return false
+	}
+
 	return validPolicyName.MatchString(name)
 }
 

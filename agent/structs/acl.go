@@ -45,8 +45,10 @@ const (
 
 	// This policy gives unlimited access to everything. Users
 	// may rename if desired but cannot delete or modify the rules.
-	ACLPolicyGlobalManagementID = "00000000-0000-0000-0000-000000000001"
-	ACLPolicyGlobalManagement   = `
+	ACLPolicyGlobalManagementID    = "00000000-0000-0000-0000-000000000001"
+	ACLPolicyGlobalManagementName  = "global-management"
+	ACLPolicyGlobalManagementDesc  = "Builtin Policy that grants unlimited access"
+	ACLPolicyGlobalManagementRules = `
 acl = "write"
 agent_prefix "" {
 	policy = "write"
@@ -75,11 +77,58 @@ session_prefix "" {
 	policy = "write"
 }` + EnterpriseACLPolicyGlobalManagement
 
-	ACLReservedPrefix = "00000000-0000-0000-0000-0000000000"
+	ACLPolicyGlobalReadOnlyID    = "00000000-0000-0000-0000-000000000002"
+	ACLPolicyGlobalReadOnlyName  = "builtin/global-read-only"
+	ACLPolicyGlobalReadOnlyDesc  = "Builtin Policy that grants unlimited read-only access to all components"
+	ACLPolicyGlobalReadOnlyRules = `
+acl = "read"
+agent_prefix "" {
+	policy = "read"
+}
+event_prefix "" {
+	policy = "read"
+}
+key_prefix "" {
+	policy = "read"
+}
+keyring = "read"
+node_prefix "" {
+	policy = "read"
+}
+operator = "read"
+mesh = "read"
+peering = "read"
+query_prefix "" {
+	policy = "read"
+}
+service_prefix "" {
+	policy = "read"
+	intentions = "read"
+}
+session_prefix "" {
+	policy = "read"
+}` + EnterpriseACLPolicyGlobalReadOnly
+
+	ACLReservedIDPrefix = "00000000-0000-0000-0000-0000000000"
 )
 
+var ACLBuiltinPolicies = map[string]ACLPolicy{
+	ACLPolicyGlobalManagementID: {
+		ID:          ACLPolicyGlobalManagementID,
+		Name:        ACLPolicyGlobalManagementName,
+		Description: ACLPolicyGlobalManagementDesc,
+		Rules:       ACLPolicyGlobalManagementRules,
+	},
+	ACLPolicyGlobalReadOnlyID: {
+		ID:          ACLPolicyGlobalReadOnlyID,
+		Name:        ACLPolicyGlobalReadOnlyName,
+		Description: ACLPolicyGlobalReadOnlyDesc,
+		Rules:       ACLPolicyGlobalReadOnlyRules,
+	},
+}
+
 func ACLIDReserved(id string) bool {
-	return strings.HasPrefix(id, ACLReservedPrefix)
+	return strings.HasPrefix(id, ACLReservedIDPrefix)
 }
 
 // ACLBootstrapNotAllowedErr is returned once we know that a bootstrap can no

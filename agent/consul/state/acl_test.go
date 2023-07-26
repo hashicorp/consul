@@ -30,12 +30,7 @@ const (
 )
 
 func setupGlobalManagement(t *testing.T, s *Store) {
-	policy := structs.ACLPolicy{
-		ID:          structs.ACLPolicyGlobalManagementID,
-		Name:        "global-management",
-		Description: "Builtin Policy that grants unlimited access",
-		Rules:       structs.ACLPolicyGlobalManagement,
-	}
+	policy := structs.ACLBuiltinPolicies[structs.ACLPolicyGlobalManagementID]
 	policy.SetHash(true)
 	require.NoError(t, s.ACLPolicySet(1, &policy))
 }
@@ -1430,7 +1425,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 				ID:          structs.ACLPolicyGlobalManagementID,
 				Name:        "global-management",
 				Description: "Global Management",
-				Rules:       structs.ACLPolicyGlobalManagement,
+				Rules:       structs.ACLPolicyGlobalManagementRules,
 				Datacenters: []string{"dc1"},
 			}
 
@@ -1444,7 +1439,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 				ID:          structs.ACLPolicyGlobalManagementID,
 				Name:        "management",
 				Description: "Modified",
-				Rules:       structs.ACLPolicyGlobalManagement,
+				Rules:       structs.ACLPolicyGlobalManagementRules,
 			}
 
 			require.NoError(t, s.ACLPolicySet(3, &policy))
@@ -1494,7 +1489,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.NotNil(t, rpolicy)
 		require.Equal(t, "global-management", rpolicy.Name)
 		require.Equal(t, "Builtin Policy that grants unlimited access", rpolicy.Description)
-		require.Equal(t, structs.ACLPolicyGlobalManagement, rpolicy.Rules)
+		require.Equal(t, structs.ACLPolicyGlobalManagementRules, rpolicy.Rules)
 		require.Len(t, rpolicy.Datacenters, 0)
 		require.Equal(t, uint64(1), rpolicy.CreateIndex)
 		require.Equal(t, uint64(1), rpolicy.ModifyIndex)

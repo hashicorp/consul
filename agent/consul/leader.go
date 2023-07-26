@@ -420,34 +420,11 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	if s.InPrimaryDatacenter() {
 		s.logger.Info("initializing acls")
 
-		// Create/Upgrade the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-		if err != nil {
-			return fmt.Errorf("failed to get the builtin global-management policy")
-		}
-		if policy == nil || policy.Rules != structs.ACLPolicyGlobalManagement {
-			newPolicy := structs.ACLPolicy{
-				ID:             structs.ACLPolicyGlobalManagementID,
-				Name:           "global-management",
-				Description:    "Builtin Policy that grants unlimited access",
-				Rules:          structs.ACLPolicyGlobalManagement,
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		// Create/Upgrade the builtin policies
+		for _, policy := range structs.ACLBuiltinPolicies {
+			if err := s.initializePolicy(policy); err != nil {
+				return err
 			}
-			if policy != nil {
-				newPolicy.Name = policy.Name
-				newPolicy.Description = policy.Description
-			}
-
-			newPolicy.SetHash(true)
-
-			req := structs.ACLPolicyBatchSetRequest{
-				Policies: structs.ACLPolicies{&newPolicy},
-			}
-			_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to create global-management policy: %v", err)
-			}
-			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
 		// Check for configured initial management token.
@@ -489,6 +466,32 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	s.startACLTokenReaping(ctx)
 
+	return nil
+}
+
+func (s *Server) initializePolicy(newPolicy structs.ACLPolicy) error {
+	_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, newPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
+	if err != nil {
+		return fmt.Errorf("failed to get the builtin %s policy", newPolicy.Name)
+	}
+	if policy == nil || policy.Rules != newPolicy.Rules {
+		if policy != nil {
+			newPolicy.Name = policy.Name
+			newPolicy.Description = policy.Description
+		}
+
+		newPolicy.EnterpriseMeta = *structs.DefaultEnterpriseMetaInDefaultPartition()
+		newPolicy.SetHash(true)
+
+		req := structs.ACLPolicyBatchSetRequest{
+			Policies: structs.ACLPolicies{&newPolicy},
+		}
+		_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
+		if err != nil {
+			return fmt.Errorf("failed to create %s policy: %v", newPolicy.Name, err)
+		}
+		s.logger.Info(fmt.Sprintf("Created ACL '%s' policy", newPolicy.Name))
+	}
 	return nil
 }
 
