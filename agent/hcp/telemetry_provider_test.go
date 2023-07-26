@@ -115,6 +115,10 @@ func TestTelemetryConfigProvider_Success(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
+			// Init global metrics sink.
+			serviceName := "test.telemetry_config_provider"
+			sink := initGlobalSink(serviceName)
+
 			// Setup client mock to return the expected config.
 			mockClient := client.NewMockClient(t)
 
@@ -141,6 +145,18 @@ func TestTelemetryConfigProvider_Success(t *testing.T) {
 
 			// TODO: Test this by having access to the ticker directly.
 			require.EventuallyWithTf(t, func(c *assert.CollectT) {
+				// Collect sink metrics.
+				key := serviceName + "." + strings.Join(internalMetricRefreshSuccess, ".")
+				intervals := sink.Data()
+				sv := intervals[0].Counters[key]
+
+				// Verify count for transform failure metric.
+				assert.NotNil(c, sv.AggregateSample)
+				// Check for nil, as in some eventually ticks, the AggregateSample isn't populated yet.
+				if sv.AggregateSample != nil {
+					assert.GreaterOrEqual(c, sv.AggregateSample.Count, 1)
+				}
+
 				assert.Equal(c, tc.expected.endpoint, configProvider.GetEndpoint().String())
 				assert.Equal(c, tc.expected.filters, configProvider.GetFilters().String())
 				assert.Equal(c, tc.expected.labels, configProvider.GetLabels())
@@ -170,11 +186,7 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// Init global metrics sink.
 			serviceName := "test.telemetry_config_provider"
-			cfg := metrics.DefaultConfig(serviceName)
-			cfg.EnableHostname = false
-
-			sink := metrics.NewInmemSink(10*time.Second, 10*time.Second)
-			metrics.NewGlobal(cfg, sink)
+			sink := initGlobalSink(serviceName)
 
 			telemetryConfig, err := telemetryConfig(tc.expected)
 			require.NoError(t, err)
@@ -220,6 +232,16 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 }
 
 // TODO: Add race test.
+
+func initGlobalSink(serviceName string) *metrics.InmemSink {
+	cfg := metrics.DefaultConfig(serviceName)
+	cfg.EnableHostname = false
+
+	sink := metrics.NewInmemSink(10*time.Second, 10*time.Second)
+	metrics.NewGlobal(cfg, sink)
+
+	return sink
+}
 
 func telemetryConfig(testCfg *testConfig) (*client.TelemetryConfig, error) {
 	filters, err := regexp.Compile(testCfg.filters)

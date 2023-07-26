@@ -20,6 +20,8 @@ import (
 var (
 	// internalMetricRefreshFailure is a metric to monitor refresh failures.
 	internalMetricRefreshFailure []string = []string{"hcp", "telemetry_config_provider", "refresh", "failure"}
+	// internalMetricRefreshFailure is a metric to monitor refresh successes.
+	internalMetricRefreshSuccess []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
 )
 
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
@@ -116,8 +118,6 @@ func (t *hcpProviderImpl) run(ctx context.Context) {
 // checkUpdate makes a HTTP request to HCP to return a new metrics configuration and true, if config changed.
 // checkUpdate does not update the metricsConfig field to prevent acquiring the write lock unnecessarily.
 func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool) {
-	t.rw.RLock()
-	defer t.rw.RUnlock()
 	logger := hclog.FromContext(ctx).Named("telemetry_config_provider")
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -143,6 +143,11 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
 		return nil, false
 	}
+
+	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
+
+	t.rw.RLock()
+	defer t.rw.RUnlock()
 
 	return newDynamicConfig, newHash == t.cfgHash
 }
