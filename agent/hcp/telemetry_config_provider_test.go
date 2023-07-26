@@ -28,44 +28,33 @@ type testConfig struct {
 func TestNewTelemetryConfigProvider(t *testing.T) {
 	t.Parallel()
 	for name, tc := range map[string]struct {
-		opts    *TelemetryConfigProviderOpts
+		opts    *providerParams
 		wantErr string
 	}{
 		"success": {
-			opts: &TelemetryConfigProviderOpts{
-				Ctx:             context.Background(),
-				HCPClient:       hcpclient.NewMockClient(t),
-				MetricsConfig:   &hcpclient.MetricsConfig{},
-				RefreshInterval: 1 * time.Second,
+			opts: &providerParams{
+				hcpClient:       hcpclient.NewMockClient(t),
+				metricsConfig:   &hcpclient.MetricsConfig{},
+				refreshInterval: 1 * time.Second,
 			},
-		},
-		"failsWithMissingContext": {
-			opts: &TelemetryConfigProviderOpts{
-				HCPClient:     hcpclient.NewMockClient(t),
-				MetricsConfig: &hcpclient.MetricsConfig{},
-			},
-			wantErr: "missing ctx",
 		},
 		"failsWithMissingHCPClient": {
-			opts: &TelemetryConfigProviderOpts{
-				Ctx:           context.Background(),
-				MetricsConfig: &hcpclient.MetricsConfig{},
+			opts: &providerParams{
+				metricsConfig: &hcpclient.MetricsConfig{},
 			},
 			wantErr: "missing HCP client",
 		},
 		"failsWithMissingMetricsConfig": {
-			opts: &TelemetryConfigProviderOpts{
-				Ctx:       context.Background(),
-				HCPClient: hcpclient.NewMockClient(t),
+			opts: &providerParams{
+				hcpClient: hcpclient.NewMockClient(t),
 			},
 			wantErr: "missing metrics config",
 		},
 		"failsWithInvalidRefreshInterval": {
-			opts: &TelemetryConfigProviderOpts{
-				Ctx:             context.Background(),
-				HCPClient:       hcpclient.NewMockClient(t),
-				MetricsConfig:   &hcpclient.MetricsConfig{},
-				RefreshInterval: 0 * time.Second,
+			opts: &providerParams{
+				hcpClient:       hcpclient.NewMockClient(t),
+				metricsConfig:   &hcpclient.MetricsConfig{},
+				refreshInterval: 0 * time.Second,
 			},
 			wantErr: "invalid refresh interval",
 		},
@@ -73,7 +62,9 @@ func TestNewTelemetryConfigProvider(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			cfgProvider, err := NewTelemetryConfigProvider(tc.opts)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			cfgProvider, err := NewHCPProviderImpl(ctx, tc.opts)
 			if tc.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.wantErr)
@@ -139,16 +130,16 @@ func TestTelemetryConfigProvider_Success(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			opts := &TelemetryConfigProviderOpts{
-				MetricsConfig:   optsCfg.MetricsConfig,
-				Ctx:             ctx,
-				HCPClient:       mockClient,
-				RefreshInterval: defaultTestRefreshInterval,
+			opts := &providerParams{
+				metricsConfig:   optsCfg.MetricsConfig,
+				hcpClient:       mockClient,
+				refreshInterval: defaultTestRefreshInterval,
 			}
 
-			configProvider, err := NewTelemetryConfigProvider(opts)
+			configProvider, err := NewHCPProviderImpl(ctx, opts)
 			require.NoError(t, err)
 
+			// TODO: Test this by having access to the ticker directly.
 			require.EventuallyWithTf(t, func(c *assert.CollectT) {
 				assert.Equal(c, tc.expected.endpoint, configProvider.GetEndpoint().String())
 				assert.Equal(c, tc.expected.filters, configProvider.GetFilters().String())
@@ -194,18 +185,18 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 			mockClient := hcpclient.NewMockClient(t)
 			tc.expect(mockClient)
 
-			opts := &TelemetryConfigProviderOpts{
-				Ctx:             ctx,
-				MetricsConfig:   telemetryConfig.MetricsConfig,
-				HCPClient:       mockClient,
-				RefreshInterval: defaultTestRefreshInterval,
+			opts := &providerParams{
+				metricsConfig:   telemetryConfig.MetricsConfig,
+				hcpClient:       mockClient,
+				refreshInterval: defaultTestRefreshInterval,
 			}
 
-			configProvider, err := NewTelemetryConfigProvider(opts)
+			configProvider, err := NewHCPProviderImpl(ctx, opts)
 			require.NoError(t, err)
 
 			// Eventually tries to run assertions every 100 ms to verify
 			// if failure metrics and the dynamic config have been updated as expected.
+			// TODO: Use ticker directly to test this.
 			require.EventuallyWithTf(t, func(c *assert.CollectT) {
 				// Collect sink metrics.
 				key := serviceName + "." + strings.Join(internalMetricRefreshFailure, ".")
@@ -227,6 +218,8 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 		})
 	}
 }
+
+// TODO: Add race test.
 
 func telemetryConfig(testCfg *testConfig) (*hcpclient.TelemetryConfig, error) {
 	filters, err := regexp.Compile(testCfg.filters)

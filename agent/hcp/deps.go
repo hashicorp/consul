@@ -77,19 +77,19 @@ func sink(
 		return nil, nil
 	}
 
-	cfgProvider, err := NewTelemetryConfigProvider(&TelemetryConfigProviderOpts{
-		Ctx:             ctx,
-		MetricsConfig:   telemetryCfg.MetricsConfig,
-		HCPClient:       hcpClient,
-		RefreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
+	cfgProvider, err := NewHCPProviderImpl(ctx, &providerParams{
+		metricsConfig:   telemetryCfg.MetricsConfig,
+		hcpClient:       hcpClient,
+		refreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to init config provider: %w", err)
 	}
 
+	reader := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Ctx:            ctx,
-		Reader:         telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval),
+		Reader:         reader,
 		ConfigProvider: cfgProvider,
 	}
 
