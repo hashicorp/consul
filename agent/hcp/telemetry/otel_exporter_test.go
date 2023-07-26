@@ -15,8 +15,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
-
-	"github.com/hashicorp/consul/agent/hcp/client"
 )
 
 type mockMetricsClient struct {
@@ -70,7 +68,7 @@ func TestExport(t *testing.T) {
 	for name, test := range map[string]struct {
 		wantErr string
 		metrics *metricdata.ResourceMetrics
-		client  client.MetricsClient
+		client  MetricsClient
 	}{
 		"earlyReturnWithoutScopeMetrics": {
 			client:  &mockMetricsClient{},
@@ -123,7 +121,7 @@ func TestExport(t *testing.T) {
 // sets a shared global sink.
 func TestExport_CustomMetrics(t *testing.T) {
 	for name, tc := range map[string]struct {
-		client    client.MetricsClient
+		client    MetricsClient
 		metricKey []string
 		operation string
 	}{

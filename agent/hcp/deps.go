@@ -62,7 +62,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 func sink(
 	ctx context.Context,
 	hcpClient hcpclient.Client,
-	metricsClient hcpclient.MetricsClient,
+	metricsClient telemetry.MetricsClient,
 ) (metrics.MetricSink, error) {
 	logger := hclog.FromContext(ctx).Named("sink")
 	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
