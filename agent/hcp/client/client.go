@@ -12,7 +12,6 @@ import (
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/hashicorp/go-hclog"
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
@@ -53,10 +52,9 @@ type hcpClient struct {
 	gnm      hcpgnm.ClientService
 	tgw      hcptelemetry.ClientService
 	resource resource.Resource
-	logger   hclog.Logger
 }
 
-func NewClient(cfg config.CloudConfig, ctx context.Context) (Client, error) {
+func NewClient(cfg config.CloudConfig) (Client, error) {
 	client := &hcpClient{
 		cfg: cfg,
 	}
@@ -74,7 +72,6 @@ func NewClient(cfg config.CloudConfig, ctx context.Context) (Client, error) {
 
 	client.gnm = hcpgnm.New(client.hc, nil)
 	client.tgw = hcptelemetry.New(client.hc, nil)
-	client.logger = hclog.FromContext(ctx).Named("hcp_client")
 
 	return client, nil
 }
@@ -107,7 +104,7 @@ func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig,
 		return nil, fmt.Errorf("invalid response payload: %w", err)
 	}
 
-	return convertAgentTelemetryResponse(resp, c.logger, c.cfg)
+	return convertAgentTelemetryResponse(ctx, resp, c.cfg)
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {

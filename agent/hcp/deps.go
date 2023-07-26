@@ -27,7 +27,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 	ctx := context.Background()
 	ctx = hclog.WithContext(ctx, logger)
 
-	client, err := hcpclient.NewClient(cfg, ctx)
+	client, err := hcpclient.NewClient(cfg)
 	if err != nil {
 		return Deps{}, fmt.Errorf("failed to init client: %w", err)
 	}

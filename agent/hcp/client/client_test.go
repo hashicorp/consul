@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/go-openapi/runtime"
-	"github.com/hashicorp/go-hclog"
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/models"
 	"github.com/stretchr/testify/require"
@@ -73,7 +72,6 @@ func TestFetchTelemetryConfig(t *testing.T) {
 					mockError:    tc.mockError,
 					mockResponse: tc.mockResponse,
 				},
-				logger: hclog.NewNullLogger(),
 			}
 
 			telemetryCfg, err := c.FetchTelemetryConfig(context.Background())

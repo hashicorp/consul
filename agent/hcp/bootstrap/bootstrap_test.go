@@ -156,13 +156,12 @@ func TestLoadConfig_Persistence(t *testing.T) {
 		initial, err := baseLoader(nil)
 		require.NoError(t, err)
 
-		ctx := context.Background()
 		// Override the client TLS config so that the test server can be trusted.
 		initial.RuntimeConfig.Cloud.WithTLSConfig(clientTLS)
-		client, err := hcpclient.NewClient(initial.RuntimeConfig.Cloud, ctx)
+		client, err := hcpclient.NewClient(initial.RuntimeConfig.Cloud)
 		require.NoError(t, err)
 
-		loader, err := LoadConfig(ctx, client, initial.RuntimeConfig.DataDir, baseLoader, ui)
+		loader, err := LoadConfig(context.Background(), client, initial.RuntimeConfig.DataDir, baseLoader, ui)
 		require.NoError(t, err)
 
 		// Load the agent config with the potentially wrapped loader.
