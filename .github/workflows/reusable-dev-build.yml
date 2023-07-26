@@ -41,6 +41,9 @@ jobs:
       cachekey_GOCACHE: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - name: reset source mtime
+        run: |
+          find . -exec touch -d 1970-01-01T00:00:00 '{}' \;
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
@@ -73,17 +76,17 @@ jobs:
           GOARCH: ${{ inputs.go-arch }}
         run: make dev
       # github doesn't let you overwrite a cache, so we just delete it first
-      # - name: delete old GOCACHE
-      #   run: |
-      #     gh extension install actions/gh-actions-cache
-      #     gh actions-cache delete --confirm -B "$GITHUB_REF" "${{steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE}}" || true
-      #   env:
-      #     GITHUB_TOKEN: "${{ secrets.elevated-github-token}}"
-      # - name: save GOCACHE
-      #   uses: actions/cache/save@v3
-      #   with:
-      #     key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
-      #     path: ~/.cache/go-build
+      - name: delete old GOCACHE
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete --confirm -B "$GITHUB_REF" "${{steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE}}" || true
+        env:
+          GITHUB_TOKEN: "${{ secrets.elevated-github-token}}"
+      - name: save GOCACHE
+        uses: actions/cache/save@v3
+        with:
+          key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
+          path: ~/.cache/go-build
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
