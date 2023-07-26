@@ -140,7 +140,7 @@ func (h *handlerAPIGateway) handleRootCAUpdate(u UpdateEvent, snap *ConfigSnapsh
 // handleGatewayConfigUpdate responds to changes in the watched config entries for a gateway.
 // Once the base api-gateway config entry has been seen, we store the list of listeners and
 // then subscribe to the corresponding bound-api-gateway config entry. We use the bound-api-gateway
-// config entry to subscribing to any attached resources, including routes and certificates.
+// config entry to subscribe to any attached resources, including routes and certificates.
 // These additional subscriptions will enable us to update the config snapshot appropriately
 // for any route or certificate changes.
 func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot, correlationID string) error {
@@ -241,7 +241,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 		snap.APIGateway.GatewayConfigLoaded = true
 
-		// Watch the corresponding bound-api-gateway's config entry
+		// Watch the corresponding bound-api-gateway config entry
 		err := h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
 		if err != nil {
 			return err
