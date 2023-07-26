@@ -231,12 +231,14 @@ jobs:
           -test.v \
           ${GO_TEST_FLAGS-}"
       - name: delete old GOCACHE
+        if: ${{ always() }}
         run: |
           gh extension install actions/gh-actions-cache
           gh actions-cache delete --confirm -B "$GITHUB_REF" "${{steps.cachekey_GOTESTCACHE.outputs.cachekey_GOTESTCACHE}}" || true
         env:
           GITHUB_TOKEN: "${{ secrets.elevated-github-token}}"      
       - name: save GOTESTCACHE
+        if: ${{ always() }}
         uses: actions/cache/save@v3
         with:
           key: "${{ steps.cachekey_GOTESTCACHE.outputs.cachekey_GOTESTCACHE }}"
@@ -267,13 +269,14 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        if: ${{ always() }}
         with:
-        # TODO: don't these overwrite each other in each matrix job?
-          name: test-results
+          name: test-results-${{matrix.package}}
           path: ${{env.TEST_RESULTS}}
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        if: ${{ always() }}
         with:
-          name: jsonfile
+          name: jsonfile-${{matrix.package}}
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         run: |
