@@ -134,6 +134,9 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.setup.outputs.package-matrix) }}
     steps:   
+      - id: package_artifact
+        run: |
+          echo package_artifact="$(echo "${{ matrix.package }}" | sed 's#[/.]#--#g')" >> "$GITHUB_OUTPUT"
       - name: ulimit
         run: |
           echo "Soft limits"
@@ -271,12 +274,12 @@ jobs:
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: ${{ always() }}
         with:
-          name: test-results-${{matrix.package}}
+          name: test-results-${{steps.package_artifact.outputs.package_artifact}}
           path: ${{env.TEST_RESULTS}}
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: ${{ always() }}
         with:
-          name: jsonfile-${{matrix.package}}
+          name: jsonfile-${{steps.package_artifact.outputs.package_artifact}}
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         run: |
