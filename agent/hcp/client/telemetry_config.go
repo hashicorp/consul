@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -60,7 +61,8 @@ func validateAgentTelemetryConfigPayload(resp *hcptelemetry.AgentTelemetryConfig
 }
 
 // convertAgentTelemetryResponse converts an AgentTelemetryConfig payload into a TelemetryConfig object.
-func convertAgentTelemetryResponse(resp *hcptelemetry.AgentTelemetryConfigOK, logger hclog.Logger, cfg config.CloudConfig) (*TelemetryConfig, error) {
+func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.AgentTelemetryConfigOK, cfg config.CloudConfig) (*TelemetryConfig, error) {
+	logger := hclog.FromContext(ctx)
 	refreshInterval, err := time.ParseDuration(resp.Payload.RefreshConfig.RefreshInterval)
 	if err != nil {
 		return nil, fmt.Errorf("invalid refresh interval: %w", err)

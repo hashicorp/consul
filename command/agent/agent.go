@@ -169,7 +169,7 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 	if res.RuntimeConfig.IsCloudEnabled() {
-		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud, ctx)
+		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
 		if err != nil {
 			ui.Error("error building HCP HTTP client: " + err.Error())
 			return 1

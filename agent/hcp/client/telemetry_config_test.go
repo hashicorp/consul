@@ -1,12 +1,12 @@
 package client
 
 import (
+	"context"
 	"net/url"
 	"regexp"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/models"
 	"github.com/stretchr/testify/require"
@@ -199,7 +199,7 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			telemetryCfg, err := convertAgentTelemetryResponse(tc.resp, hclog.NewNullLogger(), config.CloudConfig{})
+			telemetryCfg, err := convertAgentTelemetryResponse(context.Background(), tc.resp, config.CloudConfig{})
 			if tc.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.wantErr)

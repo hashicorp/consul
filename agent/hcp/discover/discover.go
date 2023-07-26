@@ -32,13 +32,12 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 		return nil, err
 	}
 
-	ctx := context.Background()
-	client, err := hcpclient.NewClient(cfg.CloudConfig, ctx)
+	client, err := hcpclient.NewClient(cfg.CloudConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, cfg.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.timeout)
 	defer cancel()
 	servers, err := client.DiscoverServers(ctx)
 	if err != nil {
