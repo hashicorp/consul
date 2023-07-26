@@ -195,6 +195,7 @@ jobs:
           path: "${{ steps.build.outputs.GOTESTCACHE}}"
       - name: Run tests 
         run: |
+          export GOCACHE=${{steps.build.outputs.GOTESTCACHE}}
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
