@@ -1,5 +1,7 @@
 package client
 
+import "github.com/hashicorp/consul/agent/hcp/telemetry"
+
 type MockMetricsClient struct {
-	MetricsClient
+	telemetry.MetricsClient
 }

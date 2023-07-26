@@ -9,9 +9,13 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
-
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
+
+// MetricsClient exports Consul metrics in OTLP format to the desired endpoint.
+type MetricsClient interface {
+	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error
+}
 
 // EndpointProvider provides the endpoint where metrics are exported to by the OTELExporter.
 // EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
@@ -24,12 +28,12 @@ type EndpointProvider interface {
 // The exporter is used by a OTEL Metrics SDK PeriodicReader to export aggregated metrics.
 // This allows us to use a custom client - HCP authenticated MetricsClient.
 type OTELExporter struct {
-	client           hcpclient.MetricsClient
+	client           MetricsClient
 	endpointProvider EndpointProvider
 }
 
 // NewOTELExporter returns a configured OTELExporter.
-func NewOTELExporter(client hcpclient.MetricsClient, endpointProvider EndpointProvider) *OTELExporter {
+func NewOTELExporter(client MetricsClient, endpointProvider EndpointProvider) *OTELExporter {
 	return &OTELExporter{
 		client:           client,
 		endpointProvider: endpointProvider,

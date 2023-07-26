@@ -15,8 +15,6 @@ import (
 	otelmetric "go.opentelemetry.io/otel/metric"
 	otelsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-
-	"github.com/hashicorp/consul/agent/hcp/client"
 )
 
 // DefaultExportInterval is a default time interval between export of aggregated metrics.
@@ -70,7 +68,7 @@ type OTELSink struct {
 // NewOTELReader returns a configured OTEL PeriodicReader to export metrics every X seconds.
 // It configures the reader with a custom OTELExporter with a MetricsClient to transform and export
 // metrics in OTLP format to an external url.
-func NewOTELReader(client client.MetricsClient, endpointProvider EndpointProvider, exportInterval time.Duration) otelsdk.Reader {
+func NewOTELReader(client MetricsClient, endpointProvider EndpointProvider, exportInterval time.Duration) otelsdk.Reader {
 	exporter := NewOTELExporter(client, endpointProvider)
 	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
 }
