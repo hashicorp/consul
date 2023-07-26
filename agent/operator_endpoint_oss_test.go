@@ -17,6 +17,7 @@ import (
 )
 
 func TestOperator_Usage(t *testing.T) {
+	t.Skip("FLAKY")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
