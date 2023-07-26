@@ -71,6 +71,9 @@ jobs:
       go-version: ${{ steps.setup_go.outputs.go-version }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - name: reset source mtime
+        run: |
+          find . -exec touch -d 1970-01-01T00:00:00 '{}' \;
       - id: setup_go 
         uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
@@ -94,7 +97,6 @@ jobs:
           path: ~/.cache/go-build
       - name: build all test packages
         run: |
-          export GODEBUG=gocachehash=1
           # for some reason go test -c ./... is not possible
           # stolen from set_test_package_matrix, lists only packages with tests in them
           dirs=$(go list -json="Dir,TestGoFiles" ./... | \
@@ -139,6 +141,9 @@ jobs:
           echo "Hard limits"
           ulimit -Ha   
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - name: reset source mtime
+        run: |
+          find . -exec touch -d 1970-01-01T00:00:00 '{}' \;
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
