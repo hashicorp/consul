@@ -30,7 +30,6 @@ type ConfigProvider interface {
 // OTELSinkOpts is used to provide configuration when initializing an OTELSink using NewOTELSink.
 type OTELSinkOpts struct {
 	Reader         otelsdk.Reader
-	Ctx            context.Context
 	ConfigProvider ConfigProvider
 }
 
@@ -79,20 +78,16 @@ func NewOTELReader(client client.MetricsClient, endpointProvider EndpointProvide
 // NewOTELSink returns a sink which fits the Go Metrics MetricsSink interface.
 // It sets up a MeterProvider and Meter, key pieces of the OTEL Metrics SDK which
 // enable us to create OTEL Instruments to record measurements.
-func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
+func NewOTELSink(opts *OTELSinkOpts, ctx context.Context) (*OTELSink, error) {
 	if opts.Reader == nil {
 		return nil, fmt.Errorf("ferror: provide valid reader")
-	}
-
-	if opts.Ctx == nil {
-		return nil, fmt.Errorf("ferror: provide valid context")
 	}
 
 	if opts.ConfigProvider == nil {
 		return nil, fmt.Errorf("ferror: provide valid config provider")
 	}
 
-	logger := hclog.FromContext(opts.Ctx).Named("otel_sink")
+	logger := hclog.FromContext(ctx).Named("otel_sink")
 
 	// Setup OTEL Metrics SDK to aggregate, convert and export metrics periodically.
 	res := resource.NewSchemaless()
@@ -224,8 +219,8 @@ func (o *OTELSink) flattenKey(parts []string) string {
 
 // filter checks the filter allowlist, if it exists, to verify if this metric should be recorded.
 func (o *OTELSink) allowedMetric(key string) bool {
-	if o.cfgProvider.GetFilters() != nil {
-		return o.cfgProvider.GetFilters().MatchString(key)
+	if filters := o.cfgProvider.GetFilters(); filters != nil {
+		return filters.MatchString(key)
 	}
 
 	return true

@@ -88,12 +88,11 @@ func sink(
 
 	reader := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
 	sinkOpts := &telemetry.OTELSinkOpts{
-		Ctx:            ctx,
 		Reader:         reader,
 		ConfigProvider: cfgProvider,
 	}
 
-	sink, err := telemetry.NewOTELSink(sinkOpts)
+	sink, err := telemetry.NewOTELSink(sinkOpts, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed create OTELSink: %w", err)
 	}

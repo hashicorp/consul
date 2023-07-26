@@ -18,7 +18,7 @@ import (
 )
 
 type mockConfigProvider struct {
-	filter string
+	filter *regexp.Regexp
 	labels map[string]string
 }
 
@@ -27,7 +27,7 @@ func (m *mockConfigProvider) GetLabels() map[string]string {
 }
 
 func (m *mockConfigProvider) GetFilters() *regexp.Regexp {
-	return regexp.MustCompile(m.filter)
+	return m.filter
 }
 
 var (
@@ -139,18 +139,10 @@ func TestNewOTELSink(t *testing.T) {
 		wantErr string
 		opts    *OTELSinkOpts
 	}{
-		"failsWithEmptyContext": {
-			wantErr: "ferror: provide valid context",
-			opts: &OTELSinkOpts{
-				Reader:         metric.NewManualReader(),
-				ConfigProvider: &mockConfigProvider{},
-			},
-		},
 		"failsWithEmptyReader": {
 			wantErr: "ferror: provide valid reader",
 			opts: &OTELSinkOpts{
 				Reader:         nil,
-				Ctx:            context.Background(),
 				ConfigProvider: &mockConfigProvider{},
 			},
 		},
@@ -158,12 +150,10 @@ func TestNewOTELSink(t *testing.T) {
 			wantErr: "ferror: provide valid config provider",
 			opts: &OTELSinkOpts{
 				Reader: metric.NewManualReader(),
-				Ctx:    context.Background(),
 			},
 		},
 		"success": {
 			opts: &OTELSinkOpts{
-				Ctx:            context.Background(),
 				Reader:         metric.NewManualReader(),
 				ConfigProvider: &mockConfigProvider{},
 			},
@@ -172,7 +162,7 @@ func TestNewOTELSink(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			sink, err := NewOTELSink(test.opts)
+			sink, err := NewOTELSink(test.opts, context.Background())
 			if test.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), test.wantErr)
@@ -193,16 +183,15 @@ func TestOTELSink(t *testing.T) {
 	ctx := context.Background()
 	opts := &OTELSinkOpts{
 		Reader: reader,
-		Ctx:    ctx,
 		ConfigProvider: &mockConfigProvider{
-			filter: "raft|autopilot",
+			filter: regexp.MustCompile("raft|autopilot"),
 			labels: map[string]string{
 				"node_id": "test",
 			},
 		},
 	}
 
-	sink, err := NewOTELSink(opts)
+	sink, err := NewOTELSink(opts, ctx)
 	require.NoError(t, err)
 
 	labels := []gometrics.Label{
@@ -306,16 +295,49 @@ func TestLabelsToAttributes(t *testing.T) {
 			ctx := context.Background()
 			opts := &OTELSinkOpts{
 				Reader: metric.NewManualReader(),
-				Ctx:    ctx,
 				ConfigProvider: &mockConfigProvider{
-					filter: "raft|autopilot",
+					filter: regexp.MustCompile("raft|autopilot"),
 					labels: test.providerLabels,
 				},
 			}
-			sink, err := NewOTELSink(opts)
+			sink, err := NewOTELSink(opts, ctx)
 			require.NoError(t, err)
 
 			require.Equal(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
+		})
+	}
+}
+
+func TestOTELSinkFilters(t *testing.T) {
+	t.Parallel()
+	for name, tc := range map[string]struct {
+		cfgProvider ConfigProvider
+		expected    bool
+	}{
+		"emptyMatch": {
+			cfgProvider: &mockConfigProvider{},
+			expected:    true,
+		},
+		"matchingFilter": {
+			cfgProvider: &mockConfigProvider{
+				filter: regexp.MustCompile("raft"),
+			},
+			expected: true,
+		},
+		"mismatchFilter": {cfgProvider: &mockConfigProvider{
+			filter: regexp.MustCompile("test"),
+		}},
+	} {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			testMetricKey := "consul.raft"
+			s, err := NewOTELSink(&OTELSinkOpts{
+				ConfigProvider: tc.cfgProvider,
+				Reader:         metric.NewManualReader(),
+			}, context.Background())
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, s.allowedMetric(testMetricKey))
 		})
 	}
 }
@@ -327,15 +349,14 @@ func TestOTELSink_Race(t *testing.T) {
 		"node_id": "test",
 	}
 	opts := &OTELSinkOpts{
-		Ctx:    ctx,
 		Reader: reader,
 		ConfigProvider: &mockConfigProvider{
-			filter: "test",
+			filter: regexp.MustCompile("test"),
 			labels: defaultLabels,
 		},
 	}
 
-	sink, err := NewOTELSink(opts)
+	sink, err := NewOTELSink(opts, context.Background())
 	require.NoError(t, err)
 
 	samples := 100
