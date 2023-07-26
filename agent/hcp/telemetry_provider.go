@@ -2,18 +2,19 @@ package hcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
 	"sync"
 	"time"
 
-	goMetrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/hashstructure/v2"
 
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
-	hcpTelemetry "github.com/hashicorp/consul/agent/hcp/telemetry"
+	"github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
 )
 
 var (
@@ -22,8 +23,8 @@ var (
 )
 
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
-var _ hcpTelemetry.ConfigProvider = &hcpProviderImpl{}
-var _ hcpTelemetry.EndpointProvider = &hcpProviderImpl{}
+var _ telemetry.ConfigProvider = &hcpProviderImpl{}
+var _ telemetry.EndpointProvider = &hcpProviderImpl{}
 
 // hcpProviderImpl holds telemetry configuration and settings for continuous fetch of new config from HCP.
 // it updates configuration, if changes are detected.
@@ -38,7 +39,7 @@ type hcpProviderImpl struct {
 	// Meanwhile, config is only updated when there are changes (write).
 	rw sync.RWMutex
 	// hcpClient is an authenticated client used to make HTTP requests to HCP.
-	hcpClient hcpclient.Client
+	hcpClient client.Client
 }
 
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
@@ -52,23 +53,23 @@ type dynamicConfig struct {
 
 // providerParams is used to initialize a hcpProviderImpl.
 type providerParams struct {
-	metricsConfig   *hcpclient.MetricsConfig
+	metricsConfig   *client.MetricsConfig
 	refreshInterval time.Duration
-	hcpClient       hcpclient.Client
+	hcpClient       client.Client
 }
 
 // NewHCPProviderImpl initializes and starts a HCP Telemetry provider with provided params.
 func NewHCPProviderImpl(ctx context.Context, params *providerParams) (*hcpProviderImpl, error) {
 	if params.hcpClient == nil {
-		return nil, fmt.Errorf("missing HCP client")
+		return nil, errors.New("missing HCP client")
 	}
 
 	if params.metricsConfig == nil {
-		return nil, fmt.Errorf("missing metrics config")
+		return nil, errors.New("missing metrics config")
 	}
 
 	if params.refreshInterval <= 0 {
-		return nil, fmt.Errorf("invalid refresh interval")
+		return nil, fmt.Errorf("invalid refresh interval: %d", params.refreshInterval)
 	}
 
 	cfg := &dynamicConfig{
@@ -125,7 +126,7 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool
 	telemetryCfg, err := t.hcpClient.FetchTelemetryConfig(ctx)
 	if err != nil {
 		logger.Error("failed to fetch telemetry config from HCP", "error", err)
-		goMetrics.IncrCounter(internalMetricRefreshFailure, 1)
+		metrics.IncrCounter(internalMetricRefreshFailure, 1)
 		return nil, false
 	}
 
@@ -139,7 +140,7 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool
 	newHash, err := calculateHash(newDynamicConfig)
 	if err != nil {
 		logger.Error("failed to calculate hash for new config", "error", err)
-		goMetrics.IncrCounter(internalMetricRefreshFailure, 1)
+		metrics.IncrCounter(internalMetricRefreshFailure, 1)
 		return nil, false
 	}
 
