@@ -77,8 +77,8 @@ func RegisterTypes(r resource.Registry) {
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
 	}
 
-	writeACL := func(authz acl.Authorizer, res *pbresource.Resource) error {
-		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
+	writeACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
 	}
 
@@ -133,7 +133,6 @@ func RegisterTypes(r resource.Registry) {
 			List:  makeListACL(TypeV1Artist),
 		},
 		Validate: validateV1ArtistFn,
-		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -144,7 +143,6 @@ func RegisterTypes(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV1Album),
 		},
-		Scope: resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -157,7 +155,6 @@ func RegisterTypes(r resource.Registry) {
 		},
 		Validate: validateV2ArtistFn,
 		Mutate:   mutateV2ArtistFn,
-		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -168,7 +165,6 @@ func RegisterTypes(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV2Album),
 		},
-		Scope: resource.ScopeNamespace,
 	})
 }
 

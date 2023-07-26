@@ -93,7 +93,7 @@ Use the following syntax to define a service identity:
 - `ServiceIdentities.ServiceName`: String value that specifies the name of the service you want to associate with the policy.
 - `ServiceIdentities.Datacenters`: Array that specifies the names of datacenters in which the service identity applies. This field is optional.
 
-Refer to the [API documentation for roles](/consul/api-docs/acl/roles#sample-payload) for additional information and examples.
+Refer to the the [API documentation for roles](/consul/api-docs/acl/roles#sample-payload) for additional information and examples.
 
 -> **Scope for Namespace and Admin Partition** - In Consul Enterprise, service identities inherit the namespace or admin partition scope of the corresponding ACL token or role.
 
@@ -230,7 +230,7 @@ Use the following syntax to define a node identity:
 - `NodeIdentities.NodeName`: String value that specifies the name of the node you want to associate with the policy.
 - `NodeIdentities.Datacenter`: String value that specifies the name of the datacenter in which the node identity applies.
 
-Refer to the [API documentation for roles](/consul/api-docs/acl/roles#sample-payload) for additional information and examples.
+Refer to the the [API documentation for roles](/consul/api-docs/acl/roles#sample-payload) for additional information and examples.
 
 -> **Consul Enterprise Namespacing** - Node Identities can only be applied to tokens and roles in the `default` namespace. The generated policy rules allow for `service:read` permissions on all services in all namespaces.
 

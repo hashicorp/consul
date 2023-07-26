@@ -918,7 +918,7 @@ func (s *ResourceGenerator) makeRouteActionForChainCluster(
 	chain *structs.CompiledDiscoveryChain,
 	forMeshGateway bool,
 ) (*envoy_route_v3.Route_Route, bool) {
-	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
+	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
 	if clusterName == "" {
 		return nil, false
 	}
@@ -951,7 +951,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		}
 		targetID := nextNode.Resolver.Target
 
-		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
+		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
 		if clusterName == "" {
 			continue
 		}

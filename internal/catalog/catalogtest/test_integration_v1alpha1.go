@@ -698,7 +698,6 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 }
 
 func verifyServiceEndpoints(t *testing.T, c *rtest.Client, id *pbresource.ID, expected *pbcatalog.ServiceEndpoints) {
-	t.Helper()
 	c.WaitForResourceState(t, id, func(t rtest.T, res *pbresource.Resource) {
 		var actual pbcatalog.ServiceEndpoints
 		err := res.Data.UnmarshalTo(&actual)

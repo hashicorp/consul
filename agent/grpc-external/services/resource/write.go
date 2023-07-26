@@ -52,7 +52,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	// check acls
-	err = reg.ACLs.Write(authz, req.Resource)
+	err = reg.ACLs.Write(authz, req.Resource.Id)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -72,12 +72,12 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		)
 	}
 
-	if err = reg.Mutate(req.Resource); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed mutate hook: %v", err.Error())
-	}
-
 	if err = reg.Validate(req.Resource); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if err = reg.Mutate(req.Resource); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed mutate hook: %v", err.Error())
 	}
 
 	// At the storage backend layer, all writes are CAS operations.
