@@ -166,21 +166,35 @@ jobs:
       - run: go env
       - name: install gotestsum
         run: go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
-
-      # TODO: restore/save test results cache
-      - name: Run tests 
+      - name: Build test binary
+        id: build
         run: |
           # separate the list
-          PACKAGE_NAME="${{ join(matrix.package, ' ') }}"
-          # PACKAGE_NAMES="${{ matrix.package }}"
-
-          package_dir=$(go list -f '{{.Dir}}' $PACKAGE_NAME)
+          package_name="${{ join(matrix.package, ' ') }}"
+          package_dir=$(go list -f '{{.Dir}}' $package_name)
+          GOTESTCACHE="$package_dir/.gotestcache"
           # building again is faster than copying the artifact from last job :P
-          go test -tags="${{env.GOTAGS}}" -c $PACKAGE_NAME -o $package_dir/test.bin
-
-          # TODO: not sure why this is floating here all by itself
-          ${{inputs.go-test-flags}}
-          
+          go test -tags="${{env.GOTAGS}}" -c $package_name -o $package_dir/test.bin
+          echo package_name="$package_name" >> "$GITHUB_OUTPUT"
+          echo package_dir="$package_dir" >> "$GITHUB_OUTPUT"
+          echo GOTESTCACHE="$GOTESTCACHE" >> "$GITHUB_OUTPUT"
+          mkdir $GOTESTCACHE
+      - id: cachekey_GOTESTCACHE
+        run: |
+          cachekey_GOTESTCACHE="$(
+            GOVERSION="${{ inputs.go-version }}" \
+            GOPACKAGENAME="${{ join(matrix.package, ' ') }}" \
+            .github/scripts/cachekey_GOTESTCACHE.sh
+          )"
+          echo "cachekey_GOTESTCACHE=$cachekey_GOTESTCACHE" >> "$GITHUB_OUTPUT"
+      - name: restore GOTESTCACHE
+        id: restore_GOTESTCACHE
+        uses: actions/cache/restore@v3
+        with:
+          key: "${{ steps.cachekey_GOTESTCACHE.outputs.cachekey_GOTESTCACHE }}"
+          path: "${{ steps.build.outputs.GOTESTCACHE}}"
+      - name: Run tests 
+        run: |
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
@@ -191,15 +205,25 @@ jobs:
           --rerun-fails=3 \
           --rerun-fails-max-failures=40 \
           --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-          --packages="$PACKAGE_NAME" \
+          --packages="${{steps.build.outputs.package_name}}" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
           --raw-command -- \
-          bash -c "cd $package_dir && \
-          go tool test2json -t -p $PACKAGE_NAME \
+          bash -c "cd ${{steps.build.outputs.package_dir}} && \
+          go tool test2json -t -p ${{steps.build.outputs.package_name}} \
           ./test.bin \
           -test.v \
-          -test.parallel=4 \
           ${GO_TEST_FLAGS-}"
+      - name: delete old GOCACHE
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete --confirm -B "$GITHUB_REF" "${{steps.cachekey_GOTESTCACHE.outputs.cachekey_GOTESTCACHE}}" || true
+        env:
+          GITHUB_TOKEN: "${{ secrets.elevated-github-token}}"      
+      - name: save GOTESTCACHE
+        uses: actions/cache/save@v3
+        with:
+          key: "${{ steps.cachekey_GOTESTCACHE.outputs.cachekey_GOTESTCACHE }}"
+          path: "${{ steps.build.outputs.GOTESTCACHE}}"
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
