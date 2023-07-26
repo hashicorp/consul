@@ -202,7 +202,7 @@ jobs:
           --format=short-verbose \
           --jsonfile /tmp/jsonfile/go-test.log \
           --debug \
-          --rerun-fails=3 \
+          --rerun-fails=0 \
           --rerun-fails-max-failures=40 \
           --rerun-fails-report=/tmp/gotestsum-rerun-fails \
           --packages="${{steps.build.outputs.package_name}}" \
