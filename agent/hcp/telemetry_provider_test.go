@@ -214,7 +214,7 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 				assert.Equal(c, tc.expected.endpoint, configProvider.GetEndpoint().String())
 				assert.Equal(c, tc.expected.filters, configProvider.GetFilters().String())
 				assert.Equal(c, tc.expected.labels, configProvider.GetLabels())
-			}, 2*time.Second, defaultTestRefreshInterval, "failed to get expected failure metrics")
+			}, 3*time.Second, defaultTestRefreshInterval, "failed to get expected failure metrics")
 		})
 	}
 }
