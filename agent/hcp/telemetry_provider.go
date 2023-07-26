@@ -17,19 +17,28 @@ import (
 )
 
 var (
-	// internalMetricRefreshFailure is a metric to monitors refresh failures.
+	// internalMetricRefreshFailure is a metric to monitor refresh failures.
 	internalMetricRefreshFailure []string = []string{"hcp", "telemetry_config_provider", "refresh", "failure"}
 )
 
-// Ensure implementation of the telemetry provider interfaces.
+// Ensure hcpProviderImpl implements telemetry provider interfaces.
 var _ hcpTelemetry.ConfigProvider = &hcpProviderImpl{}
 var _ hcpTelemetry.EndpointProvider = &hcpProviderImpl{}
 
-// providerParams is used to initialize a hcpProviderImpl.
-type providerParams struct {
-	metricsConfig   *hcpclient.MetricsConfig
-	refreshInterval time.Duration
-	hcpClient       hcpclient.Client
+// hcpProviderImpl holds telemetry configuration and settings for continuous fetch of new config from HCP.
+// it updates configuration, if changes are detected.
+type hcpProviderImpl struct {
+	// cfg holds configuration that can be dynamically updated.
+	cfg *dynamicConfig
+	// cfgHash is used to check if two dynamicConfig objects are equal.
+	cfgHash uint64
+
+	// A reader-writer mutex is used as the provider is read heavy.
+	// OTEL components access telemetryConfig during metrics collection and export (read).
+	// Meanwhile, config is only updated when there are changes (write).
+	rw sync.RWMutex
+	// hcpClient is an authenticated client used to make HTTP requests to HCP.
+	hcpClient hcpclient.Client
 }
 
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
@@ -41,20 +50,14 @@ type dynamicConfig struct {
 	refreshInterval time.Duration
 }
 
-// hcpProviderImpl holds metrics configuration and settings for continuous fetch of new config from HCP.
-type hcpProviderImpl struct {
-	// cfg holds configuration that can be dynamically updated
-	// based on updates fetched from HCP.
-	cfg *dynamicConfig
-	// cfgHash is used to compare two telemetryConfig objects to see if they are the same.
-	cfgHash uint64
-
-	// a reader-writer mutex is used as the provider is read heavy, as the OTEL components
-	// access telemetryConfig, while config is only updated (write) when there are changes.
-	rw        sync.RWMutex
-	hcpClient hcpclient.Client
+// providerParams is used to initialize a hcpProviderImpl.
+type providerParams struct {
+	metricsConfig   *hcpclient.MetricsConfig
+	refreshInterval time.Duration
+	hcpClient       hcpclient.Client
 }
 
+// NewHCPProviderImpl initializes and starts a HCP Telemetry provider with provided params.
 func NewHCPProviderImpl(ctx context.Context, params *providerParams) (*hcpProviderImpl, error) {
 	if params.hcpClient == nil {
 		return nil, fmt.Errorf("missing HCP client")
@@ -64,7 +67,6 @@ func NewHCPProviderImpl(ctx context.Context, params *providerParams) (*hcpProvid
 		return nil, fmt.Errorf("missing metrics config")
 	}
 
-	// TODO: should this be 0, to disable refresh?
 	if params.refreshInterval <= 0 {
 		return nil, fmt.Errorf("invalid refresh interval")
 	}
