@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/client"
 )
 
 const defaultTestRefreshInterval = 100 * time.Millisecond
@@ -33,27 +33,27 @@ func TestNewTelemetryConfigProvider(t *testing.T) {
 	}{
 		"success": {
 			opts: &providerParams{
-				hcpClient:       hcpclient.NewMockClient(t),
-				metricsConfig:   &hcpclient.MetricsConfig{},
+				hcpClient:       client.NewMockClient(t),
+				metricsConfig:   &client.MetricsConfig{},
 				refreshInterval: 1 * time.Second,
 			},
 		},
 		"failsWithMissingHCPClient": {
 			opts: &providerParams{
-				metricsConfig: &hcpclient.MetricsConfig{},
+				metricsConfig: &client.MetricsConfig{},
 			},
 			wantErr: "missing HCP client",
 		},
 		"failsWithMissingMetricsConfig": {
 			opts: &providerParams{
-				hcpClient: hcpclient.NewMockClient(t),
+				hcpClient: client.NewMockClient(t),
 			},
 			wantErr: "missing metrics config",
 		},
 		"failsWithInvalidRefreshInterval": {
 			opts: &providerParams{
-				hcpClient:       hcpclient.NewMockClient(t),
-				metricsConfig:   &hcpclient.MetricsConfig{},
+				hcpClient:       client.NewMockClient(t),
+				metricsConfig:   &client.MetricsConfig{},
 				refreshInterval: 0 * time.Second,
 			},
 			wantErr: "invalid refresh interval",
@@ -116,7 +116,7 @@ func TestTelemetryConfigProvider_Success(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			// Setup client mock to return the expected config.
-			mockClient := hcpclient.NewMockClient(t)
+			mockClient := client.NewMockClient(t)
 
 			mockCfg, err := telemetryConfig(tc.expected)
 			require.NoError(t, err)
@@ -152,7 +152,7 @@ func TestTelemetryConfigProvider_Success(t *testing.T) {
 func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 	for name, tc := range map[string]struct {
 		expected *testConfig
-		expect   func(*hcpclient.MockClient)
+		expect   func(*client.MockClient)
 	}{
 		"failsWithHCPClientFailure": {
 			expected: &testConfig{
@@ -162,7 +162,7 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 				},
 				endpoint: "http://test.com/v1/metrics",
 			},
-			expect: func(m *hcpclient.MockClient) {
+			expect: func(m *client.MockClient) {
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("failure"))
 			},
 		},
@@ -182,7 +182,7 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			mockClient := hcpclient.NewMockClient(t)
+			mockClient := client.NewMockClient(t)
 			tc.expect(mockClient)
 
 			opts := &providerParams{
@@ -221,7 +221,7 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 
 // TODO: Add race test.
 
-func telemetryConfig(testCfg *testConfig) (*hcpclient.TelemetryConfig, error) {
+func telemetryConfig(testCfg *testConfig) (*client.TelemetryConfig, error) {
 	filters, err := regexp.Compile(testCfg.filters)
 	if err != nil {
 		return nil, err
@@ -231,13 +231,13 @@ func telemetryConfig(testCfg *testConfig) (*hcpclient.TelemetryConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &hcpclient.TelemetryConfig{
-		MetricsConfig: &hcpclient.MetricsConfig{
+	return &client.TelemetryConfig{
+		MetricsConfig: &client.MetricsConfig{
 			Endpoint: endpoint,
 			Filters:  filters,
 			Labels:   testCfg.labels,
 		},
-		RefreshConfig: &hcpclient.RefreshConfig{
+		RefreshConfig: &client.RefreshConfig{
 			RefreshInterval: defaultTestRefreshInterval,
 		},
 	}, nil
