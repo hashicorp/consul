@@ -14,20 +14,6 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/config"
 )
 
-// MetricsConfig holds metrics specific configuration for the TelemetryConfig.
-// The endpoint field overrides the TelemetryConfig endpoint.
-type MetricsConfig struct {
-	Labels   map[string]string
-	Filters  *regexp.Regexp
-	Endpoint *url.URL
-}
-
-// RefreshConfig contains configuration for the periodic fetch of configuration from HCP by
-// the TelemetryConfigProvider, which enables dynamic configuration changes as the server is running.
-type RefreshConfig struct {
-	RefreshInterval time.Duration
-}
-
 // TelemetryConfig contains configuration for telemetry data forwarded by Consul servers
 // to the HCP Telemetry gateway.
 type TelemetryConfig struct {
@@ -35,11 +21,24 @@ type TelemetryConfig struct {
 	RefreshConfig *RefreshConfig
 }
 
-// MetricsEnabled returns true if a metrics endpoint exists.
+// MetricsConfig holds metrics specific configuration within TelemetryConfig.
+type MetricsConfig struct {
+	Labels   map[string]string
+	Filters  *regexp.Regexp
+	Endpoint *url.URL
+}
+
+// RefreshConfig contains configuration for the periodic fetch of configuration from HCP.
+type RefreshConfig struct {
+	RefreshInterval time.Duration
+}
+
+// MetricsEnabled returns true if metrics export is enabled, i.e. a valid metrics endpoint exists.
 func (t *TelemetryConfig) MetricsEnabled() bool {
 	return t.MetricsConfig.Endpoint != nil
 }
 
+// validateAgentTelemetryConfigPayload ensures the returned payload from HCP is valid.
 func validateAgentTelemetryConfigPayload(resp *hcptelemetry.AgentTelemetryConfigOK) error {
 	if resp.Payload == nil {
 		return fmt.Errorf("missing payload")
@@ -60,7 +59,7 @@ func validateAgentTelemetryConfigPayload(resp *hcptelemetry.AgentTelemetryConfig
 	return nil
 }
 
-// convertAgentTelemetryResponse validates the AgentTelemetryConfig payload and converts it into a TelemetryConfig object.
+// convertAgentTelemetryResponse converts an AgentTelemetryConfig payload into a TelemetryConfig object.
 func convertAgentTelemetryResponse(resp *hcptelemetry.AgentTelemetryConfigOK, logger hclog.Logger, cfg config.CloudConfig) (*TelemetryConfig, error) {
 	refreshInterval, err := time.ParseDuration(resp.Payload.RefreshConfig.RefreshInterval)
 	if err != nil {
@@ -94,7 +93,7 @@ func convertAgentTelemetryResponse(resp *hcptelemetry.AgentTelemetryConfigOK, lo
 	}, nil
 }
 
-// MetricsEndpoint returns a url for the export of metrics, if a valid endpoint was obtained.
+// convertMetricEndpoint returns a url for the export of metrics, if a valid endpoint was obtained.
 // It returns no error, and no url, if an empty endpoint is retrieved (server not registered with CCM).
 // It returns an error, and no url, if a bad endpoint is retrieved.
 func convertMetricEndpoint(telemetryEndpoint string, metricsEndpoint string) (*url.URL, error) {
@@ -119,8 +118,8 @@ func convertMetricEndpoint(telemetryEndpoint string, metricsEndpoint string) (*u
 	return u, nil
 }
 
-// filterRegex returns a valid regex used to filter metrics.
-// It returns error if there are 0 valid regex filters given.
+// convertMetricFilters returns a valid regex used to filter metrics.
+// It fails if there are 0 valid regex filters given.
 func convertMetricFilters(payloadFilters []string) (*regexp.Regexp, error) {
 	var mErr error
 	filters := payloadFilters
