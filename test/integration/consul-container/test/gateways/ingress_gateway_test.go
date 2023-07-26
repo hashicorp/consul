@@ -51,7 +51,7 @@ func TestIngressGateway(t *testing.T) {
 	clientNode := cluster.Clients()[0]
 
 	// Set up the "static-server" backend
-	serverService, _ := topology.CreateServices(t, cluster, "http")
+	serverService, _ := topology.CreateServices(t, cluster)
 
 	// Create the ingress gateway service
 	// We expose this on the client node, which already has port 9999 exposed as part of it's pause "pod"

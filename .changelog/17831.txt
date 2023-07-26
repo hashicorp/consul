@@ -1,3 +1,0 @@
-```release-note:improvement
-ca: Vault CA provider config no longer requires root_pki_path for secondary datacenters
-```

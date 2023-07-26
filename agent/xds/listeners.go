@@ -167,7 +167,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil, err
 			}
 
-			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false)
+			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false, false)
 			if clusterName == "" {
 				continue
 			}

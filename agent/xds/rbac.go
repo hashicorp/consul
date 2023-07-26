@@ -833,9 +833,6 @@ func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Princi
 		if !ok {
 			return orig
 		}
-		// In practice, you can't hit this
-		// Only JWTs (HTTP-only) generate orPrinciples, but optimizePrinciples is only called
-		// against the combined list of principles for L4 intentions.
 		orIds = append(orIds, or.OrIds.Ids...)
 	}
 

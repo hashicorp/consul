@@ -4535,13 +4535,17 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	// Store downstreams with at least one instance in transparent proxy mode.
+	// Store downstreams with at least one instance in transparent proxy or connect native mode.
 	// This is to avoid returning downstreams from intentions when none of the downstreams are transparent proxies.
-	tproxyMap := make(map[structs.ServiceName]struct{})
+	proxyMap := make(map[structs.ServiceName]struct{})
 	for _, downstream := range unfilteredDownstreams {
 		if downstream.Service.Proxy.Mode == structs.ProxyModeTransparent {
 			sn := structs.NewServiceName(downstream.Service.Proxy.DestinationServiceName, &downstream.Service.EnterpriseMeta)
-			tproxyMap[sn] = struct{}{}
+			proxyMap[sn] = struct{}{}
+		}
+		if downstream.Service.Connect.Native {
+			sn := downstream.Service.CompoundServiceName()
+			proxyMap[sn] = struct{}{}
 		}
 	}
 
@@ -4551,7 +4555,7 @@ func (s *Store) ServiceTopology(
 		if downstream.Service.Kind == structs.ServiceKindConnectProxy {
 			sn = structs.NewServiceName(downstream.Service.Proxy.DestinationServiceName, &downstream.Service.EnterpriseMeta)
 		}
-		if _, ok := tproxyMap[sn]; !ok && !downstream.Service.Connect.Native && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
+		if _, ok := proxyMap[sn]; !ok && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
 			// If downstream is not a transparent proxy or connect native, remove references
 			delete(downstreamSources, sn.String())
 			delete(downstreamDecisions, sn.String())
@@ -4580,6 +4584,7 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 		maxIdx uint64
 		resp   structs.CheckServiceNodes
 	)
+	dedupMap := make(map[string]structs.CheckServiceNode)
 	for _, u := range names {
 		// Collect typical then connect instances
 		idx, csn, err := checkServiceNodesTxn(tx, ws, u.Name, false, &u.EnterpriseMeta, peerName)
@@ -4589,7 +4594,9 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 		if idx > maxIdx {
 			maxIdx = idx
 		}
-		resp = append(resp, csn...)
+		for _, item := range csn {
+			dedupMap[item.Node.Node+"/"+item.Service.ID] = item
+		}
 
 		idx, csn, err = checkServiceNodesTxn(tx, ws, u.Name, true, &u.EnterpriseMeta, peerName)
 		if err != nil {
@@ -4598,7 +4605,12 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 		if idx > maxIdx {
 			maxIdx = idx
 		}
-		resp = append(resp, csn...)
+		for _, item := range csn {
+			dedupMap[item.Node.Node+"/"+item.Service.ID] = item
+		}
+	}
+	for _, item := range dedupMap {
+		resp = append(resp, item)
 	}
 	return maxIdx, resp, nil
 }

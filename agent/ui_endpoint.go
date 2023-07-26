@@ -190,6 +190,7 @@ func AgentMembersMapAddrVer(s *HTTPHandlers, req *http.Request) (map[string]stri
 	filter := consul.LANMemberFilter{
 		Partition: entMeta.PartitionOrDefault(),
 	}
+
 	if acl.IsDefaultPartition(filter.Partition) {
 		filter.AllSegments = true
 	}
@@ -563,11 +564,25 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		sum := getService(psn)
 
 		svc := csn.Service
-		sum.Nodes = append(sum.Nodes, csn.Node.Node)
+
+		found := false
+		for _, existing := range sum.Nodes {
+			if existing == csn.Node.Node {
+				found = true
+				break
+			}
+		}
+		if !found {
+			sum.Nodes = append(sum.Nodes, csn.Node.Node)
+		}
+
 		sum.Kind = svc.Kind
 		sum.Datacenter = csn.Node.Datacenter
 		sum.InstanceCount += 1
-		sum.ConnectNative = svc.Connect.Native
+		// Consider a service connect native once at least one instance is
+		if svc.Connect.Native {
+			sum.ConnectNative = svc.Connect.Native
+		}
 		if svc.Kind == structs.ServiceKindConnectProxy {
 			sn := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
 			psn := structs.PeeredServiceName{Peer: peerName, ServiceName: sn}

@@ -6,8 +6,9 @@ replace github.com/hashicorp/consul/api => ../api
 
 require (
 	github.com/envoyproxy/go-control-plane v0.11.0
-	github.com/hashicorp/consul/api v1.22.0
-	github.com/hashicorp/consul/sdk v0.14.0
+	github.com/google/go-cmp v0.5.9
+	github.com/hashicorp/consul/api v1.24.0
+	github.com/hashicorp/consul/sdk v0.14.1
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.2.1

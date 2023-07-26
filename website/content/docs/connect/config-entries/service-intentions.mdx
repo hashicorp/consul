@@ -209,7 +209,7 @@ spec:
                 path: [<aud>]
                 value: <api.apps.organization.com>
   sources:
-    name: <name of service sending traffic>
+  - name: <name of service sending traffic>
     peer: <name of cluster containing source service>
     namespace: <namespace containing source service>
     partition: <sources-partition>
@@ -1509,15 +1509,15 @@ Sources = [
     name: backend
   spec:
     sources:
-      name: frontend
+    - name: frontend
       permissions:
-        http:
+      - http:
           pathExact: /admin
         jwt:
           providers:
-            name: okta
+          - name: okta
             verifyClaims:
-              path: 
+            - path: 
                 - perms
                 - role
               value: admin
