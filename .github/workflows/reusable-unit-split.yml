@@ -226,11 +226,12 @@ jobs:
           --packages="${{steps.build.outputs.package_name}}" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
           --raw-command -- \
-          bash -c "cd ${{steps.build.outputs.package_dir}} && \
+          bash -c "export GOCACHE=$GOCACHE; cd ${{steps.build.outputs.package_dir}} && \
           go tool test2json -t -p ${{steps.build.outputs.package_name}} \
           ./test.bin \
           -test.v \
           ${GO_TEST_FLAGS-}"
+          ls -alR $GOCACHE
       - name: delete old GOCACHE
         if: ${{ always() }}
         run: |
