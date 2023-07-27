@@ -55,13 +55,6 @@ type dynamicConfig struct {
 	refreshInterval time.Duration
 }
 
-// providerParams is used to initialize a hcpProviderImpl.
-type providerParams struct {
-	metricsConfig   *client.MetricsConfig
-	refreshInterval time.Duration
-	hcpClient       client.Client
-}
-
 // NewHCPProviderImpl initializes and starts a HCP Telemetry provider with provided params.
 func NewHCPProviderImpl(ctx context.Context, hcpClient client.Client) *hcpProviderImpl {
 	t := &hcpProviderImpl{
@@ -72,7 +65,7 @@ func NewHCPProviderImpl(ctx context.Context, hcpClient client.Client) *hcpProvid
 	return t
 }
 
-// run continously checks for updates to the telemetry configuration by making a request to HCP.
+// run continuously checks for updates to the telemetry configuration by making a request to HCP.
 // Modification of config only occurs if changes are detected to decrease write locks that block read locks.
 func (t *hcpProviderImpl) run(ctx context.Context) {
 	tickerInterval := defaultTelemetryConfigRefreshInterval
