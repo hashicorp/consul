@@ -75,12 +75,20 @@ func NewHCPProviderImpl(ctx context.Context, hcpClient client.Client) *hcpProvid
 // run continously checks for updates to the telemetry configuration by making a request to HCP.
 // Modification of config only occurs if changes are detected to decrease write locks that block read locks.
 func (t *hcpProviderImpl) run(ctx context.Context) {
-	ticker := time.NewTicker(defaultTelemetryConfigRefreshInterval)
+	tickerInterval := defaultTelemetryConfigRefreshInterval
+	ticker := time.NewTicker(tickerInterval)
 	defer ticker.Stop()
+
+	// Try to initialize the config.
+	if newCfg, newHash, valid := t.checkUpdate(ctx); valid {
+		t.modifyTelemetryConfig(newCfg, newHash)
+		ticker.Reset(newCfg.refreshInterval)
+	}
 
 	for {
 		select {
 		case <-ticker.C:
+			// Update the config on every tick.
 			if newCfg, newHash, hasChanged := t.checkUpdate(ctx); hasChanged {
 				t.modifyTelemetryConfig(newCfg, newHash)
 				ticker.Reset(newCfg.refreshInterval)
