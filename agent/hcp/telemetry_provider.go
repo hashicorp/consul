@@ -40,6 +40,8 @@ type hcpProviderImpl struct {
 	rw sync.RWMutex
 	// hcpClient is an authenticated client used to make HTTP requests to HCP.
 	hcpClient client.Client
+	// ticker is a reference to the time ticker that can be reset when refreshInterval changes.
+	ticker *time.Ticker
 }
 
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
@@ -94,27 +96,28 @@ func NewHCPProvider(ctx context.Context, params *providerParams) (*hcpProviderIm
 		RefreshInterval: params.refreshInterval,
 	}
 
+	ticker := time.NewTicker(params.refreshInterval)
 	t := &hcpProviderImpl{
 		cfg:       cfg,
 		hcpClient: params.hcpClient,
+		ticker:    ticker,
 	}
 
-	go t.run(ctx)
+	go t.run(ctx, ticker.C)
 
 	return t, nil
 }
 
 // run continously checks for updates to the telemetry configuration by making a request to HCP.
 // Modification of config only occurs if changes are detected to decrease write locks that block read locks.
-func (t *hcpProviderImpl) run(ctx context.Context) {
-	ticker := time.NewTicker(t.cfg.RefreshInterval)
-	defer ticker.Stop()
+func (t *hcpProviderImpl) run(ctx context.Context, tick <-chan time.Time) {
+	defer t.ticker.Stop()
 	for {
 		select {
-		case <-ticker.C:
-			if newCfg, sameCfg := t.checkUpdate(ctx); !sameCfg {
+		case <-tick:
+			if newCfg, hasChanged := t.checkUpdate(ctx); hasChanged {
 				t.modifyTelemetryConfig(newCfg)
-				ticker.Reset(newCfg.RefreshInterval)
+				t.ticker.Reset(newCfg.RefreshInterval)
 			}
 		case <-ctx.Done():
 			return
@@ -156,7 +159,7 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool
 
 	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
 
-	return newDynamicConfig, equal
+	return newDynamicConfig, !equal
 }
 
 // modifynewTelemetryConfig acquires a write lock to modify it with a given newTelemetryConfig object.
