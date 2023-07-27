@@ -25,7 +25,6 @@ func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *met
 	return m.exportErr
 }
 
-<<<<<<< HEAD
 type mockEndpointProvider struct {
 	url *url.URL
 }
@@ -33,11 +32,6 @@ type mockEndpointProvider struct {
 func (m *mockEndpointProvider) GetEndpoint() (*url.URL, bool) {
 	return m.url, m.url != nil
 }
-=======
-type mockEndpointProvider struct{}
-
-func (m *mockEndpointProvider) GetEndpoint() *url.URL { return &url.URL{} }
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 
 func TestTemporality(t *testing.T) {
 	t.Parallel()
@@ -112,13 +106,9 @@ func TestExport(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-<<<<<<< HEAD
 			exp := NewOTELExporter(test.client, &mockEndpointProvider{
 				url: &url.URL{},
 			})
-=======
-			exp := NewOTELExporter(test.client, &mockEndpointProvider{})
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 
 			err := exp.Export(context.Background(), test.metrics)
 			if test.wantErr != "" {
@@ -172,13 +162,9 @@ func TestExport_CustomMetrics(t *testing.T) {
 			metrics.NewGlobal(cfg, sink)
 
 			// Perform operation that emits metric.
-<<<<<<< HEAD
 			exp := NewOTELExporter(tc.client, &mockEndpointProvider{
 				url: &url.URL{},
 			})
-=======
-			exp := NewOTELExporter(tc.client, &mockEndpointProvider{})
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 
 			ctx := context.Background()
 			switch tc.operation {

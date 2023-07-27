@@ -6,10 +6,6 @@ package hcp
 import (
 	"context"
 	"fmt"
-<<<<<<< HEAD
-=======
-	"time"
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 
 	"github.com/armon/go-metrics"
 
@@ -69,36 +65,10 @@ func sink(
 	metricsClient telemetry.MetricsClient,
 ) (metrics.MetricSink, error) {
 	logger := hclog.FromContext(ctx).Named("sink")
-<<<<<<< HEAD
 
 	cfgProvider := NewHCPProviderImpl(ctx, hcpClient)
-=======
-	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	telemetryCfg, err := hcpClient.FetchTelemetryConfig(reqCtx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch telemetry config: %w", err)
-	}
-
-	if !telemetryCfg.MetricsEnabled() {
-		return nil, nil
-	}
-
-	cfgProvider, err := NewHCPProvider(ctx, &providerParams{
-		metricsConfig:   telemetryCfg.MetricsConfig,
-		hcpClient:       hcpClient,
-		refreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to init config provider: %w", err)
-	}
-
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
-	reader := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
-	sinkOpts := &telemetry.OTELSinkOpts{
-		Reader:         reader,
-		ConfigProvider: cfgProvider,
 	}
 
 	sink, err := telemetry.NewOTELSink(ctx, sinkOpts)

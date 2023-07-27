@@ -2,25 +2,15 @@ package hcp
 
 import (
 	"context"
-<<<<<<< HEAD
-=======
-	"errors"
-	"fmt"
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 	"net/url"
 	"regexp"
 	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
-<<<<<<< HEAD
 	"github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/go-hclog"
-=======
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/hashstructure/v2"
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 
 	"github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
@@ -31,12 +21,9 @@ var (
 	internalMetricRefreshFailure []string = []string{"hcp", "telemetry_config_provider", "refresh", "failure"}
 	// internalMetricRefreshFailure is a metric to monitor refresh successes.
 	internalMetricRefreshSuccess []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
-<<<<<<< HEAD
 
 	defaultTelemetryConfigRefreshInterval = 1 * time.Minute
 	defaultTelemetryConfigFilters         = regexp.MustCompile(".+")
-=======
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 )
 
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
@@ -46,7 +33,6 @@ var _ telemetry.EndpointProvider = &hcpProviderImpl{}
 // hcpProviderImpl holds telemetry configuration and settings for continuous fetch of new config from HCP.
 // it updates configuration, if changes are detected.
 type hcpProviderImpl struct {
-<<<<<<< HEAD
 	// hcpClient is an authenticated client used to make HTTP requests to HCP.
 	hcpClient client.Client
 
@@ -56,20 +42,10 @@ type hcpProviderImpl struct {
 	// updateTickerCh is a test channel for triggering updates manually during testing.
 	updateTickerCh <-chan time.Time
 
-=======
-	// cfg holds configuration that can be dynamically updated.
-	cfg *dynamicConfig
-
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 	// A reader-writer mutex is used as the provider is read heavy.
 	// OTEL components access telemetryConfig during metrics collection and export (read).
 	// Meanwhile, config is only updated when there are changes (write).
 	rw sync.RWMutex
-<<<<<<< HEAD
-=======
-	// hcpClient is an authenticated client used to make HTTP requests to HCP.
-	hcpClient client.Client
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 }
 
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
@@ -96,7 +72,6 @@ func (d *dynamicConfig) equals(newCfg *dynamicConfig) (bool, error) {
 	return currHash == newHash, err
 }
 
-<<<<<<< HEAD
 // NewHCPProviderImpl initializes and starts a HCP Telemetry provider with provided params.
 func NewHCPProviderImpl(ctx context.Context, hcpClient client.Client) *hcpProviderImpl {
 	return newHCPProviderImpl(ctx, hcpClient, make(<-chan time.Time))
@@ -129,54 +104,6 @@ func (t *hcpProviderImpl) run(ctx context.Context) {
 		case <-ticker.C:
 		case <-t.updateTickerCh:
 			// Check whether we need to update the config.
-=======
-// providerParams is used to initialize a hcpProviderImpl.
-type providerParams struct {
-	metricsConfig   *client.MetricsConfig
-	refreshInterval time.Duration
-	hcpClient       client.Client
-}
-
-// NewHCPProvider initializes and starts a HCP Telemetry provider with provided params.
-func NewHCPProvider(ctx context.Context, params *providerParams) (*hcpProviderImpl, error) {
-	if params.hcpClient == nil {
-		return nil, errors.New("missing HCP client")
-	}
-
-	if params.metricsConfig == nil {
-		return nil, errors.New("missing metrics config")
-	}
-
-	if params.refreshInterval <= 0 {
-		return nil, fmt.Errorf("invalid refresh interval: %d", params.refreshInterval)
-	}
-
-	cfg := &dynamicConfig{
-		Endpoint:        params.metricsConfig.Endpoint,
-		Labels:          params.metricsConfig.Labels,
-		Filters:         params.metricsConfig.Filters,
-		RefreshInterval: params.refreshInterval,
-	}
-
-	t := &hcpProviderImpl{
-		cfg:       cfg,
-		hcpClient: params.hcpClient,
-	}
-
-	go t.run(ctx)
-
-	return t, nil
-}
-
-// run continously checks for updates to the telemetry configuration by making a request to HCP.
-// Modification of config only occurs if changes are detected to decrease write locks that block read locks.
-func (t *hcpProviderImpl) run(ctx context.Context) {
-	ticker := time.NewTicker(t.cfg.RefreshInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 			if newCfg, sameCfg := t.checkUpdate(ctx); !sameCfg {
 				t.modifyTelemetryConfig(newCfg)
 				ticker.Reset(newCfg.RefreshInterval)
@@ -233,7 +160,6 @@ func (t *hcpProviderImpl) modifyTelemetryConfig(newCfg *dynamicConfig) {
 }
 
 // GetEndpoint acquires a read lock to return endpoint configuration for consumers.
-<<<<<<< HEAD
 func (t *hcpProviderImpl) GetEndpoint() (*url.URL, bool) {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
@@ -243,13 +169,6 @@ func (t *hcpProviderImpl) GetEndpoint() (*url.URL, bool) {
 	}
 
 	return t.cfg.Endpoint, true
-=======
-func (t *hcpProviderImpl) GetEndpoint() *url.URL {
-	t.rw.RLock()
-	defer t.rw.RUnlock()
-
-	return t.cfg.Endpoint
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 }
 
 // GetFilters acquires a read lock to return filters configuration for consumers.
@@ -257,13 +176,10 @@ func (t *hcpProviderImpl) GetFilters() *regexp.Regexp {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
-<<<<<<< HEAD
 	if t.cfg == nil {
 		return defaultTelemetryConfigFilters
 	}
 
-=======
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 	return t.cfg.Filters
 }
 
@@ -272,12 +188,9 @@ func (t *hcpProviderImpl) GetLabels() map[string]string {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
-<<<<<<< HEAD
 	if t.cfg == nil {
 		return map[string]string{}
 	}
 
-=======
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 	return t.cfg.Labels
 }
