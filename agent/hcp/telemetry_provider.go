@@ -20,7 +20,7 @@ import (
 var (
 	// internalMetricRefreshFailure is a metric to monitor refresh failures.
 	internalMetricRefreshFailure []string = []string{"hcp", "telemetry_config_provider", "refresh", "failure"}
-	// internalMetricRefreshFailure is a metric to monitor refresh successes.
+	// internalMetricRefreshSuccess is a metric to monitor refresh successes.
 	internalMetricRefreshSuccess []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
 )
 
@@ -54,6 +54,7 @@ type dynamicConfig struct {
 	RefreshInterval time.Duration
 }
 
+// equals returns true if two dynamicConfig objects are equal.
 func (d *dynamicConfig) equals(newCfg *dynamicConfig) (bool, error) {
 	currHash, err := hashstructure.Hash(*d, hashstructure.FormatV2, nil)
 	if err != nil {
