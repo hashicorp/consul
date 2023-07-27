@@ -206,6 +206,8 @@ jobs:
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
+          export GODEBUG=gocachetest=1
+
           gotestsum \
             --format=short-verbose \
             --jsonfile /tmp/jsonfile/go-test.log \
