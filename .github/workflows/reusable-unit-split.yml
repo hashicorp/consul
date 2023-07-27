@@ -67,7 +67,6 @@ jobs:
   setup:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     outputs:
-      package-matrix: ${{ steps.set-matrix.outputs.matrix }}
       go-version: ${{ steps.setup_go.outputs.go-version }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -85,41 +84,16 @@ jobs:
         with:
           key: "${{inputs.cachekey_GOMODCACHE}}"
           path: ~/go/pkg/mod       
-      - id: set-matrix
-        run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
-
-  go-test:
-    runs-on: ${{ fromJSON(inputs.runs-on) }}
-    name: "go-test"
-    needs:
-      - setup
-    strategy:
-      fail-fast: false
-      max-parallel: 10
-      matrix:
-        package: ${{ fromJson(needs.setup.outputs.package-matrix) }}
-    steps:   
-      - id: package_artifact
-        run: |
-          echo package_artifact="$(echo "${{ join(matrix.package, ' ') }}" | sed 's#[/.]#--#g')" >> "$GITHUB_OUTPUT"
       - name: ulimit
         run: |
           echo "Soft limits"
           ulimit -Sa
           echo "Hard limits"
           ulimit -Ha   
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - name: reset source mtime
-        run: |
-          find . -exec touch -d 1970-01-01T00:00:00 '{}' \;
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        with:
-          go-version: "${{ needs.setup.outputs.go-version }}"
-          cache: false
       - name: restore GOMODCACHE
         uses: actions/cache/restore@v3
         if: "${{ inputs.cachekey_GOMODCACHE != '' }}"
@@ -139,18 +113,10 @@ jobs:
       - name: Make sure consul is executable
         run: chmod +x $GITHUB_WORKSPACE/consul
       - run: go env
-      - name: Set vars
-        id: build
-        run: |
-          package_name="${{ join(matrix.package, ' ') }}"
-          package_dir=$(go list -f '{{.Dir}}' $package_name)
-          echo package_name="$package_name" >> "$GITHUB_OUTPUT"
-          echo package_dir="$package_dir" >> "$GITHUB_OUTPUT"
       - id: cachekey_GOTESTCACHE
         run: |
           cachekey_GOTESTCACHE="$(
             GOVERSION="${{ inputs.go-version }}" \
-            GOPACKAGENAME="${{ steps.build.outputs.package_name }}" \
             .github/scripts/cachekey_GOTESTCACHE.sh
           )"
           echo "cachekey_GOTESTCACHE=$cachekey_GOTESTCACHE" >> "$GITHUB_OUTPUT"
@@ -160,8 +126,6 @@ jobs:
         with:
           key: "${{ steps.cachekey_GOTESTCACHE.outputs.cachekey_GOTESTCACHE }}"
           path: ~/.cache/go-build
-          restore-keys: |
-            "${{ inputs.cachekey_GOCACHE }}"
       - name: install gotestsum
         run: go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
       - name: Run tests 
@@ -178,10 +142,11 @@ jobs:
             --rerun-fails=0 \
             --rerun-fails-max-failures=40 \
             --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-            --packages="${{steps.build.outputs.package_name}}" \
             --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
             -- \
             -tags="${{env.GOTAGS}}" \
+            -parallel=4 \
+            ./... \
             -args ${GO_TEST_FLAGS-}
       - name: delete old GOCACHE
         if: ${{ always() }}
@@ -223,12 +188,12 @@ jobs:
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: ${{ always() }}
         with:
-          name: test-results-${{steps.package_artifact.outputs.package_artifact}}
+          name: test-results
           path: ${{env.TEST_RESULTS}}
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: ${{ always() }}
         with:
-          name: jsonfile-${{steps.package_artifact.outputs.package_artifact}}
+          name: jsonfile
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         run: |
