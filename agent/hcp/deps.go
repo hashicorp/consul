@@ -73,7 +73,7 @@ func sink(
 		ConfigProvider: cfgProvider,
 	}
 
-	sink, err := telemetry.NewOTELSink(sinkOpts, ctx)
+	sink, err := telemetry.NewOTELSink(ctx, sinkOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed create OTELSink: %w", err)
 	}

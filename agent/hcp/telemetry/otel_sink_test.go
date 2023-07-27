@@ -162,7 +162,7 @@ func TestNewOTELSink(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			sink, err := NewOTELSink(test.opts, context.Background())
+			sink, err := NewOTELSink(context.Background(), test.opts)
 			if test.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), test.wantErr)
@@ -191,7 +191,7 @@ func TestOTELSink(t *testing.T) {
 		},
 	}
 
-	sink, err := NewOTELSink(opts, ctx)
+	sink, err := NewOTELSink(ctx, opts)
 	require.NoError(t, err)
 
 	labels := []gometrics.Label{
@@ -300,7 +300,7 @@ func TestLabelsToAttributes(t *testing.T) {
 					labels: test.providerLabels,
 				},
 			}
-			sink, err := NewOTELSink(opts, ctx)
+			sink, err := NewOTELSink(ctx, opts)
 			require.NoError(t, err)
 
 			require.Equal(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
@@ -332,10 +332,10 @@ func TestOTELSinkFilters(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			testMetricKey := "consul.raft"
-			s, err := NewOTELSink(&OTELSinkOpts{
+			s, err := NewOTELSink(context.Background(), &OTELSinkOpts{
 				ConfigProvider: tc.cfgProvider,
 				Reader:         metric.NewManualReader(),
-			}, context.Background())
+			})
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, s.allowedMetric(testMetricKey))
 		})
@@ -356,7 +356,7 @@ func TestOTELSink_Race(t *testing.T) {
 		},
 	}
 
-	sink, err := NewOTELSink(opts, context.Background())
+	sink, err := NewOTELSink(context.Background(), opts)
 	require.NoError(t, err)
 
 	samples := 100
