@@ -25,9 +25,13 @@ func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *met
 	return m.exportErr
 }
 
-type mockEndpointProvider struct{}
+type mockEndpointProvider struct {
+	url *url.URL
+}
 
-func (m *mockEndpointProvider) GetEndpoint() *url.URL { return &url.URL{} }
+func (m *mockEndpointProvider) GetEndpoint() (*url.URL, bool) {
+	return m.url, m.url != nil
+}
 
 func TestTemporality(t *testing.T) {
 	t.Parallel()
@@ -102,7 +106,9 @@ func TestExport(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			exp := NewOTELExporter(test.client, &mockEndpointProvider{})
+			exp := NewOTELExporter(test.client, &mockEndpointProvider{
+				url: &url.URL{},
+			})
 
 			err := exp.Export(context.Background(), test.metrics)
 			if test.wantErr != "" {
@@ -156,7 +162,9 @@ func TestExport_CustomMetrics(t *testing.T) {
 			metrics.NewGlobal(cfg, sink)
 
 			// Perform operation that emits metric.
-			exp := NewOTELExporter(tc.client, &mockEndpointProvider{})
+			exp := NewOTELExporter(tc.client, &mockEndpointProvider{
+				url: &url.URL{},
+			})
 
 			ctx := context.Background()
 			switch tc.operation {

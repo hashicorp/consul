@@ -2,16 +2,15 @@ package hcp
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
 	"regexp"
 	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/hashstructure/v2"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
@@ -22,6 +21,9 @@ var (
 	internalMetricRefreshFailure []string = []string{"hcp", "telemetry_config_provider", "refresh", "failure"}
 	// internalMetricRefreshFailure is a metric to monitor refresh successes.
 	internalMetricRefreshSuccess []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
+
+	defaultTelemetryConfigRefreshInterval = 5 * time.Minute
+	defaultTelemetryConfigFilters         = regexp.MustCompile(".+")
 )
 
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
@@ -61,47 +63,21 @@ type providerParams struct {
 }
 
 // NewHCPProviderImpl initializes and starts a HCP Telemetry provider with provided params.
-func NewHCPProviderImpl(ctx context.Context, params *providerParams) (*hcpProviderImpl, error) {
-	if params.hcpClient == nil {
-		return nil, errors.New("missing HCP client")
-	}
-
-	if params.metricsConfig == nil {
-		return nil, errors.New("missing metrics config")
-	}
-
-	if params.refreshInterval <= 0 {
-		return nil, fmt.Errorf("invalid refresh interval: %d", params.refreshInterval)
-	}
-
-	cfg := &dynamicConfig{
-		endpoint:        params.metricsConfig.Endpoint,
-		labels:          params.metricsConfig.Labels,
-		filters:         params.metricsConfig.Filters,
-		refreshInterval: params.refreshInterval,
-	}
-
-	hash, err := calculateHash(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to calculate hash: %w", err)
-	}
-
+func NewHCPProviderImpl(ctx context.Context, hcpClient client.Client) *hcpProviderImpl {
 	t := &hcpProviderImpl{
-		cfg:       cfg,
-		cfgHash:   hash,
-		hcpClient: params.hcpClient,
+		hcpClient: hcpClient,
 	}
-
 	go t.run(ctx)
 
-	return t, nil
+	return t
 }
 
 // run continously checks for updates to the telemetry configuration by making a request to HCP.
 // Modification of config only occurs if changes are detected to decrease write locks that block read locks.
 func (t *hcpProviderImpl) run(ctx context.Context) {
-	ticker := time.NewTicker(t.cfg.refreshInterval)
+	ticker := time.NewTicker(defaultTelemetryConfigRefreshInterval)
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ticker.C:
@@ -162,17 +138,25 @@ func (t *hcpProviderImpl) modifyTelemetryConfig(newCfg *dynamicConfig, newHash u
 }
 
 // GetEndpoint acquires a read lock to return endpoint configuration for consumers.
-func (t *hcpProviderImpl) GetEndpoint() *url.URL {
+func (t *hcpProviderImpl) GetEndpoint() (*url.URL, bool) {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
-	return t.cfg.endpoint
+	if t.cfg == nil {
+		return nil, false
+	}
+
+	return t.cfg.endpoint, true
 }
 
 // GetFilters acquires a read lock to return filters configuration for consumers.
 func (t *hcpProviderImpl) GetFilters() *regexp.Regexp {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
+
+	if t.cfg == nil {
+		return defaultTelemetryConfigFilters
+	}
 
 	return t.cfg.filters
 }
@@ -181,6 +165,10 @@ func (t *hcpProviderImpl) GetFilters() *regexp.Regexp {
 func (t *hcpProviderImpl) GetLabels() map[string]string {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
+
+	if t.cfg == nil {
+		return map[string]string{}
+	}
 
 	return t.cfg.labels
 }

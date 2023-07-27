@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
@@ -77,15 +78,7 @@ func sink(
 		return nil, nil
 	}
 
-	cfgProvider, err := NewHCPProviderImpl(ctx, &providerParams{
-		metricsConfig:   telemetryCfg.MetricsConfig,
-		hcpClient:       hcpClient,
-		refreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to init config provider: %w", err)
-	}
-
+	cfgProvider := NewHCPProviderImpl(ctx, hcpClient)
 	reader := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Reader:         reader,
