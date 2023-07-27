@@ -87,40 +87,6 @@ jobs:
           path: ~/go/pkg/mod       
       - id: set-matrix
         run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
-      # TODO: prime the cache in a job before this one so it can be shared 
-      # between compatible invocations
-      - name: restore GOCACHE
-        uses: actions/cache/restore@v3
-        if: "${{ inputs.cachekey_GOCACHE != '' }}"
-        with:
-          key: "${{ inputs.cachekey_GOCACHE }}"
-          path: ~/.cache/go-build
-      - name: build all test packages
-        run: |
-          # for some reason go test -c ./... is not possible
-          # stolen from set_test_package_matrix, lists only packages with tests in them
-          dirs=$(go list -json="Dir,TestGoFiles" ./... | \
-            jq --compact-output '. | select(.TestGoFiles != null) | .Dir' | \
-            jq --slurp --compact-output -r '.[]')
-          echo $dirs
-          echo "${dirs}" | parallel .github/scripts/build-test-bin.sh '{}'
-      # - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-      #   with:
-      #     # TODO: this name needs to be unique for the whole workflow I think
-      #     name: hashlog1
-      #     path: '**/test.bin.hashlog'
-      # github doesn't let you overwrite a cache, so we just delete it first
-      - name: delete old GOCACHE
-        run: |
-          gh extension install actions/gh-actions-cache
-          gh actions-cache delete --confirm -B "$GITHUB_REF" "${{ inputs.cachekey_GOCACHE }}" || true
-        env:
-          GITHUB_TOKEN: "${{ secrets.elevated-github-token}}"
-      - name: save GOCACHE
-        uses: actions/cache/save@v3
-        with:
-          key: "${{ inputs.cachekey_GOCACHE }}"
-          path: ~/.cache/go-build
 
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
