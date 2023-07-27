@@ -12,7 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
 )
+
+type mockMetricsClient struct {
+	telemetry.MetricsClient
+}
 
 func TestSink(t *testing.T) {
 	t.Parallel()
@@ -56,7 +61,7 @@ func TestSink(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			c := client.NewMockClient(t)
-			mc := client.MockMetricsClient{}
+			mc := mockMetricsClient{}
 
 			test.expect(c)
 			ctx := context.Background()
