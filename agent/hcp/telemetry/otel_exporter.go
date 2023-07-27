@@ -21,11 +21,7 @@ type MetricsClient interface {
 // EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
 // This abstraction layer offers flexibility, in particular for dynamic configuration or changes to the endpoint.
 type EndpointProvider interface {
-<<<<<<< HEAD
 	GetEndpoint() (*url.URL, bool)
-=======
-	GetEndpoint() *url.URL
->>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 }
 
 // OTELExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
