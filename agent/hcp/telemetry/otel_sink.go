@@ -3,7 +3,7 @@ package telemetry
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"errors"
 	"regexp"
 	"strings"
 	"sync"
@@ -20,8 +20,12 @@ import (
 // DefaultExportInterval is a default time interval between export of aggregated metrics.
 const DefaultExportInterval = 10 * time.Second
 
+// ConfigProvider is required to provide custom metrics processing.
 type ConfigProvider interface {
+	// GetLabels should return a set of OTEL attributes added by default all metrics.
 	GetLabels() map[string]string
+	// GetFilters should return filtesr that are required to enable metric processing.
+	// Filters act as an allowlist to collect only the required metrics.
 	GetFilters() *regexp.Regexp
 }
 
@@ -78,11 +82,11 @@ func NewOTELReader(client MetricsClient, endpointProvider EndpointProvider, expo
 // enable us to create OTEL Instruments to record measurements.
 func NewOTELSink(ctx context.Context, opts *OTELSinkOpts) (*OTELSink, error) {
 	if opts.Reader == nil {
-		return nil, fmt.Errorf("ferror: provide valid reader")
+		return nil, errors.New("ferror: provide valid reader")
 	}
 
 	if opts.ConfigProvider == nil {
-		return nil, fmt.Errorf("ferror: provide valid config provider")
+		return nil, errors.New("ferror: provide valid config provider")
 	}
 
 	logger := hclog.FromContext(ctx).Named("otel_sink")
