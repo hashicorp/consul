@@ -13,4 +13,6 @@ type TestingTB interface {
 	Name() string
 	Fatalf(fmt string, args ...interface{})
 	Helper()
+	FailNow()
+	Log(args ...any)
 }

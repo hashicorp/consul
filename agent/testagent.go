@@ -414,7 +414,8 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource(t *testing.T, useHTTPS bool) string {
-	ports := freeport.GetN(t, 8)
+	// TODO: not sure DefaultFailer is a good choice here
+	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 8)
 
 	var http, https int
 	if useHTTPS {

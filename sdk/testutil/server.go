@@ -175,7 +175,7 @@ func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServe
 		panic(err)
 	}
 
-	ports := freeport.GetN(t, 7)
+	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 7)
 
 	logBuffer := NewLogBuffer(t)
 

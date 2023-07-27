@@ -25,6 +25,9 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -418,25 +421,50 @@ type TestingT interface {
 	Helper()
 	Fatalf(format string, args ...interface{})
 	Name() string
+	FailNow()
+	Log(args ...interface{})
 }
 
-// GetN returns n free ports from the reserved port block, and returns the
-// ports to the pool when the test ends. See Take for more details.
-func GetN(t TestingT, n int) []int {
+func mayGetN(t TestingT, n int) ([]int, error) {
 	t.Helper()
 	ports, err := Take(n)
 	if err != nil {
-		t.Fatalf("failed to take %v ports: %w", n, err)
+		return nil, err
 	}
+	t.Cleanup(func() {
+		Return(ports)
+		logf("DEBUG", "Test %q returned ports %v", t.Name(), ports)
+	})
 	logf("DEBUG", "Test %q took ports %v", t.Name(), ports)
 	mu.Lock()
 	for _, p := range ports {
 		portLastUser[p] = t.Name()
 	}
 	mu.Unlock()
-	t.Cleanup(func() {
-		Return(ports)
-		logf("DEBUG", "Test %q returned ports %v", t.Name(), ports)
+	return ports, nil
+}
+
+// GetN returns n free ports from the reserved port block, and returns the
+// ports to the pool when the test ends. See Take for more details.
+//
+// TODO: rename to MustGetN
+func GetN(t TestingT, n int) []int {
+	t.Helper()
+	ports, err := mayGetN(t, n)
+	if err != nil {
+		t.Fatalf("failed to take %v ports: %w", n, err)
+	}
+	return ports
+}
+
+// RetryMustGetN is like MustGetN, but it will retry using retryer
+func RetryMustGetN(t TestingT, retryer retry.Retryer, n int) []int {
+	t.Helper()
+	var ports []int
+	retry.RunWith(retryer, t, func(r *retry.R) {
+		var err error
+		ports, err = mayGetN(t, n)
+		require.NoError(r, err)
 	})
 	return ports
 }
