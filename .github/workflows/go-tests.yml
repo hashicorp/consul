@@ -177,36 +177,36 @@ jobs:
 
 
   # TODO: matrix?
-  go-mod-download_root:
-    needs:
-    - setup
-    uses: ./.github/workflows/reusable-go-mod-download.yml
-    with:
-      directory: "."
-      repository-name: ${{ github.repository }}
-      # XL is probably overkill?
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+  # go-mod-download_root:
+  #   needs:
+  #   - setup
+  #   uses: ./.github/workflows/reusable-go-mod-download.yml
+  #   with:
+  #     directory: "."
+  #     repository-name: ${{ github.repository }}
+  #     # XL is probably overkill?
+  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
 
-  go-mod-download_api:
-    needs:
-    - setup
-    uses: ./.github/workflows/reusable-go-mod-download.yml
-    with:
-      directory: "./api"
-      repository-name: ${{ github.repository }}
-      # XL is probably overkill?
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+  # go-mod-download_api:
+  #   needs:
+  #   - setup
+  #   uses: ./.github/workflows/reusable-go-mod-download.yml
+  #   with:
+  #     directory: "./api"
+  #     repository-name: ${{ github.repository }}
+  #     # XL is probably overkill?
+  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
 
   # create a development build
   dev-build:
     needs:
     - setup
-    - go-mod-download_root
+    # - go-mod-download_root
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
-      cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
+      # cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -259,7 +259,7 @@ jobs:
   go-test-oss:
     needs:
     - setup
-    - go-mod-download_root
+    # - go-mod-download_root
     - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
@@ -268,8 +268,8 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       # TODO: why set this? it's always the same?
       repository-name: ${{ github.repository }}
-      cachekey_GOCACHE: "${{ needs.dev-build.outputs.cachekey_GOCACHE }}"
-      cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
+      # cachekey_GOCACHE: "${{ needs.dev-build.outputs.cachekey_GOCACHE }}"
+      # cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read

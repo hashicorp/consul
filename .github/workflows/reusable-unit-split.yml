@@ -42,10 +42,6 @@ on:
         required: false
         type: string
         default: ""
-      cachekey_GOCACHE:
-        required: false
-        type: string
-        default: ""
     secrets:
       elevated-github-token:
         required: true
