@@ -20,9 +20,64 @@ import (
 const defaultTestRefreshInterval = 100 * time.Millisecond
 
 type testConfig struct {
-	filters  string
-	endpoint string
-	labels   map[string]string
+	filters         string
+	endpoint        string
+	labels          map[string]string
+	refreshInterval time.Duration
+}
+
+func TestDynamicConfigEquals(t *testing.T) {
+	t.Parallel()
+	for name, tc := range map[string]struct {
+		a        *testConfig
+		b        *testConfig
+		expected bool
+	}{
+		"same": {
+			a: &testConfig{
+				endpoint:        "test.com",
+				filters:         "state|raft",
+				labels:          map[string]string{"test": "123"},
+				refreshInterval: 1 * time.Second,
+			},
+			b: &testConfig{
+				endpoint:        "test.com",
+				filters:         "state|raft",
+				labels:          map[string]string{"test": "123"},
+				refreshInterval: 1 * time.Second,
+			},
+			expected: true,
+		},
+		"different": {
+			a: &testConfig{
+				endpoint:        "newendpoint.com",
+				filters:         "state|raft|extra",
+				labels:          map[string]string{"test": "12334"},
+				refreshInterval: 2 * time.Second,
+			},
+			b: &testConfig{
+				endpoint:        "test.com",
+				filters:         "state|raft",
+				labels:          map[string]string{"test": "123"},
+				refreshInterval: 1 * time.Second,
+			},
+		},
+	} {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			aCfg, err := testDynamicCfg(tc.a)
+			require.NoError(t, err)
+			bCfg, err := testDynamicCfg(tc.b)
+			require.NoError(t, err)
+
+			equal, err := aCfg.equals(bCfg)
+
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, equal)
+		})
+	}
 }
 
 func TestNewTelemetryConfigProvider(t *testing.T) {
@@ -64,7 +119,7 @@ func TestNewTelemetryConfigProvider(t *testing.T) {
 			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			cfgProvider, err := NewHCPProviderImpl(ctx, tc.opts)
+			cfgProvider, err := NewHCPProvider(ctx, tc.opts)
 			if tc.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.wantErr)
@@ -122,13 +177,13 @@ func TestTelemetryConfigProvider_Success(t *testing.T) {
 			// Setup client mock to return the expected config.
 			mockClient := client.NewMockClient(t)
 
-			mockCfg, err := telemetryConfig(tc.expected)
+			mockCfg, err := testTelemetryCfg(tc.expected)
 			require.NoError(t, err)
 
 			mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
 
 			// Setup TelemetryConfigProvider with opts inputs.
-			optsCfg, err := telemetryConfig(tc.optsInputs)
+			optsCfg, err := testTelemetryCfg(tc.optsInputs)
 			require.NoError(t, err)
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -140,7 +195,7 @@ func TestTelemetryConfigProvider_Success(t *testing.T) {
 				refreshInterval: defaultTestRefreshInterval,
 			}
 
-			configProvider, err := NewHCPProviderImpl(ctx, opts)
+			configProvider, err := NewHCPProvider(ctx, opts)
 			require.NoError(t, err)
 
 			// TODO: Test this by having access to the ticker directly.
@@ -188,7 +243,7 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 			serviceName := "test.telemetry_config_provider"
 			sink := initGlobalSink(serviceName)
 
-			telemetryConfig, err := telemetryConfig(tc.expected)
+			testTelemetryCfg, err := testTelemetryCfg(tc.expected)
 			require.NoError(t, err)
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -198,12 +253,12 @@ func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
 			tc.expect(mockClient)
 
 			opts := &providerParams{
-				metricsConfig:   telemetryConfig.MetricsConfig,
+				metricsConfig:   testTelemetryCfg.MetricsConfig,
 				hcpClient:       mockClient,
 				refreshInterval: defaultTestRefreshInterval,
 			}
 
-			configProvider, err := NewHCPProviderImpl(ctx, opts)
+			configProvider, err := NewHCPProvider(ctx, opts)
 			require.NoError(t, err)
 
 			// Eventually tries to run assertions every 100 ms to verify
@@ -243,7 +298,25 @@ func initGlobalSink(serviceName string) *metrics.InmemSink {
 	return sink
 }
 
-func telemetryConfig(testCfg *testConfig) (*client.TelemetryConfig, error) {
+func testDynamicCfg(testCfg *testConfig) (*dynamicConfig, error) {
+	filters, err := regexp.Compile(testCfg.filters)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoint, err := url.Parse(testCfg.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	return &dynamicConfig{
+		Endpoint:        endpoint,
+		Filters:         filters,
+		Labels:          testCfg.labels,
+		RefreshInterval: testCfg.refreshInterval,
+	}, nil
+}
+
+func testTelemetryCfg(testCfg *testConfig) (*client.TelemetryConfig, error) {
 	filters, err := regexp.Compile(testCfg.filters)
 	if err != nil {
 		return nil, err
