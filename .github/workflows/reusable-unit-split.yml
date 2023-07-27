@@ -162,11 +162,6 @@ jobs:
       - run: mkdir -p ${{env.TEST_RESULTS}}
       # expect this to be instant if cache hit
       - run: go mod download
-      - name: restore GOCACHE
-        uses: actions/cache/restore@v3
-        with:
-          key: "${{ inputs.cachekey_GOCACHE }}"
-          path: ~/.cache/go-build
       - name: Download consul
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
@@ -177,21 +172,13 @@ jobs:
       - name: Make sure consul is executable
         run: chmod +x $GITHUB_WORKSPACE/consul
       - run: go env
-      - name: install gotestsum
-        run: go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
-      - name: Build test binary
+      - name: Set vars
         id: build
         run: |
-          # separate the list
           package_name="${{ join(matrix.package, ' ') }}"
           package_dir=$(go list -f '{{.Dir}}' $package_name)
-          GOTESTCACHE="$package_dir/.gotestcache"
-          # building again is faster than copying the artifact from last job :P
-          .github/scripts/build-test-bin.sh "$package_dir"
           echo package_name="$package_name" >> "$GITHUB_OUTPUT"
           echo package_dir="$package_dir" >> "$GITHUB_OUTPUT"
-          echo GOTESTCACHE="$GOTESTCACHE" >> "$GITHUB_OUTPUT"
-          mkdir $GOTESTCACHE
       # - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       #   with:
       #     name: hashlog2-${{matrix.package}}
@@ -200,7 +187,7 @@ jobs:
         run: |
           cachekey_GOTESTCACHE="$(
             GOVERSION="${{ inputs.go-version }}" \
-            GOPACKAGENAME="${{ join(matrix.package, ' ') }}" \
+            GOPACKAGENAME="${{ steps.build.outputs.package_name }}" \
             .github/scripts/cachekey_GOTESTCACHE.sh
           )"
           echo "cachekey_GOTESTCACHE=$cachekey_GOTESTCACHE" >> "$GITHUB_OUTPUT"
@@ -209,28 +196,29 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           key: "${{ steps.cachekey_GOTESTCACHE.outputs.cachekey_GOTESTCACHE }}"
-          path: "${{ steps.build.outputs.GOTESTCACHE}}"
+          path: ~/.cache/go-build
+          restore-keys: |
+            "${{ inputs.cachekey_GOCACHE }}"
+      - name: install gotestsum
+        run: go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
       - name: Run tests 
         run: |
-          export GOCACHE=${{steps.build.outputs.GOTESTCACHE}}
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
           gotestsum \
-          --format=short-verbose \
-          --jsonfile /tmp/jsonfile/go-test.log \
-          --debug \
-          --rerun-fails=0 \
-          --rerun-fails-max-failures=40 \
-          --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-          --packages="${{steps.build.outputs.package_name}}" \
-          --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
-          --raw-command -- \
-          bash -c "export GOCACHE=$GOCACHE; cd ${{steps.build.outputs.package_dir}} && \
-          go tool test2json -t -p ${{steps.build.outputs.package_name}} \
-          ./test.bin \
-          -test.v \
-          ${GO_TEST_FLAGS-}"
+            --format=short-verbose \
+            --jsonfile /tmp/jsonfile/go-test.log \
+            --debug \
+            --rerun-fails=0 \
+            --rerun-fails-max-failures=40 \
+            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+            --packages="${{steps.build.outputs.package_name}}" \
+            --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
+            "${{steps.build.outputs.package_name}}" \
+            -tags="${{env.GOTAGS}}" \
+            -- \
+            -args ${GO_TEST_FLAGS-}
           ls -alR $GOCACHE
       - name: delete old GOCACHE
         if: ${{ always() }}
@@ -244,7 +232,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           key: "${{ steps.cachekey_GOTESTCACHE.outputs.cachekey_GOTESTCACHE }}"
-          path: "${{ steps.build.outputs.GOTESTCACHE}}"
+          path: "~/.cache/go-build"
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
