@@ -22,7 +22,7 @@ var (
 	// internalMetricRefreshFailure is a metric to monitor refresh successes.
 	internalMetricRefreshSuccess []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
 
-	defaultTelemetryConfigRefreshInterval = 5 * time.Minute
+	defaultTelemetryConfigRefreshInterval = 1 * time.Minute
 	defaultTelemetryConfigFilters         = regexp.MustCompile(".+")
 )
 
