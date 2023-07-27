@@ -21,7 +21,11 @@ type MetricsClient interface {
 // EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
 // This abstraction layer offers flexibility, in particular for dynamic configuration or changes to the endpoint.
 type EndpointProvider interface {
+<<<<<<< HEAD
 	GetEndpoint() (*url.URL, bool)
+=======
+	GetEndpoint() *url.URL
+>>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 }
 
 // OTELExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
@@ -70,6 +74,7 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 		return nil
 	}
 
+<<<<<<< HEAD
 	endpoint, ok := e.endpointProvider.GetEndpoint()
 	if !ok {
 		// We skip exporting metrics if we do not have an endpoint to send this to. This can
@@ -78,6 +83,9 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 		return nil
 	}
 
+=======
+	endpoint := e.endpointProvider.GetEndpoint()
+>>>>>>> cc-4960/hcp-telemetry-periodic-refresh
 	err := e.client.ExportMetrics(ctx, otlpMetrics, endpoint.String())
 	if err != nil {
 		goMetrics.IncrCounter(internalMetricExportFailure, 1)
