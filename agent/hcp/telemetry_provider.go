@@ -105,8 +105,8 @@ func (t *hcpProviderImpl) run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			if newCfg, hasChanged := t.checkUpdate(ctx); hasChanged {
-				t.modifyTelemetryConfig(newCfg)
+			if newCfg, newHash, hasChanged := t.checkUpdate(ctx); hasChanged {
+				t.modifyTelemetryConfig(newCfg, newHash)
 				ticker.Reset(newCfg.refreshInterval)
 			}
 		case <-ctx.Done():
@@ -117,7 +117,7 @@ func (t *hcpProviderImpl) run(ctx context.Context) {
 
 // checkUpdate makes a HTTP request to HCP to return a new metrics configuration and true, if config changed.
 // checkUpdate does not update the metricsConfig field to prevent acquiring the write lock unnecessarily.
-func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool) {
+func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, uint64, bool) {
 	logger := hclog.FromContext(ctx).Named("telemetry_config_provider")
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -127,7 +127,7 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool
 	if err != nil {
 		logger.Error("failed to fetch telemetry config from HCP", "error", err)
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
-		return nil, false
+		return nil, 0, false
 	}
 
 	newDynamicConfig := &dynamicConfig{
@@ -141,7 +141,7 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool
 	if err != nil {
 		logger.Error("failed to calculate hash for new config", "error", err)
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
-		return nil, false
+		return nil, 0, false
 	}
 
 	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
@@ -149,15 +149,16 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
-	return newDynamicConfig, newHash == t.cfgHash
+	return newDynamicConfig, newHash, newHash == t.cfgHash
 }
 
 // modifynewTelemetryConfig acquires a write lock to modify it with a given newTelemetryConfig object.
-func (t *hcpProviderImpl) modifyTelemetryConfig(newCfg *dynamicConfig) {
+func (t *hcpProviderImpl) modifyTelemetryConfig(newCfg *dynamicConfig, newHash uint64) {
 	t.rw.Lock()
 	defer t.rw.Unlock()
 
 	t.cfg = newCfg
+	t.cfgHash = newHash
 }
 
 // GetEndpoint acquires a read lock to return endpoint configuration for consumers.
