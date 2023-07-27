@@ -94,12 +94,6 @@ jobs:
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-      - name: restore GOMODCACHE
-        uses: actions/cache/restore@v3
-        if: "${{ inputs.cachekey_GOMODCACHE != '' }}"
-        with:
-          key: "${{inputs.cachekey_GOMODCACHE}}"
-          path: ~/go/pkg/mod      
       - run: mkdir -p ${{env.TEST_RESULTS}}
       # expect this to be instant if cache hit
       - run: go mod download
