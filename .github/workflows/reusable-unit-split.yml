@@ -134,7 +134,7 @@ jobs:
     steps:   
       - id: package_artifact
         run: |
-          echo package_artifact="$(echo "${{ matrix.package }}" | sed 's#[/.]#--#g')" >> "$GITHUB_OUTPUT"
+          echo package_artifact="$(echo "${{ join(matrix.package, ' ') }}" | sed 's#[/.]#--#g')" >> "$GITHUB_OUTPUT"
       - name: ulimit
         run: |
           echo "Soft limits"
