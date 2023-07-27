@@ -217,7 +217,6 @@ jobs:
             --rerun-fails-report=/tmp/gotestsum-rerun-fails \
             --packages="${{steps.build.outputs.package_name}}" \
             --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
-            "${{steps.build.outputs.package_name}}" \
             -tags="${{env.GOTAGS}}" \
             -args ${GO_TEST_FLAGS-}
           ls -alR $GOCACHE
