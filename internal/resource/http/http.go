@@ -37,10 +37,10 @@ func NewHandler(
 }
 
 type writeRequest struct {
-	// TODO: Owner.
 	Version  string            `json:"version"`
 	Metadata map[string]string `json:"metadata"`
 	Data     json.RawMessage   `json:"data"`
+	Owner    *pbresource.ID    `json:"owner"`
 }
 
 type resourceHandler struct {
@@ -65,12 +65,12 @@ func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 	var req writeRequest
-	// convert req data to struct
+	// convert req body to writeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Request body didn't follow schema."))
 	}
-	// struct to proto message
+	// convert data struct to proto message
 	data := h.reg.Proto.ProtoReflect().New().Interface()
 	if err := protojson.Unmarshal(req.Data, data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -85,14 +85,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	}
 
 	tenancyInfo, resourceName := checkURL(r)
-	if tenancyInfo == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Query params partition, peer_name, and namespace are required."))
-	}
-	if resourceName == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Missing resource name in the URL"))
-	}
+
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
@@ -100,6 +93,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 				Tenancy: tenancyInfo,
 				Name:    resourceName,
 			},
+			Owner:    req.Owner,
 			Version:  req.Version,
 			Metadata: req.Metadata,
 			Data:     anyProtoMsg,
@@ -121,17 +115,10 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 
 func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string) {
 	params := r.URL.Query()
-	partition := params.Get("partition")
-	peerName := params.Get("peer_name")
-	namespace := params.Get("namespace")
-	if partition == "" || peerName == "" || namespace == "" {
-		tenancy = nil
-	} else {
-		tenancy = &pbresource.Tenancy{
-			Partition: partition,
-			PeerName:  peerName,
-			Namespace: namespace,
-		}
+	tenancy = &pbresource.Tenancy{
+		Partition: params.Get("partition"),
+		PeerName:  params.Get("peer_name"),
+		Namespace: params.Get("namespace"),
 	}
 	resourceName = path.Base(r.URL.Path)
 	if resourceName == "." || resourceName == "/" {
