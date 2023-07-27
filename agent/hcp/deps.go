@@ -77,7 +77,7 @@ func sink(
 		return nil, nil
 	}
 
-	cfgProvider, err := NewHCPProviderImpl(ctx, &providerParams{
+	cfgProvider, err := NewHCPProvider(ctx, &providerParams{
 		metricsConfig:   telemetryCfg.MetricsConfig,
 		hcpClient:       hcpClient,
 		refreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
@@ -92,7 +92,7 @@ func sink(
 		ConfigProvider: cfgProvider,
 	}
 
-	sink, err := telemetry.NewOTELSink(sinkOpts, ctx)
+	sink, err := telemetry.NewOTELSink(ctx, sinkOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed create OTELSink: %w", err)
 	}

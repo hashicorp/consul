@@ -76,7 +76,7 @@ func NewOTELReader(client MetricsClient, endpointProvider EndpointProvider, expo
 // NewOTELSink returns a sink which fits the Go Metrics MetricsSink interface.
 // It sets up a MeterProvider and Meter, key pieces of the OTEL Metrics SDK which
 // enable us to create OTEL Instruments to record measurements.
-func NewOTELSink(opts *OTELSinkOpts, ctx context.Context) (*OTELSink, error) {
+func NewOTELSink(ctx context.Context, opts *OTELSinkOpts) (*OTELSink, error) {
 	if opts.Reader == nil {
 		return nil, fmt.Errorf("ferror: provide valid reader")
 	}

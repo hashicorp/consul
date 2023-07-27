@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -42,19 +43,19 @@ func (t *TelemetryConfig) MetricsEnabled() bool {
 // validateAgentTelemetryConfigPayload ensures the returned payload from HCP is valid.
 func validateAgentTelemetryConfigPayload(resp *hcptelemetry.AgentTelemetryConfigOK) error {
 	if resp.Payload == nil {
-		return fmt.Errorf("missing payload")
+		return errors.New("missing payload")
 	}
 
 	if resp.Payload.TelemetryConfig == nil {
-		return fmt.Errorf("missing telemetry config")
+		return errors.New("missing telemetry config")
 	}
 
 	if resp.Payload.RefreshConfig == nil {
-		return fmt.Errorf("missing refresh config")
+		return errors.New("missing refresh config")
 	}
 
 	if resp.Payload.TelemetryConfig.Metrics == nil {
-		return fmt.Errorf("missing metrics config")
+		return errors.New("missing metrics config")
 	}
 
 	return nil
