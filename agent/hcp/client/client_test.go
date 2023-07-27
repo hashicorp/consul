@@ -3,7 +3,10 @@ package client
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"regexp"
 	"testing"
+	"time"
 
 	"github.com/go-openapi/runtime"
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
@@ -27,12 +30,20 @@ func (m *mockTGW) QueryRangeBatch(params *hcptelemetry.QueryRangeBatchParams, au
 }
 func (m *mockTGW) SetTransport(transport runtime.ClientTransport) {}
 
+type expectedTelemetryCfg struct {
+	endpoint        string
+	labels          map[string]string
+	filters         string
+	refreshInterval time.Duration
+}
+
 func TestFetchTelemetryConfig(t *testing.T) {
 	t.Parallel()
 	for name, tc := range map[string]struct {
 		mockResponse *hcptelemetry.AgentTelemetryConfigOK
 		mockError    error
 		wantErr      string
+		expected     *expectedTelemetryCfg
 	}{
 		"errorsWithFetchFailure": {
 			mockError:    fmt.Errorf("failed to fetch from HCP"),
@@ -56,12 +67,17 @@ func TestFetchTelemetryConfig(t *testing.T) {
 						Endpoint: "https://test.com",
 						Labels:   map[string]string{"test": "123"},
 						Metrics: &models.HashicorpCloudConsulTelemetry20230414TelemetryMetricsConfig{
-							IncludeList: []string{"consul"},
+							IncludeList: []string{"consul", "test"},
 						},
 					},
 				},
 			},
-			mockError: nil,
+			expected: &expectedTelemetryCfg{
+				endpoint:        "https://test.com/v1/metrics",
+				labels:          map[string]string{"test": "123"},
+				filters:         "consul|test",
+				refreshInterval: 1 * time.Second,
+			},
 		},
 	} {
 		tc := tc
@@ -83,8 +99,25 @@ func TestFetchTelemetryConfig(t *testing.T) {
 				return
 			}
 
+			urlEndpoint, err := url.Parse(tc.expected.endpoint)
 			require.NoError(t, err)
-			require.NotNil(t, telemetryCfg)
+
+			regexFilters, err := regexp.Compile(tc.expected.filters)
+			require.NoError(t, err)
+
+			expectedCfg := &TelemetryConfig{
+				MetricsConfig: &MetricsConfig{
+					Endpoint: urlEndpoint,
+					Filters:  regexFilters,
+					Labels:   tc.expected.labels,
+				},
+				RefreshConfig: &RefreshConfig{
+					RefreshInterval: tc.expected.refreshInterval,
+				},
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, expectedCfg, telemetryCfg)
 		})
 	}
 }
