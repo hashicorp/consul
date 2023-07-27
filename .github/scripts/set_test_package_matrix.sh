@@ -5,12 +5,11 @@
 set -euo pipefail
 
 # set matrix var to list of unique packages containing tests
-# TODO: TEMP: only the first 10, for testing
-export RUNNER_COUNT=10
+export RUNNER_COUNT=$1
 matrix="$( \
   go list -json="ImportPath,TestGoFiles" ./... | \
   jq --compact-output '. | select(.TestGoFiles != null) | .ImportPath' | \
-  jq --slurp --compact-output '.[0:10]' | \
+  jq --slurp --compact-output '.' | \
   jq --argjson runnercount $RUNNER_COUNT  -cM '[_nwise(length / $runnercount | floor)]' \
 )"
 
