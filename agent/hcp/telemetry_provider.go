@@ -194,8 +194,3 @@ func (t *hcpProviderImpl) GetLabels() map[string]string {
 
 	return t.cfg.Labels
 }
-
-// calculateHash returns a uint64 hash for data that can be used for comparisons.
-func calculateHash(cfg *dynamicConfig) (uint64, error) {
-	return hashstructure.Hash(*cfg, hashstructure.FormatV2, nil)
-}
