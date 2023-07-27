@@ -6,19 +6,19 @@ description: >-
 
 # Automated license utilization reporting
 
-This topic describes how to enable automated license utilization reporting in Consul Enterprise. This feature automatically sends license utilization data to HashiCorp so that you do not have to manually collect and report them. It also enables you to review your license usage with the monitoring solution you already use, such as Splunk and Datadog, as you optimize and manage your deployments.
+This topic describes how to enable automated license utilization reporting in Consul Enterprise. This feature automatically sends license utilization data to HashiCorp so that you do not have to manually collect and report it. It also enables you to review your license usage with the monitoring solution you already use, such as Splunk and Datadog, as you optimize and manage your deployments.
 
 ## Introduction
 
-You can use automated license utilization report to understand how much more networking infrastructure you can deploy under your current contract. This helps you protect against overutilization and budget for predicted consumption.
+You can use automated license utilization report to understand how much additional networking infrastructure you can deploy under your current contract. This feature helps you protect against overutilization and budget for predicted consumption.
 
 Automated reporting shares the minimum data required to validate license utilization as defined in our contracts. This data mostly consists of computed metrics, and it will never contain Personal Identifiable Information (PII) or other sensitive information. Automated reporting shares the data with HashiCorp using a secure unidirectional HTTPS API and makes an auditable record in the product logs each time it submits a report. This process is GDPR-compliant.
 
 ## Requirements
 
-_Air-gapped_ installations, which are systems with no network interfaces, are not supported.
+Automated license utilization reporting does not support _air-gapped installations_, which are systems with no network interfaces.
 
-The following versions of Consul Enterprise are support automated license utilization reporting:
+The following versions of Consul Enterprise support automated license utilization reporting:
 
 - Patch releases of Consul Enterprise 1.14.8 and newer.
 - Patch releases of Consul Enterprise 1.13.9 and newer.
@@ -82,7 +82,7 @@ If your installation is air-gapped or your network does not allow the correct eg
 
 </CodeBlockConfig>
 
-In this case, reconfigure your network to allow egress and check back in roughly 24 hours. 
+In this case, reconfigure your network to allow egress and check the logs again in roughly 24 hours to confirm that automated reporting works correctly.
 
 ## Opt out
 
@@ -107,7 +107,7 @@ reporting {
 }
 ```
 
-When you opt out using an environment variable, once you restart your system it will provide a startup message confirming that you have disabled automated reporting. Set the following environment variable to disable automated reporting:
+When opting out using an environment variable, the system provides a startup message confirming that you have disabled automated reporting. Set the following environment variable to disable automated reporting:
 
 <CodeBlockConfig>
 
