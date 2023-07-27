@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	aggregationErr = errors.New("unsupported aggregation")
-	temporalityErr = errors.New("unsupported temporality")
+	errAggregaton  = errors.New("unsupported aggregation")
+	errTemporality = errors.New("unsupported temporality")
 )
 
 // isEmpty verifies if the given OTLP protobuf metrics contains metric data.
@@ -96,7 +96,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 		}
 	case metricdata.Sum[float64]:
 		if a.Temporality != metricdata.CumulativeTemporality {
-			return out, fmt.Errorf("error: %w: %T", temporalityErr, a)
+			return out, fmt.Errorf("error: %w: %T", errTemporality, a)
 		}
 		out.Data = &mpb.Metric_Sum{
 			Sum: &mpb.Sum{
@@ -107,7 +107,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 		}
 	case metricdata.Histogram[float64]:
 		if a.Temporality != metricdata.CumulativeTemporality {
-			return out, fmt.Errorf("error: %w: %T", temporalityErr, a)
+			return out, fmt.Errorf("error: %w: %T", errTemporality, a)
 		}
 		out.Data = &mpb.Metric_Histogram{
 			Histogram: &mpb.Histogram{
@@ -116,7 +116,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 			},
 		}
 	default:
-		return out, fmt.Errorf("error: %w: %T", aggregationErr, a)
+		return out, fmt.Errorf("error: %w: %T", errAggregaton, a)
 	}
 	return out, nil
 }

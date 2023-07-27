@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -123,7 +124,9 @@ func TestExportMetrics(t *testing.T) {
 
 			ctx := context.Background()
 			metrics := &metricpb.ResourceMetrics{}
-			err = client.ExportMetrics(ctx, metrics, srv.URL)
+			u, err := url.Parse(srv.URL)
+			require.NoError(t, err)
+			err = client.ExportMetrics(ctx, metrics, u)
 
 			if test.wantErr != "" {
 				require.Error(t, err)

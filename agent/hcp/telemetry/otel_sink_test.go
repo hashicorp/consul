@@ -18,8 +18,9 @@ import (
 )
 
 type mockConfigProvider struct {
-	filter *regexp.Regexp
-	labels map[string]string
+	filter  *regexp.Regexp
+	labels  map[string]string
+	enabled bool
 }
 
 func (m *mockConfigProvider) GetLabels() map[string]string {
@@ -28,6 +29,10 @@ func (m *mockConfigProvider) GetLabels() map[string]string {
 
 func (m *mockConfigProvider) GetFilters() *regexp.Regexp {
 	return m.filter
+}
+
+func (m *mockConfigProvider) Enabled() bool {
+	return m.enabled
 }
 
 var (
@@ -184,7 +189,8 @@ func TestOTELSink(t *testing.T) {
 	opts := &OTELSinkOpts{
 		Reader: reader,
 		ConfigProvider: &mockConfigProvider{
-			filter: regexp.MustCompile("raft|autopilot"),
+			enabled: true,
+			filter:  regexp.MustCompile("raft|autopilot"),
 			labels: map[string]string{
 				"node_id": "test",
 			},
@@ -218,6 +224,29 @@ func TestOTELSink(t *testing.T) {
 	require.NoError(t, err)
 
 	isSame(t, expectedSinkMetrics, collected)
+}
+
+func TestOTELSinkDisabled(t *testing.T) {
+	reader := metric.NewManualReader()
+	ctx := context.Background()
+
+	sink, err := NewOTELSink(ctx, &OTELSinkOpts{
+		ConfigProvider: &mockConfigProvider{
+			filter:  regexp.MustCompile("raft"),
+			enabled: false,
+		},
+		Reader: reader,
+	})
+	require.NoError(t, err)
+
+	sink.SetGauge([]string{"consul", "raft", "gauge"}, 1)
+	sink.IncrCounter([]string{"consul", "raft", "counter"}, 1)
+	sink.AddSample([]string{"consul", "raft", "sample"}, 1)
+
+	var collected metricdata.ResourceMetrics
+	err = reader.Collect(ctx, &collected)
+	require.NoError(t, err)
+	require.Empty(t, collected.ScopeMetrics)
 }
 
 func TestLabelsToAttributes(t *testing.T) {
@@ -351,8 +380,9 @@ func TestOTELSink_Race(t *testing.T) {
 	opts := &OTELSinkOpts{
 		Reader: reader,
 		ConfigProvider: &mockConfigProvider{
-			filter: regexp.MustCompile("test"),
-			labels: defaultLabels,
+			filter:  regexp.MustCompile("test"),
+			labels:  defaultLabels,
+			enabled: true,
 		},
 	}
 

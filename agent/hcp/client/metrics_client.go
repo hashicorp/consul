@@ -3,9 +3,11 @@ package client
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -37,6 +39,10 @@ const (
 	// defaultErrRespBodyLength refers to the max character length of the body on a failure to export metrics.
 	// anything beyond we will truncate.
 	defaultErrRespBodyLength = 100
+)
+
+var (
+	errInvalidEndpoint = errors.New("invalid nil endpoint")
 )
 
 // cloudConfig represents cloud config for TLS abstracted in an interface for easy testing.
@@ -122,7 +128,11 @@ func newHTTPClient(cloudCfg CloudConfig, logger hclog.Logger) (*retryablehttp.Cl
 // ExportMetrics is the single method exposed by MetricsClient to export OTLP metrics to the desired HCP endpoint.
 // The endpoint is configurable as the endpoint can change during periodic refresh of CCM telemetry config.
 // By configuring the endpoint here, we can re-use the same client and override the endpoint when making a request.
-func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
+func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint *url.URL) error {
+	if endpoint == nil {
+		return errInvalidEndpoint
+	}
+
 	pbRequest := &colmetricpb.ExportMetricsServiceRequest{
 		ResourceMetrics: []*metricpb.ResourceMetrics{protoMetrics},
 	}
@@ -132,7 +142,7 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 		return fmt.Errorf("failed to marshal the request: %w", err)
 	}
 
-	req, err := retryablehttp.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(body))
+	req, err := retryablehttp.NewRequest(http.MethodPost, endpoint.String(), bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

@@ -17,7 +17,7 @@ import (
 
 var (
 	// defaultMetricFilters is a regex that matches all metric names.
-	defaultMetricFilters = regexp.MustCompile(".+")
+	DefaultMetricFilters = regexp.MustCompile(".+")
 
 	// Validation errors for AgentTelemetryConfigOK response.
 	errMissingPayload         = errors.New("missing payload")
@@ -142,7 +142,7 @@ func convertMetricFilters(ctx context.Context, payloadFilters []string) *regexp.
 
 	if len(validFilters) == 0 {
 		logger.Error("no valid filters")
-		return defaultMetricFilters
+		return DefaultMetricFilters
 	}
 
 	// Combine the valid regex strings with OR.
@@ -150,7 +150,7 @@ func convertMetricFilters(ctx context.Context, payloadFilters []string) *regexp.
 	composedRegex, err := regexp.Compile(finalRegex)
 	if err != nil {
 		logger.Error("failed to compile final regex", "error", err)
-		return defaultMetricFilters
+		return DefaultMetricFilters
 	}
 
 	return composedRegex

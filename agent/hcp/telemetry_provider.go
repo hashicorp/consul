@@ -2,7 +2,6 @@ package hcp
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"regexp"
 	"sync"
@@ -19,7 +18,8 @@ var (
 	// internalMetricRefreshFailure is a metric to monitor refresh failures.
 	internalMetricRefreshFailure []string = []string{"hcp", "telemetry_config_provider", "refresh", "failure"}
 	// internalMetricRefreshSuccess is a metric to monitor refresh successes.
-	internalMetricRefreshSuccess []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
+	internalMetricRefreshSuccess          []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
+	defaultTelemetryConfigRefreshInterval          = 1 * time.Minute
 )
 
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
@@ -43,6 +43,7 @@ type hcpProviderImpl struct {
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
 // fields MUST be exported to compute hash for equals method.
 type dynamicConfig struct {
+	Enabled  bool
 	Endpoint *url.URL
 	Labels   map[string]string
 	Filters  *regexp.Regexp
@@ -51,28 +52,27 @@ type dynamicConfig struct {
 }
 
 // NewHCPProvider initializes and starts a HCP Telemetry provider with provided params.
-func NewHCPProvider(ctx context.Context, hcpClient client.Client, telemetryCfg *client.TelemetryConfig) (*hcpProviderImpl, error) {
-	refreshInterval := telemetryCfg.RefreshConfig.RefreshInterval
-	// refreshInterval must be greater than 0, otherwise time.Ticker panics.
-	if refreshInterval <= 0 {
-		return nil, fmt.Errorf("invalid refresh interval: %d", refreshInterval)
-	}
-
-	cfg := &dynamicConfig{
-		Endpoint:        telemetryCfg.MetricsConfig.Endpoint,
-		Labels:          telemetryCfg.MetricsConfig.Labels,
-		Filters:         telemetryCfg.MetricsConfig.Filters,
-		RefreshInterval: refreshInterval,
-	}
-
+func NewHCPProvider(ctx context.Context, hcpClient client.Client) *hcpProviderImpl {
 	t := &hcpProviderImpl{
-		cfg:       cfg,
+		// Initialize with default config values.
+		cfg: &dynamicConfig{
+			Labels:          map[string]string{},
+			Filters:         client.DefaultMetricFilters,
+			RefreshInterval: defaultTelemetryConfigRefreshInterval,
+			Endpoint:        nil,
+			Enabled:         false,
+		},
 		hcpClient: hcpClient,
 	}
 
-	go t.run(ctx, refreshInterval)
+	// Try to initialize the config once before running periodic fetcher.
+	if newCfg := t.getUpdate(ctx); newCfg != nil {
+		t.cfg = newCfg
+	}
 
-	return t, nil
+	go t.run(ctx, t.cfg.RefreshInterval)
+
+	return t
 }
 
 // run continously checks for updates to the telemetry configuration by making a request to HCP.
@@ -118,7 +118,8 @@ func (h *hcpProviderImpl) getUpdate(ctx context.Context) *dynamicConfig {
 		Filters:         telemetryCfg.MetricsConfig.Filters,
 		Endpoint:        telemetryCfg.MetricsConfig.Endpoint,
 		Labels:          telemetryCfg.MetricsConfig.Labels,
-		RefreshInterval: newRefreshInterval,
+		RefreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
+		Enabled:         telemetryCfg.MetricsEnabled(),
 	}
 
 	// Acquire write lock to update new configuration.
@@ -153,4 +154,8 @@ func (h *hcpProviderImpl) GetLabels() map[string]string {
 	defer h.rw.RUnlock()
 
 	return h.cfg.Labels
+}
+
+func (t *hcpProviderImpl) Enabled() bool {
+	return t.cfg.Enabled
 }

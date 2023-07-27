@@ -25,15 +25,17 @@ type mockMetricsClient struct {
 	exportErr error
 }
 
-func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
+func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint *url.URL) error {
 	return m.exportErr
 }
 
 type mockEndpointProvider struct {
 	endpoint *url.URL
+	enabled  bool
 }
 
 func (m *mockEndpointProvider) GetEndpoint() *url.URL { return m.endpoint }
+func (m *mockEndpointProvider) Enabled() bool         { return m.enabled }
 
 func TestTemporality(t *testing.T) {
 	t.Parallel()
@@ -82,8 +84,9 @@ func TestExport(t *testing.T) {
 			provider: &mockEndpointProvider{},
 		},
 		"earlyReturnWithoutScopeMetrics": {
-			client:  &mockMetricsClient{},
-			metrics: mutateMetrics(nil),
+			client:   &mockMetricsClient{},
+			metrics:  mutateMetrics(nil),
+			provider: &mockEndpointProvider{enabled: true},
 		},
 		"earlyReturnWithoutMetrics": {
 			client: &mockMetricsClient{},
@@ -91,6 +94,7 @@ func TestExport(t *testing.T) {
 				{Metrics: []metricdata.Metrics{}},
 			},
 			),
+			provider: &mockEndpointProvider{enabled: true},
 		},
 		"errorWithExportFailure": {
 			client: &mockMetricsClient{
@@ -107,7 +111,8 @@ func TestExport(t *testing.T) {
 				},
 			},
 			),
-			wantErr: "failed to export metrics",
+			provider: &mockEndpointProvider{enabled: true},
+			wantErr:  "failed to export metrics",
 		},
 	} {
 		test := test

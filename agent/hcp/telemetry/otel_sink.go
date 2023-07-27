@@ -20,8 +20,15 @@ import (
 // DefaultExportInterval is a default time interval between export of aggregated metrics.
 const DefaultExportInterval = 10 * time.Second
 
+// Enabler must be implemented as it is required to process metrics
+// Returning false will mean the sink is disabled, and will not accept metrics.
+type Enabler interface {
+	Enabled() bool
+}
+
 // ConfigProvider is required to provide custom metrics processing.
 type ConfigProvider interface {
+	Enabler
 	// GetLabels should return a set of OTEL attributes added by default all metrics.
 	GetLabels() map[string]string
 	// GetFilters should return filtesr that are required to enable metric processing.
@@ -96,6 +103,8 @@ func NewOTELSink(ctx context.Context, opts *OTELSinkOpts) (*OTELSink, error) {
 	meterProvider := otelsdk.NewMeterProvider(otelsdk.WithResource(res), otelsdk.WithReader(opts.Reader))
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
 
+	logger.Debug("Successfully initialized OTELSink")
+
 	return &OTELSink{
 		cfgProvider:          opts.ConfigProvider,
 		spaceReplacer:        strings.NewReplacer(" ", "_"),
@@ -127,8 +136,11 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 // AddSampleWithLabels emits a Consul gauge metric that gets
 // registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	if !o.cfgProvider.Enabled() {
+		return
+	}
 
+	k := o.flattenKey(key)
 	if !o.allowedMetric(k) {
 		return
 	}
@@ -155,8 +167,11 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 
 // AddSampleWithLabels emits a Consul sample metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	if !o.cfgProvider.Enabled() {
+		return
+	}
 
+	k := o.flattenKey(key)
 	if !o.allowedMetric(k) {
 		return
 	}
@@ -181,12 +196,14 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
-
-	if !o.allowedMetric(k) {
+	if !o.cfgProvider.Enabled() {
 		return
 	}
 
+	k := o.flattenKey(key)
+	if !o.allowedMetric(k) {
+		return
+	}
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 

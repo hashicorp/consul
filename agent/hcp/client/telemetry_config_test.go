@@ -160,7 +160,7 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 				MetricsConfig: &MetricsConfig{
 					Endpoint: validTestURL,
 					Labels:   map[string]string{"test": "test"},
-					Filters:  defaultMetricFilters,
+					Filters:  DefaultMetricFilters,
 				},
 				RefreshConfig: &RefreshConfig{
 					RefreshInterval: 2 * time.Second,
@@ -274,13 +274,13 @@ func TestConvertMetricFilters(t *testing.T) {
 	}{
 		"badFilterRegex": {
 			filters:             []string{"(*LF)"},
-			expectedRegexString: defaultMetricFilters.String(),
+			expectedRegexString: DefaultMetricFilters.String(),
 			matches:             []string{"consul.raft.peers", "consul.mem.heap_size"},
 			wantMatch:           true,
 		},
 		"emptyRegex": {
 			filters:             []string{},
-			expectedRegexString: defaultMetricFilters.String(),
+			expectedRegexString: DefaultMetricFilters.String(),
 			matches:             []string{"consul.raft.peers", "consul.mem.heap_size"},
 			wantMatch:           true,
 		},
