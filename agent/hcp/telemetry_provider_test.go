@@ -86,20 +86,6 @@ func TestDynamicConfigEquals(t *testing.T) {
 	}
 }
 
-func testDynamicCfg(testCfg *testConfig) (*dynamicConfig, error) {
-	filters, err := regexp.Compile(testCfg.filters)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dynamicConfig{
-		Endpoint:        testCfg.endpoint,
-		Filters:         filters,
-		Labels:          testCfg.labels,
-		RefreshInterval: testCfg.refreshInterval,
-	}, nil
-}
-
 func TestTelemetryConfigProvider(t *testing.T) {
 	for name, tc := range map[string]struct {
 		expected *testConfig
@@ -191,6 +177,20 @@ func TestTelemetryConfigProvider(t *testing.T) {
 			require.Equal(t, tc.expected.labels, configProvider.GetLabels())
 		})
 	}
+}
+
+func testDynamicCfg(testCfg *testConfig) (*dynamicConfig, error) {
+	filters, err := regexp.Compile(testCfg.filters)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dynamicConfig{
+		Endpoint:        testCfg.endpoint,
+		Filters:         filters,
+		Labels:          testCfg.labels,
+		RefreshInterval: testCfg.refreshInterval,
+	}, nil
 }
 
 func newTestTelemetryConfig(t *testing.T, testCfg *testConfig) (*client.TelemetryConfig, error) {
