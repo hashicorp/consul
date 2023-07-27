@@ -6,7 +6,6 @@ package hcp
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/armon/go-metrics"
 
@@ -66,17 +65,6 @@ func sink(
 	metricsClient telemetry.MetricsClient,
 ) (metrics.MetricSink, error) {
 	logger := hclog.FromContext(ctx).Named("sink")
-	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	telemetryCfg, err := hcpClient.FetchTelemetryConfig(reqCtx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch telemetry config: %w", err)
-	}
-
-	if !telemetryCfg.MetricsEnabled() {
-		return nil, nil
-	}
 
 	cfgProvider := NewHCPProviderImpl(ctx, hcpClient)
 	reader := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
