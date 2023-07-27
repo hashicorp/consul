@@ -104,11 +104,11 @@ jobs:
             jq --slurp --compact-output -r '.[0:10] | .[]')
           echo $dirs
           echo "${dirs}" | parallel .github/scripts/build-test-bin.sh '{}'
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          # TODO: this name needs to be unique for the whole workflow I think
-          name: hashlog1
-          path: '**/test.bin.hashlog'
+      # - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      #   with:
+      #     # TODO: this name needs to be unique for the whole workflow I think
+      #     name: hashlog1
+      #     path: '**/test.bin.hashlog'
       # github doesn't let you overwrite a cache, so we just delete it first
       - name: delete old GOCACHE
         run: |
@@ -192,10 +192,10 @@ jobs:
           echo package_dir="$package_dir" >> "$GITHUB_OUTPUT"
           echo GOTESTCACHE="$GOTESTCACHE" >> "$GITHUB_OUTPUT"
           mkdir $GOTESTCACHE
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          name: hashlog2-${{matrix.package}}
-          path: '**/test.bin.hashlog'
+      # - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      #   with:
+      #     name: hashlog2-${{matrix.package}}
+      #     path: '**/test.bin.hashlog'
       - id: cachekey_GOTESTCACHE
         run: |
           cachekey_GOTESTCACHE="$(
