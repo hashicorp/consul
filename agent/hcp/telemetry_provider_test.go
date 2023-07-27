@@ -2,10 +2,12 @@ package hcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,8 +19,11 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/client"
 )
 
-const defaultTestRefreshInterval = 100 * time.Millisecond
-const sinkServiceName = "test.telemetry_config_provider"
+const (
+	testRefreshInterval = 100 * time.Millisecond
+	testSinkServiceName = "test.telemetry_config_provider"
+	testRaceSampleCount = 5000
+)
 
 type testConfig struct {
 	filters         string
@@ -92,7 +97,7 @@ func TestTelemetryConfigProvider(t *testing.T) {
 				labels: map[string]string{
 					"test_label": "123",
 				},
-				refreshInterval: defaultTestRefreshInterval,
+				refreshInterval: testRefreshInterval,
 			},
 			expected: &testConfig{
 				endpoint: "http://test.com/v1/metrics",
@@ -129,7 +134,7 @@ func TestTelemetryConfigProvider(t *testing.T) {
 				labels: map[string]string{
 					"test_label": "123",
 				},
-				refreshInterval: defaultTestRefreshInterval,
+				refreshInterval: testRefreshInterval,
 			},
 			mockExpect: func(m *client.MockClient) {
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("failure"))
@@ -140,7 +145,7 @@ func TestTelemetryConfigProvider(t *testing.T) {
 				labels: map[string]string{
 					"test_label": "123",
 				},
-				refreshInterval: defaultTestRefreshInterval,
+				refreshInterval: testRefreshInterval,
 			},
 			metricKey: internalMetricRefreshFailure,
 		},
@@ -165,7 +170,7 @@ func TestTelemetryConfigProvider(t *testing.T) {
 			provider := &hcpProviderImpl{
 				hcpClient: mockClient,
 				cfg:       dynamicCfg,
-				ticker:    time.NewTicker(defaultTestRefreshInterval),
+				ticker:    time.NewTicker(testRefreshInterval),
 			}
 
 			// Use a time chan to trigger updates manually.
@@ -249,9 +254,108 @@ func TestDynamicConfigEquals(t *testing.T) {
 	}
 }
 
+// mockClientRace returns new configuration everytime checkUpdate is called
+// by creating unique labels using its counter. This allows us to induce
+// race conditions with the changing dynamic config in the provider.
+type mockClientRace struct {
+	counter         int
+	defaultEndpoint *url.URL
+	defaultFilters  *regexp.Regexp
+}
+
+func (mc *mockClientRace) FetchBootstrap(ctx context.Context) (*client.BootstrapConfig, error) {
+	return nil, nil
+}
+func (mc *mockClientRace) PushServerStatus(ctx context.Context, status *client.ServerStatus) error {
+	return nil
+}
+func (mc *mockClientRace) DiscoverServers(ctx context.Context) ([]string, error) {
+	return nil, nil
+}
+func (mc *mockClientRace) FetchTelemetryConfig(ctx context.Context) (*client.TelemetryConfig, error) {
+	return &client.TelemetryConfig{
+		MetricsConfig: &client.MetricsConfig{
+			Endpoint: mc.defaultEndpoint,
+			Filters:  mc.defaultFilters,
+			// Generate unique labels.
+			Labels: map[string]string{fmt.Sprintf("label_%d", mc.counter): fmt.Sprintf("value_%d", mc.counter)},
+		},
+		RefreshConfig: &client.RefreshConfig{
+			RefreshInterval: testRefreshInterval,
+		},
+	}, nil
+}
+
+func TestTelemetryConfigProvider_Race(t *testing.T) {
+	initialTelemetryCfg, err := testTelemetryCfg(&testConfig{
+		endpoint: "http://test.com/v1/metrics",
+		filters:  "test",
+		labels: map[string]string{
+			"test_label": "123",
+		},
+	})
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	provider, err := NewHCPProvider(ctx, &providerParams{
+		metricsConfig: initialTelemetryCfg.MetricsConfig,
+		hcpClient: &mockClientRace{
+			defaultEndpoint: initialTelemetryCfg.MetricsConfig.Endpoint,
+			defaultFilters:  initialTelemetryCfg.MetricsConfig.Filters,
+		},
+		refreshInterval: testRefreshInterval,
+	})
+	require.NoError(t, err)
+
+	wg := &sync.WaitGroup{}
+
+	labelErrCh := make(chan error, testRaceSampleCount)
+	labelErr := errors.New("expected labels to have one entry")
+	// Start 5000 goroutines that try to access label configuration.
+	kickOff(wg, labelErrCh, provider, func(provider *hcpProviderImpl) bool {
+		return len(provider.GetLabels()) == 1
+	}, labelErr)
+
+	expectedEndpoint := initialTelemetryCfg.MetricsConfig.Endpoint.String()
+	endpointErr := fmt.Errorf("expected endpoint to be %s", expectedEndpoint)
+	endpointErrCh := make(chan error, testRaceSampleCount)
+	// Start 5000 goroutines that try to access endpoint configuration.
+	kickOff(wg, endpointErrCh, provider, func(provider *hcpProviderImpl) bool {
+		return provider.GetEndpoint().String() == expectedEndpoint
+	}, endpointErr)
+
+	expectedFilters := initialTelemetryCfg.MetricsConfig.Filters.String()
+	filtersErr := fmt.Errorf("expected filters to be %s", expectedFilters)
+	filtersErrCh := make(chan error, testRaceSampleCount)
+	// Start 5000 goroutines that try to access filter configuration.
+	kickOff(wg, filtersErrCh, provider, func(provider *hcpProviderImpl) bool {
+		return provider.GetFilters().String() == expectedFilters
+	}, filtersErr)
+
+	wg.Wait()
+
+	require.Empty(t, labelErrCh)
+	require.Empty(t, endpointErrCh)
+	require.Empty(t, filtersErrCh)
+}
+
+func kickOff(wg *sync.WaitGroup, errCh chan error, provider *hcpProviderImpl, check func(cfgProvider *hcpProviderImpl) bool, err error) {
+	for i := 0; i < 5000; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if !check(provider) {
+				errCh <- err
+			}
+		}()
+	}
+}
+
 // initGlobalSink is a helper function to initialize a Go metrics inmemsink.
 func initGlobalSink() *metrics.InmemSink {
-	cfg := metrics.DefaultConfig(sinkServiceName)
+	cfg := metrics.DefaultConfig(testSinkServiceName)
 	cfg.EnableHostname = false
 
 	sink := metrics.NewInmemSink(10*time.Second, 10*time.Second)
@@ -263,7 +367,7 @@ func initGlobalSink() *metrics.InmemSink {
 // collectSinkMetric is a helper function to obtain a measurement from the Go metrics inmemsink.
 func collectSinkMetric(sink *metrics.InmemSink, metricKey []string) metrics.SampledValue {
 	// Collect sink metrics.
-	key := sinkServiceName + "." + strings.Join(metricKey, ".")
+	key := testSinkServiceName + "." + strings.Join(metricKey, ".")
 	intervals := sink.Data()
 	sv := intervals[0].Counters[key]
 
@@ -307,7 +411,7 @@ func testTelemetryCfg(testCfg *testConfig) (*client.TelemetryConfig, error) {
 			Labels:   testCfg.labels,
 		},
 		RefreshConfig: &client.RefreshConfig{
-			RefreshInterval: defaultTestRefreshInterval,
+			RefreshInterval: testRefreshInterval,
 		},
 	}, nil
 }
