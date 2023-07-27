@@ -17,9 +17,87 @@ import (
 const defaultTestRefreshInterval = 100 * time.Millisecond
 
 type testConfig struct {
-	filters  string
-	endpoint *url.URL
-	labels   map[string]string
+	filters         string
+	endpoint        *url.URL
+	labels          map[string]string
+	refreshInterval time.Duration
+}
+
+func TestDynamicConfigEquals(t *testing.T) {
+	t.Parallel()
+
+	for name, tc := range map[string]struct {
+		a        *testConfig
+		b        *testConfig
+		expected bool
+	}{
+		"same": {
+			a: &testConfig{
+				endpoint: &url.URL{
+					Host: "http://test.com/v1/metrics",
+				},
+				filters:         "state|raft",
+				labels:          map[string]string{"test": "123"},
+				refreshInterval: 1 * time.Second,
+			},
+			b: &testConfig{
+				endpoint: &url.URL{
+					Host: "http://test.com/v1/metrics",
+				},
+				filters:         "state|raft",
+				labels:          map[string]string{"test": "123"},
+				refreshInterval: 1 * time.Second,
+			},
+			expected: true,
+		},
+		"different": {
+			a: &testConfig{
+				endpoint: &url.URL{
+					Host: "http://test.com/v1/metrics",
+				},
+				filters:         "state|raft|extra",
+				labels:          map[string]string{"test": "12334"},
+				refreshInterval: 2 * time.Second,
+			},
+			b: &testConfig{
+				endpoint: &url.URL{
+					Host: "http://other-endpoint-test.com/v1/metrics",
+				},
+				filters:         "state|raft",
+				labels:          map[string]string{"test": "123"},
+				refreshInterval: 1 * time.Second,
+			},
+		},
+	} {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			aCfg, err := testDynamicCfg(tc.a)
+			require.NoError(t, err)
+			bCfg, err := testDynamicCfg(tc.b)
+			require.NoError(t, err)
+
+			equal, err := aCfg.equals(bCfg)
+
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, equal)
+		})
+	}
+}
+
+func testDynamicCfg(testCfg *testConfig) (*dynamicConfig, error) {
+	filters, err := regexp.Compile(testCfg.filters)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dynamicConfig{
+		Endpoint:        testCfg.endpoint,
+		Filters:         filters,
+		Labels:          testCfg.labels,
+		RefreshInterval: testCfg.refreshInterval,
+	}, nil
 }
 
 func TestTelemetryConfigProvider(t *testing.T) {
