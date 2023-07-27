@@ -74,7 +74,9 @@ jobs:
       - name: Build
         env:
           GOARCH: ${{ inputs.go-arch }}
-        run: make dev
+        run: |
+          make dev
+          sha256sum bin/consul
       # github doesn't let you overwrite a cache, so we just delete it first
       - name: delete old GOCACHE
         run: |
