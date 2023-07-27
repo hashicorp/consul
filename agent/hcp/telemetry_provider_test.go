@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/armon/go-metrics"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -21,170 +18,114 @@ const defaultTestRefreshInterval = 100 * time.Millisecond
 
 type testConfig struct {
 	filters  string
-	endpoint string
+	endpoint *url.URL
 	labels   map[string]string
 }
 
-func TestTelemetryConfigProvider_Success(t *testing.T) {
+func TestTelemetryConfigProvider(t *testing.T) {
 	for name, tc := range map[string]struct {
-		optsInputs *testConfig
-		expected   *testConfig
+		expected *testConfig
+		fail     string
 	}{
-		"noChanges": {
-			optsInputs: &testConfig{
-				endpoint: "http://test.com/v1/metrics",
-				filters:  "test",
-				labels: map[string]string{
-					"test_label": "123",
-				},
-			},
+		"validConfig": {
 			expected: &testConfig{
-				endpoint: "http://test.com/v1/metrics",
+				endpoint: &url.URL{
+					Host: "http://test.com/v1/metrics",
+				},
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				filters: "test",
 			},
 		},
-		"newConfig": {
-			optsInputs: &testConfig{
-				endpoint: "http://test.com/v1/metrics",
-				filters:  "test",
+		"hcpFailure": {
+			fail: "client",
+		},
+		"hcpFailureOnce": {
+			fail: "clientOnce",
+			expected: &testConfig{
+				endpoint: &url.URL{
+					Host: "http://test.com/v1/metrics",
+				},
 				labels: map[string]string{
 					"test_label": "123",
 				},
-			},
-			expected: &testConfig{
-				endpoint: "http://newendpoint/v1/metrics",
-				filters:  "consul",
-				labels: map[string]string{
-					"new_label": "1234",
-				},
+				filters: "test",
 			},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			// Init global metrics sink.
-			serviceName := "test.telemetry_config_provider"
-			sink := initGlobalSink(serviceName)
-
 			// Setup client mock to return the expected config.
 			mockClient := client.NewMockClient(t)
 
-			mockCfg, err := telemetryConfig(tc.expected)
-			require.NoError(t, err)
+			// Set up mocks.
+			func() {
+				if tc.fail == "client" {
+					mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("failure"))
+					return
+				}
 
-			mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
+				if tc.fail == "clientOnce" {
+					// Fail the first call to HCP. Tests a start up failure.
+					mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Once().Return(nil, fmt.Errorf("failure"))
+				}
 
+				mockCfg, err := newTestTelemetryConfig(t, tc.expected)
+				require.NoError(t, err)
+
+				if tc.fail == "contextCancel" {
+					// If context cancelled, only a single fetch/update is expected.
+					mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Times(2).Return(nil, fmt.Errorf("failure"))
+					return
+				}
+
+				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
+			}()
+
+			// Create a channel to manually execute updates.
+			ticker := make(chan time.Time)
+
+			// Create a context, cancel immediately if testing context cancellation.
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			configProvider := NewHCPProviderImpl(ctx, mockClient)
+			// Create the provider.
+			configProvider := newHCPProviderImpl(ctx, mockClient, ticker)
 
-			// TODO: Test this by having access to the ticker directly.
-			require.EventuallyWithTf(t, func(c *assert.CollectT) {
-				// Collect sink metrics.
-				key := serviceName + "." + strings.Join(internalMetricRefreshSuccess, ".")
-				intervals := sink.Data()
-				sv := intervals[0].Counters[key]
+			// Trigger updates of config.
+			ticker <- time.Now()
+			ticker <- time.Now()
 
-				// Verify count for transform failure metric.
-				assert.NotNil(c, sv.AggregateSample)
-				// Check for nil, as in some eventually ticks, the AggregateSample isn't populated yet.
-				if sv.AggregateSample != nil {
-					assert.GreaterOrEqual(c, sv.AggregateSample.Count, 1)
-				}
+			// If HCP call fails, expect empty config values.
+			if tc.expected == nil {
+				endpoint, ok := configProvider.GetEndpoint()
+				require.False(t, ok)
+				require.Nil(t, endpoint)
+				require.Equal(t, defaultTelemetryConfigFilters.String(), configProvider.GetFilters().String())
+				require.Empty(t, configProvider.GetLabels())
+				return
+			}
 
-				endpoint, _ := configProvider.GetEndpoint()
-				assert.Equal(c, tc.expected.endpoint, endpoint)
-				assert.Equal(c, tc.expected.filters, configProvider.GetFilters().String())
-				assert.Equal(c, tc.expected.labels, configProvider.GetLabels())
-			}, 2*time.Second, defaultTestRefreshInterval, "failed to update telemetry config expected")
+			endpoint, ok := configProvider.GetEndpoint()
+			require.True(t, ok)
+			require.Equal(t, tc.expected.endpoint, endpoint)
+			require.Equal(t, tc.expected.filters, configProvider.GetFilters().String())
+			require.Equal(t, tc.expected.labels, configProvider.GetLabels())
 		})
 	}
 }
 
-func TestTelemetryConfigProvider_UpdateFailuresWithMetrics(t *testing.T) {
-	for name, tc := range map[string]struct {
-		expected *testConfig
-		expect   func(*client.MockClient)
-	}{
-		"failsWithHCPClientFailure": {
-			expected: &testConfig{
-				filters: "test",
-				labels: map[string]string{
-					"test_label": "123",
-				},
-				endpoint: "http://test.com/v1/metrics",
-			},
-			expect: func(m *client.MockClient) {
-				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("failure"))
-			},
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			// Init global metrics sink.
-			serviceName := "test.telemetry_config_provider"
-			sink := initGlobalSink(serviceName)
+func newTestTelemetryConfig(t *testing.T, testCfg *testConfig) (*client.TelemetryConfig, error) {
+	t.Helper()
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			mockClient := client.NewMockClient(t)
-			tc.expect(mockClient)
-
-			configProvider := NewHCPProviderImpl(ctx, mockClient)
-
-			// Eventually tries to run assertions every 100 ms to verify
-			// if failure metrics and the dynamic config have been updated as expected.
-			// TODO: Use ticker directly to test this.
-			require.EventuallyWithTf(t, func(c *assert.CollectT) {
-				// Collect sink metrics.
-				key := serviceName + "." + strings.Join(internalMetricRefreshFailure, ".")
-				intervals := sink.Data()
-				sv := intervals[0].Counters[key]
-
-				// Verify count for transform failure metric.
-				assert.NotNil(c, sv.AggregateSample)
-				// Check for nil, as in some eventually ticks, the AggregateSample isn't populated yet.
-				if sv.AggregateSample != nil {
-					assert.GreaterOrEqual(c, sv.AggregateSample.Count, 1)
-				}
-
-				// Upon failures, config should not have changed.
-				// assert.Equal(c, tc.expected.endpoint, configProvider.GetEndpoint().String())
-				assert.Equal(c, tc.expected.filters, configProvider.GetFilters().String())
-				assert.Equal(c, tc.expected.labels, configProvider.GetLabels())
-			}, 3*time.Second, defaultTestRefreshInterval, "failed to get expected failure metrics")
-		})
-	}
-}
-
-// TODO: Add race test.
-
-func initGlobalSink(serviceName string) *metrics.InmemSink {
-	cfg := metrics.DefaultConfig(serviceName)
-	cfg.EnableHostname = false
-
-	sink := metrics.NewInmemSink(10*time.Second, 10*time.Second)
-	metrics.NewGlobal(cfg, sink)
-
-	return sink
-}
-
-func telemetryConfig(testCfg *testConfig) (*client.TelemetryConfig, error) {
 	filters, err := regexp.Compile(testCfg.filters)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to compile test filters: %v", filters)
 	}
 
-	endpoint, err := url.Parse(testCfg.endpoint)
-	if err != nil {
-		return nil, err
-	}
 	return &client.TelemetryConfig{
 		MetricsConfig: &client.MetricsConfig{
-			Endpoint: endpoint,
+			Endpoint: testCfg.endpoint,
 			Filters:  filters,
 			Labels:   testCfg.labels,
 		},

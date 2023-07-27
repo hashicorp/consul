@@ -33,17 +33,22 @@ var _ telemetry.EndpointProvider = &hcpProviderImpl{}
 // hcpProviderImpl holds telemetry configuration and settings for continuous fetch of new config from HCP.
 // it updates configuration, if changes are detected.
 type hcpProviderImpl struct {
+	// hcpClient is an authenticated client used to make HTTP requests to HCP.
+	hcpClient client.Client
+
 	// cfg holds configuration that can be dynamically updated.
 	cfg *dynamicConfig
+
 	// cfgHash is used to check if two dynamicConfig objects are equal.
 	cfgHash uint64
+
+	// updateTickerCh is a test channel for triggering updates manually during testing.
+	updateTickerCh <-chan time.Time
 
 	// A reader-writer mutex is used as the provider is read heavy.
 	// OTEL components access telemetryConfig during metrics collection and export (read).
 	// Meanwhile, config is only updated when there are changes (write).
 	rw sync.RWMutex
-	// hcpClient is an authenticated client used to make HTTP requests to HCP.
-	hcpClient client.Client
 }
 
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
@@ -57,8 +62,13 @@ type dynamicConfig struct {
 
 // NewHCPProviderImpl initializes and starts a HCP Telemetry provider with provided params.
 func NewHCPProviderImpl(ctx context.Context, hcpClient client.Client) *hcpProviderImpl {
+	return newHCPProviderImpl(ctx, hcpClient, make(<-chan time.Time))
+}
+
+func newHCPProviderImpl(ctx context.Context, hcpClient client.Client, updateTickerCh <-chan time.Time) *hcpProviderImpl {
 	t := &hcpProviderImpl{
-		hcpClient: hcpClient,
+		hcpClient:      hcpClient,
+		updateTickerCh: updateTickerCh,
 	}
 	go t.run(ctx)
 
@@ -68,12 +78,11 @@ func NewHCPProviderImpl(ctx context.Context, hcpClient client.Client) *hcpProvid
 // run continuously checks for updates to the telemetry configuration by making a request to HCP.
 // Modification of config only occurs if changes are detected to decrease write locks that block read locks.
 func (t *hcpProviderImpl) run(ctx context.Context) {
-	tickerInterval := defaultTelemetryConfigRefreshInterval
-	ticker := time.NewTicker(tickerInterval)
-	defer ticker.Stop()
+	ticker := time.NewTicker(defaultTelemetryConfigRefreshInterval)
 
 	// Try to initialize the config.
-	if newCfg, newHash, valid := t.checkUpdate(ctx); valid {
+	newCfg, newHash, valid := t.checkUpdate(ctx)
+	if valid {
 		t.modifyTelemetryConfig(newCfg, newHash)
 		ticker.Reset(newCfg.refreshInterval)
 	}
@@ -81,6 +90,7 @@ func (t *hcpProviderImpl) run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
+		case <-t.updateTickerCh:
 			// Update the config on every tick.
 			if newCfg, newHash, hasChanged := t.checkUpdate(ctx); hasChanged {
 				t.modifyTelemetryConfig(newCfg, newHash)
@@ -126,7 +136,7 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, uint
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
-	return newDynamicConfig, newHash, newHash == t.cfgHash
+	return newDynamicConfig, newHash, newHash != t.cfgHash
 }
 
 // modifynewTelemetryConfig acquires a write lock to modify it with a given newTelemetryConfig object.
