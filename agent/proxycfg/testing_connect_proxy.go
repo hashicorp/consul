@@ -227,6 +227,14 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 }
 
 func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotExposedChecks(t, false)
+}
+
+func TestConfigSnapshotExposeChecksWithBindOverride(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotExposedChecks(t, true)
+}
+
+func testConfigSnapshotExposedChecks(t testing.T, overrideBind bool) *ConfigSnapshot {
 	return TestConfigSnapshot(t,
 		func(ns *structs.NodeService) {
 			ns.Address = "1.2.3.4"
@@ -234,6 +242,12 @@ func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
 			ns.Proxy.Upstreams = nil
 			ns.Proxy.Expose = structs.ExposeConfig{
 				Checks: true,
+			}
+			if overrideBind {
+				if ns.Proxy.Config == nil {
+					ns.Proxy.Config = map[string]any{}
+				}
+				ns.Proxy.Config["bind_address"] = "6.7.8.9"
 			}
 		},
 		[]UpdateEvent{
@@ -245,6 +259,32 @@ func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
 					HTTP:      "http://127.0.0.1:8181/debug",
 					ProxyHTTP: "http://:21500/debug",
 					Method:    "GET",
+					Interval:  10 * time.Second,
+					Timeout:   1 * time.Second,
+				}},
+			},
+		},
+	)
+}
+
+func TestConfigSnapshotExposeChecksGRPC(t testing.T) *ConfigSnapshot {
+	return TestConfigSnapshot(t,
+		func(ns *structs.NodeService) {
+			ns.Address = "1.2.3.4"
+			ns.Port = 9090
+			ns.Proxy.Upstreams = nil
+			ns.Proxy.Expose = structs.ExposeConfig{
+				Checks: true,
+			}
+		},
+		[]UpdateEvent{
+			{
+				CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("web", nil),
+				Result: []structs.CheckType{{
+					CheckID:   types.CheckID("grpc"),
+					Name:      "grpc",
+					GRPC:      "localhost:9090/v1.Health",
+					ProxyGRPC: "localhost:21501/myservice",
 					Interval:  10 * time.Second,
 					Timeout:   1 * time.Second,
 				}},
@@ -302,19 +342,19 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 	})
 }
 
-// TestConfigSnapshotDiscoveryChain returns a fully populated snapshot using a discovery chain
-func TestConfigSnapshotHCPMetrics(t testing.T) *ConfigSnapshot {
+// TestConfigSnapshotTelemetryCollector returns a fully populated snapshot using a discovery chain
+func TestConfigSnapshotTelemetryCollector(t testing.T) *ConfigSnapshot {
 	// DiscoveryChain without an UpstreamConfig should yield a
 	// filter chain when in transparent proxy mode
 	var (
-		collector      = structs.NewServiceName(api.HCPMetricsCollectorName, nil)
+		collector      = structs.NewServiceName(api.TelemetryCollectorName, nil)
 		collectorUID   = NewUpstreamIDFromServiceName(collector)
-		collectorChain = discoverychain.TestCompileConfigEntries(t, api.HCPMetricsCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		collectorChain = discoverychain.TestCompileConfigEntries(t, api.TelemetryCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Config = map[string]interface{}{
-			"envoy_hcp_metrics_bind_socket_dir": "/tmp/consul/hcp-metrics",
+			"envoy_telemetry_collector_bind_socket_dir": "/tmp/consul/telemetry-collector",
 		}
 	}, []UpdateEvent{
 		{
@@ -330,7 +370,7 @@ func TestConfigSnapshotHCPMetrics(t testing.T) *ConfigSnapshot {
 			},
 		},
 		{
-			CorrelationID: fmt.Sprintf("upstream-target:%s.default.default.dc1:", api.HCPMetricsCollectorName) + collectorUID.String(),
+			CorrelationID: fmt.Sprintf("upstream-target:%s.default.default.dc1:", api.TelemetryCollectorName) + collectorUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: []structs.CheckServiceNode{
 					{
@@ -339,7 +379,7 @@ func TestConfigSnapshotHCPMetrics(t testing.T) *ConfigSnapshot {
 							Datacenter: "dc1",
 						},
 						Service: &structs.NodeService{
-							Service: api.HCPMetricsCollectorName,
+							Service: api.TelemetryCollectorName,
 							Address: "9.9.9.9",
 							Port:    9090,
 						},

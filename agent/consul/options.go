@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -29,6 +30,7 @@ type Deps struct {
 	GRPCConnPool     GRPCClientConner
 	LeaderForwarder  LeaderForwarder
 	XDSStreamLimiter *limiter.SessionLimiter
+	Registry         resource.Registry
 	// GetNetRPCInterceptorFunc, if not nil, sets the net/rpc rpc.ServerServiceCallInterceptor on
 	// the server side to record metrics around the RPC requests. If nil, no interceptor is added to
 	// the rpc server.
@@ -38,6 +40,8 @@ type Deps struct {
 
 	// HCP contains the dependencies required when integrating with the HashiCorp Cloud Platform
 	HCP hcp.Deps
+
+	Experiments []string
 
 	EnterpriseDeps
 }

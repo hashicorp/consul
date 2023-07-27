@@ -14,6 +14,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/hashicorp/go-hclog"
+	goversion "github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
@@ -25,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -52,20 +55,20 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	var snap *proxycfg.ConfigSnapshot
 
 	testutil.RunStep(t, "initial setup", func(t *testing.T) {
-		snap = newTestSnapshot(t, nil, "", &structs.ProxyConfigEntry{
-			Kind: structs.ProxyDefaults,
-			Name: structs.ProxyConfigGlobal,
-			EnvoyExtensions: []structs.EnvoyExtension{
-				{
-					Name: api.BuiltinLuaExtension,
-					Arguments: map[string]interface{}{
-						"ProxyType": "connect-proxy",
-						"Listener":  "inbound",
-						"Script":    "x = 0",
+		snap = newTestSnapshot(t, nil, "",
+			func(ns *structs.NodeService) {
+				// Add extension for local proxy.
+				ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+					{
+						Name: api.BuiltinLuaExtension,
+						Arguments: map[string]interface{}{
+							"ProxyType": "connect-proxy",
+							"Listener":  "inbound",
+							"Script":    "x = 0",
+						},
 					},
-				},
-			},
-		})
+				}
+			})
 
 		// Send initial cluster discover. We'll assume we are testing a partial
 		// reconnect and include some initial resource versions that will be
@@ -194,7 +197,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// now reconfigure the snapshot and JUST edit the endpoints to strike one of the two current endpoints for db.
-		snap = newTestSnapshot(t, snap, "")
+		snap = newTestSnapshot(t, snap, "", nil)
 		deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
 		mgr.DeliverConfig(t, sid, snap)
 
@@ -204,7 +207,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 	testutil.RunStep(t, "restore endpoint subscription", func(t *testing.T) {
 		// Restore db's deleted endpoints by generating a new snapshot.
-		snap = newTestSnapshot(t, snap, "")
+		snap = newTestSnapshot(t, snap, "", nil)
 		mgr.DeliverConfig(t, sid, snap)
 
 		// We never send an EDS reply about this change because Envoy is still not subscribed to db.
@@ -266,7 +269,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 	var snap *proxycfg.ConfigSnapshot
 
 	testutil.RunStep(t, "initial setup", func(t *testing.T) {
-		snap = newTestSnapshot(t, nil, "")
+		snap = newTestSnapshot(t, nil, "", nil)
 
 		// Plug in a bad port for the public listener
 		snap.Port = 1
@@ -402,7 +405,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 	// Deliver a new snapshot (tcp with one http upstream)
-	snap := newTestSnapshot(t, nil, "http2", &structs.ServiceConfigEntry{
+	snap := newTestSnapshot(t, nil, "http2", nil, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "db",
 		Protocol: "http2",
@@ -476,7 +479,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 
 	// -- reconfigure with a no-op discovery chain
 
-	snap = newTestSnapshot(t, snap, "http2", &structs.ServiceConfigEntry{
+	snap = newTestSnapshot(t, snap, "http2", nil, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "db",
 		Protocol: "http2",
@@ -565,7 +568,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 
 	var snap *proxycfg.ConfigSnapshot
 	testutil.RunStep(t, "get into initial state", func(t *testing.T) {
-		snap = newTestSnapshot(t, nil, "")
+		snap = newTestSnapshot(t, nil, "", nil)
 
 		// Send initial cluster discover.
 		envoy.SendDeltaReq(t, xdscommon.ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{})
@@ -651,7 +654,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 	testutil.RunStep(t, "delayed endpoint update finally comes in", func(t *testing.T) {
 		// Trigger the xds.Server select{} to wake up and notice our hack is disabled.
 		// The actual contents of this change are irrelevant.
-		snap = newTestSnapshot(t, snap, "")
+		snap = newTestSnapshot(t, snap, "", nil)
 		mgr.DeliverConfig(t, sid, snap)
 
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
@@ -694,7 +697,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 
 	var snap *proxycfg.ConfigSnapshot
 	testutil.RunStep(t, "get into initial state", func(t *testing.T) {
-		snap = newTestSnapshot(t, nil, "")
+		snap = newTestSnapshot(t, nil, "", nil)
 
 		// Send initial cluster discover.
 		envoy.SendDeltaReq(t, xdscommon.ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{})
@@ -770,7 +773,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 
 	testutil.RunStep(t, "trigger cluster update needing implicit endpoint replacements", func(t *testing.T) {
 		// Update the snapshot in a way that causes a single cluster update.
-		snap = newTestSnapshot(t, snap, "", &structs.ServiceResolverConfigEntry{
+		snap = newTestSnapshot(t, snap, "", nil, &structs.ServiceResolverConfigEntry{
 			Kind:           structs.ServiceResolver,
 			Name:           "db",
 			ConnectTimeout: 1337 * time.Second,
@@ -839,7 +842,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Deliver a new snapshot (tcp with one http upstream with no-op disco chain)
-		snap = newTestSnapshot(t, nil, "http2", &structs.ServiceConfigEntry{
+		snap = newTestSnapshot(t, nil, "http2", nil, &structs.ServiceConfigEntry{
 			Kind:     structs.ServiceDefaults,
 			Name:     "db",
 			Protocol: "http2",
@@ -934,7 +937,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 		// Update the snapshot in a way that causes a single listener update.
 		//
 		// Downgrade from http2 to http
-		snap = newTestSnapshot(t, snap, "http", &structs.ServiceConfigEntry{
+		snap = newTestSnapshot(t, snap, "http", nil, &structs.ServiceConfigEntry{
 			Kind:     structs.ServiceDefaults,
 			Name:     "db",
 			Protocol: "http",
@@ -1110,7 +1113,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 			// Deliver a new snapshot
 			snap := tt.cfgSnap
 			if snap == nil {
-				snap = newTestSnapshot(t, nil, "")
+				snap = newTestSnapshot(t, nil, "", nil)
 			}
 			mgr.DeliverConfig(t, sid, snap)
 
@@ -1236,7 +1239,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 	}
 
 	// Deliver a new snapshot
-	snap := newTestSnapshot(t, nil, "")
+	snap := newTestSnapshot(t, nil, "", nil)
 	mgr.DeliverConfig(t, sid, snap)
 
 	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
@@ -1334,7 +1337,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 	}
 
 	// Deliver a new snapshot
-	snap := newTestSnapshot(t, nil, "")
+	snap := newTestSnapshot(t, nil, "", nil)
 	mgr.DeliverConfig(t, sid, snap)
 
 	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
@@ -1444,7 +1447,7 @@ func TestServer_DeltaAggregatedResources_v3_CapacityReached(t *testing.T) {
 	mgr.RegisterProxy(t, sid)
 	mgr.DrainStreams(sid)
 
-	snap := newTestSnapshot(t, nil, "")
+	snap := newTestSnapshot(t, nil, "", nil)
 
 	envoy.SendDeltaReq(t, xdscommon.ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
 		InitialResourceVersions: mustMakeVersionMap(t,
@@ -1477,7 +1480,7 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 	mgr.RegisterProxy(t, sid)
 
 	testutil.RunStep(t, "successful request/response", func(t *testing.T) {
-		snap := newTestSnapshot(t, nil, "")
+		snap := newTestSnapshot(t, nil, "", nil)
 
 		envoy.SendDeltaReq(t, xdscommon.ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
 			InitialResourceVersions: mustMakeVersionMap(t,
@@ -1607,5 +1610,116 @@ func requireExtensionMetrics(
 			}
 		}
 		require.True(t, foundLabel)
+	}
+}
+
+func Test_applyEnvoyExtension_Validations(t *testing.T) {
+	type testCase struct {
+		name          string
+		runtimeConfig extensioncommon.RuntimeConfig
+		err           bool
+		errString     string
+	}
+
+	envoyVersion, _ := goversion.NewVersion("1.25.0")
+	consulVersion, _ := goversion.NewVersion("1.16.0")
+
+	svc := api.CompoundServiceName{
+		Name:      "s1",
+		Partition: "ap1",
+		Namespace: "ns1",
+	}
+
+	makeRuntimeConfig := func(required bool, consulVersion string, envoyVersion string, args map[string]interface{}) extensioncommon.RuntimeConfig {
+		if args == nil {
+			args = map[string]interface{}{
+				"ARN": "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
+			}
+
+		}
+		return extensioncommon.RuntimeConfig{
+			EnvoyExtension: api.EnvoyExtension{
+				Name:          api.BuiltinAWSLambdaExtension,
+				Required:      required,
+				ConsulVersion: consulVersion,
+				EnvoyVersion:  envoyVersion,
+				Arguments:     args,
+			},
+			ServiceName: svc,
+		}
+	}
+
+	cases := []testCase{
+		{
+			name:          "invalid consul version constraint - required",
+			runtimeConfig: makeRuntimeConfig(true, "bad", ">= 1.0", nil),
+			err:           true,
+			errString:     "failed to parse Consul version constraint for extension",
+		},
+		{
+			name:          "invalid consul version constraint - not required",
+			runtimeConfig: makeRuntimeConfig(false, "bad", ">= 1.0", nil),
+			err:           false,
+		},
+		{
+			name:          "invalid envoy version constraint - required",
+			runtimeConfig: makeRuntimeConfig(true, ">= 1.0", "bad", nil),
+			err:           true,
+			errString:     "failed to parse Envoy version constraint for extension",
+		},
+		{
+			name:          "invalid envoy version constraint - not required",
+			runtimeConfig: makeRuntimeConfig(false, ">= 1.0", "bad", nil),
+			err:           false,
+		},
+		{
+			name:          "no envoy version constraint match",
+			runtimeConfig: makeRuntimeConfig(false, "", ">= 2.0.0", nil),
+			err:           false,
+		},
+		{
+			name:          "no consul version constraint match",
+			runtimeConfig: makeRuntimeConfig(false, ">= 2.0.0", "", nil),
+			err:           false,
+		},
+		{
+			name:          "invalid extension arguments - required",
+			runtimeConfig: makeRuntimeConfig(true, ">= 1.15.0", ">= 1.25.0", map[string]interface{}{"bad": "args"}),
+			err:           true,
+			errString:     "failed to construct extension",
+		},
+		{
+			name:          "invalid extension arguments - not required",
+			runtimeConfig: makeRuntimeConfig(false, ">= 1.15.0", ">= 1.25.0", map[string]interface{}{"bad": "args"}),
+			err:           false,
+		},
+		{
+			name:          "valid everything - no resources and required",
+			runtimeConfig: makeRuntimeConfig(true, ">= 1.15.0", ">= 1.25.0", nil),
+			err:           true,
+			errString:     "failed to patch xDS resources in",
+		},
+		{
+			name:          "valid everything",
+			runtimeConfig: makeRuntimeConfig(false, ">= 1.15.0", ">= 1.25.0", nil),
+			err:           false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			snap := proxycfg.ConfigSnapshot{
+				ProxyID: proxycfg.ProxyID{
+					ServiceID: structs.NewServiceID("s1", nil),
+				},
+			}
+			err := applyEnvoyExtension(hclog.NewNullLogger(), &snap, nil, tc.runtimeConfig, envoyVersion, consulVersion)
+			if tc.err {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.errString)
+			} else {
+				require.NoError(t, err)
+			}
+		})
 	}
 }

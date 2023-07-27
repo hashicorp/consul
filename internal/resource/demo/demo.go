@@ -33,52 +33,52 @@ var (
 	TypeV1Artist = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v1",
-		Kind:         "artist",
+		Kind:         "Artist",
 	}
 
 	// TypeV1Album represents a collection of an artist's songs.
 	TypeV1Album = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v1",
-		Kind:         "album",
+		Kind:         "Album",
 	}
 
 	// TypeV2Artist represents a musician or group of musicians.
 	TypeV2Artist = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v2",
-		Kind:         "artist",
+		Kind:         "Artist",
 	}
 
 	// TypeV2Album represents a collection of an artist's songs.
 	TypeV2Album = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v2",
-		Kind:         "album",
+		Kind:         "Album",
 	}
 )
 
 const (
-	ArtistV1ReadPolicy  = `key_prefix "resource/demo.v1.artist/" { policy = "read" }`
-	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.artist/" { policy = "write" }`
-	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.artist/" { policy = "read" }`
-	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.artist/" { policy = "write" }`
+	ArtistV1ReadPolicy  = `key_prefix "resource/demo.v1.Artist/" { policy = "read" }`
+	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.Artist/" { policy = "write" }`
+	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.Artist/" { policy = "read" }`
+	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.Artist/" { policy = "write" }`
 	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
 )
 
-// Register demo types. Should only be called in tests and dev mode.
-// acls are optional.
+// RegisterTypes registers the demo types. Should only be called in tests and
+// dev mode.
 //
 // TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
 // system can be more modularly extended (or support generic resource permissions).
-func Register(r resource.Registry) {
+func RegisterTypes(r resource.Registry) {
 	readACL := func(authz acl.Authorizer, id *pbresource.ID) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
 	}
 
-	writeACL := func(authz acl.Authorizer, id *pbresource.ID) error {
-		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
+	writeACL := func(authz acl.Authorizer, res *pbresource.Resource) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
 		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
 	}
 
@@ -133,6 +133,7 @@ func Register(r resource.Registry) {
 			List:  makeListACL(TypeV1Artist),
 		},
 		Validate: validateV1ArtistFn,
+		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -143,6 +144,7 @@ func Register(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV1Album),
 		},
+		Scope: resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -155,6 +157,7 @@ func Register(r resource.Registry) {
 		},
 		Validate: validateV2ArtistFn,
 		Mutate:   mutateV2ArtistFn,
+		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -165,6 +168,7 @@ func Register(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV2Album),
 		},
+		Scope: resource.ScopeNamespace,
 	})
 }
 
@@ -204,6 +208,10 @@ func GenerateV2Artist() (*pbresource.Resource, error) {
 // GenerateV2Album generates a random Album resource, owned by the Artist with
 // the given ID.
 func GenerateV2Album(artistID *pbresource.ID) (*pbresource.Resource, error) {
+	return generateV2Album(artistID, rand.New(rand.NewSource(time.Now().UnixNano())))
+}
+
+func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Resource, error) {
 	adjective := adjectives[rand.Intn(len(adjectives))]
 	noun := nouns[rand.Intn(len(nouns))]
 

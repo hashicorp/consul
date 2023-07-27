@@ -5,7 +5,9 @@ package utils
 
 import (
 	"flag"
+	"strings"
 
+	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/go-version"
 )
 
@@ -23,7 +25,7 @@ var (
 )
 
 const (
-	DefaultImageNameOSS   = "consul"
+	DefaultImageNameOSS   = "hashicorp/consul"
 	DefaultImageNameENT   = "hashicorp/consul-enterprise"
 	ImageVersionSuffixENT = "-ent"
 )
@@ -47,9 +49,32 @@ func GetTargetImageName() string {
 	return targetImageName
 }
 
+func GetLatestImageName() string {
+	if Debug {
+		return LatestImageName + "-dbg"
+	}
+	return LatestImageName
+}
+
+func TargetImages() topology.Images {
+	img := DockerImage(targetImageName, TargetVersion)
+
+	if IsEnterprise() {
+		return topology.Images{
+			ConsulEnterprise: img,
+		}
+	} else {
+		return topology.Images{
+			ConsulOSS: img,
+		}
+	}
+}
+
+func IsEnterprise() bool { return isInEnterpriseRepo }
+
 func DockerImage(image, version string) string {
 	v := image + ":" + version
-	if image == DefaultImageNameENT && isSemVer(version) {
+	if strings.Contains(image, DefaultImageNameENT) && isSemVer(version) {
 		// Enterprise versions get a suffix.
 		v += ImageVersionSuffixENT
 	}
@@ -73,4 +98,18 @@ func VersionLT(a, b string) bool {
 	av := version.Must(version.NewVersion(a))
 	bv := version.Must(version.NewVersion(b))
 	return av.LessThan(bv)
+}
+
+// SideCarVersion returns version based on the agent
+// version in the test: if agent has local, the sidecar
+// version is target-version; otherwise use "latest-version"
+func SideCarVersion(agentVersion string) string {
+	imageVersion := ""
+	if strings.Contains(agentVersion, "local") {
+		imageVersion = "target-version"
+	} else {
+		imageVersion = "latest-version"
+	}
+
+	return imageVersion
 }

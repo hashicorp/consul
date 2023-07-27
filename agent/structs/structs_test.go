@@ -592,6 +592,43 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	}
 }
 
+func TestStructs_Locality_Validate(t *testing.T) {
+	type testCase struct {
+		locality *Locality
+		err      string
+	}
+	cases := map[string]testCase{
+		"nil": {
+			nil,
+			"",
+		},
+		"region only": {
+			&Locality{Region: "us-west-1"},
+			"",
+		},
+		"region and zone": {
+			&Locality{Region: "us-west-1", Zone: "us-west-1a"},
+			"",
+		},
+		"zone only": {
+			&Locality{Zone: "us-west-1a"},
+			"zone cannot be set without region",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := tc.locality.Validate()
+			if tc.err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.err)
+			}
+		})
+	}
+}
+
 func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 	type testCase struct {
 		Modify func(*NodeService)
@@ -824,6 +861,16 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			"valid",
 			func(x *NodeService) {},
 			"",
+		},
+
+		{
+			"connect-proxy: invalid opaque config",
+			func(x *NodeService) {
+				x.Proxy.Config = map[string]interface{}{
+					"envoy_hcp_metrics_bind_socket_dir": "/Consul/is/a/networking/platform/that/enables/securing/your/networking/",
+				}
+			},
+			"Proxy.Config: envoy_hcp_metrics_bind_socket_dir length 71 exceeds max",
 		},
 
 		{
@@ -1142,6 +1189,13 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			},
 			"",
 		},
+		{
+			"connect-proxy: invalid locality",
+			func(x *NodeService) {
+				x.Locality = &Locality{Zone: "bad"}
+			},
+			"zone cannot be set without region",
+		},
 	}
 
 	for _, tc := range cases {
@@ -1304,7 +1358,7 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 }
 
 func TestStructs_NodeService_ConnectNativeEmptyPortError(t *testing.T) {
-	ns := TestNodeService(t)
+	ns := TestNodeService()
 	ns.Connect.Native = true
 	ns.Port = 0
 	err := ns.Validate()

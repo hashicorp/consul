@@ -836,12 +836,21 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		return
 	}
 	if q.Namespace != "" {
+		// For backwards-compatibility with existing tests,
+		// use the short-hand query param name "ns"
+		// rather than the alternative long-hand "namespace"
 		r.params.Set("ns", q.Namespace)
 	}
 	if q.Partition != "" {
+		// For backwards-compatibility with existing tests,
+		// use the long-hand query param name "partition"
+		// rather than the alternative short-hand "ap"
 		r.params.Set("partition", q.Partition)
 	}
 	if q.Datacenter != "" {
+		// For backwards-compatibility with existing tests,
+		// use the short-hand query param name "dc"
+		// rather than the alternative long-hand "datacenter"
 		r.params.Set("dc", q.Datacenter)
 	}
 	if q.Peer != "" {
@@ -949,12 +958,16 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 	if q == nil {
 		return
 	}
+	// For backwards-compatibility, continue to use the shorthand "ns"
+	// rather than "namespace"
 	if q.Namespace != "" {
 		r.params.Set("ns", q.Namespace)
 	}
 	if q.Partition != "" {
 		r.params.Set("partition", q.Partition)
 	}
+	// For backwards-compatibility, continue to use the shorthand "dc"
+	// rather than "datacenter"
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
 	}
@@ -985,6 +998,19 @@ func (r *request) toHTTP() (*http.Request, error) {
 	req, err := http.NewRequest(r.method, r.url.RequestURI(), r.body)
 	if err != nil {
 		return nil, err
+	}
+
+	// validate that socket communications that do not use the host, detect
+	// slashes in the host name and replace it with local host.
+	// this is required since go started validating req.host in 1.20.6 and 1.19.11.
+	// prior to that they would strip out the slashes for you.  They removed that
+	// behavior and added more strict validation as part of a CVE.
+	// This issue is being tracked by the Go team:
+	// https://github.com/golang/go/issues/61431
+	// If there is a resolution in this issue, we will remove this code.
+	// In the time being, this is the accepted workaround.
+	if strings.HasPrefix(r.url.Host, "/") {
+		r.url.Host = "localhost"
 	}
 
 	req.URL.Host = r.url.Host

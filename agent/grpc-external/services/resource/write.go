@@ -12,7 +12,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
@@ -53,7 +52,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	// check acls
-	err = reg.ACLs.Write(authz, req.Resource.Id)
+	err = reg.ACLs.Write(authz, req.Resource)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -73,12 +72,12 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		)
 	}
 
-	if err = reg.Validate(req.Resource); err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
-
 	if err = reg.Mutate(req.Resource); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed mutate hook: %v", err.Error())
+	}
+
+	if err = reg.Validate(req.Resource); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	// At the storage backend layer, all writes are CAS operations.
@@ -108,6 +107,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		//
 		//	- CAS failures will be retried by retryCAS anyway. So the read-modify-write
 		//	  cycle should eventually succeed.
+		var mismatchError storage.GroupVersionMismatchError
 		existing, err := s.Backend.Read(ctx, storage.EventualConsistency, input.Id)
 		switch {
 		// Create path.
@@ -119,10 +119,39 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return errUseWriteStatus
 			}
 
+			// Generally, we expect resources with owners to be created by controllers,
+			// and they should provide the Uid. In cases where no Uid is given (e.g. the
+			// owner is specified in the resource HCL) we'll look up whatever the current
+			// Uid is and use that.
+			//
+			// An important note on consistency:
+			//
+			// We read the owner with StrongConsistency here to reduce the likelihood of
+			// creating a resource pointing to the wrong "incarnation" of the owner in
+			// cases where the owner is deleted and re-created in quick succession.
+			//
+			// That said, there is still a chance that the owner has been deleted by the
+			// time we write this resource. This is not a relational database and we do
+			// not support ACID transactions or real foreign key constraints.
+			if input.Owner != nil && input.Owner.Uid == "" {
+				owner, err := s.Backend.Read(ctx, storage.StrongConsistency, input.Owner)
+				switch {
+				case errors.Is(err, storage.ErrNotFound):
+					return status.Error(codes.InvalidArgument, "resource.owner does not exist")
+				case err != nil:
+					return status.Errorf(codes.Internal, "failed to resolve owner: %v", err)
+				}
+				input.Owner = owner.Id
+			}
+
 			// TODO(spatel): Revisit owner<->resource tenancy rules post-1.16
 
 		// Update path.
-		case err == nil:
+		case err == nil || errors.As(err, &mismatchError):
+			// Allow writes that update GroupVersion.
+			if mismatchError.Stored != nil {
+				existing = mismatchError.Stored
+			}
 			// Use the stored ID because it includes the Uid.
 			//
 			// Generally, users won't provide the Uid but controllers will, because
@@ -150,15 +179,24 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return storage.ErrCASFailure
 			}
 
+			// Fill in an empty Owner UID with the existing owner's UID. If other parts
+			// of the owner ID like the type or name have changed then the subsequent
+			// EqualID call will still error as you are not allowed to change the owner.
+			// This is a small UX nicety to repeatedly "apply" a resource that should
+			// have an owner without having to care about the current owners incarnation.
+			if input.Owner != nil && existing.Owner != nil && input.Owner.Uid == "" {
+				input.Owner.Uid = existing.Owner.Uid
+			}
+
 			// Owner can only be set on creation. Enforce immutability.
-			if !proto.Equal(input.Owner, existing.Owner) {
+			if !resource.EqualID(input.Owner, existing.Owner) {
 				return status.Errorf(codes.InvalidArgument, "owner cannot be changed")
 			}
 
 			// Carry over status and prevent updates
 			if input.Status == nil {
 				input.Status = existing.Status
-			} else if !resource.EqualStatus(input.Status, existing.Status) {
+			} else if !resource.EqualStatusMap(input.Status, existing.Status) {
 				return errUseWriteStatus
 			}
 

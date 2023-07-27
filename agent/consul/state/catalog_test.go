@@ -1964,8 +1964,11 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 	setVirtualIPFlags(t, s)
 
 	// Attempt to assign manual virtual IPs to a service that doesn't exist - should be a no-op.
-	psn := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo"}}
-	require.NoError(t, s.AssignManualVirtualIPs(0, psn, []string{"7.7.7.7", "8.8.8.8"}))
+	psn := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo", EnterpriseMeta: *acl.DefaultEnterpriseMeta()}}
+	found, svcs, err := s.AssignManualServiceVIPs(0, psn, []string{"7.7.7.7", "8.8.8.8"})
+	require.NoError(t, err)
+	require.False(t, found)
+	require.Empty(t, svcs)
 	serviceVIP, err := s.ServiceManualVIPs(psn)
 	require.NoError(t, err)
 	require.Nil(t, serviceVIP)
@@ -1997,24 +2000,20 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 	require.Empty(t, serviceVIP.ManualIPs)
 
 	// Attempt to assign manual virtual IPs again.
-	require.NoError(t, s.AssignManualVirtualIPs(2, psn, []string{"7.7.7.7", "8.8.8.8"}))
+	found, svcs, err = s.AssignManualServiceVIPs(2, psn, []string{"7.7.7.7", "8.8.8.8"})
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Empty(t, svcs)
 	serviceVIP, err = s.ServiceManualVIPs(psn)
 	require.NoError(t, err)
 	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
 	require.Equal(t, serviceVIP.ManualIPs, []string{"7.7.7.7", "8.8.8.8"})
 
-	// Register another service
-	ns2 := &structs.NodeService{
-		ID:             "bar",
-		Service:        "bar",
-		Address:        "2.2.2.2",
-		Port:           2222,
-		Connect:        structs.ServiceConnect{Native: true},
-		EnterpriseMeta: *entMeta,
-	}
-
-	// Service successfully registers into the state store.
-	require.NoError(t, s.EnsureService(3, "node1", ns2))
+	// Register another service via config entry.
+	s.EnsureConfigEntry(3, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "bar",
+	})
 
 	psn2 := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "bar"}}
 	vip, err = s.VirtualIPForService(psn2)
@@ -2023,7 +2022,10 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 
 	// Attempt to assign manual virtual IPs for bar, with one IP overlapping with foo.
 	// This should cause the ip to be removed from foo's list of manual IPs.
-	require.NoError(t, s.AssignManualVirtualIPs(4, psn2, []string{"7.7.7.7", "9.9.9.9"}))
+	found, svcs, err = s.AssignManualServiceVIPs(4, psn2, []string{"7.7.7.7", "9.9.9.9"})
+	require.NoError(t, err)
+	require.True(t, found)
+	require.ElementsMatch(t, svcs, []structs.PeeredServiceName{psn})
 
 	serviceVIP, err = s.ServiceManualVIPs(psn)
 	require.NoError(t, err)
@@ -4835,6 +4837,9 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	}
 
 	// Register some nodes
+	// node1 is registered withOut any nodemeta, and a consul service with id
+	// 'consul' is added later with meta 'version'. The expected node must have
+	// meta 'consul-version' with same value
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
@@ -4843,6 +4848,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	testRegisterService(t, s, 3, "node1", "service2")
 	testRegisterService(t, s, 4, "node2", "service1")
 	testRegisterService(t, s, 5, "node2", "service2")
+	// Register consul service with meta 'version' for node1
+	testRegisterServiceWithMeta(t, s, 10, "node1", "consul", map[string]string{"version": "1.17.0"})
 
 	// Register service-level checks
 	testRegisterCheck(t, s, 6, "node1", "service1", "check1", api.HealthPassing)
@@ -4893,6 +4900,19 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 			},
 			Services: []*structs.NodeService{
 				{
+					ID:      "consul",
+					Service: "consul",
+					Address: "1.1.1.1",
+					Meta:    map[string]string{"version": "1.17.0"},
+					Port:    1111,
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 10,
+						ModifyIndex: 10,
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+				{
 					ID:      "service1",
 					Service: "service1",
 					Address: "1.1.1.1",
@@ -4919,6 +4939,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
+			Meta: map[string]string{"consul-version": "1.17.0"},
 		},
 		&structs.NodeInfo{
 			Node:      "node2",
@@ -4986,7 +5007,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 9 {
+	if idx != 10 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	require.Len(t, dump, 1)
@@ -4997,8 +5018,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 9 {
-		t.Fatalf("bad index: %d", 9)
+	if idx != 10 {
+		t.Fatalf("bad index: %d", idx)
 	}
 	if !reflect.DeepEqual(dump, expect) {
 		t.Fatalf("bad: %#v", dump[0].Services[0])

@@ -23,9 +23,10 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 	roots, _ := TestCertsForMeshGateway(t)
 
 	var (
-		populateServices    = true
-		useFederationStates = false
-		deleteCrossDCEntry  = false
+		populateServices      = true
+		useFederationStates   = false
+		deleteCrossDCEntry    = false
+		meshGatewayFederation = false
 	)
 
 	switch variant {
@@ -34,6 +35,11 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		populateServices = true
 		useFederationStates = true
 		deleteCrossDCEntry = true
+	case "mesh-gateway-federation":
+		populateServices = true
+		useFederationStates = true
+		deleteCrossDCEntry = true
+		meshGatewayFederation = true
 	case "newer-info-in-federation-states":
 		populateServices = true
 		useFederationStates = true
@@ -447,6 +453,63 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		})
 	}
 
+	var serverSNIFn ServerSNIFunc
+	if meshGatewayFederation {
+
+		// reproduced from tlsutil/config.go
+		serverSNIFn = func(dc, nodeName string) string {
+			// Strip the trailing '.' from the domain if any
+			domain := "consul"
+
+			if nodeName == "" || nodeName == "*" {
+				return "server." + dc + "." + domain
+			}
+
+			return nodeName + ".server." + dc + "." + domain
+		}
+
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
+			{
+				CorrelationID: consulServerListWatchID,
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "node1",
+								Address:    "127.0.0.1",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								Meta: map[string]string{
+									"grpc_port":     "8502",
+									"grpc_tls_port": "8503",
+								},
+							},
+						},
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "node2",
+								Address:    "127.0.0.2",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								Meta: map[string]string{
+									"grpc_port":     "8502",
+									"grpc_tls_port": "8503",
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+	}
+
 	return testConfigSnapshotFixture(t, &structs.NodeService{
 		Kind:    structs.ServiceKindMeshGateway,
 		Service: "mesh-gateway",
@@ -466,7 +529,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 				Port:    443,
 			},
 		},
-	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+	}, nsFn, serverSNIFn, testSpliceEvents(baseEvents, extraUpdates))
 }
 
 func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -703,8 +766,12 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				Kind: structs.ServiceResolver,
 				Name: "api",
 				Subsets: map[string]structs.ServiceResolverSubset{
+					"v1": {
+						Filter: "Service.Meta.Version == 1",
+					},
 					"v2": {
-						Filter: "Service.Meta.version == v2",
+						Filter:      "Service.Meta.Version == 2",
+						OnlyPassing: true,
 					},
 				},
 			},
@@ -754,6 +821,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		var (
 			dbSN  = structs.NewServiceName("db", nil)
 			altSN = structs.NewServiceName("alt", nil)
+			apiSN = structs.NewServiceName("api", nil)
 
 			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
 		)
@@ -763,6 +831,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		discoChains[dbSN] = dbChain
 		endpoints[dbSN] = TestUpstreamNodes(t, "db")
 		endpoints[altSN] = TestUpstreamNodes(t, "alt")
+		endpoints[apiSN] = TestUpstreamNodesWithServiceSubset(t, "api")
 
 		extraUpdates = append(extraUpdates,
 			UpdateEvent{
@@ -786,7 +855,29 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 					},
 				},
 			},
+			UpdateEvent{
+				CorrelationID: serviceResolversWatchID,
+				Result: &structs.IndexedConfigEntries{
+					Kind: structs.ServiceResolver,
+					Entries: []structs.ConfigEntry{
+						&structs.ServiceResolverConfigEntry{
+							Kind: structs.ServiceResolver,
+							Name: "api",
+							Subsets: map[string]structs.ServiceResolverSubset{
+								"v1": {
+									Filter: "Service.Meta.Version == 1",
+								},
+								"v2": {
+									Filter:      "Service.Meta.Version == 2",
+									OnlyPassing: true,
+								},
+							},
+						},
+					},
+				},
+			},
 		)
+
 	case "peer-through-mesh-gateway":
 
 		extraUpdates = append(extraUpdates,
@@ -806,14 +897,13 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: peerServersWatchID,
 				Result: &pbpeering.PeeringListResponse{
 					Peerings: []*pbpeering.Peering{
-						// Not active
+						// Empty state should be included. This could result from a query being served by a follower.
 						{
 							Name:           "peer-a",
 							PeerServerName: connect.PeeringServerSAN("dc2", "f3f41279-001d-42bb-912e-f6103fb036b8"),
 							PeerServerAddresses: []string{
 								"1.2.3.4:5200",
 							},
-							State:       pbpeering.PeeringState_TERMINATED,
 							ModifyIndex: 2,
 						},
 						// No server addresses, so this should only be accepting connections

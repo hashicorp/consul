@@ -11,14 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/hashstructure"
-
-	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/hashstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -26,14 +24,17 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 )
 
 type Self struct {
@@ -616,6 +617,21 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// filter the members by parsed filter expression
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+	if filterExpression != "" {
+		filter, err := bexpr.CreateFilter(filterExpression, nil, members)
+		if err != nil {
+			return nil, err
+		}
+		raw, err := filter.Execute(members)
+		if err != nil {
+			return nil, err
+		}
+		members = raw.([]serf.Member)
 	}
 
 	total := len(members)
@@ -1569,7 +1585,7 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 
 	// TODO(peering): expose way to get kind=mesh-gateway type cert with appropriate ACLs
 
-	args := cachetype.ConnectCALeafRequest{
+	args := leafcert.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
@@ -1598,17 +1614,13 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 		return nil, nil
 	}
 
-	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCALeafName, &args)
+	reply, m, err := s.agent.leafCertManager.Get(req.Context(), &args)
 	if err != nil {
 		return nil, err
 	}
+
 	defer setCacheMeta(resp, &m)
 
-	reply, ok := raw.(*structs.IssuedCert)
-	if !ok {
-		// This should never happen, but we want to protect against panics
-		return nil, fmt.Errorf("internal error: response type not correct")
-	}
 	setIndex(resp, reply.ModifyIndex)
 
 	return reply, nil
@@ -1682,4 +1694,13 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	return debug.CollectHostInfo(), nil
+}
+
+// AgentVersion
+//
+// GET /v1/agent/version
+//
+// Retrieves Consul version information.
+func (s *HTTPHandlers) AgentVersion(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return version.GetBuildInfo(), nil
 }

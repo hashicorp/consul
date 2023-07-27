@@ -167,7 +167,7 @@ func (s *HTTPHandlers) ReloadConfig(newCfg *config.RuntimeConfig) error {
 //
 // The first call must not be concurrent with any other call. Subsequent calls
 // may be concurrent with HTTP requests since no state is modified.
-func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
+func (s *HTTPHandlers) handler() http.Handler {
 	// Memoize multiple calls.
 	if s.h != nil {
 		return s.h
@@ -210,7 +210,15 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	// handlePProf takes the given pattern and pprof handler
 	// and wraps it to add authorization and metrics
 	handlePProf := func(pattern string, handler http.HandlerFunc) {
+
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
+
+			// If enableDebug register wrapped pprof handlers
+			if !s.agent.enableDebug.Load() && s.checkACLDisabled() {
+				resp.WriteHeader(http.StatusNotFound)
+				return
+			}
+
 			var token string
 			s.parseToken(req, &token)
 
@@ -245,14 +253,11 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
 
-	// If enableDebug or ACL enabled, register wrapped pprof handlers
-	if enableDebug || !s.checkACLDisabled() {
-		handlePProf("/debug/pprof/", pprof.Index)
-		handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
-		handlePProf("/debug/pprof/profile", pprof.Profile)
-		handlePProf("/debug/pprof/symbol", pprof.Symbol)
-		handlePProf("/debug/pprof/trace", pprof.Trace)
-	}
+	handlePProf("/debug/pprof/", pprof.Index)
+	handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
+	handlePProf("/debug/pprof/profile", pprof.Profile)
+	handlePProf("/debug/pprof/symbol", pprof.Symbol)
+	handlePProf("/debug/pprof/trace", pprof.Trace)
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
@@ -983,9 +988,12 @@ func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b 
 	}
 }
 
-// parseDC is used to parse the ?dc query param
+// parseDC is used to parse the datacenter from the query params.
+// ?datacenter has precedence over ?dc.
 func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
-	if other := req.URL.Query().Get("dc"); other != "" {
+	if other := req.URL.Query().Get("datacenter"); other != "" {
+		*dc = other
+	} else if other = req.URL.Query().Get("dc"); other != "" {
 		*dc = other
 	} else if *dc == "" {
 		*dc = s.agent.config.Datacenter

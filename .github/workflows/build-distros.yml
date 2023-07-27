@@ -2,7 +2,7 @@
 # It is aimed at checking new commits don't introduce any breaking build changes.
 name: build-distros
 
-on: 
+on:
   pull_request:
   push:
     branches:
@@ -15,6 +15,7 @@ permissions:
 
 env:
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   setup:
@@ -26,13 +27,13 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
     - id: setup-outputs
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
 
   check-go-mod:
-    needs: 
+    needs:
     - setup
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
@@ -42,21 +43,21 @@ jobs:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   build-386:
-    needs: 
-    - setup 
+    needs:
+    - setup
     - check-go-mod
     env:
       XC_OS: "freebsd linux windows"
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      
-    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version-file: 'go.mod'
     - name: Build
@@ -67,20 +68,20 @@ jobs:
 
   build-amd64:
     needs:
-    - setup 
+    - setup
     - check-go-mod
     env:
       XC_OS: "darwin freebsd linux solaris windows"
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      
-    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version-file: 'go.mod'
     - name: Build
@@ -91,22 +92,22 @@ jobs:
 
   build-arm:
     needs:
-    - setup 
+    - setup
     - check-go-mod
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     env:
       CGO_ENABLED: 1
       GOOS: linux
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      
 
-    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version-file: 'go.mod'
     - run: |
@@ -115,6 +116,26 @@ jobs:
     - run: CC=arm-linux-gnueabi-gcc GOARCH=arm GOARM=5 go build -tags "${{ env.GOTAGS }}"
     - run: CC=arm-linux-gnueabihf-gcc GOARCH=arm GOARM=6 go build -tags "${{ env.GOTAGS }}"
     - run: CC=aarch64-linux-gnu-gcc GOARCH=arm64 go build -tags "${{ env.GOTAGS }}"
+
+
+  build-s390x:
+    if: ${{ endsWith(github.repository, '-enterprise') }}
+    needs:
+    - setup
+    - check-go-mod
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        go-version-file: 'go.mod'
+    - name: Build
+      run: GOOS=linux GOARCH=s390x CGO_ENABLED=0 go build -tags "${{ env.GOTAGS }}"
 
   # This is job is required for branch protection as a required gihub check
   # because GitHub actions show up as checks at the job level and not the
@@ -125,22 +146,25 @@ jobs:
   # - be placed after the fanout of a workflow so that everything fans back in
   #   to this job.
   # - "need" any job that is part of the fan out / fan in
-  # - implement the if logic because we have conditional jobs 
-  #   (go-test-enteprise) that this job needs and this would potentially get 
-  #   skipped if a previous job got skipped.  So we use the if clause to make 
+  # - implement the if logic because we have conditional jobs
+  #   (go-test-enteprise) that this job needs and this would potentially get
+  #   skipped if a previous job got skipped.  So we use the if clause to make
   # sure it does not get skipped.
-
   build-distros-success:
-    needs: 
+    needs:
     - setup
     - check-go-mod
     - build-386
     - build-amd64
     - build-arm
+    - build-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: |
-      (always() && ! cancelled()) &&
-      !contains(needs.*.result, 'failure') &&
-      !contains(needs.*.result, 'cancelled')
+    if: ${{ always() }}
     steps:
-      - run: echo "build-distros succeeded"
+      - name: evaluate upstream job results
+        run: |
+          # exit 1 if failure or cancelled result for any upstream job
+          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure|cancelled)\"'; then
+            printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
+            exit 1
+          fi

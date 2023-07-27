@@ -7,11 +7,16 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/types"
+	"time"
 )
 
 // DeepCopy generates a deep copy of *ConfigSnapshot
 func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 	var cp ConfigSnapshot = *o
+	if o.ServiceLocality != nil {
+		cp.ServiceLocality = new(structs.Locality)
+		*cp.ServiceLocality = *o.ServiceLocality
+	}
 	if o.ServiceMeta != nil {
 		cp.ServiceMeta = make(map[string]string, len(o.ServiceMeta))
 		for k2, v2 := range o.ServiceMeta {
@@ -27,6 +32,97 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 	{
 		retV := o.Proxy.DeepCopy()
 		cp.Proxy = *retV
+	}
+	if o.JWTProviders != nil {
+		cp.JWTProviders = make(map[string]*structs.JWTProviderConfigEntry, len(o.JWTProviders))
+		for k2, v2 := range o.JWTProviders {
+			var cp_JWTProviders_v2 *structs.JWTProviderConfigEntry
+			if v2 != nil {
+				cp_JWTProviders_v2 = new(structs.JWTProviderConfigEntry)
+				*cp_JWTProviders_v2 = *v2
+				if v2.JSONWebKeySet != nil {
+					cp_JWTProviders_v2.JSONWebKeySet = new(structs.JSONWebKeySet)
+					*cp_JWTProviders_v2.JSONWebKeySet = *v2.JSONWebKeySet
+					if v2.JSONWebKeySet.Local != nil {
+						cp_JWTProviders_v2.JSONWebKeySet.Local = new(structs.LocalJWKS)
+						*cp_JWTProviders_v2.JSONWebKeySet.Local = *v2.JSONWebKeySet.Local
+					}
+					if v2.JSONWebKeySet.Remote != nil {
+						cp_JWTProviders_v2.JSONWebKeySet.Remote = new(structs.RemoteJWKS)
+						*cp_JWTProviders_v2.JSONWebKeySet.Remote = *v2.JSONWebKeySet.Remote
+						if v2.JSONWebKeySet.Remote.RetryPolicy != nil {
+							cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy = new(structs.JWKSRetryPolicy)
+							*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy = *v2.JSONWebKeySet.Remote.RetryPolicy
+							if v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff != nil {
+								cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = new(structs.RetryPolicyBackOff)
+								*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = *v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff
+							}
+						}
+						if v2.JSONWebKeySet.Remote.JWKSCluster != nil {
+							cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = new(structs.JWKSCluster)
+							*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = *v2.JSONWebKeySet.Remote.JWKSCluster
+							if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates != nil {
+								cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = new(structs.JWKSTLSCertificate)
+								*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = new(structs.JWKSTLSCertProviderInstance)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance
+								}
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = new(structs.JWKSTLSCertTrustedCA)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA
+									if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes != nil {
+										cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes = make([]byte, len(v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes))
+										copy(cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes, v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes)
+									}
+								}
+							}
+						}
+					}
+				}
+				if v2.Audiences != nil {
+					cp_JWTProviders_v2.Audiences = make([]string, len(v2.Audiences))
+					copy(cp_JWTProviders_v2.Audiences, v2.Audiences)
+				}
+				if v2.Locations != nil {
+					cp_JWTProviders_v2.Locations = make([]*structs.JWTLocation, len(v2.Locations))
+					copy(cp_JWTProviders_v2.Locations, v2.Locations)
+					for i5 := range v2.Locations {
+						if v2.Locations[i5] != nil {
+							cp_JWTProviders_v2.Locations[i5] = new(structs.JWTLocation)
+							*cp_JWTProviders_v2.Locations[i5] = *v2.Locations[i5]
+							if v2.Locations[i5].Header != nil {
+								cp_JWTProviders_v2.Locations[i5].Header = new(structs.JWTLocationHeader)
+								*cp_JWTProviders_v2.Locations[i5].Header = *v2.Locations[i5].Header
+							}
+							if v2.Locations[i5].QueryParam != nil {
+								cp_JWTProviders_v2.Locations[i5].QueryParam = new(structs.JWTLocationQueryParam)
+								*cp_JWTProviders_v2.Locations[i5].QueryParam = *v2.Locations[i5].QueryParam
+							}
+							if v2.Locations[i5].Cookie != nil {
+								cp_JWTProviders_v2.Locations[i5].Cookie = new(structs.JWTLocationCookie)
+								*cp_JWTProviders_v2.Locations[i5].Cookie = *v2.Locations[i5].Cookie
+							}
+						}
+					}
+				}
+				if v2.Forwarding != nil {
+					cp_JWTProviders_v2.Forwarding = new(structs.JWTForwardingConfig)
+					*cp_JWTProviders_v2.Forwarding = *v2.Forwarding
+				}
+				if v2.CacheConfig != nil {
+					cp_JWTProviders_v2.CacheConfig = new(structs.JWTCacheConfig)
+					*cp_JWTProviders_v2.CacheConfig = *v2.CacheConfig
+				}
+				if v2.Meta != nil {
+					cp_JWTProviders_v2.Meta = make(map[string]string, len(v2.Meta))
+					for k5, v5 := range v2.Meta {
+						cp_JWTProviders_v2.Meta[k5] = v5
+					}
+				}
+			}
+			cp.JWTProviders[k2] = cp_JWTProviders_v2
+		}
 	}
 	if o.Roots != nil {
 		cp.Roots = o.Roots.DeepCopy()
@@ -306,23 +402,6 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 			cp.Listeners[k2] = cp_Listeners_v2
 		}
 	}
-	if o.ListenerCertificates != nil {
-		cp.ListenerCertificates = make(map[IngressListenerKey][]structs.InlineCertificateConfigEntry, len(o.ListenerCertificates))
-		for k2, v2 := range o.ListenerCertificates {
-			var cp_ListenerCertificates_v2 []structs.InlineCertificateConfigEntry
-			if v2 != nil {
-				cp_ListenerCertificates_v2 = make([]structs.InlineCertificateConfigEntry, len(v2))
-				copy(cp_ListenerCertificates_v2, v2)
-				for i3 := range v2 {
-					{
-						retV := v2[i3].DeepCopy()
-						cp_ListenerCertificates_v2[i3] = *retV
-					}
-				}
-			}
-			cp.ListenerCertificates[k2] = cp_ListenerCertificates_v2
-		}
-	}
 	if o.BoundListeners != nil {
 		cp.BoundListeners = make(map[string]structs.BoundAPIGatewayListener, len(o.BoundListeners))
 		for k2, v2 := range o.BoundListeners {
@@ -451,6 +530,14 @@ func (o *configSnapshotIngressGateway) DeepCopy() *configSnapshotIngressGateway 
 		if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 			cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 			*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+		}
+		if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
+			cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+			*cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.Defaults.PassiveHealthCheck.MaxEjectionPercent
+		}
+		if o.Defaults.PassiveHealthCheck.BaseEjectionTime != nil {
+			cp.Defaults.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+			*cp.Defaults.PassiveHealthCheck.BaseEjectionTime = *o.Defaults.PassiveHealthCheck.BaseEjectionTime
 		}
 	}
 	return &cp

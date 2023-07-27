@@ -19,7 +19,7 @@ jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.3.0
+    container: hashicorpdev/backport-assistant:0.3.4
     steps:
       - name: Run Backport Assistant for release branches
         run: |
@@ -28,3 +28,16 @@ jobs:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+  handle-failure:
+    needs:
+      - backport
+    if: always() && needs.backport.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on PR
+        run: |
+          github_message="Backport failed @${{ github.event.sender.login }}. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
+            -X POST \
+            -d "{ \"body\": \"${github_message}\"}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"

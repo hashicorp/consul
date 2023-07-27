@@ -14,7 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Service, libservice.Service) {
+// CreateServices
+func CreateServices(t *testing.T, cluster *libcluster.Cluster, protocol string) (libservice.Service, libservice.Service) {
 	node := cluster.Agents[0]
 	client := node.GetClient()
 
@@ -22,7 +23,7 @@ func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 	serviceDefault := &api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     libservice.StaticServerServiceName,
-		Protocol: "http",
+		Protocol: protocol,
 	}
 
 	ok, _, err := client.ConfigEntries().Set(serviceDefault, nil)
@@ -37,6 +38,10 @@ func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 		GRPCPort: 8079,
 	}
 
+	if protocol == "grpc" {
+		serviceOpts.RegisterGRPC = true
+	}
+
 	// Create a service and proxy instance
 	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
 	require.NoError(t, err)
@@ -45,7 +50,7 @@ func CreateServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
 
 	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
+	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, false)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticClientServiceName), nil)

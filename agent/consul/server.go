@@ -19,6 +19,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/internal/resource"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
@@ -39,6 +41,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -59,6 +62,7 @@ import (
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/hcp"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -68,11 +72,14 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
@@ -125,6 +132,8 @@ const (
 	reconcileChSize = 256
 
 	LeaderTransferMinVersion = "1.6.0"
+
+	catalogResourceExperimentName = "resource-apis"
 )
 
 const (
@@ -168,6 +177,8 @@ type raftStore interface {
 }
 
 const requestLimitsBurstMultiplier = 10
+
+var _ blockingquery.FSMServer = (*Server)(nil)
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
@@ -428,15 +439,38 @@ type Server struct {
 	// run by the Server
 	routineManager *routine.Manager
 
-	// typeRegistry contains Consul's registered resource types.
-	typeRegistry resource.Registry
+	// resourceServiceServer implements the Resource Service.
+	resourceServiceServer *resourcegrpc.Server
 
-	// internalResourceServiceClient is a client that can be used to communicate
-	// with the Resource Service in-process (i.e. not via the network) without auth.
-	// It should only be used for purely-internal workloads, such as controllers.
-	internalResourceServiceClient pbresource.ResourceServiceClient
+	// insecureResourceServiceClient is a client that can be used to communicate
+	// with the Resource Service in-process (i.e. not via the network) *without*
+	// auth. It should only be used for purely-internal workloads, such as
+	// controllers.
+	insecureResourceServiceClient pbresource.ResourceServiceClient
+
+	// secureResourceServiceClient is a client that can be used to communicate
+	// with the Resource Service in-process (i.e. not via the network) *with* auth.
+	// It can be used to make requests to the Resource Service on behalf of the user
+	// (e.g. from the HTTP API).
+	secureResourceServiceClient pbresource.ResourceServiceClient
+
+	// controllerManager schedules the execution of controllers.
+	controllerManager *controller.Manager
+
 	// handles metrics reporting to HashiCorp
 	reportingManager *reporting.ReportingManager
+}
+
+func (s *Server) DecrementBlockingQueries() uint64 {
+	return atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+}
+
+func (s *Server) GetShutdownChannel() chan struct{} {
+	return s.shutdownCh
+}
+
+func (s *Server) IncrementBlockingQueries() uint64 {
+	return atomic.AddUint64(&s.queriesBlocking, 1)
 }
 
 type connHandler interface {
@@ -499,7 +533,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
-		typeRegistry:            resource.NewRegistry(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -763,10 +796,11 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s)
+	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
+	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize external gRPC server
-	s.setupExternalGRPC(config, logger)
+	s.setupExternalGRPC(config, flat.Registry, logger)
 
 	// Initialize internal gRPC server.
 	//
@@ -774,6 +808,22 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
+
+	if err := s.setupSecureResourceServiceClient(); err != nil {
+		return nil, err
+	}
+
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
+		return nil, err
+	}
+
+	s.controllerManager = controller.NewManager(
+		s.insecureResourceServiceClient,
+		logger.Named(logging.ControllerRuntime),
+	)
+	s.registerControllers(flat)
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
 	go s.trackLeaderChanges()
 
 	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
@@ -782,10 +832,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		SessionLimiter: flat.XDSStreamLimiter,
 	})
 	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
-
-	if err := s.setupInternalResourceService(logger); err != nil {
-		return nil, err
-	}
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -823,11 +869,19 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		return nil, err
 	}
 
-	if s.config.DevMode {
-		demo.Register(s.typeRegistry)
+	return s, nil
+}
+
+func (s *Server) registerControllers(deps Deps) {
+	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
+		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 	}
 
-	return s, nil
+	reaper.RegisterControllers(s.controllerManager)
+
+	if s.config.DevMode {
+		demo.RegisterControllers(s.controllerManager)
+	}
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
@@ -850,6 +904,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		ConnectEnabled: config.ConnectEnabled,
 		PeeringEnabled: config.PeeringEnabled,
 		Locality:       config.Locality,
+		FSMServer:      s,
 	})
 	s.peeringServer = p
 	o := operator.NewServer(operator.Config{
@@ -881,6 +936,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.peerStreamServer.Register(srv)
 		s.externalACLServer.Register(srv)
 		s.externalConnectCAServer.Register(srv)
+		s.resourceServiceServer.Register(srv)
 	}
 
 	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil, s.incomingRPCLimiter)
@@ -1033,7 +1089,7 @@ func (s *Server) setupRaft() error {
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("raft.snapshot"))
 		if err != nil {
 			return err
 		}
@@ -1221,7 +1277,7 @@ func (s *Server) setupRPC() error {
 }
 
 // Initialize and register services on external gRPC server.
-func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger) {
+func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registry, logger hclog.Logger) {
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1286,23 +1342,50 @@ func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger) {
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
-	resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    s.typeRegistry,
+	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
+		Registry:    typeRegistry,
 		Backend:     s.raftStorageBackend,
 		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.resource"),
-	}).Register(s.externalGRPCServer)
+	})
+	s.resourceServiceServer.Register(s.externalGRPCServer)
 }
 
-func (s *Server) setupInternalResourceService(logger hclog.Logger) error {
-	server := grpc.NewServer()
-
-	resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    s.typeRegistry,
+func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
+	server := resourcegrpc.NewServer(resourcegrpc.Config{
+		Registry:    typeRegistry,
 		Backend:     s.raftStorageBackend,
 		ACLResolver: resolver.DANGER_NO_AUTH{},
 		Logger:      logger.Named("grpc-api.resource"),
-	}).Register(server)
+	})
+
+	conn, err := s.runInProcessGRPCServer(server.Register)
+	if err != nil {
+		return err
+	}
+	s.insecureResourceServiceClient = pbresource.NewResourceServiceClient(conn)
+
+	return nil
+}
+
+func (s *Server) setupSecureResourceServiceClient() error {
+	conn, err := s.runInProcessGRPCServer(s.resourceServiceServer.Register)
+	if err != nil {
+		return err
+	}
+	s.secureResourceServiceClient = pbresource.NewResourceServiceClient(conn)
+
+	return nil
+}
+
+// runInProcessGRPCServer runs a gRPC server that can only be accessed in the
+// same process, rather than over the network, using a pipe listener.
+func (s *Server) runInProcessGRPCServer(registerFn ...func(*grpc.Server)) (*grpc.ClientConn, error) {
+	server := grpc.NewServer()
+
+	for _, fn := range registerFn {
+		fn(server)
+	}
 
 	pipe := agentgrpc.NewPipeListener()
 	go server.Serve(pipe)
@@ -1319,15 +1402,14 @@ func (s *Server) setupInternalResourceService(logger hclog.Logger) error {
 	)
 	if err != nil {
 		server.Stop()
-		return err
+		return nil, err
 	}
 	go func() {
 		<-s.shutdownCh
 		conn.Close()
 	}()
-	s.internalResourceServiceClient = pbresource.NewResourceServiceClient(conn)
 
-	return nil
+	return conn, nil
 }
 
 // Shutdown is used to shutdown the server
@@ -1635,6 +1717,26 @@ func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
 }
 
+// IsServer checks if this addr is of a server
+func (s *Server) IsServer(addr string) bool {
+
+	for _, ss := range s.raft.GetConfiguration().Configuration().Servers {
+		a, err := net.ResolveTCPAddr("tcp", string(ss.Address))
+		if err != nil {
+			continue
+		}
+		localIP, err := net.ResolveTCPAddr("tcp", string(s.config.RaftConfig.LocalID))
+		if err != nil {
+			continue
+		}
+		// only return true if it's another server and not our local address
+		if string(metadata.GetIP(a)) == addr && string(metadata.GetIP(localIP)) != addr {
+			return true
+		}
+	}
+	return false
+}
+
 // LeaderLastContact returns the time of last contact by a leader.
 // This only makes sense if we are currently a follower.
 func (s *Server) LeaderLastContact() time.Time {
@@ -1778,6 +1880,13 @@ func (s *Server) RegisterEndpoint(name string, handler interface{}) error {
 
 func (s *Server) FSM() *fsm.FSM {
 	return s.fsm
+}
+
+func (s *Server) GetState() *state.Store {
+	if s == nil || s.FSM() == nil {
+		return nil
+	}
+	return s.FSM().State()
 }
 
 // Stats is used to return statistics for debugging and insight
@@ -1951,6 +2060,7 @@ func (s *Server) trackLeaderChanges() {
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
 			s.raftStorageBackend.LeaderChanged()
+			s.controllerManager.SetRaftLeader(s.IsLeader())
 
 			// Trigger sending an update to HCP status
 			s.hcpManager.SendUpdate()
@@ -1964,13 +2074,14 @@ func (s *Server) trackLeaderChanges() {
 // hcpServerStatus is the callback used by the HCP manager to emit status updates to the HashiCorp Cloud Platform when
 // enabled.
 func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
-	return func(ctx context.Context) (status hcp.ServerStatus, err error) {
+	return func(ctx context.Context) (status hcpclient.ServerStatus, err error) {
 		status.Name = s.config.NodeName
 		status.ID = string(s.config.NodeID)
 		status.Version = cslversion.GetHumanVersion()
 		status.LanAddress = s.config.RPCAdvertise.IP.String()
 		status.GossipPort = s.config.SerfLANConfig.MemberlistConfig.AdvertisePort
 		status.RPCPort = s.config.RPCAddr.Port
+		status.Datacenter = s.config.Datacenter
 
 		tlsCert := s.tlsConfigurator.Cert()
 		if tlsCert != nil {
@@ -2012,8 +2123,14 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 			status.ScadaStatus = deps.HCP.Provider.SessionStatus()
 		}
 
+		status.ACL.Enabled = s.config.ACLsEnabled
+
 		return status, nil
 	}
+}
+
+func (s *Server) ResourceServiceClient() pbresource.ResourceServiceClient {
+	return s.secureResourceServiceClient
 }
 
 func fileExists(name string) (bool, error) {

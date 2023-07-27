@@ -12,6 +12,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	mathrand "math/rand"
 	"net"
@@ -51,6 +52,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/scada"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -327,8 +329,15 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
-				Cache: cache.New(cache.Options{}),
+				Cache:  cache.New(cache.Options{}),
+				NetRPC: &LazyNetRPC{},
 			}
+
+			bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+				CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+				RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+				Config:      leafcert.Config{},
+			})
 
 			cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 			bd, err = initEnterpriseBaseDeps(bd, &cfg)
@@ -4184,6 +4193,39 @@ func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
 	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
 }
 
+func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
+
+	a := NewTestAgent(t, cfg)
+	defer a.Shutdown()
+
+	c := TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` enable_debug = true`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, true, a.enableDebug.Load())
+
+	c = TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` enable_debug = false`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, false, a.enableDebug.Load())
+}
+
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -5442,8 +5484,15 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
 			},
 		},
-		Cache: cache.New(cache.Options{}),
+		Cache:  cache.New(cache.Options{}),
+		NetRPC: &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 	bd, err = initEnterpriseBaseDeps(bd, &cfg)
@@ -6028,8 +6077,15 @@ func TestAgent_startListeners(t *testing.T) {
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{},
 		},
-		Cache: cache.New(cache.Options{}),
+		Cache:  cache.New(cache.Options{}),
+		NetRPC: &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	bd, err := initEnterpriseBaseDeps(bd, &config.RuntimeConfig{})
 	require.NoError(t, err)
@@ -6160,7 +6216,14 @@ func TestAgent_startListeners_scada(t *testing.T) {
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
+		NetRPC:        &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 	bd, err := initEnterpriseBaseDeps(bd, &cfg)
@@ -6202,6 +6265,76 @@ cloud {
 
 	_, err = api.NewClient(&api.Config{Address: l.Addr().String()})
 	require.NoError(t, err)
+}
+
+func TestAgent_checkServerLastSeen(t *testing.T) {
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:       hclog.NewInterceptLogger(nil),
+			Tokens:       new(token.Store),
+			GRPCConnPool: &fakeGRPCConnPool{},
+		},
+		RuntimeConfig: &config.RuntimeConfig{},
+		Cache:         cache.New(cache.Options{}),
+		NetRPC:        &LazyNetRPC{},
+	}
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	// Test that an ErrNotExist OS error is treated as ok.
+	t.Run("TestReadErrNotExist", func(t *testing.T) {
+		readFn := func(filename string) (*consul.ServerMetadata, error) {
+			return nil, os.ErrNotExist
+		}
+
+		err := agent.checkServerLastSeen(readFn)
+		require.NoError(t, err)
+	})
+
+	// Test that an error reading server metadata is treated as an error.
+	t.Run("TestReadErr", func(t *testing.T) {
+		expected := errors.New("read error")
+		readFn := func(filename string) (*consul.ServerMetadata, error) {
+			return nil, expected
+		}
+
+		err := agent.checkServerLastSeen(readFn)
+		require.ErrorIs(t, err, expected)
+	})
+
+	// Test that a server with a 7d old last seen timestamp is treated as an error.
+	t.Run("TestIsLastSeenStaleErr", func(t *testing.T) {
+		agent.config.ServerRejoinAgeMax = time.Hour
+
+		readFn := func(filename string) (*consul.ServerMetadata, error) {
+			return &consul.ServerMetadata{
+				LastSeenUnix: time.Now().Add(-24 * 7 * time.Hour).Unix(),
+			}, nil
+		}
+
+		err := agent.checkServerLastSeen(readFn)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "refusing to rejoin cluster because server has been offline for more than the configured server_rejoin_age_max")
+	})
+
+	// Test that a server with a 6h old last seen timestamp is not treated as an error.
+	t.Run("TestNoErr", func(t *testing.T) {
+		agent.config.ServerRejoinAgeMax = 24 * 7 * time.Hour
+
+		readFn := func(filename string) (*consul.ServerMetadata, error) {
+			return &consul.ServerMetadata{
+				LastSeenUnix: time.Now().Add(-6 * time.Hour).Unix(),
+			}, nil
+		}
+
+		err := agent.checkServerLastSeen(readFn)
+		require.NoError(t, err)
+	})
 }
 
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {

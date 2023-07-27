@@ -468,6 +468,10 @@ func (e *ProxyConfigEntry) Validate() error {
 		return err
 	}
 
+	if err := validateOpaqueProxyConfig(e.Config); err != nil {
+		return fmt.Errorf("Config: %w", err)
+	}
+
 	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
 		return err
 	}
@@ -570,7 +574,7 @@ func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
 // into a concrete type.
 //
 // There is an 'api' variation of this in
-// command/config/write/config_write.go:newDecodeConfigEntry
+// command/helpers/helpers.go:newDecodeConfigEntry
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	var entry ConfigEntry
 
@@ -1101,6 +1105,16 @@ type PassiveHealthCheck struct {
 	// when an outlier status is detected through consecutive 5xx.
 	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
 	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
+
+	// The maximum % of an upstream cluster that can be ejected due to outlier detection.
+	// Defaults to 10% but will eject at least one host regardless of the value.
+	// TODO: remove me
+	MaxEjectionPercent *uint32 `json:",omitempty" alias:"max_ejection_percent"`
+
+	// The base time that a host is ejected for. The real time is equal to the base time
+	// multiplied by the number of times the host has been ejected and is capped by
+	// max_ejection_time (Default 300s). Defaults to 30000ms or 30s.
+	BaseEjectionTime *time.Duration `json:",omitempty" alias:"base_ejection_time"`
 }
 
 func (chk *PassiveHealthCheck) Clone() *PassiveHealthCheck {
@@ -1119,6 +1133,15 @@ func (chk *PassiveHealthCheck) IsZero() bool {
 func (chk PassiveHealthCheck) Validate() error {
 	if chk.Interval < 0*time.Second {
 		return fmt.Errorf("passive health check interval cannot be negative")
+	}
+	if chk.EnforcingConsecutive5xx != nil && *chk.EnforcingConsecutive5xx > 100 {
+		return fmt.Errorf("passive health check enforcing_consecutive_5xx must be a percentage between 0 and 100")
+	}
+	if chk.MaxEjectionPercent != nil && *chk.MaxEjectionPercent > 100 {
+		return fmt.Errorf("passive health check max_ejection_percent must be a percentage between 0 and 100")
+	}
+	if chk.BaseEjectionTime != nil && *chk.BaseEjectionTime < 0*time.Second {
+		return fmt.Errorf("passive health check base_ejection_time cannot be negative")
 	}
 	return nil
 }
@@ -1307,6 +1330,17 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
+	return nil
+}
+
+func validateOpaqueProxyConfig(config map[string]interface{}) error {
+	// This max is chosen to stay under the 104 character limit on OpenBSD, FreeBSD, MacOS.
+	// It assumes the socket's filename is fixed at 32 characters.
+	const maxSocketDirLen = 70
+
+	if path, _ := config["envoy_hcp_metrics_bind_socket_dir"].(string); len(path) > maxSocketDirLen {
+		return fmt.Errorf("envoy_hcp_metrics_bind_socket_dir length %d exceeds max %d", len(path), maxSocketDirLen)
+	}
 	return nil
 }
 

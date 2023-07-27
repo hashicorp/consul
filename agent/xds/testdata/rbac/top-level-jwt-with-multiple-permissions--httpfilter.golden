@@ -1,0 +1,179 @@
+{
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "urlPath": {
+                      "path": {
+                        "exact": "/v1/secret"
+                      }
+                    }
+                  },
+                  {
+                    "andRules": {
+                      "rules": [
+                        {
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_auth0"},
+                              {"key": "iss"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.auth0-issuer"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_auth0"},
+                              {"key": "perms"},
+                              {"key": "role"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "admin"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "andRules": {
+                      "rules": [
+                        {
+                          "urlPath": {
+                            "path": {
+                              "exact": "/v1/admin"
+                            }
+                          }
+                        },
+                        {
+                          "notRule": {
+                            "urlPath": {
+                              "path": {
+                                "exact": "/v1/secret"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                     "andRules": {
+                        "rules": [
+                          {
+                            "metadata": {
+                              "filter": "envoy.filters.http.jwt_authn",
+                              "path": [
+                                {"key": "jwt_payload_auth0"},
+                                {"key": "iss"}
+                              ],
+                              "value": {
+                                "stringMatch": {
+                                  "exact": "mytest.auth0-issuer"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "metadata": {
+                              "filter": "envoy.filters.http.jwt_authn",
+                              "path": [
+                                {"key": "jwt_payload_auth0"},
+                                {"key": "perms"},
+                                {"key": "role"}
+                              ],
+                              "value": {
+                                "stringMatch": {
+                                  "exact": "admin"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                     }
+                  }
+                ]
+              }
+            }
+          ],
+          "principals": [
+            {
+              "andIds": {
+                "ids": [
+                  {
+                    "authenticated": {
+                      "principalName": {
+                        "safeRegex": {
+                          "googleRe2": {
+
+                          },
+                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "andIds": {
+                      "ids": [
+                        { 
+                          "metadata": {
+                            "filter":"envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_okta"},
+                              {"key": "iss"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.okta-issuer"
+                              }
+                            }
+                          }
+                        },
+                        { 
+                          "metadata": {
+                            "filter":"envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_okta"},
+                              {"key": "roles"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "testing"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -37,4 +37,34 @@ module.exports = [
     destination: `/consul/docs/connect/intentions`,
     permanent: true,
   },
+  {
+    source: '/consul/docs/connect/transparent-proxy',
+    destination: '/consul/docs/k8s/connect/transparent-proxy',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/agent/limits/init-rate-limits',
+    destination: '/consul/docs/agent/limits/usage/init-rate-limits',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/agent/limits/set-global-traffic-rate-limits',
+    destination:
+      '/consul/docs/agent/limits/usage/set-global-traffic-rate-limits',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers',
+    destination:
+      '/consul/docs/connect/cluster-peering/usage/establish-cluster-peering',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/enterprise/sentinel',
+    destination:
+      '/consul/docs/dynamic-app-config/kv#using-sentinel-to-apply-policies-for-consul-kv',
+    permanent: true,
+  },
 ]

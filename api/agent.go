@@ -274,6 +274,8 @@ type MembersOpts struct {
 	// Segment is the LAN segment to show members for. Setting this to the
 	// AllSegments value above will show members in all segments.
 	Segment string
+
+	Filter string
 }
 
 // AgentServiceRegistration is used to register a new service
@@ -488,6 +490,24 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 // a operator:read ACL token.
 func (a *Agent) Host() (map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/host")
+	_, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
+	var out map[string]interface{}
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Version is used to retrieve information about the running Consul version and build.
+func (a *Agent) Version() (map[string]interface{}, error) {
+	r := a.c.newRequest("GET", "/v1/agent/version")
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
@@ -770,6 +790,10 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 	r.params.Set("segment", opts.Segment)
 	if opts.WAN {
 		r.params.Set("wan", "1")
+	}
+
+	if opts.Filter != "" {
+		r.params.Set("filter", opts.Filter)
 	}
 
 	_, resp, err := a.c.doRequest(r)

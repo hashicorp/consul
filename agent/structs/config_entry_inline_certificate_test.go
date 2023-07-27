@@ -117,6 +117,21 @@ NtyHRuD+KYRmjXtyX1yHNqfGN3vOQmwavHq2R8wHYuBSc6LAHHV9vG+j0VsgMELO
 qwxn8SmLkSKbf2+MsQVzLCXXN5u+D8Yv+4py+oKP4EQ5aFZuDEx+r/G/31rTthww
 AAJAMaoXmoYVdgXV+CPuBb2M4XCpuzLu3bcA2PXm5ipSyIgntMKwXV7r
 -----END CERTIFICATE-----`
+	tooShortPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQCtmK1VjmXJ7vm4CZkkOSjc+kjGNMlyce5rXxwlDRz9LcGGc3Tg
+kwUJesyBpDtxLLVHXQIPr5mWYbX/W/ezQ9sntxrATbDek8pBgoOlARebwkD2ivVW
+BWfVhlryVihWlXApKiJ2n3i0m+OVtdrceC9Bv2hEMhYVOwzxtb3O0YFkbwIDAQAB
+AoGAIxgnipFUEKPIRiVimUkY8ruCdNd9Fi7kNT6wEOl6v9A9PHIg4bm3Hfh+WYMb
+JUEVkMzDuuoUEavFQE+WXt5L8oE1lEBmN2++FQsvllN+MRBTRg2sfw4mUWDI6S4r
+h8+XNTzTIg2sUd2J3o2qNmQoOheYb+iuYDj76IFoEdwwZ0kCQQDYKKs5HAbnrLj1
+UrOp8TyHdFf0YNw5tGdbNTbffq4rlBD6SW70+Sj624i2UqdnYwRiWzdXv3zN08aI
+Vfoh2cGlAkEAzZe5B6BhiX/PcIYutMtuT3K+mysFNlowrutXWoQOpR7gGAkgEt6e
+oCDgx1QJRjsp6NFQxKc6l034Hzs17gqJgwJAcu9U873aUg9+HTuHOoKB28haCCAE
+mU46cr3d2oKCW7uUN3EaZXmid5iJneBfENMOfrnfuHGiC9NiShXlNWCS3QJAO5Ne
+w83+1ahaxUGs4SkeExmuECrcPM7P0rBRxOIFmGWlDHIAgFdQYhiE6l34vghA8b1O
+CV5oRRYL84jl7M/S3wJBALDfL5YXcc8P6scLJJ1biqhLYppvGN5CUwbsJsluvHCW
+XCTVIbPOaS42A0xUfpoiTcdbNSFRvdCzPR5nsGy8Y7g=
+-----END RSA PRIVATE KEY-----`
 )
 
 func TestInlineCertificate(t *testing.T) {
@@ -139,6 +154,17 @@ func TestInlineCertificate(t *testing.T) {
 				Certificate: "foo",
 			},
 			validateErr: "failed to parse certificate PEM",
+		},
+		"invalid private key length": {
+			entry: &InlineCertificateConfigEntry{
+				Kind:        InlineCertificate,
+				Name:        "cert-two",
+				PrivateKey:  tooShortPrivateKey,
+				Certificate: "foo",
+			},
+			// non-FIPS: "key length must be at least 2048 bits"
+			// FIPS: "key length invalid: only RSA lengths of 2048, 3072, and 4096 are allowed in FIPS mode"
+			validateErr: "key length",
 		},
 		"mismatched certificate": {
 			entry: &InlineCertificateConfigEntry{

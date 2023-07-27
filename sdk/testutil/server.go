@@ -75,6 +75,11 @@ type TestNetworkSegment struct {
 	Advertise string `json:"advertise"`
 }
 
+// TestAudigConfig contains the configuration for Audit
+type TestAuditConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // Locality is used as the TestServerConfig's Locality.
 type Locality struct {
 	Region string `json:"region"`
@@ -124,6 +129,8 @@ type TestServerConfig struct {
 	Stderr              io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
 	ReturnPorts         func()                 `json:"-"`
+	Audit               *TestAuditConfig       `json:"audit,omitempty"`
+	Version             string                 `json:"version,omitempty"`
 }
 
 type TestACLs struct {
@@ -206,6 +213,7 @@ func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServe
 		Stdout:  logBuffer,
 		Stderr:  logBuffer,
 		Peering: &TestPeeringConfig{Enabled: true},
+		Version: consulVersion.String(),
 	}
 
 	// Add version-specific tweaks

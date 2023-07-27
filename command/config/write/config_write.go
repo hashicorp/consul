@@ -7,16 +7,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/config"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
-	"github.com/hashicorp/consul/lib/decode"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -100,68 +96,12 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	c.UI.Info(fmt.Sprintf("Config entry written: %s/%s", entry.GetKind(), entry.GetName()))
+
+	if msg := config.KindSpecificWriteWarning(entry); msg != "" {
+		c.UI.Warn("WARNING: " + msg)
+	}
+
 	return 0
-}
-
-// There is a 'structs' variation of this in
-// agent/structs/config_entry.go:DecodeConfigEntry
-func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
-	var entry api.ConfigEntry
-
-	kindVal, ok := raw["Kind"]
-	if !ok {
-		kindVal, ok = raw["kind"]
-	}
-	if !ok {
-		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
-	}
-
-	if kindStr, ok := kindVal.(string); ok {
-		newEntry, err := api.MakeConfigEntry(kindStr, "")
-		if err != nil {
-			return nil, err
-		}
-		entry = newEntry
-	} else {
-		return nil, fmt.Errorf("Kind value in payload is not a string")
-	}
-
-	var md mapstructure.Metadata
-	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			decode.HookWeakDecodeFromSlice,
-			decode.HookTranslateKeys,
-			mapstructure.StringToTimeDurationHookFunc(),
-			mapstructure.StringToTimeHookFunc(time.RFC3339),
-		),
-		Metadata:         &md,
-		Result:           &entry,
-		WeaklyTypedInput: true,
-	}
-
-	decoder, err := mapstructure.NewDecoder(decodeConf)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := decoder.Decode(raw); err != nil {
-		return nil, err
-	}
-
-	for _, k := range md.Unused {
-		switch k {
-		case "kind", "Kind":
-			// The kind field is used to determine the target, but doesn't need
-			// to exist on the target.
-			continue
-		}
-		err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return entry, nil
 }
 
 func (c *cmd) Synopsis() string {

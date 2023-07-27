@@ -143,7 +143,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		var status structs.ACLReplicationStatus
 		err := msgpackrpc.CallWithCodec(codec, "ACL.ReplicationStatus", &getR, &status)
-		require.NoError(t, err)
+		require.NoError(r, err)
 
 		require.True(r, status.Enabled)
 		require.True(r, status.Running)
@@ -220,7 +220,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 				time.Sleep(200 * time.Millisecond)
 				err := aclEp.TokenRead(&req, &resp)
 				require.Error(r, err)
-				require.ErrorContains(t, err, "ACL not found")
+				require.ErrorContains(r, err, "ACL not found")
 				require.Nil(r, resp.Token)
 			})
 		})
@@ -3260,21 +3260,6 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 
 		err := aclEp.AuthMethodSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "MaxTokenTTL 1ms cannot be less than")
-	})
-
-	t.Run("Create with MaxTokenTTL too big", func(t *testing.T) {
-		reqMethod := newAuthMethod("test")
-		reqMethod.MaxTokenTTL = 25 * time.Hour
-
-		req := structs.ACLAuthMethodSetRequest{
-			Datacenter:   "dc1",
-			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
-		}
-		resp := structs.ACLAuthMethod{}
-
-		err := aclEp.AuthMethodSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "MaxTokenTTL 25h0m0s cannot be more than")
 	})
 }
 

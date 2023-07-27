@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/serf/serf"
 
 	goretry "github.com/avast/retry-go"
@@ -304,7 +304,7 @@ func (c *Cluster) Remove(n Agent) error {
 // helpers below.
 //
 // This lets us have tests that assert that an upgrade will fail.
-func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersion string) error {
+func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetImage string, targetVersion string) error {
 	var err error
 	// We take a snapshot, but note that we currently do nothing with it.
 	if c.ACLEnabled {
@@ -348,6 +348,7 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 
 	upgradeFn := func(agent Agent, clientFactory func() (*api.Client, error)) error {
 		config := agent.GetConfig()
+		config.Image = targetImage
 		config.Version = targetVersion
 
 		if agent.IsServer() {

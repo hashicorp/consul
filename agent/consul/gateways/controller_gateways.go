@@ -93,7 +93,7 @@ func (r *apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state
 	logger.Trace("certificate changed, enqueueing dependent gateways")
 	defer logger.Trace("finished enqueuing gateways")
 
-	_, entries, err := store.ConfigEntriesByKind(nil, structs.APIGateway, acl.WildcardEnterpriseMeta())
+	_, entries, err := store.ConfigEntriesByKind(nil, structs.APIGateway, wildcardMeta())
 	if err != nil {
 		logger.Warn("error retrieving api gateways", "error", err)
 		return err
@@ -240,6 +240,19 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		logger.Warn("error checking gateway certificates", "error", err)
 		return err
 	}
+
+	// set each listener as having valid certs, then overwrite that status condition
+	// if there are any certificate errors
+	meta.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
+		listenerRef := structs.ResourceReference{
+			Kind:           structs.APIGateway,
+			Name:           meta.BoundGateway.Name,
+			SectionName:    bound.Name,
+			EnterpriseMeta: meta.BoundGateway.EnterpriseMeta,
+		}
+		updater.SetCondition(validCertificate(listenerRef))
+		return nil
+	})
 
 	for ref, err := range certificateErrors {
 		updater.SetCondition(invalidCertificate(ref, err))
@@ -551,11 +564,11 @@ type gatewayMeta struct {
 // tuples based on the state coming from the store. Any gateway that does not have
 // a corresponding bound-api-gateway config entry will be filtered out.
 func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
-	_, gateways, err := store.ConfigEntriesByKind(nil, structs.APIGateway, acl.WildcardEnterpriseMeta())
+	_, gateways, err := store.ConfigEntriesByKind(nil, structs.APIGateway, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
-	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, acl.WildcardEnterpriseMeta())
+	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -741,8 +754,14 @@ func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.Resourc
 			if err != nil {
 				return err
 			}
+			listenerRef := structs.ResourceReference{
+				Kind:           structs.APIGateway,
+				Name:           g.BoundGateway.Name,
+				SectionName:    bound.Name,
+				EnterpriseMeta: g.BoundGateway.EnterpriseMeta,
+			}
 			if certificate == nil {
-				certificateErrors[ref] = errors.New("certificate not found")
+				certificateErrors[listenerRef] = fmt.Errorf("certificate %q not found", ref.Name)
 			} else {
 				bound.Certificates = append(bound.Certificates, ref)
 			}
@@ -843,9 +862,22 @@ func gatewayAccepted() structs.Condition {
 // invalidCertificate returns a condition used when a gateway references a
 // certificate that does not exist. It takes a ref used to scope the condition
 // to a given APIGateway listener.
+func validCertificate(ref structs.ResourceReference) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionResolvedRefs,
+		api.ConditionStatusTrue,
+		api.GatewayReasonResolvedRefs,
+		"resolved refs",
+		ref,
+	)
+}
+
+// invalidCertificate returns a condition used when a gateway references a
+// certificate that does not exist. It takes a ref used to scope the condition
+// to a given APIGateway listener.
 func invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.NewGatewayCondition(
-		api.GatewayConditionAccepted,
+		api.GatewayConditionResolvedRefs,
 		api.ConditionStatusFalse,
 		api.GatewayListenerReasonInvalidCertificateRef,
 		err.Error(),
@@ -1042,12 +1074,12 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 
 // retrieveAllRoutesFromStore retrieves all HTTP and TCP routes from the given store
 func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error) {
-	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, acl.WildcardEnterpriseMeta())
+	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
 
-	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, acl.WildcardEnterpriseMeta())
+	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -1108,4 +1140,10 @@ func routeRequestLogger(logger hclog.Logger, request controller.Request) hclog.L
 func routeLogger(logger hclog.Logger, route structs.ConfigEntry) hclog.Logger {
 	meta := route.GetEnterpriseMeta()
 	return logger.With("route.kind", route.GetKind(), "route.name", route.GetName(), "route.namespace", meta.NamespaceOrDefault(), "route.partition", meta.PartitionOrDefault())
+}
+
+func wildcardMeta() *acl.EnterpriseMeta {
+	meta := acl.WildcardEnterpriseMeta()
+	meta.OverridePartition(acl.WildcardPartitionName)
+	return meta
 }

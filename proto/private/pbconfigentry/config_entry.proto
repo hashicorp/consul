@@ -22,6 +22,7 @@ enum Kind {
   KindHTTPRoute = 9;
   KindTCPRoute = 10;
   KindSamenessGroup = 11;
+  KindJWTProvider = 12;
 }
 
 message ConfigEntry {
@@ -43,6 +44,7 @@ message ConfigEntry {
     HTTPRoute HTTPRoute = 13;
     InlineCertificate InlineCertificate = 14;
     SamenessGroup SamenessGroup = 15;
+    JWTProvider JWTProvider = 16;
   }
 }
 
@@ -633,6 +635,10 @@ message PassiveHealthCheck {
   uint32 MaxFailures = 2;
   // mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
   uint32 EnforcingConsecutive5xx = 3;
+  // mog: func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 MaxEjectionPercent = 4;
+  // mog: func-to=structs.DurationPointerFromProto func-from=structs.DurationPointerToProto
+  google.protobuf.Duration BaseEjectionTime = 5;
 }
 
 // mog annotation:
@@ -962,4 +968,185 @@ message SamenessGroup {
 message SamenessGroupMember {
   string Partition = 1;
   string Peer = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWTProviderConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Name,Kind,RaftIndex,EnterpriseMeta
+message JWTProvider {
+  JSONWebKeySet JSONWebKeySet = 1;
+  string Issuer = 2;
+  repeated string Audiences = 3;
+  repeated JWTLocation Locations = 4;
+  JWTForwardingConfig Forwarding = 5;
+  JWTCacheConfig CacheConfig = 6;
+  map<string, string> Meta = 7;
+  // mog: func-to=int func-from=int32
+  int32 ClockSkewSeconds = 8;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JSONWebKeySet
+// output=config_entry.gen.go
+// name=Structs
+message JSONWebKeySet {
+  LocalJWKS Local = 1;
+  RemoteJWKS Remote = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.LocalJWKS
+// output=config_entry.gen.go
+// name=Structs
+message LocalJWKS {
+  string JWKS = 1;
+  string Filename = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RemoteJWKS
+// output=config_entry.gen.go
+// name=Structs
+message RemoteJWKS {
+  string URI = 1;
+  // mog: func-to=int func-from=int32
+  int32 RequestTimeoutMs = 2;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration CacheDuration = 3;
+  bool FetchAsynchronously = 4;
+  JWKSRetryPolicy RetryPolicy = 5;
+  JWKSCluster JWKSCluster = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWKSCluster
+// output=config_entry.gen.go
+// name=Structs
+message JWKSCluster {
+  string DiscoveryType = 1;
+  JWKSTLSCertificate TLSCertificates = 2;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration ConnectTimeout = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWKSTLSCertificate
+// output=config_entry.gen.go
+// name=Structs
+message JWKSTLSCertificate {
+  JWKSTLSCertProviderInstance CaCertificateProviderInstance = 1;
+  JWKSTLSCertTrustedCA TrustedCA = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWKSTLSCertProviderInstance
+// output=config_entry.gen.go
+// name=Structs
+message JWKSTLSCertProviderInstance {
+  string InstanceName = 1;
+  string CertificateName = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWKSTLSCertTrustedCA
+// output=config_entry.gen.go
+// name=Structs
+message JWKSTLSCertTrustedCA {
+  string Filename = 1;
+  string EnvironmentVariable = 2;
+  string InlineString = 3;
+  bytes InlineBytes = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWKSRetryPolicy
+// output=config_entry.gen.go
+// name=Structs
+message JWKSRetryPolicy {
+  // mog: func-to=int func-from=int32
+  int32 NumRetries = 1;
+  RetryPolicyBackOff RetryPolicyBackOff = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RetryPolicyBackOff
+// output=config_entry.gen.go
+// name=Structs
+message RetryPolicyBackOff {
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration BaseInterval = 1;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration MaxInterval = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWTLocation
+// output=config_entry.gen.go
+// name=Structs
+message JWTLocation {
+  JWTLocationHeader Header = 1;
+  JWTLocationQueryParam QueryParam = 2;
+  JWTLocationCookie Cookie = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWTLocationHeader
+// output=config_entry.gen.go
+// name=Structs
+message JWTLocationHeader {
+  string Name = 1;
+  string ValuePrefix = 2;
+  bool Forward = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWTLocationQueryParam
+// output=config_entry.gen.go
+// name=Structs
+message JWTLocationQueryParam {
+  string Name = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWTLocationCookie
+// output=config_entry.gen.go
+// name=Structs
+message JWTLocationCookie {
+  string Name = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWTForwardingConfig
+// output=config_entry.gen.go
+// name=Structs
+message JWTForwardingConfig {
+  string HeaderName = 1;
+  bool PadForwardPayloadHeader = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWTCacheConfig
+// output=config_entry.gen.go
+// name=Structs
+message JWTCacheConfig {
+  // mog: func-to=int func-from=int32
+  int32 Size = 1;
 }

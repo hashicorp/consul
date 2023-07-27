@@ -189,7 +189,8 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	id := services.NodeServices.Node.ID
 	addrs := services.NodeServices.Node.TaggedAddresses
 	meta := services.NodeServices.Node.Meta
-	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+	delete(meta, structs.MetaSegmentKey)    // Added later, not in config.
+	delete(meta, structs.MetaConsulVersion) // Added later, not in config.
 	assert.Equal(t, a.Config.NodeID, id)
 	assert.Equal(t, a.Config.TaggedAddresses, addrs)
 	assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
@@ -1320,13 +1321,13 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			chk.CreateIndex, chk.ModifyIndex = 0, 0
 			switch chk.CheckID {
 			case "mysql":
-				require.Equal(t, chk, chk1)
+				require.Equal(r, chk, chk1)
 			case "redis":
-				require.Equal(t, chk, chk2)
+				require.Equal(r, chk, chk2)
 			case "web":
-				require.Equal(t, chk, chk3)
+				require.Equal(r, chk, chk3)
 			case "cache":
-				require.Equal(t, chk, chk5)
+				require.Equal(r, chk, chk5)
 			case "serfHealth":
 				// ignore
 			default:
@@ -1355,10 +1356,11 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			id := services.NodeServices.Node.ID
 			addrs := services.NodeServices.Node.TaggedAddresses
 			meta := services.NodeServices.Node.Meta
-			delete(meta, structs.MetaSegmentKey) // Added later, not in config.
-			assert.Equal(t, a.Config.NodeID, id)
-			assert.Equal(t, a.Config.TaggedAddresses, addrs)
-			assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
+			delete(meta, structs.MetaSegmentKey)    // Added later, not in config.
+			delete(meta, structs.MetaConsulVersion) // Added later, not in config.
+			assert.Equal(r, a.Config.NodeID, id)
+			assert.Equal(r, a.Config.TaggedAddresses, addrs)
+			assert.Equal(r, unNilMap(a.Config.NodeMeta), meta)
 		}
 	})
 	retry.Run(t, func(r *retry.R) {
@@ -1385,11 +1387,11 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			chk.CreateIndex, chk.ModifyIndex = 0, 0
 			switch chk.CheckID {
 			case "mysql":
-				require.Equal(t, chk1, chk)
+				require.Equal(r, chk1, chk)
 			case "web":
-				require.Equal(t, chk3, chk)
+				require.Equal(r, chk3, chk)
 			case "cache":
-				require.Equal(t, chk5, chk)
+				require.Equal(r, chk5, chk)
 			case "serfHealth":
 				// ignore
 			default:
@@ -2016,7 +2018,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	addrs := services.NodeServices.Node.TaggedAddresses
 	meta := services.NodeServices.Node.Meta
 	nodeLocality := services.NodeServices.Node.Locality
-	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+	delete(meta, structs.MetaSegmentKey)    // Added later, not in config.
+	delete(meta, structs.MetaConsulVersion) // Added later, not in config.
 	require.Equal(t, a.Config.NodeID, id)
 	require.Equal(t, a.Config.TaggedAddresses, addrs)
 	require.Equal(t, a.Config.StructLocality(), nodeLocality)
@@ -2041,7 +2044,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
 		nodeLocality := services.NodeServices.Node.Locality
-		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+		delete(meta, structs.MetaSegmentKey)    // Added later, not in config.
+		delete(meta, structs.MetaConsulVersion) // Added later, not in config.
 		require.Equal(t, nodeID, id)
 		require.Equal(t, a.Config.TaggedAddresses, addrs)
 		require.Equal(t, a.Config.StructLocality(), nodeLocality)

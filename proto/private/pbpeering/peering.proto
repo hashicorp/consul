@@ -322,7 +322,6 @@ message PeeringServerAddresses {
   repeated string Addresses = 1;
 }
 
-// @consul-rpc-glue: LeaderReadTODO
 message PeeringReadRequest {
   string Name = 1;
   string Partition = 2;
@@ -332,14 +331,13 @@ message PeeringReadResponse {
   Peering Peering = 1;
 }
 
-// @consul-rpc-glue: LeaderReadTODO
 message PeeringListRequest {
   string Partition = 1;
 }
 
 message PeeringListResponse {
   repeated Peering Peerings = 1;
-  uint64 Index = 2;
+  uint64 OBSOLETE_Index = 2; // Deprecated in favor of gRPC metadata
 }
 
 message PeeringWriteRequest {
@@ -373,7 +371,7 @@ message TrustBundleListByServiceRequest {
 }
 
 message TrustBundleListByServiceResponse {
-  uint64 Index = 1;
+  uint64 OBSOLETE_Index = 1; // Deprecated in favor of gRPC metadata
   repeated PeeringTrustBundle Bundles = 2;
 }
 
@@ -383,7 +381,7 @@ message TrustBundleReadRequest {
 }
 
 message TrustBundleReadResponse {
-  uint64 Index = 1;
+  uint64 OBSOLETE_Index = 1; // Deprecated in favor of gRPC metadata
   PeeringTrustBundle Bundle = 2;
 }
 

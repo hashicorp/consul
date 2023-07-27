@@ -11,7 +11,6 @@ import (
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
@@ -40,7 +39,7 @@ func TestBasicConnectService(t *testing.T) {
 		},
 	})
 
-	clientService := createServices(t, cluster)
+	_, clientService := topology.CreateServices(t, cluster, "http")
 	_, port := clientService.GetAddr()
 	_, adminPort := clientService.GetAdminAddr()
 
@@ -52,29 +51,53 @@ func TestBasicConnectService(t *testing.T) {
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 }
 
-func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
-	node := cluster.Agents[0]
-	client := node.GetClient()
-	// Create a service and proxy instance
-	serviceOpts := &libservice.ServiceOpts{
-		Name:     libservice.StaticServerServiceName,
-		ID:       "static-server",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}
+func TestConnectGRPCService_WithInputConfig(t *testing.T) {
+	serverHclConfig := `
+datacenter = "dc2"
+data_dir = "/non-existent/conssul-data-dir"
+node_name = "server-1"
 
-	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	require.NoError(t, err)
+bind_addr = "0.0.0.0"
+max_query_time = "800s"
+	`
 
-	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
+	clientHclConfig := `
+datacenter = "dc2"
+data_dir = "/non-existent/conssul-data-dir"
+node_name = "client-1"
 
-	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
-	require.NoError(t, err)
+bind_addr = "0.0.0.0"
+max_query_time = "900s"
+	`
 
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
+	cluster, _, _ := topology.NewClusterWithConfig(t, &topology.ClusterConfig{
+		NumServers:                1,
+		NumClients:                1,
+		ApplyDefaultProxySettings: true,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			AllowHTTPAnyway:        true,
+		},
+	},
+		serverHclConfig,
+		clientHclConfig,
+	)
 
-	return clientConnectProxy
+	// Verify the provided server config is merged to agent config
+	serverConfig := cluster.Agents[0].GetConfig()
+	require.Contains(t, serverConfig.JSON, "\"max_query_time\":\"800s\"")
+
+	clientConfig := cluster.Agents[1].GetConfig()
+	require.Contains(t, clientConfig.JSON, "\"max_query_time\":\"900s\"")
+
+	_, clientService := topology.CreateServices(t, cluster, "grpc")
+	_, port := clientService.GetAddr()
+	_, adminPort := clientService.GetAdminAddr()
+
+	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
+	libassert.GRPCPing(t, fmt.Sprintf("localhost:%d", port))
+
+	// time.Sleep(9999 * time.Second)
 }

@@ -6,22 +6,26 @@ package envoyextensions
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-version"
+
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
-	"github.com/hashicorp/consul/agent/envoyextensions/builtin/http/localratelimit"
+	extauthz "github.com/hashicorp/consul/agent/envoyextensions/builtin/ext-authz"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
+	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/wasm"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/go-multierror"
 )
 
 type extensionConstructor func(api.EnvoyExtension) (extensioncommon.EnvoyExtender, error)
 
 var extensionConstructors = map[string]extensionConstructor{
-	api.BuiltinLuaExtension:            lua.Constructor,
-	api.BuiltinAWSLambdaExtension:      awslambda.Constructor,
-	api.BuiltinLocalRatelimitExtension: localratelimit.Constructor,
-	api.BuiltinWasmExtension:           wasm.Constructor,
+	api.BuiltinLuaExtension:              lua.Constructor,
+	api.BuiltinAWSLambdaExtension:        awslambda.Constructor,
+	api.BuiltinPropertyOverrideExtension: propertyoverride.Constructor,
+	api.BuiltinWasmExtension:             wasm.Constructor,
+	api.BuiltinExtAuthzExtension:         extauthz.Constructor,
 }
 
 // ConstructExtension attempts to lookup and build an extension from the registry with the
@@ -46,6 +50,23 @@ func ValidateExtensions(extensions []api.EnvoyExtension) error {
 			output = multierror.Append(output, fmt.Errorf("invalid EnvoyExtensions[%d]: Name is required", i))
 			continue
 		}
+
+		if v := ext.EnvoyVersion; v != "" {
+			_, err := version.NewConstraint(v)
+			if err != nil {
+				output = multierror.Append(output, fmt.Errorf("invalid EnvoyExtensions[%d].EnvoyVersion: %w", i, err))
+				continue
+			}
+		}
+
+		if v := ext.ConsulVersion; v != "" {
+			_, err := version.NewConstraint(v)
+			if err != nil {
+				output = multierror.Append(output, fmt.Errorf("invalid EnvoyExtensions[%d].ConsulVersion: %w", i, err))
+				continue
+			}
+		}
+
 		_, err := ConstructExtension(ext)
 		if err != nil {
 			output = multierror.Append(output, fmt.Errorf("invalid EnvoyExtensions[%d][%s]: %w", i, ext.Name, err))

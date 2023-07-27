@@ -7,7 +7,7 @@ description: >-
 
 # Agents Configuration File Reference ((#configuration_files))
 
-This topic describes the parameters for configuring Consul agents. For information about how to start Consul agents, refer to [Starting the Consul Agent](/consul/docs/agent#starting-the-consul-agent). 
+This topic describes the parameters for configuring Consul agents. For information about how to start Consul agents, refer to [Starting the Consul Agent](/consul/docs/agent#starting-the-consul-agent).
 
 ## Overview
 
@@ -63,25 +63,25 @@ telemetry {
 
 </CodeTabs>
 
-### Time-to-live values 
+### Time-to-live values
 
 Consul uses the Go `time` package to parse all time-to-live (TTL) values used in Consul agent configuration files. Specify integer and float values as a string and include one or more of the following units of time:
 
 - `ns`
-- `us` 
-- `µs` 
+- `us`
+- `µs`
 - `ms`
-- `s` 
+- `s`
 - `m`
 - `h`
 
-Examples: 
+Examples:
 
-- `'300ms'` 
-- `'1.5h'` 
+- `'300ms'`
+- `'1.5h'`
 - `'2h45m'`
 
-Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information. 
+Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information.
 
 ## General parameters
 
@@ -245,8 +245,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     The initial RPC uses a JWT specified with either `intro_token`,
     `intro_token_file` or the `CONSUL_INTRO_TOKEN` environment variable to authorize
     the request. How the JWT token is verified is controlled by the `auto_config.authorizer`
-    object available for use on Consul servers. Enabling this option also turns
-    on Connect because it is vital for `auto_config`, more specifically the CA
+    object available for use on Consul servers. Enabling this option also enables
+    service mesh because it is vital for `auto_config`, more specifically the service mesh CA
     and certificates infrastructure.
 
     ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
@@ -472,8 +472,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   that match a registering service instance. If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any affected service registrations.
   This defaults to `false` in versions of Consul prior to 1.9.0, and defaults to `true` in Consul 1.9.0 and later.
 
-- `enable_debug` When set, enables some additional debugging features. Currently, this is only used to
-  access runtime profiling HTTP endpoints, which are available with an `operator:read` ACL regardless of the value of `enable_debug`.
+- `enable_debug` (boolean, default is `false`): When set to `true`, enables Consul to report additional debugging information, including runtime profiling (`pprof`) data. This setting is only required for clusters without ACL [enabled](#acl_enabled). If you change this setting, you must restart the agent for the change to take effect.
 
 - `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/docs/agent/config/cli-flags#_enable_script_checks).
 
@@ -552,8 +551,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       - `permissive`: The server continues to allow requests and records an error in the logs. 
       - `enforcing`: The server stops accepting requests and records an error in the logs. 
       - `disabled`: Limits are not enforced or tracked. This is the default value for `mode`.    
-    - `read_rate` - Integer value that specifies the number of read requests per second. Default is `100`.
-    - `write_rate` - Integer value that specifies the number of write requests per second. Default is `100`.
+    - `read_rate` - Integer value that specifies the number of read requests per second. Default is `-1` which represents infinity.
+    - `write_rate` - Integer value that specifies the number of write requests per second. Default is `-1` which represents infinity.
   - `rpc_handshake_timeout` - Configures the limit for how long servers will wait after a client TCP connection is established before they complete the connection handshake. When TLS is used, the same timeout applies to the TLS handshake separately from the initial protocol negotiation. All Consul clients should perform this immediately on establishing a new connection. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). When `verify_incoming` is true on servers, this limits how long the connection socket and associated goroutines will be held open before the client successfully authenticates. Default value is `5s`.
   - `rpc_client_timeout` - Configures the limit for how long a client is allowed to read from an RPC connection. This is used to set an upper bound for calls to eventually terminate so that RPC connections are not held indefinitely. Blocking queries can override this timeout. Default is `60s`.
   - `rpc_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single source IP address is allowed to open to a single server. It affects both clients connections and other server connections. In general Consul clients multiplex many RPC calls over a single TCP connection so this can typically be kept low. It needs to be more than one though since servers open at least one additional connection for raft RPC, possibly more for WAN federation when using network areas, and snapshot requests from clients run over a separate TCP conn. A reasonably low limit significantly reduces the ability of an unauthenticated attacker to consume unbounded resources by holding open many connections. You may need to increase this if WAN federated servers connect via proxies or NAT gateways or similar causing many legitimate connections from a single source IP. Default value is `100` which is designed to be extremely conservative to limit issues with certain deployment patterns. Most deployments can probably reduce this safely. 100 connections on modern server hardware should not cause a significant impact on resource usage from an unauthenticated attacker though.
@@ -651,7 +650,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `primary_datacenter` - This designates the datacenter
   which is authoritative for ACL information, intentions and is the root Certificate
-  Authority for Connect. It must be provided to enable ACLs. All servers and datacenters
+  Authority for service mesh. It must be provided to enable ACLs. All servers and datacenters
   must agree on the primary datacenter. Setting it on the servers is all you need
   for cluster-level enforcement, but for the APIs to forward properly from the clients,
   it must be set on them too. In Consul 0.8 and later, this also enables agent-level
@@ -711,6 +710,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     servers in all federated datacenters must have this enabled before any client can use
     [`use_streaming_backend`](#use_streaming_backend).
 
+- `reporting`<EnterpriseAlert inline /> - This option allows options for HashiCorp reporting.
+    - `license` - The license object allows users to control automatic reporting of license utilization metrics to HashiCorp.
+      - `enabled`: (Defaults to `true`) Enables automatic license utilization reporting.
+
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/docs/agent/config/cli-flags#_segment).
 
   ~> **Warning:** The `segment` option cannot be used with the [`partition`](#partition-1) option.
@@ -735,6 +738,11 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     address. Defaults to false.
 
 - `server` Equivalent to the [`-server` command-line flag](/consul/docs/agent/config/cli-flags#_server).
+
+- `server_rejoin_age_max` - controls the allowed maximum age of a stale server attempting to rejoin a cluster.
+  If a server is not running for this period, then it will refuse to start up again until an operator intervenes. This is to protect
+  clusters from instability caused by decommissioned servers accidentally being started again.
+  Note: the default value is 168h (equal to 7d) and the minimum value is 6h.
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
 
@@ -924,7 +932,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
     - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - Specifies the ACL
-      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/services/usage/checks) definitions 
+      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/services/usage/checks) definitions
       specified in configuration files or fragments passed to the agent using the `-hcl`
       flag.
 
@@ -946,7 +954,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `replication` ((#acl_tokens_replication)) - The ACL token used to
       authorize secondary datacenters with the primary datacenter for replication
-      operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables Connect replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
+      operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables service mesh data replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
 
       ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
       policies and roles already present in the secondary datacenter will be lost. For
@@ -1088,7 +1096,20 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `bootstrap_expect` Equivalent to the [`-bootstrap-expect` command-line flag](/consul/docs/agent/config/cli-flags#_bootstrap_expect).
 
-## Connect Parameters
+## Self-managed HCP Parameters
+
+- `cloud` This object specifies settings for connecting self-managed clusters to HCP. This was added in Consul 1.14
+
+  - `client_id` The OAuth2 client ID for authentication with HCP. This can be overridden using the `HCP_CLIENT_ID` environment variable.
+
+  - `client_secret` The OAuth2 client secret for authentication with HCP. This can be overridden using the `HCP_CLIENT_SECRET` environment variable.
+
+  - `resource_id` The HCP resource identifier. This can be overridden using the `HCP_RESOURCE_ID` environment variable.
+
+## Service Mesh Parameters ((#connect-parameters))
+
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
 
 - `connect` This object allows setting options for the Connect feature.
 
@@ -1096,14 +1117,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `enabled` ((#connect_enabled)) (Defaults to `true`) Controls whether Connect features are
     enabled on this agent. Should be enabled on all servers in the cluster
-    in order for Connect to function properly.
+    in order for service mesh to function properly.
     Will be set to `true` automatically if `auto_config.enabled` or `auto_encrypt.allow_tls` is `true`.
 
   - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) (Defaults to `false`) Controls whether cross-datacenter federation traffic between servers is funneled
     through mesh gateways. This was added in Consul 1.8.0.
 
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
-    use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
+    use for the service mesh's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
     This is only used when initially bootstrapping the cluster. For an existing cluster,
     use the [Update CA Configuration Endpoint](/consul/api-docs/connect/ca#update-ca-configuration).
 
@@ -1140,13 +1161,13 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `root_pki_path` ((#vault_ca_root_pki)) The path to use for the root
       CA pki backend in Vault. This can be an existing backend with a CA already
-      configured, or a blank/unmounted backend in which case Connect will automatically
+      configured, or a blank/unmounted backend in which case Consul will automatically
       mount/generate the CA. The Vault token given above must have `sudo` access
       to this backend, as well as permission to mount the backend at this path if
       it is not already mounted.
 
     - `intermediate_pki_path` ((#vault_ca_intermediate_pki))
-      The path to use for the temporary intermediate CA pki backend in Vault. **Connect
+      The path to use for the temporary intermediate CA pki backend in Vault. **Consul
       will overwrite any data at this path in order to generate a temporary intermediate
       CA**. The Vault token given above must have `write` access to this backend,
       as well as permission to mount the backend at this path if it is not already
@@ -1391,14 +1412,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `allow_tls` (Defaults to `false`) This option enables
     `auto_encrypt` on the servers and allows them to automatically distribute certificates
-    from the Connect CA to the clients. If enabled, the server can accept incoming
-    connections from both the built-in CA and the Connect CA, as well as their certificates.
+    from the service mesh CA to the clients. If enabled, the server can accept incoming
+    connections from both the built-in CA and the service mesh CA, as well as their certificates.
     Note, the server will only present the built-in CA and certificate, which the
     client can verify using the CA it received from `auto_encrypt` endpoint. If disabled,
     a client configured with `auto_encrypt.tls` will be unable to start.
 
   - `tls` (Defaults to `false`) Allows the client to request the
-    Connect CA and certificates from the servers, for encrypting RPC communication.
+    service mesh CA and certificates from the servers, for encrypting RPC communication.
     The client will make the request to any servers listed in the `-retry-join`
     option. This requires that every server to have `auto_encrypt.allow_tls` enabled.
     When both `auto_encrypt` options are used, it allows clients to receive certificates
@@ -1613,12 +1634,12 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `backend` ((#raft_logstore_backend)) Specifies which storage
     engine to use to persist logs. Valid options are `boltdb` or `wal`. Default
-    is `boltdb`. The `wal` option specifies an experimental backend that 
-    should be used with caution. Refer to 
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+    is `boltdb`. The `wal` option specifies an experimental backend that
+    should be used with caution. Refer to
+    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
     for more information.
 
-  - `disable_log_cache` ((#raft_logstore_disable_log_cache)) Disables the in-memory cache for recent logs. We recommend using it for performance testing purposes, as no significant improvement has been measured when the cache is disabled. While the in-memory log cache theoretically prevents disk reads for recent logs, recent logs are also stored in the OS page cache, which does not slow either the `boltdb` or `wal` backend's ability to read them. 
+  - `disable_log_cache` ((#raft_logstore_disable_log_cache)) Disables the in-memory cache for recent logs. We recommend using it for performance testing purposes, as no significant improvement has been measured when the cache is disabled. While the in-memory log cache theoretically prevents disk reads for recent logs, recent logs are also stored in the OS page cache, which does not slow either the `boltdb` or `wal` backend's ability to read them.
 
   - `verification` ((#raft_logstore_verification)) This is a nested object that
     allows configuring the online verification of the LogStore. Verification
@@ -1639,43 +1660,43 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     on that server. The only correct response is to stop the server, remove its
     data directory, and restart so it can be caught back up with a correct
     server again. Please report verification failures including details about
-    your hardware and workload via GitHub issues. Refer to 
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+    your hardware and workload via GitHub issues. Refer to
+    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
     for more information.
 
     - `enabled` ((#raft_logstore_verification_enabled)) - Set to `true` to
-    allow this Consul server to write and verify log verification checkpoints 
+    allow this Consul server to write and verify log verification checkpoints
     when elected leader.
 
-    - `interval` ((#raft_logstore_verification_interval)) - Specifies the time 
-      interval between checkpoints. There is no default value. You must 
-      configure the `interval` and set [`enabled`](#raft_logstore_verification_enabled) 
-      to `true` to correctly enable intervals. We recommend using an interval 
-      between `30s` and `5m`. The performance overhead is insignificant when the 
+    - `interval` ((#raft_logstore_verification_interval)) - Specifies the time
+      interval between checkpoints. There is no default value. You must
+      configure the `interval` and set [`enabled`](#raft_logstore_verification_enabled)
+      to `true` to correctly enable intervals. We recommend using an interval
+      between `30s` and `5m`. The performance overhead is insignificant when the
       interval is set to `5m` or less.
 
-  - `boltdb` ((#raft_logstore_boltdb)) - Object that configures options for 
+  - `boltdb` ((#raft_logstore_boltdb)) - Object that configures options for
     Raft's `boltdb` backend. It has no effect if the `backend` is not `boltdb`.
 
-    - `no_freelist_sync` ((#raft_logstore_boltdb_no_freelist_sync)) - Set to 
+    - `no_freelist_sync` ((#raft_logstore_boltdb_no_freelist_sync)) - Set to
     `true` to disable storing BoltDB's freelist to disk within the
     `raft.db` file. Disabling freelist syncs reduces the disk IO required
     for write operations, but could potentially increase start up time
     because Consul must scan the database to find free space
     within the file.
 
-  - - `wal` ((#raft_logstore_wal)) - Object that configures the `wal` backend. 
-    Refer to [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+  - - `wal` ((#raft_logstore_wal)) - Object that configures the `wal` backend.
+    Refer to [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
     for more information.
 
-    - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - Integer value 
+    - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - Integer value
       that represents the target size in MB for each segment file before
       rolling to a new segment. The default value is `64` and is suitable for
-      most deployments. While a smaller value may use less disk space because you 
+      most deployments. While a smaller value may use less disk space because you
       can reclaim space by deleting old segments sooner, the smaller segment that results
       may affect performance because safely rotating to a new file more
       frequently can impact tail latencies. Larger values are unlikely
-      to improve performance significantly. We recommend using this 
+      to improve performance significantly. We recommend using this
       configuration for performance testing purposes.
 
 - `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
@@ -1800,8 +1821,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
   - `disable_hostname` ((#telemetry-disable_hostname))
-    This controls whether or not to prepend runtime telemetry with the machine's
-    hostname, defaults to false.
+    Set to `true` to stop prepending the machine's hostname to gauge-type metrics. Default is `false`.
 
   - `dogstatsd_addr` ((#telemetry-dogstatsd_addr)) This provides the address
     of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible
@@ -1812,6 +1832,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `dogstatsd_tags` ((#telemetry-dogstatsd_tags)) This provides a list
     of global tags that will be added to all telemetry packets sent to DogStatsD.
     It is a list of strings, where each string looks like "my_tag_name:my_tag_value".
+
+  - `enable_host_metrics` ((#telemetry-enable_host_metrics))
+    This enables reporting of host metrics about system resources, defaults to false.
 
   - `filter_default` ((#telemetry-filter_default))
     This controls whether to allow metrics that have not been specified by the filter.
@@ -2071,6 +2094,12 @@ specially crafted certificate signed by the CA can be used to gain full access t
       * `TLSv1_2` (default)
       * `TLSv1_3`
 
+    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When 
+      set to true, Consul verifies the TLS certificate presented by the servers 
+      match the hostname `server.<datacenter>.<domain>`. By default this is false, 
+      and Consul does not verify the hostname of the certificate, only that it 
+      is signed by a trusted CA. 
+
       **WARNING: TLS 1.1 and lower are generally considered less secure and
       should not be used if possible.**
 
@@ -2178,7 +2207,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       only way to enforce that no client can communicate with a server unencrypted
       is to also enable `verify_incoming` which requires client certificates too.
 
-    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When
+    - `verify_server_hostname` Overrides [tls.defaults.verify_server_hostname](#tls_defaults_verify_server_hostname). When
       set to true, Consul verifies the TLS certificate presented by the servers
       match the hostname `server.<datacenter>.<domain>`. By default this is false,
       and Consul does not verify the hostname of the certificate, only that it
@@ -2186,7 +2215,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
 
       ~> **Security Note:** `verify_server_hostname` *must* be set to true to prevent a
       compromised client from gaining full read and write access to all cluster
-      data *including all ACL tokens and Connect CA root keys*.
+      data *including all ACL tokens and service mesh CA root keys*.
 
 - `server_name` When provided, this overrides the [`node_name`](#_node)
   for the TLS certificate. It can be used to ensure that the certificate name matches
@@ -2262,9 +2291,6 @@ tls {
     ca_file = "/etc/pki/tls/certs/ca-bundle.crt"
     verify_incoming = true
     verify_outgoing = true
-  }
-
-  internal_rpc {
     verify_server_hostname = true
   }
 }
@@ -2293,9 +2319,7 @@ tls {
       "cert_file": "/etc/pki/tls/certs/my.crt",
       "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
       "verify_incoming": true,
-      "verify_outgoing": true
-    },
-    "internal_rpc": {
+      "verify_outgoing": true,
       "verify_server_hostname": true
     }
   }

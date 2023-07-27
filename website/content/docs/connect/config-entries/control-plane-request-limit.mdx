@@ -1,0 +1,230 @@
+---
+layout: docs
+page_title: Control Plane Request Limit Configuration Entry Configuration Reference
+description:  Learn how to configure the control-plane-request-limit configuration entry, which defines how Consul agents limit read and reqeust traffic rate limits.
+---
+
+# Control Plane Request Limit Configuration Entry Configuration Reference
+
+This topic describes the configuration options for the `control-plane-request-limit` configuration entry. You can only write the `control-plane-request-limit` configuration entry to the `default` partition, but the configuration entry applies to all client requests that target any partition. 
+
+<EnterpriseAlert>
+
+This feature requires Consul Enterprise. Refer to the [feature compatibility matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+
+</EnterpriseAlert>
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in a control plane request limit configuration entry. Click on a property name to view additional details, including default values.
+
+- [`kind`](#kind): string | required | must be set to `control-plane-request-limit`
+- [`mode`](#mode): string | required | default is `permissive`
+- [`name`](#name): string | required
+- [`read_rate`](#read-rate): number | `100`
+- [`write_rate`](#write-rate): number | `100`
+- [`kv`](#kv): map | no default
+   - [`read_rate`](#kv-read-rate): number | `100`
+   - [`write_rate`](#kv-write-rate): number | `100`
+- [`acl`](#acl): map | no default
+   - [`read_rate`](#acl-read-rate): number | `100`
+   - [`write_rate`](#acl-write-rate): number | `100`
+- [`catalog`](#catalog): map 
+   - [`read_rate`](#catalog-read-rate): number | default is `100`
+   - [`write_rate`](#catalog-write-rate): number | default is `100`
+
+## Complete configuration
+
+When every field is defined, a control plane request limit configuration entry has the following form:
+
+<CodeTabs>
+
+```hcl
+kind = "control-plane-request-limit"
+mode = "permissive"
+name = "<name-for-the-entry>"
+read_rate =  100
+write_rate = 100
+kv = {
+  read_rate =  100
+  write_rate = 100
+  }
+acl = {
+  read_rate =  100
+  write_rate = 100
+mode = "permissive"
+  }
+catalog = {
+  read_rate =  100
+  write_rate = 100
+  }
+```
+
+```json
+{
+  "kind": "control-plane-request-limit",
+  "mode": "permissive",
+  "name": "<name-for-the-entry>",
+  "read_rate":  100,
+  "write_rate": 100,
+  "kv": {
+    "read_rate": 100,
+    "write_rate": 100
+    },
+  "acl": {
+    "read_rate": 100,
+    "write_rate": 100
+    },
+  "catalog: {
+    "read_rate": 100,
+    "write_rate": 100
+  }
+}
+```
+
+```yaml
+kind: control-plane-request-limit
+mode: permissive
+name: <name-for-the-entry>
+read_rate: 100
+write_rate: 100
+kv:
+  read_rate: 100
+  write_rate: 100  
+acl:
+  read_rate: 100
+  write_rate: 100
+catalog:
+  read_rate: 100
+  write_rate: 100
+```
+
+</CodeTabs>
+
+## Specification
+
+This section provides details about the fields you can configure in the control plane request limit configuration entry.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to`control-plane-request-limit`
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: String value that must be set to`control-plane-request-limit`.
+
+### `mode`
+
+Specifies an action to take if the rate of requests exceeds the limit.
+
+#### Values
+
+- Default: None
+- This field is required.
+- One of the following string values:
+  - `permissive`: The server continues to allow requests and records an error in the logs. This is the default value for `mode`.  
+  - `enforcing`: The server stops accepting requests and records an error in the logs. 
+  - `disabled`: Limits are not enforced or tracked. 
+  
+### `name`
+
+Specifies the name of the configuration entry. 
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string
+
+### `read_rate`
+
+Specifies the maximum number of read requests per second that the agent allows.
+
+#### Values
+
+- Default: No limit.
+- Data type: number
+
+### `write_rate`
+
+Specifies the maximum number of write requests per second that the agent allows.
+
+#### Values
+
+- Default: No limit.
+- Data type: number
+
+### `kv`
+
+Specifies the maximum number of read and write requests to the Consul key-value store. 
+
+#### Values
+
+- Default: none
+- Data type is a map containing the following parameters:
+  - `read_rate`
+  - `write_rate`
+
+### `kv.read_rate`
+
+Specifies the maximum number of read requests per second allowed to the Consul key-value store.
+
+#### Values
+
+- Default: No limit.
+- Data type: number
+
+### `kv.write_rate`
+
+Specifies the maximum number of write requests per second allowed to the Consul key-value store.
+
+#### Values
+
+- Default: No limit.
+- Data type: number
+
+### `acl`
+
+Specifies the maximum number of read and write ACL requests to the Consul server.
+
+### `acl.read_rate`
+S
+pecifies the maximum number of ACL read requests per second allowed to the Consul server.
+
+#### Values
+
+- Default: No limit.
+- Data type: number
+
+### `acl.write_rate`
+
+Specifies the maximum number of ACL write requests per second allowed to the Consul server.
+
+#### Values
+
+- Default: No limit.
+- Data type: number
+
+### catalog
+
+Specifies the maximum number of read and write requests to the Consul catalog.
+
+### `catalog.read_rate`
+
+Specifies the maximum number of read requests per second allowed to the Consul catalog.
+
+#### Values
+
+- Default: No limit.
+- Data type: number
+
+### `catalog.write_rate`
+
+Specifies the maximum number of write requests per second allowed to the Consul catalog.
+
+#### Values
+
+- Default: No limit.
+- Data type: number
