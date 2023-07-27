@@ -8,9 +8,13 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
+	resourceSvc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -18,9 +22,20 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestResourceHandler(t *testing.T) {
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+const testACLToken = acl.AnonymousTokenID
 
+func parseToken(req *http.Request, token *string) {
+	*token = req.Header.Get("x-Consul-Token")
+}
+
+func TestResourceHandler_InputValidation(t *testing.T) {
+	type testCase struct {
+		description          string
+		request              *http.Request
+		response             *httptest.ResponseRecorder
+		expectedResponseCode int
+	}
+	client := svctest.RunResourceService(t, demo.RegisterTypes)
 	resourceHandler := resourceHandler{
 		resource.Registration{
 			Type:  demo.TypeV2Artist,
@@ -31,43 +46,66 @@ func TestResourceHandler(t *testing.T) {
 		hclog.NewNullLogger(),
 	}
 
-	t.Run("should return bad request due to missing resource name", func(t *testing.T) {
-		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
-			{
-				"metadata": {
-					"foo": "bar"
-				},
-				"data": {
-					"name": "Keith Urban",
-					"genre": "GENRE_COUNTRY"
+	testCases := []testCase{
+		{
+			description: "missing resource name",
+			request: httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+				{
+					"metadata": {
+						"foo": "bar"
+					},
+					"data": {
+						"name": "Keith Urban",
+						"genre": "GENRE_COUNTRY"
+					}
 				}
-			}
-		`))
-
-		resourceHandler.ServeHTTP(rsp, req)
-
-		require.Equal(t, http.StatusBadRequest, rsp.Result().StatusCode)
-	})
-
-	t.Run("should return bad request due to wrong schema", func(t *testing.T) {
-		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
-			{
-				"metadata": {
-					"foo": "bar"
-				},
-				"tada": {
-					"name": "Keith Urban",
-					"genre": "GENRE_COUNTRY"
+			`)),
+			response:             httptest.NewRecorder(),
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			description: "wrong schema",
+			request: httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+				{
+					"metadata": {
+						"foo": "bar"
+					},
+					"tada": {
+						"name": "Keith Urban",
+						"genre": "GENRE_COUNTRY"
+					}
 				}
-			}
-		`))
+			`)),
+			response:             httptest.NewRecorder(),
+			expectedResponseCode: http.StatusBadRequest,
+		},
+	}
 
-		resourceHandler.ServeHTTP(rsp, req)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			resourceHandler.ServeHTTP(tc.response, tc.request)
 
-		require.Equal(t, http.StatusBadRequest, rsp.Result().StatusCode)
-	})
+			require.Equal(t, tc.expectedResponseCode, tc.response.Result().StatusCode)
+		})
+	}
+}
+
+func TestResourceWriteHandler(t *testing.T) {
+	aclResolver := &resourceSvc.MockACLResolver{}
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
+
+	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+
+	resourceHandler := resourceHandler{
+		resource.Registration{
+			Type:  demo.TypeV2Artist,
+			Proto: &pbdemov2.Artist{},
+		},
+		client,
+		parseToken,
+		hclog.NewNullLogger(),
+	}
 
 	t.Run("should write to the resource backend", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
@@ -82,6 +120,8 @@ func TestResourceHandler(t *testing.T) {
 				}
 			}
 		`))
+
+		req.Header.Add("x-consul-token", testACLToken)
 
 		resourceHandler.ServeHTTP(rsp, req)
 
