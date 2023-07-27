@@ -56,7 +56,7 @@ jobs:
       - id: cachekey_GOCACHE
         run: |
           GOVERSION="${{ steps.setup_go.outputs.go-version }}" \
-          GOPACKAGENAME="$( go -list -m )" \
+          GOPACKAGENAME="$( go list -m )" \
           .github/scripts/cachekey_GOCACHE.sh
       - name: restore GOMODCACHE
         uses: actions/cache/restore@v3

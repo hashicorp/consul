@@ -99,7 +99,9 @@ jobs:
         run: |
           # for some reason go test -c ./... is not possible
           # stolen from set_test_package_matrix, lists only packages with tests in them
-          dirs="$(echo "${{ steps.set-matrix.outputs.matrix}}" | jq -r '.[] | .[0]' | sed 's|^github.com/hashicorp/consul|./|')"
+          dirs=$(go list -json="Dir,TestGoFiles" ./... | \
+            jq --compact-output '. | select(.TestGoFiles != null) | .Dir' | \
+            jq --slurp --compact-output -r '.[0:10] | .[]')
           echo $dirs
           echo "${dirs}" | parallel .github/scripts/build-test-bin.sh '{}'
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
