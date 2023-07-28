@@ -1,4 +1,0 @@
-ARG VERSION=1.16.0
-
-FROM windows/consul:${VERSION}-local
-COPY dist/ C:\\consul

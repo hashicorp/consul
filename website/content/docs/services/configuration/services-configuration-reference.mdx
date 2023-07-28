@@ -96,12 +96,14 @@ In the following example, the `env` key is set to `prod`:
 ```hcl
 meta = {
   env = "prod"
-} 
+}
 ```
 
 ```json
-"meta" : {
+{
+  "meta" : {
     "env" : "prod"
+  }
 }
 ```
 
@@ -362,25 +364,29 @@ In the following example, service instances in a `passing`  state respond to DNS
 
 ```hcl
 service {
-  ## ...
+  name = "redis"
+  address = "192.0.2.10"
+  port = 6379
   weights = {
     passing = 3
     warning = 2
     critical   = 1
   }
-  ## ...
 }
 ```
 
 ```json
-"service": {
-  ## ...
-  "weights": {
-    "passing": 3,
-    "warning": 2,
-    "critical": 1
-  },
-  ## ...
+{
+  "service": {
+    "name": "redis",
+    "address": "192.0.2.10",
+    "port": 6379,
+    "weights": {
+      "passing": 3,
+      "warning": 2,
+      "critical": 1
+    }
+  }
 }
 ```
 
@@ -585,7 +591,7 @@ service {
     "tagged_addresses": {
       "lan": {
         "address": "192.168.0.55",
-        "port": 8000,
+        "port": 8000
       },
       "wan": {
         "address": "198.18.0.23",
@@ -632,7 +638,7 @@ service {
     },
     "connect": {
       "native": false,
-      "sidecar_service": {}
+      "sidecar_service": {},
       "proxy": {  // Deprecated
         "command": [],
         "config": {}

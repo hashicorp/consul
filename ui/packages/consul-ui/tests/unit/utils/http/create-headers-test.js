@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import createHeaders from 'consul-ui/utils/http/create-headers';
 import { module, test } from 'qunit';
 

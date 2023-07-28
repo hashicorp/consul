@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package ca
 
 import (
@@ -184,7 +181,6 @@ type TestVaultServer struct {
 }
 
 var printedVaultVersion sync.Once
-var vaultTestVersion string
 
 func (v *TestVaultServer) Client() *vaultapi.Client {
 	return v.client
@@ -206,7 +202,6 @@ func (v *TestVaultServer) WaitUntilReady(t testing.T) {
 		version = resp.Version
 	})
 	printedVaultVersion.Do(func() {
-		vaultTestVersion = version
 		fmt.Fprintf(os.Stderr, "[INFO] agent/connect/ca: testing with vault server version: %s\n", version)
 	})
 }

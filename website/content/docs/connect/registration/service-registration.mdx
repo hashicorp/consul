@@ -208,7 +208,7 @@ mesh_gateway = {
   "mesh_gateway": {
     "mode": "local"
   }
-},
+}
 ```
 
 </CodeTabs>
@@ -230,7 +230,7 @@ config = {}
   "local_bind_address": "127.0.0.1",
   "local_bind_port": 1234,
   "config": {}
-},
+}
 ```
 
 </CodeTabs>
@@ -463,13 +463,15 @@ upstreams = [
 ```
 
 ```json
-"upstreams": [
-  {
-      "destination_name":  "service-1",
-      "local_bind_socket_path": "/tmp/socket_service_1",
-      "local_bind_socket_mode": "0700"
-  }
-]
+{
+  "upstreams": [
+    {
+        "destination_name":  "service-1",
+        "local_bind_socket_path": "/tmp/socket_service_1",
+        "local_bind_socket_mode": "0700"
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -502,9 +504,11 @@ services {
 ```
 
 ```json
-"services": {
-  "name": "service-2",
-  "socket_path": "/tmp/socket_service_2"
+{
+  "services": {
+    "name": "service-2",
+    "socket_path": "/tmp/socket_service_2"
+  }
 }
 ```
 
@@ -522,7 +526,6 @@ services {
       proxy {
         name = "service-2"
         local_service_socket_path = "/tmp/socket_service_2"
-    ...
       }
     }
   }
@@ -530,17 +533,20 @@ services {
 ```
 
 ```json
-"services": {
-  "name": "socket_service_2",
-  "connect": {
-    "sidecar_service": {
-      "proxy": {
-        "name": "service-2",
-        "local_service_socket_path": "/tmp/socket_service_2"
-        ...
+{
+  "services": [
+    {
+      "name": "socket_service_2",
+      "connect": {
+        "sidecar_service": {
+          "proxy": {
+            "name": "service-2",
+            "local_service_socket_path": "/tmp/socket_service_2"
+          }
+        }
       }
     }
-  }
+  ]
 }
 ```
 

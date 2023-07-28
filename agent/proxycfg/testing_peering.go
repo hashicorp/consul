@@ -1,32 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
-	"bytes"
-	"text/template"
-
 	"github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, false, false)
-}
-
-func TestConfigSnapshotPeeringWithEscapeOverrides(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, true, false)
-}
-
-func TestConfigSnapshotPeeringWithHTTP2(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, false, true)
-}
-
-func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool) *ConfigSnapshot {
 	var (
 		paymentsUpstream = structs.Upstream{
 			DestinationName: "payments",
@@ -43,11 +24,6 @@ func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool) *Config
 		refundsUID = NewUpstreamID(&refundsUpstream)
 	)
 
-	protocol := "tcp"
-	if useHTTP2 {
-		protocol = "http2"
-	}
-
 	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -55,24 +31,6 @@ func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool) *Config
 			paymentsUpstream,
 			refundsUpstream,
 		}
-
-		if escapeOverride {
-			if ns.Proxy.Upstreams[0].Config == nil {
-				ns.Proxy.Upstreams[0].Config = map[string]interface{}{}
-			}
-
-			uid := NewUpstreamID(&ns.Proxy.Upstreams[0])
-
-			ns.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-				customListenerJSON(t, customListenerJSONOptions{
-					Name: uid.EnvoyID() + ":custom-upstream",
-				})
-			ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-				customClusterJSON(t, customClusterJSONOptions{
-					Name: uid.EnvoyID() + ":custom-upstream",
-				})
-		}
-
 	}, []UpdateEvent{
 		{
 			CorrelationID: peerTrustBundleIDPrefix + "cloud",
@@ -111,7 +69,7 @@ func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool) *Config
 									SpiffeID: []string{
 										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/payments",
 									},
-									Protocol: protocol,
+									Protocol: "tcp",
 								},
 							},
 						},
@@ -140,7 +98,7 @@ func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool) *Config
 									SpiffeID: []string{
 										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/refunds",
 									},
-									Protocol: protocol,
+									Protocol: "tcp",
 								},
 							},
 						},
@@ -418,94 +376,4 @@ func TestConfigSnapshotPeeringLocalMeshGateway(t testing.T) *ConfigSnapshot {
 			},
 		},
 	})
-}
-
-var (
-	customListenerJSONTemplate = template.Must(template.New("").Parse(customListenerJSONTpl))
-)
-
-func customListenerJSON(t testing.T, opts customListenerJSONOptions) string {
-	t.Helper()
-	var buf bytes.Buffer
-	require.NoError(t, customListenerJSONTemplate.Execute(&buf, opts))
-	return buf.String()
-}
-
-type customListenerJSONOptions struct {
-	Name       string
-	TLSContext string
-}
-
-const customListenerJSONTpl = `{
-	"@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-	"name": "{{ .Name }}",
-	"address": {
-		"socketAddress": {
-			"address": "11.11.11.11",
-			"portValue": 11111
-		}
-	},
-	"filterChains": [
-		{
-			{{ if .TLSContext -}}
-			"transport_socket": {
-				"name": "tls",
-				"typed_config": {
-					"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
-					{{ .TLSContext }}
-				}
-			},
-			{{- end }}
-			"filters": [
-				{
-					"name": "envoy.filters.network.tcp_proxy",
-					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-							"cluster": "random-cluster",
-							"statPrefix": "foo-stats"
-						}
-				}
-			]
-		}
-	]
-}`
-
-type customClusterJSONOptions struct {
-	Name       string
-	TLSContext string
-}
-
-var customClusterJSONTpl = `{
-	"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-	"name": "{{ .Name }}",
-	"connectTimeout": "15s",
-	"loadAssignment": {
-		"clusterName": "{{ .Name }}",
-		"endpoints": [
-			{
-				"lbEndpoints": [
-					{
-						"endpoint": {
-							"address": {
-								"socketAddress": {
-									"address": "1.2.3.4",
-									"portValue": 8443
-								}
-							}
-						}
-					}
-				]
-			}
-		]
-	}
-}`
-
-var customClusterJSONTemplate = template.Must(template.New("").Parse(customClusterJSONTpl))
-
-func customClusterJSON(t testing.T, opts customClusterJSONOptions) string {
-	t.Helper()
-	var buf bytes.Buffer
-	err := customClusterJSONTemplate.Execute(&buf, opts)
-	require.NoError(t, err)
-	return buf.String()
 }

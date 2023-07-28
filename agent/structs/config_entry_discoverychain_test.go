@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -1409,7 +1406,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {},
 				},
 			},
-			validateErr: `Bad Failover["v1"]: one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required`,
+			validateErr: `Bad Failover["v1"]: one of Service, ServiceSubset, Namespace, Targets, or Datacenters is required`,
 		},
 		{
 			name: "failover to self using invalid subset",
@@ -1570,6 +1567,15 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				ConnectTimeout: -1 * time.Second,
 			},
 			validateErr: "Bad ConnectTimeout",
+		},
+		{
+			name: "bad request timeout",
+			entry: &ServiceResolverConfigEntry{
+				Kind:           ServiceResolver,
+				Name:           "test",
+				RequestTimeout: -1 * time.Second,
+			},
+			validateErr: "Bad RequestTimeout",
 		},
 	}
 

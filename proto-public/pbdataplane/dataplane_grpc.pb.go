@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: pbdataplane/dataplane.proto
+// source: proto-public/pbdataplane/dataplane.proto
 
 package pbdataplane
 
@@ -135,5 +135,5 @@ var DataplaneService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pbdataplane/dataplane.proto",
+	Metadata: "proto-public/pbdataplane/dataplane.proto",
 }

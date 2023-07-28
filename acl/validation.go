@@ -1,19 +1,21 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package acl
 
-import "regexp"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
 
 const (
 	ServiceIdentityNameMaxLength = 256
 	NodeIdentityNameMaxLength    = 256
+	PolicyNameMaxLength          = 128
 )
 
 var (
 	validServiceIdentityName = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
 	validNodeIdentityName    = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
-	validPolicyName          = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
+	validPolicyName          = regexp.MustCompile(`^[A-Za-z0-9\-_]+\/?[A-Za-z0-9\-_]*$`)
 	validRoleName            = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,256}$`)
 	validAuthMethodName      = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 )
@@ -40,10 +42,21 @@ func IsValidNodeIdentityName(name string) bool {
 	return validNodeIdentityName.MatchString(name)
 }
 
-// IsValidPolicyName returns true if the provided name can be used as an
-// ACLPolicy Name.
-func IsValidPolicyName(name string) bool {
-	return validPolicyName.MatchString(name)
+// ValidatePolicyName returns nil if the provided name can be used as an
+// ACLPolicy Name otherwise a useful error is returned.
+func ValidatePolicyName(name string) error {
+	if len(name) < 1 || len(name) > PolicyNameMaxLength {
+		return fmt.Errorf("Invalid Policy: invalid Name. Length must be greater than 0 and less than %d", PolicyNameMaxLength)
+	}
+
+	if strings.HasPrefix(name, "/") || strings.HasPrefix(name, ReservedBuiltinPrefix) {
+		return fmt.Errorf("Invalid Policy: invalid Name. Names cannot be prefixed with '/' or '%s'", ReservedBuiltinPrefix)
+	}
+
+	if !validPolicyName.MatchString(name) {
+		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, a single '/', '-' and '_' are allowed")
+	}
+	return nil
 }
 
 // IsValidRoleName returns true if the provided name can be used as an

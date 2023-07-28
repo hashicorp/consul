@@ -11,7 +11,7 @@ This topic describes how to create and manage service intentions, which are conf
 
 ## Overview
 
-You can create single intentions or create them in batches using the Consul API, CLI, or UI. You can also define a service intention configuration entry that sets default intentions for all services in the mesh. Refer to [Service intentions overview](/consul/docs/connect/intentions/) for additional background information about intentions.
+You can create single intentions or create them in batches using the Consul API, CLI, or UI. You can also define a service intention configuration entry that sets default intentions for all services in the mesh. Refer to [Service intentions overview](/consul/docs/connnect/intentions/intentions) for additional background information about intentions.
 
 ## Requirements
 
@@ -52,7 +52,7 @@ Refer to the `/connect/intentions/exact` [HTTP API endpoint documentation](/cons
 
 For L7 intentions, specify the `Permissions` in the request payload to configure attributes for dynamically enforcing intentions. In the following example payload, Consul allows HTTP GET requests if the request body is empty:   
 
-<CodeBlockConfig heading="payload.json">
+<CodeBlockConfig filename="payload.json">
 
 ```json
 {
@@ -76,7 +76,7 @@ For L7 intentions, specify the `Permissions` in the request payload to configure
 
 </CodeBlockConfig>
 
-The `Permissions` object specifies a list of permissions for L7 traffic sources. The list contains one or more actions and a set of match criteria for each action. Refer to the [`Sources[].Permissions[]` parameter](/consul/docs/connect/config-entries/service-intentions#sources-permissions) in the service intentions configuration entry reference for configuration details.   
+The `Permissions` object specifies a list of permissions for L7 traffic sources. The list contains one or more actions and a set of match criteria for each action. Refer to the [`Sources[].Permissions[]` parameter](/consul/connect/config-entries/service-intentions#source-permissions) in the service intentions configuration entry reference for configuration details.   
 
 To apply the intention, call the endpoint and pass the configuration file containing the attributes to the endpoint:
 

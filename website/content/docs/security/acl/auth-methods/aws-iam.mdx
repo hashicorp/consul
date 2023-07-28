@@ -86,7 +86,9 @@ parameters for an auth method of type `aws-iam`:
 
 ```json
 {
-    ...other fields...
+    "Name": "example-iam-auth",
+    "Type": "aws-iam",
+    "Description": "Example AWS IAM auth method",
     "Config": {
       "BoundIAMPrincipalARNs": ["arn:aws:iam::123456789012:role/MyRoleName"],
       "EnableIAMEntityDetails": true,

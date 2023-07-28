@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package acl
 
 const (
@@ -12,6 +9,8 @@ const (
 	AnonymousTokenID     = "00000000-0000-0000-0000-000000000002"
 	AnonymousTokenAlias  = "anonymous token"
 	AnonymousTokenSecret = "anonymous"
+
+	ReservedBuiltinPrefix = "builtin/"
 )
 
 // Config encapsulates all of the generic configuration parameters used for

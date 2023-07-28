@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -173,6 +170,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					},
 				},
 				ConnectTimeout: 5 * time.Second,
+				RequestTimeout: 10 * time.Second,
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",

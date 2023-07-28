@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 syntax = "proto3";
 
 package hashicorp.consul.internal.ratelimit;
@@ -16,25 +13,9 @@ enum OperationType {
   OPERATION_TYPE_WRITE = 3;
 }
 
-enum OperationCategory {
-  OPERATION_CATEGORY_UNSPECIFIED = 0;
-  OPERATION_CATEGORY_ACL = 1;
-  OPERATION_CATEGORY_PEER_STREAM = 2;
-  OPERATION_CATEGORY_CONNECT_CA = 3;
-  OPERATION_CATEGORY_PARTITION = 4;
-  OPERATION_CATEGORY_PEERING = 5;
-  OPERATION_CATEGORY_SERVER_DISCOVERY = 6;
-  OPERATION_CATEGORY_DATAPLANE = 7;
-  OPERATION_CATEGORY_DNS = 8;
-  OPERATION_CATEGORY_SUBSCRIBE = 9;
-  OPERATION_CATEGORY_OPERATOR = 10;
-  OPERATION_CATEGORY_RESOURCE = 11;
-}
-
 // Spec describes the kind of rate limit that will be applied to this RPC.
 message Spec {
   OperationType operation_type = 1;
-  OperationCategory operation_category = 2;
 }
 
 extend google.protobuf.MethodOptions {

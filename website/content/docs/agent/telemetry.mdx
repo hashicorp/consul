@@ -28,7 +28,7 @@ getting a better view of what Consul is doing. Review the [Monitoring and
 Metrics tutorial](/consul/tutorials/day-2-operations/monitor-datacenter-health?utm_source=docs) to learn how collect and interpret Consul data.
 
 By default, all metric names of gauge type are prefixed with the hostname of the consul agent, e.g.,
-`consul.hostname.server.isLeader`. To disable prefixing the hostname, set
+`consul.<hostname>.server.isLeader`. To disable prefixing the hostname, set
 `telemetry.disable_hostname=true` in the [agent configuration](/consul/docs/agent/config/config-files#telemetry).
 
 Additionally, if the [`telemetry` configuration options](/consul/docs/agent/config/config-files#telemetry)
@@ -92,27 +92,6 @@ These are some metrics emitted that can help you understand the health of your c
 **Why they're important:** Normally, your Consul cluster should have a stable leader. If there are frequent elections or leadership changes, it would likely indicate network issues between the Consul servers, or that the Consul servers themselves are unable to keep up with the load.
 
 **What to look for:** For a healthy cluster, you're looking for a `lastContact` lower than 200ms, `leader` > 0 and `candidate` == 0. Deviations from this might indicate flapping leadership.
-
-### Certificate Authority Expiration
-
-| Metric Name                            | Description                                                             | Unit    | Type  |
-| :------------------------- | :---------------------------------------------------------------------------------- | :------ | :---- |
-| `consul.mesh.active-root-ca.expiry`    | The number of seconds until the root CA expires, updated every hour.       | seconds | gauge |
-| `consul.mesh.active-signing-ca.expiry` | The number of seconds until the signing CA expires, updated every hour.    | seconds | gauge |
-| `consul.agent.tls.cert.expiry` | The number of seconds until the server agent's TLS certificate expires, updated every hour. | seconds | gauge |
-
-** Why they're important:** Consul Mesh requires a CA to sign all certificates
-used to connect the mesh and the mesh network ceases to work if they expire and
-become invalid. The Root is particularly important to monitor as Consul does
-not automatically rotate it. The TLS certificate metric monitors the certificate
-that the server's agent uses to connect with the other agents in the cluster.
-
-** What to look for:** The Root CA should be monitored for an approaching
-expiration, to indicate it is time for you to rotate the "root" CA either
-manually or with external automation. Consul should rotate the signing (intermediate) certificate
-automatically, but we recommend monitoring the rotation.  When the certificate does not rotate, check the server agent logs for
-messages related to the CA system. The agent TLS certificate's rotation handling
-varies based on the configuration.
 
 ### Autopilot
 
@@ -693,6 +672,9 @@ are allowed for <EnterpriseAlert inline />.
 | `consul.catalog.connect.query-tag`     | Increments for each mesh-based catalog query for the given service with the given tag.                                                                                                                                                                                                                                                                                                                                          | queries                                 | counter |
 | `consul.catalog.connect.query-tags`    | Increments for each mesh-based catalog query for the given service with the given tags.                                                                                                                                                                                                                                                                                                                                         | queries                                 | counter |
 | `consul.catalog.connect.not-found`     | Increments for each mesh-based catalog query where the given service could not be found.                                                                                                                                                                                                                                                                                                                                        | queries                                 | counter |
+| `consul.mesh.active-root-ca.expiry`    | The number of seconds until the root CA expires, updated every hour.                                                                                                                                                                                                                                                                                                                                                               | seconds                                 | gauge   |
+| `consul.mesh.active-signing-ca.expiry` | The number of seconds until the signing CA expires, updated every hour.                                                                                                                                                                                                                                                                                                                                                            | seconds                                 | gauge   |
+| `consul.agent.tls.cert.expiry`         | The number of seconds until the Agent TLS certificate expires, updated every hour.                                                                                                                                                                                                                                                                                                                                                 | seconds                                 | gauge   |
 
 ## Service Mesh Built-in Proxy Metrics
 

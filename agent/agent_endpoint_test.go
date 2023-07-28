@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -21,6 +18,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -40,14 +38,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 )
 
 func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
@@ -1506,8 +1502,7 @@ func TestAgent_Self(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, cs[a.config.SegmentName], val.Coord)
 
-			delete(val.Meta, structs.MetaSegmentKey)    // Added later, not in config.
-			delete(val.Meta, structs.MetaConsulVersion) // Added later, not in config.
+			delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
 			require.Equal(t, a.config.NodeMeta, val.Meta)
 
 			if tc.expectXDS {
@@ -6915,27 +6910,14 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		require.Equal(t, issued, issued2)
 	}
 
-	replyCh := make(chan *httptest.ResponseRecorder, 1)
-
-	go func(index string) {
-		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
-		a.srv.h.ServeHTTP(resp, req)
-
-		replyCh <- resp
-	}(index)
-
 	// Set a new CA
 	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// Issue a blocking query to ensure that the cert gets updated appropriately
 	t.Run("test blocking queries update leaf cert", func(t *testing.T) {
-		var resp *httptest.ResponseRecorder
-		select {
-		case resp = <-replyCh:
-		case <-time.After(500 * time.Millisecond):
-			t.Fatal("blocking query did not wake up during rotation")
-		}
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
+		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
 		require.NoError(t, dec.Decode(issued2))
@@ -8098,32 +8080,6 @@ func TestAgent_HostBadACL(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 }
 
-func TestAgent_Version(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	dc1 := "dc1"
-	a := NewTestAgent(t, `
-		primary_datacenter = "`+dc1+`"
-	`)
-	defer a.Shutdown()
-
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/version", nil)
-	// req.Header.Add("X-Consul-Token", "initial-management")
-	resp := httptest.NewRecorder()
-	respRaw, err := a.srv.AgentVersion(resp, req)
-	assert.Nil(t, err)
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.NotNil(t, respRaw)
-
-	obj := respRaw.(*version.BuildInfo)
-	assert.NotNil(t, obj.HumanVersion)
-}
-
 // Thie tests that a proxy with an ExposeConfig is returned as expected.
 func TestAgent_Services_ExposeConfig(t *testing.T) {
 	if testing.Short() {
@@ -8173,4 +8129,60 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 		actual.Proxy.Upstreams = make([]api.Upstream, 0)
 	}
 	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
+}
+
+func TestAgent_Self_Reload(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// create new test agent
+	a := NewTestAgent(t, `
+		log_level = "info"
+		raft_snapshot_threshold = 100
+	`)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec := json.NewDecoder(resp.Body)
+	val := &Self{}
+	require.NoError(t, dec.Decode(val))
+
+	require.Equal(t, "info", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
+	require.Equal(t, float64(100), val.DebugConfig["RaftSnapshotThreshold"].(float64))
+
+	// reload with new config
+	shim := &delegateConfigReloadShim{delegate: a.delegate}
+	a.delegate = shim
+	newCfg := TestConfig(testutil.Logger(t), config.FileSource{
+		Name:   "Reload",
+		Format: "hcl",
+		Data: `
+			data_dir = "` + a.Config.DataDir + `"
+			log_level = "debug"
+			raft_snapshot_threshold = 200	
+		`,
+	})
+	if err := a.reloadConfigInternal(newCfg); err != nil {
+		t.Fatalf("got error %v want nil", err)
+	}
+	require.Equal(t, 200, shim.newCfg.RaftSnapshotThreshold)
+
+	// validate new config is reflected in API response
+	req, _ = http.NewRequest("GET", "/v1/agent/self", nil)
+	resp = httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec = json.NewDecoder(resp.Body)
+	val = &Self{}
+	require.NoError(t, dec.Decode(val))
+	require.Equal(t, "debug", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
+	require.Equal(t, float64(200), val.DebugConfig["RaftSnapshotThreshold"].(float64))
+
 }

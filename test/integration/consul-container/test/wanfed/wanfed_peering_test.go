@@ -7,12 +7,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPeering_WanFedSecondaryDC(t *testing.T) {
@@ -35,7 +35,7 @@ func TestPeering_WanFedSecondaryDC(t *testing.T) {
 
 	t.Run("secondary dc services are visible in primary dc", func(t *testing.T) {
 		createConnectService(t, c2)
-		libassert.CatalogServiceExists(t, c1Agent.GetClient(), libservice.StaticServerServiceName, &api.QueryOptions{Datacenter: "secondary"})
+		assertCatalogService(t, c1Agent.GetClient(), "static-server", &api.QueryOptions{Datacenter: "secondary"})
 	})
 
 	t.Run("secondary dc can peer to alpha dc", func(t *testing.T) {
@@ -57,9 +57,9 @@ func TestPeering_WanFedSecondaryDC(t *testing.T) {
 		require.NoError(t, service.Export("default", "alpha-to-secondary", c3Agent.GetClient()))
 
 		// Create a testing sidecar to proxy requests through
-		clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(c2Agent, "secondary-to-alpha", false, false)
+		clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(c2Agent, "secondary-to-alpha", false)
 		require.NoError(t, err)
-		libassert.CatalogServiceExists(t, c2Agent.GetClient(), "static-client-sidecar-proxy", nil)
+		assertCatalogService(t, c2Agent.GetClient(), "static-client-sidecar-proxy", nil)
 
 		// Ensure envoy is configured for the peer service and healthy.
 		_, adminPort := clientConnectProxy.GetAdminAddr()
@@ -71,6 +71,18 @@ func TestPeering_WanFedSecondaryDC(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			libassert.HTTPServiceEchoes(t, "localhost", port, "")
 			libassert.AssertEnvoyMetricAtLeast(t, adminPort, "cluster.static-server.default.secondary-to-alpha.external.", "upstream_cx_total", i)
+		}
+	})
+}
+
+func assertCatalogService(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
+	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Catalog().Service(svc, "", opts)
+		if err != nil {
+			r.Fatal("error reading catalog data", err)
+		}
+		if len(services) == 0 {
+			r.Fatal("did not find catalog entry for ", svc)
 		}
 	})
 }
@@ -106,8 +118,8 @@ func createConnectService(t *testing.T, cluster *libcluster.Cluster) libservice.
 	serverConnectProxy, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, &opts)
 	require.NoError(t, err)
 
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
-	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
+	assertCatalogService(t, client, "static-server-sidecar-proxy", nil)
+	assertCatalogService(t, client, "static-server", nil)
 
 	return serverConnectProxy
 }

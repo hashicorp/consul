@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -226,14 +223,6 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		return err
 	}
 
-	// If we're doing a connect or ingress query, we need read access to the service
-	// we're trying to find proxies for, so check that.
-	if args.Connect || args.Ingress {
-		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
-	}
-
 	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.Nodes)
 	if err != nil {
 		return err
@@ -253,6 +242,17 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			index, nodes, err := f(ws, state, args)
 			if err != nil {
 				return err
+			}
+
+			// If we're doing a connect or ingress query, we need read access to the service
+			// we're trying to find proxies for, so check that.
+			if args.Connect || args.Ingress {
+				// TODO(acl-error-enhancements) Look for ways to percolate this information up to give any feedback to the user.
+				if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+					// Return the index here so that the agent cache does not infinitely loop.
+					reply.Index = index
+					return nil
+				}
 			}
 
 			resolvedNodes := nodes

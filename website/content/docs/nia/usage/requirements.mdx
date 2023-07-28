@@ -31,7 +31,7 @@ For information on compatible Consul versions, refer to the [Consul compatibilit
 
 ### Run an agent
 
-The Consul agent must be running in order to dynamically update network devices. Refer to the [Consul agent documentation](/consul/docs/agent) for information about configuring and starting a Consul agent. 
+The Consul agent must be running in order to dynamically update network devices. Refer to the [Consul agent documentation](/consul/docs/agent) for information about configuring and starting a Consul agent. For hands-on instructions about running Consul agents, refer to the [Getting Started: Run the Consul Agent Tutorial](/consul/tutorials/getting-started/get-started-agent).
 
 When running a Consul agent with CTS in production, consider that CTS uses [blocking queries](/consul/api-docs/features/blocking) to monitor task dependencies, such as changes to registered services. This  results in multiple long-running TCP connections between CTS and the agent to poll changes for each dependency. Consul may quickly reach the agent connection limits if CTS is monitoring a high number of services.
 
@@ -62,11 +62,11 @@ You can configure CTS to monitor the web service, execute a task, and update net
 
 For more details on registering a service using the HTTP API endpoint, refer to the [register service API docs](/consul/api-docs/agent/service#register-service).
 
-For hands-on instructions on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-service-discovery).
+For hands-on instructions on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](/consul/tutorials/getting-started/get-started-service-discovery).
 
 ### Run a cluster
 
-For production environments, we recommend operating a Consul cluster rather than a single agent. Refer to [Getting Started: Deploy a Consul Datacenter Tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy) for instructions on starting multiple Consul agents and joining them into a cluster.
+For production environments, we recommend operating a Consul cluster rather than a single agent. Refer to [Getting Started: Create a Local Consul Datacenter](/consul/tutorials/getting-started/get-started-create-datacenter) for instructions on starting multiple Consul agents and joining them into a cluster.
 
 ## Network infrastructure using a Terraform provider
 

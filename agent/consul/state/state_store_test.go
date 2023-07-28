@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -15,7 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -160,37 +157,6 @@ func testRegisterServiceWithChangeOpts(t *testing.T, s *Store, idx uint64, nodeI
 	if modifyAccordingIndex {
 		meta["version"] = fmt.Sprint(idx)
 	}
-	svc := &structs.NodeService{
-		ID:      serviceID,
-		Service: serviceID,
-		Address: "1.1.1.1",
-		Port:    1111,
-		Meta:    meta,
-	}
-	for _, o := range opts {
-		o(svc)
-	}
-
-	if err := s.EnsureService(idx, nodeID, svc); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-	service, err := tx.First(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID, PeerName: svc.PeerName})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if result, ok := service.(*structs.ServiceNode); !ok ||
-		result.Node != nodeID ||
-		result.ServiceID != serviceID {
-		t.Fatalf("bad service: %#v", result)
-	}
-	return svc
-}
-
-// testRegisterServiceWithMeta registers service with Meta passed as arg.
-func testRegisterServiceWithMeta(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, meta map[string]string, opts ...func(service *structs.NodeService)) *structs.NodeService {
 	svc := &structs.NodeService{
 		ID:      serviceID,
 		Service: serviceID,

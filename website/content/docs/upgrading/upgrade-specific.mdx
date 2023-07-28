@@ -14,29 +14,12 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
-## Consul 1.16.x
-
-#### API health endpoints return different status code
-
-Consul versions 1.16.0+ now return an error 403 "Permission denied" status
-whenever the `/v1/health/connect/` and `/v1/health/ingress/` endpoints are
-queried with insufficient ACL `service:read` privileges.
-
-In Consul versions older than 1.16.0, the service health API did not return an explicit error when given a token with invalid permissions. Instead, it returned an empty list with a success status code.
-
-Before upgrading, ensure that all of your applications can handle this new API behavior properly. An update is not required unless you have a custom application that is querying one of these API endpoints directly.
-
-#### Remove deprecated service-defaults peer upstream override behavior
-
-When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides)
-does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
-This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
-
 ## Consul 1.15.x
 
 #### Service mesh compatibility ((#service-mesh-compatibility-1-15))
 
 Upgrade to **Consul version 1.15.2 or later**.
+If using [Vault Enterprise as CA](#vault-enterprise-as-ca-1-15), **avoid Consul version 1.15.6**.
 
 Consul versions 1.15.0 - 1.15.1 contain a race condition that can cause
 some service instances to lose their ability to communicate in the mesh after
@@ -44,6 +27,15 @@ some service instances to lose their ability to communicate in the mesh after
 due to a problem with leaf certificate rotation.
 
 This bug is fixed in Consul versions 1.15.2 and newer.
+
+#### Vault Enterprise as CA ((#vault-enterprise-as-ca-1-15))
+Using Vault as CA with Consul version 1.15.6 will fail to initialize the CA if [`namespace`](/consul/docs/connect/ca/vault#namespace) is set
+but [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) or [`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace)
+are empty. This is a bug which will be fixed in a future version.
+
+To work around this issue, users must explicitly set [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) and
+[`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace) to the same value as [`namespace`](/consul/docs/connect/ca/vault#namespace).
+Set your configuration by calling [set-config](/consul/commands/connect/ca#set-config) then use [get-config](/consul/commands/connect/ca#get-config) to check.
 
 #### Removing configuration options
 
@@ -186,6 +178,14 @@ to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for 
 Users should not upgrade to 1.14.0 if they are using plaintext gRPC connections in
 conjunction with TLS-encrypted HTTP APIs.
 
+#### Vault Enterprise as CA ((#vault-enterprise-as-ca-1-14))
+Using Vault as CA with Consul version 1.14.10 will fail to initialize the CA if [`namespace`](/consul/docs/connect/ca/vault#namespace) is set
+but [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) or [`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace)
+are empty. This is a bug which will be fixed in a future version.
+
+To work around this issue, users must explicitly set [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) and
+[`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace) to the same value as [`namespace`](/consul/docs/connect/ca/vault#namespace).
+Set your configuration by calling [set-config](/consul/commands/connect/ca#set-config) then use [get-config](/consul/commands/connect/ca#get-config) to check.
 
 #### Changes to gRPC TLS configuration
 
@@ -216,7 +216,7 @@ If you already use gRPC encryption, change the following fields to ensure compat
 [Cluster peering](/consul/docs/connect/cluster-peering) was released in Consul 1.13 as an experimental feature.
 In Consul 1.14, cluster peering has been improved and is now considered stable. All experimental peering
 connections created by 1.13 should be
-[deleted](/consul/docs/connect/cluster-peering/usage/manage-connections#delete-peering-connections)
+[deleted](/consul/docs/connect/cluster-peering/create-manage-peering#delete-peering-connections)
 prior to upgrading, as they will no longer be compatible with 1.14.
 
 ## Consul 1.13.x
@@ -404,9 +404,9 @@ to Consul 1.13.3 or later to avoid the breaking nature of that change.
 
 ### Nomad Incompatibility
 
-Nomad users should not upgrade to Consul v1.13.8. An API change in this Consul
-release prevents Nomad from correctly detecting the Consul agent version. As a
-result, allocations are not placed in clients running v1.13.8.
+Nomad users should not upgrade to Consul 1.13.8 as an API change in Consul
+prevents Nomad from correctly detecting the Consul agent version, resulting in
+allocations not being placed in those clients.
 
 ## Consul 1.12.x ((#consul-1-12-0))
 

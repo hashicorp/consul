@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -680,8 +677,18 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, methodMeta, &args.EnterpriseMeta)
+		func(ws memdb.WatchSet, s *state.Store) error {
+			index, tokens, err := s.ACLTokenListWithParameters(ws, state.ACLTokenListParameters{
+				Local:          args.IncludeLocal,
+				Global:         args.IncludeGlobal,
+				Policy:         args.Policy,
+				Role:           args.Role,
+				MethodName:     args.AuthMethod,
+				ServiceName:    args.ServiceName,
+				MethodMeta:     methodMeta,
+				EnterpriseMeta: &args.EnterpriseMeta,
+			})
+
 			if err != nil {
 				return err
 			}
@@ -869,8 +876,8 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return fmt.Errorf("Invalid Policy: no Name is set")
 	}
 
-	if !acl.IsValidPolicyName(policy.Name) {
-		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
+	if err := acl.ValidatePolicyName(policy.Name); err != nil {
+		return err
 	}
 
 	var idMatch *structs.ACLPolicy
@@ -915,13 +922,13 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 			return fmt.Errorf("Invalid Policy: A policy with name %q already exists", policy.Name)
 		}
 
-		if policy.ID == structs.ACLPolicyGlobalManagementID {
+		if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
 			if policy.Datacenters != nil || len(policy.Datacenters) > 0 {
-				return fmt.Errorf("Changing the Datacenters of the builtin global-management policy is not permitted")
+				return fmt.Errorf("Changing the Datacenters of the %s policy is not permitted", builtinPolicy.Name)
 			}
 
 			if policy.Rules != idMatch.Rules {
-				return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
+				return fmt.Errorf("Changing the Rules for the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 		}
 	}
@@ -999,8 +1006,8 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return fmt.Errorf("policy does not exist: %w", acl.ErrNotFound)
 	}
 
-	if policy.ID == structs.ACLPolicyGlobalManagementID {
-		return fmt.Errorf("Delete operation not permitted on the builtin global-management policy")
+	if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
+		return fmt.Errorf("Delete operation not permitted on the builtin %s policy", builtinPolicy.Name)
 	}
 
 	req := structs.ACLPolicyBatchDeleteRequest{

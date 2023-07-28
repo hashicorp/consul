@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -11,7 +8,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/proto/private/pboperator"
+	"github.com/hashicorp/consul/proto/pboperator"
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"

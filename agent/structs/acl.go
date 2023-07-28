@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -45,41 +42,68 @@ const (
 
 	// This policy gives unlimited access to everything. Users
 	// may rename if desired but cannot delete or modify the rules.
-	ACLPolicyGlobalManagementID = "00000000-0000-0000-0000-000000000001"
-	ACLPolicyGlobalManagement   = `
-acl = "write"
+	ACLPolicyGlobalManagementID   = "00000000-0000-0000-0000-000000000001"
+	ACLPolicyGlobalManagementName = "global-management"
+	ACLPolicyGlobalManagementDesc = "A built-in policy that grants read and write access to all Consul features"
+
+	ACLPolicyGlobalReadOnlyID   = "00000000-0000-0000-0000-000000000002"
+	ACLPolicyGlobalReadOnlyName = "builtin/global-read-only"
+	ACLPolicyGlobalReadOnlyDesc = "A built-in policy that grants read-only access to all Consul features"
+
+	ACLReservedIDPrefix = "00000000-0000-0000-0000-0000000000"
+
+	aclPolicyGlobalRulesTemplate = `
+acl = "%[1]s"
 agent_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
 event_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
 key_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
-keyring = "write"
+keyring = "%[1]s"
 node_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
-operator = "write"
-mesh = "write"
-peering = "write"
+operator = "%[1]s"
+mesh = "%[1]s"
+peering = "%[1]s"
 query_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
 service_prefix "" {
-	policy = "write"
-	intentions = "write"
+	policy = "%[1]s"
+	intentions = "%[1]s"
 }
 session_prefix "" {
-	policy = "write"
-}` + EnterpriseACLPolicyGlobalManagement
+	policy = "%[1]s"
+}`
+)
 
-	ACLReservedPrefix = "00000000-0000-0000-0000-0000000000"
+var (
+	ACLPolicyGlobalReadOnlyRules   = fmt.Sprintf(aclPolicyGlobalRulesTemplate, "read") + EnterpriseACLPolicyGlobalReadOnly
+	ACLPolicyGlobalManagementRules = fmt.Sprintf(aclPolicyGlobalRulesTemplate, "write") + EnterpriseACLPolicyGlobalManagement
+
+	ACLBuiltinPolicies = map[string]ACLPolicy{
+		ACLPolicyGlobalManagementID: {
+			ID:          ACLPolicyGlobalManagementID,
+			Name:        ACLPolicyGlobalManagementName,
+			Description: ACLPolicyGlobalManagementDesc,
+			Rules:       ACLPolicyGlobalManagementRules,
+		},
+		ACLPolicyGlobalReadOnlyID: {
+			ID:          ACLPolicyGlobalReadOnlyID,
+			Name:        ACLPolicyGlobalReadOnlyName,
+			Description: ACLPolicyGlobalReadOnlyDesc,
+			Rules:       ACLPolicyGlobalReadOnlyRules,
+		},
+	}
 )
 
 func ACLIDReserved(id string) bool {
-	return strings.HasPrefix(id, ACLReservedPrefix)
+	return strings.HasPrefix(id, ACLReservedIDPrefix)
 }
 
 // ACLBootstrapNotAllowedErr is returned once we know that a bootstrap can no
@@ -1278,6 +1302,7 @@ type ACLTokenListRequest struct {
 	Policy        string // Policy filter
 	Role          string // Role filter
 	AuthMethod    string // Auth Method filter
+	ServiceName   string // Service name (from service identities) filter
 	Datacenter    string // The datacenter to perform the request within
 	ACLAuthMethodEnterpriseMeta
 	acl.EnterpriseMeta

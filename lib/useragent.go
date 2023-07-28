@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package lib
 
 import (
@@ -19,7 +16,7 @@ var (
 
 	// versionFunc is the func that returns the current version. This is a
 	// function to take into account the different build processes and distinguish
-	// between enterprise and oss builds.
+	// between enterprise and CE builds.
 	versionFunc = func() string {
 		return version.GetHumanVersion()
 	}

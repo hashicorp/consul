@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -16,14 +17,36 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 )
 
+type mockConfigProvider struct {
+	filter   *regexp.Regexp
+	labels   map[string]string
+	disabled bool
+}
+
+func (m *mockConfigProvider) GetLabels() map[string]string {
+	return m.labels
+}
+
+func (m *mockConfigProvider) GetFilters() *regexp.Regexp {
+	return m.filter
+}
+
+func (m *mockConfigProvider) IsDisabled() bool {
+	return m.disabled
+}
+
 var (
-	expectedResource = resource.NewWithAttributes("", attribute.KeyValue{
+	expectedResource = resource.NewSchemaless()
+
+	attrs = attribute.NewSet(attribute.KeyValue{
 		Key:   attribute.Key("node_id"),
 		Value: attribute.StringValue("test"),
 	})
-
-	attrs = attribute.NewSet(attribute.KeyValue{
+	attrsWithMetricLabel = attribute.NewSet(attribute.KeyValue{
 		Key:   attribute.Key("metric.label"),
+		Value: attribute.StringValue("test"),
+	}, attribute.KeyValue{
+		Key:   attribute.Key("node_id"),
 		Value: attribute.StringValue("test"),
 	})
 
@@ -35,7 +58,7 @@ var (
 			Data: metricdata.Gauge[float64]{
 				DataPoints: []metricdata.DataPoint[float64]{
 					{
-						Attributes: *attribute.EmptySet(),
+						Attributes: attrs,
 						Value:      float64(float32(0)),
 					},
 				},
@@ -48,7 +71,7 @@ var (
 			Data: metricdata.Gauge[float64]{
 				DataPoints: []metricdata.DataPoint[float64]{
 					{
-						Attributes: attrs,
+						Attributes: attrsWithMetricLabel,
 						Value:      float64(float32(1.23)),
 					},
 				},
@@ -61,7 +84,7 @@ var (
 			Data: metricdata.Sum[float64]{
 				DataPoints: []metricdata.DataPoint[float64]{
 					{
-						Attributes: *attribute.EmptySet(),
+						Attributes: attrs,
 						Value:      float64(float32(23.23)),
 					},
 				},
@@ -74,7 +97,7 @@ var (
 			Data: metricdata.Sum[float64]{
 				DataPoints: []metricdata.DataPoint[float64]{
 					{
-						Attributes: attrs,
+						Attributes: attrsWithMetricLabel,
 						Value:      float64(float32(1.44)),
 					},
 				},
@@ -87,7 +110,7 @@ var (
 			Data: metricdata.Histogram[float64]{
 				DataPoints: []metricdata.HistogramDataPoint[float64]{
 					{
-						Attributes: *attribute.EmptySet(),
+						Attributes: attrs,
 						Count:      1,
 						Sum:        float64(float32(45.32)),
 						Min:        metricdata.NewExtrema(float64(float32(45.32))),
@@ -103,7 +126,7 @@ var (
 			Data: metricdata.Histogram[float64]{
 				DataPoints: []metricdata.HistogramDataPoint[float64]{
 					{
-						Attributes: attrs,
+						Attributes: attrsWithMetricLabel,
 						Count:      1,
 						Sum:        float64(float32(26.34)),
 						Min:        metricdata.NewExtrema(float64(float32(26.34))),
@@ -121,34 +144,30 @@ func TestNewOTELSink(t *testing.T) {
 		wantErr string
 		opts    *OTELSinkOpts
 	}{
-		"failsWithEmptyLogger": {
-			wantErr: "ferror: provide valid context",
-			opts: &OTELSinkOpts{
-				Reader: metric.NewManualReader(),
-			},
-		},
 		"failsWithEmptyReader": {
 			wantErr: "ferror: provide valid reader",
 			opts: &OTELSinkOpts{
-				Reader: nil,
-				Ctx:    context.Background(),
+				Reader:         nil,
+				ConfigProvider: &mockConfigProvider{},
+			},
+		},
+		"failsWithEmptyConfigProvider": {
+			wantErr: "ferror: provide valid config provider",
+			opts: &OTELSinkOpts{
+				Reader: metric.NewManualReader(),
 			},
 		},
 		"success": {
 			opts: &OTELSinkOpts{
-				Ctx:    context.Background(),
-				Reader: metric.NewManualReader(),
-				Labels: map[string]string{
-					"server": "test",
-				},
-				Filters: []string{"raft"},
+				Reader:         metric.NewManualReader(),
+				ConfigProvider: &mockConfigProvider{},
 			},
 		},
 	} {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			sink, err := NewOTELSink(test.opts)
+			sink, err := NewOTELSink(context.Background(), test.opts)
 			if test.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), test.wantErr)
@@ -168,15 +187,16 @@ func TestOTELSink(t *testing.T) {
 
 	ctx := context.Background()
 	opts := &OTELSinkOpts{
-		Reader:  reader,
-		Ctx:     ctx,
-		Filters: []string{"raft", "autopilot"},
-		Labels: map[string]string{
-			"node_id": "test",
+		Reader: reader,
+		ConfigProvider: &mockConfigProvider{
+			filter: regexp.MustCompile("raft|autopilot"),
+			labels: map[string]string{
+				"node_id": "test",
+			},
 		},
 	}
 
-	sink, err := NewOTELSink(opts)
+	sink, err := NewOTELSink(ctx, opts)
 	require.NoError(t, err)
 
 	labels := []gometrics.Label{
@@ -186,12 +206,15 @@ func TestOTELSink(t *testing.T) {
 		},
 	}
 
+	sink.SetGauge([]string{"test", "bad_filter", "gauge"}, float32(0))
 	sink.SetGauge([]string{"consul", "raft", "leader"}, float32(0))
 	sink.SetGaugeWithLabels([]string{"consul", "autopilot", "healthy"}, float32(1.23), labels)
 
+	sink.IncrCounter([]string{"test", "bad_filter", "counter"}, float32(23.23))
 	sink.IncrCounter([]string{"consul", "raft", "state", "leader"}, float32(23.23))
 	sink.IncrCounterWithLabels([]string{"consul", "raft", "apply"}, float32(1.44), labels)
 
+	sink.AddSample([]string{"test", "bad_filter", "sample"}, float32(45.32))
 	sink.AddSample([]string{"consul", "raft", "leader", "lastContact"}, float32(45.32))
 	sink.AddSampleWithLabels([]string{"consul", "raft", "commitTime"}, float32(26.34), labels)
 
@@ -202,23 +225,170 @@ func TestOTELSink(t *testing.T) {
 	isSame(t, expectedSinkMetrics, collected)
 }
 
+func TestOTELSinkDisabled(t *testing.T) {
+	reader := metric.NewManualReader()
+	ctx := context.Background()
+
+	sink, err := NewOTELSink(ctx, &OTELSinkOpts{
+		ConfigProvider: &mockConfigProvider{
+			filter:   regexp.MustCompile("raft"),
+			disabled: true,
+		},
+		Reader: reader,
+	})
+	require.NoError(t, err)
+
+	sink.SetGauge([]string{"consul", "raft", "gauge"}, 1)
+	sink.IncrCounter([]string{"consul", "raft", "counter"}, 1)
+	sink.AddSample([]string{"consul", "raft", "sample"}, 1)
+
+	var collected metricdata.ResourceMetrics
+	err = reader.Collect(ctx, &collected)
+	require.NoError(t, err)
+	require.Empty(t, collected.ScopeMetrics)
+}
+
+func TestLabelsToAttributes(t *testing.T) {
+	for name, test := range map[string]struct {
+		providerLabels         map[string]string
+		goMetricsLabels        []gometrics.Label
+		expectedOTELAttributes []attribute.KeyValue
+	}{
+		"emptyLabels": {
+			expectedOTELAttributes: []attribute.KeyValue{},
+		},
+		"emptyGoMetricsLabels": {
+			providerLabels: map[string]string{
+				"node_id": "test",
+			},
+			expectedOTELAttributes: []attribute.KeyValue{
+				{
+					Key:   attribute.Key("node_id"),
+					Value: attribute.StringValue("test"),
+				},
+			},
+		},
+		"emptyProviderLabels": {
+			goMetricsLabels: []gometrics.Label{
+				{
+					Name:  "server_type",
+					Value: "internal",
+				},
+			},
+			expectedOTELAttributes: []attribute.KeyValue{
+				{
+					Key:   attribute.Key("server_type"),
+					Value: attribute.StringValue("internal"),
+				},
+			},
+		},
+		"combinedLabels": {
+			goMetricsLabels: []gometrics.Label{
+				{
+					Name:  "server_type",
+					Value: "internal",
+				},
+				{
+					Name:  "method",
+					Value: "get",
+				},
+			},
+			providerLabels: map[string]string{
+				"node_id":   "test",
+				"node_name": "labels_test",
+			},
+			expectedOTELAttributes: []attribute.KeyValue{
+				{
+					Key:   attribute.Key("server_type"),
+					Value: attribute.StringValue("internal"),
+				},
+				{
+					Key:   attribute.Key("method"),
+					Value: attribute.StringValue("get"),
+				},
+				{
+					Key:   attribute.Key("node_id"),
+					Value: attribute.StringValue("test"),
+				},
+				{
+					Key:   attribute.Key("node_name"),
+					Value: attribute.StringValue("labels_test"),
+				},
+			},
+		},
+	} {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			opts := &OTELSinkOpts{
+				Reader: metric.NewManualReader(),
+				ConfigProvider: &mockConfigProvider{
+					filter: regexp.MustCompile("raft|autopilot"),
+					labels: test.providerLabels,
+				},
+			}
+			sink, err := NewOTELSink(ctx, opts)
+			require.NoError(t, err)
+
+			require.Equal(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
+		})
+	}
+}
+
+func TestOTELSinkFilters(t *testing.T) {
+	t.Parallel()
+	for name, tc := range map[string]struct {
+		cfgProvider ConfigProvider
+		expected    bool
+	}{
+		"emptyMatch": {
+			cfgProvider: &mockConfigProvider{},
+			expected:    true,
+		},
+		"matchingFilter": {
+			cfgProvider: &mockConfigProvider{
+				filter: regexp.MustCompile("raft"),
+			},
+			expected: true,
+		},
+		"mismatchFilter": {cfgProvider: &mockConfigProvider{
+			filter: regexp.MustCompile("test"),
+		}},
+	} {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			testMetricKey := "consul.raft"
+			s, err := NewOTELSink(context.Background(), &OTELSinkOpts{
+				ConfigProvider: tc.cfgProvider,
+				Reader:         metric.NewManualReader(),
+			})
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, s.allowedMetric(testMetricKey))
+		})
+	}
+}
+
 func TestOTELSink_Race(t *testing.T) {
 	reader := metric.NewManualReader()
 	ctx := context.Background()
+	defaultLabels := map[string]string{
+		"node_id": "test",
+	}
 	opts := &OTELSinkOpts{
-		Ctx:    ctx,
 		Reader: reader,
-		Labels: map[string]string{
-			"node_id": "test",
+		ConfigProvider: &mockConfigProvider{
+			filter: regexp.MustCompile("test"),
+			labels: defaultLabels,
 		},
-		Filters: []string{"test"},
 	}
 
-	sink, err := NewOTELSink(opts)
+	sink, err := NewOTELSink(context.Background(), opts)
 	require.NoError(t, err)
 
 	samples := 100
-	expectedMetrics := generateSamples(samples)
+	expectedMetrics := generateSamples(samples, defaultLabels)
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, samples)
 	for k, v := range expectedMetrics {
@@ -240,8 +410,17 @@ func TestOTELSink_Race(t *testing.T) {
 }
 
 // generateSamples generates n of each gauges, counter and histogram measurements to use for test purposes.
-func generateSamples(n int) map[string]metricdata.Metrics {
+func generateSamples(n int, labels map[string]string) map[string]metricdata.Metrics {
 	generated := make(map[string]metricdata.Metrics, 3*n)
+	attrs := *attribute.EmptySet()
+
+	kvs := make([]attribute.KeyValue, 0, len(labels))
+	for k, v := range labels {
+		kvs = append(kvs, attribute.KeyValue{Key: attribute.Key(k), Value: attribute.StringValue(v)})
+	}
+	if len(kvs) > 0 {
+		attrs = attribute.NewSet(kvs...)
+	}
 
 	for i := 0; i < n; i++ {
 		v := 12.3
@@ -251,7 +430,7 @@ func generateSamples(n int) map[string]metricdata.Metrics {
 			Data: metricdata.Gauge[float64]{
 				DataPoints: []metricdata.DataPoint[float64]{
 					{
-						Attributes: *attribute.EmptySet(),
+						Attributes: attrs,
 						Value:      float64(float32(v)),
 					},
 				},
@@ -267,7 +446,7 @@ func generateSamples(n int) map[string]metricdata.Metrics {
 			Data: metricdata.Sum[float64]{
 				DataPoints: []metricdata.DataPoint[float64]{
 					{
-						Attributes: *attribute.EmptySet(),
+						Attributes: attrs,
 						Value:      float64(float32(v)),
 					},
 				},
@@ -284,7 +463,7 @@ func generateSamples(n int) map[string]metricdata.Metrics {
 			Data: metricdata.Histogram[float64]{
 				DataPoints: []metricdata.HistogramDataPoint[float64]{
 					{
-						Attributes: *attribute.EmptySet(),
+						Attributes: attrs,
 						Sum:        float64(float32(v)),
 						Max:        metricdata.NewExtrema(float64(float32(v))),
 						Min:        metricdata.NewExtrema(float64(float32(v))),

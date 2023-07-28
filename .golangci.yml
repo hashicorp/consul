@@ -51,11 +51,11 @@ issues:
     - linters: [unparam]
       text: "`(t|resp|req|entMeta)` is unused"
 
-    # Temp ignore everything in _oss(_test).go and _ent(_test).go. Many of these
+    # Temp ignore everything in _ce(_test).go and _ent(_test).go. Many of these
     # could use underscore to ignore the unused arguments, but the "always returns"
-    # issue will likely remain in oss, and will need to be excluded.
+    # issue will likely remain in CE, and will need to be excluded.
     - linters: [unparam]
-      path: "(_oss.go|_oss_test.go|_ent.go|_ent_test.go)"
+      path: "(_ce.go|_ce_test.go|_ent.go|_ent_test.go)"
 
 linters-settings:
   govet:
@@ -88,9 +88,6 @@ linters-settings:
         - github.com/hashicorp/go-msgpack:
             recommendations:
               - github.com/hashicorp/consul-net-rpc/go-msgpack
-        - github.com/golang/protobuf:
-            recommendations:
-              - google.golang.org/protobuf
 
   depguard:
     list-type: denylist
@@ -104,9 +101,7 @@ linters-settings:
     # Default: []
     packages-with-error-message:
       - net/rpc: "only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc"
-      - github.com/golang/protobuf: "only use google.golang.org/protobuf"
 
 run:
   timeout: 10m
   concurrency: 4
-  skip-dirs-use-default: false

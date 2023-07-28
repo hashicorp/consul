@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package types
 
 // AreaID is a strongly-typed string used to uniquely represent a network area,

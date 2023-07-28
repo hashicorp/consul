@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package logging
 
 import (
@@ -60,23 +57,39 @@ func (l *LogFile) fileNamePattern() string {
 }
 
 func (l *LogFile) openNew() error {
-	fileNamePattern := l.fileNamePattern()
-
-	createTime := now()
-	newfileName := fmt.Sprintf(fileNamePattern, strconv.FormatInt(createTime.UnixNano(), 10))
+	newfileName := l.fileName
 	newfilePath := filepath.Join(l.logPath, newfileName)
 
-	// Try creating a file. We truncate the file because we are the only authority to write the logs
-	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0640)
+	// Try creating or opening the active log file. Since the active log file
+	// always has the same name, append log entries to prevent overwriting
+	// previous log data.
+	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)
 	if err != nil {
 		return err
 	}
 
 	l.FileInfo = filePointer
+	stat, err := filePointer.Stat()
+	if err != nil {
+		return err
+	}
 	// New file, new bytes tracker, new creation time :)
-	l.LastCreated = createTime
+	l.LastCreated = l.createTime(stat)
 	l.BytesWritten = 0
 	return nil
+}
+
+func (l *LogFile) renameCurrentFile() error {
+	fileNamePattern := l.fileNamePattern()
+
+	createTime := now()
+	// Current file is consul.log always
+	currentFilePath := filepath.Join(l.logPath, l.fileName)
+
+	oldFileName := fmt.Sprintf(fileNamePattern, strconv.FormatInt(createTime.UnixNano(), 10))
+	oldFilePath := filepath.Join(l.logPath, oldFileName)
+
+	return os.Rename(currentFilePath, oldFilePath)
 }
 
 func (l *LogFile) rotate() error {
@@ -85,6 +98,9 @@ func (l *LogFile) rotate() error {
 	// Rotate if we hit the byte file limit or the time limit
 	if (l.BytesWritten >= int64(l.MaxBytes) && (l.MaxBytes > 0)) || timeElapsed >= l.duration {
 		l.FileInfo.Close()
+		if err := l.renameCurrentFile(); err != nil {
+			return err
+		}
 		if err := l.pruneFiles(); err != nil {
 			return err
 		}

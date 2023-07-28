@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -350,7 +347,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
-				mutual_tls_mode = "permissive"
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -370,7 +366,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
-				MutualTLSMode = "permissive"
 			`,
 			expect: &ProxyConfigEntry{
 				Kind: "proxy-defaults",
@@ -390,7 +385,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				MutualTLSMode: MutualTLSModePermissive,
 			},
 		},
 		{
@@ -407,7 +401,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
-				mutual_tls_mode = "permissive"
 				balance_inbound_connections = "exact_balance"
 				upstream_config {
 					overrides = [
@@ -454,7 +447,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
-				MutualTLSMode = "permissive"
 				BalanceInboundConnections = "exact_balance"
 				UpstreamConfig {
 					Overrides = [
@@ -501,7 +493,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				MutualTLSMode:             MutualTLSModePermissive,
 				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
@@ -1826,7 +1817,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
-				allow_enabling_permissive_mutual_tls = true
 				tls {
 					incoming {
 						tls_min_version = "TLSv1_1"
@@ -1861,7 +1851,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
-				AllowEnablingPermissiveMutualTLS = true
 				TLS {
 					Incoming {
 						TLSMinVersion = "TLSv1_1"
@@ -1895,7 +1884,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
 				},
-				AllowEnablingPermissiveMutualTLS: true,
 				TLS: &MeshTLSConfig{
 					Incoming: &MeshDirectionalTLSConfig{
 						TLSMinVersion: types.TLSv1_1,
@@ -2164,6 +2152,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 
 func TestServiceConfigRequest(t *testing.T) {
 
+	makeLegacyUpstreamIDs := func(services ...string) []ServiceID {
+		u := make([]ServiceID, 0, len(services))
+		for _, s := range services {
+			u = append(u, NewServiceID(s, acl.DefaultEnterpriseMeta()))
+		}
+		return u
+	}
 	tests := []struct {
 		name     string
 		req      ServiceConfigRequest
@@ -2194,17 +2189,39 @@ func TestServiceConfigRequest(t *testing.T) {
 			wantSame: false,
 		},
 		{
+			name: "legacy upstreams should be different",
+			req: ServiceConfigRequest{
+				Name:        "web",
+				UpstreamIDs: makeLegacyUpstreamIDs("foo"),
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.UpstreamIDs = makeLegacyUpstreamIDs("foo", "bar")
+			},
+			wantSame: false,
+		},
+		{
+			name: "legacy upstreams should not depend on order",
+			req: ServiceConfigRequest{
+				Name:        "web",
+				UpstreamIDs: makeLegacyUpstreamIDs("bar", "foo"),
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.UpstreamIDs = makeLegacyUpstreamIDs("foo", "bar")
+			},
+			wantSame: true,
+		},
+		{
 			name: "upstreams should be different",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamServiceNames: []PeeredServiceName{
-					{ServiceName: NewServiceName("foo", nil)},
+				UpstreamIDs: []ServiceID{
+					NewServiceID("foo", nil),
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamServiceNames = []PeeredServiceName{
-					{ServiceName: NewServiceName("foo", nil)},
-					{ServiceName: NewServiceName("bar", nil)},
+				req.UpstreamIDs = []ServiceID{
+					NewServiceID("foo", nil),
+					NewServiceID("bar", nil),
 				}
 			},
 			wantSame: false,
@@ -2213,15 +2230,15 @@ func TestServiceConfigRequest(t *testing.T) {
 			name: "upstreams should not depend on order",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamServiceNames: []PeeredServiceName{
-					{ServiceName: NewServiceName("foo", nil)},
-					{ServiceName: NewServiceName("bar", nil)},
+				UpstreamIDs: []ServiceID{
+					NewServiceID("bar", nil),
+					NewServiceID("foo", nil),
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamServiceNames = []PeeredServiceName{
-					{ServiceName: NewServiceName("foo", nil)},
-					{ServiceName: NewServiceName("bar", nil)},
+				req.UpstreamIDs = []ServiceID{
+					NewServiceID("foo", nil),
+					NewServiceID("bar", nil),
 				}
 			},
 			wantSame: true,
@@ -2891,22 +2908,6 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 		},
-		"validate: invalid MutualTLSMode in service-defaults": {
-			entry: &ServiceConfigEntry{
-				Kind:          ServiceDefaults,
-				Name:          "web",
-				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
-			},
-			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
-		},
-		"validate: invalid MutualTLSMode in proxy-defaults": {
-			entry: &ServiceConfigEntry{
-				Kind:          ProxyDefaults,
-				Name:          ProxyConfigGlobal,
-				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
-			},
-			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
-		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
@@ -2932,8 +2933,8 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				PassiveHealthCheck: &PassiveHealthCheck{
-					Interval:                2 * time.Second,
 					MaxFailures:             3,
+					Interval:                2 * time.Second,
 					EnforcingConsecutive5xx: uintPointer(4),
 					MaxEjectionPercent:      uintPointer(5),
 					BaseEjectionTime:        durationPointer(6 * time.Second),
@@ -2953,8 +2954,8 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					Interval:                2 * time.Second,
 					MaxFailures:             3,
+					Interval:                2 * time.Second,
 					EnforcingConsecutive5xx: uintPointer(4),
 					MaxEjectionPercent:      uintPointer(5),
 					BaseEjectionTime:        durationPointer(6 * time.Second),
@@ -2976,8 +2977,8 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				PassiveHealthCheck: &PassiveHealthCheck{
-					Interval:                2 * time.Second,
 					MaxFailures:             3,
+					Interval:                2 * time.Second,
 					EnforcingConsecutive5xx: uintPointer(4),
 					MaxEjectionPercent:      uintPointer(5),
 					BaseEjectionTime:        durationPointer(6 * time.Second),
@@ -2996,11 +2997,8 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(12),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures:             13,
-					Interval:                14 * time.Second,
-					EnforcingConsecutive5xx: uintPointer(15),
-					MaxEjectionPercent:      uintPointer(16),
-					BaseEjectionTime:        durationPointer(17 * time.Second),
+					MaxFailures: 13,
+					Interval:    14 * time.Second,
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -3016,8 +3014,8 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					Interval:                2 * time.Second,
 					MaxFailures:             3,
+					Interval:                2 * time.Second,
 					EnforcingConsecutive5xx: uintPointer(4),
 					MaxEjectionPercent:      uintPointer(5),
 					BaseEjectionTime:        durationPointer(6 * time.Second),
@@ -3270,25 +3268,6 @@ func TestProxyConfigEntry(t *testing.T) {
 			},
 			validateErr: "Config: envoy_hcp_metrics_bind_socket_dir length 71 exceeds max",
 		},
-		"proxy config has invalid failover policy": {
-			entry: &ProxyConfigEntry{
-				Name:           "global",
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "bad"},
-			},
-			validateErr: `Failover-policy mode must be one of '', 'sequential', or 'order-by-locality'`,
-		},
-		"proxy config with valid failover policy": {
-			entry: &ProxyConfigEntry{
-				Name:           "global",
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
-			},
-			expected: &ProxyConfigEntry{
-				Name:           ProxyConfigGlobal,
-				Kind:           ProxyDefaults,
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
-				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
-			},
-		},
 		"proxy config has invalid access log type": {
 			entry: &ProxyConfigEntry{
 				Name: "global",
@@ -3411,7 +3390,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 			}
 
 			if tc.expectUnchanged {
-				// EnterpriseMeta.Normalize behaves differently in Ent and OSS which
+				// EnterpriseMeta.Normalize behaves differently in Ent and CE which
 				// causes an exact comparison to fail. It's still useful to assert that
 				// nothing else changes though during Normalize. So we ignore
 				// EnterpriseMeta Defaults.
@@ -3443,18 +3422,6 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 	}
 }
 
-func intPointer(i int) *int {
-	return &i
-}
-
-func uintPointer(v uint32) *uint32 {
-	return &v
-}
-
-func durationPointer(d time.Duration) *time.Duration {
-	return &d
-}
-
 func TestValidateOpaqueConfigMap(t *testing.T) {
 	tt := map[string]struct {
 		input     map[string]interface{}
@@ -3483,4 +3450,16 @@ func TestValidateOpaqueConfigMap(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func intPointer(i int) *int {
+	return &i
+}
+
+func uintPointer(v uint32) *uint32 {
+	return &v
+}
+
+func durationPointer(d time.Duration) *time.Duration {
+	return &d
 }

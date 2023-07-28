@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package auth
 
 import (
@@ -244,7 +241,7 @@ func (w *TokenWriter) Delete(secretID string, fromLogout bool) error {
 
 func validateTokenID(id string) error {
 	if structs.ACLIDReserved(id) {
-		return fmt.Errorf("UUIDs with the prefix %q are reserved", structs.ACLReservedPrefix)
+		return fmt.Errorf("UUIDs with the prefix %q are reserved", structs.ACLReservedIDPrefix)
 	}
 	if _, err := uuid.ParseUUID(id); err != nil {
 		return errors.New("not a valid UUID")

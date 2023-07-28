@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package connect
 
 import (
@@ -31,7 +28,7 @@ func UpstreamSNI(u *structs.Upstream, subset string, dc string, trustDomain stri
 
 func GatewaySNI(dc string, partition, trustDomain string) string {
 	if partition == "" {
-		// TODO(partitions) Make default available in OSS as a constant for uses like this one
+		// TODO(partitions) Make default available in CE as a constant for uses like this one
 		partition = "default"
 	}
 
@@ -48,7 +45,7 @@ func ServiceSNI(service string, subset string, namespace string, partition strin
 		namespace = structs.IntentionDefaultNamespace
 	}
 	if partition == "" {
-		// TODO(partitions) Make default available in OSS as a constant for uses like this one
+		// TODO(partitions) Make default available in CE as a constant for uses like this one
 		partition = "default"
 	}
 
@@ -109,7 +106,7 @@ func PeeredServiceSNI(service, namespace, partition, peerName, trustDomain strin
 		namespace = structs.IntentionDefaultNamespace
 	}
 	if partition == "" {
-		// TODO(partitions) Make default available in OSS as a constant for uses like this one
+		// TODO(partitions) Make default available in CE as a constant for uses like this one
 		partition = "default"
 	}
 

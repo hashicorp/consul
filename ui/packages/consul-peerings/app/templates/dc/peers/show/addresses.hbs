@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <Route @name={{routeName}} as |route|>
   {{#if (gt route.model.items.length 0)}}
     <Consul::Peer::Address::List @items={{route.model.items}} />
@@ -17,27 +12,25 @@
         {{t "routes.dc.peers.show.addresses.empty.body" htmlSafe=true}}
       </BlockSlot>
       <BlockSlot @name="actions">
-        <li>
-          <Hds::Link::Standalone
-            @text='Documentation on Peers'
-            @href="{{env
-              'CONSUL_DOCS_URL'
-            }}/connect/cluster-peering"
-            @icon='docs-link'
-            @iconPosition='trailing'
-            @size='small'
-          />
+        <li class="docs-link">
+          <a
+            href="{{env 'CONSUL_DOCS_URL'}}/connect/cluster-peering"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Documentation on Peers
+          </a>
         </li>
-        <li>
-          <Hds::Link::Standalone
-            @text='Take the tutorial'
-            @href="{{env
+        <li class="learn-link">
+          <a
+            href="{{env
               'CONSUL_DOCS_URL'
             }}/connect/cluster-peering/create-manage-peering"
-            @icon='learn-link'
-            @iconPosition='trailing'
-            @size='small'
-          />
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Take the tutorial
+          </a>
         </li>
       </BlockSlot>
     </EmptyState>

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 export default (collection, clickable, attribute, text, actions) => () => {
   return collection('.consul-nspace-list [data-test-list-row]', {
     nspace: clickable('a'),

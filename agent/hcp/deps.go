@@ -1,25 +1,21 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package hcp
 
 import (
 	"context"
 	"fmt"
-	"net/url"
-	"time"
 
 	"github.com/armon/go-metrics"
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
-	"github.com/hashicorp/go-hclog"
 )
 
 // Deps contains the interfaces that the rest of Consul core depends on for HCP integration.
 type Deps struct {
-	Client   hcpclient.Client
+	Client   client.Client
 	Provider scada.Provider
 	Sink     metrics.MetricSink
 }
@@ -28,7 +24,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 	ctx := context.Background()
 	ctx = hclog.WithContext(ctx, logger)
 
-	client, err := hcpclient.NewClient(cfg)
+	hcpClient, err := client.NewClient(cfg)
 	if err != nil {
 		return Deps{}, fmt.Errorf("failed to init client: %w", err)
 	}
@@ -38,65 +34,46 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 		return Deps{}, fmt.Errorf("failed to init scada: %w", err)
 	}
 
-	metricsClient, err := hcpclient.NewMetricsClient(ctx, &cfg)
+	metricsClient, err := client.NewMetricsClient(ctx, &cfg)
 	if err != nil {
 		logger.Error("failed to init metrics client", "error", err)
 		return Deps{}, fmt.Errorf("failed to init metrics client: %w", err)
 	}
 
-	sink := sink(ctx, client, metricsClient, cfg)
+	sink, err := sink(ctx, metricsClient, NewHCPProvider(ctx, hcpClient))
+	if err != nil {
+		// Do not prevent server start if sink init fails, only log error.
+		logger.Error("failed to init sink", "error", err)
+	}
 
 	return Deps{
-		Client:   client,
+		Client:   hcpClient,
 		Provider: provider,
 		Sink:     sink,
 	}, nil
 }
 
-// sink provides initializes an OTELSink which forwards Consul metrics to HCP.
-// The sink is only initialized if the server is registered with the management plane (CCM).
-// This step should not block server initialization, so errors are logged, but not returned.
+// sink initializes an OTELSink which forwards Consul metrics to HCP.
+// This step should not block server initialization, errors are returned, only to be logged.
 func sink(
 	ctx context.Context,
-	hcpClient hcpclient.Client,
-	metricsClient hcpclient.MetricsClient,
-	cfg config.CloudConfig,
-) metrics.MetricSink {
-	logger := hclog.FromContext(ctx).Named("sink")
-	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	metricsClient telemetry.MetricsClient,
+	cfgProvider *hcpProviderImpl,
+) (metrics.MetricSink, error) {
+	logger := hclog.FromContext(ctx)
 
-	telemetryCfg, err := hcpClient.FetchTelemetryConfig(reqCtx)
-	if err != nil {
-		logger.Error("failed to fetch telemetry config", "error", err)
-		return nil
-	}
-
-	endpoint, isEnabled := telemetryCfg.Enabled()
-	if !isEnabled {
-		return nil
-	}
-
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		logger.Error("failed to parse url endpoint", "error", err)
-		return nil
-	}
-
+	reader := telemetry.NewOTELReader(metricsClient, cfgProvider)
 	sinkOpts := &telemetry.OTELSinkOpts{
-		Ctx:     ctx,
-		Reader:  telemetry.NewOTELReader(metricsClient, u, telemetry.DefaultExportInterval),
-		Labels:  telemetryCfg.DefaultLabels(cfg),
-		Filters: telemetryCfg.MetricsConfig.Filters,
+		Reader:         reader,
+		ConfigProvider: cfgProvider,
 	}
 
-	sink, err := telemetry.NewOTELSink(sinkOpts)
+	sink, err := telemetry.NewOTELSink(ctx, sinkOpts)
 	if err != nil {
-		logger.Error("failed to init OTEL sink", "error", err)
-		return nil
+		return nil, fmt.Errorf("failed to create OTELSink: %w", err)
 	}
 
 	logger.Debug("initialized HCP metrics sink")
 
-	return sink
+	return sink, nil
 }

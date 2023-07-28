@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Debug'
 description: >-
-  The `consul debug` command monitors an agent to capture a record its actions according to defined durations and intervals. 
+  The `consul debug` command monitors an agent to capture a record its actions according to defined durations and intervals.
 ---
 
 # Consul Debug
@@ -64,6 +64,9 @@ all targets for 5 minutes.
 - `-archive` - Optional, if the tool show archive the directory of data into a
   compressed tar file. Defaults to true.
 
+- `-since` - Optional, can be used to capture information since a particular time
+   in the past
+
 #### API Options
 
 @include 'http_api_options_client.mdx'
@@ -80,7 +83,7 @@ information when `debug` is running. By default, it captures all information.
 | `members` | A list of all the WAN and LAN members in the cluster.                                                                                                                                                                                                                                                                                                                                                                     |
 | `metrics` | Metrics from the in-memory metrics endpoint in the target, captured at the interval.                                                                                                                                                                                                                                                                                                                                      |
 | `logs`    | `TRACE` level logs for the target agent, captured for the duration.                                                                                                                                                                                                                                                                                                                                                       |
-| `pprof`   | Golang heap, CPU, goroutine, and trace profiling. CPU and traces are captured for `duration` in a single file while heap and goroutine are separate snapshots for each `interval`. This information is not retrieved unless [`enable_debug`](/consul/docs/agent/config/config-files#enable_debug) is set to `true` on the target agent or ACLs are enabled and an ACL token with `operator:read` is provided. |
+| `pprof`   | Golang heap, CPU, goroutine, and trace profiling. CPU and traces are captured for `duration` in a single file while heap and goroutine are separate snapshots for each `interval`. This information is not retrieved unless [`enable_debug`](/consul/docs/agent/config/config-files#enable_debug) is set to `true` on the target agent or ACLs are enable and an ACL token with `operator:read` is provided. |
 
 ## Examples
 
@@ -119,5 +122,13 @@ and `-duration` flags.
 
 ```shell-session
 $ consul debug -interval=15s -duration=1m
+...
+```
+
+To capture information since a particular time in past `-since` flag
+can be used.
+
+```shell-session
+$ consul debug -since 1h
 ...
 ```

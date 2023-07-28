@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -19,10 +16,8 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
-var (
-	metricsKeyMeshRootCAExpiry          = []string{"mesh", "active-root-ca", "expiry"}
-	metricsKeyMeshActiveSigningCAExpiry = []string{"mesh", "active-signing-ca", "expiry"}
-)
+var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
+var metricsKeyMeshActiveSigningCAExpiry = []string{"mesh", "active-signing-ca", "expiry"}
 
 var LeaderCertExpirationGauges = []prometheus.GaugeDefinition{
 	{
@@ -39,31 +34,30 @@ func rootCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	return CertExpirationMonitor{
 		Key:    metricsKeyMeshRootCAExpiry,
 		Logger: s.logger.Named(logging.Connect),
-		Query: func() (time.Duration, time.Duration, error) {
+		Query: func() (time.Duration, error) {
 			return getRootCAExpiry(s)
 		},
 	}
 }
 
-func getRootCAExpiry(s *Server) (time.Duration, time.Duration, error) {
+func getRootCAExpiry(s *Server) (time.Duration, error) {
 	state := s.fsm.State()
 	_, root, err := state.CARootActive(nil)
 	switch {
 	case err != nil:
-		return 0, 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+		return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
 	case root == nil:
-		return 0, 0, fmt.Errorf("no active root CA")
+		return 0, fmt.Errorf("no active root CA")
 	}
 
-	lifetime := time.Since(root.NotBefore) + time.Until(root.NotAfter)
-	return lifetime, time.Until(root.NotAfter), nil
+	return time.Until(root.NotAfter), nil
 }
 
 func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	return CertExpirationMonitor{
 		Key:    metricsKeyMeshActiveSigningCAExpiry,
 		Logger: s.logger.Named(logging.Connect),
-		Query: func() (time.Duration, time.Duration, error) {
+		Query: func() (time.Duration, error) {
 			if s.caManager.isIntermediateUsedToSignLeaf() {
 				return getActiveIntermediateExpiry(s)
 			}
@@ -72,28 +66,26 @@ func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	}
 }
 
-func getActiveIntermediateExpiry(s *Server) (time.Duration, time.Duration, error) {
+func getActiveIntermediateExpiry(s *Server) (time.Duration, error) {
 	state := s.fsm.State()
 	_, root, err := state.CARootActive(nil)
 	switch {
 	case err != nil:
-		return 0, 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+		return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
 	case root == nil:
-		return 0, 0, fmt.Errorf("no active root CA")
+		return 0, fmt.Errorf("no active root CA")
 	}
 
 	// the CA used in a secondary DC is the active intermediate,
 	// which is the last in the IntermediateCerts stack
 	if len(root.IntermediateCerts) == 0 {
-		return 0, 0, errors.New("no intermediate available")
+		return 0, errors.New("no intermediate available")
 	}
 	cert, err := connect.ParseCert(root.IntermediateCerts[len(root.IntermediateCerts)-1])
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
-
-	lifetime := time.Since(cert.NotBefore) + time.Until(cert.NotAfter)
-	return lifetime, time.Until(cert.NotAfter), nil
+	return time.Until(cert.NotAfter), nil
 }
 
 type CertExpirationMonitor struct {
@@ -104,11 +96,9 @@ type CertExpirationMonitor struct {
 	// then the metrics will expire before they are emitted again.
 	Labels []metrics.Label
 	Logger hclog.Logger
-	// Query is called at each interval. It should return 2 durations, the full
-	// lifespan of the certificate (NotBefore -> NotAfter) and the duration
-	// until the certificate expires (Now -> NotAfter), or an error if the
-	// query failed.
-	Query func() (time.Duration, time.Duration, error)
+	// Query is called at each interval. It should return the duration until the
+	// certificate expires, or an error if the query failed.
+	Query func() (time.Duration, error)
 }
 
 const certExpirationMonitorInterval = time.Hour
@@ -120,37 +110,18 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
 
 	emitMetric := func() {
-		lifetime, untilAfter, err := m.Query()
+		d, err := m.Query()
 		if err != nil {
 			logger.Warn("failed to emit certificate expiry metric", "error", err)
 			return
 		}
 
-		if expiresSoon(lifetime, untilAfter) {
-			key := strings.Join(m.Key, ":")
-			switch key {
-			case "mesh:active-root-ca:expiry":
-				logger.Warn("root certificate will expire soon",
-					"time_to_expiry", untilAfter,
-					"expiration", time.Now().Add(untilAfter),
-					"suggested_action", "manually rotate the root certificate",
-				)
-			case "mesh:active-signing-ca:expiry":
-				logger.Warn("signing (intermediate) certificate will expire soon",
-					"time_to_expiry", untilAfter,
-					"expiration", time.Now().Add(untilAfter),
-					"suggested_action", "check consul logs for rotation issues",
-				)
-			case "agent:tls:cert:expiry":
-				logger.Warn("agent TLS certificate will expire soon",
-					"time_to_expiry", untilAfter,
-					"expiration", time.Now().Add(untilAfter),
-					"suggested_action", "manually rotate this agent's certificate",
-				)
-			}
+		if d < 24*time.Hour {
+			logger.Warn("certificate will expire soon",
+				"time_to_expiry", d, "expiration", time.Now().Add(d))
 		}
 
-		expiry := untilAfter / time.Second
+		expiry := d / time.Second
 		metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
 	}
 
@@ -178,20 +149,4 @@ func initLeaderMetrics() {
 	for _, g := range LeaderCertExpirationGauges {
 		metrics.SetGaugeWithLabels(g.Name, float32(math.NaN()), g.ConstLabels)
 	}
-}
-
-// expiresSoon checks to see if we are close enough to the cert expiring that
-// we should send out a WARN log message.
-// It returns true if the cert will expire within 28 days or 40% of the
-// certificate's total duration (whichever is shorter).
-func expiresSoon(lifetime, untilAfter time.Duration) bool {
-	defaultPeriod := 28 * (24 * time.Hour) // 28 days
-	fortyPercent := (lifetime / 10) * 4    // 40% of total duration
-
-	warningPeriod := defaultPeriod
-	if fortyPercent < defaultPeriod {
-		warningPeriod = fortyPercent
-	}
-
-	return untilAfter < warningPeriod
 }

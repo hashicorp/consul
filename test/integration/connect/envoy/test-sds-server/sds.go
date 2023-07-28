@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package main
 
 import (
@@ -19,7 +16,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -68,7 +64,7 @@ func run(log hclog.Logger) error {
 
 	xdsServer := xds.NewServer(ctx, cache, callbacks)
 	grpcServer := grpc.NewServer()
-	grpclog.SetLoggerV2(logging.NewGRPCLogger("DEBUG", log))
+	grpclog.SetLogger(log.StandardLogger(nil))
 
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, xdsServer)
 
@@ -144,7 +140,7 @@ func makeLoggerCallbacks(log hclog.Logger) *xds.CallbackFuncs {
 			log.Trace("gRPC stream opened", "id", id, "addr", addr)
 			return nil
 		},
-		StreamClosedFunc: func(id int64, _ *core.Node) {
+		StreamClosedFunc: func(id int64) {
 			log.Trace("gRPC stream closed", "id", id)
 		},
 		StreamRequestFunc: func(id int64, req *discovery.DiscoveryRequest) error {
@@ -155,7 +151,7 @@ func makeLoggerCallbacks(log hclog.Logger) *xds.CallbackFuncs {
 			)
 			return nil
 		},
-		StreamResponseFunc: func(_ context.Context, id int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
+		StreamResponseFunc: func(id int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
 			log.Trace("gRPC stream response", "id", id,
 				"resp.typeURL", resp.TypeUrl,
 				"resp.version", resp.VersionInfo,

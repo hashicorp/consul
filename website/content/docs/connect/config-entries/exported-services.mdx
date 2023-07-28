@@ -62,18 +62,20 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Name": "default",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Consumers": [
-      {
-        "Peer": "<name of the peered cluster that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Name": "default",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Consumers": [
+        {
+          "Peer": "<name of the peered cluster that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -113,20 +115,22 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "Peer": "<name of the peered cluster that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "Peer": "<name of the peered cluster that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -166,74 +170,22 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "Partition": "<name of partition that dials the exported service>"
-      }
-    ]
-  }
-]
-```
-
-</CodeTabs>
-</Tab>
-
-
-<Tab heading="Consul Enterprise (Sameness Group)">
-<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "exported-services"
-Partition = "<partition containing services to export>"
-Name = "<partition containing services to export>"
-Services = [
-  {
-    Name = "<name of service to export>"
-    Namespace = "<namespace in the partition containing the service to export>"
-    Consumers = [
-      {
-        SamenessGroup = "<name of the sameness group that dials the exported service>"
-      }
-    ]
-  }
-]
-```
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ExportedServices
-metadata:
-  name: <partition containing services to export>
-spec:
-  services:
-    - name: <name of service to export>
-      namespace: <namespace in the partition containing the service to export>
-      consumers:
-        - samenessGroup: <name of the sameness group that dials the exported service>
-```
-
-```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "SamenessGroup": "<name of the sameness group that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "Partition": "<name of partition that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -269,9 +221,6 @@ an exported service. Each item in the `Consumers` list must contain exactly one 
 A asterisk wildcard (`*`) cannot be specified as the `Peer`. Added in Consul 1.13.0.
 - `Partition`: <EnterpriseAlert inline /> Specifies an admin partition in the datacenter to export the service to.
 A asterisk wildcard (`*`) cannot be specified as the `Partition`.
-- `SamenessGroup`: <EnterpriseAlert inline /> Specifies as sameness group to export the service to.
-A asterisk wildcard (`*`) cannot be specified as the `SamennessGroup`.
-
 
 ## Examples
 
@@ -326,7 +275,8 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Name": "default",
   "Services": [
     {
@@ -334,8 +284,8 @@ spec:
       "Consumers": [
         {
           "Peer": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -346,6 +296,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -402,18 +353,19 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "payments",
-      "Namespace": "billing"
+      "Namespace": "billing",
       "Consumers": [
         {
           "Peer": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -425,6 +377,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -448,7 +401,7 @@ Services = [
     Consumers = [
         {
             Partition  = "web-shop"
-        },
+        }
     ]
   },
   {
@@ -481,18 +434,19 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "payments",
-      "Namespace": "billing"
+      "Namespace": "billing",
       "Consumers": [
         {
           "Partition": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -504,62 +458,12 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
 </Tab>
 </Tabs>
-
-### Exporting a service to a sameness group
-
-The following example configures Consul to export a service named `api` to a defined group of partitions that belong to a separately defined [sameness group](/consul/docs/connect/config-entries/sameness-group) named `monitoring`.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "exported-services"
-Name = "default"
-
-Services = [
-  {
-    Name      = "api"
-    Consumers = [
-        {
-            SamenessGroup  = "monitoring"
-        }
-    ]
-  }
-]
-```
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-Kind: ExportedServices
-metadata:
-  name: default
-spec:
-  services:
-    - name: api
-      consumers:
-        - samenessGroup: monitoring
-```
-
-```json
-"Kind": "exported-services",
-  "Name": "default",
-  "Services": [
-    {
-      "Name": "api",
-      "Consumers": [
-        {
-          "SamenessGroup": "monitoring"
-        }
-      ]
-    }
-  ]
-```
-
-</CodeTabs>
 
 ### Exporting all services
 
@@ -603,12 +507,13 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Name": "default",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Peer": "monitoring"
@@ -619,6 +524,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -666,13 +572,14 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Peer": "monitoring"
@@ -683,6 +590,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -730,13 +638,14 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Partition": "monitoring"
@@ -747,6 +656,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -813,7 +723,6 @@ node_prefix "" {
     }
   }
 }
-
 ```
 
 </CodeTabs>
@@ -865,29 +774,30 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service": {
+          "service": {
             "web": {
-			  "policy": "write"
+              "policy": "write"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
+
 
 ## OR
 
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service_prefix": {
+          "service_prefix": {
             "": {
               "policy": "read"
             }
@@ -897,9 +807,9 @@ partition "frontend" {
               "policy": "read"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 ```
@@ -953,17 +863,17 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service": {
+          "service": {
             "web": {
-			  "policy": "write"
+              "policy": "write"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 
@@ -972,10 +882,10 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service_prefix": {
+          "service_prefix": {
             "": {
               "policy": "read"
             }
@@ -985,9 +895,9 @@ partition "frontend" {
               "policy": "read"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 ```

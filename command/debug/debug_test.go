@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package debug
 
 import (
@@ -93,6 +90,33 @@ func TestDebugCommand(t *testing.T) {
 	assert.Assert(t, fs.Equal(testDir, expected))
 
 	require.Equal(t, "", ui.ErrorWriter.String(), "expected no error output")
+}
+
+func TestDebugCommand_WithSinceFlag(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := agent.NewTestAgent(t, `
+		enable_debug = true
+	`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+	cmd.validateTiming = false
+
+	args := []string{
+		"-since=1m",
+	}
+
+	t.Setenv("CONSUL_HTTP_ADDR", a.HTTPAddr())
+
+	code := cmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Equal(t, "", ui.ErrorWriter.String())
 }
 
 func validLogFile(raw []byte) fs.CompareResult {

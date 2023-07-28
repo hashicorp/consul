@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import createListeners from 'consul-ui/utils/dom/create-listeners';
 import { module, test } from 'qunit';
 import sinon from 'sinon';

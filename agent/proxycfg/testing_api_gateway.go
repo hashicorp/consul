@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
@@ -11,7 +8,6 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -88,15 +84,12 @@ func TestConfigSnapshotAPIGateway(
 			},
 		}
 
-		set := configentry.NewDiscoveryChainSet()
-		set.AddEntries(entries...)
-
 		// Add a discovery chain watch event for each service.
 		for _, serviceName := range route.GetServiceNames() {
 			discoChain := UpdateEvent{
 				CorrelationID: fmt.Sprintf("discovery-chain:%s", UpstreamIDString("", "", serviceName.Name, &serviceName.EnterpriseMeta, "")),
 				Result: &structs.DiscoveryChainResponse{
-					Chain: discoverychain.TestCompileConfigEntries(t, serviceName.Name, "default", "default", "dc1", connect.TestClusterID+".consul", nil, set),
+					Chain: discoverychain.TestCompileConfigEntries(t, serviceName.Name, "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...),
 				},
 			}
 			baseEvents = append(baseEvents, discoChain)

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -438,8 +435,8 @@ func TestACL_HTTP(t *testing.T) {
 			policies, ok := raw.(structs.ACLPolicyListStubs)
 			require.True(t, ok)
 
-			// 2 we just created + global management
-			require.Len(t, policies, 3)
+			// 2 we just created + builtin policies
+			require.Len(t, policies, 2+len(structs.ACLBuiltinPolicies))
 
 			for policyID, expected := range policyMap {
 				found := false
@@ -1327,6 +1324,38 @@ func TestACL_HTTP(t *testing.T) {
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
 			testutil.RequireErrorContains(t, err, "Only lowercase alphanumeric")
+		})
+
+		t.Run("Create with valid service identity", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "token for service identity sn1",
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{
+						ServiceName: "sn1",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
+		})
+
+		t.Run("List by ServiceName", func(t *testing.T) {
+			req, _ := http.NewRequest("GET", "/v1/acl/tokens?servicename=sn1", nil)
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			raw, err := a.srv.ACLTokenList(resp, req)
+			require.NoError(t, err)
+			tokens, ok := raw.(structs.ACLTokenListStubs)
+			require.True(t, ok)
+			require.Len(t, tokens, 1)
+			token := tokens[0]
+			require.Equal(t, "token for service identity sn1", token.Description)
+			require.Len(t, token.ServiceIdentities, 1)
+			require.Equal(t, "sn1", token.ServiceIdentities[0].ServiceName)
 		})
 	})
 }

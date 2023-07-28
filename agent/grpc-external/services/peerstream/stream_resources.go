@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peerstream
 
 import (
@@ -24,8 +21,8 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 type BidirectionalStream interface {
@@ -319,7 +316,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	logger := s.Logger.Named("stream").
 		With("peer_name", streamReq.PeerName).
 		With("peer_id", streamReq.LocalID).
-		With("dialer", !streamReq.IsAcceptor())
+		With("dailer", !streamReq.IsAcceptor())
 	logger.Trace("handling stream for peer")
 
 	// handleStreamCtx is local to this function.

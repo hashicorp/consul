@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';

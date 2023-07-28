@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .app .skip-links {
   @extend %skip-links;
 }
@@ -10,10 +5,14 @@
   @extend %app-notifications;
 }
 %app-notifications {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
   position: fixed;
-  z-index: 100;
-  bottom: 2rem;
-  left: 1.5rem;
+  z-index: 50;
+  top: -45px;
+  left: 0;
 
   pointer-events: none;
 }
@@ -78,11 +77,12 @@ main {
   @extend %transition-pushover;
 }
 %footer {
-  @extend %body-100-regular;
   position: fixed;
   z-index: 50;
 
-  color: var(--token-color-foreground-disabled);
+  color: rgb(var(--tone-gray-400));
+  font-size: var(--typo-size-800);
+
   width: 250px;
   padding-left: 25px;
 }
@@ -125,6 +125,7 @@ main {
   %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
     left: calc(var(--chrome-width, 280px) * -1);
   }
+  %main-nav-horizontal-toggle ~ main .notifications,
   %main-nav-horizontal-toggle ~ main {
     margin-left: var(--chrome-width, 280px);
   }

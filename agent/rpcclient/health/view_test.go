@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package health
 
 import (
@@ -20,10 +17,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -721,7 +718,7 @@ func newNewSnapshotToFollowEvent() *pbsubscribe.Event {
 }
 
 // getNamespace returns a namespace if namespace support exists, otherwise
-// returns the empty string. It allows the same tests to work in both oss and ent
+// returns the empty string. It allows the same tests to work in both ce and ent
 // without duplicating the tests.
 func getNamespace(ns string) string {
 	meta := structs.NewEnterpriseMetaInDefaultPartition(ns)
@@ -979,13 +976,4 @@ func TestHealthView_SkipFilteringTerminatingGateways(t *testing.T) {
 	require.Len(t, node.Nodes, 1)
 	require.Equal(t, "127.0.0.1", node.Nodes[0].Service.Address)
 	require.Equal(t, 8443, node.Nodes[0].Service.Port)
-}
-
-func TestConfigEntryListView_Reset(t *testing.T) {
-	emptyMap := make(map[string]structs.CheckServiceNode)
-	view := &HealthView{state: map[string]structs.CheckServiceNode{
-		"test": {},
-	}}
-	view.Reset()
-	require.Equal(t, emptyMap, view.state)
 }

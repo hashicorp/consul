@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -420,34 +417,11 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	if s.InPrimaryDatacenter() {
 		s.logger.Info("initializing acls")
 
-		// Create/Upgrade the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-		if err != nil {
-			return fmt.Errorf("failed to get the builtin global-management policy")
-		}
-		if policy == nil || policy.Rules != structs.ACLPolicyGlobalManagement {
-			newPolicy := structs.ACLPolicy{
-				ID:             structs.ACLPolicyGlobalManagementID,
-				Name:           "global-management",
-				Description:    "Builtin Policy that grants unlimited access",
-				Rules:          structs.ACLPolicyGlobalManagement,
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		// Create/Upgrade the builtin policies
+		for _, policy := range structs.ACLBuiltinPolicies {
+			if err := s.writeBuiltinACLPolicy(policy); err != nil {
+				return err
 			}
-			if policy != nil {
-				newPolicy.Name = policy.Name
-				newPolicy.Description = policy.Description
-			}
-
-			newPolicy.SetHash(true)
-
-			req := structs.ACLPolicyBatchSetRequest{
-				Policies: structs.ACLPolicies{&newPolicy},
-			}
-			_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to create global-management policy: %v", err)
-			}
-			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
 		// Check for configured initial management token.
@@ -489,6 +463,36 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	s.startACLTokenReaping(ctx)
 
+	return nil
+}
+
+// writeBuiltinACLPolicy writes the given built-in policy to Raft if the policy
+// is not found or if the policy rules have been changed. The name and
+// description of a built-in policy are user-editable and must be preserved
+// during updates. This function must only be called in a primary datacenter.
+func (s *Server) writeBuiltinACLPolicy(newPolicy structs.ACLPolicy) error {
+	_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, newPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
+	if err != nil {
+		return fmt.Errorf("failed to get the builtin %s policy", newPolicy.Name)
+	}
+	if policy == nil || policy.Rules != newPolicy.Rules {
+		if policy != nil {
+			newPolicy.Name = policy.Name
+			newPolicy.Description = policy.Description
+		}
+
+		newPolicy.EnterpriseMeta = *structs.DefaultEnterpriseMetaInDefaultPartition()
+		newPolicy.SetHash(true)
+
+		req := structs.ACLPolicyBatchSetRequest{
+			Policies: structs.ACLPolicies{&newPolicy},
+		}
+		_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
+		if err != nil {
+			return fmt.Errorf("failed to create %s policy: %v", newPolicy.Name, err)
+		}
+		s.logger.Info(fmt.Sprintf("Created ACL '%s' policy", newPolicy.Name))
+	}
 	return nil
 }
 
@@ -1087,13 +1091,6 @@ AFTER_CHECK:
 		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
 	)
 
-	// Get consul version from serf member
-	// add this as node meta in catalog register request
-	buildVersion, err := metadata.Build(&member)
-	if err != nil {
-		return err
-	}
-
 	// Register with the catalog.
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
@@ -1109,9 +1106,6 @@ AFTER_CHECK:
 			Output:  structs.SerfCheckAliveOutput,
 		},
 		EnterpriseMeta: *nodeEntMeta,
-		NodeMeta: map[string]string{
-			structs.MetaConsulVersion: buildVersion.String(),
-		},
 	}
 	if node != nil {
 		req.TaggedAddresses = node.TaggedAddresses

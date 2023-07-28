@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -107,8 +104,7 @@ type AgentService struct {
 	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	// Datacenter is only ever returned and is ignored if presented.
-	Datacenter string    `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Locality   *Locality `json:",omitempty" bexpr:"-" hash:"ignore"`
+	Datacenter string `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
@@ -297,7 +293,6 @@ type AgentServiceRegistration struct {
 	Connect           *AgentServiceConnect            `json:",omitempty"`
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Locality          *Locality                       `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // ServiceRegisterOpts is used to pass extra options to the service register.
@@ -490,24 +485,6 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 // a operator:read ACL token.
 func (a *Agent) Host() (map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/host")
-	_, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return nil, err
-	}
-	var out map[string]interface{}
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Version is used to retrieve information about the running Consul version and build.
-func (a *Agent) Version() (map[string]interface{}, error) {
-	r := a.c.newRequest("GET", "/v1/agent/version")
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
@@ -1079,17 +1056,8 @@ func (a *Agent) ForceLeavePrune(node string) error {
 
 // ForceLeaveOpts is used to have the agent eject a failed node or remove it
 // completely from the list of members.
-//
-// DEPRECATED - Use ForceLeaveOptions instead.
 func (a *Agent) ForceLeaveOpts(node string, opts ForceLeaveOpts) error {
-	return a.ForceLeaveOptions(node, opts, nil)
-}
-
-// ForceLeaveOptions is used to have the agent eject a failed node or remove it
-// completely from the list of members. Allows usage of QueryOptions on-top of ForceLeaveOpts
-func (a *Agent) ForceLeaveOptions(node string, opts ForceLeaveOpts, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	r.setQueryOptions(q)
 	if opts.Prune {
 		r.params.Set("prune", "1")
 	}

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -42,21 +39,21 @@ func TestStateStore_GetNodeID(t *testing.T) {
 
 	_, out, err := s.GetNodeID(types.NodeID("wrongId"), nil, "")
 	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: UUID (without hyphens) must be") {
-		t.Errorf("want an error, nil value, err:=%q ; out:=%+v", err.Error(), out)
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
 	}
 	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"), nil, "")
 	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
-		t.Errorf("want an error, nil value, err:=%q ; out:=%+v", err, out)
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
 	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"), nil, "")
 	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
-		t.Errorf("want an error, nil value, err:=%q ; out:=%+v", err, out)
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
 	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"), nil, "")
 	if err != nil || out != nil {
-		t.Errorf("do not want any error nor returned value, err:=%q ; out:=%+v", err, out)
+		t.Errorf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
 	}
 
 	nodeID := types.NodeID("00a916bc-a357-4a19-b886-59419fceeaaa")
@@ -222,7 +219,6 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				TaggedAddresses: map[string]string{"hello": "world"},
 				NodeMeta:        map[string]string{"somekey": "somevalue"},
 				PeerName:        peerName,
-				Locality:        &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 			}
 			if f != nil {
 				f(req)
@@ -240,7 +236,6 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Meta:            map[string]string{"somekey": "somevalue"},
 				RaftIndex:       structs.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
 				PeerName:        peerName,
-				Locality:        &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 			}
 
 			_, out, err := s.GetNode("node1", nil, peerName)
@@ -264,7 +259,6 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					RaftIndex:      structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					PeerName:       peerName,
-					Locality:       &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				},
 			}
 
@@ -374,7 +368,6 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					Meta:     map[string]string{strings.Repeat("a", 129): "somevalue"},
 					Tags:     []string{"primary"},
 					PeerName: peerName,
-					Locality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				}
 			})
 			testutil.RequireErrorContains(t, s.EnsureRegistration(9, req), `Key is too long (limit: 128 characters)`)
@@ -391,7 +384,6 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					Tags:     []string{"primary"},
 					Weights:  &structs.Weights{Passing: 1, Warning: 1},
 					PeerName: peerName,
-					Locality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				}
 			})
 			require.NoError(t, s.EnsureRegistration(2, req))
@@ -412,7 +404,6 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					Tags:     []string{"primary"},
 					Weights:  &structs.Weights{Passing: 1, Warning: 1},
 					PeerName: peerName,
-					Locality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				}
 				req.Check = &structs.HealthCheck{
 					Node:     "node1",
@@ -441,7 +432,6 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					Tags:     []string{"primary"},
 					Weights:  &structs.Weights{Passing: 1, Warning: 1},
 					PeerName: peerName,
-					Locality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				}
 				req.Check = &structs.HealthCheck{
 					Node:     "node1",
@@ -949,7 +939,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 	}
 
 	if _, node, err := s.GetNodeID(nodeID1, nil, ""); err != nil || node == nil || node.ID != nodeID1 {
-		t.Fatalf("err: %s, node:= %+v", err, node)
+		t.Fatalf("err: %s, node:= %q", err, node)
 	}
 
 	if _, node, err := s.GetNodeID(nodeID2, nil, ""); err != nil && node == nil || node.ID != nodeID2 {
@@ -1131,7 +1121,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	_, out, err = s.GetNode("node1", nil, "")
 	require.NoError(t, err)
 	if out != nil {
-		t.Fatalf("Node should not exist anymore: %+v", out)
+		t.Fatalf("Node should not exist anymore: %q", out)
 	}
 
 	idx, out, err = s.GetNode("node1-renamed", nil, "")
@@ -1287,10 +1277,10 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("[DEPRECATED] err: %s", err)
 	}
 	if out.CreateIndex != 10 {
-		t.Fatalf("[DEPRECATED] We expected to modify node previously added, but add index = %d for node %+v", out.CreateIndex, out)
+		t.Fatalf("[DEPRECATED] We expected to modify node previously added, but add index = %d for node %q", out.CreateIndex, out)
 	}
 	if out.Address != "1.1.1.66" || out.ModifyIndex != 15 {
-		t.Fatalf("[DEPRECATED] Node with newNodeID should have been updated, but was: %d with content := %+v", out.CreateIndex, out)
+		t.Fatalf("[DEPRECATED] Node with newNodeID should have been updated, but was: %d with content := %q", out.CreateIndex, out)
 	}
 }
 
@@ -1957,87 +1947,6 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
 	assert.Equal(t, vip, taggedAddress.Address)
 	assert.Equal(t, ns5.Port, taggedAddress.Port)
-}
-
-func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
-	s := testStateStore(t)
-	setVirtualIPFlags(t, s)
-
-	// Attempt to assign manual virtual IPs to a service that doesn't exist - should be a no-op.
-	psn := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo", EnterpriseMeta: *acl.DefaultEnterpriseMeta()}}
-	found, svcs, err := s.AssignManualServiceVIPs(0, psn, []string{"7.7.7.7", "8.8.8.8"})
-	require.NoError(t, err)
-	require.False(t, found)
-	require.Empty(t, svcs)
-	serviceVIP, err := s.ServiceManualVIPs(psn)
-	require.NoError(t, err)
-	require.Nil(t, serviceVIP)
-
-	// Create the service registration.
-	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
-	ns1 := &structs.NodeService{
-		ID:             "foo",
-		Service:        "foo",
-		Address:        "1.1.1.1",
-		Port:           1111,
-		Connect:        structs.ServiceConnect{Native: true},
-		EnterpriseMeta: *entMeta,
-	}
-
-	// Service successfully registers into the state store.
-	testRegisterNode(t, s, 0, "node1")
-	require.NoError(t, s.EnsureService(1, "node1", ns1))
-
-	// Make sure there's a virtual IP for the foo service.
-	vip, err := s.VirtualIPForService(psn)
-	require.NoError(t, err)
-	assert.Equal(t, "240.0.0.1", vip)
-
-	// No manual IP should be set yet.
-	serviceVIP, err = s.ServiceManualVIPs(psn)
-	require.NoError(t, err)
-	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
-	require.Empty(t, serviceVIP.ManualIPs)
-
-	// Attempt to assign manual virtual IPs again.
-	found, svcs, err = s.AssignManualServiceVIPs(2, psn, []string{"7.7.7.7", "8.8.8.8"})
-	require.NoError(t, err)
-	require.True(t, found)
-	require.Empty(t, svcs)
-	serviceVIP, err = s.ServiceManualVIPs(psn)
-	require.NoError(t, err)
-	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
-	require.Equal(t, serviceVIP.ManualIPs, []string{"7.7.7.7", "8.8.8.8"})
-
-	// Register another service via config entry.
-	s.EnsureConfigEntry(3, &structs.ServiceResolverConfigEntry{
-		Kind: structs.ServiceResolver,
-		Name: "bar",
-	})
-
-	psn2 := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "bar"}}
-	vip, err = s.VirtualIPForService(psn2)
-	require.NoError(t, err)
-	assert.Equal(t, "240.0.0.2", vip)
-
-	// Attempt to assign manual virtual IPs for bar, with one IP overlapping with foo.
-	// This should cause the ip to be removed from foo's list of manual IPs.
-	found, svcs, err = s.AssignManualServiceVIPs(4, psn2, []string{"7.7.7.7", "9.9.9.9"})
-	require.NoError(t, err)
-	require.True(t, found)
-	require.ElementsMatch(t, svcs, []structs.PeeredServiceName{psn})
-
-	serviceVIP, err = s.ServiceManualVIPs(psn)
-	require.NoError(t, err)
-	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
-	require.Equal(t, []string{"8.8.8.8"}, serviceVIP.ManualIPs)
-	require.Equal(t, uint64(4), serviceVIP.ModifyIndex)
-
-	serviceVIP, err = s.ServiceManualVIPs(psn2)
-	require.NoError(t, err)
-	require.Equal(t, "0.0.0.2", serviceVIP.IP.String())
-	require.Equal(t, []string{"7.7.7.7", "9.9.9.9"}, serviceVIP.ManualIPs)
-	require.Equal(t, uint64(4), serviceVIP.ModifyIndex)
 }
 
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
@@ -4837,9 +4746,6 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	}
 
 	// Register some nodes
-	// node1 is registered withOut any nodemeta, and a consul service with id
-	// 'consul' is added later with meta 'version'. The expected node must have
-	// meta 'consul-version' with same value
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
@@ -4848,8 +4754,6 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	testRegisterService(t, s, 3, "node1", "service2")
 	testRegisterService(t, s, 4, "node2", "service1")
 	testRegisterService(t, s, 5, "node2", "service2")
-	// Register consul service with meta 'version' for node1
-	testRegisterServiceWithMeta(t, s, 10, "node1", "consul", map[string]string{"version": "1.17.0"})
 
 	// Register service-level checks
 	testRegisterCheck(t, s, 6, "node1", "service1", "check1", api.HealthPassing)
@@ -4900,19 +4804,6 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 			},
 			Services: []*structs.NodeService{
 				{
-					ID:      "consul",
-					Service: "consul",
-					Address: "1.1.1.1",
-					Meta:    map[string]string{"version": "1.17.0"},
-					Port:    1111,
-					Weights: &structs.Weights{Passing: 1, Warning: 1},
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 10,
-						ModifyIndex: 10,
-					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				},
-				{
 					ID:      "service1",
 					Service: "service1",
 					Address: "1.1.1.1",
@@ -4939,7 +4830,6 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
-			Meta: map[string]string{"consul-version": "1.17.0"},
 		},
 		&structs.NodeInfo{
 			Node:      "node2",
@@ -5007,7 +4897,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 10 {
+	if idx != 9 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	require.Len(t, dump, 1)
@@ -5018,8 +4908,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 10 {
-		t.Fatalf("bad index: %d", idx)
+	if idx != 9 {
+		t.Fatalf("bad index: %d", 9)
 	}
 	if !reflect.DeepEqual(dump, expect) {
 		t.Fatalf("bad: %#v", dump[0].Services[0])
@@ -8309,6 +8199,85 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 
 	// Now delete the node "foo", and this would panic because of the deletion within an iterator
 	require.NoError(t, s.DeleteNode(6, "foo", nil, ""))
+}
+
+func TestCatalog_cleanupGatewayWildcards_proxy(t *testing.T) {
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	require.NoError(t, s.EnsureConfigEntry(3, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "my-gateway-2-ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}))
+
+	// Register two services, a regular service, and a sidecar proxy for it
+	api := structs.NodeService{
+		ID:             "api",
+		Service:        "api",
+		Address:        "127.0.0.2",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(4, "foo", &api))
+	proxy := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "api-proxy",
+		Service: "api-proxy",
+		Address: "127.0.0.3",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "api",
+			DestinationServiceID:   "api",
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(5, "foo", &proxy))
+
+	// make sure we have only one gateway service
+	_, services, err := s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+
+	// now delete the target service
+	require.NoError(t, s.DeleteService(6, "foo", "api", nil, ""))
+
+	// at this point we still have the gateway services because we have a connect proxy still
+	_, services, err = s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+
+	// now delete the connect proxy
+	require.NoError(t, s.DeleteService(7, "foo", "api-proxy", nil, ""))
+
+	// make sure we no longer have any services
+	_, services, err = s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 0)
 }
 
 func TestCatalog_DownstreamsForService(t *testing.T) {

@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 {{yield}}
 <StateChart @src={{chart}} as |State Guard Action dispatch state|>
   <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
@@ -61,13 +56,22 @@
         {{#yield-slot name="disconnected" params=(block-params (action dispatch "RESET"))}}
             {{yield api}}
         {{else}}
-          <Hds::Toast @color='warning'
+          <Notice
             {{notification
               sticky=true
-            }} as |T|>
-            <T.Title>Warning!</T.Title>
-            <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
-          </Hds::Toast>
+            }}
+            class="notification-update"
+            @type="warning"
+          as |notice|>
+            <notice.Header>
+              <strong>Warning!</strong>
+            </notice.Header>
+            <notice.Body>
+              <p>
+                An error was returned whilst loading this data, refresh to try again.
+              </p>
+            </notice.Body>
+          </Notice>
         {{/yield-slot}}
       {{/if}}
     </State>

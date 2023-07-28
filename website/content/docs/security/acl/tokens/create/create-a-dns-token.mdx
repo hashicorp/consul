@@ -170,6 +170,13 @@ The following example policy is defined in a file. The policy grants the appropr
 <CodeTabs>
 
 ```hcl
+partition "default" {
+	namespace "default" {
+		query_prefix "" {
+			policy = "read"
+		}
+	}
+}
 partition_prefix "" {
   namespace_prefix "" {
     node_prefix "" {
@@ -178,25 +185,30 @@ partition_prefix "" {
     service_prefix "" {
       policy = "read"
     }
-    query_prefix "" {
-      policy = "read"
-    }
   }
 }
 ```
 
 ```json
 {
+  "partition": {
+    "default": [{
+      "namespace": {
+        "default": [{
+          "query_prefix": {
+            "": [{
+              "policy": "read"
+            }]
+          }
+        }]
+      }
+    }]
+  },
   "partition_prefix": {
     "": [{
       "namespace_prefix": {
         "": [{
           "node_prefix": {
-            "": [{
-              "policy": "read"
-            }]
-          },
-          "query_prefix": {
             "": [{
               "policy": "read"
             }]

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
@@ -209,9 +206,6 @@ func DevSource() Source {
 		ports = {
 			grpc = 8502
 		}
-		experiments = [
-			"resource-apis"
-		]
 	`,
 	}
 }

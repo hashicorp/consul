@@ -1,44 +1,44 @@
 {
-  "versionInfo": "00000001",
-  "resources": [
+  "versionInfo":  "00000001",
+  "resources":  [
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "http:1.2.3.4:8081",
-      "address": {
-        "socketAddress": {
-          "address": "1.2.3.4",
-          "portValue": 8081
+      "@type":  "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name":  "http:1.2.3.4:8081",
+      "address":  {
+        "socketAddress":  {
+          "address":  "1.2.3.4",
+          "portValue":  8081
         }
       },
-      "filterChains": [
+      "filterChains":  [
         {
-          "filters": [
+          "filters":  [
             {
-              "name": "envoy.filters.network.http_connection_manager",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream_8081",
-                "rds": {
-                  "configSource": {
-                    "ads": {},
-                    "resourceApiVersion": "V3"
+              "name":  "envoy.filters.network.http_connection_manager",
+              "typedConfig":  {
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "statPrefix":  "ingress_upstream_8081",
+                "rds":  {
+                  "configSource":  {
+                    "ads":  {},
+                    "resourceApiVersion":  "V3"
                   },
-                  "routeConfigName": "8081"
+                  "routeConfigName":  "8081"
                 },
-                "httpFilters": [
+                "httpFilters":  [
                   {
-                    "name": "envoy.filters.http.router",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    "name":  "envoy.filters.http.router",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
                     }
                   }
                 ],
-                "tracing": {
-                  "randomSampling": {}
+                "tracing":  {
+                  "randomSampling":  {}
                 },
-                "upgradeConfigs": [
+                "upgradeConfigs":  [
                   {
-                    "upgradeType": "websocket"
+                    "upgradeType":  "websocket"
                   }
                 ]
               }
@@ -46,34 +46,34 @@
           ]
         }
       ],
-      "trafficDirection": "OUTBOUND"
+      "trafficDirection":  "OUTBOUND"
     },
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "tcp-service:1.2.3.4:8080",
-      "address": {
-        "socketAddress": {
-          "address": "1.2.3.4",
-          "portValue": 8080
+      "@type":  "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name":  "tcp-service:1.2.3.4:8080",
+      "address":  {
+        "socketAddress":  {
+          "address":  "1.2.3.4",
+          "portValue":  8080
         }
       },
-      "filterChains": [
+      "filterChains":  [
         {
-          "filters": [
+          "filters":  [
             {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.tcp-service.default.default.dc1",
-                "cluster": "tcp-service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              "name":  "envoy.filters.network.tcp_proxy",
+              "typedConfig":  {
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix":  "upstream.tcp-service.default.default.dc1",
+                "cluster":  "tcp-service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
         }
       ],
-      "trafficDirection": "OUTBOUND"
+      "trafficDirection":  "OUTBOUND"
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "typeUrl":  "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "nonce":  "00000001"
 }

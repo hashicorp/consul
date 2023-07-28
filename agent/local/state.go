@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package local
 
 import (
@@ -62,7 +59,6 @@ type Config struct {
 	DiscardCheckOutput  bool
 	NodeID              types.NodeID
 	NodeName            string
-	NodeLocality        *structs.Locality
 	Partition           string // this defaults if empty
 	TaggedAddresses     map[string]string
 }
@@ -838,6 +834,12 @@ func (l *State) setCheckStateLocked(c *CheckState) {
 	existing := l.checks[id]
 	if existing != nil {
 		c.InSync = c.Check.IsSame(existing.Check)
+		// If the existing check has a Defercheck, it needs to be
+		// assigned to the new check
+		if existing.DeferCheck != nil && c.DeferCheck == nil {
+			c.DeferCheck = existing.DeferCheck
+			c.InSync = false
+		}
 	}
 
 	l.checks[id] = c
@@ -1077,7 +1079,6 @@ func (l *State) updateSyncState() error {
 	// Check if node info needs syncing
 	if svcNode == nil || svcNode.ID != l.config.NodeID ||
 		!reflect.DeepEqual(svcNode.TaggedAddresses, l.config.TaggedAddresses) ||
-		!reflect.DeepEqual(svcNode.Locality, l.config.NodeLocality) ||
 		!reflect.DeepEqual(svcNode.Meta, l.metadata) {
 		l.nodeInfoInSync = false
 	}
@@ -1571,7 +1572,6 @@ func (l *State) syncNodeInfo() error {
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
-		Locality:        l.config.NodeLocality,
 		NodeMeta:        l.metadata,
 		EnterpriseMeta:  l.agentEnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: at},

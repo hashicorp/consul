@@ -1,12 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %block-code,
 %inline-code {
   border: 1px solid;
-  color: var(--token-color-consul-brand);
-  background-color: var(--token-color-surface-strong);
-  border-color: var(--token-color-surface-interactive-active);
+  color: rgb(var(--tone-brand-600));
+  background-color: rgb(var(--tone-gray-050));
+  border-color: rgb(var(--tone-gray-200));
 }

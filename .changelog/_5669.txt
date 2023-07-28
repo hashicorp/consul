@@ -1,3 +1,0 @@
-```release-note:improvement
-audit-logging: **(Enterprise only)** enable error response and request body logging
-```

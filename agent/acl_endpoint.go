@@ -1,11 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
@@ -145,6 +143,12 @@ func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID, policyName string) (interface{}, error) {
+	// policy name needs to be unescaped in case there were `/` characters
+	policyName, err := url.QueryUnescape(policyName)
+	if err != nil {
+		return nil, err
+	}
+
 	args := structs.ACLPolicyGetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		PolicyID:   policyID,
@@ -287,6 +291,7 @@ func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request)
 	args.Policy = req.URL.Query().Get("policy")
 	args.Role = req.URL.Query().Get("role")
 	args.AuthMethod = req.URL.Query().Get("authmethod")
+	args.ServiceName = req.URL.Query().Get("servicename")
 	if err := parseACLAuthMethodEnterpriseMeta(req, &args.ACLAuthMethodEnterpriseMeta); err != nil {
 		return nil, err
 	}

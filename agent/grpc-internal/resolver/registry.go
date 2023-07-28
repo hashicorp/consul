@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package resolver
 
 import (
@@ -23,10 +20,10 @@ func (r *registry) Build(target resolver.Target, cc resolver.ClientConn, opts re
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	//nolint:staticcheck
-	res, ok := r.byAuthority[target.Authority]
+	res, ok := r.byAuthority[target.URL.Host]
 	if !ok {
 		//nolint:staticcheck
-		return nil, fmt.Errorf("no resolver registered for %v", target.Authority)
+		return nil, fmt.Errorf("no resolver registered for %v", target.URL.Host)
 	}
 	return res.Build(target, cc, opts)
 }

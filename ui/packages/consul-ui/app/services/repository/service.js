@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import RepositoryService from 'consul-ui/services/repository';
 import dataSource from 'consul-ui/decorators/data-source';
 import { inject as service } from '@ember/service';

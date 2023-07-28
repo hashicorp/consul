@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -17,8 +14,6 @@ import (
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/go-hclog"
-	goversion "github.com/hashicorp/go-version"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,7 +26,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/version"
@@ -258,7 +252,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				s.ResourceMapMutateFn(newResourceMap)
 			}
 
-			if err = s.applyEnvoyExtensions(newResourceMap, cfgSnap, node); err != nil {
+			if err = s.applyEnvoyExtensions(newResourceMap, cfgSnap); err != nil {
 				// err is already the result of calling status.Errorf
 				return err
 			}
@@ -403,128 +397,69 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	}
 }
 
-func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot, node *envoy_config_core_v3.Node) error {
-	var err error
-	envoyVersion := xdscommon.DetermineEnvoyVersionFromNode(node)
-	consulVersion, err := goversion.NewVersion(version.Version)
-
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "failed to parse Consul version")
-	}
-
+func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot) error {
 	serviceConfigs := extensionruntime.GetRuntimeConfigurations(cfgSnap)
 	for _, cfgs := range serviceConfigs {
 		for _, cfg := range cfgs {
-			err = applyEnvoyExtension(s.Logger, cfgSnap, resources, cfg, envoyVersion, consulVersion)
+			logFn := s.Logger.Warn
+			if cfg.EnvoyExtension.Required {
+				logFn = s.Logger.Error
+			}
+			errorParams := []interface{}{
+				"extension", cfg.EnvoyExtension.Name,
+				"service", cfg.ServiceName.Name,
+				"namespace", cfg.ServiceName.Namespace,
+				"partition", cfg.ServiceName.Partition,
+			}
 
+			getMetricLabels := func(err error) []metrics.Label {
+				return []metrics.Label{
+					{Name: "extension", Value: cfg.EnvoyExtension.Name},
+					{Name: "version", Value: "builtin/" + version.Version},
+					{Name: "service", Value: cfgSnap.Service},
+					{Name: "partition", Value: cfgSnap.ProxyID.PartitionOrDefault()},
+					{Name: "namespace", Value: cfgSnap.ProxyID.NamespaceOrDefault()},
+					{Name: "error", Value: strconv.FormatBool(err != nil)},
+				}
+			}
+
+			now := time.Now()
+			extender, err := envoyextensions.ConstructExtension(cfg.EnvoyExtension)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate_arguments"}, now, getMetricLabels(err))
 			if err != nil {
-				return err
+				logFn("failed to construct extension", errorParams...)
+
+				if cfg.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to construct extension %q for service %q", cfg.EnvoyExtension.Name, cfg.ServiceName.Name)
+				}
+
+				continue
 			}
-		}
-	}
 
-	return nil
-}
+			now = time.Now()
+			err = extender.Validate(&cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate"}, now, getMetricLabels(err))
+			if err != nil {
+				errorParams = append(errorParams, "error", err)
+				logFn("failed to validate extension arguments", errorParams...)
+				if cfg.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to validate arguments for extension %q for service %q", cfg.EnvoyExtension.Name, cfg.ServiceName.Name)
+				}
 
-func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, resources *xdscommon.IndexedResources, runtimeConfig extensioncommon.RuntimeConfig, envoyVersion, consulVersion *goversion.Version) error {
-	logFn := logger.Warn
-	if runtimeConfig.EnvoyExtension.Required {
-		logFn = logger.Error
-	}
-
-	svc := runtimeConfig.ServiceName
-
-	errorParams := []interface{}{
-		"extension", runtimeConfig.EnvoyExtension.Name,
-		"service", svc.Name,
-		"namespace", svc.Namespace,
-		"partition", svc.Partition,
-	}
-
-	getMetricLabels := func(err error) []metrics.Label {
-		return []metrics.Label{
-			{Name: "extension", Value: runtimeConfig.EnvoyExtension.Name},
-			{Name: "version", Value: "builtin/" + version.Version},
-			{Name: "service", Value: cfgSnap.Service},
-			{Name: "partition", Value: cfgSnap.ProxyID.PartitionOrDefault()},
-			{Name: "namespace", Value: cfgSnap.ProxyID.NamespaceOrDefault()},
-			{Name: "error", Value: strconv.FormatBool(err != nil)},
-		}
-	}
-
-	ext := runtimeConfig.EnvoyExtension
-
-	if v := ext.EnvoyVersion; v != "" {
-		c, err := goversion.NewConstraint(v)
-		if err != nil {
-			logFn("failed to parse Envoy extension version constraint", errorParams...)
-
-			if ext.Required {
-				return status.Errorf(codes.InvalidArgument, "failed to parse Envoy version constraint for extension %q for service %q", ext.Name, svc.Name)
+				continue
 			}
-			return nil
-		}
 
-		if !c.Check(envoyVersion) {
-			logger.Info("skipping envoy extension due to Envoy version constraint violation", errorParams...)
-			return nil
-		}
-	}
-
-	if v := ext.ConsulVersion; v != "" {
-		c, err := goversion.NewConstraint(v)
-		if err != nil {
-			logFn("failed to parse Consul extension version constraint", errorParams...)
-
-			if ext.Required {
-				return status.Errorf(codes.InvalidArgument, "failed to parse Consul version constraint for extension %q for service %q", ext.Name, svc.Name)
+			now = time.Now()
+			resources, err = extender.Extend(resources, &cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
+			if err == nil {
+				continue
 			}
-			return nil
-		}
 
-		if !c.Check(consulVersion) {
-			logger.Info("skipping envoy extension due to Consul version constraint violation", errorParams...)
-			return nil
-		}
-	}
-
-	now := time.Now()
-	extender, err := envoyextensions.ConstructExtension(ext)
-	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate_arguments"}, now, getMetricLabels(err))
-	if err != nil {
-		errorParams = append(errorParams, "error", err)
-		logFn("failed to construct extension", errorParams...)
-
-		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to construct extension %q for service %q", ext.Name, svc.Name)
-		}
-
-		return nil
-	}
-
-	now = time.Now()
-	err = extender.Validate(&runtimeConfig)
-	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate"}, now, getMetricLabels(err))
-	if err != nil {
-		errorParams = append(errorParams, "error", err)
-		logFn("failed to validate extension arguments", errorParams...)
-
-		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to validate arguments for extension %q for service %q", ext.Name, svc.Name)
-		}
-
-		return nil
-	}
-
-	now = time.Now()
-	_, err = extender.Extend(resources, &runtimeConfig)
-	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
-	if err != nil {
-		errorParams = append(errorParams, "error", err)
-		logFn("failed to apply envoy extension", errorParams...)
-
-		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to patch xDS resources in the %q extension: %v", ext.Name, err)
+			logFn("failed to apply envoy extension", errorParams...)
+			if cfg.EnvoyExtension.Required {
+				return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the %q extension: %v", cfg.EnvoyExtension.Name, err)
+			}
 		}
 	}
 
