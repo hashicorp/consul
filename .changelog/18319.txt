@@ -1,0 +1,4 @@
+```release-note:improvement
+acl: added builtin ACL policy that provides global read-only access (builtin/global-read-only)
+acl: allow for a single slash character in policy names
+```
