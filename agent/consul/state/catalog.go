@@ -1138,7 +1138,7 @@ func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool,
 }
 
 // Services returns all services along with a list of associated tags.
-func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, []*structs.ServiceNode, error) {
+func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1156,7 +1156,11 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerNam
 	for service := services.Next(); service != nil; service = services.Next() {
 		result = append(result, service.(*structs.ServiceNode))
 	}
-	return idx, result, nil
+	parsedResult, err := parseServiceNodes(tx, ws, result, entMeta, peerName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed querying and parsing services :%s", err)
+	}
+	return idx, parsedResult, nil
 }
 
 func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceList, error) {
@@ -1248,11 +1252,9 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 	var result structs.ServiceNodes
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
 		n := node.(*structs.Node)
-		fmt.Println("fetched nodes = ", n.Node)
 		if len(filters) > 1 && !structs.SatisfiesMetaFilters(n.Meta, filters) {
 			continue
 		}
-		fmt.Println("after filter > 1 continue")
 		// List all the services on the node
 		services, err := catalogServiceListByNode(tx, n.Node, entMeta, n.PeerName, false)
 		if err != nil {
@@ -1261,7 +1263,6 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 		ws.AddWithLimit(watchLimit, services.WatchCh(), allServicesCh)
 
 		for service := services.Next(); service != nil; service = services.Next() {
-			fmt.Println("got services", service.(*structs.ServiceNode).ServiceID)
 			result = append(result, service.(*structs.ServiceNode))
 		}
 	}
