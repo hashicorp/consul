@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 
@@ -910,6 +911,21 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 				return &bundle, nil
 			},
 			ProxyUpdater: proxyUpdater,
+			TrustDomainFetcher: func() (string, error) {
+				if s.config.CAConfig == nil || s.config.CAConfig.ClusterID == "" {
+					return "", fmt.Errorf("CA has not finished initializing")
+				}
+
+				// Build TrustDomain based on the ClusterID stored.
+				signingID := connect.SpiffeIDSigningForCluster(s.config.CAConfig.ClusterID)
+				if signingID == nil {
+					// If CA is bootstrapped at all then this should never happen but be
+					// defensive.
+					return "", fmt.Errorf("no cluster trust domain setup")
+				}
+
+				return signingID.Host(), nil
+			},
 		})
 	}
 
