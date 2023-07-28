@@ -274,7 +274,11 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 		return nil, err
 	}
 
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+
 	args.NodeMetaFilters = s.parseMetaFilter(req)
+	args.Filter = filterExpression
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
