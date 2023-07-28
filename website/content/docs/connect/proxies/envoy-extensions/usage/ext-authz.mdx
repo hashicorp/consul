@@ -83,9 +83,13 @@ EnvoyExtensions = [
 <CodeBlockConfig filename="api-auth-service-defaults">
 
 ```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
-name: api
-envoyExtensions:
+metadata:
+  name: api
+  namespace: default
+spec:
+  envoyExtensions:
   - name: builtin/ext-authz
     arguments:
       proxyType: connect-proxy
@@ -94,6 +98,7 @@ envoyExtensions:
           target:
             service:
               name: authz
+              namespace: authz
 ```
 </CodeBlockConfig>
 </Tab>
@@ -140,7 +145,7 @@ $ consul config write api-auth-service-defaults.json
 <Tab heading="Kubernetes" group="kubernetes">
 
 ```shell-session
-$ kubectl apply api-auth-service-defaults.yaml
+$ kubectl apply -f api-auth-service-defaults.yaml
 ```
 
 </Tab>

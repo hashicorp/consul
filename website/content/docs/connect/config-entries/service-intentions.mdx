@@ -62,20 +62,20 @@ The following outline shows how to format the service intentions configuration e
 <Tab heading= "YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string | must be set to `ServiceIntentions` 
-- [`metadata`](#metadata): map | required 
-  - [`name`](#metadata-name): string | required  
+- [`kind`](#kind): string | must be set to `ServiceIntentions`
+- [`metadata`](#metadata): map | required
+  - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | `default` | <EnterpriseAlert inline/>
-- [`spec`](#spec): map | no default 
+- [`spec`](#spec): map | no default
   - [`destination`](#spec-destination): map | no default
     - [`name`](#spec-destination-name): string | required
     - [`namespace`](#metadata-namespace): string | `default` | <EnterpriseAlert inline/>
-  - [`jwt`](#spec-jwt): map 
-  - [`providers`](#spec-jwt-providers): list of maps
-    - [`name`](#spec-jwt-providers-name): string
-    - [`verifyClaims`](#spec-jwt-provider-verifyclaims): list of maps
-      - [`path`](#spec-jwt-provider-verifyclaims-path): list of strings
-      - [`value`](#spec-jwt-provider-verifyclaims-value): string
+  - [`jwt`](#spec-jwt): map
+    - [`providers`](#spec-jwt-providers): list of maps
+        - [`name`](#spec-jwt-providers-name): string
+        - [`verifyClaims`](#spec-jwt-provider-verifyclaims): list of maps
+            - [`path`](#spec-jwt-provider-verifyclaims-path): list of strings
+            - [`value`](#spec-jwt-provider-verifyclaims-value): string
   - [`sources`](#spec-sources): list | no default
     - [`name`](#spec-sources-name): string | no default
     - [`peer`](#spec-sources-peer): string | no default
@@ -86,20 +86,19 @@ The following outline shows how to format the service intentions configuration e
     - [`permissions`](#spec-sources-permissions): list | no default
       - [`action`](#spec-sources-permissions-action): string | no default  | required
       - [`http`](#spec-sources-permissions-http): map | required
-        - [`pathExact`](#spec-sources-permissions-http): string | no default 
-        - [`pathPrefix`](#spec-sources-permissions-http): string | no default 
-        - [`pathRegex`](#spec-sources-permissions-http): string | no default 
-        - [`methods`](#spec-sources-permissions-http): list | no default 
-          - [`header`](#spec-sources-permissions-http-header): list of maps |no default 
+        - [`pathExact`](#spec-sources-permissions-http): string | no default
+        - [`pathPrefix`](#spec-sources-permissions-http): string | no default
+        - [`pathRegex`](#spec-sources-permissions-http): string | no default
+        - [`methods`](#spec-sources-permissions-http): list | no default
+          - [`header`](#spec-sources-permissions-http-header): list of maps |no default
             - [`name`](#spec-sources-permissions-http-header): string | required
-            - [`present`](#spec-sources-permissions-http-header): boolean | `false` 
+            - [`present`](#spec-sources-permissions-http-header): boolean | `false`
             - [`exact`](#spec-sources-permissions-http-header): string | no default
             - [`prefix`](#spec-sources-permissions-http-header): string | no default
             - [`suffix`](#spec-sources-permissions-http-header): string | no default
             - [`regex`](#spec-sources-permissions-http-header): string | no default
-            - [`invert`](#spec-sources-permissions-http-header): boolean | `false` 
-    - [`type`](#spec-sources-type): string | `consul` 
-    - [`description`](#spec-sources-description): string 
+            - [`invert`](#spec-sources-permissions-http-header): boolean | `false`
+    - [`description`](#spec-sources-description): string
 
 </Tab>
 </Tabs>
@@ -195,15 +194,14 @@ Sources = [
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: service-intentions
+kind: ServiceIntentions
 metadata:
   name: <name of destination service>
   namespace: <destination namespace>
 spec:
   destination:
-    destination: 
-      name: <name of destination service>
-      namespace: <destination namespace>
+    name: <name of destination service>
+    namespace: <destination namespace>
   jwt:
     providers:
       name: <JWT-provider-name>
@@ -238,7 +236,6 @@ spec:
       - name: <http header name>
         regex: <regex pattern to match>
         invert: false
-  type: consul
   description: <description for API responses>
 ```
 </Tab>

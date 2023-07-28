@@ -67,7 +67,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 <Tab heading="YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string | required | must be set to `jwtProvider`
+- [`kind`](#kind): string | required | must be set to `JWTProvider`
 - [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string
@@ -289,8 +289,8 @@ CacheConfig = {
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1         # required
-kind: jwtProvider                                 # required            
-metadata:                                         # required    
+kind: JWTProvider                                 # required
+metadata:                                         # required
   name: <name-of-provider-configuration-entry>    # required
   namespace: <namespace>
 spec:                                             # required
