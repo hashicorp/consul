@@ -6,6 +6,8 @@ package mesh
 import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )
@@ -19,15 +21,16 @@ var (
 
 	// Resource Kind Names.
 
-	ProxyConfigurationKind     = types.ProxyConfigurationKind
-	UpstreamsKind              = types.UpstreamsKind
-	UpstreamsConfigurationKind = types.UpstreamsConfigurationKind
-	ProxyStateKind             = types.ProxyStateTemplateKind
-	HTTPRouteKind              = types.HTTPRouteKind
-	GRPCRouteKind              = types.GRPCRouteKind
-	TCPRouteKind               = types.TCPRouteKind
-	DestinationPolicyKind      = types.DestinationPolicyKind
-	ComputedRoutesKind         = types.ComputedRoutesKind
+	ProxyConfigurationKind         = types.ProxyConfigurationKind
+	UpstreamsKind                  = types.UpstreamsKind
+	UpstreamsConfigurationKind     = types.UpstreamsConfigurationKind
+	ProxyStateKind                 = types.ProxyStateTemplateKind
+	HTTPRouteKind                  = types.HTTPRouteKind
+	GRPCRouteKind                  = types.GRPCRouteKind
+	TCPRouteKind                   = types.TCPRouteKind
+	DestinationPolicyKind          = types.DestinationPolicyKind
+	ComputedRoutesKind             = types.ComputedRoutesKind
+	ProxyStateTemplateV1Alpha1Type = types.ProxyStateTemplateV1Alpha1Type
 
 	// Resource Types for the v1alpha1 version.
 
@@ -40,6 +43,7 @@ var (
 	TCPRouteV1Alpha1Type                        = types.TCPRouteV1Alpha1Type
 	DestinationPolicyV1Alpha1Type               = types.DestinationPolicyV1Alpha1Type
 	ComputedRoutesV1Alpha1Type                  = types.ComputedRoutesV1Alpha1Type
+	ProxyStateTemplateType                      = types.ProxyStateTemplateV1Alpha1Type
 
 	// Resource Types for the latest version.
 
@@ -52,6 +56,22 @@ var (
 	TCPRouteType                        = types.TCPRouteType
 	DestinationPolicyType               = types.DestinationPolicyType
 	ComputedRoutesType                  = types.ComputedRoutesType
+
+	// Controller statuses.
+
+	// Sidecar-proxy controller.
+
+	SidecarProxyStatusKey = sidecar_proxy.ControllerName
+
+	SidecarProxyStatusConditionMeshDestination = status.StatusConditionMeshDestination
+
+	SidecarProxyStatusReasonNonMeshDestination = status.StatusReasonNonMeshDestination
+	SidecarProxyStatusReasonMeshDestination    = status.StatusReasonMeshDestination
+
+	SidecarProxyStatusConditionDestinationExists = status.StatusConditionDestinationExists
+
+	SidecarProxyStatusReasonDestinationServiceNotFound = status.StatusReasonDestinationServiceNotFound
+	SidecarProxyStatusReasonDestinationServiceFound    = status.StatusReasonDestinationServiceFound
 )
 
 // RegisterTypes adds all resource types within the "mesh" API group
@@ -62,6 +82,10 @@ func RegisterTypes(r resource.Registry) {
 
 // RegisterControllers registers controllers for the mesh types with
 // the given controller Manager.
-func RegisterControllers(mgr *controller.Manager) {
-	controllers.Register(mgr)
+func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
+	controllers.Register(mgr, deps)
 }
+
+type TrustDomainFetcher = sidecar_proxy.TrustDomainFetcher
+
+type ControllerDependencies = controllers.Dependencies

@@ -37,3 +37,11 @@ var (
 	_ ReferenceOrID = (*pbresource.ID)(nil)
 	_ ReferenceOrID = (*pbresource.Reference)(nil)
 )
+
+func ReplaceType(typ *pbresource.Type, id *pbresource.ID) *pbresource.ID {
+	return &pbresource.ID{
+		Type:    typ,
+		Name:    id.Name,
+		Tenancy: id.Tenancy,
+	}
+}

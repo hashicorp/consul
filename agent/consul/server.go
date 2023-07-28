@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 
@@ -877,7 +878,24 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 func (s *Server) registerControllers(deps Deps) {
 	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-		mesh.RegisterControllers(s.controllerManager)
+		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
+			TrustDomainFetcher: func() (string, error) {
+				if s.config.CAConfig == nil || s.config.CAConfig.ClusterID == "" {
+					return "", fmt.Errorf("CA has not finished initializing")
+				}
+
+				// Build TrustDomain based on the ClusterID stored.
+				signingID := connect.SpiffeIDSigningForCluster(s.config.CAConfig.ClusterID)
+				if signingID == nil {
+					// If CA is bootstrapped at all then this should never happen but be
+					// defensive.
+					return "", fmt.Errorf("no cluster trust domain setup")
+				}
+
+				return signingID.Host(), nil
+			},
+		})
+		connect.SpiffeIDSigningForCluster(s.config.CAConfig.ClusterID)
 	}
 
 	reaper.RegisterControllers(s.controllerManager)

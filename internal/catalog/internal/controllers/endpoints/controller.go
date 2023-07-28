@@ -5,6 +5,7 @@ package endpoints
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
@@ -375,6 +376,9 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 		return nil
 	}
 
+	if data.resource.Id == nil {
+		fmt.Println("-------------------iryna: workload id is nil")
+	}
 	return &pbcatalog.Endpoint{
 		TargetRef:    data.resource.Id,
 		HealthStatus: health,

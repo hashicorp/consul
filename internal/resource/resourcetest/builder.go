@@ -132,6 +132,10 @@ func (b *resourceBuilder) Reference(section string) *pbresource.Reference {
 	return resource.Reference(b.ID(), section)
 }
 
+func (b *resourceBuilder) ReferenceNoSection() *pbresource.Reference {
+	return resource.Reference(b.ID(), "")
+}
+
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 

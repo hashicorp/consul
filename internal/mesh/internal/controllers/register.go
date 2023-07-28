@@ -5,9 +5,17 @@ package controllers
 
 import (
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/mesh"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/mapper"
 )
 
-func Register(mgr *controller.Manager) {
-	mgr.Register(mesh.Controller())
+type Dependencies struct {
+	TrustDomainFetcher sidecar_proxy.TrustDomainFetcher
+}
+
+func Register(mgr *controller.Manager, deps Dependencies) {
+	c := cache.New()
+	m := mapper.New(c)
+	mgr.Register(sidecar_proxy.Controller(c, m, deps.TrustDomainFetcher))
 }

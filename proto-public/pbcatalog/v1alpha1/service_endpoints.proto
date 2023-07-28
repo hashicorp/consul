@@ -29,4 +29,7 @@ message Endpoint {
 
   // health_status is the aggregated health status of this endpoint.
   Health health_status = 4;
+
+  // identity is the name of the workload identity for this endpoint.
+  string identity = 5;
 }
