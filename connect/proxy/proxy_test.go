@@ -30,7 +30,7 @@ func TestProxy_public(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ports := freeport.GetN(t, 2)
+	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 2)
 
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()

@@ -3070,7 +3070,7 @@ func newTestServer(t *testing.T, configFn func(c *Config)) (*testServer, *state.
 	publisher := stream.NewEventPublisher(10 * time.Second)
 	store, handler := newStateStore(t, publisher)
 
-	ports := freeport.GetN(t, 1) // {grpc}
+	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 1) // {grpc}
 
 	cfg := Config{
 		Backend: &testStreamBackend{

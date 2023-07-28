@@ -123,7 +123,7 @@ func NewTestVaultServer(t testing.T) *TestVaultServer {
 		t.Fatalf("%q not found on $PATH", vaultBinaryName)
 	}
 
-	ports := freeport.GetN(t, 2)
+	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 2)
 	var (
 		clientAddr  = fmt.Sprintf("127.0.0.1:%d", ports[0])
 		clusterAddr = fmt.Sprintf("127.0.0.1:%d", ports[1])
