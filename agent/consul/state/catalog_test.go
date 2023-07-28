@@ -2219,7 +2219,7 @@ func TestStateStore_Services(t *testing.T) {
 	}
 	ns2.Tags = []string{}
 	ns2.EnterpriseMeta.Normalize()
-	ns2t.Meta = map[string]string{}
+	ns2.Meta = map[string]string{}
 	if err := s.EnsureService(5, "node2", ns2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
