@@ -109,12 +109,12 @@ jobs:
           path: ~/.cache/go-build
       - name: install gotestsum
         run: go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
+      - run: |
+          make dev
       - name: Run tests 
         run: |
           # some tests expect this umask, and arm images have a different default
           umask 0022
-
-          make dev
 
           export GODEBUG=gocachetest=1
 
