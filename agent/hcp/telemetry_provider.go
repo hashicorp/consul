@@ -2,7 +2,6 @@ package hcp
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -28,6 +27,19 @@ var (
 var _ telemetry.ConfigProvider = &hcpProviderImpl{}
 var _ telemetry.EndpointProvider = &hcpProviderImpl{}
 
+// hasher can be implemented to compute the hash of a dynamicConfig.
+type hasher interface {
+	hash(cfg *dynamicConfig) (uint64, error)
+}
+
+// hasherImpl uses the hashstructure library to compute dynamicConfig hash.
+type hasherImpl struct{}
+
+// hash returns a uint64 hash value for a dynamicConfig for equality comparisons.
+func (h *hasherImpl) hash(cfg *dynamicConfig) (uint64, error) {
+	return hashstructure.Hash(*cfg, hashstructure.FormatV2, nil)
+}
+
 // hcpProviderImpl holds telemetry configuration and settings for continuous fetch of new config from HCP.
 // it updates configuration, if changes are detected.
 type hcpProviderImpl struct {
@@ -42,6 +54,7 @@ type hcpProviderImpl struct {
 	hcpClient client.Client
 	// ticker is a reference to the time ticker that can be reset when refreshInterval changes.
 	ticker *time.Ticker
+	hasher hasher
 }
 
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
@@ -54,59 +67,34 @@ type dynamicConfig struct {
 	RefreshInterval time.Duration
 }
 
-// equals returns true if two dynamicConfig objects are equal.
-func (d *dynamicConfig) equals(newCfg *dynamicConfig) (bool, error) {
-	currHash, err := hashstructure.Hash(*d, hashstructure.FormatV2, nil)
-	if err != nil {
-		return false, err
-	}
-
-	newHash, err := hashstructure.Hash(*newCfg, hashstructure.FormatV2, nil)
-	if err != nil {
-		return false, err
-	}
-
-	return currHash == newHash, err
-}
-
-// providerParams is used to initialize a hcpProviderImpl.
-type providerParams struct {
-	metricsConfig   *client.MetricsConfig
-	refreshInterval time.Duration
-	hcpClient       client.Client
-}
-
 // NewHCPProvider initializes and starts a HCP Telemetry provider with provided params.
-func NewHCPProvider(ctx context.Context, params *providerParams) (*hcpProviderImpl, error) {
-	if params.hcpClient == nil {
-		return nil, errors.New("missing HCP client")
-	}
-
-	if params.metricsConfig == nil {
-		return nil, errors.New("missing metrics config")
-	}
-
-	if params.refreshInterval <= 0 {
-		return nil, fmt.Errorf("invalid refresh interval: %d", params.refreshInterval)
+func NewHCPProvider(ctx context.Context, hcpClient client.Client, telemetryCfg *client.TelemetryConfig) (*hcpProviderImpl, error) {
+	refreshInterval := telemetryCfg.RefreshConfig.RefreshInterval
+	if refreshInterval <= 0 {
+		return nil, fmt.Errorf("invalid refresh interval: %d", refreshInterval)
 	}
 
 	cfg := &dynamicConfig{
-		Endpoint:        params.metricsConfig.Endpoint,
-		Labels:          params.metricsConfig.Labels,
-		Filters:         params.metricsConfig.Filters,
-		RefreshInterval: params.refreshInterval,
+		Endpoint:        telemetryCfg.MetricsConfig.Endpoint,
+		Labels:          telemetryCfg.MetricsConfig.Labels,
+		Filters:         telemetryCfg.MetricsConfig.Filters,
+		RefreshInterval: refreshInterval,
 	}
 
-	ticker := time.NewTicker(params.refreshInterval)
-	t := &hcpProviderImpl{
-		cfg:       cfg,
-		hcpClient: params.hcpClient,
-		ticker:    ticker,
-	}
+	t := new(hcpClient, cfg)
 
-	go t.run(ctx, ticker.C)
+	go t.run(ctx, t.ticker.C)
 
 	return t, nil
+}
+
+func new(hcpClient client.Client, cfg *dynamicConfig) *hcpProviderImpl {
+	return &hcpProviderImpl{
+		cfg:       cfg,
+		hcpClient: hcpClient,
+		hasher:    &hasherImpl{},
+		ticker:    time.NewTicker(cfg.RefreshInterval),
+	}
 }
 
 // run continously checks for updates to the telemetry configuration by making a request to HCP.
@@ -151,7 +139,7 @@ func (t *hcpProviderImpl) checkUpdate(ctx context.Context) (*dynamicConfig, bool
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
-	equal, err := t.cfg.equals(newDynamicConfig)
+	equal, err := t.equals(newDynamicConfig)
 	if err != nil {
 		logger.Error("failed to calculate hash for new config", "error", err)
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
@@ -193,4 +181,19 @@ func (t *hcpProviderImpl) GetLabels() map[string]string {
 	defer t.rw.RUnlock()
 
 	return t.cfg.Labels
+}
+
+// equals returns true if the new dynamicConfig is equal to the current config.
+func (t *hcpProviderImpl) equals(newCfg *dynamicConfig) (bool, error) {
+	currHash, err := t.hasher.hash(t.cfg)
+	if err != nil {
+		return false, err
+	}
+
+	newHash, err := t.hasher.hash(newCfg)
+	if err != nil {
+		return false, err
+	}
+
+	return currHash == newHash, err
 }

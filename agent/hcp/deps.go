@@ -77,11 +77,7 @@ func sink(
 		return nil, nil
 	}
 
-	cfgProvider, err := NewHCPProvider(ctx, &providerParams{
-		metricsConfig:   telemetryCfg.MetricsConfig,
-		hcpClient:       hcpClient,
-		refreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
-	})
+	cfgProvider, err := NewHCPProvider(ctx, hcpClient, telemetryCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init config provider: %w", err)
 	}
