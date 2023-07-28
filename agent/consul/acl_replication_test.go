@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -13,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
@@ -33,6 +30,7 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1 - already in sync",
 			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
 			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
@@ -42,6 +40,7 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy2",
 			Description: "policy2 - updated but not changed",
 			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
 			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
@@ -51,6 +50,7 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy3",
 			Description: "policy3 - updated and changed",
 			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
 			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
@@ -60,6 +60,7 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy4",
 			Description: "policy4 - needs deleting",
 			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
 			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
@@ -346,7 +347,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var token structs.ACLToken
-		require.NoError(t, s1.RPC(context.Background(), "ACL.TokenSet", &arg, &token))
+		require.NoError(t, s1.RPC("ACL.TokenSet", &arg, &token))
 		tokens = append(tokens, &token)
 	}
 
@@ -367,7 +368,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	// Create one token via this process.
 	methodToken := structs.ACLToken{}
-	require.NoError(t, s1.RPC(context.Background(), "ACL.Login", &structs.ACLLoginRequest{
+	require.NoError(t, s1.RPC("ACL.Login", &structs.ACLLoginRequest{
 		Auth: &structs.ACLLoginParams{
 			AuthMethod:  method1.Name,
 			BearerToken: "fake-token",
@@ -378,8 +379,10 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	checkSame := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
+		// nolint:staticcheck
 		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
+		// nolint:staticcheck
 		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 
@@ -432,7 +435,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var token structs.ACLToken
-		require.NoError(t, s2.RPC(context.Background(), "ACL.TokenSet", &arg, &token))
+		require.NoError(t, s2.RPC("ACL.TokenSet", &arg, &token))
 	}
 
 	// add some local tokens to the primary DC
@@ -452,7 +455,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var token structs.ACLToken
-		require.NoError(t, s1.RPC(context.Background(), "ACL.TokenSet", &arg, &token))
+		require.NoError(t, s1.RPC("ACL.TokenSet", &arg, &token))
 	}
 
 	// Update those other tokens
@@ -473,7 +476,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var token structs.ACLToken
-		require.NoError(t, s1.RPC(context.Background(), "ACL.TokenSet", &arg, &token))
+		require.NoError(t, s1.RPC("ACL.TokenSet", &arg, &token))
 	}
 
 	// Wait for the replica to converge.
@@ -483,6 +486,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 	})
 
 	// verify dc2 local tokens didn't get blown away
+	// nolint:staticcheck
 	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, local, 50)
@@ -495,7 +499,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 		}
 
 		var dontCare string
-		require.NoError(t, s1.RPC(context.Background(), "ACL.TokenDelete", &arg, &dontCare))
+		require.NoError(t, s1.RPC("ACL.TokenDelete", &arg, &dontCare))
 	}
 
 	// Wait for the replica to converge.
@@ -554,7 +558,7 @@ func TestACLReplication_Policies(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var policy structs.ACLPolicy
-		require.NoError(t, s1.RPC(context.Background(), "ACL.PolicySet", &arg, &policy))
+		require.NoError(t, s1.RPC("ACL.PolicySet", &arg, &policy))
 		policies = append(policies, &policy)
 	}
 
@@ -598,7 +602,7 @@ func TestACLReplication_Policies(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var policy structs.ACLPolicy
-		require.NoError(t, s1.RPC(context.Background(), "ACL.PolicySet", &arg, &policy))
+		require.NoError(t, s1.RPC("ACL.PolicySet", &arg, &policy))
 	}
 
 	// Wait for the replica to converge.
@@ -615,7 +619,7 @@ func TestACLReplication_Policies(t *testing.T) {
 		}
 
 		var dontCare string
-		require.NoError(t, s1.RPC(context.Background(), "ACL.PolicyDelete", &arg, &dontCare))
+		require.NoError(t, s1.RPC("ACL.PolicyDelete", &arg, &dontCare))
 	}
 
 	// Wait for the replica to converge.
@@ -652,7 +656,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var policy structs.ACLPolicy
-	require.NoError(t, s1.RPC(context.Background(), "ACL.PolicySet", &policyArg, &policy))
+	require.NoError(t, s1.RPC("ACL.PolicySet", &policyArg, &policy))
 
 	// Create the dc2 replication token
 	tokenArg := structs.ACLTokenSetRequest{
@@ -670,7 +674,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 	}
 
 	var token structs.ACLToken
-	require.NoError(t, s1.RPC(context.Background(), "ACL.TokenSet", &tokenArg, &token))
+	require.NoError(t, s1.RPC("ACL.TokenSet", &tokenArg, &token))
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
@@ -700,7 +704,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 			TokenIDType:  structs.ACLTokenSecret,
 			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
-		err := s2.RPC(context.Background(), "ACL.TokenRead", &req, &tokenResp)
+		err := s2.RPC("ACL.TokenRead", &req, &tokenResp)
 		require.NoError(r, err)
 		require.NotNil(r, tokenResp.Token)
 		require.Equal(r, "root", tokenResp.Token.SecretID)
@@ -709,7 +713,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		statusReq := structs.DCSpecificRequest{
 			Datacenter: "dc2",
 		}
-		require.NoError(r, s2.RPC(context.Background(), "ACL.ReplicationStatus", &statusReq, &status))
+		require.NoError(r, s2.RPC("ACL.ReplicationStatus", &statusReq, &status))
 		// ensures that tokens are not being synced
 		require.True(r, status.ReplicatedTokenIndex > 0, "ReplicatedTokenIndex not greater than 0")
 
@@ -726,7 +730,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	require.NoError(t, s1.RPC(context.Background(), "ACL.PolicySet", &policyArg, &policy))
+	require.NoError(t, s1.RPC("ACL.PolicySet", &policyArg, &policy))
 
 	// Create the another token so that replication will attempt to read it.
 	tokenArg = structs.ACLTokenSetRequest{
@@ -746,7 +750,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 
 	// record the time right before we are touching the token
 	minErrorTime := time.Now()
-	require.NoError(t, s1.RPC(context.Background(), "ACL.TokenSet", &tokenArg, &token2))
+	require.NoError(t, s1.RPC("ACL.TokenSet", &tokenArg, &token2))
 
 	retry.Run(t, func(r *retry.R) {
 		var tokenResp structs.ACLTokenResponse
@@ -756,16 +760,16 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 			TokenIDType:  structs.ACLTokenSecret,
 			QueryOptions: structs.QueryOptions{Token: aclfilter.RedactedToken},
 		}
-		err := s2.RPC(context.Background(), "ACL.TokenRead", &req, &tokenResp)
-		require.Error(r, err)
-		require.ErrorContains(r, err, "token does not exist")
+		err := s2.RPC("ACL.TokenRead", &req, &tokenResp)
+		// its not an error for the secret to not be found.
+		require.NoError(r, err)
 		require.Nil(r, tokenResp.Token)
 
 		var status structs.ACLReplicationStatus
 		statusReq := structs.DCSpecificRequest{
 			Datacenter: "dc2",
 		}
-		require.NoError(r, s2.RPC(context.Background(), "ACL.ReplicationStatus", &statusReq, &status))
+		require.NoError(r, s2.RPC("ACL.ReplicationStatus", &statusReq, &status))
 		// ensures that tokens are not being synced
 		require.True(r, status.ReplicatedTokenIndex < token2.CreateIndex, "ReplicatedTokenIndex is not less than the token2s create index")
 		// ensures that token replication is erroring
@@ -821,9 +825,11 @@ func TestACLReplication_AllTypes(t *testing.T) {
 
 	checkSameTokens := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
+		// nolint:staticcheck
 		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 		// Query for all of them, so that we can prove that no globals snuck in.
+		// nolint:staticcheck
 		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 
@@ -913,7 +919,7 @@ func TestACLReplication_AllTypes(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var dontCare string
-		if err := s1.RPC(context.Background(), "ACL.TokenDelete", &arg, &dontCare); err != nil {
+		if err := s1.RPC("ACL.TokenDelete", &arg, &dontCare); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -926,7 +932,7 @@ func TestACLReplication_AllTypes(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var dontCare string
-		if err := s1.RPC(context.Background(), "ACL.RoleDelete", &arg, &dontCare); err != nil {
+		if err := s1.RPC("ACL.RoleDelete", &arg, &dontCare); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -939,7 +945,7 @@ func TestACLReplication_AllTypes(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var dontCare string
-		if err := s1.RPC(context.Background(), "ACL.PolicyDelete", &arg, &dontCare); err != nil {
+		if err := s1.RPC("ACL.PolicyDelete", &arg, &dontCare); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -965,7 +971,7 @@ func createACLTestData(t *testing.T, srv *Server, namePrefix string, numObjects,
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out structs.ACLPolicy
-		if err := srv.RPC(context.Background(), "ACL.PolicySet", &arg, &out); err != nil {
+		if err := srv.RPC("ACL.PolicySet", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		policyIDs = append(policyIDs, out.ID)
@@ -986,7 +992,7 @@ func createACLTestData(t *testing.T, srv *Server, namePrefix string, numObjects,
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out structs.ACLRole
-		if err := srv.RPC(context.Background(), "ACL.RoleSet", &arg, &out); err != nil {
+		if err := srv.RPC("ACL.RoleSet", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		roleIDs = append(roleIDs, out.ID)
@@ -1010,7 +1016,7 @@ func createACLTestData(t *testing.T, srv *Server, namePrefix string, numObjects,
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out structs.ACLToken
-		if err := srv.RPC(context.Background(), "ACL.TokenSet", &arg, &out); err != nil {
+		if err := srv.RPC("ACL.TokenSet", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		tokenIDs = append(tokenIDs, out.AccessorID)

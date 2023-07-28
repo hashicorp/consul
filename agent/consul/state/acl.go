@@ -1,17 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbacl"
+	pbacl "github.com/hashicorp/consul/proto/pbacl"
 )
 
 // ACLTokens is used when saving a snapshot
@@ -425,10 +422,14 @@ type ACLTokenSetOptions struct {
 	CAS                          bool
 	AllowMissingPolicyAndRoleIDs bool
 	ProhibitUnprivileged         bool
+	Legacy                       bool // TODO(ACL-Legacy-Compat): remove
 	FromReplication              bool
 }
 
 func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, opts ACLTokenSetOptions) error {
+	if opts.Legacy {
+		return fmt.Errorf("failed inserting acl token: cannot use this endpoint to persist legacy tokens")
+	}
 
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
@@ -450,7 +451,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 		return ErrMissingACLTokenSecret
 	}
 
-	if token.AccessorID == "" {
+	if !opts.Legacy && token.AccessorID == "" {
 		return ErrMissingACLTokenAccessor
 	}
 
@@ -458,8 +459,20 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 		return fmt.Errorf("Cannot replicate local tokens")
 	}
 
+	// DEPRECATED (ACL-Legacy-Compat)
+	if token.Rules != "" {
+		// When we update a legacy acl token we may have to correct old HCL to
+		// prevent the propagation of older syntax into the state store and
+		// into in-memory representations.
+		correctedRules := structs.SanitizeLegacyACLTokenRules(token.Rules)
+		if correctedRules != "" {
+			token.Rules = correctedRules
+		}
+	}
+
 	// Check for an existing ACL
-	_, existing, err := aclTokenGetFromIndex(tx, token.AccessorID, indexAccessor, nil)
+	// DEPRECATED (ACL-Legacy-Compat) - transition to using accessor index instead of secret once v1 compat is removed
+	_, existing, err := aclTokenGetFromIndex(tx, token.SecretID, "id", nil)
 	if err != nil {
 		return fmt.Errorf("failed token lookup: %s", err)
 	}
@@ -483,6 +496,10 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 		if token.ModifyIndex != 0 && token.ModifyIndex != original.ModifyIndex {
 			return nil
 		}
+	}
+
+	if opts.Legacy && original != nil {
+		return fmt.Errorf("legacy tokens can not be modified")
 	}
 
 	if err := aclTokenUpsertValidateEnterprise(tx, token, original); err != nil {
@@ -556,7 +573,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 
 // ACLTokenGetBySecret is used to look up an existing ACL token by its SecretID.
 func (s *Store) ACLTokenGetBySecret(ws memdb.WatchSet, secret string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLToken, error) {
-	return s.aclTokenGet(ws, secret, indexID, entMeta)
+	return s.aclTokenGet(ws, secret, "id", entMeta)
 }
 
 // ACLTokenGetByAccessor is used to look up an existing ACL token by its AccessorID.
@@ -623,8 +640,35 @@ func aclTokenGetTxn(tx ReadTxn, ws memdb.WatchSet, value, index string, entMeta 
 	return nil, nil
 }
 
+type ACLTokenListParameters struct {
+	Local          bool
+	Global         bool
+	Policy         string
+	Role           string
+	ServiceName    string
+	MethodName     string
+	MethodMeta     *acl.EnterpriseMeta
+	EnterpriseMeta *acl.EnterpriseMeta
+}
+
 // ACLTokenList return a list of ACL Tokens that match the policy, role, and method.
+// This function should be treated as deprecated, and ACLTokenListWithParameters should be preferred.
+//
+// Deprecated: use ACLTokenListWithParameters
 func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, methodMeta, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
+	return s.ACLTokenListWithParameters(ws, ACLTokenListParameters{
+		Local:          local,
+		Global:         global,
+		Policy:         policy,
+		Role:           role,
+		MethodName:     methodName,
+		MethodMeta:     methodMeta,
+		EnterpriseMeta: entMeta,
+	})
+}
+
+// ACLTokenListWithParameters returns a list of ACL Tokens that match the provided parameters.
+func (s *Store) ACLTokenListWithParameters(ws memdb.WatchSet, params ACLTokenListParameters) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -637,43 +681,51 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 
 	needLocalityFilter := false
 
-	if policy == "" && role == "" && methodName == "" {
-		if global == local {
-			iter, err = aclTokenListAll(tx, entMeta)
+	if params.Policy == "" && params.Role == "" && params.MethodName == "" && params.ServiceName == "" {
+		if params.Global == params.Local {
+			iter, err = aclTokenListAll(tx, params.EnterpriseMeta)
 		} else {
-			iter, err = aclTokenList(tx, entMeta, local)
+			iter, err = aclTokenList(tx, params.EnterpriseMeta, params.Local)
 		}
 
-	} else if policy != "" && role == "" && methodName == "" {
-		iter, err = aclTokenListByPolicy(tx, policy, entMeta)
+	} else if params.Policy != "" && params.Role == "" && params.MethodName == "" && params.ServiceName == "" {
+		// Find by policy
+		iter, err = aclTokenListByPolicy(tx, params.Policy, params.EnterpriseMeta)
 		needLocalityFilter = true
 
-	} else if policy == "" && role != "" && methodName == "" {
-		iter, err = aclTokenListByRole(tx, role, entMeta)
+	} else if params.Policy == "" && params.Role != "" && params.MethodName == "" && params.ServiceName == "" {
+		// Find by role
+		iter, err = aclTokenListByRole(tx, params.Role, params.EnterpriseMeta)
 		needLocalityFilter = true
 
-	} else if policy == "" && role == "" && methodName != "" {
-		iter, err = aclTokenListByAuthMethod(tx, methodName, methodMeta, entMeta)
+	} else if params.Policy == "" && params.Role == "" && params.MethodName != "" && params.ServiceName == "" {
+		// Find by methodName
+		iter, err = aclTokenListByAuthMethod(tx, params.MethodName, params.MethodMeta, params.EnterpriseMeta)
+		needLocalityFilter = true
+
+	} else if params.Policy == "" && params.Role == "" && params.MethodName == "" && params.ServiceName != "" {
+		// Find by the service identity's serviceName
+		iter, err = aclTokenListByServiceName(tx, params.ServiceName, params.EnterpriseMeta)
 		needLocalityFilter = true
 
 	} else {
-		return 0, nil, fmt.Errorf("can only filter by one of policy, role, or methodName at a time")
+		return 0, nil, fmt.Errorf("can only filter by one of policy, role, serviceName, or methodName at a time")
 	}
 
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
 
-	if needLocalityFilter && global != local {
+	if needLocalityFilter && params.Global != params.Local {
 		iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
 			token, ok := raw.(*structs.ACLToken)
 			if !ok {
 				return true
 			}
 
-			if global && !token.Local {
+			if params.Global && !token.Local {
 				return false
-			} else if local && token.Local {
+			} else if params.Local && token.Local {
 				return false
 			}
 
@@ -698,8 +750,31 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	}
 
 	// Get the table index.
-	idx := aclTokenMaxIndex(tx, nil, entMeta)
+	idx := aclTokenMaxIndex(tx, nil, params.EnterpriseMeta)
 	return idx, result, nil
+}
+
+// TODO(ACL-Legacy-Compat): remove in phase 2
+func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan struct{}, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := tx.Get(tableACLTokens, "needs-upgrade", true)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed acl token listing: %v", err)
+	}
+
+	var tokens structs.ACLTokens
+	i := 0
+	for token := iter.Next(); token != nil; token = iter.Next() {
+		tokens = append(tokens, token.(*structs.ACLToken))
+		i += 1
+		if i >= max {
+			return tokens, nil, nil
+		}
+	}
+
+	return tokens, iter.WatchCh(), nil
 }
 
 func (s *Store) ACLTokenMinExpirationTime(local bool) (time.Time, error) {
@@ -768,8 +843,8 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	for _, accessorID := range tokenIDs {
-		if err := aclTokenDeleteTxn(tx, idx, accessorID, indexAccessor, nil); err != nil {
+	for _, tokenID := range tokenIDs {
+		if err := aclTokenDeleteTxn(tx, idx, tokenID, indexAccessor, nil); err != nil {
 			return err
 		}
 	}
@@ -799,7 +874,7 @@ func aclTokenDeleteTxn(tx WriteTxn, idx uint64, value, index string, entMeta *ac
 		return nil
 	}
 
-	if token.(*structs.ACLToken).AccessorID == acl.AnonymousTokenID {
+	if token.(*structs.ACLToken).AccessorID == structs.ACLTokenAnonymousID {
 		return fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
 	}
 
@@ -884,18 +959,18 @@ func aclPolicySetTxn(tx WriteTxn, idx uint64, policy *structs.ACLPolicy) error {
 	}
 
 	if existing != nil {
-		if policy.ID == structs.ACLPolicyGlobalManagementID {
+		if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
 			// Only the name and description are modifiable
-			// Here we specifically check that the rules on the global management policy
+			// Here we specifically check that the rules on the builtin policy
 			// are identical to the correct policy rules within the binary. This is opposed
 			// to checking against the current rules to allow us to update the rules during
 			// upgrades.
-			if policy.Rules != structs.ACLPolicyGlobalManagement {
-				return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
+			if policy.Rules != builtinPolicy.Rules {
+				return fmt.Errorf("Changing the Rules for the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 
 			if policy.Datacenters != nil && len(policy.Datacenters) != 0 {
-				return fmt.Errorf("Changing the Datacenters of the builtin global-management policy is not permitted")
+				return fmt.Errorf("Changing the Datacenters of the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 		}
 	}
@@ -1062,8 +1137,8 @@ func aclPolicyDeleteTxn(tx WriteTxn, idx uint64, value string, fn aclPolicyGetFn
 
 	policy := rawPolicy.(*structs.ACLPolicy)
 
-	if policy.ID == structs.ACLPolicyGlobalManagementID {
-		return fmt.Errorf("Deletion of the builtin global-management policy is not permitted")
+	if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
+		return fmt.Errorf("Deletion of the builtin %s policy is not permitted", builtinPolicy.Name)
 	}
 
 	return aclPolicyDeleteWithPolicy(tx, policy, idx)

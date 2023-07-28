@@ -166,6 +166,10 @@
             "path": "acl/token/update"
           }
         ]
+      },
+      {
+        "title": "translate-rules",
+        "path": "acl/translate-rules"
       }
     ]
   },
@@ -425,10 +429,6 @@
       {
         "title": "raft",
         "path": "operator/raft"
-      },
-      {
-        "title": "usage",
-        "path": "operator/usage"
       }
     ]
   },
@@ -529,23 +529,6 @@
       {
         "title": "cert",
         "path": "tls/cert"
-      }
-    ]
-  },
-  {
-    "title": "troubleshoot",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "troubleshoot"
-      },
-      {
-        "title": "upstreams",
-        "path": "troubleshoot/upstreams"
-      },
-      {
-        "title": "proxy",
-        "path": "troubleshoot/proxy"
       }
     ]
   },

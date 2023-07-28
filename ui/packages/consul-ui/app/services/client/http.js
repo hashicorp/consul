@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { next } from '@ember/runloop';
@@ -257,7 +252,7 @@ export default class HttpService extends Service {
                 // we can use them later for store reconciliation. Namespace
                 // will look at the ns query parameter first, followed by the
                 // Namespace property of the users token, defaulting back to
-                // 'default' which will mainly be used in OSS
+                // 'default' which will mainly be used in CE
                 [CONSUL_DATACENTER]: params.data.dc,
                 [CONSUL_NAMESPACE]: params.data.ns || token.Namespace || 'default',
                 [CONSUL_PARTITION]: params.data.partition || token.Partition || 'default',

@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -36,10 +32,6 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 		Defaults: &IngressServiceConfig{
 			MaxConnections:     uint32Pointer(2048),
 			MaxPendingRequests: uint32Pointer(4096),
-			PassiveHealthCheck: &PassiveHealthCheck{
-				MaxFailures: 20,
-				Interval:    500000000,
-			},
 		},
 	}
 
@@ -108,9 +100,6 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 					MaxConnections:        uint32Pointer(5120),
 					MaxPendingRequests:    uint32Pointer(512),
 					MaxConcurrentRequests: uint32Pointer(2048),
-					PassiveHealthCheck: &PassiveHealthCheck{
-						MaxFailures: 10,
-					},
 				},
 			},
 			TLS: &GatewayTLSConfig{
@@ -176,7 +165,7 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
-			// Set namespace and partition to blank so that OSS and ent can utilize the same tests
+			// Set namespace and partition to blank so that CE and ent can utilize the same tests
 			readIngress.Listeners[0].Services[0].Namespace = ""
 			readIngress.Listeners[0].Services[0].Partition = ""
 
@@ -189,13 +178,9 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			require.Equal(t, *ingress2.Defaults.MaxConnections, *readIngress.Defaults.MaxConnections)
 			require.Equal(t, uint32(4096), *readIngress.Defaults.MaxPendingRequests)
 			require.Equal(t, uint32(0), *readIngress.Defaults.MaxConcurrentRequests)
-			require.Equal(t, uint32(20), readIngress.Defaults.PassiveHealthCheck.MaxFailures)
-			require.Equal(t, time.Duration(500000000), readIngress.Defaults.PassiveHealthCheck.Interval)
-			require.Nil(t, readIngress.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx)
-
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
-			// Set namespace and partition to blank so that OSS and ent can utilize the same tests
+			// Set namespace and partition to blank so that CE and ent can utilize the same tests
 			readIngress.Listeners[0].Services[0].Namespace = ""
 			readIngress.Listeners[0].Services[0].Partition = ""
 
@@ -321,7 +306,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			require.Equal(t, terminating1.Kind, readTerminating.Kind)
 			require.Equal(t, terminating1.Name, readTerminating.Name)
 			require.Len(t, readTerminating.Services, 1)
-			// Set namespace to blank so that OSS and ent can utilize the same tests
+			// Set namespace to blank so that CE and ent can utilize the same tests
 			readTerminating.Services[0].Namespace = ""
 
 			require.Equal(t, terminating1.Services, readTerminating.Services)
@@ -331,7 +316,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			require.Equal(t, terminating2.Kind, readTerminating.Kind)
 			require.Equal(t, terminating2.Name, readTerminating.Name)
 			require.Len(t, readTerminating.Services, 1)
-			// Set namespace to blank so that OSS and ent can utilize the same tests
+			// Set namespace to blank so that CE and ent can utilize the same tests
 			readTerminating.Services[0].Namespace = ""
 
 			require.Equal(t, terminating2.Services, readTerminating.Services)

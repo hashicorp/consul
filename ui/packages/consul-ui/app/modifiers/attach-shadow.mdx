@@ -1,0 +1,28 @@
+# attach-shadow
+
+`{{attach-shadow (set this 'shadow')}}` attaches a `ShadowRoot` to the modified DOM element
+and pass a reference to that `ShadowRoot` to the setter function.
+
+
+Please note: This should be used as a utility modifier for when having access
+to the shadow DOM is handy, not really for building full blown shadow DOM
+based Web Components.
+
+```hbs preview-template
+<div
+  {{attach-shadow (set this 'shadow')}}
+>
+  {{#if this.shadow}}
+    {{#in-element this.shadow}}
+      <slot name="name"></slot>
+    {{/in-element}}
+  {{/if}}
+  <p slot="name">Hello from the shadows!</p>
+</div>
+```
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `setter` | `function` |  | Usually `set` or `mut` or similar |

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package usagemetrics
 
 import (
@@ -16,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/version"
 )
 
 var Gauges = []prometheus.GaugeDefinition{
@@ -94,6 +92,10 @@ var Gauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"state", "billable_service_instances"},
 		Help: "Total number of billable service instances in the local datacenter.",
+	},
+	{
+		Name: []string{"version"},
+		Help: "Represents the Consul version.",
 	},
 }
 
@@ -244,6 +246,7 @@ func (u *UsageMetricsReporter) runOnce() {
 	}
 
 	u.emitConfigEntryUsage(configUsage)
+	u.emitVersion()
 }
 
 func (u *UsageMetricsReporter) memberUsage() []serf.Member {
@@ -265,4 +268,27 @@ func (u *UsageMetricsReporter) memberUsage() []serf.Member {
 	}
 
 	return out
+}
+
+func (u *UsageMetricsReporter) emitVersion() {
+	// consul version metric with labels
+	metrics.SetGaugeWithLabels(
+		[]string{"version"},
+		1,
+		[]metrics.Label{
+			{Name: "version", Value: versionWithMetadata()},
+			{Name: "pre_release", Value: version.VersionPrerelease},
+		},
+	)
+}
+
+func versionWithMetadata() string {
+	vsn := version.Version
+	metadata := version.VersionMetadata
+
+	if metadata != "" {
+		vsn += "+" + metadata
+	}
+
+	return vsn
 }

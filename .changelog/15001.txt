@@ -1,4 +1,0 @@
-```release-note:improvement
-ingress-gateways: Don't log error when gateway is registered without a config entry
-```
-

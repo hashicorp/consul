@@ -13,7 +13,7 @@ This topic describes considerations and strategies for upgrading Consul deployme
 
 As of Consul v1.14.0, Kubernetes deployments use [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. If you upgrade Consul from a version that uses client agents to a version that uses dataplanes, you must follow specific steps to update your Helm chart and remove client agents from the existing deployment. Refer to [Upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplane) for more information.
 
-The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs`](https://github.com/hashicorp/go-netaddrs) library and command line tool for more information.
+The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs` library and command line tool](https://github.com/hashicorp/go-netaddrs) for more information.
 
 ## Upgrade types
 
@@ -47,9 +47,9 @@ For example, if you installed Consul with `connectInject.enabled: false` and you
    ```
 
    **Before performing the upgrade, be sure you read the other sections on this page,
-   continuing at [Determine scope of changes](#determine-scope-of-changes).**
+   continuing at [Determining What Will Change](#determining-what-will-change).**
 
-~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise, Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
+~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
 
 ### Upgrade Helm chart version
 
@@ -96,17 +96,17 @@ If you want to upgrade to the latest `0.40.0` version, use the following procedu
   ```
 
   **Before performing the upgrade, be sure you've read the other sections on this page,
-  continuing at [Determine scope of changes](#determine-scope-of-changes).**
+  continuing at [Determining What Will Change](#determining-what-will-change).**
 
 ### Upgrade Consul version
 
 If a new version of Consul is released, you need to perform a Helm upgrade
 to update to the new version. Before you upgrade to a new version:
 
-1. Read the [Upgrading Consul](/consul/docs/upgrading) documentation.
-1. Read any [specific instructions](/consul/docs/upgrading/upgrade-specific) for the version you want to upgrade
+1. Read the [Upgrading Consul](/docs/upgrading) documentation.
+1. Read any [specific instructions](/docs/upgrading/upgrade-specific) for the version you want to upgrade
    to, as well as the Consul [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md) for that version.
-1. Read our [Compatibility Matrix](/consul/docs/k8s/compatibility) to ensure
+1. Read our [Compatibility Matrix](/docs/k8s/compatibility) to ensure
    your current Helm chart version supports this Consul version. If it does not,
    you may need to also upgrade your Helm chart version at the same time.
 1. Set `global.image` in your `values.yaml` to the desired version:
@@ -135,9 +135,9 @@ to update to the new version. Before you upgrade to a new version:
   ```
 
   **Before performing the upgrade, be sure you have read the other sections on this page,
-  continuing at [Determine scope of changes](#determine-scope-of-changes).**
+  continuing at [Determining What Will Change](#determining-what-will-change).**
 
-~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise, Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
+~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
 
 ## Determine scope of changes
 
@@ -174,7 +174,7 @@ that can be used.
 1. Take specific note if `consul-server, StatefulSet` is listed, as it means your Consul server statefulset will be redeployed.
 
   If your Consul server statefulset needs to be redeployed, follow the same pattern for upgrades as
-  on other platforms by redploying servers one by one. Refer tp [Upgrading Consul](/consul/docs/upgrading) for more information.
+  on other platforms by redploying servers one by one. Refer tp [Upgrading Consul](/docs/upgrading) for more information.
 
   If neither the server statefulset is not being redeployed,
   then you can continue with the Helm upgrade without any specific sequence to follow.
@@ -184,7 +184,7 @@ that can be used.
 Initiate the server upgrade:
 
 1. Change the `global.image` value to the desired Consul version.
-1. Set the `server.updatePartition` value to the number of server replicas. By default, there are 3 servers, so you would set this value to `3`.
+1. Set the `server.updatePartition` value to the number of server replicas. By default there are 3 servers, so you would set this value to `3`.
 1. Set the `updateStrategy` for clients to `OnDelete`.
 
   <CodeBlockConfig filename="values.yaml">
@@ -224,7 +224,7 @@ Initiate the server upgrade:
 
 ## Upgrading to Consul Dataplane
 
-In earlier versions, Consul on Kubernetes used client agents in its deployments. As of v1.14.0, Consul uses [Consul Dataplane](/consul/docs/connect/dataplane/) in Kubernetes deployments instead of client agents.
+In earlier versions, Consul on Kubernetes used client agents in its deployments. As of v1.14.0, Consul uses [Consul Dataplane](/docs/connect/dataplane/) in Kubernetes deployments instead of client agents.
 
 If you upgrade Consul from a version that uses client agents to a version the uses dataplanes, complete the following steps to upgrade your deployment safely and without downtime.
 
@@ -266,4 +266,4 @@ If you upgrade Consul from a version that uses client agents to a version the us
 
 If you already have a Consul cluster deployed on Kubernetes and
 would like to turn on TLS for internal Consul communication,
-refer to [Configuring TLS on an Existing Cluster](/consul/docs/k8s/operations/tls-on-existing-cluster).
+refer to [Configuring TLS on an Existing Cluster](/docs/k8s/operations/tls-on-existing-cluster).

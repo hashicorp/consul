@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -33,7 +30,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 		Port:           5000,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(svc, nil, token, true))
+	require.NoError(t, a.State.AddServiceWithChecks(svc, nil, token))
 
 	proxy := &structs.NodeService{
 		Kind:    structs.ServiceKindConnectProxy,
@@ -44,11 +41,11 @@ func TestAgent_local_proxycfg(t *testing.T) {
 		LocallyRegisteredAsSidecar: true,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "db",
-			Upstreams:              structs.TestUpstreams(t, false),
+			Upstreams:              structs.TestUpstreams(t),
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(proxy, nil, token, true))
+	require.NoError(t, a.State.AddServiceWithChecks(proxy, nil, token))
 
 	// This is a little gross, but this gives us the layered pair of
 	// local/catalog sources for now.

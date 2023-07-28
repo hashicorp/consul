@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
@@ -17,7 +12,6 @@ module('Integration | Serializer | coordinate', function (hooks) {
   const nspace = 'default';
   const partition = 'default';
   test('respondForQuery returns the correct data for list endpoint', function (assert) {
-    assert.expect(1);
     const serializer = this.owner.lookup('serializer:coordinate');
     const request = {
       url: `/v1/coordinate/nodes?dc=${dc}`,

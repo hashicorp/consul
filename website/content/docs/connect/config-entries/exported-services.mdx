@@ -7,7 +7,9 @@ description: >-
 
 # Exported Services Configuration Entry
 
-This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/consul/docs/connect/cluster-peering) and [Admin Partitions](/consul/docs/enterprise/admin-partitions).
+This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/docs/connect/cluster-peering) and [Admin Partitions](/docs/enterprise/admin-partitions).
+
+-> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
 
 ## Introduction
 
@@ -16,15 +18,17 @@ To configure Consul to export services contained in a Consul Enterprise admin pa
 You can configure the settings defined in the `exported-services` configuration entry to apply to all namespaces in a Consul Enterprise admin partition.
 
 ## Requirements
+
+- A 1.11.0+ Consul Enterprise binary or a 1.13.0+ Consul OSS binary.
 - **Enterprise Only**: A corresponding partition that the configuration entry can export from. For example, the `exported-services` configuration entry for a partition named `frontend` requires an existing `frontend` partition.
 
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
-1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/consul/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
+1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
 1. Apply the configuration using one of the following methods:
-   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/k8s/crds) documentation for details.
-   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
+   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
+   - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
 
 ## Configuration
 
@@ -62,18 +66,20 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Name": "default",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Consumers": [
-      {
-        "Peer": "<name of the peered cluster that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Name": "default",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Consumers": [
+        {
+          "Peer": "<name of the peered cluster that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -113,20 +119,22 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "Peer": "<name of the peered cluster that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "Peer": "<name of the peered cluster that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -166,74 +174,22 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "Partition": "<name of partition that dials the exported service>"
-      }
-    ]
-  }
-]
-```
-
-</CodeTabs>
-</Tab>
-
-
-<Tab heading="Consul Enterprise (Sameness Group)">
-<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "exported-services"
-Partition = "<partition containing services to export>"
-Name = "<partition containing services to export>"
-Services = [
-  {
-    Name = "<name of service to export>"
-    Namespace = "<namespace in the partition containing the service to export>"
-    Consumers = [
-      {
-        SamenessGroup = "<name of the sameness group that dials the exported service>"
-      }
-    ]
-  }
-]
-```
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ExportedServices
-metadata:
-  name: <partition containing services to export>
-spec:
-  services:
-    - name: <name of service to export>
-      namespace: <namespace in the partition containing the service to export>
-      consumers:
-        - samenessGroup: <name of the sameness group that dials the exported service>
-```
-
-```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "SamenessGroup": "<name of the sameness group that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "Partition": "<name of partition that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -269,9 +225,6 @@ an exported service. Each item in the `Consumers` list must contain exactly one 
 A asterisk wildcard (`*`) cannot be specified as the `Peer`. Added in Consul 1.13.0.
 - `Partition`: <EnterpriseAlert inline /> Specifies an admin partition in the datacenter to export the service to.
 A asterisk wildcard (`*`) cannot be specified as the `Partition`.
-- `SamenessGroup`: <EnterpriseAlert inline /> Specifies as sameness group to export the service to.
-A asterisk wildcard (`*`) cannot be specified as the `SamennessGroup`.
-
 
 ## Examples
 
@@ -326,7 +279,8 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Name": "default",
   "Services": [
     {
@@ -334,8 +288,8 @@ spec:
       "Consumers": [
         {
           "Peer": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -346,6 +300,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -402,18 +357,19 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "payments",
-      "Namespace": "billing"
+      "Namespace": "billing",
       "Consumers": [
         {
           "Peer": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -425,6 +381,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -448,7 +405,7 @@ Services = [
     Consumers = [
         {
             Partition  = "web-shop"
-        },
+        }
     ]
   },
   {
@@ -481,18 +438,19 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "payments",
-      "Namespace": "billing"
+      "Namespace": "billing",
       "Consumers": [
         {
           "Partition": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -504,62 +462,12 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
 </Tab>
 </Tabs>
-
-### Exporting a service to a sameness group
-
-The following example configures Consul to export a service named `api` to a defined group of partitions that belong to a separately defined [sameness group](/consul/docs/connect/config-entries/sameness-group) named `monitoring`.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "exported-services"
-Name = "default"
-
-Services = [
-  {
-    Name      = "api"
-    Consumers = [
-        {
-            SamenessGroup  = "monitoring"
-        }
-    ]
-  }
-]
-```
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-Kind: ExportedServices
-metadata:
-  name: default
-spec:
-  services:
-    - name: api
-      consumers:
-        - samenessGroup: monitoring
-```
-
-```json
-"Kind": "exported-services",
-  "Name": "default",
-  "Services": [
-    {
-      "Name": "api",
-      "Consumers": [
-        {
-          "SamenessGroup": "monitoring"
-        }
-      ]
-    }
-  ]
-```
-
-</CodeTabs>
 
 ### Exporting all services
 
@@ -603,12 +511,13 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Name": "default",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Peer": "monitoring"
@@ -619,6 +528,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -666,13 +576,14 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Peer": "monitoring"
@@ -683,6 +594,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -730,13 +642,14 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Partition": "monitoring"
@@ -747,6 +660,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -813,7 +727,6 @@ node_prefix "" {
     }
   }
 }
-
 ```
 
 </CodeTabs>
@@ -865,17 +778,17 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service": {
+          "service": {
             "web": {
-			  "policy": "write"
+              "policy": "write"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 
@@ -884,10 +797,10 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service_prefix": {
+          "service_prefix": {
             "": {
               "policy": "read"
             }
@@ -897,9 +810,9 @@ partition "frontend" {
               "policy": "read"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 ```
@@ -953,17 +866,17 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service": {
+          "service": {
             "web": {
-			  "policy": "write"
+              "policy": "write"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 
@@ -972,10 +885,10 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service_prefix": {
+          "service_prefix": {
             "": {
               "policy": "read"
             }
@@ -985,9 +898,9 @@ partition "frontend" {
               "policy": "read"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 ```
@@ -997,4 +910,4 @@ partition "frontend" {
 </Tab>
 </Tabs>
 
-For additional information, refer to [Health HTTP Endpoint](/consul/api-docs/health).
+For additional information, refer to [Health HTTP Endpoint](/api-docs/health).

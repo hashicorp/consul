@@ -1,12 +1,5 @@
 # Iconography
 
-_We recently started adopting the [@hashicorp/ember-flight-icons](https://flight-hashicorp.vercel.app/) package, in particular the
-usage of the `<FlightIcon>` component to render icons. This enables us to use all the
-icons listed [on the flight icons page](https://flight-hashicorp.vercel.app/). If an icon is not present in the flight-icons package,
-you may resort to the techniques listed below._
-
----
-
 All our iconography uses native CSS properties for adding iconography from The
 Outside. You can also add icons using the same properties within `style=""`
 attributes, but you should think twice before adding decorative content into
@@ -36,15 +29,15 @@ selectors.
 
 ```css
 .selector::before {
-  --icon-name: icon-alert-circle;
+  --icon-name: icon-aws-color;
   content: '';
 }
 ```
 
 ```css
 .selector::after {
-  --icon-name: icon-alert-circle;
-  --icon-color: var(--token-color-surface-primary);
+  --icon-name: icon-aws;
+  --icon-color: rgb(var(---white));
   content: '';
 }
 ```
@@ -55,10 +48,10 @@ icons in HTML using these CSS properties.
 ```hbs preview-template
 <h2
   style={{style-map
-    (array '--icon-name-start' 'icon-alert-circle')
-    (array '--icon-color-start' 'var(--token-color-consul-brand)')
+    (array '--icon-name-start' 'icon-consul')
+    (array '--icon-color-start' 'rgb(var(--tone-strawberry-500))')
     (array '--icon-name-end' 'icon-vault')
-    (array '--icon-color-end' 'var(--color-vault)')
+    (array '--icon-color-end' 'var(--color-vault-500)')
   }}
 >
   Header Name
@@ -71,7 +64,9 @@ following. Under different circumstances this would give us an option that works
 
 ```hbs
 <span
-  class={{class-map 'visually-hidden'}}
+  class={{class-map
+    'visually-hidden'
+  }}
   style={{style-map
     (array '--icon-name-start' @name)
     (array '--icon-color' @color)
@@ -80,8 +75,10 @@ following. Under different circumstances this would give us an option that works
   ...attributes
 >{{yield}}</span>
 
-<Icon @name='icon-name' @color='#FF0000' @size='icon-300' />
+
+<Icon @name="icon-name" @color="#FF0000" @size="icon-300" />
 ```
+
 
 ## Deprecated
 
@@ -105,7 +102,7 @@ also use `background-color`.
 ```css
 .selector::before {
   @extend %with-alert-circle-fill-mask, %as-pseudo;
-  color: var(--token-color-consul-brand);
+  color: rgb(var(--tone-strawberry-500));
 }
 ```
 
@@ -114,56 +111,65 @@ use `-mask`, use `-icon` instead:
 
 ```css
 .selector::before {
-  @extend %with-alert-circle-icon, %as-pseudo;
+  @extend %with-logo-consul-color-icon, %as-pseudo;
 }
 ```
 
 ```hbs preview-template
 <figure>
-  <select onchange={{action (mut this.type) value='target.value'}}>
-    <option>colored</option>
-    <option>monochrome</option>
-  </select>
-  <select onchange={{action (mut this.theme) value='target.value'}}>
-    <option>light</option>
-    <option>dark</option>
-  </select>
-  <input
-    oninput={{action (mut this.size) value='target.value'}}
-    type='range'
-    min='100'
-    max='900'
-    step='100'
-  />
-  {{this.size}}
+    <select
+      onchange={{action (mut this.type) value="target.value"}}
+    >
+      <option>colored</option>
+      <option>monochrome</option>
+    </select>
+    <select
+      onchange={{action (mut this.theme) value="target.value"}}
+    >
+      <option>light</option>
+      <option>dark</option>
+    </select>
+    <input
+      oninput={{action (mut this.size) value="target.value"}}
+      type="range" min="100" max="900" step="100"
+    />
+    {{this.size}}
 </figure>
 <ul
-  {{css-props (set this 'icons') prefix='icon-'}}
-  class={{class-map (concat 'theme-' (or this.theme 'light'))}}
+  {{css-props (set this 'icons')
+    prefix='icon-'
+  }}
+  class={{class-map
+    (concat 'theme-' (or this.theme 'light'))
+  }}
   style={{style-map
-    (array '--icon-color' (if (eq this.type 'monochrome') 'var(--token-color-hashicorp-brand)'))
+    (array '--icon-color' (if (eq this.type 'monochrome') 'rgb(var(--black))'))
     (array '--icon-size' (concat 'icon-' (or this.size '500')))
     (array '--icon-resolution' (if (gt this.size 500) '.5' '1'))
   }}
 >
-  {{#each-in this.icons as |prop value|}}
-    {{#if
-      (and
-        (not (includes prop (array '--icon-name' '--icon-color' '--icon-size' '--icon-resolution')))
-        (not (string-includes prop '-24'))
-      )
-    }}
-      {{#let (string-replace (string-replace prop '-16' '') '--' '') as |name|}}
-        <li>
-          <figure
-            {{with-copyable (concat '--icon-name: ' name ';content: "";')}}
-            style={{style-map (array '--icon-name-start' name)}}
-          >
-            <figcaption>{{name}}</figcaption>
-          </figure>
-        </li>
-      {{/let}}
-    {{/if}}
-  {{/each-in}}
+{{#each-in this.icons as |prop value|}}
+{{#if (and
+    (not (includes prop (array '--icon-name' '--icon-color' '--icon-size' '--icon-resolution')))
+    (not (string-includes prop '-24'))
+  )
+}}
+{{#let
+  (string-replace (string-replace prop '-16' '') '--' '')
+as |name|}}
+  <li>
+    <figure
+      {{with-copyable (concat '--icon-name: ' name ';content: "";')}}
+      style={{style-map
+        (array '--icon-name-start' name)
+      }}
+    >
+      <figcaption>{{name}}</figcaption>
+    </figure>
+  </li>
+{{/let}}
+{{/if}}
+{{/each-in}}
 </ul>
 ```
+

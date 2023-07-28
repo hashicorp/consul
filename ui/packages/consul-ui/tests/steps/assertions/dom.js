@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 const dont = `( don't| shouldn't| can't)?`;
 export default function (scenario, assert, pauseUntil, find, currentURL, clipboard) {
   scenario

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -45,41 +42,74 @@ const (
 
 	// This policy gives unlimited access to everything. Users
 	// may rename if desired but cannot delete or modify the rules.
-	ACLPolicyGlobalManagementID = "00000000-0000-0000-0000-000000000001"
-	ACLPolicyGlobalManagement   = `
-acl = "write"
+	ACLPolicyGlobalManagementID   = "00000000-0000-0000-0000-000000000001"
+	ACLPolicyGlobalManagementName = "global-management"
+	ACLPolicyGlobalManagementDesc = "A built-in policy that grants read and write access to all Consul features"
+
+	ACLPolicyGlobalReadOnlyID   = "00000000-0000-0000-0000-000000000002"
+	ACLPolicyGlobalReadOnlyName = "builtin/global-read-only"
+	ACLPolicyGlobalReadOnlyDesc = "A built-in policy that grants read-only access to all Consul features"
+
+	ACLReservedIDPrefix = "00000000-0000-0000-0000-0000000000"
+
+	aclPolicyGlobalRulesTemplate = `
+acl = "%[1]s"
 agent_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
 event_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
 key_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
-keyring = "write"
+keyring = "%[1]s"
 node_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
-operator = "write"
-mesh = "write"
-peering = "write"
+operator = "%[1]s"
+mesh = "%[1]s"
+peering = "%[1]s"
 query_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
 service_prefix "" {
-	policy = "write"
-	intentions = "write"
+	policy = "%[1]s"
+	intentions = "%[1]s"
 }
 session_prefix "" {
-	policy = "write"
-}` + EnterpriseACLPolicyGlobalManagement
+	policy = "%[1]s"
+}`
 
-	ACLReservedPrefix = "00000000-0000-0000-0000-0000000000"
+	// This is the policy ID for anonymous access. This is configurable by the
+	// user.
+	ACLTokenAnonymousID = "00000000-0000-0000-0000-000000000002"
+)
+
+var (
+	ACLPolicyGlobalReadOnlyRules   = fmt.Sprintf(aclPolicyGlobalRulesTemplate, "read") + EnterpriseACLPolicyGlobalReadOnly
+	ACLPolicyGlobalManagementRules = fmt.Sprintf(aclPolicyGlobalRulesTemplate, "write") + EnterpriseACLPolicyGlobalManagement
+
+	ACLBuiltinPolicies = map[string]ACLPolicy{
+		ACLPolicyGlobalManagementID: {
+			ID:          ACLPolicyGlobalManagementID,
+			Name:        ACLPolicyGlobalManagementName,
+			Description: ACLPolicyGlobalManagementDesc,
+			Rules:       ACLPolicyGlobalManagementRules,
+			Syntax:      acl.SyntaxCurrent,
+		},
+		ACLPolicyGlobalReadOnlyID: {
+			ID:          ACLPolicyGlobalReadOnlyID,
+			Name:        ACLPolicyGlobalReadOnlyName,
+			Description: ACLPolicyGlobalReadOnlyDesc,
+			Rules:       ACLPolicyGlobalReadOnlyRules,
+			Syntax:      acl.SyntaxCurrent,
+		},
+	}
 )
 
 func ACLIDReserved(id string) bool {
-	return strings.HasPrefix(id, ACLReservedPrefix)
+	return strings.HasPrefix(id, ACLReservedIDPrefix)
 }
 
 // ACLBootstrapNotAllowedErr is returned once we know that a bootstrap can no
@@ -163,6 +193,7 @@ func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPo
 	sn := NewServiceName(s.ServiceName, entMeta)
 	policy.Description = fmt.Sprintf("synthetic policy for service identity %q", sn.String())
 	policy.Rules = rules
+	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = s.Datacenters
 	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
@@ -234,6 +265,7 @@ func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolic
 	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
 	policy.Description = fmt.Sprintf("synthetic policy for node identity %q", s.NodeName)
 	policy.Rules = rules
+	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
 	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
@@ -286,6 +318,17 @@ type ACLToken struct {
 
 	// The node identities that this token should be allowed to manage.
 	NodeIdentities ACLNodeIdentities `json:",omitempty"`
+
+	// Type is the V1 Token Type
+	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
+	// Even though we are going to auto upgrade management tokens we still
+	// want to be able to have the old APIs operate on the upgraded management tokens
+	// so this field is being kept to identify legacy tokens even after an auto-upgrade
+	Type string `json:"-"`
+
+	// Rules is the V1 acl rules associated with
+	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
+	Rules string `json:",omitempty"`
 
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
@@ -473,6 +516,8 @@ func (t *ACLToken) SetHash(force bool) []byte {
 
 		// Write all the user set fields
 		hash.Write([]byte(t.Description))
+		hash.Write([]byte(t.Type))
+		hash.Write([]byte(t.Rules))
 
 		if t.Local {
 			hash.Write([]byte("local"))
@@ -509,7 +554,7 @@ func (t *ACLToken) SetHash(force bool) []byte {
 
 func (t *ACLToken) EstimateSize() int {
 	// 41 = 16 (RaftIndex) + 8 (Hash) + 8 (ExpirationTime) + 8 (CreateTime) + 1 (Local)
-	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.AuthMethod)
+	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.Rules) + len(t.AuthMethod)
 	for _, link := range t.Policies {
 		size += len(link.ID) + len(link.Name)
 	}
@@ -543,6 +588,7 @@ type ACLTokenListStub struct {
 	Hash              []byte
 	CreateIndex       uint64
 	ModifyIndex       uint64
+	Legacy            bool `json:",omitempty"`
 	acl.EnterpriseMeta
 	ACLAuthMethodEnterpriseMeta
 }
@@ -565,6 +611,7 @@ func (token *ACLToken) Stub() *ACLTokenListStub {
 		Hash:                        token.Hash,
 		CreateIndex:                 token.CreateIndex,
 		ModifyIndex:                 token.ModifyIndex,
+		Legacy:                      token.Rules != "",
 		EnterpriseMeta:              token.EnterpriseMeta,
 		ACLAuthMethodEnterpriseMeta: token.ACLAuthMethodEnterpriseMeta,
 	}
@@ -596,6 +643,9 @@ type ACLPolicy struct {
 
 	// The rule set (using the updated rule syntax)
 	Rules string
+
+	// DEPRECATED (ACL-Legacy-Compat) - This is only needed while we support the legacy ACLs
+	Syntax acl.SyntaxVersion `json:"-"`
 
 	// Datacenters that the policy is valid within.
 	//   - No wildcards allowed
@@ -757,7 +807,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Conf
 			continue
 		}
 
-		p, err := acl.NewPolicyFromSource(policy.Rules, entConf, policy.EnterprisePolicyMeta())
+		p, err := acl.NewPolicyFromSource(policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
 		}
@@ -1247,7 +1297,7 @@ func (r *ACLTokenSetRequest) RequestDatacenter() string {
 
 // ACLTokenGetRequest is used for token read operations at the RPC layer
 type ACLTokenGetRequest struct {
-	TokenID     string         // Accessor ID used for the token lookup
+	TokenID     string         // id used for the token lookup
 	TokenIDType ACLTokenIDType // The Type of ID used to lookup the token
 	Expanded    bool
 	Datacenter  string // The datacenter to perform the request within
@@ -1261,7 +1311,7 @@ func (r *ACLTokenGetRequest) RequestDatacenter() string {
 
 // ACLTokenDeleteRequest is used for token deletion operations at the RPC layer
 type ACLTokenDeleteRequest struct {
-	TokenID    string // Accessor ID of the token to delete
+	TokenID    string // ID of the token to delete
 	Datacenter string // The datacenter to perform the request within
 	acl.EnterpriseMeta
 	WriteRequest
@@ -1278,6 +1328,7 @@ type ACLTokenListRequest struct {
 	Policy        string // Policy filter
 	Role          string // Role filter
 	AuthMethod    string // Auth Method filter
+	ServiceName   string // Service name (from service identities) filter
 	Datacenter    string // The datacenter to perform the request within
 	ACLAuthMethodEnterpriseMeta
 	acl.EnterpriseMeta
@@ -1330,20 +1381,10 @@ type ACLTokenBatchDeleteRequest struct {
 	TokenIDs []string // Tokens to delete
 }
 
-type ACLInitialTokenBootstrapRequest struct {
-	BootstrapSecret string
-	Datacenter      string
-	QueryOptions
-}
-
-func (r *ACLInitialTokenBootstrapRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
 // ACLTokenBootstrapRequest is used only at the Raft layer
 // for ACL bootstrapping
 //
-// The RPC layer will use ACLInitialTokenBootstrapRequest to indicate
+// The RPC layer will use a generic DCSpecificRequest to indicate
 // that bootstrapping must be performed but the actual token
 // and the resetIndex will be generated by that RPC endpoint
 type ACLTokenBootstrapRequest struct {

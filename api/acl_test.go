@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -190,7 +187,7 @@ func TestAPI_ACLPolicy_List(t *testing.T) {
 
 	policies, qm, err := acl.PolicyList(nil)
 	require.NoError(t, err)
-	require.Len(t, policies, 4)
+	require.Len(t, policies, 5)
 	require.NotEqual(t, 0, qm.LastIndex)
 	require.True(t, qm.KnownLeader)
 
@@ -233,6 +230,11 @@ func TestAPI_ACLPolicy_List(t *testing.T) {
 	policy4, ok := policyMap["00000000-0000-0000-0000-000000000001"]
 	require.True(t, ok)
 	require.NotNil(t, policy4)
+
+	// make sure the 5th policy is the global read-only
+	policy5, ok := policyMap["00000000-0000-0000-0000-000000000002"]
+	require.True(t, ok)
+	require.NotNil(t, policy5)
 }
 
 func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
@@ -290,38 +292,6 @@ func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (pol
 	require.NotNil(t, policy)
 	policies = append(policies, policy)
 	return
-}
-
-func TestAPI_ACLBootstrap(t *testing.T) {
-	t.Parallel()
-	c, s := makeNonBootstrappedACLClient(t, "allow")
-
-	s.WaitForLeader(t)
-	// not bootstrapped, default allow
-	mems, err := c.Agent().Members(false)
-	require.NoError(t, err)
-	require.True(t, len(mems) == 1)
-
-	s.Stop()
-	c, s = makeNonBootstrappedACLClient(t, "deny")
-	acl := c.ACL()
-	s.WaitForLeader(t)
-	//not bootstrapped, default deny
-	_, _, err = acl.TokenList(nil)
-	require.EqualError(t, err, "Unexpected response code: 403 (Permission denied: anonymous token lacks permission 'acl:read'. The anonymous token is used implicitly when a request does not specify a token.)")
-	c.config.Token = "root"
-	_, _, err = acl.TokenList(nil)
-	require.EqualError(t, err, "Unexpected response code: 403 (ACL system must be bootstrapped before making any requests that require authorization: ACL not found)")
-	// bootstrap
-	mgmtTok, _, err := acl.Bootstrap()
-	require.NoError(t, err)
-	// bootstrapped
-	acl.c.config.Token = mgmtTok.SecretID
-	toks, _, err := acl.TokenList(nil)
-	require.NoError(t, err)
-	// management and anonymous should be only tokens
-	require.Len(t, toks, 2)
-	s.Stop()
 }
 
 func TestAPI_ACLToken_CreateReadDelete(t *testing.T) {
@@ -546,6 +516,90 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	token5, ok := tokenMap[root.AccessorID]
 	require.True(t, ok)
 	require.NotNil(t, token5)
+}
+
+func TestAPI_ACLToken_ListFiltered(t *testing.T) {
+	t.Parallel()
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	acl := c.ACL()
+	s.WaitForSerfCheck(t)
+
+	created1, _, err := acl.TokenCreate(&ACLToken{
+		Description: "token1",
+		ServiceIdentities: []*ACLServiceIdentity{
+			{ServiceName: "s1"},
+		},
+	}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, created1)
+	require.NotEqual(t, "", created1.AccessorID)
+	require.NotEqual(t, "", created1.SecretID)
+
+	created2, _, err := acl.TokenCreate(&ACLToken{
+		Description: "token2",
+		ServiceIdentities: []*ACLServiceIdentity{
+			{ServiceName: "s2"},
+		},
+	}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, created2)
+	require.NotEqual(t, "", created2.AccessorID)
+	require.NotEqual(t, "", created2.SecretID)
+
+	created3, _, err := acl.TokenCreate(&ACLToken{
+		Description: "token3",
+		ServiceIdentities: []*ACLServiceIdentity{
+			{ServiceName: "s1"},
+			{ServiceName: "s2"},
+		},
+	}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, created3)
+	require.NotEqual(t, "", created3.AccessorID)
+	require.NotEqual(t, "", created3.SecretID)
+
+	tokens, qm, err := acl.TokenListFiltered(ACLTokenFilterOptions{
+		ServiceName: "s1",
+	}, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
+	require.Len(t, tokens, 2)
+	found := make([]string, 0, 2)
+	for _, token := range tokens {
+		found = append(found, token.Description)
+	}
+	require.ElementsMatch(t, []string{"token1", "token3"}, found)
+
+	tokens, qm, err = acl.TokenListFiltered(ACLTokenFilterOptions{
+		ServiceName: "s2",
+	}, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
+	require.Len(t, tokens, 2)
+	found = make([]string, 0, 2)
+	for _, token := range tokens {
+		found = append(found, token.Description)
+	}
+	require.ElementsMatch(t, []string{"token2", "token3"}, found)
+
+	tokens, qm, err = acl.TokenListFiltered(ACLTokenFilterOptions{
+		ServiceName: "nothing",
+	}, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
+	require.Empty(t, tokens)
+
+	_, _, err = acl.TokenListFiltered(ACLTokenFilterOptions{
+		ServiceName: "s",
+		AuthMethod:  "a",
+	}, nil)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "can only filter by one of")
 }
 
 func TestAPI_ACLToken_Clone(t *testing.T) {

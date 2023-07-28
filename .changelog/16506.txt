@@ -1,8 +1,0 @@
-```release-note:deprecation
-cli: Deprecate the `-merge-node-identites` and `-merge-service-identities` flags from the `consul token update` command in favor of: `-append-node-identity` and `-append-service-identity`.
-```
-
-```release-note:improvement
-cli: added `-append-service-identity` and `-append-node-identity` flags to the `consul token update` command.
-These flags allow updates to a token's node identities/service identities without having to override them.  
-```

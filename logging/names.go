@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package logging
 
 const (
@@ -20,16 +17,13 @@ const (
 	Consul                string = "consul"
 	ConsulClient          string = "client"
 	ConsulServer          string = "server"
-	ControllerRuntime     string = "controller-runtime"
 	Coordinate            string = "coordinate"
 	DNS                   string = "dns"
 	Envoy                 string = "envoy"
 	FederationState       string = "federation_state"
 	FSM                   string = "fsm"
-	APIGatewayController  string = "api_gateway_controller"
 	GatewayLocator        string = "gateway_locator"
 	HTTP                  string = "http"
-	HTTPRouteController   string = "http_route_controller"
 	IngressGateway        string = "ingress_gateway"
 	Intentions            string = "intentions"
 	Internal              string = "internal"
@@ -58,7 +52,6 @@ const (
 	Partition             string = "partition"
 	Peering               string = "peering"
 	PeeringMetrics        string = "peering_metrics"
-	TCPRouteController    string = "tcp_route_controller"
 	TerminatingGateway    string = "terminating_gateway"
 	TLSUtil               string = "tlsutil"
 	Transaction           string = "txn"

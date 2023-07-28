@@ -1,12 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package token
 
 import (
-	"github.com/mitchellh/cli"
-
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
 func New() *cmd {
@@ -46,15 +42,15 @@ Usage: consul acl token <subcommand> [options] [args]
 
   Update a token:
 
-      $ consul acl token update -accessor-id 986193 -description "WonderToken"
+      $ consul acl token update -id 986193 -description "WonderToken"
 
   Read a token with an accessor ID:
 
-    $ consul acl token read -accessor-id 986193
+    $ consul acl token read -id 986193
 
   Delete a token
 
-    $ consul acl token delete -accessor-id 986193
+    $ consul acl token delete -id 986193
 
   For more examples, ask for subcommand help or view the documentation.
 `

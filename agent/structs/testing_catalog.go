@@ -1,14 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
-	"fmt"
-
 	"github.com/mitchellh/go-testing-interface"
-
-	"github.com/hashicorp/consul/acl"
 )
 
 // TestRegisterRequest returns a RegisterRequest for registering a typical service.
@@ -48,11 +41,11 @@ func TestRegisterIngressGateway(t testing.T) *RegisterRequest {
 }
 
 // TestNodeService returns a *NodeService representing a valid regular service: "web".
-func TestNodeService() *NodeService {
-	return TestNodeServiceWithName("web")
+func TestNodeService(t testing.T) *NodeService {
+	return TestNodeServiceWithName(t, "web")
 }
 
-func TestNodeServiceWithName(name string) *NodeService {
+func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindTypical,
 		Service: name,
@@ -62,14 +55,7 @@ func TestNodeServiceWithName(name string) *NodeService {
 
 const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
-func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, useHostname bool, remoteEntMeta acl.EnterpriseMeta) CheckServiceNode {
-
-	// Non-default partitions have a different spiffe format.
-	spiffe := fmt.Sprintf("spiffe://%s/ns/default/dc/%s/svc/%s", peerTrustDomain, dc, name)
-	if !remoteEntMeta.InDefaultPartition() {
-		spiffe = fmt.Sprintf("spiffe://%s/ap/%s/ns/%s/dc/%s/svc/%s",
-			peerTrustDomain, remoteEntMeta.PartitionOrDefault(), remoteEntMeta.NamespaceOrDefault(), dc, name)
-	}
+func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, useHostname bool) CheckServiceNode {
 	service := &NodeService{
 		Kind:    ServiceKindTypical,
 		Service: name,
@@ -80,10 +66,11 @@ func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, 
 		Connect: ServiceConnect{
 			PeerMeta: &PeeringServiceMeta{
 				SNI: []string{
-					fmt.Sprintf("%s.%s.%s.%s.external.%s",
-						name, remoteEntMeta.NamespaceOrDefault(), remoteEntMeta.PartitionOrDefault(), peer, peerTrustDomain),
+					name + ".default.default." + peer + ".external." + peerTrustDomain,
 				},
-				SpiffeID: []string{spiffe},
+				SpiffeID: []string{
+					"spiffe://" + peerTrustDomain + "/ns/default/dc/" + peer + "-dc/svc/" + name,
+				},
 				Protocol: "tcp",
 			},
 		},
@@ -173,14 +160,6 @@ func TestNodeServiceMeshGateway(t testing.T) *NodeService {
 		8443,
 		ServiceAddress{Address: "10.1.2.3", Port: 8443},
 		ServiceAddress{Address: "198.18.4.5", Port: 443})
-}
-
-func TestNodeServiceAPIGateway(t testing.T) *NodeService {
-	return &NodeService{
-		Kind:    ServiceKindAPIGateway,
-		Service: "api-gateway",
-		Address: "1.1.1.1",
-	}
 }
 
 func TestNodeServiceTerminatingGateway(t testing.T, address string) *NodeService {

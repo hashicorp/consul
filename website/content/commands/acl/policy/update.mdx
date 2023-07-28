@@ -1,15 +1,13 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Policy Update'
-description: |
-  The `consul acl policy update` command updates existing ACL policies to change authorized read and write access in the service mesh.
 ---
 
 # Consul ACL Policy Update
 
 Command: `consul acl policy update`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/policy/:id](/consul/api-docs/acl/policies#update-a-policy)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/policy/:id](/api-docs/acl/policies#update-a-policy)
 
 The `acl policy update` command is used to update a policy. The default operations is to merge the current policy
 with those values provided to the command invocation. Therefore to update just one field, only
@@ -17,8 +15,8 @@ the `-id` or `-name` options and the option to modify must be provided. Note tha
 policies requires both the `-id` and `-name` as the new name cannot yet be used to lookup the
 policy.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -48,8 +46,6 @@ Usage: `consul acl policy update [options] [args]`
 - `-rules=<string>` - The policy rules. May be prefixed with `@` to indicate that
   the value is a file path to load the rules from. `-` may also be given to
   indicate that the rules are available on stdin.
-
-~> Specifying `-rules` will overwrite existing rules.
 
 - `-valid-datacenter=<value>` - Datacenter that the policy should be valid within.
   This flag may be specified multiple times.

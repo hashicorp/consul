@@ -69,7 +69,7 @@ Set to `true` to enable deployments to run with managed service accounts created
 * Default: `false`
 
 ### consul.authentication.method
-Specifies the [Consul auth method](/consul/docs/security/acl/auth-methods) used for initial authentication by Consul API Gateway.
+Specifies the [Consul auth method](/docs/security/acl/auth-methods) used for initial authentication by Consul API Gateway.
 * Type: string
 * Required: optional
 
@@ -178,7 +178,7 @@ If set to `true`, then the Envoy container ports are mapped to host ports.
 
 
 ## Example Configuration
-The following example creates a gateway class configuration called `example-gateway-class-config`. Traffic that passes through gateways created from the class configuration authenticates with Consul over HTTPS on port `8501`. Consul client agents communicate with server agents on port `8502`:
+The following example creates a gateway class configuration called `test-gateway-class-config`. Traffic that passes through gateways created from the class configuration authenticate with Consul over HTTPS on port `8501`. Consul client agents communicate with server agents on port `8502` :
 
 <CodeBlockConfig filename="gateway.yaml">
 
@@ -186,7 +186,7 @@ The following example creates a gateway class configuration called `example-gate
   apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
   kind: GatewayClassConfig
   metadata:
-    name: example-gateway-class-config
+    name: test-gateway-class-config
   spec:
     useHostPorts: true
     logLevel: 'trace'

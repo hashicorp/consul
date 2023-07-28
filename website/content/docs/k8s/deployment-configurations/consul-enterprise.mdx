@@ -11,7 +11,7 @@ You can use this Helm chart to deploy Consul Enterprise by following a few extra
 
 Find the license file that you received in your welcome email. It should have a `.hclic` extension. You will use the contents of this file to create a Kubernetes secret before installing the Helm chart.
 
--> **Note:** This guide assumes you are storing your license as a Kubernetes Secret. If you would like to store the enterprise license in Vault, please reference [Storing the Enterprise License in Vault](/consul/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license).
+~> **Note:** This guide assumes you are storing your license as a Kubernetes Secret. If you would like to store the enterprise license in Vault, please reference [Storing the Enterprise License in Vault](/consul/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license).
 
 You can use the following commands to create the secret with name `consul-ent-license` and key `key`:
 

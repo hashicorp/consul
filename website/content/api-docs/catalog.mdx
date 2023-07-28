@@ -16,18 +16,18 @@ API methods look similar.
 
 This endpoint is a low-level mechanism for registering or updating
 entries in the catalog. It is usually preferable to instead use the
-[agent endpoints](/consul/api-docs/agent) for registration as they are simpler and
-perform [anti-entropy](/consul/docs/architecture/anti-entropy).
+[agent endpoints](/api-docs/agent) for registration as they are simpler and
+perform [anti-entropy](/docs/architecture/anti-entropy).
 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
 | `PUT`  | `/catalog/register` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -70,7 +70,7 @@ The table below shows this endpoint's support for
   manipulates the health check entry in the Catalog, but it does not setup the
   script, TTL, or HTTP check to monitor the node's health. To truly enable a new
   health check, the check must either be provided in agent configuration or set
-  via the [agent endpoint](https://consul.io/agent).
+  via the [agent endpoint](agent).
 
   The `CheckID` can be omitted and will default to the value of `Name`. As
   with `Service.ID`, the `CheckID` must be unique on this node. `Notes` is an
@@ -168,18 +168,18 @@ $ curl \
 
 This endpoint is a low-level mechanism for directly removing
 entries from the Catalog. It is usually preferable to instead use the
-[agent endpoints](/consul/api-docs/agent) for deregistration as they are simpler and
-perform [anti-entropy](/consul/docs/architecture/anti-entropy).
+[agent endpoints](/api-docs/agent) for deregistration as they are simpler and
+perform [anti-entropy](/docs/architecture/anti-entropy).
 
 | Method | Path                  | Produces           |
 | ------ | --------------------- | ------------------ |
 | `PUT`  | `/catalog/deregister` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -263,16 +263,16 @@ Consul servers are routable.
 | `GET`  | `/catalog/datacenters` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `simple`      | `none`       |
 
-The corresponding CLI command is [`consul catalog datacenters`](/consul/commands/catalog/datacenters).
+The corresponding CLI command is [`consul catalog datacenters`](/commands/catalog/datacenters).
 
 ### Sample Request
 
@@ -298,16 +298,16 @@ This endpoint and returns the nodes registered in a given datacenter.
 | `GET`  | `/catalog/nodes` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `node:read`  |
 
-The corresponding CLI command is [`consul catalog nodes`](/consul/commands/catalog/nodes).
+The corresponding CLI command is [`consul catalog nodes`](/commands/catalog/nodes).
 
 ### Query Parameters
 
@@ -394,16 +394,16 @@ This endpoint returns the services registered in a given datacenter.
 | `GET`  | `/catalog/services` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required   |
 | ---------------- | ----------------- | -------------------- | -------------- |
 | `YES`            | `all`             | `background refresh` | `service:read` |
 
-The corresponding CLI command is [`consul catalog services`](/consul/commands/catalog/services).
+The corresponding CLI command is [`consul catalog services`](/commands/catalog/services).
 
 ### Query Parameters
 
@@ -499,10 +499,10 @@ This endpoint returns the nodes providing a service in a given datacenter.
 | `GET`  | `/catalog/service/:service_name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
 | ---------------- | ----------------- | -------------------- | ------------------------ |
@@ -539,10 +539,10 @@ The table below shows this endpoint's support for
 
 - `merge-central-config` - Include this flag in a request for `connect-proxy` kind or `*-gateway` kind
   services to return a fully resolved service definition that includes merged values from the
-  [proxy-defaults/global](/consul/docs/connect/config-entries/proxy-defaults) and 
-  [service-defaults/:service](/consul/docs/connect/config-entries/service-defaults) config entries.
+  [proxy-defaults/global](/docs/connect/config-entries/proxy-defaults) and 
+  [service-defaults/:service](/docs/connect/config-entries/service-defaults) config entries.
   Returning a fully resolved service definition is useful when a service was registered using the 
-  [/catalog/register](/consul/api-docs/catalog#register_entity) endpoint, which does not automatically merge config entries.
+  [/catalog/register](/api-docs/catalog#register_entity) endpoint, which does not automatically merge config entries.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
@@ -647,12 +647,12 @@ $ curl \
   service instance. This includes both the address as well as the port.
 
 - `ServiceKind` is the kind of service, usually "". See the Agent
-  [service registration API](/consul/api-docs/agent/service#kind) for more information.
+  [service registration API](/api-docs/agent/service#kind) for more information.
 
 - `ServiceProxy` is the proxy config as specified in
-  [service mesh Proxies](/consul/docs/connect/proxies).
+  [Connect Proxies](/docs/connect/proxies).
 
-- `ServiceConnect` are the [service mesh](/consul/docs/connect) settings. The
+- `ServiceConnect` are the [Connect](/docs/connect) settings. The
   value of this struct is equivalent to the `Connect` field for service
   registration.
 
@@ -704,13 +704,13 @@ following selectors and filter operations being supported:
 | `TaggedAddresses.<any>`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
 | `TaggedAddresses`                                    | Is Empty, Is Not Empty, In, Not In                 |
 
-## List Nodes for Mesh-capable Service
+## List Nodes for Connect-capable Service
 
 This endpoint returns the nodes providing a
-[mesh-capable](/consul/docs/connect) service in a given datacenter.
+[Connect-capable](/docs/connect) service in a given datacenter.
 This will include both proxies and native integrations. A service may
-register both mesh-capable and incapable services at the same time,
-so this endpoint may be used to filter only the mesh-capable endpoints.
+register both Connect-capable and incapable services at the same time,
+so this endpoint may be used to filter only the Connect-capable endpoints.
 
 @include 'http_api_results_filtered_by_acls.mdx'
 
@@ -719,7 +719,7 @@ so this endpoint may be used to filter only the mesh-capable endpoints.
 | `GET`  | `/catalog/connect/:service` | `application/json` |
 
 Parameters and response format are the same as
-[`/catalog/service/:service_name`](/consul/api-docs/catalog#list-nodes-for-service).
+[`/catalog/service/:service_name`](/api-docs/catalog#list-nodes-for-service).
 
 ## Retrieve Map of Services for a Node
 
@@ -732,10 +732,10 @@ This endpoint returns the node's registered services.
 | `GET`  | `/catalog/node/:node_name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
 | ---------------- | ----------------- | ------------- | ------------------------ |
@@ -861,10 +861,10 @@ This endpoint returns the node's registered services.
 | `GET`  | `/catalog/node-services/:node_name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
 | ---------------- | ----------------- | ------------- | ------------------------ |
@@ -884,10 +884,10 @@ The table below shows this endpoint's support for
 
 - `merge-central-config` - Include this flag in a request for `connect-proxy` kind or `*-gateway` kind
   services to return a fully resolved service definition that includes merged values from the
-  [proxy-defaults/global](/consul/docs/connect/config-entries/proxy-defaults) and 
-  [service-defaults/:service](/consul/docs/connect/config-entries/service-defaults) config entries.
+  [proxy-defaults/global](/docs/connect/config-entries/proxy-defaults) and 
+  [service-defaults/:service](/docs/connect/config-entries/service-defaults) config entries.
   Returning a fully resolved service definition is useful when a service was registered using the 
-  [/catalog/register](/consul/api-docs/catalog#register_entity) endpoint, which does not automatically merge config entries.
+  [/catalog/register](/api-docs/catalog#register_entity) endpoint, which does not automatically merge config entries.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
   The namespace may be specified as '\*' to return results for all namespaces.
@@ -947,7 +947,7 @@ $ curl \
       "Port": 8000,
       "Namespace": "default"
     }
-  }
+  ]
 }
 ```
 
@@ -1002,10 +1002,10 @@ This endpoint returns the services associated with an ingress gateway or termina
 | `GET`  | `/catalog/gateway-services/:gateway` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -1113,7 +1113,7 @@ $ curl \
 - `Service.Namespace` is the Consul Enterprise namespace of a service associated with the gateway
 
 - `GatewayKind` is the kind of service, will be one of "ingress-gateway" or "terminating-gateway". See the Agent
-  [service registration API](/consul/api-docs/agent/service#kind) for more information.
+  [service registration API](/api-docs/agent/service#kind) for more information.
 
 - `CAFile` is the path to a CA file the gateway will use for TLS origination to the associated service
 

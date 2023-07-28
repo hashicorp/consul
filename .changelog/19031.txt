@@ -1,0 +1,3 @@
+```release-note:bug
+api: add custom marshal/unmarshal for ServiceResolverConfigEntry.RequestTimeout so config entries that set this field can be read using the API.
+```

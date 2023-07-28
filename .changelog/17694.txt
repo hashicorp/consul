@@ -1,3 +1,0 @@
-```release-note:feature
-Windows: support consul connect envoy command on Windows
-```

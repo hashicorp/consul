@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package testutil
 
 // TestServer is a test helper. It uses a fork/exec model to create
@@ -20,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -75,23 +73,11 @@ type TestNetworkSegment struct {
 	Advertise string `json:"advertise"`
 }
 
-// TestAudigConfig contains the configuration for Audit
-type TestAuditConfig struct {
-	Enabled bool `json:"enabled,omitempty"`
-}
-
-// Locality is used as the TestServerConfig's Locality.
-type Locality struct {
-	Region string `json:"region"`
-	Zone   string `json:"zone"`
-}
-
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName            string                 `json:"node_name"`
 	NodeID              string                 `json:"node_id"`
 	NodeMeta            map[string]string      `json:"node_meta,omitempty"`
-	NodeLocality        *Locality              `json:"locality,omitempty"`
 	Performance         *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap           bool                   `json:"bootstrap,omitempty"`
 	Server              bool                   `json:"server,omitempty"`
@@ -129,8 +115,6 @@ type TestServerConfig struct {
 	Stderr              io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
 	ReturnPorts         func()                 `json:"-"`
-	Audit               *TestAuditConfig       `json:"audit,omitempty"`
-	Version             string                 `json:"version,omitempty"`
 }
 
 type TestACLs struct {
@@ -213,7 +197,6 @@ func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServe
 		Stdout:  logBuffer,
 		Stderr:  logBuffer,
 		Peering: &TestPeeringConfig{Enabled: true},
-		Version: consulVersion.String(),
 	}
 
 	// Add version-specific tweaks
@@ -284,7 +267,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		// Use test name for tmpdir if available
 		prefix = strings.Replace(t.Name(), "/", "_", -1)
 	}
-	tmpdir, err := os.MkdirTemp("", prefix)
+	tmpdir, err := ioutil.TempDir("", prefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create tempdir")
 	}
@@ -308,7 +291,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 
 	t.Logf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
-	if err := os.WriteFile(configFile, b, 0644); err != nil {
+	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}

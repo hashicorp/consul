@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -8,33 +5,31 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/go-hclog"
-	goversion "github.com/hashicorp/go-version"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/agent/envoyextensions"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/extensionruntime"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/version"
 )
 
 var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
@@ -53,7 +48,7 @@ type ADSDeltaStream = envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggrega
 
 // DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
 func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
-	defer s.activeStreams.Increment(stream.Context())()
+	defer s.activeStreams.Increment("v3")()
 
 	// a channel for receiving incoming requests
 	reqCh := make(chan *envoy_discovery_v3.DeltaDiscoveryRequest)
@@ -123,7 +118,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		currentVersions = make(map[string]map[string]string)
 	)
 
-	generator := NewResourceGenerator(
+	generator := newResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
 		s.CfgFetcher,
 		true,
@@ -135,24 +130,19 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	// Configure handlers for each type of request we currently care about.
 	handlers := map[string]*xDSDeltaType{
 		xdscommon.ListenerType: newDeltaType(generator, stream, xdscommon.ListenerType, func(kind structs.ServiceKind) bool {
-			// Ingress and API gateways are allowed to inform LDS of no listeners.
-			return cfgSnap.Kind == structs.ServiceKindIngressGateway ||
-				cfgSnap.Kind == structs.ServiceKindAPIGateway
+			return cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
 		xdscommon.RouteType: newDeltaType(generator, stream, xdscommon.RouteType, func(kind structs.ServiceKind) bool {
-			// Ingress and API gateways are allowed to inform RDS of no routes.
-			return cfgSnap.Kind == structs.ServiceKindIngressGateway ||
-				cfgSnap.Kind == structs.ServiceKindAPIGateway
+			return cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
 		xdscommon.ClusterType: newDeltaType(generator, stream, xdscommon.ClusterType, func(kind structs.ServiceKind) bool {
-			// Mesh, Ingress, API and Terminating gateways are allowed to inform CDS of no clusters.
+			// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
+			// no clusters.
 			return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
 				cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
-				cfgSnap.Kind == structs.ServiceKindIngressGateway ||
-				cfgSnap.Kind == structs.ServiceKindAPIGateway
+				cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
 		xdscommon.EndpointType: newDeltaType(generator, stream, xdscommon.EndpointType, nil),
-		xdscommon.SecretType:   newDeltaType(generator, stream, xdscommon.SecretType, nil), // TODO allowEmptyFn
 	}
 
 	// Endpoints are stored within a Cluster (and Routes
@@ -213,7 +203,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				generator.ProxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
+				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
@@ -246,21 +236,23 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 			cfgSnap = cs
 
-			newRes, err := generator.AllResourcesFromSnapshot(cfgSnap)
+			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
 			}
 
 			// index and hash the xDS structures
-			newResourceMap := xdscommon.IndexResources(generator.Logger, newRes)
+			newResourceMap := indexResources(generator.Logger, newRes)
 
 			if s.ResourceMapMutateFn != nil {
 				s.ResourceMapMutateFn(newResourceMap)
 			}
 
-			if err = s.applyEnvoyExtensions(newResourceMap, cfgSnap, node); err != nil {
-				// err is already the result of calling status.Errorf
-				return err
+			if s.serverlessPluginEnabled {
+				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
+				if err != nil {
+					return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
+				}
 			}
 
 			if err := populateChildIndexMap(newResourceMap); err != nil {
@@ -343,7 +335,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			generator.Logger.Trace("Got initial config snapshot")
 
-			// Let's actually process the config we just got, or we'll miss responding
+			// Lets actually process the config we just got or we'll mis responding
 			fallthrough
 		case stateDeltaRunning:
 			// Check ACLs on every Discovery{Request,Response}.
@@ -403,152 +395,20 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	}
 }
 
-func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot, node *envoy_config_core_v3.Node) error {
-	var err error
-	envoyVersion := xdscommon.DetermineEnvoyVersionFromNode(node)
-	consulVersion, err := goversion.NewVersion(version.Version)
-
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "failed to parse Consul version")
-	}
-
-	serviceConfigs := extensionruntime.GetRuntimeConfigurations(cfgSnap)
-	for _, cfgs := range serviceConfigs {
-		for _, cfg := range cfgs {
-			err = applyEnvoyExtension(s.Logger, cfgSnap, resources, cfg, envoyVersion, consulVersion)
-
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, resources *xdscommon.IndexedResources, runtimeConfig extensioncommon.RuntimeConfig, envoyVersion, consulVersion *goversion.Version) error {
-	logFn := logger.Warn
-	if runtimeConfig.EnvoyExtension.Required {
-		logFn = logger.Error
-	}
-
-	svc := runtimeConfig.ServiceName
-
-	errorParams := []interface{}{
-		"extension", runtimeConfig.EnvoyExtension.Name,
-		"service", svc.Name,
-		"namespace", svc.Namespace,
-		"partition", svc.Partition,
-	}
-
-	getMetricLabels := func(err error) []metrics.Label {
-		return []metrics.Label{
-			{Name: "extension", Value: runtimeConfig.EnvoyExtension.Name},
-			{Name: "version", Value: "builtin/" + version.Version},
-			{Name: "service", Value: cfgSnap.Service},
-			{Name: "partition", Value: cfgSnap.ProxyID.PartitionOrDefault()},
-			{Name: "namespace", Value: cfgSnap.ProxyID.NamespaceOrDefault()},
-			{Name: "error", Value: strconv.FormatBool(err != nil)},
-		}
-	}
-
-	ext := runtimeConfig.EnvoyExtension
-
-	if v := ext.EnvoyVersion; v != "" {
-		c, err := goversion.NewConstraint(v)
-		if err != nil {
-			logFn("failed to parse Envoy extension version constraint", errorParams...)
-
-			if ext.Required {
-				return status.Errorf(codes.InvalidArgument, "failed to parse Envoy version constraint for extension %q for service %q", ext.Name, svc.Name)
-			}
-			return nil
-		}
-
-		if !c.Check(envoyVersion) {
-			logger.Info("skipping envoy extension due to Envoy version constraint violation", errorParams...)
-			return nil
-		}
-	}
-
-	if v := ext.ConsulVersion; v != "" {
-		c, err := goversion.NewConstraint(v)
-		if err != nil {
-			logFn("failed to parse Consul extension version constraint", errorParams...)
-
-			if ext.Required {
-				return status.Errorf(codes.InvalidArgument, "failed to parse Consul version constraint for extension %q for service %q", ext.Name, svc.Name)
-			}
-			return nil
-		}
-
-		if !c.Check(consulVersion) {
-			logger.Info("skipping envoy extension due to Consul version constraint violation", errorParams...)
-			return nil
-		}
-	}
-
-	now := time.Now()
-	extender, err := envoyextensions.ConstructExtension(ext)
-	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate_arguments"}, now, getMetricLabels(err))
-	if err != nil {
-		errorParams = append(errorParams, "error", err)
-		logFn("failed to construct extension", errorParams...)
-
-		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to construct extension %q for service %q", ext.Name, svc.Name)
-		}
-
-		return nil
-	}
-
-	now = time.Now()
-	err = extender.Validate(&runtimeConfig)
-	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate"}, now, getMetricLabels(err))
-	if err != nil {
-		errorParams = append(errorParams, "error", err)
-		logFn("failed to validate extension arguments", errorParams...)
-
-		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to validate arguments for extension %q for service %q", ext.Name, svc.Name)
-		}
-
-		return nil
-	}
-
-	now = time.Now()
-	_, err = extender.Extend(resources, &runtimeConfig)
-	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
-	if err != nil {
-		errorParams = append(errorParams, "error", err)
-		logFn("failed to apply envoy extension", errorParams...)
-
-		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to patch xDS resources in the %q extension: %v", ext.Name, err)
-		}
-	}
-
-	return nil
-}
-
-// https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol#eventual-consistency-considerations
 var xDSUpdateOrder = []xDSUpdateOperation{
-	// 1. SDS updates (if any) can be pushed here with no harm.
-	{TypeUrl: xdscommon.SecretType, Upsert: true},
-	// 2. CDS updates (if any) must always be pushed before the following types.
+	// 1. CDS updates (if any) must always be pushed first.
 	{TypeUrl: xdscommon.ClusterType, Upsert: true},
-	// 3. EDS updates (if any) must arrive after CDS updates for the respective clusters.
+	// 2. EDS updates (if any) must arrive after CDS updates for the respective clusters.
 	{TypeUrl: xdscommon.EndpointType, Upsert: true},
-	// 4. LDS updates must arrive after corresponding CDS/EDS updates.
+	// 3. LDS updates must arrive after corresponding CDS/EDS updates.
 	{TypeUrl: xdscommon.ListenerType, Upsert: true, Remove: true},
-	// 5. RDS updates related to the newly added listeners must arrive after CDS/EDS/LDS updates.
+	// 4. RDS updates related to the newly added listeners must arrive after CDS/EDS/LDS updates.
 	{TypeUrl: xdscommon.RouteType, Upsert: true, Remove: true},
-	// 6. (NOT IMPLEMENTED YET IN CONSUL) VHDS updates (if any) related to the newly added RouteConfigurations must arrive after RDS updates.
+	// 5. (NOT IMPLEMENTED YET IN CONSUL) VHDS updates (if any) related to the newly added RouteConfigurations must arrive after RDS updates.
 	// {},
-	// 7. Stale CDS clusters, related EDS endpoints (ones no longer being referenced) and SDS secrets can then be removed.
+	// 6. Stale CDS clusters and related EDS endpoints (ones no longer being referenced) can then be removed.
 	{TypeUrl: xdscommon.ClusterType, Remove: true},
 	{TypeUrl: xdscommon.EndpointType, Remove: true},
-	{TypeUrl: xdscommon.SecretType, Remove: true},
 	// xDS updates can be pushed independently if no new
 	// clusters/routes/listeners are added or if it’s acceptable to
 	// temporarily drop traffic during updates. Note that in case of
@@ -662,7 +522,7 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xdscommon.SupportedProxyFeatures) deltaRecvResponse {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) deltaRecvResponse {
 	if t == nil {
 		return deltaRecvUnknownType // not something we care about
 	}
@@ -987,7 +847,7 @@ func (t *xDSDeltaType) createDeltaResponse(
 			if !ok {
 				return nil, nil, fmt.Errorf("unknown name for type url %q: %s", t.typeURL, name)
 			}
-			any, err := anypb.New(res)
+			any, err := ptypes.MarshalAny(res)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1057,6 +917,39 @@ func populateChildIndexMap(resourceMap *xdscommon.IndexedResources) error {
 	return nil
 }
 
+func indexResources(logger hclog.Logger, resources map[string][]proto.Message) *xdscommon.IndexedResources {
+	data := xdscommon.EmptyIndexedResources()
+
+	for typeURL, typeRes := range resources {
+		for _, res := range typeRes {
+			name := getResourceName(res)
+			if name == "" {
+				logger.Warn("skipping unexpected xDS type found in delta snapshot", "typeURL", typeURL)
+			} else {
+				data.Index[typeURL][name] = res
+			}
+		}
+	}
+
+	return data
+}
+
+func getResourceName(res proto.Message) string {
+	// NOTE: this only covers types that we currently care about for LDS/RDS/CDS/EDS
+	switch x := res.(type) {
+	case *envoy_listener_v3.Listener: // LDS
+		return x.Name
+	case *envoy_route_v3.RouteConfiguration: // RDS
+		return x.Name
+	case *envoy_cluster_v3.Cluster: // CDS
+		return x.Name
+	case *envoy_endpoint_v3.ClusterLoadAssignment: // EDS
+		return x.ClusterName
+	default:
+		return ""
+	}
+}
+
 func hashResourceMap(resources map[string]proto.Message) (map[string]string, error) {
 	m := make(map[string]string)
 	for name, res := range resources {
@@ -1072,13 +965,15 @@ func hashResourceMap(resources map[string]proto.Message) (map[string]string, err
 // hashResource will take a resource and create a SHA256 hash sum out of the marshaled bytes
 func hashResource(res proto.Message) (string, error) {
 	h := sha256.New()
-	marshaller := proto.MarshalOptions{Deterministic: true}
+	buffer := proto.NewBuffer(nil)
+	buffer.SetDeterministic(true)
 
-	data, err := marshaller.Marshal(res)
+	err := buffer.Marshal(res)
 	if err != nil {
 		return "", err
 	}
-	h.Write(data)
+	h.Write(buffer.Bytes())
+	buffer.Reset()
 
 	return hex.EncodeToString(h.Sum(nil)), nil
 }

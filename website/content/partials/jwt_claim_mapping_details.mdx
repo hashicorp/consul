@@ -19,13 +19,18 @@ rule, and the lists of values mapped by `ListClaimMappings` cannot.
 Assume this is your config snippet:
 
 ```json
-{ ...other fields...
-  "ClaimMappings": {
-    "givenName": "first_name",
-    "surname": "last_name"
-  },
-  "ListClaimMappings": {
-    "groups": "groups"
+{
+  "Name": "example-auth-method",
+  "Type": "<jwt|oidc>",
+  "Description": "Example auth method",
+  "Config": {
+    "ClaimMappings": {
+      "givenName": "first_name",
+      "surname": "last_name"
+    },
+    "ListClaimMappings": {
+      "groups": "groups"
+    }
   }
 }
 ```

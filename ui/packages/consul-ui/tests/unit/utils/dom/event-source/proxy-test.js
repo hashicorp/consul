@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import domEventSourceProxy from 'consul-ui/utils/dom/event-source/proxy';
 import { module, test } from 'qunit';
 

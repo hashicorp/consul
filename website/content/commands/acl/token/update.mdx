@@ -1,21 +1,19 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Token Update'
-description: |
-  The `consul acl token update` command updates ACL token details such as attached policies, roles, and service identities. Some token details cannot be changed with this command.
 ---
 
 # Consul ACL Token Update
 
 Command: `consul acl token update`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/token/:AccessorID](/consul/api-docs/acl/tokens#update-a-token)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/token/:AccessorID](/api-docs/acl/tokens#update-a-token)
 
 The `acl token update` command will update a token. Some parts of the token like whether the
 token is local to the datacenter cannot be changed.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -33,61 +31,43 @@ Usage: `consul acl token update [options]`
 - `-id=<string>` - The Accessor ID of the token to read. It may be specified as a
   unique ID prefix but will error if the prefix matches multiple token Accessor IDs
 
-- `-merge-node-identities` - Deprecated. Merge the new node identities with the existing node
+- `merge-node-identities` - Merge the new node identities with the existing node
   identities.
-~> This is deprecated and will be removed in a future Consul version. Use `append-node-identity` instead.
 
-- `-merge-policies` - Deprecated. Merge the new policies with the existing policies.
+- `-merge-policies` - Merge the new policies with the existing policies.
 
-~> This is deprecated and will be removed in a future Consul version. Use `append-policy-id` or `append-policy-name`
-instead.
+- `-merge-roles` - Merge the new roles with the existing roles.
 
-- `-merge-roles` - Deprecated. Merge the new roles with the existing roles.
-
-~> This is deprecated and will be removed in a future Consul version. Use `append-role-id` or `append-role-name`
-instead.
-
-- `-merge-service-identities` - Deprecated. Merge the new service identities with the existing service identities.
-
-~> This is deprecated and will be removed in a future Consul version. Use `append-service-identity` instead.
+- `-merge-service-identities` - Merge the new service identities with the existing service identities.
 
 - `-meta` - Indicates that token metadata such as the content hash and Raft indices should be
   shown for each entry.
 
-- `-node-identity=<value>` - Name of a node identity to use for this role. Overwrites existing node identity. May
+- `-node-identity=<value>` - Name of a node identity to use for this role. May
   be specified multiple times. Format is `NODENAME:DATACENTER`. Added in Consul
   1.8.1.
 
-- `-append-node-identity=<value>` - Name of a node identity to add to this role. May
-  be specified multiple times. The token retains existing node identities. Format is `NODENAME:DATACENTER`.
+- `-policy-id=<value>` - ID of a policy to use for this token. May be specified multiple times.
 
-- `-policy-id=<value>` - ID of a policy to use for this token. Overwrites existing policies. May be specified multiple times.
+- `-policy-name=<value>` - Name of a policy to use for this token. May be specified multiple times.
 
-- `-policy-name=<value>` - Name of a policy to use for this token. Overwrites existing policies. May be specified multiple times.
+- `-role-id=<value>` - ID of a role to use for this token. May be specified multiple times.
 
-~> `-policy-id` and `-policy-name` will overwrite existing token policies. Use `-append-policy-id` or `-append-policy-name` to retain existing policies.
-
-- `-append-policy-id=<value>` - ID of policy to be added for this token. The token retains existing policies. May be specified multiple times.
-
-- `-append-policy-name=<value>` - Name of a policy to be added for this token. The token retains existing policies. May be specified multiple times.
-
-- `-role-id=<value>` - ID of a role to use for this token. Overwrites existing roles. May be specified multiple times.
-
-- `-role-name=<value>` - Name of a role to use for this token. Overwrites existing roles. May be specified multiple times.
-
-~> `-role-id` and `-role-name` will overwrite existing roles. Use `-append-role-id` or `-append-role-name` to retain the existing roles.
-
-- `-append-role-id=<value>` - ID of a role to add to this token. The token retains existing roles. May be specified multiple times.
-
-- `-append-role-name=<value>` - Name of a role to add to this token. The token retains existing roles. May be specified multiple times.
+- `-role-name=<value>` - Name of a role to use for this token. May be specified multiple times.
 
 - `-service-identity=<value>` - Name of a service identity to use for this
-  token. Overwrites existing service identities. May be specified multiple times. Format is the `SERVICENAME` or
+  token. May be specified multiple times. Format is the `SERVICENAME` or
   `SERVICENAME:DATACENTER1,DATACENTER2,...`
+- `-upgrade-legacy` - Add new polices to a legacy token replacing all existing
+  rules. This will cause the legacy token to behave exactly like a new token
+  but keep the same secret.
 
-- `-append-service-identity=<value>` - Name of a service identity to add to this
-  token. May be specified multiple times. The token retains existing service identities.
-  Format is the `SERVICENAME` or `SERVICENAME:DATACENTER1,DATACENTER2,...`
+~> When upgrading a legacy token you must ensure that the new policy or policies
+specified grant equivalent or appropriate access for the existing clients using
+this token. You can find examples on how to use the parameter in the [legacy
+token
+migration](https://learn.hashicorp.com/consul/day-2-agent-authentication/migrate-acl-tokens)
+guide.
 
 - `-format={pretty|json}` - Command output format. The default value is `pretty`.
 

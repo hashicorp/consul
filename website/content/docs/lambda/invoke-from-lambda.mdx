@@ -24,7 +24,7 @@ The following steps describe the process:
 
 You must add the `consul-lambda-extension` extension as a Lambda layer to enable Lambda functions to send requests to mesh services. Refer to the [AWS Lambda documentation](https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html) for instructions on how to add layers to your Lambda functions. 
 
-The layer runs an external Lambda extension that starts a sidecar proxy. The proxy listens on one port for each upstream service and upgrades the outgoing connections to mTLS. It then proxies the requests through to [mesh gateways](/consul/docs/connect/gateways#mesh-gateways).
+The layer runs an external Lambda extension that starts a sidecar proxy. The proxy listens on one port for each upstream service and upgrades the outgoing connections to mTLS. It then proxies the requests through to [mesh gateways](/docs/connect/gateways#mesh-gateways).
 
 ## Prerequisites
 
@@ -84,12 +84,12 @@ spec:
 
 ### Deploy the mesh gateway
 
-The mesh gateway must be running and registered to the Lambda function’s Consul datacenter. Refer to the following documentation and tutorials for instructions:
+The mesh gateway must be running and registered to the Lambda function’s Consul datacenter.  Refer to the following documentation and tutorials for instructions:
 
-- [Mesh Gateways between WAN-Federated Datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
-- [Mesh Gateways between Admin Partitions](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions)
-- [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering)
-- [Connect Services Across Datacenters with Mesh Gateways](/consul/tutorials/developer-mesh/service-mesh-gateways) 
+- [Mesh Gateways between WAN-Federated Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
+- [Mesh Gateways between Admin Partitions](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions)
+- [Mesh Gateways between Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers)
+- [Connect Services Across Datacenters with Mesh Gateways](https://developer.hashicorp.com/consul/tutorials/developer-mesh/service-mesh-gateways) 
 
 ## Deploy the Lambda extension layer
 
@@ -119,7 +119,7 @@ The extension periodically retrieves the data from the AWS Parameter Store so th
 
 ## Deploy the Lambda registrator
 
-Configure and deploy the Lambda registrator. Refer to the [registrator configuration documentation](/consul/docs/lambda/registration/automate#configuration) and the [registrator deployment documentation](/consul/docs/lambda/registration/automate#deploy-the-lambda-registrator) for instructions. 
+Configure and deploy the Lambda registrator. Refer to the [registrator configuration documentation](/docs/lambda/registration/automate#configuration) and the [registrator deployment documentation](/docs/lambda/registration/automate#deploy-the-lambda-registrator) for instructions. 
 
 ## Write the Lambda function code
 
@@ -256,15 +256,15 @@ Define the following environment variables in your Lambda functions to configure
 | Variable | Description | Default |
 | ---      | ---         | ---     |
 | `CONSUL_MESH_GATEWAY_URI` | Specifies the URI where the mesh gateways that the plugin makes requests are running. The mesh gateway should be registered in the same Consul datacenter and partition that the service is running in. For optimal performance, this mesh gateway should run in the same AWS region. | none |
-| <nobr>`CONSUL_EXTENSION_DATA_PREFIX`</nobr> | Specifies the prefix that the plugin pulls configuration data from. The data must be located in the following directory: <br/>`“${CONSUL_EXTENSION_DATA_PREFIX}/${CONSUL_SERVICE_PARTITION}/${CONSUL_SERVICE_NAMESPACE}/<lambda-function-name>”` | none |
+| <nobr>`CONSUL_EXTENSION_DATA_PREFIX`</nobr> | Specifies the prefix that the plugin pulls configuration data from. The data must be located in the following directory: <br/>`"${CONSUL_EXTENSION_DATA_PREFIX}/${CONSUL_SERVICE_PARTITION}/${CONSUL_SERVICE_NAMESPACE}/<lambda-function-name>"` | none |
 | `CONSUL_SERVICE_NAMESPACE` | Specifies the Consul namespace the service is registered into. | `default` |
 | `CONSUL_SERVICE_PARTITION` | Specifies the Consul partition the service is registered into. | `default` |
-| `CONSUL_REFRESH_FREQUENCY` | Specifies the amount of time the extension waits before re-pulling data from the Parameter Store. Use [Go `time.Duration`](https://pkg.go.dev/time@go1.19.1#ParseDuration) string values, for example, `”30s”`. <br/>The time is added to the duration configured in the Lambda registrator `sync_frequency_in_minutes` configuration. Refer to [Lambda registrator configuration options](/consul/docs/lambda/registration/automate#lambda-registrator-configuration-options). The combined configurations determine how stale the data may become. Lambda functions can run for up to 14 hours, so we recommend configuring a value that results in acceptable staleness for certificates. | `“5m”` |
+| `CONSUL_REFRESH_FREQUENCY` | Specifies the amount of time the extension waits before re-pulling data from the Parameter Store. Use [Go `time.Duration`](https://pkg.go.dev/time@go1.19.1#ParseDuration) string values, for example, `"30s"`. <br/>The time is added to the duration configured in the Lambda registrator `sync_frequency_in_minutes` configuration. Refer to [Lambda registrator configuration options](/consul/docs/lambda/registration/automate#lambda-registrator-configuration-options). The combined configurations determine how stale the data may become. Lambda functions can run for up to 14 hours, so we recommend configuring a value that results in acceptable staleness for certificates. | `"5m"` |
 | `CONSUL_SERVICE_UPSTREAMS` | Specifies a comma-separated list of upstream services that the Lambda function can call. Specify the value as an unlabelled annotation according to the [`consul.hashicorp.com/connect-service-upstreams` annotation format](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) in Consul on Kubernetes. For example, `"[service-name]:[port]:[optional-datacenter]"` | none |
 
 ## Invoke the Lambda function
 
-If _intentions_ are enabled in the Consul service mesh, you must create an intention that allows the Lambda function's Consul service to invoke all upstream services prior to invoking the Lambda function. Refer to [Service mesh intentions](/consul/docs/connect/intentions) for additional information.
+If _intentions_ are enabled in the Consul service mesh, you must create an intention that allows the Lambda function's Consul service to invoke all upstream services prior to invoking the Lambda function. Refer to [Service Mesh Intentions](/docs/connect/intentions) for additional information.
 
 There are several ways to invoke Lambda functions. In the following example, the `aws lambda invoke` CLI command invokes the function:
 

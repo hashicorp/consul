@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package services
 
 import (
@@ -72,16 +69,6 @@ func serviceToAgentService(svc *structs.ServiceDefinition) (*api.AgentServiceReg
 	// is a zero-value Check field.
 	if result.Check != nil && reflect.DeepEqual(*result.Check, api.AgentServiceCheck{}) {
 		result.Check = nil
-	}
-
-	// The structs version has non-pointer Proxy.TransparentProxy and Proxy.AccessLogs
-	// The destination has pointers, so we need to set the destination to nil if there
-	// is a zero-value field.
-	if result.Proxy != nil && result.Proxy.TransparentProxy != nil && reflect.DeepEqual(*result.Proxy.TransparentProxy, api.TransparentProxyConfig{}) {
-		result.Proxy.TransparentProxy = nil
-	}
-	if result.Proxy != nil && result.Proxy.AccessLogs != nil && reflect.DeepEqual(*result.Proxy.AccessLogs, api.AccessLogsConfig{}) {
-		result.Proxy.AccessLogs = nil
 	}
 
 	return &result, nil

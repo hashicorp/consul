@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .debug-with-activity-16-mask-before::before,
 .debug-with-activity-16-icon-before::before,
 .debug-with-activity-16-mask-after::after,
@@ -2388,6 +2383,254 @@
   background-position: center;
 
   background-image: var(--award-24-svg);
+}
+
+.debug-with-aws-16-mask-before::before,
+.debug-with-aws-16-icon-before::before,
+.debug-with-aws-16-mask-after::after,
+.debug-with-aws-16-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-aws-16-mask-before::before,
+.debug-with-aws-16-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--aws-16-svg);
+  mask-image: var(--aws-16-svg);
+}
+.debug-with-aws-16-icon-before::before,
+.debug-with-aws-16-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--aws-16-svg);
+}
+
+.debug-with-aws-24-mask-before::before,
+.debug-with-aws-24-icon-before::before,
+.debug-with-aws-24-mask-after::after,
+.debug-with-aws-24-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-aws-24-mask-before::before,
+.debug-with-aws-24-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--aws-24-svg);
+  mask-image: var(--aws-24-svg);
+}
+.debug-with-aws-24-icon-before::before,
+.debug-with-aws-24-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--aws-24-svg);
+}
+
+.debug-with-aws-color-16-mask-before::before,
+.debug-with-aws-color-16-icon-before::before,
+.debug-with-aws-color-16-mask-after::after,
+.debug-with-aws-color-16-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-aws-color-16-mask-before::before,
+.debug-with-aws-color-16-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--aws-color-16-svg);
+  mask-image: var(--aws-color-16-svg);
+}
+.debug-with-aws-color-16-icon-before::before,
+.debug-with-aws-color-16-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--aws-color-16-svg);
+}
+
+.debug-with-aws-color-24-mask-before::before,
+.debug-with-aws-color-24-icon-before::before,
+.debug-with-aws-color-24-mask-after::after,
+.debug-with-aws-color-24-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-aws-color-24-mask-before::before,
+.debug-with-aws-color-24-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--aws-color-24-svg);
+  mask-image: var(--aws-color-24-svg);
+}
+.debug-with-aws-color-24-icon-before::before,
+.debug-with-aws-color-24-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--aws-color-24-svg);
+}
+
+.debug-with-aws-ec2-16-mask-before::before,
+.debug-with-aws-ec2-16-icon-before::before,
+.debug-with-aws-ec2-16-mask-after::after,
+.debug-with-aws-ec2-16-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-aws-ec2-16-mask-before::before,
+.debug-with-aws-ec2-16-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--aws-ec2-16-svg);
+  mask-image: var(--aws-ec2-16-svg);
+}
+.debug-with-aws-ec2-16-icon-before::before,
+.debug-with-aws-ec2-16-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--aws-ec2-16-svg);
+}
+
+.debug-with-aws-ec2-24-mask-before::before,
+.debug-with-aws-ec2-24-icon-before::before,
+.debug-with-aws-ec2-24-mask-after::after,
+.debug-with-aws-ec2-24-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-aws-ec2-24-mask-before::before,
+.debug-with-aws-ec2-24-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--aws-ec2-24-svg);
+  mask-image: var(--aws-ec2-24-svg);
+}
+.debug-with-aws-ec2-24-icon-before::before,
+.debug-with-aws-ec2-24-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--aws-ec2-24-svg);
+}
+
+.debug-with-aws-ec2-color-16-mask-before::before,
+.debug-with-aws-ec2-color-16-icon-before::before,
+.debug-with-aws-ec2-color-16-mask-after::after,
+.debug-with-aws-ec2-color-16-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-aws-ec2-color-16-mask-before::before,
+.debug-with-aws-ec2-color-16-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--aws-ec2-color-16-svg);
+  mask-image: var(--aws-ec2-color-16-svg);
+}
+.debug-with-aws-ec2-color-16-icon-before::before,
+.debug-with-aws-ec2-color-16-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--aws-ec2-color-16-svg);
+}
+
+.debug-with-aws-ec2-color-24-mask-before::before,
+.debug-with-aws-ec2-color-24-icon-before::before,
+.debug-with-aws-ec2-color-24-mask-after::after,
+.debug-with-aws-ec2-color-24-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-aws-ec2-color-24-mask-before::before,
+.debug-with-aws-ec2-color-24-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--aws-ec2-color-24-svg);
+  mask-image: var(--aws-ec2-color-24-svg);
+}
+.debug-with-aws-ec2-color-24-icon-before::before,
+.debug-with-aws-ec2-color-24-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--aws-ec2-color-24-svg);
 }
 
 .debug-with-azure-16-mask-before::before,
@@ -8061,6 +8304,130 @@
   background-position: center;
 
   background-image: var(--console-svg);
+}
+
+.debug-with-consul-16-mask-before::before,
+.debug-with-consul-16-icon-before::before,
+.debug-with-consul-16-mask-after::after,
+.debug-with-consul-16-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-consul-16-mask-before::before,
+.debug-with-consul-16-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--consul-16-svg);
+  mask-image: var(--consul-16-svg);
+}
+.debug-with-consul-16-icon-before::before,
+.debug-with-consul-16-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--consul-16-svg);
+}
+
+.debug-with-consul-24-mask-before::before,
+.debug-with-consul-24-icon-before::before,
+.debug-with-consul-24-mask-after::after,
+.debug-with-consul-24-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-consul-24-mask-before::before,
+.debug-with-consul-24-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--consul-24-svg);
+  mask-image: var(--consul-24-svg);
+}
+.debug-with-consul-24-icon-before::before,
+.debug-with-consul-24-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--consul-24-svg);
+}
+
+.debug-with-consul-color-16-mask-before::before,
+.debug-with-consul-color-16-icon-before::before,
+.debug-with-consul-color-16-mask-after::after,
+.debug-with-consul-color-16-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-consul-color-16-mask-before::before,
+.debug-with-consul-color-16-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--consul-color-16-svg);
+  mask-image: var(--consul-color-16-svg);
+}
+.debug-with-consul-color-16-icon-before::before,
+.debug-with-consul-color-16-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--consul-color-16-svg);
+}
+
+.debug-with-consul-color-24-mask-before::before,
+.debug-with-consul-color-24-icon-before::before,
+.debug-with-consul-color-24-mask-after::after,
+.debug-with-consul-color-24-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-consul-color-24-mask-before::before,
+.debug-with-consul-color-24-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--consul-color-24-svg);
+  mask-image: var(--consul-color-24-svg);
+}
+.debug-with-consul-color-24-icon-before::before,
+.debug-with-consul-color-24-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--consul-color-24-svg);
 }
 
 .debug-with-copy-action-mask-before::before,
@@ -18200,6 +18567,37 @@
   background-image: var(--logo-bitbucket-monochrome-svg);
 }
 
+.debug-with-logo-consul-color-mask-before::before,
+.debug-with-logo-consul-color-icon-before::before,
+.debug-with-logo-consul-color-mask-after::after,
+.debug-with-logo-consul-color-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-logo-consul-color-mask-before::before,
+.debug-with-logo-consul-color-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--logo-consul-color-svg);
+  mask-image: var(--logo-consul-color-svg);
+}
+.debug-with-logo-consul-color-icon-before::before,
+.debug-with-logo-consul-color-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--logo-consul-color-svg);
+}
+
 .debug-with-logo-ember-circle-color-mask-before::before,
 .debug-with-logo-ember-circle-color-icon-before::before,
 .debug-with-logo-ember-circle-color-mask-after::after,
@@ -18665,6 +19063,37 @@
   background-image: var(--logo-microsoft-color-svg);
 }
 
+.debug-with-logo-nomad-color-mask-before::before,
+.debug-with-logo-nomad-color-icon-before::before,
+.debug-with-logo-nomad-color-mask-after::after,
+.debug-with-logo-nomad-color-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-logo-nomad-color-mask-before::before,
+.debug-with-logo-nomad-color-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--logo-nomad-color-svg);
+  mask-image: var(--logo-nomad-color-svg);
+}
+.debug-with-logo-nomad-color-icon-before::before,
+.debug-with-logo-nomad-color-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--logo-nomad-color-svg);
+}
+
 .debug-with-logo-oidc-color-mask-before::before,
 .debug-with-logo-oidc-color-icon-before::before,
 .debug-with-logo-oidc-color-mask-after::after,
@@ -18849,6 +19278,68 @@
   background-position: center;
 
   background-image: var(--logo-slack-monochrome-svg);
+}
+
+.debug-with-logo-terraform-color-mask-before::before,
+.debug-with-logo-terraform-color-icon-before::before,
+.debug-with-logo-terraform-color-mask-after::after,
+.debug-with-logo-terraform-color-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-logo-terraform-color-mask-before::before,
+.debug-with-logo-terraform-color-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--logo-terraform-color-svg);
+  mask-image: var(--logo-terraform-color-svg);
+}
+.debug-with-logo-terraform-color-icon-before::before,
+.debug-with-logo-terraform-color-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--logo-terraform-color-svg);
+}
+
+.debug-with-logo-vault-color-mask-before::before,
+.debug-with-logo-vault-color-icon-before::before,
+.debug-with-logo-vault-color-mask-after::after,
+.debug-with-logo-vault-color-icon-after::after {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+.debug-with-logo-vault-color-mask-before::before,
+.debug-with-logo-vault-color-mask-after::after {
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+
+  -webkit-mask-image: var(--logo-vault-color-svg);
+  mask-image: var(--logo-vault-color-svg);
+}
+.debug-with-logo-vault-color-icon-before::before,
+.debug-with-logo-vault-color-icon-after::after {
+  background-repeat: no-repeat;
+  background-position: center;
+
+  background-image: var(--logo-vault-color-svg);
 }
 
 .debug-with-logo-vmware-color-mask-before::before,
@@ -35187,6 +35678,8 @@
 
   --lock-off-24-svg: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><g fill="%23000"><path d="M12.75 17a.75.75 0 00-1.5 0v2a.75.75 0 001.5 0v-2z"/><path fill-rule="evenodd" d="M1.53.47A.75.75 0 00.47 1.53L6 7.06v3.044a2.751 2.751 0 00-2 2.646v7.5A2.75 2.75 0 006.75 23h10.5c1.271 0 2.34-.862 2.656-2.034l2.564 2.564a.75.75 0 101.06-1.06l-22-22zM18.5 19.56l-8.06-8.06H6.75c-.69 0-1.25.56-1.25 1.25v7.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-.69zM8.94 10L7.5 8.56V10h1.44z" clip-rule="evenodd"/><path d="M12 2.5a4.636 4.636 0 00-3.195 1.258c-.123.117-.238.24-.345.368a.75.75 0 01-1.153-.959c.144-.173.298-.338.463-.496A6.136 6.136 0 0112 1c1.58 0 3.102.597 4.23 1.671A5.632 5.632 0 0118 6.75v3.354c1.154.326 2 1.387 2 2.646v2.75a.75.75 0 01-1.5 0v-2.75c0-.69-.56-1.25-1.25-1.25H14.5a.75.75 0 010-1.5h2V6.75a4.133 4.133 0 00-1.305-2.992A4.636 4.636 0 0012 2.5z"/></g></svg>');
 
+  --logo-consul-color-svg: url('data:image/svg+xml;charset=UTF-8,<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M11.0454655,1.26591292 C9.7868354,0.933036999 8.46595062,0.912368954 7.19752795,1.20570305 C5.92907458,1.49903777 4.75139386,2.09750795 3.76669634,2.9491715 C2.78198962,3.80083506 2.02001816,4.87995516 1.54691062,6.09287666 C1.07380708,7.30576747 0.903868219,8.61581601 1.05184575,9.90928788 C1.19982358,11.2027598 1.66124671,12.440577 2.39606312,13.5152981 C3.13087953,14.5900193 4.11687555,15.4691663 5.26849405,16.0764252 C6.42011255,16.6836841 7.7025333,17.0007284 9.004447,17 C11.0112378,17.0020484 12.9450605,16.2474106 14.420047,14.8866497 L12.528372,12.9093285 C11.7733658,13.5900773 10.837152,14.0372792 9.83315799,14.1968144 C8.829164,14.3563802 7.80042778,14.2213724 6.87161208,13.8082141 C5.94276568,13.3950251 5.15362383,12.7213981 4.59980937,11.8688965 C4.04599491,11.0164256 3.75123399,10.0216409 3.75123399,9.00503022 C3.75123399,7.98845023 4.04599491,6.9936655 4.59980937,6.14116391 C5.15362383,5.28866231 5.94276568,4.61503532 6.87161208,4.20187703 C7.80042778,3.78870032 8.829164,3.65371092 9.83315799,3.81324914 C10.837152,3.97278737 11.7733658,4.4200138 12.528372,5.10076262 L14.420047,3.1158684 C13.4624677,2.23381427 12.3040957,1.59878945 11.0454655,1.26591292 Z M15.3148805,11.7003056 C15.187854,11.7255697 15.0711419,11.7879471 14.9795712,11.8795179 C14.8879697,11.9711194 14.8255923,12.0878007 14.8003282,12.2148579 C14.7750641,12.3418844 14.7880185,12.4735768 14.837595,12.5932359 C14.8871715,12.7129256 14.9710986,12.8152098 15.0788163,12.8871649 C15.1865033,12.9591199 15.3131307,12.9975226 15.4426437,12.9975226 C15.6163611,12.9975226 15.782926,12.9285452 15.9057469,12.8057243 C16.0285678,12.6829034 16.0975759,12.5163078 16.0975759,12.3426211 C16.0975759,12.2130774 16.0591425,12.0864808 15.9871875,11.9787631 C15.9152324,11.8710761 15.8129482,11.7871183 15.6932891,11.7375724 C15.5735994,11.6879959 15.4419376,11.6750108 15.3148805,11.7003056 Z M16.0680755,9.4609195 C15.9410491,9.48621428 15.824337,9.548561 15.7327662,9.64016248 C15.6411647,9.73176396 15.5787873,9.84844534 15.5535232,9.97550249 C15.5282591,10.1025289 15.5412135,10.2342214 15.59079,10.3538805 C15.6403666,10.4735395 15.7242937,10.5758237 15.8320114,10.6478095 C15.9396984,10.7197645 16.0663257,10.7581672 16.1958387,10.7581672 C16.3693412,10.7574918 16.5355378,10.6882996 16.6582052,10.5656321 C16.7808726,10.4429341 16.8500955,10.2767375 16.8507709,10.1032657 C16.8507709,9.97372204 16.8123682,9.84709465 16.7403825,9.73940765 C16.6684274,9.63172066 16.5661432,9.54776286 16.4464842,9.49818632 C16.3267944,9.44864048 16.1951327,9.43565542 16.0680755,9.4609195 Z M9.61766121,7.39911871 C9.30098531,7.26797879 8.95253744,7.23365893 8.6163686,7.30051819 C8.28019976,7.36737745 7.97141312,7.53243816 7.72905598,7.7747953 C7.48666815,8.01715244 7.32163813,8.32596977 7.25474817,8.66210792 C7.18788892,8.99827676 7.22220877,9.34672462 7.3533794,9.66340053 C7.48455002,9.98007643 7.70667747,10.2507367 7.9916735,10.4411536 C8.27663884,10.6315705 8.61170257,10.7332101 8.95447139,10.7332101 C9.41407507,10.7332101 9.85486116,10.550621 10.1798868,10.2256261 C10.5048817,9.90063117 10.6874707,9.45984509 10.6874707,9.00021071 C10.6874707,8.65747259 10.5858312,8.32240885 10.3953836,8.03741282 C10.2049667,7.75241679 9.93430641,7.53028933 9.61766121,7.39911871 Z M14.4967908,9.42273175 C14.3771318,9.37315521 14.2454393,9.36020085 14.1184129,9.38546493 C13.9913557,9.41072901 13.8746743,9.47310643 13.7830728,9.56470791 C13.6915021,9.6562787 13.6291246,9.77299077 13.6038299,9.90001722 C13.5785658,10.0270744 13.5915508,10.1587362 13.6411274,10.2784259 C13.6906732,10.3980849 13.774631,10.5003692 13.882318,10.5723242 C13.9900357,10.6442793 14.1166324,10.6827126 14.2461761,10.6827126 C14.4198628,10.6827126 14.5864584,10.6137045 14.7092793,10.4908836 C14.8320694,10.3680627 14.9010775,10.2014978 14.9010775,10.0277804 C14.9010775,9.89826746 14.8626749,9.77164008 14.7907199,9.66395308 C14.7187648,9.55623539 14.6164499,9.47230829 14.4967908,9.42273175 Z M14.4967908,7.36983325 C14.3771318,7.32025671 14.2454393,7.30730235 14.1184129,7.33256643 C13.9913557,7.35783051 13.8746743,7.42020793 13.7830728,7.51180941 C13.6915021,7.60338019 13.6291246,7.72009227 13.6038299,7.84711872 C13.5785658,7.97417587 13.5915508,8.10583765 13.6411274,8.22552739 C13.6906732,8.34518643 13.774631,8.44747066 13.882318,8.51942571 C13.9900357,8.59138077 14.1166324,8.6298141 14.2461761,8.6298141 C14.4198628,8.6298141 14.5864584,8.56080601 14.7092793,8.43798512 C14.8320694,8.31516423 14.9010775,8.14856864 14.9010775,7.97488192 C14.9010775,7.84536896 14.8626749,7.71874158 14.7907199,7.61102388 C14.7187648,7.50333689 14.6164499,7.41940979 14.4967908,7.36983325 Z M16.0680755,7.25692767 C15.9410491,7.28222245 15.824337,7.34459987 15.7327662,7.43617065 C15.6411647,7.52777213 15.5787873,7.64445351 15.5535232,7.77151066 C15.5282591,7.89853712 15.5412135,8.03022959 15.59079,8.14988864 C15.6403666,8.26957837 15.7242937,8.37183191 15.8320114,8.44381765 C15.9396984,8.51577271 16.0663257,8.55417534 16.1958387,8.55417534 C16.3693412,8.55353069 16.5355378,8.48430772 16.6582052,8.36164032 C16.7808726,8.23894222 16.8500955,8.0727457 16.8507709,7.89927386 C16.8507709,7.7697302 16.8123682,7.64313352 16.7403825,7.53541582 C16.6684274,7.42772883 16.5661432,7.34377103 16.4464842,7.29422519 C16.3267944,7.24464865 16.1951327,7.23166359 16.0680755,7.25692767 Z M15.3527613,5.05287445 C15.2257348,5.07813853 15.1090227,5.14051594 15.0174212,5.23211743 C14.9258505,5.32371891 14.863473,5.44040029 14.838209,5.56742674 C14.8129449,5.69448389 14.8258992,5.82617637 14.8754758,5.94583541 C14.9250523,6.06549445 15.0089794,6.16777868 15.1166664,6.23973373 C15.2243841,6.31171948 15.3510115,6.35012211 15.4805244,6.35012211 C15.6542112,6.35012211 15.8208068,6.28111403 15.9436277,6.15829314 C16.0664485,6.03547225 16.1354259,5.86890736 16.1354259,5.69522063 C16.1354259,5.56567698 16.0970233,5.4390496 16.0250682,5.3313626 C15.9531132,5.2236449 15.850829,5.13971781 15.7311392,5.09014127 C15.6114802,5.04056473 15.4797877,5.02761036 15.3527613,5.05287445 Z" fill="%23E03875" fill-rule="nonzero" /></svg>');
+
   --logo-ember-circle-color-svg: url('data:image/svg+xml;charset=UTF-8,<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path d="M64 0c35.346 0 64 28.654 64 64 0 35.346-28.654 64-64 64-35.346 0-64-28.654-64-64C0 28.654 28.654 0 64 0z" fill="%23E05C43" fill-rule="nonzero"/><path d="M65.265 24.128c8.246-.163 14.073 2.073 19.087 9.19 10.934 27.109-28.147 41.1-29.714 41.65l-.049.016s-1.18 7.363 10.028 7.08c13.793 0 28.294-10.691 33.81-15.21a3.293 3.293 0 0 1 4.468.265l4.13 4.29a3.291 3.291 0 0 1 .085 4.491c-3.59 3.997-12.014 12.203-24.696 17.504 0 0-21.16 9.798-35.42.52-8.503-5.53-10.842-12.151-11.793-19.038.005 0-10.324-.524-16.957-3.114-6.635-2.592.049-10.411.049-10.411s2.04-3.233 5.92 0c3.883 3.228 11.13 1.772 11.13 1.772.646-5.099 1.72-11.828 4.884-18.93 6.632-14.885 16.789-19.915 25.038-20.075zm4.853 14.915c-4.369-4.21-16.984 4.202-17.471 23.45 0 0 3.724 1.134 11.97-4.53 8.25-5.661 9.87-14.718 5.501-18.92z" fill="%23FFF"/></g></svg>');
 
   --logo-glimmer-color-svg: url('data:image/svg+xml;charset=UTF-8,<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid"><path d="M256 128c0 70.692-57.308 128-128 128C57.307 256 0 198.692 0 128 0 57.308 57.307 0 128 0c70.692 0 128 57.308 128 128" fill="%23F8835A"/><path d="M78.63 140.37a11.39 11.39 0 0 1-7.951-3.222c-4.533-4.392-4.648-11.627-.256-16.16l77.144-79.619c4.39-4.533 11.626-4.648 16.16-.256 4.532 4.392 4.647 11.628.255 16.161l-77.143 79.62a11.397 11.397 0 0 1-8.21 3.475zm50.31 3.036a11.356 11.356 0 0 1-7.926-3.21c-4.52-4.38-4.633-11.592-.254-16.111L181.687 61.2c4.379-4.52 11.59-4.632 16.11-.254s4.634 11.59.256 16.11l-60.928 62.884a11.363 11.363 0 0 1-8.184 3.465zm-24.69 79.286a11.383 11.383 0 0 1-7.951-3.221c-4.533-4.391-4.648-11.627-.256-16.16L202.61 93.322c4.39-4.532 11.627-4.647 16.16-.255 4.534 4.392 4.648 11.627.255 16.161L112.459 219.216a11.397 11.397 0 0 1-8.21 3.476zm-33.44-19.44c-2.865 0-5.73-1.07-7.95-3.222-4.534-4.392-4.649-11.628-.257-16.16l29.053-29.986c4.393-4.533 11.628-4.648 16.161-.256 4.533 4.393 4.647 11.628.255 16.161L79.02 199.775a11.397 11.397 0 0 1-8.209 3.476zm-23.179-86.764a11.39 11.39 0 0 1-7.952-3.221c-4.533-4.392-4.647-11.627-.255-16.16L68.477 67.12c4.393-4.533 11.628-4.647 16.161-.255 4.533 4.392 4.647 11.627.255 16.16L55.84 113.013a11.398 11.398 0 0 1-8.209 3.476zm149.433 65.295a11.39 11.39 0 0 1-7.95-3.221c-4.534-4.392-4.649-11.627-.257-16.16l13.754-14.195c4.391-4.532 11.627-4.65 16.16-.255 4.533 4.392 4.647 11.627.255 16.16l-13.753 14.195a11.397 11.397 0 0 1-8.209 3.476zm-26.78 28.338c0 6.312-5.117 11.428-11.43 11.428-6.31 0-11.428-5.116-11.428-11.428 0-6.312 5.118-11.429 11.429-11.429 6.312 0 11.429 5.117 11.429 11.43zM61.06 158.925c0 6.312-5.117 11.43-11.43 11.43-6.311 0-11.427-5.118-11.427-11.43 0-6.312 5.116-11.428 11.428-11.428 6.312 0 11.429 5.116 11.429 11.428zm54.284-112.142c0 6.312-5.117 11.428-11.428 11.428-6.312 0-11.429-5.116-11.429-11.428 0-6.312 5.117-11.43 11.429-11.43 6.311 0 11.428 5.118 11.428 11.43z" fill="%23FFF"/></svg>');
@@ -35198,6 +35691,10 @@
   --logo-nomad-color-svg: url('data:image/svg+xml;charset=UTF-8,<svg viewBox="0 0 16 18" xmlns="http://www.w3.org/2000/svg"><g fill-rule="nonzero" fill="none"><path fill="%231F9967" d="M11.569 6.871v2.965l-2.064 1.192-1.443-.894v7.74l.04.002 7.78-4.47V4.48h-.145z"/><path fill="%2325BA81" d="M7.997 0L.24 4.481l5.233 3.074 1.06-.645 2.57 1.435v-2.98l2.465-1.481v2.987l4.314-2.391v-.011z"/><path fill="%2325BA81" d="M7.02 9.54v2.976l-2.347 1.488V8.05l.89-.548L.287 4.48.24 4.48v8.926l7.821 4.467v-7.74z"/></g></svg>');
 
   --logo-oidc-color-svg: url('data:image/svg+xml;charset=UTF-8,<svg viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.833 8.375l-.291-2.625-.846.554c-.788-.496-1.78-.846-2.888-1.02 0 0-.554-.117-1.283-.117-.73 0-1.4.087-1.4.087-2.83.35-4.958 1.954-4.958 3.88 0 1.983 2.187 3.616 5.541 3.908v-1.138c-2.304-.32-3.762-1.4-3.762-2.77 0-1.284 1.341-2.363 3.179-2.713 0 0 1.43-.321 2.683.058.613.146 1.167.35 1.634.642l-1.109.67 3.5.584z" fill="%239E9E9E"/><path d="M6.708 2.833v10.209l1.75-.875V1.958l-1.75.875z" fill="%23000"/><path d="M6.708 2.833v10.209l1.75-.875V1.958l-1.75.875z" fill="%23FF9800"/></svg>');
+
+  --logo-terraform-color-svg: url('data:image/svg+xml;charset=UTF-8,<svg viewBox="0 0 16 18" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path fill="%235C4EE5" d="M5.51 3.15l4.886 2.821v5.644L5.509 8.792z"/><path fill="%234040B2" d="M10.931 5.971v5.644l4.888-2.823V3.15z"/><path fill="%235C4EE5" d="M.086 0v5.642l4.887 2.823V2.82zM5.51 15.053l4.886 2.823v-5.644l-4.887-2.82z"/></g></svg>');
+
+  --logo-vault-color-svg: url('data:image/svg+xml;charset=UTF-8,<svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 0L14.9453 30L30 0H0ZM16.724 6.02083H18.4635V7.76042H16.724V6.02083ZM11.5208 12.9766H13.2604V11.237H11.5208V12.9766ZM13.2604 10.3724H11.5208V8.6302H13.2604V10.3724ZM11.5208 7.76823H13.2604V6.02083H11.5208V7.76823ZM15.8646 15.5937H14.1302V13.8463H15.8698L15.8646 15.5937ZM14.1302 12.9896H15.8646L15.8698 11.237H14.1302V12.9896ZM15.8646 10.3854H14.1302V8.6302H15.8698L15.8646 10.3854ZM14.1302 7.78125H15.8646L15.8698 6.02083H14.1302V7.78125ZM16.7187 8.65105H18.4635V10.3906H16.7239L16.7187 8.65105ZM16.7344 11.237V13L18.4896 12.9766V11.237H16.7344Z" fill="%23000"/></svg>');
 
   --mail-16-svg: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16"><path fill="%23000" fill-rule="evenodd" d="M0 3.25A2.25 2.25 0 012.25 1h11.5A2.25 2.25 0 0116 3.25v9.5A2.25 2.25 0 0113.75 15H2.25A2.25 2.25 0 010 12.75v-9.5zm2.25-.75a.75.75 0 00-.748.69L8 8.297l6.498-5.105a.75.75 0 00-.748-.691H2.25zm-.75 9.885V5.097l3.865 3.037L1.5 12.385zM2.514 13.5h10.972L9.452 9.063l-.989.777a.75.75 0 01-.926 0l-.99-.777L2.515 13.5zm8.12-5.366l3.866 4.251V5.097l-3.865 3.037z" clip-rule="evenodd"/></svg>');
 

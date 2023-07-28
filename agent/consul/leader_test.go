@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,7 +19,6 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -592,7 +587,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := s1.RPC(context.Background(), "Catalog.Register", &dead, &out); err != nil {
+	if err := s1.RPC("Catalog.Register", &dead, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -706,7 +701,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := s1.RPC(context.Background(), "Catalog.Register", &req, &out); err != nil {
+	if err := s1.RPC("Catalog.Register", &req, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1307,9 +1302,12 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			_, s1 := testServerWithConfig(t, conf)
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
-			require.NoError(t, err)
-			require.NotNil(t, policy)
+			// check that the builtin policies were created
+			for _, builtinPolicy := range structs.ACLBuiltinPolicies {
+				_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, builtinPolicy.ID, nil)
+				require.NoError(t, err)
+				require.NotNil(t, policy)
+			}
 
 			if tt.initialManagement != "" {
 				_, initialManagement, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.initialManagement, nil)
@@ -1439,15 +1437,17 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	waitForLeaderEstablishment(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
-	// Everybody has the management policy.
+	// Everybody has the builtin policies.
 	retry.Run(t, func(r *retry.R) {
-		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-		require.NoError(r, err)
-		require.NotNil(r, policy1)
+		for _, builtinPolicy := range structs.ACLBuiltinPolicies {
+			_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, builtinPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
+			require.NoError(r, err)
+			require.NotNil(r, policy1)
 
-		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-		require.NoError(r, err)
-		require.NotNil(r, policy2)
+			_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, builtinPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
+			require.NoError(r, err)
+			require.NotNil(r, policy2)
+		}
 	})
 
 	// Shutdown s1 and s2.
@@ -1635,7 +1635,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			deps := newDefaultDeps(t, config)
 			deps.Logger = logger
 
-			srv, err := NewServer(config, deps, grpc.NewServer(), nil, logger)
+			srv, err := NewServer(config, deps, grpc.NewServer())
 			require.NoError(t, err)
 			defer srv.Shutdown()
 
@@ -1672,7 +1672,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, srv.RPC(context.Background(), "Catalog.Register", &arg, &out))
+		require.NoError(t, srv.RPC("Catalog.Register", &arg, &out))
 	}
 
 	t.Run("one node primary with old version", func(t *testing.T) {
@@ -1724,7 +1724,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 
 			var out structs.FederationStateResponse
-			require.NoError(r, s1.RPC(context.Background(), "FederationState.Get", &arg, &out))
+			require.NoError(r, s1.RPC("FederationState.Get", &arg, &out))
 			require.NotNil(r, out.State)
 			require.Len(r, out.State.MeshGateways, 1)
 		})
@@ -1829,7 +1829,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 
 			var out structs.IndexedFederationStates
-			require.NoError(r, s1.RPC(context.Background(), "FederationState.List", &arg, &out))
+			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
 			require.Len(r, out.States, 1)
 			require.Len(r, out.States[0].MeshGateways, 1)
 		})
@@ -1885,7 +1885,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 
 			var out structs.IndexedFederationStates
-			require.NoError(r, s1.RPC(context.Background(), "FederationState.List", &arg, &out))
+			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
 			require.Len(r, out.States, 2)
 			require.Len(r, out.States[0].MeshGateways, 1)
 			require.Len(r, out.States[1].MeshGateways, 1)
@@ -1898,7 +1898,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 
 			var out structs.IndexedFederationStates
-			require.NoError(r, s1.RPC(context.Background(), "FederationState.List", &arg, &out))
+			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
 			require.Len(r, out.States, 2)
 			require.Len(r, out.States[0].MeshGateways, 1)
 			require.Len(r, out.States[1].MeshGateways, 1)
@@ -1985,7 +1985,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 		}
 
 		var id string
-		return srv.RPC(context.Background(), "Intention.Apply", &arg, &id)
+		return srv.RPC("Intention.Apply", &arg, &id)
 	}
 
 	getConfigEntry := func(srv *Server, dc, kind, name string) (structs.ConfigEntry, error) {
@@ -1995,7 +1995,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 			Name:       name,
 		}
 		var reply structs.ConfigEntryResponse
-		if err := srv.RPC(context.Background(), "ConfigEntry.Get", &arg, &reply); err != nil {
+		if err := srv.RPC("ConfigEntry.Get", &arg, &reply); err != nil {
 			return nil, err
 		}
 		return reply.Entry, nil
@@ -2488,7 +2488,7 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 	reqToken := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
-			AccessorID:  acl.AnonymousTokenID,
+			AccessorID:  structs.ACLTokenAnonymousID,
 			SecretID:    anonymousToken,
 			Description: "Anonymous Token",
 			CreateTime:  time.Now(),

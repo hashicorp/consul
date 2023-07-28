@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 name: build
 
 on:
@@ -13,8 +10,8 @@ on:
 
 env:
   PKG_NAME: consul
+  # TODO(spatel): CE refactor
   METADATA: oss
-  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   set-product-version:
@@ -26,7 +23,7 @@ jobs:
       pre-version: ${{ steps.set-product-version.outputs.prerelease-product-version }}
       shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - name: set product version
         id: set-product-version
         uses: hashicorp/actions-set-product-version@v1
@@ -65,7 +62,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
       - name: 'Checkout directory'
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - name: Generate metadata file
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@v1
@@ -73,7 +70,7 @@ jobs:
           version: ${{ needs.set-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@3.1.2
         with:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -84,23 +81,23 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.6", goos: "linux", goarch: "386"}
-          - {go: "1.20.6", goos: "linux", goarch: "amd64"}
-          - {go: "1.20.6", goos: "linux", goarch: "arm"}
-          - {go: "1.20.6", goos: "linux", goarch: "arm64"}
-          - {go: "1.20.6", goos: "freebsd", goarch: "386"}
-          - {go: "1.20.6", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.20.6", goos: "windows", goarch: "386"}
-          - {go: "1.20.6", goos: "windows", goarch: "amd64"}
-          - {go: "1.20.6", goos: "solaris", goarch: "amd64"}
+          - {go: "1.20.8", goos: "linux", goarch: "386"}
+          - {go: "1.20.8", goos: "linux", goarch: "amd64"}
+          - {go: "1.20.8", goos: "linux", goarch: "arm"}
+          - {go: "1.20.8", goos: "linux", goarch: "arm64"}
+          - {go: "1.20.8", goos: "freebsd", goarch: "386"}
+          - {go: "1.20.8", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.20.8", goos: "windows", goarch: "386"}
+          - {go: "1.20.8", goos: "windows", goarch: "amd64"}
+          - {go: "1.20.8", goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
+        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
         with:
           node-version: '14'
           cache: 'yarn'
@@ -135,7 +132,7 @@ jobs:
           reproducible: report
           instructions: |-
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
-
+ 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
         uses: hashicorp/actions-packaging-linux@v1
@@ -162,68 +159,17 @@ jobs:
           echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
           echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@3.1.2
         if: ${{ matrix.goos == 'linux' }}
         with:
           name: ${{ env.RPM_PACKAGE }}
           path: out/${{ env.RPM_PACKAGE }}
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@3.1.2
         if: ${{ matrix.goos == 'linux' }}
         with:
           name: ${{ env.DEB_PACKAGE }}
           path: out/${{ env.DEB_PACKAGE }}
-
-  build-s390x:
-    needs: set-product-version
-    if: ${{ endsWith(github.repository, '-enterprise') }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - {go: "1.20.6", goos: "linux", goarch: "s390x"}
-      fail-fast: true
-
-    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-
-      - name: Setup with node and yarn
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
-        with:
-          node-version: '14'
-          cache: 'yarn'
-          cache-dependency-path: 'ui/yarn.lock'
-
-      - name: Build UI
-        run: |
-          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
-          CONSUL_DATE=${{ needs.set-product-version.outputs.product-date }}
-          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
-          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
-          echo "consul_version is ${CONSUL_VERSION}"
-          echo "consul_date is ${CONSUL_DATE}"
-          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
-          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
-          cd ui && make && cd ..
-          rm -rf agent/uiserver/dist
-          mv ui/packages/consul-ui/dist agent/uiserver/
-      - name: Go Build
-        env:
-          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
-          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
-          CGO_ENABLED: "0"
-          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-        uses: hashicorp/actions-go-build@v0.1.7
-        with:
-          product_name: ${{ env.PKG_NAME }}
-          product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ matrix.go }}
-          os: ${{ matrix.goos }}
-          arch: ${{ matrix.goarch }}
-          reproducible: report
-          instructions: |-
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-darwin:
     needs: set-product-version
@@ -232,15 +178,15 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64", "arm64" ]
-        go: [ "1.20.6" ]
+        go: [ "1.20.8" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
+        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
         with:
           node-version: '14'
           cache: 'yarn'
@@ -257,6 +203,7 @@ jobs:
           cd ui && make && cd ..
           rm -rf agent/uiserver/dist
           mv ui/packages/consul-ui/dist agent/uiserver/
+
       - name: Go Build
         env:
           PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
@@ -282,17 +229,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - { arch: "386" }
-          - { arch: "arm" }
-          - { arch: "amd64" }
-          - { arch: "arm64" }
+        arch: ["386", "amd64", "arm", "arm64"]
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
       # This naming convention will be used ONLY for per-commit dev images
@@ -326,7 +269,7 @@ jobs:
       version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - uses: hashicorp/actions-docker-build@v1
         with:
           version: ${{env.version}}
@@ -346,7 +289,7 @@ jobs:
       version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
       # This naming convention will be used ONLY for per-commit dev images
@@ -375,11 +318,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - { arch: "386" }
-          - { arch: "arm" }
-          - { arch: "amd64" }
-          - { arch: "arm64" }
+        arch: ["386", "amd64", "arm", "arm64"]
       fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
@@ -387,24 +326,21 @@ jobs:
 
     name: Verify ${{ matrix.arch }} linux binary
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       - name: Download ${{ matrix.arch  }} zip
-        if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # pin@v3.0.2
         with:
           name: ${{ env.zip_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # pin@v2.1.0
         if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
         with:
           # this should be a comma-separated string as opposed to an array
           platforms: arm,arm64
 
       - name: Run verification for ${{ matrix.arch }} binary
-        if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
         run: .github/scripts/verify_artifact.sh ${{ env.zip_name }} v${{ env.version }}
 
   verify-darwin:
@@ -420,10 +356,10 @@ jobs:
 
     name: Verify amd64 darwin binary
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       - name: Download amd64 darwin zip
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # pin@v3.0.2
         with:
           name: ${{ env.zip_name }}
 
@@ -440,18 +376,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - { arch: "i386" }
-          - { arch: "armhf" }
-          - { arch: "amd64" }
-          - { arch: "arm64" }
+        arch: ["i386", "amd64", "armhf", "arm64"]
       # fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
 
     name: Verify ${{ matrix.arch }} debian package
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       - name: Set package version
         run: |
@@ -462,12 +394,12 @@ jobs:
           echo "pkg_name=consul_${{ env.pkg_version }}-1_${{ matrix.arch }}.deb" >> $GITHUB_ENV
 
       - name: Download workflow artifacts
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # pin@v3.0.2
         with:
           name: ${{ env.pkg_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # pin@v2.1.0
         with:
           platforms: all
 
@@ -481,18 +413,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - { arch: "i386" }
-          - { arch: "x86_64" }
         # TODO(eculver): re-enable when there is a smaller verification container available
-          # - { arch: "armv7hl" }
-          # - { arch: "aarch64" }
+        arch: ["i386", "x86_64"] #, "armv7hl", "aarch64"]
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
 
     name: Verify ${{ matrix.arch }} rpm
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       - name: Set package version
         run: |
@@ -503,12 +431,12 @@ jobs:
           echo "pkg_name=consul-${{ env.pkg_version }}-1.${{ matrix.arch }}.rpm" >> $GITHUB_ENV
 
       - name: Download workflow artifacts
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # pin@v3.0.2
         with:
           name: ${{ env.pkg_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # pin@v2.1.0
         with:
           platforms: all
 

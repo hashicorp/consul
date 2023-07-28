@@ -1,3 +1,0 @@
-```release-note:bug
-gateway: **(Enterprise only)** Fix bug where routes defined in a different namespace than a gateway would fail to register. [[GH-16677](https://github.com/hashicorp/consul/pull/16677)].
-```

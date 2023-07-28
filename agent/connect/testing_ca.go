@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package connect
 
 import (
 	"bytes"
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
@@ -418,7 +414,7 @@ func testUUID(t testing.T) string {
 // helper interface that is implemented by the agent delegate so that test
 // helpers can make RPCs without introducing an import cycle on `agent`.
 type TestAgentRPC interface {
-	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
+	RPC(method string, args interface{}, reply interface{}) error
 }
 
 func testCAConfigSet(t testing.T, a TestAgentRPC,
@@ -442,7 +438,7 @@ func testCAConfigSet(t testing.T, a TestAgentRPC,
 	}
 	var reply interface{}
 
-	err := a.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply)
+	err := a.RPC("ConnectCA.ConfigurationSet", args, &reply)
 	if err != nil {
 		t.Fatalf("failed to set test CA config: %s", err)
 	}

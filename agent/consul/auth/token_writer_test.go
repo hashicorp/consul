@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package auth
 
 import (
@@ -41,7 +38,7 @@ func TestTokenWriter_Create_Validation(t *testing.T) {
 			errorContains: "not a valid UUID",
 		},
 		"AccessorID is reserved": {
-			token:         structs.ACLToken{AccessorID: structs.ACLReservedPrefix + generateID(t)},
+			token:         structs.ACLToken{AccessorID: structs.ACLReservedIDPrefix + generateID(t)},
 			errorContains: "reserved",
 		},
 		"AccessorID already in use (as AccessorID)": {
@@ -57,7 +54,7 @@ func TestTokenWriter_Create_Validation(t *testing.T) {
 			errorContains: "not a valid UUID",
 		},
 		"SecretID is reserved": {
-			token:         structs.ACLToken{SecretID: structs.ACLReservedPrefix + generateID(t)},
+			token:         structs.ACLToken{SecretID: structs.ACLReservedIDPrefix + generateID(t)},
 			errorContains: "reserved",
 		},
 		"SecretID already in use (as AccessorID)": {
@@ -100,6 +97,14 @@ func TestTokenWriter_Create_Validation(t *testing.T) {
 			token:         structs.ACLToken{AuthMethod: "some-auth-method"},
 			fromLogin:     false,
 			errorContains: "AuthMethod field is disallowed outside of login",
+		},
+		"Rules set": {
+			token:         structs.ACLToken{Rules: "some rules"},
+			errorContains: "Rules cannot be specified for this token",
+		},
+		"Type set": {
+			token:         structs.ACLToken{Type: "some-type"},
+			errorContains: "Type cannot be specified for this token",
 		},
 	}
 	for desc, tc := range testCases {
@@ -492,6 +497,14 @@ func TestTokenWriter_Update_Validation(t *testing.T) {
 		"ExpirationTime changed": {
 			token:         structs.ACLToken{AccessorID: token.AccessorID, ExpirationTime: timePointer(token.ExpirationTime.Add(1 * time.Minute))},
 			errorContains: "Cannot change expiration time",
+		},
+		"Rules set": {
+			token:         structs.ACLToken{AccessorID: token.AccessorID, Rules: "some rules"},
+			errorContains: "Rules cannot be specified for this token",
+		},
+		"Type set": {
+			token:         structs.ACLToken{AccessorID: token.AccessorID, Type: "some-type"},
+			errorContains: "Type cannot be specified for this token",
 		},
 	}
 	for desc, tc := range testCases {

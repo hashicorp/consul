@@ -1,16 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/mitchellh/mapstructure"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/decode"
@@ -178,67 +176,31 @@ func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 	return cfg, err
 }
 
-// Return an envoy.OutlierDetection populated by the values from structs.PassiveHealthCheck.
+// Return an envoy.OutlierDetection populated by the values from this struct.
 // If all values are zero a default empty OutlierDetection will be returned to
 // enable outlier detection with default values.
-//   - If override is not nil, it will overwrite the values from p, e.g., ingress gateway defaults
-//   - allowZero is added to handle the legacy case where connect-proxy and mesh gateway can set 0
-//     for EnforcingConsecutive5xx. Due to the definition of proto of PassiveHealthCheck, ingress
-//     gateway's EnforcingConsecutive5xx must be > 0.
-func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.PassiveHealthCheck, allowZero bool) *envoy_cluster_v3.OutlierDetection {
+func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.OutlierDetection {
 	od := &envoy_cluster_v3.OutlierDetection{}
-	if p != nil {
-
-		if p.Interval != 0 {
-			od.Interval = durationpb.New(p.Interval)
-		}
-		if p.MaxFailures != 0 {
-			od.Consecutive_5Xx = &wrapperspb.UInt32Value{Value: p.MaxFailures}
-		}
-
-		if p.EnforcingConsecutive5xx != nil {
-			// NOTE: EnforcingConsecutive5xx must be greater than 0 for ingress-gateway
-			if *p.EnforcingConsecutive5xx != 0 {
-				od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
-			} else if allowZero {
-				od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
-			}
-		}
-
-		if p.MaxEjectionPercent != nil {
-			od.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: *p.MaxEjectionPercent}
-		}
-		if p.BaseEjectionTime != nil {
-			od.BaseEjectionTime = durationpb.New(*p.BaseEjectionTime)
-		}
-	}
-
-	if override == nil {
+	if p == nil {
 		return od
 	}
 
-	// override the default outlier detection value
-	if override.Interval != 0 {
-		od.Interval = durationpb.New(override.Interval)
+	if p.Interval != 0 {
+		od.Interval = durationpb.New(p.Interval)
 	}
-	if override.MaxFailures != 0 {
-		od.Consecutive_5Xx = &wrapperspb.UInt32Value{Value: override.MaxFailures}
-	}
-
-	if override.EnforcingConsecutive5xx != nil {
-		// NOTE: EnforcingConsecutive5xx must be great than 0 for ingress-gateway
-		if *override.EnforcingConsecutive5xx != 0 {
-			od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutive5xx}
-		}
-		// Because only ingress gateways have overrides and they cannot have a value of 0, there is no allowZero
-		// override case to handle
+	if p.MaxFailures != 0 {
+		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
 	}
 
-	if override.MaxEjectionPercent != nil {
-		od.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: *override.MaxEjectionPercent}
+	if p.EnforcingConsecutive5xx != nil {
+		// NOTE: EnforcingConsecutive5xx must be greater than 0 for ingress-gateway
+		od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
 	}
-	if override.BaseEjectionTime != nil {
-		od.BaseEjectionTime = durationpb.New(*override.BaseEjectionTime)
+	if p.MaxEjectionPercent != nil {
+		od.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: *p.MaxEjectionPercent}
+	}
+	if p.BaseEjectionTime != nil {
+		od.BaseEjectionTime = durationpb.New(*p.BaseEjectionTime)
 	}
 
 	return od

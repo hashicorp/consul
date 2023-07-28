@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // snapshot manages the interactions between Consul and Raft in order to take
 // and restore snapshots for disaster recovery. The internal format of a
 // snapshot is simply a tar file, as described in archive.go.
@@ -10,6 +7,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/hashicorp/go-hclog"
@@ -49,7 +47,7 @@ func New(logger hclog.Logger, r *raft.Raft) (*Snapshot, error) {
 	// Make a scratch file to receive the contents so that we don't buffer
 	// everything in memory. This gets deleted in Close() since we keep it
 	// around for re-reading.
-	archive, err := os.CreateTemp("", "snapshot")
+	archive, err := ioutil.TempFile("", "snapshot")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create snapshot file: %v", err)
 	}
@@ -137,7 +135,7 @@ func Verify(in io.Reader) (*raft.SnapshotMeta, error) {
 
 	// Read the archive, throwing away the snapshot data.
 	var metadata raft.SnapshotMeta
-	if err := read(decomp, &metadata, io.Discard); err != nil {
+	if err := read(decomp, &metadata, ioutil.Discard); err != nil {
 		return nil, fmt.Errorf("failed to read snapshot file: %v", err)
 	}
 
@@ -154,7 +152,7 @@ func Verify(in io.Reader) (*raft.SnapshotMeta, error) {
 // The docs for gzip.Reader say: "Clients should treat data returned by Read as
 // tentative until they receive the io.EOF marking the end of the data."
 func concludeGzipRead(decomp *gzip.Reader) error {
-	extra, err := io.ReadAll(decomp) // ReadAll consumes the EOF
+	extra, err := ioutil.ReadAll(decomp) // ReadAll consumes the EOF
 	if err != nil {
 		return err
 	} else if len(extra) != 0 {
@@ -178,7 +176,7 @@ func Read(logger hclog.Logger, in io.Reader) (*os.File, *raft.SnapshotMeta, erro
 
 	// Make a scratch file to receive the contents of the snapshot data so
 	// we can avoid buffering in memory.
-	snap, err := os.CreateTemp("", "snapshot")
+	snap, err := ioutil.TempFile("", "snapshot")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp snapshot file: %v", err)
 	}

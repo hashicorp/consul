@@ -9,7 +9,7 @@ description: >-
 
 ## task create
 
-`task create` command creates a new task so that it will run and update task resources. The command generates and outputs a Terraform plan, similar to [inspect-mode](/consul/docs/nia/cli/start#modes), of how resources will be modified if the task is created. The command will then ask for user approval before creating the task.
+`task create` command creates a new task so that it will run and update task resources. The command generates and outputs a Terraform plan, similar to [inspect-mode](/docs/nia/cli/start#modes), of how resources will be modified if the task is created. The command will then ask for user approval before creating the task.
 
 It is not to be used for updating a task and will not create a task if the task name already exists.
 
@@ -19,11 +19,11 @@ It is not to be used for updating a task and will not create a task if the task 
 
 **Options:**
 
-In addition to [general options](/consul/docs/nia/cli#general-options) this command also supports the following:
+In addition to [general options](/docs/nia/cli#general-options) this command also supports the following:
 
 | Name         | Required | Type   | Description                                                                                                         |
 | ------------ | -------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
-| `-task-file` | Required | string | The path to the task configuration file. See [configuration information](/consul/docs/nia/configuration#task) for details. |
+| `-task-file` | Required | string | The path to the task configuration file. See [configuration information](/docs/nia/configuration#task) for details. |
 | `-auto-approve` &nbsp; | Optional | boolean | Whether to skip the interactive approval of the plan before creating. |
 
 ### Example
@@ -34,7 +34,7 @@ task_example.hcl:
 task {
   name           = "task_a"
   description    = ""
-  enabled        = true,
+  enabled        = true
   providers      = []
   module         = "org/example/module"
   version        = "1.0.0"
@@ -91,7 +91,7 @@ Enter a value: yes
 
 ## task enable
 
-`task enable` command enables an existing task so that it will run and update task resources. If the task is already enabled, it will return a success. The command generates and outputs a Terraform plan, similar to [inspect-mode](/consul/docs/nia/cli#inspect-mode), of how resources will be modified if task becomes enabled. If resources changes are detected, the command will ask for user approval before enabling the task. If no resources are detected, the command will go ahead and enable the task.
+`task enable` command enables an existing task so that it will run and update task resources. If the task is already enabled, it will return a success. The command generates and outputs a Terraform plan, similar to [inspect-mode](/docs/nia/cli#inspect-mode), of how resources will be modified if task becomes enabled. If resources changes are detected, the command will ask for user approval before enabling the task. If no resources are detected, the command will go ahead and enable the task.
 
 ### Usage
 
@@ -105,7 +105,7 @@ Enter a value: yes
 
 **Options:**
 
-In addition to [general options](/consul/docs/nia/cli/#general-options) this command also supports the following:
+In addition to [general options](/docs/nia/cli/#general-options) this command also supports the following:
 
 | Name            | Required | Type    | Description                     |
 | --------------- | -------- | ------- | ------------------------------- |
@@ -158,7 +158,7 @@ Enter a value: yes
 | ----------- | -------- | ------ | -------------------------------- |
 | `task_name` | Required | string | The name of the task to disable. |
 
-**Options:** Currently only supporting [general options](/consul/docs/nia/cli#general-options)
+**Options:** Currently only supporting [general options](/docs/nia/cli#general-options)
 
 ### Example
 
@@ -187,7 +187,7 @@ $ consul-terraform-sync task disable task_b
 
 **Options:**
 
-In addition to [general options](/consul/docs/nia/cli#general-options) this command also supports the following:
+In addition to [general options](/docs/nia/cli#general-options) this command also supports the following:
 
 | Name            | Required | Type    | Description                     |
 | --------------- | -------- | ------- | ------------------------------- |

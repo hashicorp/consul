@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -14,45 +11,36 @@ import (
 func TestConnectProxyConfig(t testing.T) ConnectProxyConfig {
 	return ConnectProxyConfig{
 		DestinationServiceName: "web",
-		Upstreams:              TestUpstreams(t, false),
+		Upstreams:              TestUpstreams(t),
 	}
 }
 
 // TestUpstreams returns a set of upstreams to be used in tests exercising most
 // important configuration patterns.
-func TestUpstreams(t testing.T, enterprise bool) Upstreams {
-	db := Upstream{
-		// We rely on this one having default type in a few tests...
-		DestinationName: "db",
-		LocalBindPort:   9191,
-		Config: map[string]interface{}{
-			// Float because this is how it is decoded by JSON decoder so this
-			// enables the value returned to be compared directly to a decoded JSON
-			// response without spurious type loss.
-			"connect_timeout_ms": float64(1000),
+func TestUpstreams(t testing.T) Upstreams {
+	return Upstreams{
+		{
+			// We rely on this one having default type in a few tests...
+			DestinationName: "db",
+			LocalBindPort:   9191,
+			Config: map[string]interface{}{
+				// Float because this is how it is decoded by JSON decoder so this
+				// enables the value returned to be compared directly to a decoded JSON
+				// response without spurious type loss.
+				"connect_timeout_ms": float64(1000),
+			},
 		},
-	}
-
-	geoCache := Upstream{
-		DestinationType:  UpstreamDestTypePreparedQuery,
-		DestinationName:  "geo-cache",
-		LocalBindPort:    8181,
-		LocalBindAddress: "127.10.10.10",
-	}
-
-	if enterprise {
-		db.DestinationNamespace = "foo"
-		db.DestinationPartition = "bar"
-
-		geoCache.DestinationNamespace = "baz"
-		geoCache.DestinationPartition = "qux"
-	}
-
-	return Upstreams{db, geoCache, {
-		DestinationName:     "upstream_socket",
-		LocalBindSocketPath: "/tmp/upstream.sock",
-		LocalBindSocketMode: "0700",
-	},
+		{
+			DestinationType:  UpstreamDestTypePreparedQuery,
+			DestinationName:  "geo-cache",
+			LocalBindPort:    8181,
+			LocalBindAddress: "127.10.10.10",
+		},
+		{
+			DestinationName:     "upstream_socket",
+			LocalBindSocketPath: "/tmp/upstream.sock",
+			LocalBindSocketMode: "0700",
+		},
 	}
 }
 

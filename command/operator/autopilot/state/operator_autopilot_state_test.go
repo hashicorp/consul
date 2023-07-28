@@ -1,12 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
 	"encoding/json"
 	"flag"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -28,11 +25,11 @@ func golden(t *testing.T, name, got string) string {
 
 	golden := filepath.Join("testdata", name+".golden")
 	if *update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
+		err := ioutil.WriteFile(golden, []byte(got), 0644)
 		require.NoError(t, err)
 	}
 
-	expected, err := os.ReadFile(golden)
+	expected, err := ioutil.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)
@@ -107,14 +104,14 @@ func TestStateCommand_JSON(t *testing.T) {
 
 func TestStateCommand_Formatter(t *testing.T) {
 	cases := []string{
-		"oss",
+		"ce",
 		"enterprise",
 	}
 
 	for _, name := range cases {
 		t.Run(name, func(t *testing.T) {
 			statePath := filepath.Join("testdata", name, "state.json")
-			input, err := os.ReadFile(statePath)
+			input, err := ioutil.ReadFile(statePath)
 			require.NoError(t, err)
 
 			var state api.AutopilotState

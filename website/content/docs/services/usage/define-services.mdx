@@ -44,7 +44,7 @@ For Kubernetes environments, you can enable the  [`connectInject`](/consul/docs/
 The following example defines a service named `redis` that is available on port `80`. By default, the service has the IP address of the agent node.
 
 <CodeTabs>
-<CodeBlockConfig heading="service.hcl">
+<CodeBlockConfig filename="service.hcl">
 
 ```hcl
 service {
@@ -72,7 +72,7 @@ service {
 ```
 
 </CodeBlockConfig>
-<CodeBlockConfig heading="service.json">
+<CodeBlockConfig filename="service.json">
 
 ```json
 {
@@ -110,26 +110,6 @@ service {
 }
 ```
 </CodeBlockConfig>
-<CodeBlockConfig heading="service.yaml">
-
-```yaml
-service:
-- id: redis
-  meta:
-  - custom_meta_key: custom_meta_value
-  name: redis
-  port: 80
-  tagged_addresses:
-  - lan:
-    - address: 192.168.0.55
-      port: 8000
-    wan:
-    - address: 198.18.0.23
-      port: 80
-  tags:
-  - primary
-```
-</CodeBlockConfig>
 </CodeTabs>
 
 ### Health checks
@@ -145,9 +125,11 @@ If Consul service mesh is enabled in your network, you can define default values
 
 Create a file for the configuration entry and specify the required fields. If you are authoring `service-defaults` in HCL or JSON, the `Kind` and `Name` fields are required. On Kubernetes, the `apiVersion`, `kind`, and `metadata.name` fields are required. Refer to [Service Defaults Reference](/consul/docs/connect/config-entries/service-defaults) for details about the configuration options.
 
+
 If you use Consul Enterprise, you can also specify the `Namespace` and `Partition` fields to apply the configuration to services in a specific namespace or partition. For Kubernetes environments, the configuration entry is always created in the same partition as the Kubernetes cluster.
 
 ### Consul OSS example
+
 The following example instructs services named `counting` to send up to `512` concurrent requests to a mesh gateway: 
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
@@ -226,6 +208,7 @@ spec:
 </CodeTabs>
 
 ### Consul Enterprise example
+
 The following example instructs services named `counting` in the `prod` namespace to send up to `512` concurrent requests to a mesh gateway: 
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
@@ -400,8 +383,7 @@ services {
           "timeout": "60s"
         }
       ]
-    },
-    ...
+    }
   ]
 }
 ```
@@ -417,22 +399,31 @@ Add the `enable_tag_override` option to the `service` block and set the value to
 
 <CodeTabs tabs={[ "HCL","JSON" ]}>
 
+<CodeBlockConfig highlight="4">
 
 ```hcl
 service {
-  ## ...
+  name = "redis"
+  port = 6379
   enable_tag_override = true
-  ## ...
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="5">
+
 ```json
-"service": {
-  ## ...
-  "enable_tag_override": true,
-  ## ...
+{
+  "service": {
+    "name": "redis",
+    "port": 6379,
+    "enable_tag_override": true
+  }
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 

@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 brand:
   consul: Consul
   consul-api-gateway: Consul API Gateway
@@ -35,7 +32,6 @@ consul:
   ingress-gateway: Ingress Gateway
   terminating-gateway: Terminating Gateway
   mesh-gateway: Mesh Gateway
-  api-gateway: API Gateway
   status: Health Status
   service.meta: Service Meta
   node.meta: Node Meta
@@ -53,7 +49,6 @@ consul:
   redundancyzone: Redundancy zone
   peername: Peer
   partition: Admin Partitions
-  version: Version
 search:
   search: Search
   searchproperty: Search Across
@@ -78,9 +73,6 @@ sort:
   status:
     asc: Unhealthy to Healthy
     desc: Healthy to Unhealthy
-  version:
-    asc: Oldest to Latest
-    desc: Latest to Oldest
 validations:
   dns-hostname:
     help: |
