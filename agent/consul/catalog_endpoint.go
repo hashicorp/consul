@@ -606,6 +606,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				reply.QueryMeta.NotModified = true
 				return nil
 			}
+
 			raw, err := filter.Execute(serviceNodes)
 			if err != nil {
 				return err

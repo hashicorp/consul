@@ -1315,7 +1315,6 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 		EnterpriseMeta: *entMeta,
 		PeerName:       peerName,
 	})
-
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -1335,6 +1334,7 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 		if len(filters) > 1 && !structs.SatisfiesMetaFilters(n.Meta, filters) {
 			continue
 		}
+
 		// List all the services on the node
 		services, err := catalogServiceListByNode(tx, n.Node, entMeta, n.PeerName, false)
 		if err != nil {
