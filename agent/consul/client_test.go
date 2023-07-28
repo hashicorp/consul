@@ -44,7 +44,7 @@ func testClientConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 2)
+	ports := freeport.RetryMustGetN(t, retry.Minute(), 2)
 	config.Datacenter = "dc1"
 	config.DataDir = dir
 	config.NodeName = uniqueNodeName(t.Name())

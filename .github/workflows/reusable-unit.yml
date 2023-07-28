@@ -1,4 +1,4 @@
-name: reusable-unit 
+name: reusable-unit
 
 on:
   workflow_call:
@@ -10,37 +10,38 @@ on:
         description: An expression indicating which kind of runners to use.
         required: true
         type: string
-      go-arch:
-        required: false
+      repository-name:
+        required: true
         type: string
-        default: ""
-      uploaded-binary-name:
-        required: false
-        type: string
-        default: "consul-bin" 
       package-names-command:
         required: false
         type: string
         default: 'go list -tags "$GOTAGS" ./...'
+      go-version:
+        required: true
+        type: string
+      # TODO: unused?
+      go-build-flags:
+        required: false
+        type: string
+        default: ""
+      go-arch:
+        required: false
+        type: string
+        default: "amd64"
       go-test-flags:
         required: false
         type: string
         default: ""
-      repository-name:
-        required: true
-        type: string
       go-tags:
         required: false
         type: string
         default: ""
-      go-version:
-        required: false
+      artifact_namespace:
+        required: true
         type: string
-        default: ""
-      cachekey_GOMODCACHE:
-        required: false
-        type: string
-        default: ""
+        description: |
+          must be distinct to all other uses of this workflow. Usually calling job name
     secrets:
       elevated-github-token:
         required: true
@@ -53,83 +54,98 @@ env:
   GOTESTSUM_VERSION: "1.10.1"
   GOARCH: ${{inputs.go-arch}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
-  GOTAGS: ${{ inputs.go-tags}}
+  GOTAGS: ${{ inputs.go-tags }}
+  GOTESTPARALLEL: "4"
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
   DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
 jobs:
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
-    steps:      
+    steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # go uses mtime as a quick check to see if a cache item needs rebuilding
+      # git doesn't keep mtime, so we just set it to 0
+      - name: reset source mtime
+        run: |
+          find . -exec touch -d 1970-01-01T00:00:00 '{}' \;
+      - id: setup_go 
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version: "${{ inputs.go-version }}"
+          cache: false
+      - name: ulimit
+        run: |
+          echo "Soft limits"
+          ulimit -Sa
+          echo "Hard limits"
+          ulimit -Ha   
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        if: ${{ inputs.go-version != '' }}
-        with:
-          go-version: ${{ inputs.go-version }}
-          cache: false
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        if: ${{ inputs.go-version == '' }}
-        with:
-          go-version-file: 'go.mod'
-          cache: false
-      - name: restore GOMODCACHE
-        uses: actions/cache/restore@v3
-        if: "${{ inputs.cachekey_GOMODCACHE != '' }}"
-        with:
-          key: "${{inputs.cachekey_GOMODCACHE}}"
-          path: ~/go/pkg/mod     
+      # TODO: does this need to be an env var?
       - run: mkdir -p ${{env.TEST_RESULTS}}
-      # should be 0s
-      - name: go mod download
-        working-directory: ${{inputs.directory}}
-        run: go mod download
-      - name: Download consul
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: ${{inputs.uploaded-binary-name}}
-          path: ${{inputs.directory}}
-      - name: Display downloaded file
-        run: ls -ld consul 
-        working-directory: ${{inputs.directory}}
-      - run: echo "$GITHUB_WORKSPACE/${{inputs.directory}}" >> $GITHUB_PATH
-      - name: Make sure consul is executable
-        run: chmod +x $GITHUB_WORKSPACE/${{inputs.directory}}/consul
+      - run: go mod download
       - run: go env
-      # build and run are split out so we can monitor timing
-      # TODO: actually run the test binary?
-      - name: build tests
-        working-directory: ${{inputs.directory}}
+      - id: cachekey_GOCACHE
         run: |
-          PACKAGE_NAMES=$(${{inputs.package-names-command}})
-          for p in $PACKAGE_NAMES; do
-            go test -tags="${{env.GOTAGS}}" -c $p
-          done
+          export GOMODULENAME=$(cd ${{inputs.directory }} && go list -m)
+          cachekey_GOTESTCACHE="$(
+            GOVERSION="${{ inputs.go-version }}" \
+            .github/scripts/cachekey_GOTESTCACHE.sh
+          )"
+          echo "cachekey_GOCACHE=$cachekey_GOTESTCACHE" >> "$GITHUB_OUTPUT"
+      - name: restore GOCACHE
+        id: restore_GOCACHE
+        uses: actions/cache/restore@v3
+        with:
+          key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
+          path: ~/.cache/go-build
+      - name: install gotestsum
+        run: GOARCH=amd64 go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
+      - run: |
+          # we used to do dev-build in a separate step, but generally
+          # that is slower (mostly due to overhead) than just doing it here
+          export GOARCH=amd64
+          make dev
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-            PACKAGE_NAMES=$(${{inputs.package-names-command}})
-            
-            # some tests expect this umask, and arm images have a different default
-            umask 0022
-            # TODO: not sure why this is floating here all by itself
-            ${{inputs.go-test-flags}}
+          PACKAGE_NAMES=$(${{inputs.package-names-command}})
 
-            go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --format=short-verbose \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --debug \
-              --rerun-fails=3 \
-              --rerun-fails-max-failures=40 \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --packages="$PACKAGE_NAMES" \
-              --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
-              -tags="${{env.GOTAGS}}" \
-              ${GO_TEST_FLAGS-} \
-              -cover -coverprofile=coverage.txt
+          # some tests expect this umask, and arm images have a different default
+          umask 0022
+          export GODEBUG=gocachetest=1
+
+          gotestsum \
+            --format=short-verbose \
+            --jsonfile /tmp/jsonfile/go-test.log \
+            --debug \
+            --rerun-fails=0 \
+            --rerun-fails-max-failures=40 \
+            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+            --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
+            -- \
+            -tags="${{env.GOTAGS}}" \
+            -parallel="${{ env.GOTESTPARALLEL }}" \
+            ${{ inputs.go-test-flags }} \
+            $PACKAGE_NAMES
+      # GHA cache doesn't support overwriting in one action, so we just do delete+save
+      # https://github.com/actions/toolkit/issues/505
+      - name: delete old GOCACHE
+        if: ${{ always() }}
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete --confirm -B "$GITHUB_REF" "${{steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE}}" || true
+        env:
+          GITHUB_TOKEN: "${{ secrets.elevated-github-token}}"      
+      - name: save GOCACHE
+        if: ${{ always() }}
+        uses: actions/cache/save@v3
+        with:
+          key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
+          path: "~/.cache/go-build"
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
@@ -137,7 +153,6 @@ jobs:
         id: vault-auth
         run: vault-auth
 
-      # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
         if: ${{ endsWith(github.repository, '-enterprise') }}
         id: secrets
@@ -155,7 +170,7 @@ jobs:
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
-      - name: upload coverage
+      - name: upload report
         # do not run on forks
         if: ${{ env.DATADOG_API_KEY}}
         env:
@@ -163,13 +178,15 @@ jobs:
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
 
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        if: ${{ always() }}
         with:
-          name: test-results
+          name: test-results-${{ inputs.artifact_namespace }}
           path: ${{env.TEST_RESULTS}}
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        if: ${{ always() }}
         with:
           name: jsonfile
-          path: /tmp/jsonfile
+          path: /tmp/jsonfile-${{ inputs.artifact_namespace }}
       - name: "Re-run fails report"
         run: |
           .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails

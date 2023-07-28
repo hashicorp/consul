@@ -20,6 +20,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -116,12 +117,8 @@ func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) 
 // temporary directories.
 func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	t.Helper()
-	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		t.Helper()
-		if err := a.Start(t); err != nil {
-			r.Fatal(err)
-		}
-	})
+	err := a.Start(t)
+	require.NoError(t, err)
 
 	return &a
 }
@@ -414,8 +411,7 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource(t *testing.T, useHTTPS bool) string {
-	// TODO: not sure DefaultFailer is a good choice here
-	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 8)
+	ports := freeport.RetryMustGetN(t, retry.Minute(), 8)
 
 	var http, https int
 	if useHTTPS {

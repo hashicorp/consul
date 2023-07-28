@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -euo pipefail
-
-# kind:go-version:GOARCH:GOPACKAGENAME?:GOTAGS?:GOBUILDFLAGS?
-echo "cachekey_GOCACHE=GOCACHEv0:${GOVERSION}:${GOARCH}:${GOPACKAGENAME:-}:${GOTAGS:-}:${GOBUILDFLAGS:-}" >> "$GITHUB_OUTPUT"

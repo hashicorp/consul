@@ -39,7 +39,7 @@ const (
 
 	// attempts is how often we try to allocate a port block
 	// before giving up.
-	attempts = 10
+	attempts = 100
 )
 
 var (
@@ -264,17 +264,21 @@ func adjustMaxBlocks() (int, error) {
 // implemented as a TCP listener which is bound to the firstPort and which will
 // be automatically released when the application terminates.
 func alloc() (int, net.Listener) {
+	var err error
+	// note: can't use retry here because we don't have a Failer (testing.T)
 	for i := 0; i < attempts; i++ {
 		block := int(seededRand.Int31n(int32(effectiveMaxBlocks)))
 		firstPort := lowPort + block*blockSize
-		ln, err := net.ListenTCP("tcp", tcpAddr("127.0.0.1", firstPort))
+		var ln *net.TCPListener
+		ln, err = net.ListenTCP("tcp", tcpAddr("127.0.0.1", firstPort))
 		if err != nil {
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		// logf("DEBUG", "allocated port block %d (%d-%d)", block, firstPort, firstPort+blockSize-1)
 		return firstPort, ln
 	}
-	panic("freeport: cannot allocate port block")
+	panic("freeport: cannot allocate port block: " + err.Error())
 }
 
 // MustTake is the same as Take except it panics on error.

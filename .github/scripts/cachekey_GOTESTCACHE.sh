@@ -7,5 +7,5 @@ set -euo pipefail
 
 # test flags are those built-in go test binary flags, like `-test.v`. test args on the other hand
 # are those consumed by the binary itself
-# kind:go-version:GOARCH:GOPACKAGENAME?:GOTAGS?:GOBUILDFLAGS?:GOTESTFLAGS?:GOTESTARGS?
-echo "GOTESTCACHEv0:${GOVERSION}:${GOARCH}:${GOPACKAGENAME:-}:${GOTAGS:-}:${GOBUILDFLAGS:-}:${GOTESTFLAGS:-}:${GOTESTARGS:-}"
+# kind:go-version:GOARCH:GOMODULENAME:GOTAGS?:GOBUILDFLAGS?:GOTESTFLAGS?:GOTESTARGS?
+echo "GOTESTCACHEv0::${GOVERSION}:${GOARCH}:${GOMODULENAME}:${GOTAGS:-}:${GOBUILDFLAGS:-}:${GOTESTFLAGS:-}:${GOTESTARGS:-}"

@@ -4902,7 +4902,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 
 	// Due to some ordering, we'll have to manually configure these ports in
 	// advance.
-	secondaryRPCPorts := freeport.RetryMustGetN(t, retry.DefaultFailer(), 2)
+	secondaryRPCPorts := freeport.RetryMustGetN(t, retry.Minute(), 2)
 
 	a1 := StartTestAgent(t, TestAgent{Name: "bob", HCL: `
 		domain = "consul"
@@ -5467,7 +5467,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 2)
+	ports := freeport.RetryMustGetN(t, retry.Minute(), 2)
 	caConfig := tlsutil.Config{}
 	tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 	require.NoError(t, err)
@@ -6067,7 +6067,7 @@ func TestAgent_startListeners(t *testing.T) {
 	}
 	t.Parallel()
 
-	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 3)
+	ports := freeport.RetryMustGetN(t, retry.Minute(), 3)
 	bd := BaseDeps{
 		Deps: consul.Deps{
 			Logger:       hclog.NewInterceptLogger(nil),

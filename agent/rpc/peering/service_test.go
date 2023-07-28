@@ -1765,7 +1765,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf := consul.DefaultConfig()
 	dir := testutil.TempDir(t, "consul")
 
-	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 4) // {rpc, serf_lan, serf_wan, grpc}
+	ports := freeport.RetryMustGetN(t, retry.Minute(), 4) // {rpc, serf_lan, serf_wan, grpc}
 
 	conf.PeeringEnabled = true
 	conf.Bootstrap = true

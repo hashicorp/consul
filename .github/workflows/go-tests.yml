@@ -32,244 +32,167 @@ jobs:
       compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+      # TODO: not sure there's a better way to do global variables
+      GOVERSION_LATEST: "${{ steps.GOVERSION.outputs.LATEST }}"
+      GOVERSION_LATESTSUB1: "${{ steps.GOVERSION.outputs.LATESTSUB1 }}"
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
     - id: setup-outputs
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
+    - id: GOVERSION
+      run: |
+        echo "LATEST=1.20.6" >> "$GITHUB_OUTPUT"
+        echo "LATESTSUB1=1.19.11" >> "$GITHUB_OUTPUT"
 
-  # check-go-mod:
-  #   needs:
-  #   - setup
-  #   uses: ./.github/workflows/reusable-check-go-mod.yml
-  #   with:
-  #     runs-on: ${{ needs.setup.outputs.compute-small }}
-  #     repository-name: ${{ github.repository }}
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-
-  # check-generated-protobuf:
-  #   needs:
-  #   - setup
-  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
-  #   steps:
-  #   - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-  #   # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-  #   - name: Setup Git
-  #     if: ${{ endsWith(github.repository, '-enterprise') }}
-  #     run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-  #   - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-  #     with:
-  #       go-version-file: 'go.mod'
-  #   - run: make proto-tools
-  #     name: Install protobuf
-  #   - run: make proto-format
-  #     name: "Protobuf Format"
-  #   - run: make --always-make proto
-  #   - run: |
-  #           if ! git diff --exit-code; then
-  #             echo "Generated code was not updated correctly"
-  #             exit 1
-  #           fi
-  #   - run: make proto-lint
-  #     name: "Protobuf Lint"
-  #   - name: Notify Slack
-  #     if: ${{ failure() }}
-  #     run: .github/scripts/notify_slack.sh
-  # check-generated-deep-copy:
-  #   needs:
-  #   - setup
-  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
-  #   steps:
-  #   - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-  #   # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-  #   - name: Setup Git
-  #     if: ${{ endsWith(github.repository, '-enterprise') }}
-  #     run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-  #   - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-  #     with:
-  #       go-version-file: 'go.mod'
-  #   - run: make --always-make deep-copy
-  #   - run: |
-  #       if ! git diff --exit-code; then
-  #         echo "Generated code was not updated correctly"
-  #         exit 1
-  #       fi
-  #   - name: Notify Slack
-  #     if: ${{ failure() }}
-  #     run: .github/scripts/notify_slack.sh
-
-  # lint-enums:
-  #   needs:
-  #   - setup
-  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
-  #   steps:
-  #   - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-  #   # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-  #   - name: Setup Git
-  #     if: ${{ endsWith(github.repository, '-enterprise') }}
-  #     run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-  #   - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-  #     with:
-  #       go-version-file: 'go.mod'
-  #       cache: false
-  #   - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
-  #   - name: Notify Slack
-  #     if: ${{ failure() }}
-  #     run: .github/scripts/notify_slack.sh
-
-
-  # lint-container-test-deps:
-  #   needs:
-  #   - setup
-  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-  #   steps:
-  #   - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-  #   # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-  #   - name: Setup Git
-  #     run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-  #   - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-  #     with:
-  #       go-version-file: 'go.mod'
-  #   - run: make lint-container-test-deps
-  #   - name: Notify Slack
-  #     if: ${{ failure() }}
-  #     run: .github/scripts/notify_slack.sh
-
-  # lint-consul-retry:
-  #   needs:
-  #   - setup
-  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-  #   steps:
-  #   - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-  #   # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-  #   - name: Setup Git
-  #     if: ${{ endsWith(github.repository, '-enterprise') }}
-  #     run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-  #   - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-  #     with:
-  #       go-version-file: 'go.mod'
-  #   - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
-  #   - name: Notify Slack
-  #     if: ${{ failure() }}
-  #     run: .github/scripts/notify_slack.sh
-
-  # lint:
-  #   needs:
-  #   - setup
-  #   uses: ./.github/workflows/reusable-lint.yml
-  #   with:
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-
-  # lint-32bit:
-  #   needs:
-  #   - setup
-  #   uses: ./.github/workflows/reusable-lint.yml
-  #   with:
-  #     go-arch: "386"
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-
-
-  # TODO: matrix?
-  # go-mod-download_root:
-  #   needs:
-  #   - setup
-  #   uses: ./.github/workflows/reusable-go-mod-download.yml
-  #   with:
-  #     directory: "."
-  #     repository-name: ${{ github.repository }}
-  #     # XL is probably overkill?
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-
-  # go-mod-download_api:
-  #   needs:
-  #   - setup
-  #   uses: ./.github/workflows/reusable-go-mod-download.yml
-  #   with:
-  #     directory: "./api"
-  #     repository-name: ${{ github.repository }}
-  #     # XL is probably overkill?
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-
-  # create a development build
-  # dev-build:
-  #   needs:
-  #   - setup
-  #   # - go-mod-download_root
-  #   uses: ./.github/workflows/reusable-dev-build.yml
-  #   with:
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     # cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-
-  # dev-build-s390x:
-  #   if: ${{ endsWith(github.repository, '-enterprise') }}
-  #   needs:
-  #   - setup
-  #   uses: ./.github/workflows/reusable-dev-build.yml
-  #   with:
-  #     uploaded-binary-name: 'consul-bin-s390x'
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     go-arch: "s390x"
-  #     repository-name: ${{ github.repository }}
-  #     # TODO: cachekey
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-
-  # dev-build-arm64:
-  #   # only run on enterprise because GHA does not have arm64 runners in OSS
-  #   if: ${{ endsWith(github.repository, '-enterprise') }}
-  #   needs:
-  #   - setup
-  #   uses: ./.github/workflows/reusable-dev-build.yml
-  #   with:
-  #     uploaded-binary-name: 'consul-bin-arm64'
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     go-arch: "arm64"
-  #     repository-name: ${{ github.repository }}
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-
-  # go-test-arm64:
-  #   # only run on enterprise because GHA does not have arm64 runners in OSS
-  #   if: ${{ endsWith(github.repository, '-enterprise') }}
-  #   needs:
-  #   - setup
-  #   - dev-build-arm64
-  #   uses: ./.github/workflows/reusable-unit-split.yml
-  #   with:
-  #     uploaded-binary-name: 'consul-bin-arm64'
-  #     runner-count: 12
-  #     runs-on: "['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']"
-  #     go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
-  #     repository-name: ${{ github.repository }}
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
-
-  go-test-oss:
+  check-go-mod:
     needs:
     - setup
-    # - go-mod-download_root
-    # - dev-build
-    uses: ./.github/workflows/reusable-unit-split.yml
+    uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
-      # TODO: if this is bigger than the number of packages, the script hangs :P
-      runner-count: 234
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-      # TODO: why set this? it's always the same?
+      runs-on: ${{ needs.setup.outputs.compute-small }}
       repository-name: ${{ github.repository }}
-      # cachekey_GOCACHE: "${{ needs.dev-build.outputs.cachekey_GOCACHE }}"
-      # cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
+  check-generated-protobuf:
+    needs:
+    - setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        go-version-file: 'go.mod'
+    - run: make proto-tools
+      name: Install protobuf
+    - run: make proto-format
+      name: "Protobuf Format"
+    - run: make --always-make proto
+    - run: |
+            if ! git diff --exit-code; then
+              echo "Generated code was not updated correctly"
+              exit 1
+            fi
+    - run: make proto-lint
+      name: "Protobuf Lint"
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
+
+  check-generated-deep-copy:
+    needs:
+    - setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        go-version-file: 'go.mod'
+    - run: make --always-make deep-copy
+    - run: |
+        if ! git diff --exit-code; then
+          echo "Generated code was not updated correctly"
+          exit 1
+        fi
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
+
+  lint-enums:
+    needs:
+    - setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        go-version-file: 'go.mod'
+    - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
+
+  lint-container-test-deps:
+    needs:
+    - setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        go-version-file: 'go.mod'
+    - run: make lint-container-test-deps
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
+
+  lint-consul-retry:
+    needs:
+    - setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      with:
+        go-version-file: 'go.mod'
+    - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
+
+  lint:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-lint.yml
+    with:
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
+  lint-32bit:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-lint.yml
+    with:
+      go-arch: "386"
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
+
+  go-test_oss_root_amd64_latest:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
+      artifact_namespace: "go-test_oss_root_amd64_latest"
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      go-tags: ""
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -278,209 +201,184 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-enterprise:
-  #   if: ${{ endsWith(github.repository, '-enterprise') }}
-  #   needs:
-  #   - setup
-  #   - go-mod-download_root
-  #   - dev-build
-  #   uses: ./.github/workflows/reusable-unit-split.yml
-  #   with:
-  #     runner-count: 12
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #     cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test_enterprise_root_amd64_latest:
+    # TOOD: does this actually run OSS tests as well? should we only run either oss or enterprise, but not both?
+    # why can't we just do the usual pattern with go-tags and rely on that?
+    if: ${{ endsWith(github.repository, '-enterprise') }}
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
+      artifact_namespace: "go-test_enterprise_root_amd64_latest"
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-race:
-  #   needs:
-  #   - setup
-  #   - dev-build
-  #   - go-mod-download_root
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     directory: .
-  #     go-test-flags: 'GO_TEST_FLAGS="-race -gcflags=all=-d=checkptr=0"'
-  #     package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul(/command|/connect|/snapshot)'"
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #     cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test-race_either_root_amd64_latest:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
+      artifact_namespace: "go-test-race_either_root_amd64_latest"
+      # TODO: not sure why we set these env var style
+      go-test-flags: '-race -gcflags=all=-d=checkptr=0'
+      package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul(/command|/connect|/snapshot)'"
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-32bit:
-  #   needs:
-  #   - setup
-  #   - dev-build
-  #   - go-mod-download_root
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     directory: .
-  #     go-arch: "386"
-  #     go-test-flags: 'export GO_TEST_FLAGS="-short"'
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #     cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test_either_root_386_latest:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      artifact_namespace: "go-test_either_root_386_latest"
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
+      go-arch: "386"
+      go-test-flags: '-short'
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-s390x:
-  #   if: ${{ endsWith(github.repository, '-enterprise') }}
-  #   needs:
-  #   - setup
-  #   - dev-build-s390x
-  #   - go-mod-download_root
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     uploaded-binary-name: 'consul-bin-s390x'
-  #     directory: .
-  #     go-test-flags: 'export GO_TEST_FLAGS="-short"'
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #     cachekey_GOMODCACHE: "${{ needs.go-mod-download_root.outputs.cachekey_GOMODCACHE }}"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test_either_envoyextensions_amd64_latest:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: envoyextensions
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
+      artifact_namespace: "go-test_either_envoyextensions_amd64_latest"
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-envoyextensions:
-  #   needs:
-  #   - setup
-  #   - dev-build
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     directory: envoyextensions
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test_either_troubleshoot_amd64_latest:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: troubleshoot
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
+      artifact_namespace: "go-test_either_troubleshoot_amd64_latest"
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-troubleshoot:
-  #   needs:
-  #   - setup
-  #   - dev-build
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     directory: troubleshoot
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test_either_api_amd64_latestsub1:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: api
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      artifact_namespace: go-test_either_api_amd64_latestsub1
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATESTSUB1 }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-api-1-19:
-  #   needs:
-  #   - setup
-  #   - dev-build
-  #   - go-mod-download_api
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     directory: api
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #     go-version: "1.19"
-  #     cachekey_GOMODCACHE: "${{ needs.go-mod-download_api.outputs.cachekey_GOMODCACHE }}"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test_either_api_amd64_latest:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: api
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      artifact_namespace: go-test_either_api_amd64_latest
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-api-1-20:
-  #   needs:
-  #   - setup
-  #   - dev-build
-  #   - go-mod-download_api
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     directory: api
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #     go-version: "1.20"
-  #     cachekey_GOMODCACHE: "${{ needs.go-mod-download_api.outputs.cachekey_GOMODCACHE }}"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test_either_sdk_amd64_latestsub1:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: sdk
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      artifact_namespace: "go-test_either_sdk_amd64_latestsub1"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATESTSUB1 }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  # go-test-sdk-1-19:
-  #   needs:
-  #   - setup
-  #   - dev-build
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     directory: sdk
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #     go-version: "1.19"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
-
-  # go-test-sdk-1-20:
-  #   needs:
-  #   - setup
-  #   - dev-build
-  #   uses: ./.github/workflows/reusable-unit.yml
-  #   with:
-  #     directory: sdk
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
-  #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-  #     go-version: "1.20"
-  #   permissions:
-  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
-  #     contents: read
-  #   secrets:
-  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-  #     consul-license: ${{secrets.CONSUL_LICENSE}}
-  #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+  go-test_either_sdk_amd64_latest:
+    needs:
+    - setup
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: sdk
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      artifact_namespace: "go-test_either_sdk_amd64_latest"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
   noop:
     runs-on: ubuntu-latest
@@ -504,27 +402,25 @@ jobs:
   go-tests-success:
     needs:
     - setup
-    # TODO: TEMP: disable for lazy
-    # - check-generated-deep-copy
-    # - check-generated-protobuf
-    # - check-go-mod
-    # - lint-consul-retry
-    # - lint-container-test-deps
-    # - lint-enums
-    # - lint
-    # - lint-32bit
+    - check-generated-deep-copy
+    - check-generated-protobuf
+    - check-go-mod
+    - lint-consul-retry
+    - lint-container-test-deps
+    - lint-enums
+    - lint
+    - lint-32bit
     # - go-test-arm64
-    # - go-test-enterprise
-    - go-test-oss
-    # TODO: TEMP: disabled for lazy
-    # - go-test-race
-    # - go-test-envoyextensions
-    # - go-test-troubleshoot
-    # - go-test-api-1-19
-    # - go-test-api-1-20
-    # - go-test-sdk-1-19
-    # - go-test-sdk-1-20
-    # - go-test-32bit
+    - go-test_enterprise_root_amd64_latest
+    - go-test_oss_root_amd64_latest
+    - go-test-race_either_root_amd64_latest
+    - go-test_either_envoyextensions_amd64_latest
+    - go-test_either_troubleshoot_amd64_latest
+    - go-test_either_api_amd64_latestsub1
+    - go-test_either_api_amd64_latest
+    - go-test_either_sdk_amd64_latestsub1
+    - go-test_either_sdk_amd64_latest
+    - go-test_either_root_386_latest
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}

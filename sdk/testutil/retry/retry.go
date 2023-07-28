@@ -250,8 +250,14 @@ func run(r Retryer, t Failer, f func(r *R)) {
 
 // DefaultFailer provides default retry.Run() behavior for unit tests, namely
 // 7s timeout with a wait of 25ms
+//
+// TODO: this is a Retryer, not a Failer?
 func DefaultFailer() *Timer {
 	return &Timer{Timeout: 7 * time.Second, Wait: 25 * time.Millisecond}
+}
+
+func Minute() *Timer {
+	return &Timer{Timeout: time.Minute, Wait: 25 * time.Millisecond}
 }
 
 // Retryer provides an interface for repeating operations

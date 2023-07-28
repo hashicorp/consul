@@ -366,7 +366,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	}
 	t.Parallel()
 
-	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 2) // s3 grpc, s3 grpc_tls
+	ports := freeport.RetryMustGetN(t, retry.Minute(), 2) // s3 grpc, s3 grpc_tls
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"

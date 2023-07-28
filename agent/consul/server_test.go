@@ -119,7 +119,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.RetryMustGetN(t, retry.DefaultFailer(), 4) // {server, serf_lan, serf_wan, grpc}
+	ports := freeport.RetryMustGetN(t, retry.Minute(), 4) // {server, serf_lan, serf_wan, grpc}
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
