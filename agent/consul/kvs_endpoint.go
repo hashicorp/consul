@@ -201,7 +201,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, ent, err := state.KVSList(ws, args.Key, &args.EnterpriseMeta)
+			index, ent, err := state.KVSList(ws, args.Key, &args.EnterpriseMeta, args.ModifyIndexAbove)
 			if err != nil {
 				return err
 			}
@@ -256,7 +256,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, entries, err := state.KVSList(ws, args.Prefix, &args.EnterpriseMeta)
+			index, entries, err := state.KVSList(ws, args.Prefix, &args.EnterpriseMeta, args.ModifyIndexAbove)
 			if err != nil {
 				return err
 			}

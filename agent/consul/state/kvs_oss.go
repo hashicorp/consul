@@ -60,7 +60,7 @@ func insertKVTxn(tx WriteTxn, entry *structs.DirEntry, updateMax bool, _ bool) e
 	return nil
 }
 
-func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta, modifyIndexAbove uint64) (uint64, structs.DirEntries, error) {
 	var ents structs.DirEntries
 	var lindex uint64
 
@@ -70,10 +70,13 @@ func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta acl
 	}
 	ws.Add(entries.WatchCh())
 
-	// Gather all of the keys found
+	// Gather all of the keys found if 'modifyIndexAbove' param is zero or Not provided in api call,
+	// else get only keys having ModifyIndex greater than param 'modifyIndexAbove'
 	for entry := entries.Next(); entry != nil; entry = entries.Next() {
 		e := entry.(*structs.DirEntry)
-		ents = append(ents, e)
+		if (modifyIndexAbove == 0) || (modifyIndexAbove > 0 && e.ModifyIndex > modifyIndexAbove) {
+			ents = append(ents, e)
+		}
 		if e.ModifyIndex > lindex {
 			lindex = e.ModifyIndex
 		}

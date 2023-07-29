@@ -211,7 +211,7 @@ func kvsGetTxn(tx ReadTxn,
 // is the max index of the returned kvs entries or applicable tombstones, or
 // else it's the full table indexes for kvs and tombstones.
 func (s *Store) KVSList(ws memdb.WatchSet,
-	prefix string, entMeta *acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+	prefix string, entMeta *acl.EnterpriseMeta, modifyIndexAbove uint64) (uint64, structs.DirEntries, error) {
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -221,18 +221,18 @@ func (s *Store) KVSList(ws memdb.WatchSet,
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
-	return s.kvsListTxn(tx, ws, prefix, *entMeta)
+	return s.kvsListTxn(tx, ws, prefix, *entMeta, modifyIndexAbove)
 }
 
 // kvsListTxn is the inner method that gets a list of KVS entries matching a
 // prefix.
 func (s *Store) kvsListTxn(tx ReadTxn,
-	ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+	ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta, modifyIndexAbove uint64) (uint64, structs.DirEntries, error) {
 
 	// Get the table indexes.
 	idx := kvsMaxIndex(tx, entMeta)
 
-	lindex, entries, err := kvsListEntriesTxn(tx, ws, prefix, entMeta)
+	lindex, entries, err := kvsListEntriesTxn(tx, ws, prefix, entMeta, modifyIndexAbove)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -240,13 +240,14 @@ func (s *Store) kvsListTxn(tx ReadTxn,
 	// Check for the highest index in the graveyard. If the prefix is empty
 	// then just use the full table indexes since we are listing everything.
 	if prefix != "" {
-		gindex, err := s.kvsGraveyard.GetMaxIndexTxn(tx, prefix, &entMeta)
+		gindex, tombentries, err := s.kvsGraveyard.GetMaxIndexTxn(tx, prefix, &entMeta, modifyIndexAbove)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed graveyard lookup: %s", err)
 		}
 		if gindex > lindex {
 			lindex = gindex
 		}
+		entries = append(entries, tombentries...)
 	} else {
 		lindex = idx
 	}

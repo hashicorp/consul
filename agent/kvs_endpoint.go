@@ -59,6 +59,15 @@ func (s *HTTPHandlers) KVSGet(resp http.ResponseWriter, req *http.Request, args 
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
 
+	// Check for ModifyIndexAbove in url query params
+	if index, ok := params["ModifyIndexAbove"]; ok {
+		uintVal, err := strconv.ParseUint(index[0], 10, 64)
+		if err != nil {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "ModifyIndexAbove should be of type unsigned int"}
+		}
+		args.ModifyIndexAbove = uintVal
+	}
+
 	// Do not allow wildcard NS on GET reqs
 	if method == "KVS.Get" {
 		if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {

@@ -968,7 +968,7 @@ func TestFSM_TombstoneReap(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, _, err := fsm.state.KVSList(nil, "/remove", nil)
+	idx, _, err := fsm.state.KVSList(nil, "/remove", nil, 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

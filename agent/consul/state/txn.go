@@ -72,7 +72,7 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 
 	case api.KVGetTree:
 		var entries structs.DirEntries
-		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
+		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta, 0)
 		if err == nil {
 			results := make(structs.TxnResults, 0, len(entries))
 			for _, e := range entries {

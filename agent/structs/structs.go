@@ -2684,6 +2684,7 @@ type KeyRequest struct {
 	Key        string
 	acl.EnterpriseMeta
 	QueryOptions
+	ModifyIndexAbove uint64
 }
 
 func (r *KeyRequest) RequestDatacenter() string {
@@ -2697,6 +2698,7 @@ type KeyListRequest struct {
 	Seperator  string
 	QueryOptions
 	acl.EnterpriseMeta
+	ModifyIndexAbove uint64
 }
 
 func (r *KeyListRequest) RequestDatacenter() string {
