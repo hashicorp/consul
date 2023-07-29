@@ -578,7 +578,10 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		sum.Kind = svc.Kind
 		sum.Datacenter = csn.Node.Datacenter
 		sum.InstanceCount += 1
-		sum.ConnectNative = svc.Connect.Native
+		// Consider a service connect native once at least one instance is
+		if svc.Connect.Native {
+			sum.ConnectNative = svc.Connect.Native
+		}
 		if svc.Kind == structs.ServiceKindConnectProxy {
 			sn := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
 			psn := structs.PeeredServiceName{Peer: peerName, ServiceName: sn}
