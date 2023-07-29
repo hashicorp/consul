@@ -563,7 +563,18 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		sum := getService(psn)
 
 		svc := csn.Service
-		sum.Nodes = append(sum.Nodes, csn.Node.Node)
+
+		found := false
+		for _, existing := range sum.Nodes {
+			if existing == csn.Node.Node {
+				found = true
+				break
+			}
+		}
+		if !found {
+			sum.Nodes = append(sum.Nodes, csn.Node.Node)
+		}
+
 		sum.Kind = svc.Kind
 		sum.Datacenter = csn.Node.Datacenter
 		sum.InstanceCount += 1

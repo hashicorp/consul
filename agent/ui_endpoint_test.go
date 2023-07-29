@@ -2165,7 +2165,7 @@ func TestUIServiceTopology(t *testing.T) {
 							Name:           "cproxy",
 							Datacenter:     "dc1",
 							Tags:           []string{"http", "https"},
-							Nodes:          []string{"cnative", "cnative"},
+							Nodes:          []string{"cnative"},
 							InstanceCount:  2,
 							ChecksPassing:  3,
 							ChecksWarning:  0,
