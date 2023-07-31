@@ -1,3 +1,5 @@
+# Run all units tests, as well as some misc code checks and lints
+
 name: go-tests
 
 on:
@@ -20,7 +22,6 @@ permissions:
   contents: read
 
 env:
-  TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
@@ -32,8 +33,13 @@ jobs:
       compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
-      # TODO: not sure there's a better way to do global variables
+      # TODO: these could be in a top-level env block, but env can't be
+      # referenced in `with` args. They probably could be Actions Variables
+      # https://github.com/hashicorp/consul/settings/variables/actions
+      # but we don't appear to use those
       GOVERSION_LATEST: "${{ steps.GOVERSION.outputs.LATEST }}"
+      # n-1 release
+      # TODO: better name?
       GOVERSION_LATESTSUB1: "${{ steps.GOVERSION.outputs.LATESTSUB1 }}"
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -43,6 +49,7 @@ jobs:
     - id: GOVERSION
       run: |
         echo "LATEST=1.20.6" >> "$GITHUB_OUTPUT"
+        # release before latest (TODO: better name?)
         echo "LATESTSUB1=1.19.11" >> "$GITHUB_OUTPUT"
 
   check-go-mod:
@@ -181,6 +188,16 @@ jobs:
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
+## Unit tests
+#
+# These tests all use `reusable-unit.yml` (TODO: we could just put them all in there and matrix them?).
+# They follow the naming convention go-test[-race]_(oss|ent|any)_<module>_<arch>_<go-version>, where:
+#   (oss|ent|any): OSS or Enterprise; or `any` for whatever the current repo is
+#   <module>: Go module, generally the subdir
+#   <arch>: GOARCH
+#   <go-version>: one of needs.setup.outputs.GOVERSION_{LATEST,LATESTSUB1}
+#
+# 
 
   go-test_oss_root_amd64_latest:
     needs:
@@ -201,7 +218,7 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test_enterprise_root_amd64_latest:
+  go-test_ent_root_amd64_latest:
     # TOOD: does this actually run OSS tests as well? should we only run either oss or enterprise, but not both?
     # why can't we just do the usual pattern with go-tags and rely on that?
     if: ${{ endsWith(github.repository, '-enterprise') }}
@@ -223,19 +240,20 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-race_either_root_amd64_latest:
+  go-test-race_any_root_amd64_latest:
     needs:
     - setup
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
       go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
-      artifact_namespace: "go-test-race_either_root_amd64_latest"
-      # TODO: not sure why we set these env var style
+      artifact_namespace: "go-test-race_any_root_amd64_latest"
       go-test-flags: '-race -gcflags=all=-d=checkptr=0'
       package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul(/command|/connect|/snapshot)'"
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      # TODO: this is the case 90% of the time; we should make it the default, or, we
+      # should change the abstraction to be an OSS/ENT bool
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -245,13 +263,13 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test_either_root_386_latest:
+  go-test_any_root_386_latest:
     needs:
     - setup
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
-      artifact_namespace: "go-test_either_root_386_latest"
+      artifact_namespace: "go-test_any_root_386_latest"
       go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
       go-arch: "386"
       go-test-flags: '-short'
@@ -266,14 +284,14 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test_either_envoyextensions_amd64_latest:
+  go-test_any_envoyextensions_amd64_latest:
     needs:
     - setup
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: envoyextensions
       go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
-      artifact_namespace: "go-test_either_envoyextensions_amd64_latest"
+      artifact_namespace: "go-test_any_envoyextensions_amd64_latest"
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
@@ -285,14 +303,14 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test_either_troubleshoot_amd64_latest:
+  go-test_any_troubleshoot_amd64_latest:
     needs:
     - setup
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: troubleshoot
       go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
-      artifact_namespace: "go-test_either_troubleshoot_amd64_latest"
+      artifact_namespace: "go-test_any_troubleshoot_amd64_latest"
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
@@ -304,14 +322,14 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test_either_api_amd64_latestsub1:
+  go-test_any_api_amd64_latestsub1:
     needs:
     - setup
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-xl }}
-      artifact_namespace: go-test_either_api_amd64_latestsub1
+      artifact_namespace: go-test_any_api_amd64_latestsub1
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "${{ needs.setup.outputs.GOVERSION_LATESTSUB1 }}"
@@ -323,7 +341,7 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test_either_api_amd64_latest:
+  go-test_any_api_amd64_latest:
     needs:
     - setup
     uses: ./.github/workflows/reusable-unit.yml
@@ -331,7 +349,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
-      artifact_namespace: go-test_either_api_amd64_latest
+      artifact_namespace: go-test_any_api_amd64_latest
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
     permissions:
@@ -342,7 +360,7 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test_either_sdk_amd64_latestsub1:
+  go-test_any_sdk_amd64_latestsub1:
     needs:
     - setup
     uses: ./.github/workflows/reusable-unit.yml
@@ -350,7 +368,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
-      artifact_namespace: "go-test_either_sdk_amd64_latestsub1"
+      artifact_namespace: "go-test_any_sdk_amd64_latestsub1"
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "${{ needs.setup.outputs.GOVERSION_LATESTSUB1 }}"
     permissions:
@@ -361,7 +379,7 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test_either_sdk_amd64_latest:
+  go-test_any_sdk_amd64_latest:
     needs:
     - setup
     uses: ./.github/workflows/reusable-unit.yml
@@ -369,7 +387,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
-      artifact_namespace: "go-test_either_sdk_amd64_latest"
+      artifact_namespace: "go-test_any_sdk_amd64_latest"
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "${{ needs.setup.outputs.GOVERSION_LATEST }}"
     permissions:
@@ -381,25 +399,25 @@ jobs:
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
   noop:
+    # TODO: not sure why this job exists
     runs-on: ubuntu-latest
     steps:
       - run: "echo ok"
 
-  # This is job is required for branch protection as a required gihub check
-  # because GitHub actions show up as checks at the job level and not the
-  # workflow level.  This is currently a feature request:
-  # https://github.com/orgs/community/discussions/12395
-  #
-  # This job must:
-  # - be placed after the fanout of a workflow so that everything fans back in
-  #   to this job.
-  # - "need" any job that is part of the fan out / fan in
-  # - implement the if logic because we have conditional jobs
-  #   (go-test-enteprise) that this job needs and this would potentially get
-  #   skipped if a previous job got skipped.  So we use the if clause to make
-  # sure it does not get skipped.
-
   go-tests-success:
+    # This is job is required for branch protection as a required gihub check
+    # because GitHub actions show up as checks at the job level and not the
+    # workflow level.  This is currently a feature request:
+    # https://github.com/orgs/community/discussions/12395
+    #
+    # This job must:
+    # - be placed after the fanout of a workflow so that everything fans back in
+    #   to this job.
+    # - "need" any job that is part of the fan out / fan in
+    # - implement the if logic because we have conditional jobs
+    #   (go-test-enteprise) that this job needs and this would potentially get
+    #   skipped if a previous job got skipped.  So we use the if clause to make
+    # sure it does not get skipped.
     needs:
     - setup
     - check-generated-deep-copy
@@ -411,16 +429,16 @@ jobs:
     - lint
     - lint-32bit
     # - go-test-arm64
-    - go-test_enterprise_root_amd64_latest
+    - go-test_ent_root_amd64_latest
     - go-test_oss_root_amd64_latest
-    - go-test-race_either_root_amd64_latest
-    - go-test_either_envoyextensions_amd64_latest
-    - go-test_either_troubleshoot_amd64_latest
-    - go-test_either_api_amd64_latestsub1
-    - go-test_either_api_amd64_latest
-    - go-test_either_sdk_amd64_latestsub1
-    - go-test_either_sdk_amd64_latest
-    - go-test_either_root_386_latest
+    - go-test-race_any_root_amd64_latest
+    - go-test_any_envoyextensions_amd64_latest
+    - go-test_any_troubleshoot_amd64_latest
+    - go-test_any_api_amd64_latestsub1
+    - go-test_any_api_amd64_latest
+    - go-test_any_sdk_amd64_latestsub1
+    - go-test_any_sdk_amd64_latest
+    - go-test_any_root_386_latest
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
