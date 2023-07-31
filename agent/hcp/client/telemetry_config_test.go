@@ -161,7 +161,7 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 				MetricsConfig: &MetricsConfig{
 					Endpoint: validTestURL,
 					Labels:   map[string]string{"test": "test"},
-					Filters:  nil,
+					Filters:  defaultMetricFilters,
 				},
 				RefreshConfig: &RefreshConfig{
 					RefreshInterval: 2 * time.Second,
@@ -276,12 +276,16 @@ func TestConvertMetricFilters(t *testing.T) {
 		wantMatch           bool
 	}{
 		"badFilterRegex": {
-			filters: []string{"(*LF)"},
-			wantErr: "no valid filters",
+			filters:             []string{"(*LF)"},
+			expectedRegexString: defaultMetricFilters.String(),
+			matches:             []string{"consul.raft.peers", "consul.mem.heap_size"},
+			wantMatch:           true,
 		},
-		"failsWithNoRegex": {
-			filters: []string{},
-			wantErr: "no valid filters",
+		"emptyRegex": {
+			filters:             []string{},
+			expectedRegexString: defaultMetricFilters.String(),
+			matches:             []string{"consul.raft.peers", "consul.mem.heap_size"},
+			wantMatch:           true,
 		},
 		"matchFound": {
 			filters:             []string{"raft.*", "mem.*"},
@@ -299,15 +303,8 @@ func TestConvertMetricFilters(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			f, err := convertMetricFilters(tc.filters)
-			if tc.wantErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.wantErr)
-				require.Nil(t, f)
-				return
-			}
+			f := convertMetricFilters(context.Background(), tc.filters)
 
-			require.NoError(t, err)
 			require.Equal(t, tc.expectedRegexString, f.String())
 			for _, metric := range tc.matches {
 				m := f.MatchString(metric)
