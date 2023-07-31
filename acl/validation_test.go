@@ -72,7 +72,7 @@ func Test_IsValidPolicyName(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			require.Equal(t, tc.valid, IsValidPolicyName(tc.name))
+			require.Equal(t, tc.valid, IsValidPolicyName(tc.name) == nil)
 		})
 	}
 }

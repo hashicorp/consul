@@ -4,6 +4,7 @@
 package acl
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -44,18 +45,21 @@ func IsValidNodeIdentityName(name string) bool {
 	return validNodeIdentityName.MatchString(name)
 }
 
-// IsValidPolicyName returns true if the provided name can be used as an
-// ACLPolicy Name.
-func IsValidPolicyName(name string) bool {
+// IsValidPolicyName returns nil if the provided name can be used as an
+// ACLPolicy Name otherwise a useful error is returned.
+func IsValidPolicyName(name string) error {
 	if len(name) < 1 || len(name) > PolicyNameMaxLength {
-		return false
+		return fmt.Errorf("Invalid Policy: invalid Name. Length must be greater than 0 and less than %d", PolicyNameMaxLength)
 	}
 
 	if strings.HasPrefix(name, "/") || strings.HasPrefix(name, ReservedBuiltinPrefix) {
-		return false
+		return fmt.Errorf("Invalid Policy: invalid Name. Names cannot be prefixed with '/' or 'builtin/'")
 	}
 
-	return validPolicyName.MatchString(name)
+	if !validPolicyName.MatchString(name) {
+		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, a single '/', '-' and '_' are allowed")
+	}
+	return nil
 }
 
 // IsValidRoleName returns true if the provided name can be used as an

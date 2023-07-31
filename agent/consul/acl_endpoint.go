@@ -869,8 +869,8 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return fmt.Errorf("Invalid Policy: no Name is set")
 	}
 
-	if !acl.IsValidPolicyName(policy.Name) {
-		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, a single '/', '-' and '_' are allowed")
+	if err := acl.IsValidPolicyName(policy.Name); err != nil {
+		return err
 	}
 
 	var idMatch *structs.ACLPolicy
