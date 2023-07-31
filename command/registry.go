@@ -123,6 +123,7 @@ import (
 	tlscert "github.com/hashicorp/consul/command/tls/cert"
 	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
 	"github.com/hashicorp/consul/command/troubleshoot"
+	troubleshootports "github.com/hashicorp/consul/command/troubleshoot/ports"
 	troubleshootproxy "github.com/hashicorp/consul/command/troubleshoot/proxy"
 	troubleshootupstreams "github.com/hashicorp/consul/command/troubleshoot/upstreams"
 	"github.com/hashicorp/consul/command/validate"
@@ -255,6 +256,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"troubleshoot", func(ui cli.Ui) (cli.Command, error) { return troubleshoot.New(), nil }},
 		entry{"troubleshoot proxy", func(ui cli.Ui) (cli.Command, error) { return troubleshootproxy.New(ui), nil }},
 		entry{"troubleshoot upstreams", func(ui cli.Ui) (cli.Command, error) { return troubleshootupstreams.New(ui), nil }},
+		entry{"troubleshoot ports", func(ui cli.Ui) (cli.Command, error) { return troubleshootports.New(ui), nil }},
 		entry{"validate", func(ui cli.Ui) (cli.Command, error) { return validate.New(ui), nil }},
 		entry{"version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui), nil }},
 		entry{"watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil }},
