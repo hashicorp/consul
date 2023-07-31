@@ -1,3 +1,0 @@
-```release-note:improvement
-Windows: Integration tests for Consul Windows VMs
-```

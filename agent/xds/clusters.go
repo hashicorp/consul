@@ -808,6 +808,27 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
+			if serviceGroup.UseCDS {
+				configureClusterWithHostnames(
+					s.Logger,
+					cluster,
+					"", /*TODO:make configurable?*/
+					serviceGroup.Nodes,
+					true,  /*isRemote*/
+					false, /*onlyPassing*/
+				)
+			} else {
+				cluster.ClusterDiscoveryType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS}
+				cluster.EdsClusterConfig = &envoy_cluster_v3.Cluster_EdsClusterConfig{
+					EdsConfig: &envoy_core_v3.ConfigSource{
+						ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+						ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+							Ads: &envoy_core_v3.AggregatedConfigSource{},
+						},
+					},
+				}
+			}
+
 			clusters = append(clusters, cluster)
 		}
 	}
@@ -1040,6 +1061,11 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 		override = svc.PassiveHealthCheck
 	}
 	outlierDetection := ToOutlierDetection(cfgSnap.IngressGateway.Defaults.PassiveHealthCheck, override, false)
+
+	// Specail handling for failover peering service, which has set MaxEjectionPercent
+	if c.OutlierDetection != nil && c.OutlierDetection.MaxEjectionPercent != nil {
+		outlierDetection.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: c.OutlierDetection.MaxEjectionPercent.Value}
+	}
 
 	c.OutlierDetection = outlierDetection
 }
@@ -1419,7 +1445,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		// These variables are prefixed with primary to avoid shaddowing bugs.
 		primaryTargetID := node.Resolver.Target
 		primaryTarget := chain.Targets[primaryTargetID]
-		primaryTargetClusterName := s.getTargetClusterName(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway)
+		primaryTargetClusterName := s.getTargetClusterName(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway, false)
 		if primaryTargetClusterName == "" {
 			continue
 		}
@@ -1649,6 +1675,11 @@ func makeClusterFromUserConfig(configJSON string) (*envoy_cluster_v3.Cluster, er
 		return nil, err
 	}
 	return &c, err
+}
+
+type addressPair struct {
+	host string
+	port int
 }
 
 type clusterOpts struct {
@@ -2023,7 +2054,12 @@ func generatePeeredClusterName(uid proxycfg.UpstreamID, tb *pbpeering.PeeringTru
 	}, ".")
 }
 
-func (s *ResourceGenerator) getTargetClusterName(upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams, chain *structs.CompiledDiscoveryChain, tid string, forMeshGateway bool) string {
+type targetClusterData struct {
+	targetID    string
+	clusterName string
+}
+
+func (s *ResourceGenerator) getTargetClusterName(upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams, chain *structs.CompiledDiscoveryChain, tid string, forMeshGateway bool, failover bool) string {
 	target := chain.Targets[tid]
 	clusterName := target.Name
 	targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
@@ -2042,6 +2078,9 @@ func (s *ResourceGenerator) getTargetClusterName(upstreamsSnapshot *proxycfg.Con
 		clusterName = generatePeeredClusterName(targetUID, tbs)
 	}
 	clusterName = CustomizeClusterName(clusterName, chain)
+	if failover {
+		clusterName = xdscommon.FailoverClusterNamePrefix + clusterName
+	}
 	if forMeshGateway {
 		clusterName = meshGatewayExportedClusterNamePrefix + clusterName
 	}

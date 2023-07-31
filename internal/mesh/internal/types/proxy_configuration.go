@@ -16,7 +16,7 @@ const (
 var (
 	ProxyConfigurationV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: CurrentVersion,
 		Kind:         ProxyConfigurationKind,
 	}
 

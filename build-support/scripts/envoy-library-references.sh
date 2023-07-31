@@ -23,7 +23,7 @@ unset CDPATH
 cd "$(dirname "$0")" # build-support/scripts
 cd ../..             # <ROOT>
 
-if [[ ! -f Makefile ]] || [[ ! -f go.mod ]]; then
+if [[ ! -f GNUmakefile ]] || [[ ! -f go.mod ]]; then
     echo "not in root consul checkout: ${PWD}" >&2
     exit 1
 fi

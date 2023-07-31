@@ -361,15 +361,6 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretKey` ((#v-global-tls-cakey-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the CA key.
 
-    - `annotations` ((#v-global-tls-annotations)) (`string: null`) - This value defines additional annotations for
-      tls init jobs. This should be formatted as a multi-line string.
-
-      ```yaml
-      annotations: |
-        "sample/annotation1": "foo"
-        "sample/annotation2": "bar"
-      ```
-
   - `enableConsulNamespaces` ((#v-global-enableconsulnamespaces)) (`boolean: false`) - <EnterpriseAlert inline /> `enableConsulNamespaces` indicates that you are running
     Consul Enterprise v1.7+ with a valid Consul Enterprise license and would
     like to make use of configuration beyond registering everything into
@@ -454,15 +445,6 @@ Use these links to navigate to a particular top-level stanza.
       ```yaml
       nodeSelector: |
         beta.kubernetes.io/arch: amd64
-      ```
-
-    - `annotations` ((#v-global-acls-annotations)) (`string: null`) - This value defines additional annotations for
-      acl init jobs. This should be formatted as a multi-line string.
-
-      ```yaml
-      annotations: |
-        "sample/annotation1": "foo"
-        "sample/annotation2": "bar"
       ```
 
   - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes or Vault secret that you have created
@@ -723,11 +705,11 @@ Use these links to navigate to a particular top-level stanza.
     contains best practices and recommendations for selecting suitable
     hardware sizes for your Consul servers.
 
-  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [service mesh](/consul/docs/connect). Setting this to true
+  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [Connect](/consul/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize
-    a new CA and set of certificates. Additional service mesh settings can be configured
-    by setting the `server.extraConfig` value or by applying [configuration entries](/consul/docs/connect/config-entries).
+    a new CA and set of certificates. Additional Connect settings can be configured
+    by setting the `server.extraConfig` value.
 
   - `serviceAccount` ((#v-server-serviceaccount))
 
@@ -770,10 +752,6 @@ Use these links to navigate to a particular top-level stanza.
     root file systems in the container is read-only.
 
     - `server` ((#v-server-containersecuritycontext-server)) (`map`) - The consul server agent container
-
-    - `aclInit` ((#v-server-containersecuritycontext-aclinit)) (`map`) - The acl-init job
-
-    - `tlsInit` ((#v-server-containersecuritycontext-tlsinit)) (`map`) - The tls-init job
 
   - `updatePartition` ((#v-server-updatepartition)) (`integer: 0`) - This value is used to carefully
     control a rolling update of Consul server agents. This value specifies the
@@ -1004,56 +982,6 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing 
-    and configure a sink and filters for their audit logs. Please refer to
-    [audit logs](/consul/docs/enterprise/audit-logging) documentation
-    for further information.
-
-    - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
-      global.acls.manageSystemACLs must be enabled to use this feature.
-
-    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul 
-      will log auditing events.
-
-      Example:
-
-      ```yaml
-      sinks:
-        - name: My Sink
-          type: file
-          format: json
-          path: /tmp/audit.json
-          delivery_guarantee: best-effort
-          rotate_duration: 24h
-          rotate_max_files: 15
-          rotate_bytes: 25165824
-          
-      ```
-
-      The sink object supports the following keys:
-
-      - `name` - Name of the sink.
-
-      - `type` - Type specifies what kind of sink this is. Currently only file sinks are available
-
-      - `format` - Format specifies what format the events will be emitted with. Currently only `json`
-        events are emitted.
-
-      - `path` - The directory and filename to write audit events to.
-
-      - `delivery_guarantee` - Specifies the rules governing how audit events are written. Consul
-        only supports `best-effort` event delivery.
-
-      - `mode` - The permissions to set on the audit log files.
-
-      - `rotate_duration` - Specifies the interval by which the system rotates to a new log file.
-         At least one of `rotate_duration` or `rotate_bytes` must be configured to enable audit logging.
-
-      - `rotate_bytes` -  Specifies how large an individual log file can grow before Consul rotates to a new file.
-         At least one of rotate_bytes or rotate_duration must be configured to enable audit logging.
-
-      - `rotate_max_files` - Defines the limit that Consul should follow before it deletes old log files.
-
   - `limits` ((#v-server-limits)) - Settings for potentially limiting timeouts, rate limiting on clients as well
     as servers, and other settings to limit exposure too many requests, requests
     waiting for too long, and other runtime considerations.
@@ -1084,6 +1012,56 @@ Use these links to navigate to a particular top-level stanza.
 
         See https://en.wikipedia.org/wiki/Token_bucket for more about token
         buckets.
+
+  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing 
+    and configure a sink and filters for their audit logs. Please refer to
+    [audit logs](/consul/docs/enterprise/audit-logging) documentation
+    for further information.
+
+    - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
+      global.acls.manageSystemACLs must be enabled to use this feature.
+
+    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul
+      will log auditing events.
+
+      Example:
+
+      ```yaml
+      sinks:
+        - name: My Sink
+          type: file
+          format: json
+          path: /tmp/audit.json
+          delivery_guarantee: best-effort
+          rotate_duration: 24h
+          rotate_max_files: 15
+          rotate_bytes: 25165824
+
+      ```
+
+      The sink object supports the following keys:
+
+      - `name` - Name of the sink.
+
+      - `type` - Type specifies what kind of sink this is. Currently only file sinks are available
+
+      - `format` - Format specifies what format the events will be emitted with. Currently only `json`
+        events are emitted.
+
+      - `path` - The directory and filename to write audit events to.
+
+      - `delivery_guarantee` - Specifies the rules governing how audit events are written. Consul
+        only supports `best-effort` event delivery.
+
+      - `mode` - The permissions to set on the audit log files.
+
+      - `rotate_duration` - Specifies the interval by which the system rotates to a new log file.
+         At least one of `rotate_duration` or `rotate_bytes` must be configured to enable audit logging.
+
+      - `rotate_bytes` -  Specifies how large an individual log file can grow before Consul rotates to a new file.
+         At least one of rotate_bytes or rotate_duration must be configured to enable audit logging.
+
+      - `rotate_max_files` - Defines the limit that Consul should follow before it deletes old log files.
 
 ### externalServers ((#h-externalservers))
 
@@ -1367,7 +1345,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-dns-enabled)) (`boolean: -`)
 
-  - `enableRedirection` ((#v-dns-enableredirection)) (`boolean: -`) - If true, services using Consul service mesh will use Consul DNS
+  - `enableRedirection` ((#v-dns-enableredirection)) (`boolean: -`) - If true, services using Consul Connect will use Consul DNS
     for default DNS resolution. The DNS lookups fall back to the nameserver IPs
     listed in /etc/resolv.conf if not found in Consul.
 
@@ -1861,7 +1839,7 @@ Use these links to navigate to a particular top-level stanza.
         persistent: true
       ```
 
-  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul service mesh services. All values are overridable
+  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
     via annotations on a per-pod basis.
 
     - `defaultEnabled` ((#v-connectinject-metrics-defaultenabled)) (`string: -`) - If true, the connect-injector will automatically
@@ -1984,7 +1962,7 @@ Use these links to navigate to a particular top-level stanza.
     annotated. Use `["*"]` to automatically allow all k8s namespaces.
 
     For example, `["namespace1", "namespace2"]` will only allow pods in the k8s
-    namespaces `namespace1` and `namespace2` to have Consul service mesh sidecars injected
+    namespaces `namespace1` and `namespace2` to have Connect sidecars injected
     and registered with Consul. All other k8s namespaces will be ignored.
 
     To deny all namespaces, set this to `[]`.
@@ -2111,15 +2089,15 @@ Use these links to navigate to a particular top-level stanza.
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port`
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path`
 
-        - `defaultEnabled` ((#v-connectinject-sidecarproxy-lifecycle-defaultenabled)) (`boolean: true`)
+      - `defaultEnabled` ((#v-connectinject-sidecarproxy-lifecycle-defaultenabled)) (`boolean: true`)
 
-        - `defaultEnableShutdownDrainListeners` ((#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)) (`boolean: true`)
+      - `defaultEnableShutdownDrainListeners` ((#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)) (`boolean: true`)
 
-        - `defaultShutdownGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)) (`integer: 30`)
+      - `defaultShutdownGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)) (`integer: 30`)
 
-        - `defaultGracefulPort` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)) (`integer: 20600`)
+      - `defaultGracefulPort` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)) (`integer: 20600`)
 
-        - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
+      - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
     won't be set for the initContainer. The defaults are optimized for developer instances of
@@ -2144,7 +2122,7 @@ Use these links to navigate to a particular top-level stanza.
 - `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway) enable Consul Connect to work across Consul datacenters.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
-    gateways and Consul service mesh will be configured to use gateways.
+    gateways and Consul Connect will be configured to use gateways.
     This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
