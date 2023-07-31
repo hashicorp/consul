@@ -106,9 +106,10 @@ func (h *hcpProviderImpl) getUpdate(ctx context.Context) *dynamicConfig {
 		return nil
 	}
 
-	// RefreshInterval of 0 or less will cause time.Reset() panic.
-	if telemetryCfg.RefreshConfig.RefreshInterval <= 0 {
-		logger.Error("invalid refresh interval")
+	// newRefreshInterval of 0 or less can cause ticker Reset() panic.
+	newRefreshInterval := telemetryCfg.RefreshConfig.RefreshInterval
+	if newRefreshInterval <= 0 {
+		logger.Error("invalid refresh interval duration", "refreshInterval", newRefreshInterval)
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
 		return nil
 	}
@@ -117,7 +118,7 @@ func (h *hcpProviderImpl) getUpdate(ctx context.Context) *dynamicConfig {
 		Filters:         telemetryCfg.MetricsConfig.Filters,
 		Endpoint:        telemetryCfg.MetricsConfig.Endpoint,
 		Labels:          telemetryCfg.MetricsConfig.Labels,
-		RefreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
+		RefreshInterval: newRefreshInterval,
 	}
 
 	// Acquire write lock to update new configuration.
