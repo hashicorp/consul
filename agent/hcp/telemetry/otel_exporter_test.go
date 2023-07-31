@@ -17,6 +17,10 @@ import (
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
 
+const (
+	testExportEndpoint = "https://test.com/v1/metrics"
+)
+
 type mockMetricsClient struct {
 	exportErr error
 }
@@ -25,9 +29,11 @@ func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *met
 	return m.exportErr
 }
 
-type mockEndpointProvider struct{}
+type mockEndpointProvider struct {
+	endpoint *url.URL
+}
 
-func (m *mockEndpointProvider) GetEndpoint() *url.URL { return &url.URL{} }
+func (m *mockEndpointProvider) GetEndpoint() *url.URL { return m.endpoint }
 
 func TestTemporality(t *testing.T) {
 	t.Parallel()
@@ -66,10 +72,15 @@ func TestAggregation(t *testing.T) {
 func TestExport(t *testing.T) {
 	t.Parallel()
 	for name, test := range map[string]struct {
-		wantErr string
-		metrics *metricdata.ResourceMetrics
-		client  MetricsClient
+		wantErr  string
+		metrics  *metricdata.ResourceMetrics
+		client   MetricsClient
+		provider EndpointProvider
 	}{
+		"earlyReturnWithoutEndpoint": {
+			client:   &mockMetricsClient{},
+			provider: &mockEndpointProvider{},
+		},
 		"earlyReturnWithoutScopeMetrics": {
 			client:  &mockMetricsClient{},
 			metrics: mutateMetrics(nil),
@@ -102,7 +113,16 @@ func TestExport(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			exp := NewOTELExporter(test.client, &mockEndpointProvider{})
+			provider := test.provider
+			if provider == nil {
+				u, err := url.Parse(testExportEndpoint)
+				require.NoError(t, err)
+				provider = &mockEndpointProvider{
+					endpoint: u,
+				}
+			}
+
+			exp := NewOTELExporter(test.client, provider)
 
 			err := exp.Export(context.Background(), test.metrics)
 			if test.wantErr != "" {
@@ -156,7 +176,12 @@ func TestExport_CustomMetrics(t *testing.T) {
 			metrics.NewGlobal(cfg, sink)
 
 			// Perform operation that emits metric.
-			exp := NewOTELExporter(tc.client, &mockEndpointProvider{})
+			u, err := url.Parse(testExportEndpoint)
+			require.NoError(t, err)
+
+			exp := NewOTELExporter(tc.client, &mockEndpointProvider{
+				endpoint: u,
+			})
 
 			ctx := context.Background()
 			switch tc.operation {
