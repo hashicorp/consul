@@ -102,11 +102,13 @@ jobs:
           path: ~/.cache/go-build
       - name: install gotestsum
         run: GOARCH=amd64 go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
-      - run: |
+      - name: build consul binary
+        run: |
           # we used to do dev-build in a separate step, but generally
           # that is slower (mostly due to overhead) than just doing it here
           export GOARCH=amd64
-          make dev
+          # disable Makefile's LD flags, which are just build info like git commit; they spoil the cache
+          make GOLDFLAGS="" dev
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
