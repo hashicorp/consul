@@ -242,7 +242,7 @@ type Server struct {
 	// serf cluster that spans datacenters
 	eventChWAN chan serf.Event
 
-	// wanMembershipNotifyCh is used to receive notifications that the the
+	// wanMembershipNotifyCh is used to receive notifications that the
 	// serfWAN wan pool may have changed.
 	//
 	// If this is nil, notification is skipped.

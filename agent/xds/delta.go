@@ -117,7 +117,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		// type => name => proto
 		resourceMap = xdscommon.EmptyIndexedResources()
 
-		// currentVersions is the the xDS versioning represented by Resources.
+		// currentVersions is the xDS versioning represented by Resources.
 		//
 		// type => name => version (as consul knows right now)
 		currentVersions = make(map[string]map[string]string)
