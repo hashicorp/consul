@@ -19,11 +19,11 @@ func TestValidateAgentTelemetryConfigPayload(t *testing.T) {
 	t.Parallel()
 	for name, tc := range map[string]struct {
 		resp    *consul_telemetry_service.AgentTelemetryConfigOK
-		wantErr string
+		wantErr error
 	}{
 		"errorsWithNilPayload": {
 			resp:    &consul_telemetry_service.AgentTelemetryConfigOK{},
-			wantErr: "missing payload",
+			wantErr: errMissingPayload,
 		},
 		"errorsWithNilTelemetryConfig": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -31,7 +31,7 @@ func TestValidateAgentTelemetryConfigPayload(t *testing.T) {
 					RefreshConfig: &models.HashicorpCloudConsulTelemetry20230414RefreshConfig{},
 				},
 			},
-			wantErr: "missing telemetry config",
+			wantErr: errMissingTelemetryConfig,
 		},
 		"errorsWithNilRefreshConfig": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -39,7 +39,7 @@ func TestValidateAgentTelemetryConfigPayload(t *testing.T) {
 					TelemetryConfig: &models.HashicorpCloudConsulTelemetry20230414TelemetryConfig{},
 				},
 			},
-			wantErr: "missing refresh config",
+			wantErr: errMissingRefreshConfig,
 		},
 		"errorsWithNilMetricsConfig": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -48,7 +48,7 @@ func TestValidateAgentTelemetryConfigPayload(t *testing.T) {
 					RefreshConfig:   &models.HashicorpCloudConsulTelemetry20230414RefreshConfig{},
 				},
 			},
-			wantErr: "missing metrics config",
+			wantErr: errMissingMetricsConfig,
 		},
 		"success": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -65,9 +65,8 @@ func TestValidateAgentTelemetryConfigPayload(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := validateAgentTelemetryConfigPayload(tc.resp)
-			if tc.wantErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.wantErr)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
 				return
 			}
 			require.NoError(t, err)
