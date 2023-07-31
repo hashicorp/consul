@@ -56,38 +56,38 @@ const (
 	ACLReservedIDPrefix = "00000000-0000-0000-0000-0000000000"
 
 	aclPolicyGlobalRulesTemplate = `
-acl = "###"
+acl = "%[1]s"
 agent_prefix "" {
-	policy = "###"
+	policy = "%[1]s"
 }
 event_prefix "" {
-	policy = "###"
+	policy = "%[1]s"
 }
 key_prefix "" {
-	policy = "###"
+	policy = "%[1]s"
 }
-keyring = "###"
+keyring = "%[1]s"
 node_prefix "" {
-	policy = "###"
+	policy = "%[1]s"
 }
-operator = "###"
-mesh = "###"
-peering = "###"
+operator = "%[1]s"
+mesh = "%[1]s"
+peering = "%[1]s"
 query_prefix "" {
-	policy = "###"
+	policy = "%[1]s"
 }
 service_prefix "" {
-	policy = "###"
-	intentions = "###"
+	policy = "%[1]s"
+	intentions = "%[1]s"
 }
 session_prefix "" {
-	policy = "###"
+	policy = "%[1]s"
 }`
 )
 
 var (
-	ACLPolicyGlobalReadOnlyRules   = strings.ReplaceAll(aclPolicyGlobalRulesTemplate, "###", "read") + EnterpriseACLPolicyGlobalReadOnly
-	ACLPolicyGlobalManagementRules = strings.ReplaceAll(aclPolicyGlobalRulesTemplate, "###", "write") + EnterpriseACLPolicyGlobalManagement
+	ACLPolicyGlobalReadOnlyRules   = fmt.Sprintf(aclPolicyGlobalRulesTemplate, "read") + EnterpriseACLPolicyGlobalReadOnly
+	ACLPolicyGlobalManagementRules = fmt.Sprintf(aclPolicyGlobalRulesTemplate, "write") + EnterpriseACLPolicyGlobalManagement
 
 	ACLBuiltinPolicies = map[string]ACLPolicy{
 		ACLPolicyGlobalManagementID: {
