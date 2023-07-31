@@ -1667,7 +1667,7 @@ func TestStateStore_ACLPolicy_List(t *testing.T) {
 
 	_, policies, err := s.ACLPolicyList(nil, nil)
 	require.NoError(t, err)
-	require.Len(t, policies, 3)
+	require.Len(t, policies, 4)
 	policies.Sort()
 	require.Equal(t, structs.ACLPolicyGlobalManagementID, policies[0].ID)
 	require.Equal(t, "global-management", policies[0].Name)
