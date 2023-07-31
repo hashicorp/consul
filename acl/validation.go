@@ -17,7 +17,7 @@ const (
 var (
 	validServiceIdentityName = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
 	validNodeIdentityName    = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
-	validPolicyName          = regexp.MustCompile(`^[A-Za-z0-9\-_]+/?[A-Za-z0-9\-_]*$`)
+	validPolicyName          = regexp.MustCompile(`^[A-Za-z0-9\-_]+\/?[A-Za-z0-9\-_]*$`)
 	validRoleName            = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,256}$`)
 	validAuthMethodName      = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 )

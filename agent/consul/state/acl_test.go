@@ -35,6 +35,12 @@ func setupGlobalManagement(t *testing.T, s *Store) {
 	require.NoError(t, s.ACLPolicySet(1, &policy))
 }
 
+func setupBuiltinGlobalReadOnly(t *testing.T, s *Store) {
+	policy := structs.ACLBuiltinPolicies[structs.ACLPolicyGlobalReadOnlyID]
+	policy.SetHash(true)
+	require.NoError(t, s.ACLPolicySet(2, &policy))
+}
+
 func setupAnonymous(t *testing.T, s *Store) {
 	token := structs.ACLToken{
 		AccessorID:  acl.AnonymousTokenID,
@@ -48,6 +54,7 @@ func setupAnonymous(t *testing.T, s *Store) {
 func testACLStateStore(t *testing.T) *Store {
 	s := testStateStore(t)
 	setupGlobalManagement(t, s)
+	setupBuiltinGlobalReadOnly(t, s)
 	setupAnonymous(t, s)
 	return s
 }
@@ -179,6 +186,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 
 	s := testStateStore(t)
 	setupGlobalManagement(t, s)
+	setupBuiltinGlobalReadOnly(t, s)
 
 	canBootstrap, index, err := s.CanBootstrapACLToken()
 	require.NoError(t, err)

@@ -886,7 +886,7 @@ func aclPolicySetTxn(tx WriteTxn, idx uint64, policy *structs.ACLPolicy) error {
 	if existing != nil {
 		if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
 			// Only the name and description are modifiable
-			// Here we specifically check that the rules on the global management policy
+			// Here we specifically check that the rules on the builtin policy
 			// are identical to the correct policy rules within the binary. This is opposed
 			// to checking against the current rules to allow us to update the rules during
 			// upgrades.

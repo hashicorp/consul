@@ -45,87 +45,65 @@ const (
 
 	// This policy gives unlimited access to everything. Users
 	// may rename if desired but cannot delete or modify the rules.
-	ACLPolicyGlobalManagementID    = "00000000-0000-0000-0000-000000000001"
-	ACLPolicyGlobalManagementName  = "global-management"
-	ACLPolicyGlobalManagementDesc  = "Builtin Policy that grants unlimited access"
-	ACLPolicyGlobalManagementRules = `
-acl = "write"
-agent_prefix "" {
-	policy = "write"
-}
-event_prefix "" {
-	policy = "write"
-}
-key_prefix "" {
-	policy = "write"
-}
-keyring = "write"
-node_prefix "" {
-	policy = "write"
-}
-operator = "write"
-mesh = "write"
-peering = "write"
-query_prefix "" {
-	policy = "write"
-}
-service_prefix "" {
-	policy = "write"
-	intentions = "write"
-}
-session_prefix "" {
-	policy = "write"
-}` + EnterpriseACLPolicyGlobalManagement
+	ACLPolicyGlobalManagementID   = "00000000-0000-0000-0000-000000000001"
+	ACLPolicyGlobalManagementName = "global-management"
+	ACLPolicyGlobalManagementDesc = "Builtin Policy that grants unlimited access"
 
-	ACLPolicyGlobalReadOnlyID    = "00000000-0000-0000-0000-000000000002"
-	ACLPolicyGlobalReadOnlyName  = "builtin/global-read-only"
-	ACLPolicyGlobalReadOnlyDesc  = "Builtin Policy that grants unlimited read-only access to all components"
-	ACLPolicyGlobalReadOnlyRules = `
-acl = "read"
-agent_prefix "" {
-	policy = "read"
-}
-event_prefix "" {
-	policy = "read"
-}
-key_prefix "" {
-	policy = "read"
-}
-keyring = "read"
-node_prefix "" {
-	policy = "read"
-}
-operator = "read"
-mesh = "read"
-peering = "read"
-query_prefix "" {
-	policy = "read"
-}
-service_prefix "" {
-	policy = "read"
-	intentions = "read"
-}
-session_prefix "" {
-	policy = "read"
-}` + EnterpriseACLPolicyGlobalReadOnly
+	ACLPolicyGlobalReadOnlyID   = "00000000-0000-0000-0000-000000000002"
+	ACLPolicyGlobalReadOnlyName = "builtin/global-read-only"
+	ACLPolicyGlobalReadOnlyDesc = "Builtin Policy that grants unlimited read-only access to all components"
 
 	ACLReservedIDPrefix = "00000000-0000-0000-0000-0000000000"
+
+	aclPolicyGlobalRulesTemplate = `
+acl = "###"
+agent_prefix "" {
+	policy = "###"
+}
+event_prefix "" {
+	policy = "###"
+}
+key_prefix "" {
+	policy = "###"
+}
+keyring = "###"
+node_prefix "" {
+	policy = "###"
+}
+operator = "###"
+mesh = "###"
+peering = "###"
+query_prefix "" {
+	policy = "###"
+}
+service_prefix "" {
+	policy = "###"
+	intentions = "###"
+}
+session_prefix "" {
+	policy = "###"
+}`
 )
 
-var ACLBuiltinPolicies = map[string]ACLPolicy{
-	ACLPolicyGlobalManagementID: {
-		ID:          ACLPolicyGlobalManagementID,
-		Name:        ACLPolicyGlobalManagementName,
-		Description: ACLPolicyGlobalManagementDesc,
-		Rules:       ACLPolicyGlobalManagementRules,
-	},
-	ACLPolicyGlobalReadOnlyID: {
-		ID:          ACLPolicyGlobalReadOnlyID,
-		Name:        ACLPolicyGlobalReadOnlyName,
-		Description: ACLPolicyGlobalReadOnlyDesc,
-		Rules:       ACLPolicyGlobalReadOnlyRules,
-	},
-}
+var (
+	ACLPolicyGlobalReadOnlyRules   = strings.ReplaceAll(aclPolicyGlobalRulesTemplate, "###", "read") + EnterpriseACLPolicyGlobalReadOnly
+	ACLPolicyGlobalManagementRules = strings.ReplaceAll(aclPolicyGlobalRulesTemplate, "###", "write") + EnterpriseACLPolicyGlobalManagement
+
+	ACLBuiltinPolicies = map[string]ACLPolicy{
+		ACLPolicyGlobalManagementID: {
+			ID:          ACLPolicyGlobalManagementID,
+			Name:        ACLPolicyGlobalManagementName,
+			Description: ACLPolicyGlobalManagementDesc,
+			Rules:       ACLPolicyGlobalManagementRules,
+		},
+		ACLPolicyGlobalReadOnlyID: {
+			ID:          ACLPolicyGlobalReadOnlyID,
+			Name:        ACLPolicyGlobalReadOnlyName,
+			Description: ACLPolicyGlobalReadOnlyDesc,
+			Rules:       ACLPolicyGlobalReadOnlyRules,
+		},
+	}
+)
 
 func ACLIDReserved(id string) bool {
 	return strings.HasPrefix(id, ACLReservedIDPrefix)
