@@ -393,7 +393,11 @@ jobs:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
-          go-version-file: 'go.mod'
+          # pinning this to 1.20.5 because this issue in go-testcontainers occurs
+          # in 1.20.6 with the error "http: invalid Host header, host port waiting failed"
+          # https://github.com/testcontainers/testcontainers-go/issues/1359
+          # go-version-file: 'go.mod'
+          go-version: '1.20.5'
       - run: go env
 
       # Build the consul:local image from the already built binary
