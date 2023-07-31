@@ -469,7 +469,11 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) initializePolicy(newPolicy structs.ACLPolicy) error {
+// writeBuiltinACLPolicy writes the given built-in policy to Raft if the policy
+// is not found or if the policy rules have been changed. The name and 
+// description of a built-in policy are user-editable and must be preserved
+// during updates. This function must only be called in a primary datacenter.
+func (s *Server) writeBuiltinACLPolicy(newPolicy structs.ACLPolicy) error {
 	_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, newPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		return fmt.Errorf("failed to get the builtin %s policy", newPolicy.Name)
