@@ -422,7 +422,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 		// Create/Upgrade the builtin policies
 		for _, policy := range structs.ACLBuiltinPolicies {
-			if err := s.initializePolicy(policy); err != nil {
+			if err := s.writeBuiltinACLPolicy(policy); err != nil {
 				return err
 			}
 		}
@@ -470,7 +470,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 }
 
 // writeBuiltinACLPolicy writes the given built-in policy to Raft if the policy
-// is not found or if the policy rules have been changed. The name and 
+// is not found or if the policy rules have been changed. The name and
 // description of a built-in policy are user-editable and must be preserved
 // during updates. This function must only be called in a primary datacenter.
 func (s *Server) writeBuiltinACLPolicy(newPolicy structs.ACLPolicy) error {

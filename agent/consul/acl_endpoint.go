@@ -869,7 +869,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return fmt.Errorf("Invalid Policy: no Name is set")
 	}
 
-	if err := acl.IsValidPolicyName(policy.Name); err != nil {
+	if err := acl.ValidatePolicyName(policy.Name); err != nil {
 		return err
 	}
 

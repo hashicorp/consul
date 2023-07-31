@@ -45,9 +45,9 @@ func IsValidNodeIdentityName(name string) bool {
 	return validNodeIdentityName.MatchString(name)
 }
 
-// IsValidPolicyName returns nil if the provided name can be used as an
+// ValidatePolicyName returns nil if the provided name can be used as an
 // ACLPolicy Name otherwise a useful error is returned.
-func IsValidPolicyName(name string) error {
+func ValidatePolicyName(name string) error {
 	if len(name) < 1 || len(name) > PolicyNameMaxLength {
 		return fmt.Errorf("Invalid Policy: invalid Name. Length must be greater than 0 and less than %d", PolicyNameMaxLength)
 	}

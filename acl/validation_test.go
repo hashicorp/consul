@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_IsValidPolicyName(t *testing.T) {
+func Test_ValidatePolicyName(t *testing.T) {
 	for _, tc := range []struct {
 		description string
 		name        string
@@ -72,7 +72,7 @@ func Test_IsValidPolicyName(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			require.Equal(t, tc.valid, IsValidPolicyName(tc.name) == nil)
+			require.Equal(t, tc.valid, ValidatePolicyName(tc.name) == nil)
 		})
 	}
 }
