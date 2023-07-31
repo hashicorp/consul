@@ -235,7 +235,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.23.10", "1.24.8", "1.25.7", "1.26.2"]
+          # envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -269,7 +269,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.23.10", "1.24.8", "1.25.7", "1.26.2"]
+        envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -599,7 +599,7 @@ jobs:
     env:
       ENVOY_VERSION: "1.24.6"
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
