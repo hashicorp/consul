@@ -36,9 +36,7 @@ GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true
 GIT_IMPORT=github.com/hashicorp/consul/version
 DATE_FORMAT="%Y-%m-%dT%H:%M:%SZ" # it's tricky to do an RFC3339 format in a cross platform way, so we hardcode UTC
 GIT_DATE=$(shell $(CURDIR)/build-support/scripts/build-date.sh) # we're using this for build date because it's stable across platform builds
-# disable; ruins the cache?
-# GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).BuildDate=$(GIT_DATE)
-GOLDFLAGS=
+GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).BuildDate=$(GIT_DATE)
 
 GOTESTSUM_PATH?=$(shell command -v gotestsum)
 
