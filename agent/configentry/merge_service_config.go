@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package configentry
 
 import (
@@ -154,10 +151,6 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		ns.Proxy.TransparentProxy.DialedDirectly = defaults.TransparentProxy.DialedDirectly
 	}
 
-	if ns.Proxy.MutualTLSMode == structs.MutualTLSModeDefault {
-		ns.Proxy.MutualTLSMode = defaults.MutualTLSMode
-	}
-
 	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
 	remoteUpstreams := make(map[structs.PeeredServiceName]structs.Upstream)
 
@@ -165,30 +158,54 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	entMeta := ns.EnterpriseMeta
 	entMeta.Normalize()
 
-	for _, us := range defaults.UpstreamConfigs {
-		parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+	if len(defaults.UpstreamIDConfigs) > 0 {
+		// Handle legacy upstreams. This should be removed in Consul 1.16.
+		for _, us := range defaults.UpstreamIDConfigs {
+			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+			}
+			psn := structs.PeeredServiceName{
+				Peer:        "",
+				ServiceName: structs.NewServiceName(us.Upstream.ID, &us.Upstream.EnterpriseMeta),
+			}
+
+			remoteUpstreams[psn] = structs.Upstream{
+				DestinationNamespace: us.Upstream.NamespaceOrDefault(),
+				DestinationPartition: us.Upstream.PartitionOrDefault(),
+				DestinationName:      us.Upstream.ID,
+				DestinationPeer:      "",
+				Config:               us.Config,
+				MeshGateway:          parsed.MeshGateway,
+				CentrallyConfigured:  true,
+			}
 		}
+	} else {
+		for _, us := range defaults.UpstreamConfigs {
+			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+			}
 
-		// If the defaults did not fully normalize tenancy stuff, take care of
-		// that now too.
-		psn := us.Upstream // only normalize the copy
-		psn.ServiceName.EnterpriseMeta.Normalize()
+			// If the defaults did not fully normalize tenancy stuff, take care of
+			// that now too.
+			psn := us.Upstream // only normalize the copy
+			psn.ServiceName.EnterpriseMeta.Normalize()
 
-		// Normalize the partition field specially.
-		if psn.Peer != "" {
-			psn.ServiceName.OverridePartition(entMeta.PartitionOrDefault())
-		}
+			// Normalize the partition field specially.
+			if psn.Peer != "" {
+				psn.ServiceName.OverridePartition(entMeta.PartitionOrDefault())
+			}
 
-		remoteUpstreams[psn] = structs.Upstream{
-			DestinationNamespace: psn.ServiceName.NamespaceOrDefault(),
-			DestinationPartition: psn.ServiceName.PartitionOrDefault(),
-			DestinationName:      psn.ServiceName.Name,
-			DestinationPeer:      psn.Peer,
-			Config:               us.Config,
-			MeshGateway:          parsed.MeshGateway,
-			CentrallyConfigured:  true,
+			remoteUpstreams[us.Upstream] = structs.Upstream{
+				DestinationNamespace: psn.ServiceName.NamespaceOrDefault(),
+				DestinationPartition: psn.ServiceName.PartitionOrDefault(),
+				DestinationName:      psn.ServiceName.Name,
+				DestinationPeer:      psn.Peer,
+				Config:               us.Config,
+				MeshGateway:          parsed.MeshGateway,
+				CentrallyConfigured:  true,
+			}
 		}
 	}
 

@@ -1,13 +1,16 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 {{#if (eq @type 'remove')}}
-  <Hds::Toast @color='success'
-              ...attributes
-              as |T|>
-    <T.Title>Success!</T.Title>
-    <T.Description>Your Namespace has been marked for deletion.</T.Description>
-  </Hds::Toast>
+  <Notice
+    class="notification-delete"
+    @type="success"
+    ...attributes
+  as |notice|>
+    <notice.Header>
+      <strong>Success!</strong>
+    </notice.Header>
+    <notice.Body>
+      <p>
+        Your Namespace has been marked for deletion.
+      </p>
+    </notice.Body>
+  </Notice>
 {{/if}}

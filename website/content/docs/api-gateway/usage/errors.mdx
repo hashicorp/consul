@@ -58,18 +58,3 @@ The installation process typically fails after this error message is generated.
 
 **Resolution:**
 Install the required CRDs. Refer to the [Consul API Gateway installation instructions](/consul/docs/api-gateway/install#installation) for instructions.
-
-## Operation cannot be fulfilled, the object has been modified
-
-```
-{"error": "Operation cannot be fulfilled on gatewayclassconfigs.consul.hashicorp.com \"consul-api-gateway\": the object has been modified; please apply your changes to the latest version and try again"}
-
-```
-**Conditions:**
-This error occurs when the gateway controller attempts to update an object that has been modified previously. It is a normal part of running the controller and will resolve itself by automatically retrying.
-
-**Impact:**
-Excessive error logs are produced, but there is no impact to the functionality of the controller.
-
-**Resolution:**
-No action needs to be taken to resolve this issue.

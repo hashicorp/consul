@@ -1,12 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .topology-notices {
   button {
     @extend %button;
-    color: var(--token-color-foreground-action);
+    color: rgb(var(--tone-blue-500));
   }
   button::before {
     @extend %as-pseudo;
@@ -17,7 +12,7 @@
   }
 }
 .topology-container {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-700));
 }
 
 // Columns/Containers & Lines
@@ -28,35 +23,35 @@
   border: 1px solid;
   /* TODO: If this color is combined with the above */
   /* border property then the compressor removes the color */
-  border-color: var(--token-color-surface-interactive-active);
+  border-color: rgb(var(--tone-gray-200));
 }
 #downstream-container,
 #upstream-container {
-  background-color: var(--token-color-surface-strong);
+  background-color: rgb(var(--tone-gray-100));
 }
 #downstream-container > div:first-child {
   display: inline-flex;
   span::before {
     @extend %with-info-circle-outline-mask, %as-pseudo;
-    background-color: var(--token-color-foreground-faint);
+    background-color: rgb(var(--tone-gray-500));
   }
 }
 
 // Metrics Container
 #metrics-container {
   div:first-child {
-    background-color: var(--token-color-surface-primary);
+    background-color: rgb(var(--tone-gray-000));
   }
   .link {
-    background-color: var(--token-color-surface-strong);
+    background-color: rgb(var(--tone-gray-100));
     a {
-      color: var(--token-color-foreground-faint);
+      color: rgb(var(--tone-gray-700));
     }
     a::before {
-      background-color: var(--token-color-foreground-faint);
+      background-color: rgb(var(--tone-gray-500));
     }
     a:hover {
-      color: var(--token-color-foreground-action);
+      color: rgb(var(--color-action));
     }
     .metrics-link::before {
       @extend %with-exit-mask, %as-pseudo;
@@ -71,19 +66,19 @@
 #downstream-lines svg,
 #upstream-lines svg {
   path {
-    fill: transparent;
+    fill: var(--transparent);
   }
   circle {
-    fill: var(--token-color-surface-primary);
+    fill: rgb(var(--tone-gray-000));
   }
   .allow-arrow {
-    fill: var(--token-color-palette-neutral-300);
+    fill: rgb(var(--tone-gray-300));
     stroke-linejoin: round;
   }
   path,
   .allow-dot,
   .allow-arrow {
-    stroke: var(--token-color-palette-neutral-300);
+    stroke: rgb(var(--tone-gray-300));
     stroke-width: 2;
   }
   path[data-permission='not-defined'],
@@ -91,15 +86,15 @@
     stroke-dasharray: 4;
   }
   path[data-permission='deny'] {
-    stroke: var(--token-color-foreground-critical);
+    stroke: rgb(var(--tone-red-500));
   }
   .deny-dot {
-    stroke: var(--token-color-foreground-critical);
+    stroke: rgb(var(--tone-red-500));
     stroke-width: 2;
   }
   .deny-arrow {
-    fill: var(--token-color-foreground-critical);
-    stroke: var(--token-color-foreground-critical);
+    fill: rgb(var(--tone-red-500));
+    stroke: rgb(var(--tone-red-500));
     stroke-linejoin: round;
   }
 }

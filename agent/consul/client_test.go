@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -13,8 +10,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
@@ -578,7 +573,6 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
-		Registry:                 resource.NewRegistry(),
 	}
 }
 
@@ -834,7 +828,6 @@ func TestClient_ReloadConfig(t *testing.T) {
 	deps := newDefaultDeps(t, &Config{NodeName: "node1", Datacenter: "dc1"})
 	c, err := NewClient(cfg, deps)
 	require.NoError(t, err)
-	defer c.Shutdown()
 
 	limiter := c.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(500), limiter.Limit())
@@ -880,6 +873,7 @@ func TestClient_ShortReconnectTimeout(t *testing.T) {
 		func() bool {
 			return len(cluster.Servers[0].LANMembersInAgentPartition()) == 2 &&
 				len(cluster.Clients[0].LANMembersInAgentPartition()) == 2
+
 		},
 		time.Second,
 		50*time.Millisecond,
@@ -911,7 +905,6 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		c.MaxQueryTime = 200 * time.Millisecond
 		c.RPCHoldTimeout = 50 * time.Millisecond
 	})
-	defer c1.Shutdown()
 	joinLAN(t, c1, s1)
 
 	retry.Run(t, func(r *retry.R) {

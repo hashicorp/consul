@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package envoy
 
 import (
@@ -38,7 +35,7 @@ func New(ui cli.Ui) *cmd {
 	return c
 }
 
-const DefaultAdminAccessLogPath = os.DevNull
+const DefaultAdminAccessLogPath = "/dev/null"
 
 type cmd struct {
 	UI     cli.Ui

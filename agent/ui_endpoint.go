@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -13,12 +10,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logging"
@@ -113,18 +107,7 @@ RPC:
 		return nil, err
 	}
 
-	// Get version info for all serf members into a map of key-address,value-version.
-	// This logic of calling 'AgentMembersMapAddrVer()' and inserting version info in this func
-	// can be discarded in future releases ( may be after 3 or 4 minor releases),
-	// when all the nodes are registered with consul-version in nodemeta.
-	var err error
-	mapAddrVer, err := AgentMembersMapAddrVer(s, req)
-	if err != nil {
-		return nil, err
-	}
-
 	// Use empty list instead of nil
-	// Also check if consul-version exists in Meta, else add it
 	for _, info := range out.Dump {
 		if info.Services == nil {
 			info.Services = make([]*structs.NodeService, 0)
@@ -132,24 +115,12 @@ RPC:
 		if info.Checks == nil {
 			info.Checks = make([]*structs.HealthCheck, 0)
 		}
-		// Check if Node Meta - 'consul-version' already exists by virtue of adding
-		// 'consul-version' during node registration itself.
-		// If not, get it from mapAddrVer.
-		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
-			if _, okver := mapAddrVer[info.Address]; okver {
-				if info.Meta == nil {
-					info.Meta = make(map[string]string)
-				}
-				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
-			}
-		}
 	}
 	if out.Dump == nil {
 		out.Dump = make(structs.NodeDump, 0)
 	}
 
 	// Use empty list instead of nil
-	// Also check if consul-version exists in Meta, else add it
 	for _, info := range out.ImportedDump {
 		if info.Services == nil {
 			info.Services = make([]*structs.NodeService, 0)
@@ -157,61 +128,9 @@ RPC:
 		if info.Checks == nil {
 			info.Checks = make([]*structs.HealthCheck, 0)
 		}
-		// Check if Node Meta - 'consul-version' already exists by virtue of adding
-		// 'consul-version' during node registration itself.
-		// If not, get it from mapAddrVer.
-		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
-			if _, okver := mapAddrVer[info.Address]; okver {
-				if info.Meta == nil {
-					info.Meta = make(map[string]string)
-				}
-				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
-			}
-		}
 	}
 
 	return append(out.Dump, out.ImportedDump...), nil
-}
-
-// AgentMembersMapAddrVer is used to get version info from  all serf members into a
-// map of key-address,value-version.
-func AgentMembersMapAddrVer(s *HTTPHandlers, req *http.Request) (map[string]string, error) {
-	var members []serf.Member
-
-	//Get WAN Members
-	wanMembers := s.agent.WANMembers()
-
-	//Get LAN Members
-	//Get the request partition and default to that of the agent.
-	entMeta := s.agent.AgentEnterpriseMeta()
-	if err := s.parseEntMetaPartition(req, entMeta); err != nil {
-		return nil, err
-	}
-	filter := consul.LANMemberFilter{
-		Partition: entMeta.PartitionOrDefault(),
-	}
-	if acl.IsDefaultPartition(filter.Partition) {
-		filter.AllSegments = true
-	}
-
-	lanMembers, err := s.agent.delegate.LANMembers(filter)
-	if err != nil {
-		return nil, err
-	}
-
-	//aggregate members
-	members = append(wanMembers, lanMembers...)
-
-	//create a map with key as IPv4 address and value as consul-version
-	mapAddrVer := make(map[string]string, len(members))
-	for i := range members {
-		buildVersion, err := metadata.Build(&members[i])
-		if err == nil {
-			mapAddrVer[members[i].Addr.String()] = buildVersion.String()
-		}
-	}
-
-	return mapAddrVer, nil
 }
 
 // UINodeInfo is used to get info on a single node in a given datacenter. We return a
@@ -250,16 +169,6 @@ RPC:
 		return nil, err
 	}
 
-	// Get version info for all serf members into a map of key-address,value-version.
-	// This logic of calling 'AgentMembersMapAddrVer()' and inserting version info in this func
-	// can be discarded in future releases ( may be after 3 or 4 minor releases),
-	// when all the nodes are registered with consul-version in nodemeta.
-	var err error
-	mapAddrVer, err := AgentMembersMapAddrVer(s, req)
-	if err != nil {
-		return nil, err
-	}
-
 	// Return only the first entry
 	if len(out.Dump) > 0 {
 		info := out.Dump[0]
@@ -268,17 +177,6 @@ RPC:
 		}
 		if info.Checks == nil {
 			info.Checks = make([]*structs.HealthCheck, 0)
-		}
-		// Check if Node Meta - 'consul-version' already exists by virtue of adding
-		// 'consul-version' during node registration itself.
-		// If not, get it from mapAddrVer.
-		if _, ok := info.Meta[structs.MetaConsulVersion]; !ok {
-			if _, okver := mapAddrVer[info.Address]; okver {
-				if info.Meta == nil {
-					info.Meta = make(map[string]string)
-				}
-				info.Meta[structs.MetaConsulVersion] = mapAddrVer[info.Address]
-			}
 		}
 		return info, nil
 	}
@@ -563,25 +461,11 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		sum := getService(psn)
 
 		svc := csn.Service
-
-		found := false
-		for _, existing := range sum.Nodes {
-			if existing == csn.Node.Node {
-				found = true
-				break
-			}
-		}
-		if !found {
-			sum.Nodes = append(sum.Nodes, csn.Node.Node)
-		}
-
+		sum.Nodes = append(sum.Nodes, csn.Node.Node)
 		sum.Kind = svc.Kind
 		sum.Datacenter = csn.Node.Datacenter
 		sum.InstanceCount += 1
-		// Consider a service connect native once at least one instance is
-		if svc.Connect.Native {
-			sum.ConnectNative = svc.Connect.Native
-		}
+		sum.ConnectNative = svc.Connect.Native
 		if svc.Kind == structs.ServiceKindConnectProxy {
 			sn := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
 			psn := structs.PeeredServiceName{Peer: peerName, ServiceName: sn}

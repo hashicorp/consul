@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 import isFolder from 'consul-ui/utils/isFolder';

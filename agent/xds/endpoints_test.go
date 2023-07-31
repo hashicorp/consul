@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -10,7 +7,6 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 
 	"github.com/mitchellh/copystructure"
@@ -102,7 +98,6 @@ func Test_makeLoadAssignment(t *testing.T) {
 	tests := []struct {
 		name        string
 		clusterName string
-		locality    *structs.Locality
 		endpoints   []loadAssignmentEndpointGroup
 		want        *envoy_endpoint_v3.ClusterLoadAssignment
 	}{
@@ -213,24 +208,11 @@ func Test_makeLoadAssignment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeLoadAssignment(
-				&proxycfg.ConfigSnapshot{ServiceLocality: tt.locality},
 				tt.clusterName,
-				nil,
 				tt.endpoints,
 				proxycfg.GatewayKey{Datacenter: "dc1"},
 			)
 			require.Equal(t, tt.want, got)
-
-			if tt.locality == nil {
-				got := makeLoadAssignment(
-					&proxycfg.ConfigSnapshot{ServiceLocality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"}},
-					tt.clusterName,
-					nil,
-					tt.endpoints,
-					proxycfg.GatewayKey{Datacenter: "dc1"},
-				)
-				require.Equal(t, tt.want, got)
-			}
 		})
 	}
 }
@@ -360,12 +342,6 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			name: "mesh-gateway-newer-information-in-federation-states",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "newer-info-in-federation-states", nil, nil)
-			},
-		},
-		{
-			name: "mesh-gateway-using-federation-control-plane",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "mesh-gateway-federation", nil, nil)
 			},
 		},
 		{

@@ -1,7 +1,4 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
@@ -228,13 +225,6 @@ function get_envoy_expose_checks_listener_once {
   echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("exposed_path_"))'
 }
 
-function get_envoy_public_listener_once {
-  local HOSTPORT=$1
-  run curl -s -f $HOSTPORT/config_dump
-  [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("public_listener:"))'
-}
-
 function assert_envoy_http_rbac_policy_count {
   local HOSTPORT=$1
   local EXPECT_COUNT=$2
@@ -265,14 +255,6 @@ function get_envoy_network_rbac_once {
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
-}
-
-function get_envoy_http_filter {
-  local HOSTPORT=$1
-  local FILTER_NAME=$2
-  run retry_default curl -s -f $HOSTPORT/config_dump
-  [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"${FILTER_NAME}\")"
 }
 
 function get_envoy_listener_filters {
@@ -1093,6 +1075,15 @@ function assert_service_has_imported {
   fi
 }
 
+function get_lambda_envoy_http_filter {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  # get the full http filter object so the individual fields can be validated.
+  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"envoy.filters.http.aws_lambda\") | .typed_config"
+}
+
 function register_lambdas {
   local DC=${1:-primary}
   # register lambdas to the catalog
@@ -1120,12 +1111,13 @@ function assert_lambda_envoy_dynamic_cluster_exists {
 
 function assert_lambda_envoy_dynamic_http_filter_exists {
   local HOSTPORT=$1
-  local ARN=$2
+  local NAME_PREFIX=$2
+  local ARN=$3
 
-  local FILTER=$(get_envoy_http_filter $HOSTPORT 'envoy.filters.http.aws_lambda')
+  local FILTER=$(get_lambda_envoy_http_filter $HOSTPORT $NAME_PREFIX)
   [ -n "$FILTER" ]
 
-  [ "$(echo $FILTER | jq -r '.typed_config | .arn')" == "$ARN" ]
+  [ "$(echo $FILTER | jq -r '.arn')" == "$ARN" ]
 }
 
 function varsub {

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -34,7 +31,7 @@ func (b autoConfigBackend) GetCARoots() (*structs.IndexedCARoots, error) {
 }
 
 // DatacenterJoinAddresses will return all the strings suitable for usage in
-// retry join operations to connect to the LAN or LAN segment gossip pool.
+// retry join operations to connect to the the LAN or LAN segment gossip pool.
 func (b autoConfigBackend) DatacenterJoinAddresses(partition, segment string) ([]string, error) {
 	members, err := b.Server.LANMembers(LANMemberFilter{
 		Segment:   segment,

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Service from '@ember/service';
 import promisedTimeoutFactory from 'consul-ui/utils/promisedTimeout';
 import { next } from '@ember/runloop';

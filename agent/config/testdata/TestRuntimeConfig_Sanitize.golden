@@ -201,7 +201,6 @@
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
     "EnterpriseRuntimeConfig": {},
-    "Experiments": [],
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
     "GRPCAddrs": [],
@@ -237,10 +236,6 @@
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
     "LocalProxyConfigResyncInterval": "0s",
-    "Locality": {
-        "Region": "us-west-1",
-        "Zone": "us-west-1a"
-    },
     "Logging": {
         "EnableSyslog": false,
         "LogFilePath": "",
@@ -380,7 +375,6 @@
             "EnterpriseMeta": {},
             "ID": "",
             "Kind": "",
-            "Locality": null,
             "Meta": {},
             "Name": "foo",
             "Port": 0,

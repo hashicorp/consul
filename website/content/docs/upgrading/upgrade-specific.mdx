@@ -14,24 +14,6 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
-## Consul 1.16.x
-
-#### API health endpoints return different status code
-
-Consul versions 1.16.0+ now return an error 403 "Permission denied" status
-whenever the `/v1/health/connect/` and `/v1/health/ingress/` endpoints are
-queried with insufficient ACL `service:read` privileges.
-
-In Consul versions older than 1.16.0, the service health API did not return an explicit error when given a token with invalid permissions. Instead, it returned an empty list with a success status code.
-
-Before upgrading, ensure that all of your applications can handle this new API behavior properly. An update is not required unless you have a custom application that is querying one of these API endpoints directly.
-
-#### Remove deprecated service-defaults peer upstream override behavior
-
-When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides)
-does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
-This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
-
 ## Consul 1.15.x
 
 #### Service mesh compatibility ((#service-mesh-compatibility-1-15))
@@ -152,7 +134,7 @@ In Consul v1.15 and higher:
    UpstreamConfig = {
      Overrides = [
        {
-          Name = foo  # Applies to local service `foo`
+          Name = foo  # Applies to local service `foo` 
        },
        {
           Name = foo  # Applies to `foo` imported from peered cluster `bar`
@@ -216,7 +198,7 @@ If you already use gRPC encryption, change the following fields to ensure compat
 [Cluster peering](/consul/docs/connect/cluster-peering) was released in Consul 1.13 as an experimental feature.
 In Consul 1.14, cluster peering has been improved and is now considered stable. All experimental peering
 connections created by 1.13 should be
-[deleted](/consul/docs/connect/cluster-peering/usage/manage-connections#delete-peering-connections)
+[deleted](/consul/docs/connect/cluster-peering/create-manage-peering#delete-peering-connections)
 prior to upgrading, as they will no longer be compatible with 1.14.
 
 ## Consul 1.13.x
@@ -404,9 +386,9 @@ to Consul 1.13.3 or later to avoid the breaking nature of that change.
 
 ### Nomad Incompatibility
 
-Nomad users should not upgrade to Consul v1.13.8. An API change in this Consul
-release prevents Nomad from correctly detecting the Consul agent version. As a
-result, allocations are not placed in clients running v1.13.8.
+Nomad users should not upgrade to Consul 1.13.8 as an API change in Consul
+prevents Nomad from correctly detecting the Consul agent version, resulting in
+allocations not being placed in those clients.
 
 ## Consul 1.12.x ((#consul-1-12-0))
 
@@ -864,7 +846,7 @@ API so existing integrations that create tokens (e.g. Vault) will continue to
 work. The "legacy" tokens generated though will not be able to take advantage of
 new policy features. It's recommended that you complete migration of all tokens
 as soon as possible after upgrade, as well as updating any integrations to work
-with the new ACL [Token](/consul/api-docs/acl/tokens) and
+with the the new ACL [Token](/consul/api-docs/acl/tokens) and
 [Policy](/consul/api-docs/acl/policies) APIs.
 
 ### Multi-datacenter service mesh

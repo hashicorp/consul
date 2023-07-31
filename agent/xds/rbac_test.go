@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -17,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestRemoveIntentionPrecedence(t *testing.T) {
@@ -49,11 +46,11 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 		ixn.Permissions = perms
 		return ixn
 	}
-	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
+	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.SimplifiedIntentions(ixns)
+		return structs.Intentions(ixns)
 	}
 	testPeerTrustBundle := map[string]*pbpeering.PeeringTrustBundle{
 		"peer1": {
@@ -106,7 +103,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 	tests := map[string]struct {
 		intentionDefaultAllow bool
 		http                  bool
-		intentions            structs.SimplifiedIntentions
+		intentions            structs.Intentions
 		expect                []*rbacIntention
 	}{
 		"default-allow-path-allow": {
@@ -451,11 +448,10 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			rbacIxns, err := intentionListToIntermediateRBACForm(tt.intentions, testLocalInfo, tt.http, testPeerTrustBundle, nil)
+			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, testLocalInfo, tt.http, testPeerTrustBundle)
 			intentionDefaultAction := intentionActionFromBool(tt.intentionDefaultAllow)
 			rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction, testLocalInfo)
 
-			require.NoError(t, err)
 			require.Equal(t, tt.expect, rbacIxns)
 		})
 	}
@@ -485,17 +481,6 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		ixn.Permissions = perms
 		return ixn
 	}
-	testIntentionWithJWT := func(src string, action structs.IntentionAction, jwt *structs.IntentionJWTRequirement, perms ...*structs.IntentionPermission) *structs.Intention {
-		ixn := testIntention(t, src, "api", action)
-		ixn.JWT = jwt
-		ixn.Action = action
-		if perms != nil {
-			ixn.Permissions = perms
-			ixn.Action = ""
-		}
-
-		return ixn
-	}
 	testPeerTrustBundle := []*pbpeering.PeeringTrustBundle{
 		{
 			PeerName:          "peer1",
@@ -504,11 +489,11 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		},
 	}
 	testTrustDomain := "test.consul"
-	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
+	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.SimplifiedIntentions(ixns)
+		return structs.Intentions(ixns)
 	}
 
 	var (
@@ -516,32 +501,6 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			Action: structs.IntentionActionAllow,
 			HTTP: &structs.IntentionHTTPPermission{
 				PathPrefix: "/",
-			},
-		}
-		oktaWithClaims = structs.IntentionJWTProvider{
-			Name: "okta",
-			VerifyClaims: []*structs.IntentionJWTClaimVerification{
-				{Path: []string{"roles"}, Value: "testing"},
-			},
-		}
-		auth0WithClaims = structs.IntentionJWTProvider{
-			Name: "auth0",
-			VerifyClaims: []*structs.IntentionJWTClaimVerification{
-				{Path: []string{"perms", "role"}, Value: "admin"},
-			},
-		}
-		testJWTProviderConfigEntry = map[string]*structs.JWTProviderConfigEntry{
-			"okta":  {Name: "okta", Issuer: "mytest.okta-issuer"},
-			"auth0": {Name: "auth0", Issuer: "mytest.auth0-issuer"},
-		}
-		jwtRequirement = &structs.IntentionJWTRequirement{
-			Providers: []*structs.IntentionJWTProvider{
-				&oktaWithClaims,
-			},
-		}
-		auth0Requirement = &structs.IntentionJWTRequirement{
-			Providers: []*structs.IntentionJWTProvider{
-				&auth0WithClaims,
 			},
 		}
 		permDenySlashPrefix = &structs.IntentionPermission{
@@ -554,7 +513,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 
 	tests := map[string]struct {
 		intentionDefaultAllow bool
-		intentions            structs.SimplifiedIntentions
+		intentions            structs.Intentions
 	}{
 		"default-deny-mixed-precedence": {
 			intentionDefaultAllow: false,
@@ -842,70 +801,6 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				),
 			),
 		},
-		// ========= JWTAuthn Filter checks
-		"top-level-jwt-no-permissions": {
-			intentionDefaultAllow: false,
-			intentions: sorted(
-				testIntentionWithJWT("web", structs.IntentionActionAllow, jwtRequirement),
-			),
-		},
-		"empty-top-level-jwt-with-one-permission": {
-			intentionDefaultAllow: false,
-			intentions: sorted(
-				testIntentionWithJWT("web", structs.IntentionActionAllow, nil, &structs.IntentionPermission{
-					Action: structs.IntentionActionAllow,
-					HTTP: &structs.IntentionHTTPPermission{
-						PathPrefix: "some-path",
-					},
-					JWT: jwtRequirement,
-				}),
-			),
-		},
-		"top-level-jwt-with-one-permission": {
-			intentionDefaultAllow: false,
-			intentions: sorted(
-				testIntentionWithJWT("web",
-					structs.IntentionActionAllow,
-					jwtRequirement,
-					&structs.IntentionPermission{
-						Action: structs.IntentionActionAllow,
-						HTTP: &structs.IntentionHTTPPermission{
-							PathExact: "/v1/secret",
-						},
-						JWT: auth0Requirement,
-					},
-					&structs.IntentionPermission{
-						Action: structs.IntentionActionAllow,
-						HTTP: &structs.IntentionHTTPPermission{
-							PathExact: "/v1/admin",
-						},
-					},
-				),
-			),
-		},
-		"top-level-jwt-with-multiple-permissions": {
-			intentionDefaultAllow: false,
-			intentions: sorted(
-				testIntentionWithJWT("web",
-					structs.IntentionActionAllow,
-					jwtRequirement,
-					&structs.IntentionPermission{
-						Action: structs.IntentionActionAllow,
-						HTTP: &structs.IntentionHTTPPermission{
-							PathExact: "/v1/secret",
-						},
-						JWT: auth0Requirement,
-					},
-					&structs.IntentionPermission{
-						Action: structs.IntentionActionAllow,
-						HTTP: &structs.IntentionHTTPPermission{
-							PathExact: "/v1/admin",
-						},
-						JWT: auth0Requirement,
-					},
-				),
-			),
-		},
 	}
 
 	testLocalInfo := rbacLocalInfo{
@@ -927,7 +822,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 			})
 			t.Run("http filter", func(t *testing.T) {
-				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testLocalInfo, testPeerTrustBundle, testJWTProviderConfigEntry)
+				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testLocalInfo, testPeerTrustBundle)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
@@ -960,15 +855,15 @@ func TestRemoveSameSourceIntentions(t *testing.T) {
 		ixn.UpdatePrecedence()
 		return ixn
 	}
-	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
+	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.SimplifiedIntentions(ixns)
+		return structs.Intentions(ixns)
 	}
 	tests := map[string]struct {
-		in     structs.SimplifiedIntentions
-		expect structs.SimplifiedIntentions
+		in     structs.Intentions
+		expect structs.Intentions
 	}{
 		"empty": {},
 		"one": {
@@ -1159,128 +1054,6 @@ func TestSpiffeMatcher(t *testing.T) {
 			require.Equal(t, c.namespace, m[3])
 			require.Equal(t, c.datacenter, m[4])
 			require.Equal(t, c.service, m[5])
-		})
-	}
-}
-
-func TestPathToSegments(t *testing.T) {
-	tests := map[string]struct {
-		key      string
-		paths    []string
-		expected []*envoy_matcher_v3.MetadataMatcher_PathSegment
-	}{
-		"single-path": {
-			key:   "jwt_payload_okta",
-			paths: []string{"perms"},
-			expected: []*envoy_matcher_v3.MetadataMatcher_PathSegment{
-				{
-					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "jwt_payload_okta"},
-				},
-				{
-					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "perms"},
-				},
-			},
-		},
-		"multi-paths": {
-			key:   "jwt_payload_okta",
-			paths: []string{"perms", "roles"},
-			expected: []*envoy_matcher_v3.MetadataMatcher_PathSegment{
-				{
-					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "jwt_payload_okta"},
-				},
-				{
-					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "perms"},
-				},
-				{
-					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "roles"},
-				},
-			},
-		},
-	}
-
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			segments := pathToSegments(tt.paths, tt.key)
-			require.ElementsMatch(t, segments, tt.expected)
-		})
-	}
-}
-
-func TestJWTClaimsToPrincipals(t *testing.T) {
-	var (
-		firstClaim = structs.IntentionJWTClaimVerification{
-			Path:  []string{"perms"},
-			Value: "admin",
-		}
-		secondClaim = structs.IntentionJWTClaimVerification{
-			Path:  []string{"passage"},
-			Value: "secret",
-		}
-		payloadKey     = "dummy-key"
-		firstPrincipal = envoy_rbac_v3.Principal{
-			Identifier: &envoy_rbac_v3.Principal_Metadata{
-				Metadata: &envoy_matcher_v3.MetadataMatcher{
-					Filter: jwtEnvoyFilter,
-					Path:   pathToSegments(firstClaim.Path, payloadKey),
-					Value: &envoy_matcher_v3.ValueMatcher{
-						MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
-							StringMatch: &envoy_matcher_v3.StringMatcher{
-								MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-									Exact: firstClaim.Value,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		secondPrincipal = envoy_rbac_v3.Principal{
-			Identifier: &envoy_rbac_v3.Principal_Metadata{
-				Metadata: &envoy_matcher_v3.MetadataMatcher{
-					Filter: jwtEnvoyFilter,
-					Path:   pathToSegments(secondClaim.Path, payloadKey),
-					Value: &envoy_matcher_v3.ValueMatcher{
-						MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
-							StringMatch: &envoy_matcher_v3.StringMatcher{
-								MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-									Exact: secondClaim.Value,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-	)
-	tests := map[string]struct {
-		claims             []*structs.IntentionJWTClaimVerification
-		metadataPayloadKey string
-		expected           *envoy_rbac_v3.Principal
-	}{
-		"single-claim": {
-			claims:             []*structs.IntentionJWTClaimVerification{&firstClaim},
-			metadataPayloadKey: payloadKey,
-			expected:           &firstPrincipal,
-		},
-		"multiple-claims": {
-			claims:             []*structs.IntentionJWTClaimVerification{&firstClaim, &secondClaim},
-			metadataPayloadKey: payloadKey,
-			expected: &envoy_rbac_v3.Principal{
-				Identifier: &envoy_rbac_v3.Principal_AndIds{
-					AndIds: &envoy_rbac_v3.Principal_Set{
-						Ids: []*envoy_rbac_v3.Principal{&firstPrincipal, &secondPrincipal},
-					},
-				},
-			},
-		},
-	}
-
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			principal := jwtClaimsToPrincipals(tt.claims, tt.metadataPayloadKey)
-			require.Equal(t, principal, tt.expected)
 		})
 	}
 }

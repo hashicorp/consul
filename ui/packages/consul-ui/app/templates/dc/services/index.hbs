@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <Route
   @name={{routeName}}
 as |route|>
@@ -123,23 +118,21 @@ as |sort filters items partition nspace|}}
                 }}
               </BlockSlot>
               <BlockSlot @name="actions">
-                <li>
-                  <Hds::Link::Standalone
-                    @text='Documentation on Services'
+                <li class="docs-link">
+                  <Action
                     @href="{{env 'CONSUL_DOCS_URL'}}/commands/services"
-                    @icon='docs-link'
-                    @iconPosition='trailing'
-                    @size='small'
-                  />
+                    @external={{true}}
+                  >
+                    Documentation on Services
+                  </Action>
                 </li>
-                <li>
-                  <Hds::Link::Standalone
-                    @text='Take the tutorial'
+                <li class="learn-link">
+                  <Action
                     @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services"
-                    @icon='learn-link'
-                    @iconPosition='trailing'
-                    @size='small'
-                  />
+                    @external={{true}}
+                  >
+                    Take the tutorial
+                  </Action>
                 </li>
               </BlockSlot>
             </EmptyState>

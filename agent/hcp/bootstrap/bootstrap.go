@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // Package bootstrap handles bootstrapping an agent's config from HCP. It must be a
 // separate package from other HCP components because it has a dependency on
 // agent/config while other components need to be imported and run within the

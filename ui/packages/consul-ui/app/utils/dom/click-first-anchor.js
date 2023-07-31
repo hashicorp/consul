@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 const clickEvent = function ($el) {
   ['mousedown', 'mouseup', 'click']
     .map(function (type) {

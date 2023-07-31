@@ -37,40 +37,6 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "endpoints": [
-        {
-          "lbEndpoints": [
-            {
-              "endpoint": {
-                "address": {
-                  "socketAddress": {
-                    "address": "10.10.1.3",
-                    "portValue": 8080
-                  }
-                }
-              },
-              "healthStatus": "HEALTHY",
-              "loadBalancingWeight": 128
-            },
-            {
-              "endpoint": {
-                "address": {
-                  "socketAddress": {
-                    "address": "10.10.1.4",
-                    "portValue": 8080
-                  }
-                }
-              },
-              "healthStatus": "HEALTHY",
-              "loadBalancingWeight": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
@@ -160,72 +126,6 @@
                 "address": {
                   "socketAddress": {
                     "address": "10.10.1.2",
-                    "portValue": 8080
-                  }
-                }
-              },
-              "healthStatus": "HEALTHY",
-              "loadBalancingWeight": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "exported~v2.api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "endpoints": [
-        {
-          "lbEndpoints": [
-            {
-              "endpoint": {
-                "address": {
-                  "socketAddress": {
-                    "address": "10.10.1.4",
-                    "portValue": 8080
-                  }
-                }
-              },
-              "healthStatus": "HEALTHY",
-              "loadBalancingWeight": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "v1.api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "endpoints": [
-        {
-          "lbEndpoints": [
-            {
-              "endpoint": {
-                "address": {
-                  "socketAddress": {
-                    "address": "10.10.1.3",
-                    "portValue": 8080
-                  }
-                }
-              },
-              "healthStatus": "HEALTHY",
-              "loadBalancingWeight": 128
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "v2.api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "endpoints": [
-        {
-          "lbEndpoints": [
-            {
-              "endpoint": {
-                "address": {
-                  "socketAddress": {
-                    "address": "10.10.1.4",
                     "portValue": 8080
                   }
                 }

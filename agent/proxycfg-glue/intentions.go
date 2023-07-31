@@ -1,20 +1,17 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfgglue
 
 import (
 	"context"
+	"fmt"
 	"sort"
-
-	"github.com/hashicorp/go-memdb"
+	"sync"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/structs/aclfilter"
+	"github.com/hashicorp/consul/agent/submatview"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // CacheIntentions satisfies the proxycfg.Intentions interface by sourcing data
@@ -27,19 +24,17 @@ type cacheIntentions struct {
 	c *cache.Cache
 }
 
-func toIntentionMatchEntry(req *structs.ServiceSpecificRequest) structs.IntentionMatchEntry {
-	return structs.IntentionMatchEntry{
-		Partition: req.PartitionOrDefault(),
-		Namespace: req.NamespaceOrDefault(),
-		Name:      req.ServiceName,
-	}
-}
-
 func (c cacheIntentions) Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
 	query := &structs.IntentionQueryRequest{
 		Match: &structs.IntentionQueryMatch{
-			Type:    structs.IntentionMatchDestination,
-			Entries: []structs.IntentionMatchEntry{toIntentionMatchEntry(req)},
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Partition: req.PartitionOrDefault(),
+					Namespace: req.NamespaceOrDefault(),
+					Name:      req.ServiceName,
+				},
+			},
 		},
 		QueryOptions: structs.QueryOptions{Token: req.QueryOptions.Token},
 	}
@@ -51,9 +46,9 @@ func (c cacheIntentions) Notify(ctx context.Context, req *structs.ServiceSpecifi
 				return
 			}
 
-			var matches structs.SimplifiedIntentions
+			var matches structs.Intentions
 			if len(rsp.Matches) != 0 {
-				matches = structs.SimplifiedIntentions(rsp.Matches[0])
+				matches = rsp.Matches[0]
 			}
 			result = matches
 		}
@@ -76,29 +71,111 @@ type serverIntentions struct {
 }
 
 func (s *serverIntentions) Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
-	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,
-		func(ws memdb.WatchSet, store Store) (uint64, structs.SimplifiedIntentions, error) {
-			authz, err := s.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, &req.EnterpriseMeta, nil)
-			if err != nil {
-				return 0, nil, err
+	// We may consume *multiple* streams (to handle wildcard intentions) and merge
+	// them into a single list of intentions.
+	//
+	// An alternative approach would be to consume events for all intentions and
+	// filter out the irrelevant ones. This would remove some complexity here but
+	// at the expense of significant overhead.
+	subjects := s.buildSubjects(req.ServiceName, req.EnterpriseMeta)
+
+	// mu guards state, as the callback functions provided in NotifyCallback below
+	// will be called in different goroutines.
+	var mu sync.Mutex
+	state := make([]*structs.ConfigEntryResponse, len(subjects))
+
+	// buildEvent constructs an event containing the matching intentions received
+	// from NotifyCallback calls below. If we have not received initial snapshots
+	// for all streams yet, the event will be empty and the second return value will
+	// be false (causing no event to be emittied).
+	//
+	// Note: mu must be held when calling this function.
+	buildEvent := func() (proxycfg.UpdateEvent, bool) {
+		intentions := make(structs.Intentions, 0)
+
+		for _, result := range state {
+			if result == nil {
+				return proxycfg.UpdateEvent{}, false
 			}
-			match := toIntentionMatchEntry(req)
+			si, ok := result.Entry.(*structs.ServiceIntentionsConfigEntry)
+			if !ok {
+				continue
+			}
+			intentions = append(intentions, si.ToIntentions()...)
+		}
 
-			index, ixns, err := store.IntentionMatchOne(ws, match, structs.IntentionMatchDestination, structs.IntentionTargetService)
-			if err != nil {
-				return 0, nil, err
+		sort.Sort(structs.IntentionPrecedenceSorter(intentions))
+
+		return newUpdateEvent(correlationID, intentions, nil), true
+	}
+
+	for subjectIdx, subject := range subjects {
+		subjectIdx := subjectIdx
+
+		storeReq := intentionsRequest{
+			deps:    s.deps,
+			baseReq: req,
+			subject: subject,
+		}
+		err := s.deps.ViewStore.NotifyCallback(ctx, storeReq, correlationID, func(ctx context.Context, cacheEvent cache.UpdateEvent) {
+			mu.Lock()
+			state[subjectIdx] = cacheEvent.Result.(*structs.ConfigEntryResponse)
+			event, ready := buildEvent()
+			mu.Unlock()
+
+			if ready {
+				select {
+				case ch <- event:
+				case <-ctx.Done():
+				}
 			}
 
-			indexedIntentions := &structs.IndexedIntentions{
-				Intentions: structs.Intentions(ixns),
-			}
+		})
+		if err != nil {
+			return err
+		}
+	}
 
-			aclfilter.New(authz, s.deps.Logger).Filter(indexedIntentions)
-
-			sort.Sort(structs.IntentionPrecedenceSorter(indexedIntentions.Intentions))
-
-			return index, structs.SimplifiedIntentions(indexedIntentions.Intentions), nil
-		},
-		dispatchBlockingQueryUpdate[structs.SimplifiedIntentions](ch),
-	)
+	return nil
 }
+
+type intentionsRequest struct {
+	deps    ServerDataSourceDeps
+	baseReq *structs.ServiceSpecificRequest
+	subject *pbsubscribe.NamedSubject
+}
+
+func (r intentionsRequest) CacheInfo() cache.RequestInfo {
+	info := r.baseReq.CacheInfo()
+	info.Key = fmt.Sprintf("%s/%s/%s/%s",
+		r.subject.PeerName,
+		r.subject.Partition,
+		r.subject.Namespace,
+		r.subject.Key,
+	)
+	return info
+}
+
+func (r intentionsRequest) NewMaterializer() (submatview.Materializer, error) {
+	return submatview.NewLocalMaterializer(submatview.LocalMaterializerDeps{
+		Backend:     r.deps.EventPublisher,
+		ACLResolver: r.deps.ACLResolver,
+		Deps: submatview.Deps{
+			View:    &configEntryView{},
+			Logger:  r.deps.Logger,
+			Request: r.Request,
+		},
+	}), nil
+}
+
+func (r intentionsRequest) Request(index uint64) *pbsubscribe.SubscribeRequest {
+	return &pbsubscribe.SubscribeRequest{
+		Topic:      pbsubscribe.Topic_ServiceIntentions,
+		Index:      index,
+		Datacenter: r.baseReq.Datacenter,
+		Token:      r.baseReq.Token,
+		Subject:    &pbsubscribe.SubscribeRequest_NamedSubject{NamedSubject: r.subject},
+	}
+}
+
+func (r intentionsRequest) Type() string { return "proxycfgglue.ServiceIntentions" }

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 // This files export is executed from 2 places:
 // 1. consul-ui/tests/acceptance/steps/steps.js - run during testing
 // 2. consul-ui/lib/commands/lib/list.js - run when listing steps via the CLI

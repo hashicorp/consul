@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 import { get, action } from '@ember/object';
@@ -35,7 +30,7 @@ export default class AuthDialog extends Component {
     if (typeof prev !== 'undefined' && prev !== current) {
       type = 'use';
     }
-    this.args.onchange({ data: this.token, type: type });
+    this.args.onchange({ data: get(this, 'token'), type: type });
   }
 
   @action

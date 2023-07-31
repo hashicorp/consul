@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import callIfType from 'consul-ui/utils/helpers/call-if-type';
 import { module, test } from 'qunit';
 

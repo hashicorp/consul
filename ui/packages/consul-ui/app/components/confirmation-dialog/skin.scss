@@ -1,11 +1,6 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 table div.with-confirmation.confirming {
-  background-color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-gray-000));
 }
 %confirmation-dialog-inline p {
-  color: var(--token-color-foreground-disabled);
+  color: rgb(var(--tone-gray-400));
 }

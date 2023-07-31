@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -910,11 +907,6 @@ type APIGatewayTLSConfiguration struct {
 	MinVersion types.TLSVersion
 	// CipherSuites is the cipher suites that the listener should support.
 	CipherSuites []types.TLSCipherSuite
-}
-
-// IsEmpty returns true if all values in the struct are nil or empty.
-func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
-	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
 
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API

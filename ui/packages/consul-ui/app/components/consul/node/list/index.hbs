@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <ListCollection
   class="consul-node-list"
   @items={{@items}}
@@ -48,18 +43,6 @@ as |item index|>
           @name="Address"
         />
         {{item.Address}}
-      </dd>
-    </dl>
-    <dl>
-      <dt>
-        <span>ConsulVersion</span>
-      </dt>
-      <dd>
-          {{!-- Displaying consul version from node meta data --}}
-          {{#if item.Meta.consul-version}}
-            <FlightIcon class='w-4 h-4' @size='24' @name='consul-color' @stretched={{true}} />
-            <span>v{{item.Meta.consul-version}}</span>
-          {{/if}}
       </dd>
     </dl>
   </BlockSlot>

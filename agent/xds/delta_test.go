@@ -1,21 +1,15 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
 	"errors"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/go-hclog"
-	goversion "github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
@@ -27,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1065,15 +1058,6 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var stopped bool
-			lock := &sync.RWMutex{}
-
-			defer func() {
-				lock.Lock()
-				stopped = true
-				lock.Unlock()
-			}()
-
 			// aclResolve may be called in a goroutine even after a
 			// testcase tt returns. Capture the variable as tc so the
 			// values don't swap in the next iteration.
@@ -1087,14 +1071,6 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 					// No token and defaultDeny is denied
 					return acl.RootAuthorizer("deny"), nil
 				}
-
-				lock.RLock()
-				defer lock.RUnlock()
-
-				if stopped {
-					return acl.DenyAll().ToAllowAuthorizer(), nil
-				}
-
 				// Ensure the correct token was passed
 				require.Equal(t, tc.token, id)
 				// Parse the ACL and enforce it
@@ -1610,116 +1586,5 @@ func requireExtensionMetrics(
 			}
 		}
 		require.True(t, foundLabel)
-	}
-}
-
-func Test_applyEnvoyExtension_Validations(t *testing.T) {
-	type testCase struct {
-		name          string
-		runtimeConfig extensioncommon.RuntimeConfig
-		err           bool
-		errString     string
-	}
-
-	envoyVersion, _ := goversion.NewVersion("1.25.0")
-	consulVersion, _ := goversion.NewVersion("1.16.0")
-
-	svc := api.CompoundServiceName{
-		Name:      "s1",
-		Partition: "ap1",
-		Namespace: "ns1",
-	}
-
-	makeRuntimeConfig := func(required bool, consulVersion string, envoyVersion string, args map[string]interface{}) extensioncommon.RuntimeConfig {
-		if args == nil {
-			args = map[string]interface{}{
-				"ARN": "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
-			}
-
-		}
-		return extensioncommon.RuntimeConfig{
-			EnvoyExtension: api.EnvoyExtension{
-				Name:          api.BuiltinAWSLambdaExtension,
-				Required:      required,
-				ConsulVersion: consulVersion,
-				EnvoyVersion:  envoyVersion,
-				Arguments:     args,
-			},
-			ServiceName: svc,
-		}
-	}
-
-	cases := []testCase{
-		{
-			name:          "invalid consul version constraint - required",
-			runtimeConfig: makeRuntimeConfig(true, "bad", ">= 1.0", nil),
-			err:           true,
-			errString:     "failed to parse Consul version constraint for extension",
-		},
-		{
-			name:          "invalid consul version constraint - not required",
-			runtimeConfig: makeRuntimeConfig(false, "bad", ">= 1.0", nil),
-			err:           false,
-		},
-		{
-			name:          "invalid envoy version constraint - required",
-			runtimeConfig: makeRuntimeConfig(true, ">= 1.0", "bad", nil),
-			err:           true,
-			errString:     "failed to parse Envoy version constraint for extension",
-		},
-		{
-			name:          "invalid envoy version constraint - not required",
-			runtimeConfig: makeRuntimeConfig(false, ">= 1.0", "bad", nil),
-			err:           false,
-		},
-		{
-			name:          "no envoy version constraint match",
-			runtimeConfig: makeRuntimeConfig(false, "", ">= 2.0.0", nil),
-			err:           false,
-		},
-		{
-			name:          "no consul version constraint match",
-			runtimeConfig: makeRuntimeConfig(false, ">= 2.0.0", "", nil),
-			err:           false,
-		},
-		{
-			name:          "invalid extension arguments - required",
-			runtimeConfig: makeRuntimeConfig(true, ">= 1.15.0", ">= 1.25.0", map[string]interface{}{"bad": "args"}),
-			err:           true,
-			errString:     "failed to construct extension",
-		},
-		{
-			name:          "invalid extension arguments - not required",
-			runtimeConfig: makeRuntimeConfig(false, ">= 1.15.0", ">= 1.25.0", map[string]interface{}{"bad": "args"}),
-			err:           false,
-		},
-		{
-			name:          "valid everything - no resources and required",
-			runtimeConfig: makeRuntimeConfig(true, ">= 1.15.0", ">= 1.25.0", nil),
-			err:           true,
-			errString:     "failed to patch xDS resources in",
-		},
-		{
-			name:          "valid everything",
-			runtimeConfig: makeRuntimeConfig(false, ">= 1.15.0", ">= 1.25.0", nil),
-			err:           false,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			snap := proxycfg.ConfigSnapshot{
-				ProxyID: proxycfg.ProxyID{
-					ServiceID: structs.NewServiceID("s1", nil),
-				},
-			}
-			err := applyEnvoyExtension(hclog.NewNullLogger(), &snap, nil, tc.runtimeConfig, envoyVersion, consulVersion)
-			if tc.err {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.errString)
-			} else {
-				require.NoError(t, err)
-			}
-		})
 	}
 }

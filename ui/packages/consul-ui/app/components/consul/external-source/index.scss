@@ -1,10 +1,5 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .consul-external-source {
-  @extend %pill-200, %frame-gray-600, %body-200-regular;
+  @extend %pill-200, %frame-gray-600, %p1;
 }
 
 .consul-external-source::before {

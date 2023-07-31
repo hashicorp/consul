@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cluster
 
 import (
@@ -20,7 +17,6 @@ func createNetwork(t TestingT, name string) (testcontainers.Network, error) {
 			Name:           name,
 			Attachable:     true,
 			CheckDuplicate: true,
-			SkipReaper:     isRYUKDisabled(),
 		},
 	}
 	first := true

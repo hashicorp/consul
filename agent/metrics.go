@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -30,19 +27,17 @@ func tlsCertExpirationMonitor(c *tlsutil.Configurator, logger hclog.Logger) cons
 	return consul.CertExpirationMonitor{
 		Key:    metricsKeyAgentTLSCertExpiry,
 		Logger: logger,
-		Query: func() (time.Duration, time.Duration, error) {
+		Query: func() (time.Duration, error) {
 			raw := c.Cert()
 			if raw == nil {
-				return 0, 0, fmt.Errorf("tls not enabled")
+				return 0, fmt.Errorf("tls not enabled")
 			}
 
 			cert, err := x509.ParseCertificate(raw.Certificate[0])
 			if err != nil {
-				return 0, 0, fmt.Errorf("failed to parse agent tls cert: %w", err)
+				return 0, fmt.Errorf("failed to parse agent tls cert: %w", err)
 			}
-
-			lifetime := time.Since(cert.NotBefore) + time.Until(cert.NotAfter)
-			return lifetime, time.Until(cert.NotAfter), nil
+			return time.Until(cert.NotAfter), nil
 		},
 	}
 }

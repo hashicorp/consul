@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import StateService from 'consul-ui/services/state';
 
 import validate from 'consul-ui/machines/validate.xstate';
