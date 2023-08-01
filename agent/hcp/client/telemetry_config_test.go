@@ -84,7 +84,7 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 	for name, tc := range map[string]struct {
 		resp                 *consul_telemetry_service.AgentTelemetryConfigOK
 		expectedTelemetryCfg *TelemetryConfig
-		wantErr              string
+		wantErr              error
 		expectedEnabled      bool
 	}{
 		"success": {
@@ -179,7 +179,7 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "invalid refresh interval",
+			wantErr: errInvalidRefreshInterval,
 		},
 		"errorsWithInvalidEndpoint": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -194,14 +194,13 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "failed to parse metrics endpoint",
+			wantErr: errInvalidEndpoint,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			telemetryCfg, err := convertAgentTelemetryResponse(context.Background(), tc.resp, config.CloudConfig{})
-			if tc.wantErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.wantErr)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
 				require.Nil(t, telemetryCfg)
 				return
 			}
@@ -218,7 +217,7 @@ func TestConvertMetricEndpoint(t *testing.T) {
 		endpoint string
 		override string
 		expected string
-		wantErr  string
+		wantErr  error
 	}{
 		"success": {
 			endpoint: "https://test.com",
@@ -237,16 +236,15 @@ func TestConvertMetricEndpoint(t *testing.T) {
 		"errorWithInvalidURL": {
 			endpoint: "     ",
 			override: "",
-			wantErr:  "failed to parse url",
+			wantErr:  errInvalidEndpoint,
 		},
 	} {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			u, err := convertMetricEndpoint(tc.endpoint, tc.override)
-			if tc.wantErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.wantErr)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
 				require.Empty(t, u)
 				return
 			}

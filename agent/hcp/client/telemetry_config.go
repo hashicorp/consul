@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 
 	"github.com/hashicorp/consul/agent/hcp/config"
@@ -25,6 +24,8 @@ var (
 	errMissingTelemetryConfig = errors.New("missing telemetry config")
 	errMissingRefreshConfig   = errors.New("missing refresh config")
 	errMissingMetricsConfig   = errors.New("missing metrics config")
+	errInvalidRefreshInterval = errors.New("invalid refresh interval")
+	errInvalidEndpoint        = errors.New("invalid metrics endpoint")
 )
 
 // TelemetryConfig contains configuration for telemetry data forwarded by Consul servers
@@ -76,14 +77,15 @@ func validateAgentTelemetryConfigPayload(resp *hcptelemetry.AgentTelemetryConfig
 func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.AgentTelemetryConfigOK, cfg config.CloudConfig) (*TelemetryConfig, error) {
 	refreshInterval, err := time.ParseDuration(resp.Payload.RefreshConfig.RefreshInterval)
 	if err != nil {
-		return nil, fmt.Errorf("invalid refresh interval: %w", err)
+		return nil, fmt.Errorf("%w: %w", errInvalidRefreshInterval, err)
 	}
 
 	telemetryConfig := resp.Payload.TelemetryConfig
 	metricsEndpoint, err := convertMetricEndpoint(telemetryConfig.Endpoint, telemetryConfig.Metrics.Endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse metrics endpoint: %w", err)
+		return nil, errInvalidEndpoint
 	}
+
 	metricsFilters := convertMetricFilters(ctx, telemetryConfig.Metrics.IncludeList)
 	metricLabels := convertMetricLabels(telemetryConfig.Labels, cfg)
 
@@ -118,7 +120,7 @@ func convertMetricEndpoint(telemetryEndpoint string, metricsEndpoint string) (*u
 	rawUrl := endpoint + metricsGatewayPath
 	u, err := url.ParseRequestURI(rawUrl)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse url: %w", err)
+		return nil, fmt.Errorf("%w: %w", errInvalidEndpoint, err)
 	}
 
 	return u, nil
@@ -128,20 +130,18 @@ func convertMetricEndpoint(telemetryEndpoint string, metricsEndpoint string) (*u
 // if invalid filters are given, a defaults regex that allow all metrics is returned.
 func convertMetricFilters(ctx context.Context, payloadFilters []string) *regexp.Regexp {
 	logger := hclog.FromContext(ctx)
-
-	var mErr error
 	validFilters := make([]string, 0, len(payloadFilters))
 	for _, filter := range payloadFilters {
 		_, err := regexp.Compile(filter)
 		if err != nil {
-			mErr = multierror.Append(mErr, fmt.Errorf("compilation of filter %q failed: %w", filter, err))
+			logger.Error("invalid filter", "error", err)
 			continue
 		}
 		validFilters = append(validFilters, filter)
 	}
 
 	if len(validFilters) == 0 {
-		logger.Error("no valid filters", "error", mErr)
+		logger.Error("no valid filters")
 		return defaultMetricFilters
 	}
 
@@ -149,7 +149,7 @@ func convertMetricFilters(ctx context.Context, payloadFilters []string) *regexp.
 	finalRegex := strings.Join(validFilters, "|")
 	composedRegex, err := regexp.Compile(finalRegex)
 	if err != nil {
-		logger.Error("failed to compile regex", "error", mErr)
+		logger.Error("failed to compile final regex", "error", err)
 		return defaultMetricFilters
 	}
 
