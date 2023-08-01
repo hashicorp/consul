@@ -120,14 +120,16 @@ func (h *hcpProviderImpl) getUpdate(ctx context.Context) *dynamicConfig {
 		Labels:          telemetryCfg.MetricsConfig.Labels,
 		RefreshInterval: newRefreshInterval,
 	}
+	// Any success metric must be recorded before acquiring a write lock for config modifications
+	// to avoid a deadlock. The metric gets registered in the OTELSink via the FanoutSink of Go Metrics.
+	// The OTELSink tries to acquire a read lock to determine the metric filters using GetFilters().
+	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
 
 	// Acquire write lock to update new configuration.
 	h.rw.Lock()
 	defer h.rw.Unlock()
 
 	h.cfg = newDynamicConfig
-
-	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
 
 	return newDynamicConfig
 }
