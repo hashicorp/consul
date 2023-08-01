@@ -1,4 +1,4 @@
 ```release-note:feature
 Admin Partitions (Consul Enterprise only) This version adds admin partitions, a new entity defining administrative and networking boundaries within a Consul deployment. For more information refer to the
- [Admin Partition](https://developer.hashicorp.com/consul/docs/enterprise/admin-partitions) documentation.
+ [Admin Partition](https://www.consul.io/docs/enterprise/admin-partitions) documentation.
 ```

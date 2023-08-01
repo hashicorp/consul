@@ -298,7 +298,7 @@ type QueryOptions struct {
 	// returned. Clients that wish to allow for stale results on error can set
 	// StaleIfError to a longer duration to change this behavior. It is ignored
 	// if the endpoint supports background refresh caching. See
-	// https://developer.hashicorp.com/consul/api-docs#agent-caching for more details.
+	// https://developer.hashicorp.com/consul/api-docs/features/caching for more details.
 	MaxAge time.Duration `mapstructure:"max-age,omitempty"`
 
 	// MustRevalidate forces the agent to fetch a fresh version of a cached

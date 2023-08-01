@@ -178,7 +178,7 @@ type ResultMeta struct {
 
 	// Age identifies how "stale" the result is. It's semantics differ based on
 	// whether or not the cache type performs background refresh or not as defined
-	// in https://developer.hashicorp.com/consul/api-docs#agent-caching.
+	// in https://developer.hashicorp.com/consul/api-docs/features/caching.
 	//
 	// For background refresh types, Age is 0 unless the background blocking query
 	// is currently in a failed state and so not keeping up with the server's
