@@ -45,9 +45,13 @@ func GetTokenAccessorIDFromPartial(client *api.Client, partialAccessorID string)
 }
 
 func GetPolicyIDFromPartial(client *api.Client, partialID string) (string, error) {
-	if partialID == "global-management" {
-		return structs.ACLPolicyGlobalManagementID, nil
+	// try the builtin policies (by name) first
+	for _, policy := range structs.ACLBuiltinPolicies {
+		if partialID == policy.Name {
+			return policy.ID, nil
+		}
 	}
+
 	// The full UUID string was given
 	if len(partialID) == 36 {
 		return partialID, nil
