@@ -190,8 +190,8 @@ jobs:
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: ${{ always() }}
         with:
-          name: jsonfile
-          path: /tmp/jsonfile-${{ inputs.artifact_namespace }}
+          name: jsonfile-${{ inputs.artifact_namespace }}
+          path: /tmp/jsonfile
       - name: "Re-run fails report"
         run: |
           .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
