@@ -917,7 +917,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 
 		if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
 			if policy.Datacenters != nil || len(policy.Datacenters) > 0 {
-				return fmt.Errorf("Changing the Datacenters of the builtin %s policy is not permitted", builtinPolicy.Name)
+				return fmt.Errorf("Changing the Datacenters of the %s policy is not permitted", builtinPolicy.Name)
 			}
 
 			if policy.Rules != idMatch.Rules {
