@@ -86,7 +86,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		ID:          structs.ACLPolicyGlobalManagementID,
 		Name:        "global-management",
 		Description: "Builtin Policy that grants unlimited access",
-		Rules:       structs.ACLPolicyGlobalManagement,
+		Rules:       structs.ACLPolicyGlobalManagementRules,
 		Syntax:      acl.SyntaxCurrent,
 	}
 	policy.SetHash(true)
