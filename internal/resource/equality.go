@@ -122,6 +122,10 @@ func EqualReference(a, b *pbresource.Reference) bool {
 
 // ReferenceOrIDMatch compares two references or IDs to see if they both refer
 // to the same thing.
+//
+// Note that this only compares fields that are common between them as
+// represented by the ReferenceOrID interface and notably ignores the section
+// field on references and the uid field on ids.
 func ReferenceOrIDMatch(ref1, ref2 ReferenceOrID) bool {
 	if ref1 == nil || ref2 == nil {
 		return false
