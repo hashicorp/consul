@@ -1,0 +1,64 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+import "pbresource/resource.proto";
+
+// NOTE: roughly equivalent to structs.ResourceReference
+message ParentReference {
+  // For east/west configuration, this should point to a pbcatalog.Service.
+  // For north/south it should point to a gateway (TBD)
+  hashicorp.consul.resource.Reference ref = 1;
+
+  // Port is the network port this Route targets. It can be interpreted
+  // differently based on the type of parent resource.
+  //
+  // When the parent resource is a Gateway, this targets all listeners
+  // listening on the specified port that also support this kind of Route(and
+  // select this Route). It’s not recommended to set Port unless the networking
+  // behaviors specified in a Route must apply to a specific port as opposed to
+  // a listener(s) whose port(s) may be changed. When both Port and SectionName
+  // are specified, the name and port of the selected listener must match both
+  // specified values.
+  //
+  // Implementations MAY choose to support other parent resources.
+  // Implementations supporting other types of parent resources MUST clearly
+  // document how/if Port is interpreted.
+  //
+  // For the purpose of status, an attachment is considered successful as long
+  // as the parent resource accepts it partially. For example, Gateway
+  // listeners can restrict which Routes can attach to them by Route kind,
+  // namespace, or hostname. If 1 of 2 Gateway listeners accept attachment from
+  // the referencing Route, the Route MUST be considered successfully attached.
+  // If no Gateway listeners accept attachment from this Route, the Route MUST
+  // be considered detached from the Gateway.
+  //
+  // For east/west this is the name of the consul port.
+  // For north/south this is the stringified integer port expected by GAMMA.
+  //
+  // https://gateway-api.sigs.k8s.io/geps/gep-957/
+  string port = 2;
+}
+
+message BackendReference {
+  // For east/west configuration, this should point to either a
+  // pbcatalog.Service or ServiceSubset.
+  //
+  // For Partition/PeerName fields likely we could map them to ServiceImports
+  // (MCS+GAMMA) when translating
+  hashicorp.consul.resource.Reference ref = 1;
+
+  // For east/west this is the name of the consul port.
+  string port = 2;
+
+  // NOT IN GAMMA; multi-cluster + GWapi is still unknown
+  //
+  // Likely we could map this to ServiceImports (MCS+GAMMA) when translating
+  // to/from k8s.
+  //
+  // https://gateway-api.sigs.k8s.io/geps/gep-1748/
+  string datacenter = 3;
+}
