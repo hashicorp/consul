@@ -62,7 +62,7 @@ type AutopilotConfiguration struct {
 }
 
 // Defines default values for the AutopilotConfiguration type, consistent with
-// https://www.consul.io/api-docs/operator/autopilot#parameters-1
+// https://developer.hashicorp.com/consul/api-docs/operator/autopilot
 func NewAutopilotConfiguration() AutopilotConfiguration {
 	cfg := AutopilotConfiguration{
 		CleanupDeadServers:      true,

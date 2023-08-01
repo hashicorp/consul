@@ -2196,7 +2196,7 @@ const peersInfoContent = `
 As of Consul 0.7.0, the peers.json file is only used for recovery
 after an outage. The format of this file depends on what the server has
 configured for its Raft protocol version. Please see the agent configuration
-page at https://www.consul.io/docs/agent/config/cli-flags#_raft_protocol for more
+page at https://developer.hashicorp.com/consul/docs/agent/config/cli-flags#_raft_protocol for more
 details about this parameter.
 
 For Raft protocol version 2 and earlier, this should be formatted as a JSON
@@ -2239,7 +2239,7 @@ The "address" field is the address and port of the server.
 
 The "non_voter" field controls whether the server is a non-voter, which is used
 in some advanced Autopilot configurations, please see
-https://www.consul.io/docs/guides/autopilot.html for more information. If
+https://developer.hashicorp.com/consul/tutorials/datacenter-operations/autopilot-datacenter-operations for more information. If
 "non_voter" is omitted it will default to false, which is typical for most
 clusters.
 
@@ -2256,5 +2256,5 @@ creating the peers.json file, and that all servers receive the same
 configuration. Once the peers.json file is successfully ingested and applied, it
 will be deleted.
 
-Please see https://www.consul.io/docs/guides/outage.html for more information.
+Please see https://developer.hashicorp.com/consul/tutorials/datacenter-operations/recovery-outage for more information.
 `

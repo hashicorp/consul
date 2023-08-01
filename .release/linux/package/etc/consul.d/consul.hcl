@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-# Full configuration options can be found at https://www.consul.io/docs/agent/config
+# Full configuration options can be found at https://developer.hashicorp.com/consul/docs/agent/config
 
 # datacenter
 # This flag controls the datacenter in which the agent is running. If not provided,
@@ -92,8 +92,7 @@ data_dir = "/opt/consul"
 #retry_join = ["[::1]:8301"]
 #retry_join = ["consul.domain.internal", "10.0.4.67"]
 # Cloud Auto-join examples:
-# More details - https://www.consul.io/docs/agent/cloud-auto-join
+# More details - https://developer.hashicorp.com/consul/docs/install/cloud-auto-join
 #retry_join = ["provider=aws tag_key=... tag_value=..."]
 #retry_join = ["provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."]
 #retry_join = ["provider=gce project_name=... tag_value=..."]
- 

@@ -10,12 +10,12 @@ specified using command line flags, and some can be loaded with [Auto-Config].
 See also the [checklist for adding a new field] to the configuration.
 
 [hcl]: https://github.com/hashicorp/hcl/tree/hcl1
-[Agent Configuration]: https://www.consul.io/docs/agent/config
+[Agent Configuration]: https://developer.hashicorp.com/consul/docs/agent/config
 [checklist for adding a new field]: ./checklist-adding-config-fields.md
 [Auto-Config]: #auto-config
-[Config Entries]: https://www.consul.io/docs/agent/config/config-files#config_entries
-[Services]: https://www.consul.io/docs/discovery/services
-[Checks]: https://www.consul.io/docs/discovery/checks
+[Config Entries]: https://developer.hashicorp.com/consul/docs/agent/config/config-files#config_entries
+[Services]: https://developer.hashicorp.com/consul/docs/services/services
+[Checks]: https://developer.hashicorp.com/consul/docs/services/usage/register-services-checks
 
 
 ## Code
@@ -53,6 +53,6 @@ implemented in a couple packages.
 * the server RPC endpoint is in [agent/consul/auto_config_endpoint.go]
 * the client that receives and applies the config is implemented in [agent/auto-config]
 
-[auto_config]: https://www.consul.io/docs/agent/config/config-files#auto_config
+[auto_config]: https://developer.hashicorp.com/consul/docs/agent/config/config-files#auto_config
 [agent/consul/auto_config_endpoint.go]: https://github.com/hashicorp/consul/blob/main/agent/consul/auto_config_endpoint.go
 [agent/auto-config]: https://github.com/hashicorp/consul/tree/main/agent/auto-config

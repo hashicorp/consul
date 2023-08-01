@@ -10,7 +10,7 @@ import "strings"
 // This list must be sorted by semver descending. Only one point release for
 // each major release should be present.
 //
-// see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
+// see: https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#supported-versions
 var EnvoyVersions = []string{
 	"1.27.0",
 	"1.26.4",
@@ -24,7 +24,7 @@ var EnvoyVersions = []string{
 // even though 1.21 is a supported major release, you would then add 1.21.3 to this list.
 // This list will be empty in most cases.
 //
-// see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
+// see: https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#supported-versions
 var UnsupportedEnvoyVersions = []string{}
 
 // GetMaxEnvoyMinorVersion grabs the first value in EnvoyVersions and strips the patch number off in order

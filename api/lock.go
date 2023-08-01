@@ -59,7 +59,7 @@ var (
 )
 
 // Lock is used to implement client-side leader election. It is follows the
-// algorithm as described here: https://www.consul.io/docs/guides/leader-election.html.
+// algorithm as described here: https://developer.hashicorp.com/consul/tutorials/developer-configuration/application-leader-elections.
 type Lock struct {
 	c    *Client
 	opts *LockOptions

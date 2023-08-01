@@ -134,7 +134,7 @@ type QueryOptions struct {
 	RequireConsistent bool
 
 	// UseCache requests that the agent cache results locally. See
-	// https://www.consul.io/api/features/caching.html for more details on the
+	// https://developer.hashicorp.com/consul/api-docs/features/caching for more details on the
 	// semantics.
 	UseCache bool
 
@@ -144,14 +144,14 @@ type QueryOptions struct {
 	// returned. Clients that wish to allow for stale results on error can set
 	// StaleIfError to a longer duration to change this behavior. It is ignored
 	// if the endpoint supports background refresh caching. See
-	// https://www.consul.io/api/features/caching.html for more details.
+	// https://developer.hashicorp.com/consul/api-docs/features/caching for more details.
 	MaxAge time.Duration
 
 	// StaleIfError specifies how stale the client will accept a cached response
 	// if the servers are unavailable to fetch a fresh one. Only makes sense when
 	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
 	// ignored if the endpoint supports background refresh caching. See
-	// https://www.consul.io/api/features/caching.html for more details.
+	// https://developer.hashicorp.com/consul/api-docs/features/caching for more details.
 	StaleIfError time.Duration
 
 	// WaitIndex is used to enable a blocking query. Waits

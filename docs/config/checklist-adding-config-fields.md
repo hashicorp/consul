@@ -121,7 +121,7 @@ You can now access that field from `s.srv.config.<FieldName>` inside an RPC
 handler.
 
 ## Adding a New Field to Service Definition
-The [Service Definition](https://www.consul.io/docs/agent/services.html) syntax
+The [Service Definition](https://developer.hashicorp.com/consul/docs/services/services) syntax
 appears both in Consul config files but also in the `/v1/agent/service/register`
 API.
 

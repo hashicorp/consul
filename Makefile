@@ -1,5 +1,5 @@
 # For documentation on building consul from source, refer to:
-# https://www.consul.io/docs/install#compiling-from-source
+# https://developer.hashicorp.com/consul/docs/install#compiling-from-source
 
 SHELL = bash
 

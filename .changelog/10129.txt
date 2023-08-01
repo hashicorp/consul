@@ -1,4 +1,4 @@
 ```release-note:improvement
 raft: allow reloading of raft trailing logs and snapshot timing to allow recovery from some [replication failure modes](https://github.com/hashicorp/consul/issues/9609).
-telemetry: add metrics and documentation for [monitoring for replication issues](https://consul.io/docs/agent/telemetry#raft-replication-capacity-issues).
+telemetry: add metrics and documentation for [monitoring for replication issues](https://developer.hashicorp.com/consul/docs/agent/telemetry#raft-replication-capacity-issues).
 ```

@@ -3623,7 +3623,7 @@ FEATURES:
   for full details.
 * New command `consul services register` and `consul services deregister` for
   registering and deregistering services from the command line. [[GH-4732](https://github.com/hashicorp/consul/issues/4732)]
-* api: Service discovery endpoints now support [caching results in the local agent](https://www.consul.io/api/index.html#agent-caching). [[GH-4541](https://github.com/hashicorp/consul/pull/4541)]
+* api: Service discovery endpoints now support [caching results in the local agent](https://developer.hashicorp.com/consul/api-docs/features/caching). [[GH-4541](https://github.com/hashicorp/consul/pull/4541)]
 * dns: Added SOA configuration for DNS settings. [[GH-4713](https://github.com/hashicorp/consul/issues/4713)]
 
 IMPROVEMENTS:

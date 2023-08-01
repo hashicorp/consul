@@ -3,9 +3,9 @@
 ## Overview
 
 ### Description and Background
-Network areas define pairwise gossip pools over the WAN between Consul datacenters. Gossip traffic between Consul servers in an area is done over the server RPC port, and uses TCP connections. This is unlike Consul's primary WAN and LAN pools, which primarily rely on UDP-based probes. 
+Network areas define pairwise gossip pools over the WAN between Consul datacenters. Gossip traffic between Consul servers in an area is done over the server RPC port, and uses TCP connections. This is unlike Consul's primary WAN and LAN pools, which primarily rely on UDP-based probes.
 
-TCP was used because it allows configuration with TLS certificates. The TLS encryption will be used if [configured](https://www.consul.io/docs/security/encryption#rpc-encryption-with-tls) and [enabled](https://www.consul.io/api-docs/operator/area#usetls). Because gossip connects every node in that pool, there is also a connection between servers from the same datacenter. Connections between servers from the same datacenter default to using TLS if it is configured. The overhead of the TCP protocol is limited since there is a small number of servers in an area. Note that the symmetric keys used by Consul's WAN and LAN pools are not used to encrypt traffic from network areas.
+TCP was used because it allows configuration with TLS certificates. The TLS encryption will be used if [configured](https://developer.hashicorp.com/consul/docs/security/encryption#rpc-encryption-with-tls) and [enabled](https://developer.hashicorp.com/consul/api-docs/operator/area#usetls). Because gossip connects every node in that pool, there is also a connection between servers from the same datacenter. Connections between servers from the same datacenter default to using TLS if it is configured. The overhead of the TCP protocol is limited since there is a small number of servers in an area. Note that the symmetric keys used by Consul's WAN and LAN pools are not used to encrypt traffic from network areas.
 
 In versions of Consul prior to v1.8, network areas would establish a new TCP connection for every network area message. This was then substituted by connection pooling, where each server will maintain a TCP connection to every server in the network area. However, note that when a server in a version > `v1.8.0` dials a server on an older version, it will fall-back to the old connection-per-message behavior.
 
@@ -35,7 +35,7 @@ Every Consul Enterprise server maintains a reconciliation routine where every 30
 
 Joining a network area pool involves:
 1. Setting memberlist and Serf configuration. 
-   * Prior to Consul `v1.8.11` and `v1.9.5`, network areas were configured with memberlist's [DefaultWANConfig](https://github.com/hashicorp/memberlist/blob/838073fef1a4e1f6cb702a57a8075304098b1c31/config.go#L315). This was then updated to instead use the server's [gossip_wan](https://www.consul.io/docs/agent/config/config-files#gossip_wan) configuration, which falls back to the DefaultWANConfig if it was not specified. 
+   * Prior to Consul `v1.8.11` and `v1.9.5`, network areas were configured with memberlist's [DefaultWANConfig](https://github.com/hashicorp/memberlist/blob/838073fef1a4e1f6cb702a57a8075304098b1c31/config.go#L315). This was then updated to instead use the server's [gossip_wan](https://developer.hashicorp.com/consul/docs/agent/config/config-files#gossip_wan) configuration, which falls back to the DefaultWANConfig if it was not specified.
    * As of Consul `v1.8.11`/`v1.9.5` it is not possible to tune gossip communication on a per-area basis.
 
 2. Update the server's gossip network, which keeps track of network areas that the server is a part of. This gossip network is also used to dispatch incoming **gossip** connections to handlers for the appropriate area.

@@ -282,7 +282,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 }
 
 // TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus adds testing around
-// the published autopilot metrics on https://www.consul.io/docs/agent/telemetry#autopilot
+// the published autopilot metrics on https://developer.hashicorp.com/consul/docs/agent/telemetry#autopilot
 func TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance

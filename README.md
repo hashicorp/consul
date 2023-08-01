@@ -37,7 +37,7 @@ Consul provides several key features:
 
 Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
 optional [browser based UI](https://demo.consul.io). A commercial version
-called [Consul Enterprise](https://www.consul.io/docs/enterprise) is also
+called [Consul Enterprise](https://developer.hashicorp.com/consul/docs/enterprise) is also
 available.
 
 **Please note**: We take Consul's security and our users' trust very seriously. If you
@@ -56,7 +56,7 @@ A few quick start guides are available on the Consul website:
 
 ## Documentation
 
-Full, comprehensive documentation is available on the Consul website: https://consul.io/docs
+Full, comprehensive documentation is available on the Consul website: https://developer.hashicorp.com/consul/docs
 
 ## Contributing
 
