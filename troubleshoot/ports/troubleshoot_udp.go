@@ -17,7 +17,7 @@ func (*TroubleShootUdp) test(hostPort *HostPort, ch chan string) {
 	// Attempt to establish a TCP connection with a timeout.
 	conn, err := net.DialTimeout("udp", address, 5*time.Second)
 	if err != nil {
-		ch <- fmt.Sprintf("UPD: Port %s on %s is closed, unreachable, or the connection timed out.\n", hostPort.port, hostPort.host)
+		ch <- fmt.Sprintf("UDP: Port %s on %s is closed, unreachable, or the connection timed out.\n", hostPort.port, hostPort.host)
 		return
 	}
 	defer conn.Close()
