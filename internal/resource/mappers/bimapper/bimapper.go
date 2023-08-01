@@ -107,6 +107,7 @@ func (m *Mapper) trackItem(item resource.ReferenceKey, links []resource.Referenc
 	m.addItemLocked(item, links)
 }
 
+// you must hold the lock before calling this function
 func (m *Mapper) removeItemLocked(item resource.ReferenceKey) {
 	for link := range m.itemToLink[item] {
 		delete(m.linkToItem[link], item)
@@ -117,6 +118,7 @@ func (m *Mapper) removeItemLocked(item resource.ReferenceKey) {
 	delete(m.itemToLink, item)
 }
 
+// you must hold the lock before calling this function
 func (m *Mapper) addItemLocked(item resource.ReferenceKey, links []resource.ReferenceKey) {
 	if m.itemToLink[item] == nil {
 		m.itemToLink[item] = make(map[resource.ReferenceKey]struct{})
