@@ -53,7 +53,7 @@ func ValidatePolicyName(name string) error {
 	}
 
 	if strings.HasPrefix(name, "/") || strings.HasPrefix(name, ReservedBuiltinPrefix) {
-		return fmt.Errorf("Invalid Policy: invalid Name. Names cannot be prefixed with '/' or 'builtin/'")
+		return fmt.Errorf("Invalid Policy: invalid Name. Names cannot be prefixed with '/' or '%s'", ReservedBuiltinPrefix)
 	}
 
 	if !validPolicyName.MatchString(name) {
