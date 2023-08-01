@@ -26,7 +26,7 @@ const testACLTokenArtistReadPolicy = "00000000-0000-0000-0000-000000000001"
 const testACLTokenArtistWritePolicy = "00000000-0000-0000-0000-000000000002"
 
 func parseToken(req *http.Request, token *string) {
-	*token = req.Header.Get("X-Consul-Token")
+	*token = req.Header.Get("x-consul-token")
 }
 
 func TestResourceHandler_InputValidation(t *testing.T) {
@@ -77,6 +77,12 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 					}
 				}
 			`)),
+			response:             httptest.NewRecorder(),
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			description:          "no id",
+			request:              httptest.NewRequest("DELETE", "/?partition=default&peer_name=local&namespace=default", strings.NewReader("")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
 		},
@@ -280,4 +286,160 @@ func TestResourceWriteHandler(t *testing.T) {
 		require.NoError(t, readRsp.Resource.Data.UnmarshalTo(&artist))
 		require.Equal(t, "Keith Urban V1", artist.Name)
 	})
+}
+
+func createResource(t *testing.T, artistHandler resourceHandler) {
+	rsp := httptest.NewRecorder()
+	req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+		{
+			"metadata": {
+				"foo": "bar"
+			},
+			"data": {
+				"name": "Keith Urban",
+				"genre": "GENRE_COUNTRY"
+			}
+		}
+	`))
+
+	req.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
+
+	artistHandler.ServeHTTP(rsp, req)
+	require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
+}
+
+func TestResourceDeleteHandler(t *testing.T) {
+	aclResolver := &resourceSvc.MockACLResolver{}
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, demo.ArtistV2ReadPolicy), nil)
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
+
+	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+
+	v2ArtistHandler := resourceHandler{
+		resource.Registration{
+			Type:  demo.TypeV2Artist,
+			Proto: &pbdemov2.Artist{},
+		},
+		client,
+		parseToken,
+		hclog.NewNullLogger(),
+	}
+
+	t.Run("should surface PermissionDenied error from resource service", func(t *testing.T) {
+		createResource(t, v2ArtistHandler)
+
+		deleteRsp := httptest.NewRecorder()
+		deletReq := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(""))
+
+		deletReq.Header.Add("x-consul-token", testACLTokenArtistReadPolicy)
+
+		v2ArtistHandler.ServeHTTP(deleteRsp, deletReq)
+
+		require.Equal(t, http.StatusForbidden, deleteRsp.Result().StatusCode)
+	})
+
+	t.Run("should delete a resource without version", func(t *testing.T) {
+		createResource(t, v2ArtistHandler)
+
+		deleteRsp := httptest.NewRecorder()
+		deletReq := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(""))
+
+		deletReq.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
+
+		v2ArtistHandler.ServeHTTP(deleteRsp, deletReq)
+
+		require.Equal(t, http.StatusNoContent, deleteRsp.Result().StatusCode)
+
+		var result map[string]any
+		require.NoError(t, json.NewDecoder(deleteRsp.Body).Decode(&result))
+		require.Empty(t, result)
+
+		_, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
+			Id: &pbresource.ID{
+				Type:    demo.TypeV2Artist,
+				Tenancy: demo.TenancyDefault,
+				Name:    "keith-urban",
+			},
+		})
+		require.ErrorContains(t, err, "resource not found")
+	})
+
+	t.Run("should delete a resource with version", func(t *testing.T) {
+		createResource(t, v2ArtistHandler)
+
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(""))
+
+		req.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
+
+		v2ArtistHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusNoContent, rsp.Result().StatusCode)
+
+		_, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
+			Id: &pbresource.ID{
+				Type:    demo.TypeV2Artist,
+				Tenancy: demo.TenancyDefault,
+				Name:    "keith-urban",
+			},
+		})
+		require.ErrorContains(t, err, "resource not found")
+	})
+}
+
+func TestResourceHandler_TypeResolutionError(t *testing.T) {
+	type testCase struct {
+		description string
+		request     *http.Request
+		response    *httptest.ResponseRecorder
+	}
+	client := svctest.RunResourceService(t, demo.RegisterTypes)
+
+	resourceHandler := resourceHandler{
+		resource.Registration{
+			Type: &pbresource.Type{
+				Group:        "test",
+				GroupVersion: "v0",
+				Kind:         "test",
+			},
+			Proto: &pbdemov2.Artist{},
+		},
+		client,
+		func(req *http.Request, token *string) { return },
+		hclog.NewNullLogger(),
+	}
+
+	testCases := []testCase{
+		{
+			description: "write resource",
+			request: httptest.NewRequest("PUT", "/test/v0/test/test?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+				{
+					"metadata": {
+						"foo": "bar"
+					},
+					"data": {
+						"name": "Keith Urban",
+						"genre": "GENRE_COUNTRY"
+					}
+				}
+			`)),
+			response: httptest.NewRecorder(),
+		},
+		{
+			description: "delete resource",
+			request:     httptest.NewRequest("DELETE", "/test/v0/test/test?partition=default&peer_name=local&namespace=default", strings.NewReader("")),
+			response:    httptest.NewRecorder(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			resourceHandler.ServeHTTP(tc.response, tc.request)
+
+			require.Equal(t, http.StatusBadRequest, tc.response.Result().StatusCode)
+			require.Contains(t, tc.response.Body.String(), "resource type test.v0.test not registered")
+		})
+	}
 }
