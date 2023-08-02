@@ -4,6 +4,7 @@ import collections
 import sys
 import re
 import logging
+import argparse
 
 # all known testcache lines
 RE_TEST_ID = re.compile(r'testcache: (?P<package>[^:]+): test ID ([0-9a-f]+) => ([0-9a-f]+)')
@@ -12,12 +13,13 @@ RE_INPUT_LIST_NOT_FOUND = re.compile(r'testcache: (?P<package>[^:]+): input list
 RE_INPUT_FILE_TOO_NEW = re.compile(r'testcache: (?P<package>[^:]+): input file (?P<file>.*): file used as input is too new')
 RE_SAVE = re.compile(r'testcache: (?P<package>[^:]+): save test ID ([0-9a-f]+) => input ID ([0-9a-f]+) => ([0-9a-f]+)')
 
-focus_package = None
-# lazy argparse
-if len(sys.argv) > 1:
-  if sys.argv[1] in ["-h", "-help" , "--help"]:
-    print("""usage: testcache-summary.py [package]""")
-  focus_package = sys.argv[1]
+parser = argparse.ArgumentParser()
+parser.add_argument('package', type=str, help='focus on these packages only', nargs="*")
+parser.add_argument('-v', action='store_true')
+args = parser.parse_args()
+
+if args.v:
+  logging.getLogger('').setLevel(logging.INFO)
 
 lookups = collections.Counter()
 saves = collections.Counter()
@@ -62,7 +64,7 @@ ts = 0
 tm = 0
 
 for p, l in lookups.items():
-  if focus_package is not None and p != focus_package:
+  if len(args.package) > 0 and p not in args.package:
     continue
   try: 
     s = saves[p]
@@ -74,7 +76,7 @@ for p, l in lookups.items():
   except KeyError:
     m = 0
   h = l-m
-  print("%s: hit rate %d/%d %.2f%%; saves %d" % (p, h, l, h*100/l, s))
+  logging.info("%s: hit rate %d/%d %.2f%%; saves %d" % (p, h, l, h*100/l, s))
   if m > 0 and s != m:
     problems[p].append("not all misses resulted in a save: %d/%d" % (s, m))
 
@@ -82,12 +84,13 @@ for p, l in lookups.items():
   ts += s
   tm += m
 
-if focus_package is None:
-  print("TOTAL: hit rate %d/%d %.2f%%; saves %d" % (tl-tm, tl, (tl-tm)*100/tl, ts))
+if len(args.package) == 0:
+  print("hit rate %d/%d %.2f%%; saves %d" % (tl-tm, tl, (tl-tm)*100/tl, ts))
 
 if len(problems) > 0:
   print("\nPROBLEMS:")
   for p, vs in problems.items():
-    print(p + ":")
-    for v in vs:
-      print("\t %s" % (v,))
+    if len(args.package) == 0 or p in args.package:
+      print(p + ":")
+      for v in vs:
+        print("\t %s" % (v,))
