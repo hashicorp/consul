@@ -268,7 +268,7 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				cfg:       dynamicCfg,
 			}
 
-			provider.getUpdate(context.Background())
+			provider.updateConfig(context.Background())
 
 			// Verify endpoint provider returns correct config values.
 			expectedCfg, err := testDynamicCfg(tc.expected)
@@ -363,7 +363,7 @@ func TestTelemetryConfigProvider_Race(t *testing.T) {
 		require.NoError(t, err)
 		// Force provider to obtain new client TelemetryConfig immediately.
 		// This call is necessary to guarantee TelemetryConfig changes to assert on expected values below.
-		provider.getUpdate(context.Background())
+		provider.updateConfig(context.Background())
 
 		// Start goroutines to access label configuration.
 		wg := &sync.WaitGroup{}

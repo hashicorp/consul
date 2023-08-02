@@ -18,8 +18,9 @@ var (
 	// internalMetricRefreshFailure is a metric to monitor refresh failures.
 	internalMetricRefreshFailure []string = []string{"hcp", "telemetry_config_provider", "refresh", "failure"}
 	// internalMetricRefreshSuccess is a metric to monitor refresh successes.
-	internalMetricRefreshSuccess          []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
-	defaultTelemetryConfigRefreshInterval          = 1 * time.Minute
+	internalMetricRefreshSuccess []string = []string{"hcp", "telemetry_config_provider", "refresh", "success"}
+	// defaultTelemetryConfigRefreshInterval is a default fallback in case the first HCP fetch fails.
+	defaultTelemetryConfigRefreshInterval = 1 * time.Minute
 )
 
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
@@ -65,8 +66,8 @@ func NewHCPProvider(ctx context.Context, hcpClient client.Client) *hcpProviderIm
 		hcpClient: hcpClient,
 	}
 
-	// Try to initialize config once before starting periodic fetch every 1 minute.
-	h.getUpdate(ctx)
+	// Try to initialize config once before starting periodic fetch.
+	h.updateConfig(ctx)
 
 	go h.run(ctx, h.cfg.RefreshInterval)
 
@@ -80,7 +81,7 @@ func (h *hcpProviderImpl) run(ctx context.Context, refreshInterval time.Duration
 	for {
 		select {
 		case <-ticker.C:
-			if newCfg := h.getUpdate(ctx); newCfg != nil {
+			if newCfg := h.updateConfig(ctx); newCfg != nil {
 				ticker.Reset(newCfg.RefreshInterval)
 			}
 		case <-ctx.Done():
@@ -89,9 +90,8 @@ func (h *hcpProviderImpl) run(ctx context.Context, refreshInterval time.Duration
 	}
 }
 
-// getUpdate makes a HTTP request to HCP to return a new metrics configuration
-// and updates the hcpProviderImpl.
-func (h *hcpProviderImpl) getUpdate(ctx context.Context) *dynamicConfig {
+// updateConfig makes a HTTP request to HCP to update metrics configuration held in the provider.
+func (h *hcpProviderImpl) updateConfig(ctx context.Context) *dynamicConfig {
 	logger := hclog.FromContext(ctx).Named("telemetry_config_provider")
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
