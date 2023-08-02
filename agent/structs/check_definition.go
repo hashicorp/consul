@@ -36,6 +36,7 @@ type CheckDefinition struct {
 	Body                           string
 	DisableRedirects               bool
 	TCP                            string
+	TCPUseTLS                      bool
 	UDP                            string
 	Interval                       time.Duration
 	DockerContainerID              string

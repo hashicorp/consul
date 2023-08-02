@@ -3021,14 +3021,20 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
+			var tlsClientConfig *tls.Config
+			if chkType.TCPUseTLS {
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
+			}
+
 			tcp := &checks.CheckTCP{
-				CheckID:       cid,
-				ServiceID:     sid,
-				TCP:           chkType.TCP,
-				Interval:      chkType.Interval,
-				Timeout:       chkType.Timeout,
-				Logger:        a.logger,
-				StatusHandler: statusHandler,
+				CheckID:         cid,
+				ServiceID:       sid,
+				TCP:             chkType.TCP,
+				Interval:        chkType.Interval,
+				Timeout:         chkType.Timeout,
+				Logger:          a.logger,
+				TLSClientConfig: tlsClientConfig,
+				StatusHandler:   statusHandler,
 			}
 			tcp.Start()
 			a.checkTCPs[cid] = tcp

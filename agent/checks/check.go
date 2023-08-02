@@ -631,15 +631,17 @@ func (c *CheckH2PING) Start() {
 // The check is critical if the connection returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckTCP struct {
-	CheckID       structs.CheckID
-	ServiceID     structs.ServiceID
-	TCP           string
-	Interval      time.Duration
-	Timeout       time.Duration
-	Logger        hclog.Logger
-	StatusHandler *StatusHandler
+	CheckID         structs.CheckID
+	ServiceID       structs.ServiceID
+	TCP             string
+	Interval        time.Duration
+	Timeout         time.Duration
+	Logger          hclog.Logger
+	TLSClientConfig *tls.Config
+	StatusHandler   *StatusHandler
 
 	dialer   *net.Dialer
+	tlsConn 	*tls.Conn
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
@@ -659,6 +661,10 @@ func (c *CheckTCP) Start() {
 		if c.Timeout > 0 {
 			c.dialer.Timeout = c.Timeout
 		}
+	}
+
+	if c.TLSClientConfig != nil {
+		c.tlsConn = tls.DialWithDialer(c.dialer, _, _, c.TLSClientConfig)
 	}
 
 	c.stop = false
@@ -695,6 +701,9 @@ func (c *CheckTCP) run() {
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
 	conn, err := c.dialer.Dial(`tcp`, c.TCP)
+	conn, err = c.dialer.
+	//(`tcp`, c.TCP)
+
 	if err != nil {
 		c.Logger.Warn("Check socket connection failed",
 			"check", c.CheckID.String(),
