@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/go-version v1.2.1
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
+	golang.org/x/sys v0.10.0
 )
 
 require (
