@@ -52,7 +52,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
-	github.com/hashicorp/go-msgpack v0.5.5 // indirect
+	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -79,7 +79,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
-	golang.org/x/net v0.12.0 // indirect
+	golang.org/x/net v0.13.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
@@ -90,10 +90,11 @@ require (
 	gotest.tools/v3 v3.4.0 // indirect
 )
 
-replace github.com/hashicorp/consul/api => ../../../api
-
-replace github.com/hashicorp/consul/sdk => ../../../sdk
-
-replace github.com/hashicorp/consul => ../../..
-
-replace github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
+replace (
+	github.com/hashicorp/consul => ../../..
+	github.com/hashicorp/consul/api => ../../../api
+	github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
+	github.com/hashicorp/consul/proto-public => ../../../proto-public
+	github.com/hashicorp/consul/sdk => ../../../sdk
+	github.com/hashicorp/consul/testing/deployer => ../../../testing/deployer
+)
