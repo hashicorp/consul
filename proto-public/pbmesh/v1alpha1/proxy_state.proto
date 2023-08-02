@@ -30,7 +30,8 @@ message ProxyStateTemplate {
 }
 
 message ProxyState {
-  // identity is a reference to the WorkloadIdentity associated with this proxy.
+  // id is this proxy's identity. This should correspond to the workload identity that this proxy of
+  // the workload this proxy represents.
   hashicorp.consul.resource.Reference identity = 1;
   // listeners is a list of listeners for this proxy.
   repeated pbproxystate.Listener listeners = 2;
