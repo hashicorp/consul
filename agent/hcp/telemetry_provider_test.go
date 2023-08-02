@@ -355,8 +355,7 @@ func TestTelemetryConfigProvider_Race(t *testing.T) {
 	}
 
 	// Start the provider goroutine, which fetches client TelemetryConfig every RefreshInterval.
-	provider, err := NewHCPProvider(ctx, m, m.cfg)
-	require.NoError(t, err)
+	provider := NewHCPProvider(ctx, m)
 
 	for count := 0; count < testRaceWriteSampleCount; count++ {
 		// Force a TelemetryConfig value change in the mockRaceClient.

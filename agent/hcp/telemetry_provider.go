@@ -51,9 +51,9 @@ type dynamicConfig struct {
 	RefreshInterval time.Duration
 }
 
-// NewHCPProvider initializes and starts a HCP Telemetry provider with provided params.
+// NewHCPProvider initializes and starts a HCP Telemetry provider.
 func NewHCPProvider(ctx context.Context, hcpClient client.Client) *hcpProviderImpl {
-	t := &hcpProviderImpl{
+	h := &hcpProviderImpl{
 		// Initialize with default config values.
 		cfg: &dynamicConfig{
 			Labels:          map[string]string{},
@@ -65,14 +65,12 @@ func NewHCPProvider(ctx context.Context, hcpClient client.Client) *hcpProviderIm
 		hcpClient: hcpClient,
 	}
 
-	// Try to initialize the config once before running periodic fetcher.
-	if newCfg := t.getUpdate(ctx); newCfg != nil {
-		t.cfg = newCfg
-	}
+	// Try to initialize config once before starting periodic fetch every 1 minute.
+	h.getUpdate(ctx)
 
-	go t.run(ctx, t.cfg.RefreshInterval)
+	go h.run(ctx, h.cfg.RefreshInterval)
 
-	return t
+	return h
 }
 
 // run continously checks for updates to the telemetry configuration by making a request to HCP.
@@ -156,6 +154,10 @@ func (h *hcpProviderImpl) GetLabels() map[string]string {
 	return h.cfg.Labels
 }
 
-func (t *hcpProviderImpl) Enabled() bool {
-	return t.cfg.Enabled
+// GetLabels acquires a read lock and return true if metrics are enabled.
+func (h *hcpProviderImpl) Enabled() bool {
+	h.rw.RLock()
+	defer h.rw.RUnlock()
+
+	return h.cfg.Enabled
 }

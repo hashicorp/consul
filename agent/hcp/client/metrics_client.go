@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	errInvalidEndpoint = errors.New("invalid nil endpoint")
+	errInvalidExportEndpoint = errors.New("invalid nil endpoint")
 )
 
 // cloudConfig represents cloud config for TLS abstracted in an interface for easy testing.
