@@ -1,3 +1,6 @@
+//go:build fips
+// +build fips
+
 package envoy
 
 import (
