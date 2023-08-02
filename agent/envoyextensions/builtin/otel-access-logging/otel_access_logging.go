@@ -66,7 +66,7 @@ func (a *otelAccessLogging) PatchClusters(cfg *ext_cmn.RuntimeConfig, c ext_cmn.
 	return c, nil
 }
 
-// PatchFilters inserts a filter into the list of network filters or the filter chain of the HTTP connection manager.
+// PatchFilter adds the OTEL access log in the HTTP connection manager.
 func (a *otelAccessLogging) PatchFilter(p ext_cmn.FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
 	httpConnectionManager, _, err := ext_cmn.GetHTTPConnectionManager(p.Message)
 	if err != nil {
