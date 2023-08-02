@@ -131,13 +131,8 @@ jobs:
             $PACKAGE_NAMES 2>&1 | tee log | grep -v '^testcache:'
             grep '^testcache:' log > /tmp/testcache.log
       - name: calculate test cache hit rate
-        working-directory: ${{inputs.directory}}
         run: |
-          # bash math!
-          printf 'testcache hit rate: %.2f %%' $(( \
-            100.0 * $(grep ': save test ID' /tmp/testcache.log | wc -l) \
-            / $(grep ': test ID' /tmp/testcache.log | wc -l) \
-          ))
+          .github/scripts/testcache-hit-rate.awk < /tmp/testcache.log | tee -a "$GITHUB_STEP_SUMMARY"
       # GHA cache doesn't support overwriting in one action, so we just do delete+save
       # https://github.com/actions/toolkit/issues/505
       - name: delete old GOCACHE
