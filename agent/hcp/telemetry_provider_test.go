@@ -98,10 +98,11 @@ func TestNewTelemetryConfigProvider(t *testing.T) {
 
 func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 	for name, tc := range map[string]struct {
-		mockExpect func(*client.MockClient)
-		metricKey  string
-		optsInputs *testConfig
-		expected   *testConfig
+		mockExpect       func(*client.MockClient)
+		metricKey        string
+		optsInputs       *testConfig
+		expected         *testConfig
+		expectedInterval time.Duration
 	}{
 		"noChanges": {
 			optsInputs: &testConfig{
@@ -131,7 +132,8 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				filters:         "test",
 				refreshInterval: testRefreshInterval,
 			},
-			metricKey: testMetricKeySuccess,
+			metricKey:        testMetricKeySuccess,
+			expectedInterval: testRefreshInterval,
 		},
 		"newConfig": {
 			optsInputs: &testConfig{
@@ -161,7 +163,8 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				},
 				refreshInterval: 2 * time.Second,
 			},
-			metricKey: testMetricKeySuccess,
+			expectedInterval: 2 * time.Second,
+			metricKey:        testMetricKeySuccess,
 		},
 		"newConfigMetricsDisabled": {
 			optsInputs: &testConfig{
@@ -192,7 +195,8 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				refreshInterval: 2 * time.Second,
 				disabled:        true,
 			},
-			metricKey: testMetricKeySuccess,
+			metricKey:        testMetricKeySuccess,
+			expectedInterval: 2 * time.Second,
 		},
 		"sameConfigInvalidRefreshInterval": {
 			optsInputs: &testConfig{
@@ -217,7 +221,8 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				filters:         "test",
 				refreshInterval: testRefreshInterval,
 			},
-			metricKey: testMetricKeyFailure,
+			metricKey:        testMetricKeyFailure,
+			expectedInterval: 0,
 		},
 		"sameConfigHCPClientFailure": {
 			optsInputs: &testConfig{
@@ -239,7 +244,8 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				},
 				refreshInterval: testRefreshInterval,
 			},
-			metricKey: testMetricKeyFailure,
+			metricKey:        testMetricKeyFailure,
+			expectedInterval: 0,
 		},
 	} {
 		tc := tc
@@ -256,7 +262,8 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				cfg:       dynamicCfg,
 			}
 
-			provider.updateConfig(context.Background())
+			newInterval := provider.updateConfig(context.Background())
+			require.Equal(t, tc.expectedInterval, newInterval)
 
 			// Verify endpoint provider returns correct config values.
 			expectedCfg, err := testDynamicCfg(tc.expected)
