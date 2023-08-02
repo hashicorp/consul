@@ -1505,10 +1505,10 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 		CA:     caPEM,
 	})
 	require.NoError(t, err)
-	certFile := filepath.Join("cert.pem")
+	certFile := filepath.Join(dir, "cert.pem")
 	err = os.WriteFile(certFile, []byte(pub), 0600)
 	require.NoError(t, err)
-	keyFile := filepath.Join("cert.key")
+	keyFile := filepath.Join(dir, "cert.key")
 	err = os.WriteFile(keyFile, []byte(pk), 0600)
 	require.NoError(t, err)
 
