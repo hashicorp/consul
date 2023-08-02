@@ -85,7 +85,7 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 		resp                 *consul_telemetry_service.AgentTelemetryConfigOK
 		expectedTelemetryCfg *TelemetryConfig
 		wantErr              error
-		expectedEnabled      bool
+		expectedDisabled     bool
 	}{
 		"success": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -112,7 +112,6 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 					RefreshInterval: 2 * time.Second,
 				},
 			},
-			expectedEnabled: true,
 		},
 		"successNoEndpoint": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -139,7 +138,7 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 					RefreshInterval: 2 * time.Second,
 				},
 			},
-			expectedEnabled: false,
+			expectedDisabled: true,
 		},
 		"successBadFilters": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -166,7 +165,6 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 					RefreshInterval: 2 * time.Second,
 				},
 			},
-			expectedEnabled: true,
 		},
 		"errorsWithInvalidRefreshInterval": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -206,7 +204,7 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedTelemetryCfg, telemetryCfg)
-			require.Equal(t, tc.expectedEnabled, telemetryCfg.MetricsEnabled())
+			require.Equal(t, tc.expectedDisabled, telemetryCfg.MetricsDisabled())
 		})
 	}
 }

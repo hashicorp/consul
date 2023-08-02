@@ -18,9 +18,9 @@ import (
 )
 
 type mockConfigProvider struct {
-	filter  *regexp.Regexp
-	labels  map[string]string
-	enabled bool
+	filter   *regexp.Regexp
+	labels   map[string]string
+	disabled bool
 }
 
 func (m *mockConfigProvider) GetLabels() map[string]string {
@@ -31,8 +31,8 @@ func (m *mockConfigProvider) GetFilters() *regexp.Regexp {
 	return m.filter
 }
 
-func (m *mockConfigProvider) Enabled() bool {
-	return m.enabled
+func (m *mockConfigProvider) IsDisabled() bool {
+	return m.disabled
 }
 
 var (
@@ -189,8 +189,7 @@ func TestOTELSink(t *testing.T) {
 	opts := &OTELSinkOpts{
 		Reader: reader,
 		ConfigProvider: &mockConfigProvider{
-			enabled: true,
-			filter:  regexp.MustCompile("raft|autopilot"),
+			filter: regexp.MustCompile("raft|autopilot"),
 			labels: map[string]string{
 				"node_id": "test",
 			},
@@ -232,8 +231,8 @@ func TestOTELSinkDisabled(t *testing.T) {
 
 	sink, err := NewOTELSink(ctx, &OTELSinkOpts{
 		ConfigProvider: &mockConfigProvider{
-			filter:  regexp.MustCompile("raft"),
-			enabled: false,
+			filter:   regexp.MustCompile("raft"),
+			disabled: true,
 		},
 		Reader: reader,
 	})
@@ -380,9 +379,8 @@ func TestOTELSink_Race(t *testing.T) {
 	opts := &OTELSinkOpts{
 		Reader: reader,
 		ConfigProvider: &mockConfigProvider{
-			filter:  regexp.MustCompile("test"),
-			labels:  defaultLabels,
-			enabled: true,
+			filter: regexp.MustCompile("test"),
+			labels: defaultLabels,
 		},
 	}
 

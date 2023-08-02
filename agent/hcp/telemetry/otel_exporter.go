@@ -21,7 +21,7 @@ type MetricsClient interface {
 // EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
 // This abstraction layer offers flexibility, in particular for dynamic configuration or changes to the endpoint.
 type EndpointProvider interface {
-	Enabler
+	Disabled
 	GetEndpoint() *url.URL
 }
 
@@ -66,7 +66,7 @@ func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 
 // Export serializes and transmits metric data to a receiver.
 func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
-	if !e.endpointProvider.Enabled() {
+	if e.endpointProvider.IsDisabled() {
 		return nil
 	}
 

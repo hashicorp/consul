@@ -47,9 +47,9 @@ type RefreshConfig struct {
 	RefreshInterval time.Duration
 }
 
-// MetricsEnabled returns true if metrics export is enabled, i.e. a valid metrics endpoint exists.
-func (t *TelemetryConfig) MetricsEnabled() bool {
-	return t.MetricsConfig.Endpoint != nil
+// MetricsDisabled returns true if metrics export is disabled, i.e. no valid metrics endpoint exists.
+func (t *TelemetryConfig) MetricsDisabled() bool {
+	return t.MetricsConfig.Endpoint == nil
 }
 
 // validateAgentTelemetryConfigPayload ensures the returned payload from HCP is valid.

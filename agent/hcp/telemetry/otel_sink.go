@@ -20,15 +20,15 @@ import (
 // DefaultExportInterval is a default time interval between export of aggregated metrics.
 const DefaultExportInterval = 10 * time.Second
 
-// Enabler must be implemented as it is required to process metrics
-// Returning false will mean the sink is disabled, and will not accept metrics.
-type Enabler interface {
-	Enabled() bool
+// Disabled should be implemented to turn on/off metrics processing
+type Disabled interface {
+	// IsDisabled() can return true disallow the sink from accepting metrics.
+	IsDisabled() bool
 }
 
 // ConfigProvider is required to provide custom metrics processing.
 type ConfigProvider interface {
-	Enabler
+	Disabled
 	// GetLabels should return a set of OTEL attributes added by default all metrics.
 	GetLabels() map[string]string
 	// GetFilters should return filtesr that are required to enable metric processing.
@@ -134,7 +134,7 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 // AddSampleWithLabels emits a Consul gauge metric that gets
 // registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
-	if !o.cfgProvider.Enabled() {
+	if o.cfgProvider.IsDisabled() {
 		return
 	}
 
@@ -165,7 +165,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 
 // AddSampleWithLabels emits a Consul sample metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
-	if !o.cfgProvider.Enabled() {
+	if o.cfgProvider.IsDisabled() {
 		return
 	}
 
@@ -194,7 +194,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
-	if !o.cfgProvider.Enabled() {
+	if o.cfgProvider.IsDisabled() {
 		return
 	}
 

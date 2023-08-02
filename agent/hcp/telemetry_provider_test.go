@@ -37,7 +37,7 @@ type testConfig struct {
 	endpoint        string
 	labels          map[string]string
 	refreshInterval time.Duration
-	enabled         bool
+	disabled        bool
 }
 
 func TestNewTelemetryConfigProvider(t *testing.T) {
@@ -54,7 +54,7 @@ func TestNewTelemetryConfigProvider(t *testing.T) {
 				refreshInterval: defaultTelemetryConfigRefreshInterval,
 				filters:         client.DefaultMetricFilters.String(),
 				labels:          map[string]string{},
-				enabled:         false,
+				disabled:        true,
 				endpoint:        "",
 			},
 		},
@@ -73,7 +73,6 @@ func TestNewTelemetryConfigProvider(t *testing.T) {
 				refreshInterval: 2 * time.Second,
 				filters:         "consul",
 				labels:          map[string]string{"test_label": "123"},
-				enabled:         true,
 				endpoint:        "https://test.com/v1/metrics",
 			},
 		},
@@ -112,7 +111,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 					"test_label": "123",
 				},
 				refreshInterval: testRefreshInterval,
-				enabled:         true,
 			},
 			mockExpect: func(m *client.MockClient) {
 				mockCfg, _ := testTelemetryCfg(&testConfig{
@@ -122,7 +120,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 						"test_label": "123",
 					},
 					refreshInterval: testRefreshInterval,
-					enabled:         true,
 				})
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
 			},
@@ -133,7 +130,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				},
 				filters:         "test",
 				refreshInterval: testRefreshInterval,
-				enabled:         true,
 			},
 			metricKey: testMetricKeySuccess,
 		},
@@ -145,7 +141,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 					"test_label": "123",
 				},
 				refreshInterval: 2 * time.Second,
-				enabled:         true,
 			},
 			mockExpect: func(m *client.MockClient) {
 				mockCfg, _ := testTelemetryCfg(&testConfig{
@@ -155,7 +150,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 						"new_label": "1234",
 					},
 					refreshInterval: 2 * time.Second,
-					enabled:         true,
 				})
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
 			},
@@ -166,7 +160,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 					"new_label": "1234",
 				},
 				refreshInterval: 2 * time.Second,
-				enabled:         true,
 			},
 			metricKey: testMetricKeySuccess,
 		},
@@ -178,7 +171,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 					"test_label": "123",
 				},
 				refreshInterval: 2 * time.Second,
-				enabled:         true,
 			},
 			mockExpect: func(m *client.MockClient) {
 				mockCfg, _ := testTelemetryCfg(&testConfig{
@@ -198,7 +190,7 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 					"new_label": "1234",
 				},
 				refreshInterval: 2 * time.Second,
-				enabled:         false,
+				disabled:        true,
 			},
 			metricKey: testMetricKeySuccess,
 		},
@@ -210,7 +202,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 					"test_label": "123",
 				},
 				refreshInterval: testRefreshInterval,
-				enabled:         true,
 			},
 			mockExpect: func(m *client.MockClient) {
 				mockCfg, _ := testTelemetryCfg(&testConfig{
@@ -225,7 +216,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 				},
 				filters:         "test",
 				refreshInterval: testRefreshInterval,
-				enabled:         true,
 			},
 			metricKey: testMetricKeyFailure,
 		},
@@ -237,7 +227,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 					"test_label": "123",
 				},
 				refreshInterval: testRefreshInterval,
-				enabled:         true,
 			},
 			mockExpect: func(m *client.MockClient) {
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("failure"))
@@ -249,7 +238,6 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 					"test_label": "123",
 				},
 				refreshInterval: testRefreshInterval,
-				enabled:         true,
 			},
 			metricKey: testMetricKeyFailure,
 		},
@@ -274,10 +262,10 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 			expectedCfg, err := testDynamicCfg(tc.expected)
 			require.NoError(t, err)
 
-			require.Equal(t, expectedCfg.Endpoint, provider.GetEndpoint())
-			require.Equal(t, expectedCfg.Filters, provider.GetFilters())
-			require.Equal(t, expectedCfg.Labels, provider.GetLabels())
-			require.Equal(t, expectedCfg.Enabled, provider.Enabled())
+			require.Equal(t, expectedCfg.endpoint, provider.GetEndpoint())
+			require.Equal(t, expectedCfg.filters, provider.GetFilters())
+			require.Equal(t, expectedCfg.labels, provider.GetLabels())
+			require.Equal(t, expectedCfg.disabled, provider.IsDisabled())
 
 			// Verify count for transform success metric.
 			interval := sink.Data()[0]
@@ -422,11 +410,11 @@ func testDynamicCfg(testCfg *testConfig) (*dynamicConfig, error) {
 		endpoint = u
 	}
 	return &dynamicConfig{
-		Endpoint:        endpoint,
-		Filters:         filters,
-		Labels:          testCfg.labels,
-		RefreshInterval: testCfg.refreshInterval,
-		Enabled:         testCfg.enabled,
+		endpoint:        endpoint,
+		filters:         filters,
+		labels:          testCfg.labels,
+		refreshInterval: testCfg.refreshInterval,
+		disabled:        testCfg.disabled,
 	}, nil
 }
 

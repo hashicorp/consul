@@ -31,11 +31,11 @@ func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *met
 
 type mockEndpointProvider struct {
 	endpoint *url.URL
-	enabled  bool
+	disabled bool
 }
 
 func (m *mockEndpointProvider) GetEndpoint() *url.URL { return m.endpoint }
-func (m *mockEndpointProvider) Enabled() bool         { return m.enabled }
+func (m *mockEndpointProvider) IsDisabled() bool      { return m.disabled }
 
 func TestTemporality(t *testing.T) {
 	t.Parallel()
@@ -79,15 +79,20 @@ func TestExport(t *testing.T) {
 		client   MetricsClient
 		provider EndpointProvider
 	}{
+		"earlyReturnDisabledProvider": {
+			client: &mockMetricsClient{},
+			provider: &mockEndpointProvider{
+				disabled: true,
+			},
+		},
 		"earlyReturnWithoutEndpoint": {
 			client:   &mockMetricsClient{},
 			provider: &mockEndpointProvider{},
 		},
 		"earlyReturnWithoutScopeMetrics": {
-			client:  &mockMetricsClient{},
-			metrics: mutateMetrics(nil),
-			provider: &mockEndpointProvider{
-				enabled: true},
+			client:   &mockMetricsClient{},
+			metrics:  mutateMetrics(nil),
+			provider: &mockEndpointProvider{},
 		},
 		"earlyReturnWithoutMetrics": {
 			client: &mockMetricsClient{},
@@ -95,7 +100,7 @@ func TestExport(t *testing.T) {
 				{Metrics: []metricdata.Metrics{}},
 			},
 			),
-			provider: &mockEndpointProvider{enabled: true},
+			provider: &mockEndpointProvider{},
 		},
 		"errorWithExportFailure": {
 			client: &mockMetricsClient{
@@ -113,7 +118,6 @@ func TestExport(t *testing.T) {
 			},
 			),
 			provider: &mockEndpointProvider{
-				enabled:  true,
 				endpoint: &url.URL{},
 			},
 			wantErr: "failed to export metrics",
@@ -190,7 +194,6 @@ func TestExport_CustomMetrics(t *testing.T) {
 
 			exp := NewOTELExporter(tc.client, &mockEndpointProvider{
 				endpoint: u,
-				enabled:  true,
 			})
 
 			ctx := context.Background()

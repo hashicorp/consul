@@ -44,12 +44,12 @@ type hcpProviderImpl struct {
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
 // fields MUST be exported to compute hash for equals method.
 type dynamicConfig struct {
-	Enabled  bool
-	Endpoint *url.URL
-	Labels   map[string]string
-	Filters  *regexp.Regexp
+	disabled bool
+	endpoint *url.URL
+	labels   map[string]string
+	filters  *regexp.Regexp
 	// refreshInterval controls the interval at which configuration is fetched from HCP to refresh config.
-	RefreshInterval time.Duration
+	refreshInterval time.Duration
 }
 
 // NewHCPProvider initializes and starts a HCP Telemetry provider.
@@ -57,32 +57,32 @@ func NewHCPProvider(ctx context.Context, hcpClient client.Client) *hcpProviderIm
 	h := &hcpProviderImpl{
 		// Initialize with default config values.
 		cfg: &dynamicConfig{
-			Labels:          map[string]string{},
-			Filters:         client.DefaultMetricFilters,
-			RefreshInterval: defaultTelemetryConfigRefreshInterval,
-			Endpoint:        nil,
-			Enabled:         false,
+			labels:          map[string]string{},
+			filters:         client.DefaultMetricFilters,
+			refreshInterval: defaultTelemetryConfigRefreshInterval,
+			endpoint:        nil,
+			disabled:        true,
 		},
 		hcpClient: hcpClient,
 	}
 
-	// Try to initialize config once before starting periodic fetch.
-	h.updateConfig(ctx)
-
-	go h.run(ctx, h.cfg.RefreshInterval)
+	go h.run(ctx)
 
 	return h
 }
 
 // run continously checks for updates to the telemetry configuration by making a request to HCP.
-func (h *hcpProviderImpl) run(ctx context.Context, refreshInterval time.Duration) {
-	ticker := time.NewTicker(refreshInterval)
+func (h *hcpProviderImpl) run(ctx context.Context) {
+	// Try to initialize config once before starting periodic fetch.
+	h.updateConfig(ctx)
+
+	ticker := time.NewTicker(h.cfg.refreshInterval)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			if newCfg := h.updateConfig(ctx); newCfg != nil {
-				ticker.Reset(newCfg.RefreshInterval)
+			if newRefreshInterval := h.updateConfig(ctx); newRefreshInterval > 0 {
+				ticker.Reset(newRefreshInterval)
 			}
 		case <-ctx.Done():
 			return
@@ -91,7 +91,7 @@ func (h *hcpProviderImpl) run(ctx context.Context, refreshInterval time.Duration
 }
 
 // updateConfig makes a HTTP request to HCP to update metrics configuration held in the provider.
-func (h *hcpProviderImpl) updateConfig(ctx context.Context) *dynamicConfig {
+func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 	logger := hclog.FromContext(ctx).Named("telemetry_config_provider")
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -101,7 +101,7 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) *dynamicConfig {
 	if err != nil {
 		logger.Error("failed to fetch telemetry config from HCP", "error", err)
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
-		return nil
+		return 0
 	}
 
 	// newRefreshInterval of 0 or less can cause ticker Reset() panic.
@@ -109,15 +109,15 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) *dynamicConfig {
 	if newRefreshInterval <= 0 {
 		logger.Error("invalid refresh interval duration", "refreshInterval", newRefreshInterval)
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
-		return nil
+		return 0
 	}
 
 	newDynamicConfig := &dynamicConfig{
-		Filters:         telemetryCfg.MetricsConfig.Filters,
-		Endpoint:        telemetryCfg.MetricsConfig.Endpoint,
-		Labels:          telemetryCfg.MetricsConfig.Labels,
-		RefreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
-		Enabled:         telemetryCfg.MetricsEnabled(),
+		filters:         telemetryCfg.MetricsConfig.Filters,
+		endpoint:        telemetryCfg.MetricsConfig.Endpoint,
+		labels:          telemetryCfg.MetricsConfig.Labels,
+		refreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
+		disabled:        telemetryCfg.MetricsDisabled(),
 	}
 
 	// Acquire write lock to update new configuration.
@@ -127,7 +127,7 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) *dynamicConfig {
 
 	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
 
-	return newDynamicConfig
+	return newDynamicConfig.refreshInterval
 }
 
 // GetEndpoint acquires a read lock to return endpoint configuration for consumers.
@@ -135,7 +135,7 @@ func (h *hcpProviderImpl) GetEndpoint() *url.URL {
 	h.rw.RLock()
 	defer h.rw.RUnlock()
 
-	return h.cfg.Endpoint
+	return h.cfg.endpoint
 }
 
 // GetFilters acquires a read lock to return filters configuration for consumers.
@@ -143,7 +143,7 @@ func (h *hcpProviderImpl) GetFilters() *regexp.Regexp {
 	h.rw.RLock()
 	defer h.rw.RUnlock()
 
-	return h.cfg.Filters
+	return h.cfg.filters
 }
 
 // GetLabels acquires a read lock to return labels configuration for consumers.
@@ -151,13 +151,13 @@ func (h *hcpProviderImpl) GetLabels() map[string]string {
 	h.rw.RLock()
 	defer h.rw.RUnlock()
 
-	return h.cfg.Labels
+	return h.cfg.labels
 }
 
-// GetLabels acquires a read lock and return true if metrics are enabled.
-func (h *hcpProviderImpl) Enabled() bool {
+// IsDisabled acquires a read lock and return true if metrics are enabled.
+func (h *hcpProviderImpl) IsDisabled() bool {
 	h.rw.RLock()
 	defer h.rw.RUnlock()
 
-	return h.cfg.Enabled
+	return h.cfg.disabled
 }
