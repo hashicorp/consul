@@ -39,12 +39,12 @@ const (
 )
 
 const (
-	BuiltinAWSLambdaExtension          string = "builtin/aws/lambda"
-	BuiltinExtAuthzExtension           string = "builtin/ext-authz"
-	BuiltinLuaExtension                string = "builtin/lua"
-	BuiltinPropertyOverrideExtension   string = "builtin/property-override"
-	BuiltinWasmExtension               string = "builtin/wasm"
-	BuiltinOTELAccessLoggingExtenstion string = "builtin/otel-access-logging"
+	BuiltinAWSLambdaExtension         string = "builtin/aws/lambda"
+	BuiltinExtAuthzExtension          string = "builtin/ext-authz"
+	BuiltinLuaExtension               string = "builtin/lua"
+	BuiltinOTELAccessLoggingExtension string = "builtin/otel-access-logging"
+	BuiltinPropertyOverrideExtension  string = "builtin/property-override"
+	BuiltinWasmExtension              string = "builtin/wasm"
 	// BuiltinValidateExtension should not be exposed directly or accepted as a valid configured
 	// extension type, as it is only used indirectly via troubleshooting tools. It is included here
 	// for common reference alongside other builtin extensions.

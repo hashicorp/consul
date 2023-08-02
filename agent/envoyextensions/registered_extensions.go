@@ -12,7 +12,7 @@ import (
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
 	extauthz "github.com/hashicorp/consul/agent/envoyextensions/builtin/ext-authz"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
-	"github.com/hashicorp/consul/agent/envoyextensions/builtin/otel-access-logging"
+	otelaccesslogging "github.com/hashicorp/consul/agent/envoyextensions/builtin/otel-access-logging"
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/wasm"
 	"github.com/hashicorp/consul/api"
@@ -22,12 +22,12 @@ import (
 type extensionConstructor func(api.EnvoyExtension) (extensioncommon.EnvoyExtender, error)
 
 var extensionConstructors = map[string]extensionConstructor{
-	api.BuiltinOTELAccessLoggingExtenstion: otelaccesslogging.Constructor,
-	api.BuiltinLuaExtension:                lua.Constructor,
-	api.BuiltinAWSLambdaExtension:          awslambda.Constructor,
-	api.BuiltinPropertyOverrideExtension:   propertyoverride.Constructor,
-	api.BuiltinWasmExtension:               wasm.Constructor,
-	api.BuiltinExtAuthzExtension:           extauthz.Constructor,
+	api.BuiltinOTELAccessLoggingExtension: otelaccesslogging.Constructor,
+	api.BuiltinLuaExtension:               lua.Constructor,
+	api.BuiltinAWSLambdaExtension:         awslambda.Constructor,
+	api.BuiltinPropertyOverrideExtension:  propertyoverride.Constructor,
+	api.BuiltinWasmExtension:              wasm.Constructor,
+	api.BuiltinExtAuthzExtension:          extauthz.Constructor,
 }
 
 // ConstructExtension attempts to lookup and build an extension from the registry with the

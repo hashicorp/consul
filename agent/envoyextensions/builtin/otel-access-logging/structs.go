@@ -12,9 +12,7 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_extensions_access_loggers_grpc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/grpc/v3"
-	envoy_extensions_access_loggers_otel_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/open_telemetry/v3"
 	envoy_upstreams_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
@@ -35,26 +33,11 @@ const (
 )
 
 type AccessLog struct {
-	CommonConfig       *CommonConfig
-	Body               *v1.AnyValue
-	Attributes         *v1.KeyValueList
-	ResourceAttributes *v1.KeyValueList
-}
-
-func (c AccessLog) toEnvoyNetworkFilter(cfg *cmn.RuntimeConfig) (*envoy_listener_v3.Filter, error) {
-	commonConfig, err := c.CommonConfig.toEnvoy(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	accessLogFilter := &envoy_extensions_access_loggers_otel_v3.OpenTelemetryAccessLogConfig{
-		CommonConfig:       commonConfig,
-		ResourceAttributes: c.Attributes,
-		Body:               c.Body,
-		Attributes:         c.Attributes,
-	}
-
-	return cmn.MakeFilter("envoy.filters.network.http_connection_manager", accessLogFilter)
+	CommonConfig         *CommonConfig
+	Body                 *v1.AnyValue
+	Attributes           *v1.KeyValueList
+	ResourceAttributes   *v1.KeyValueList
+	DisableBuiltinLabels bool
 }
 
 func (a *AccessLog) normalize() {
