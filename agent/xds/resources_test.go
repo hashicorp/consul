@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
+	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"k8s.io/utils/pointer"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -566,6 +568,15 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 										},
 										Remove: []string{"X-Header-Remove"},
 									},
+								},
+								RetryFilter: &structs.RetryFilter{
+									NumRetries:            pointer.Uint32(3),
+									RetryOnStatusCodes:    []uint32{500},
+									RetryOnConnectFailure: pointer.Bool(true),
+								},
+								TimeoutFilter: &structs.TimeoutFilter{
+									IdleTimeout:    time.Second * 30,
+									RequestTimeout: time.Second * 30,
 								},
 							},
 							Services: []structs.HTTPService{{
