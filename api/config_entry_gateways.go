@@ -283,7 +283,9 @@ type APIGatewayListener struct {
 	// either be "http" or "tcp"
 	Protocol string
 	// TLS is the TLS settings for the listener.
-	TLS APIGatewayTLSConfiguration
+	TLS      APIGatewayTLSConfiguration
+	Override APIGatewayPolicyConfiguration
+	Default  APIGatewayPolicyConfiguration
 }
 
 // APIGatewayTLSConfiguration specifies the configuration of a listener’s
@@ -301,4 +303,35 @@ type APIGatewayTLSConfiguration struct {
 	// Define a subset of cipher suites to restrict
 	// Only applicable to connections negotiated via TLS 1.2 or earlier
 	CipherSuites []string `json:",omitempty" alias:"cipher_suites"`
+}
+
+type APIGatewayPolicyConfiguration struct {
+	// JWT APIGatewayJWTRequirement `json:"JWT"`
+}
+
+type APIGatewayJWTRequirement struct {
+	// Providers is a list of providers to consider when verifying a JWT.
+	Providers []*APIGatewayJWTProvider `json:",omitempty"`
+}
+
+type APIGatewayJWTProvider struct {
+	// Name is the name of the JWT provider. There MUST be a corresponding
+	// "jwt-provider" config entry with this name.
+	Name string `json:",omitempty"`
+
+	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
+	VerifyClaims []*APIGatewayJWTClaimVerification `json:",omitempty" alias:"verify_claims"`
+}
+
+type APIGatewayJWTClaimVerification struct {
+	// Path is the path to the claim in the token JSON.
+	Path []string `json:",omitempty"`
+
+	// Value is the expected value at the given path:
+	// - If the type at the path is a list then we verify
+	//   that this value is contained in the list.
+	//
+	// - If the type at the path is a string then we verify
+	//   that this value matches.
+	Value string `json:",omitempty"`
 }

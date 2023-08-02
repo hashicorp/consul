@@ -887,6 +887,9 @@ type APIGatewayListener struct {
 	Protocol APIGatewayListenerProtocol
 	// TLS is the TLS settings for the listener.
 	TLS APIGatewayTLSConfiguration
+
+	Override APIGatewayPolicy
+	Default  APIGatewayPolicy
 }
 
 func (l APIGatewayListener) GetHostname() string {
