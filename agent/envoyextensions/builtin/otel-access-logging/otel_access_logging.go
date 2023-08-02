@@ -10,7 +10,7 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_extensions_access_loggers_otel_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/open_telemetry/v3"
 	"github.com/mitchellh/mapstructure"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/api"
@@ -121,7 +121,7 @@ func (a *otelAccessLogging) toEnvoyAccessLog(cfg *cmn.RuntimeConfig) (*envoy_ext
 	}
 
 	// Marshal the struct to bytes.
-	otelAccessLogConfigBytes, err := protojson.Marshal(otelAccessLogConfig)
+	otelAccessLogConfigBytes, err := proto.Marshal(otelAccessLogConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal OpenTelemetryAccessLogConfig: %w", err)
 	}

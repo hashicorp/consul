@@ -63,6 +63,11 @@ func (a *extAuthz) PatchClusters(cfg *ext_cmn.RuntimeConfig, c ext_cmn.ClusterMa
 
 // PatchFilters inserts an ext-authz filter into the list of network filters or the filter chain of the HTTP connection manager.
 func (a *extAuthz) PatchFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_listener_v3.Filter, isInboundListener bool) ([]*envoy_listener_v3.Filter, error) {
+	// The ext_authz extension only patches filters for inbound listeners.
+	if !isInboundListener {
+		return filters, nil
+	}
+
 	a.configureInsertOptions(cfg.Protocol)
 
 	switch cfg.Protocol {

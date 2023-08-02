@@ -33,11 +33,10 @@ const (
 )
 
 type AccessLog struct {
-	CommonConfig         *CommonConfig
-	Body                 *v1.AnyValue
-	Attributes           *v1.KeyValueList
-	ResourceAttributes   *v1.KeyValueList
-	DisableBuiltinLabels bool
+	CommonConfig       *CommonConfig
+	Body               *v1.AnyValue
+	Attributes         *v1.KeyValueList
+	ResourceAttributes *v1.KeyValueList
 }
 
 func (a *AccessLog) normalize() {
@@ -202,10 +201,17 @@ func (c *CommonConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3.C
 func (c CommonConfig) toEnvoy(cfg *cmn.RuntimeConfig) (*envoy_extensions_access_loggers_grpc_v3.CommonGrpcAccessLogConfig, error) {
 	config := &envoy_extensions_access_loggers_grpc_v3.CommonGrpcAccessLogConfig{
 		LogName:                 c.LogName,
-		BufferFlushInterval:     durationpb.New(*c.BufferFlushInterval),
 		BufferSizeBytes:         wrapperspb.UInt32(c.BufferSizeBytes),
 		FilterStateObjectsToLog: c.FilterStateObjectsToLog,
-		GrpcStreamRetryPolicy:   c.RetryPolicy.toEnvoy(),
+		TransportApiVersion:     envoy_core_v3.ApiVersion_V3,
+	}
+
+	if c.BufferFlushInterval != nil {
+		config.BufferFlushInterval = durationpb.New(*c.BufferFlushInterval)
+	}
+
+	if c.RetryPolicy != nil {
+		config.GrpcStreamRetryPolicy = c.RetryPolicy.toEnvoy()
 	}
 
 	grpcSvc, err := c.envoyGrpcService(cfg)
