@@ -25,7 +25,7 @@ type mockMetricsClient struct {
 	exportErr error
 }
 
-func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint *url.URL) error {
+func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
 	return m.exportErr
 }
 
@@ -84,9 +84,10 @@ func TestExport(t *testing.T) {
 			provider: &mockEndpointProvider{},
 		},
 		"earlyReturnWithoutScopeMetrics": {
-			client:   &mockMetricsClient{},
-			metrics:  mutateMetrics(nil),
-			provider: &mockEndpointProvider{enabled: true},
+			client:  &mockMetricsClient{},
+			metrics: mutateMetrics(nil),
+			provider: &mockEndpointProvider{
+				enabled: true},
 		},
 		"earlyReturnWithoutMetrics": {
 			client: &mockMetricsClient{},
@@ -111,8 +112,11 @@ func TestExport(t *testing.T) {
 				},
 			},
 			),
-			provider: &mockEndpointProvider{enabled: true},
-			wantErr:  "failed to export metrics",
+			provider: &mockEndpointProvider{
+				enabled:  true,
+				endpoint: &url.URL{},
+			},
+			wantErr: "failed to export metrics",
 		},
 	} {
 		test := test
@@ -186,6 +190,7 @@ func TestExport_CustomMetrics(t *testing.T) {
 
 			exp := NewOTELExporter(tc.client, &mockEndpointProvider{
 				endpoint: u,
+				enabled:  true,
 			})
 
 			ctx := context.Background()

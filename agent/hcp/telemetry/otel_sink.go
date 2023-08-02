@@ -103,8 +103,6 @@ func NewOTELSink(ctx context.Context, opts *OTELSinkOpts) (*OTELSink, error) {
 	meterProvider := otelsdk.NewMeterProvider(otelsdk.WithResource(res), otelsdk.WithReader(opts.Reader))
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
 
-	logger.Debug("Successfully initialized OTELSink")
-
 	return &OTELSink{
 		cfgProvider:          opts.ConfigProvider,
 		spaceReplacer:        strings.NewReplacer(" ", "_"),
@@ -204,6 +202,7 @@ func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gom
 	if !o.allowedMetric(k) {
 		return
 	}
+
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 

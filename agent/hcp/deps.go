@@ -65,17 +65,17 @@ func sink(
 ) (metrics.MetricSink, error) {
 	logger := hclog.FromContext(ctx)
 
-	provider := NewHCPProvider(ctx, hcpClient)
+	cfgProvider := NewHCPProvider(ctx, hcpClient)
 
-	reader := telemetry.NewOTELReader(metricsClient, provider, telemetry.DefaultExportInterval)
+	reader := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Reader:         reader,
-		ConfigProvider: provider,
+		ConfigProvider: cfgProvider,
 	}
 
 	sink, err := telemetry.NewOTELSink(ctx, sinkOpts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init OTEL sink: %w", err)
+		return nil, fmt.Errorf("failed to create OTELSink: %w", err)
 	}
 
 	logger.Debug("initialized HCP metrics sink")

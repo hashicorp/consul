@@ -14,7 +14,7 @@ import (
 
 // MetricsClient exports Consul metrics in OTLP format to the desired endpoint.
 type MetricsClient interface {
-	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint *url.URL) error
+	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error
 }
 
 // EndpointProvider provides the endpoint where metrics are exported to by the OTELExporter.
@@ -70,13 +70,17 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 		return nil
 	}
 
+	endpoint := e.endpointProvider.GetEndpoint()
+	if endpoint == nil {
+		return nil
+	}
+
 	otlpMetrics := transformOTLP(metrics)
 	if isEmpty(otlpMetrics) {
 		return nil
 	}
 
-	endpoint := e.endpointProvider.GetEndpoint()
-	err := e.client.ExportMetrics(ctx, otlpMetrics, endpoint)
+	err := e.client.ExportMetrics(ctx, otlpMetrics, endpoint.String())
 	if err != nil {
 		goMetrics.IncrCounter(internalMetricExportFailure, 1)
 		return fmt.Errorf("failed to export metrics: %w", err)
