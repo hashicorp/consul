@@ -22,7 +22,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-const testACLToken = acl.AnonymousTokenID
+const testACLTokenArtistV2WritePolicy = acl.AnonymousTokenID
+const testACLTokenArtistV2ReadPolicy = "00000000-0000-0000-0000-000000000001"
 
 func parseToken(req *http.Request, token *string) {
 	*token = req.Header.Get("x-Consul-Token")
@@ -67,10 +68,27 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			description: "wrong schema",
 			request: httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
 				{
+					"version": "test_version",
 					"metadata": {
 						"foo": "bar"
 					},
-					"tada": {
+					"data": {
+						"name": "Keith Urban",
+						"genre": "GENRE_COUNTRY"
+					}
+				}
+			`)),
+			response:             httptest.NewRecorder(),
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			description: "missing tenancy info",
+			request: httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local", strings.NewReader(`
+				{
+					"metadata": {
+						"foo": "bar"
+					},
+					"data": {
 						"name": "Keith Urban",
 						"genre": "GENRE_COUNTRY"
 					}
@@ -92,8 +110,10 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 
 func TestResourceWriteHandler(t *testing.T) {
 	aclResolver := &resourceSvc.MockACLResolver{}
-	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistV2WritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistV2ReadPolicy, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, demo.ArtistV2ReadPolicy), nil)
 
 	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
 
@@ -106,6 +126,27 @@ func TestResourceWriteHandler(t *testing.T) {
 		parseToken,
 		hclog.NewNullLogger(),
 	}
+
+	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+			{
+				"metadata": {
+					"foo": "bar"
+				},
+				"data": {
+					"name": "Keith Urban",
+					"genre": "GENRE_COUNTRY"
+				}
+			}
+		`))
+
+		req.Header.Add("x-consul-token", testACLTokenArtistV2ReadPolicy)
+
+		resourceHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusForbidden, rsp.Result().StatusCode)
+	})
 
 	t.Run("should write to the resource backend", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
@@ -121,7 +162,7 @@ func TestResourceWriteHandler(t *testing.T) {
 			}
 		`))
 
-		req.Header.Add("x-consul-token", testACLToken)
+		req.Header.Add("x-consul-token", testACLTokenArtistV2WritePolicy)
 
 		resourceHandler.ServeHTTP(rsp, req)
 

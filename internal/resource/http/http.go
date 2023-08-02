@@ -37,7 +37,6 @@ func NewHandler(
 }
 
 type writeRequest struct {
-	Version  string            `json:"version"`
 	Metadata map[string]string `json:"metadata"`
 	Data     json.RawMessage   `json:"data"`
 	Owner    *pbresource.ID    `json:"owner"`
@@ -84,7 +83,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 
-	tenancyInfo, resourceName := checkURL(r)
+	tenancyInfo, resourceName, version := checkURL(r)
 
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
@@ -94,7 +93,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 				Name:    resourceName,
 			},
 			Owner:    req.Owner,
-			Version:  req.Version,
+			Version:  version,
 			Metadata: req.Metadata,
 			Data:     anyProtoMsg,
 		},
@@ -113,7 +112,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	w.Write(output)
 }
 
-func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string) {
+func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string, version string) {
 	params := r.URL.Query()
 	tenancy = &pbresource.Tenancy{
 		Partition: params.Get("partition"),
@@ -124,6 +123,7 @@ func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string
 	if resourceName == "." || resourceName == "/" {
 		resourceName = ""
 	}
+	version = params.Get("version")
 
 	return
 }
@@ -146,12 +146,15 @@ func jsonMarshal(res *pbresource.Resource) ([]byte, error) {
 func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
 	if e, ok := status.FromError(err); ok {
 		switch e.Code() {
-		case codes.PermissionDenied:
-			w.WriteHeader(http.StatusForbidden)
-			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
+		case codes.InvalidArgument:
+			w.WriteHeader(http.StatusBadRequest)
+			h.logger.Info("User has mal-formed request", "error", err)
 		case codes.NotFound:
 			w.WriteHeader(http.StatusNotFound)
 			h.logger.Info("Failed to write to GRPC resource: Not found", "error", err)
+		case codes.PermissionDenied:
+			w.WriteHeader(http.StatusForbidden)
+			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
 			h.logger.Error("Failed to write to GRPC resource", "error", err)
