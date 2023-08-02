@@ -100,6 +100,12 @@ jobs:
         with:
           key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
           path: ~/.cache/go-build
+      - name: restore GOMODCACHE
+        id: restore_GOMODCACHE
+        uses: actions/cache/restore@v3
+        with:
+          key: "GOMODCACHEv1:${{ inputs.directory }}:${{ hashFiles(format('{0}/go.sum', inputs.directory)) }}"
+          path: "/home/runner/go/pkg/mod"
       - name: install gotestsum
         run: GOARCH=amd64 go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
       - run: |
@@ -148,6 +154,12 @@ jobs:
         with:
           key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
           path: "~/.cache/go-build"
+      - name: save GOMODCACHE
+        if: ${{ always() }}
+        uses: actions/cache/save@v3
+        with:
+          key: "GOMODCACHEv1:${{ inputs.directory }}:${{ hashFiles(format('{0}/go.sum', inputs.directory)) }}"
+          path: "/home/runner/go/pkg/mod"
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
