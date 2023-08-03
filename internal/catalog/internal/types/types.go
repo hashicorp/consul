@@ -22,4 +22,5 @@ func Register(r resource.Registry) {
 	RegisterHealthChecks(r)
 	RegisterDNSPolicy(r)
 	RegisterVirtualIPs(r)
+	RegisterFailoverPolicy(r)
 }
