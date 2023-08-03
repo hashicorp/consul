@@ -144,8 +144,10 @@ jobs:
             $PACKAGE_NAMES 2>&1 | tee log | grep -v '^testcache:'
             grep '^testcache:' log > /tmp/testcache.log
       - name: calculate testcache hit rate
-        # TODO: it would also be nice to report this to Datadog somehow, and get a graph
-        run: .github/scripts/testcache-summary.py < /tmp/testcache.log | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "${{steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE}}" >> "$GITHUB_STEP_SUMMARY" 
+          # TODO: it would also be nice to report this to Datadog somehow, and get a graph
+          .github/scripts/testcache-summary.py < /tmp/testcache.log | tee -a "$GITHUB_STEP_SUMMARY"
       # GHA cache doesn't support overwriting in one action, so we just do delete+save
       # https://github.com/actions/toolkit/issues/505
       - name: delete old GOCACHE
