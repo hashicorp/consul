@@ -42,6 +42,78 @@ func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 	}
 	s.Meta = t.Meta
 }
+func APIGatewayJWTClaimVerificationToStructs(s *APIGatewayJWTClaimVerification, t *structs.APIGatewayJWTClaimVerification) {
+	if s == nil {
+		return
+	}
+	t.Path = s.Path
+	t.Value = s.Value
+}
+func APIGatewayJWTClaimVerificationFromStructs(t *structs.APIGatewayJWTClaimVerification, s *APIGatewayJWTClaimVerification) {
+	if s == nil {
+		return
+	}
+	s.Path = t.Path
+	s.Value = t.Value
+}
+func APIGatewayJWTProviderToStructs(s *APIGatewayJWTProvider, t *structs.APIGatewayJWTProvider) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	{
+		t.VerifyClaims = make([]structs.APIGatewayJWTClaimVerification, len(s.VerifyClaims))
+		for i := range s.VerifyClaims {
+			if s.VerifyClaims[i] != nil {
+				APIGatewayJWTClaimVerificationToStructs(s.VerifyClaims[i], &t.VerifyClaims[i])
+			}
+		}
+	}
+}
+func APIGatewayJWTProviderFromStructs(t *structs.APIGatewayJWTProvider, s *APIGatewayJWTProvider) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	{
+		s.VerifyClaims = make([]*APIGatewayJWTClaimVerification, len(t.VerifyClaims))
+		for i := range t.VerifyClaims {
+			{
+				var x APIGatewayJWTClaimVerification
+				APIGatewayJWTClaimVerificationFromStructs(&t.VerifyClaims[i], &x)
+				s.VerifyClaims[i] = &x
+			}
+		}
+	}
+}
+func APIGatewayJWTRequirementToStructs(s *APIGatewayJWTRequirement, t *structs.APIGatewayJWTRequirement) {
+	if s == nil {
+		return
+	}
+	{
+		t.Providers = make([]structs.APIGatewayJWTProvider, len(s.Providers))
+		for i := range s.Providers {
+			if s.Providers[i] != nil {
+				APIGatewayJWTProviderToStructs(s.Providers[i], &t.Providers[i])
+			}
+		}
+	}
+}
+func APIGatewayJWTRequirementFromStructs(t *structs.APIGatewayJWTRequirement, s *APIGatewayJWTRequirement) {
+	if s == nil {
+		return
+	}
+	{
+		s.Providers = make([]*APIGatewayJWTProvider, len(t.Providers))
+		for i := range t.Providers {
+			{
+				var x APIGatewayJWTProvider
+				APIGatewayJWTProviderFromStructs(&t.Providers[i], &x)
+				s.Providers[i] = &x
+			}
+		}
+	}
+}
 func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayListener) {
 	if s == nil {
 		return
@@ -52,6 +124,12 @@ func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayLis
 	t.Protocol = apiGatewayProtocolToStructs(s.Protocol)
 	if s.TLS != nil {
 		APIGatewayTLSConfigurationToStructs(s.TLS, &t.TLS)
+	}
+	if s.Override != nil {
+		APIGatewayPolicyToStructs(s.Override, &t.Override)
+	}
+	if s.Default != nil {
+		APIGatewayPolicyToStructs(s.Default, &t.Default)
 	}
 }
 func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayListener) {
@@ -67,6 +145,28 @@ func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayL
 		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
 		s.TLS = &x
 	}
+	{
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(&t.Override, &x)
+		s.Override = &x
+	}
+	{
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(&t.Default, &x)
+		s.Default = &x
+	}
+}
+func APIGatewayPolicyToStructs(s *APIGatewayPolicy, t *structs.APIGatewayPolicy) {
+	if s == nil {
+		return
+	}
+	t.JWT = gwJWTRequirementToStructs(s.JWT)
+}
+func APIGatewayPolicyFromStructs(t *structs.APIGatewayPolicy, s *APIGatewayPolicy) {
+	if s == nil {
+		return
+	}
+	s.JWT = gwJWTRequirementFromStructs(t.JWT)
 }
 func APIGatewayTLSConfigurationToStructs(s *APIGatewayTLSConfiguration, t *structs.APIGatewayTLSConfiguration) {
 	if s == nil {

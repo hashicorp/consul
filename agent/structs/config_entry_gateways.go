@@ -892,6 +892,24 @@ type APIGatewayListener struct {
 	Default  APIGatewayPolicy
 }
 
+type APIGatewayPolicy struct {
+	JWT APIGatewayJWTRequirement
+}
+
+type APIGatewayJWTRequirement struct {
+	Providers []APIGatewayJWTProvider
+}
+
+type APIGatewayJWTProvider struct {
+	Name         string
+	VerifyClaims []APIGatewayJWTClaimVerification
+}
+
+type APIGatewayJWTClaimVerification struct {
+	Path  []string
+	Value string
+}
+
 func (l APIGatewayListener) GetHostname() string {
 	if l.Hostname != "" {
 		return l.Hostname
