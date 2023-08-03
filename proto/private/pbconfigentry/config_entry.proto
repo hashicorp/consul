@@ -731,8 +731,8 @@ message APIGatewayTLSConfiguration {
 // output=config_entry.gen.go
 // name=Structs
 message APIGatewayPolicy {
-    // mog: func-to=gwJWTRequirementToStructs func-from=gwJWTRequirementFromStructs
-    APIGatewayJWTRequirement JWT = 1;
+  // mog: func-to=gwJWTRequirementToStructs func-from=gwJWTRequirementFromStructs
+  APIGatewayJWTRequirement JWT = 1;
 }
 
 message APIGatewayJWTRequirement {
@@ -748,7 +748,6 @@ message APIGatewayJWTClaimVerification {
   repeated string Path = 1;
   string Value = 2;
 }
-
 
 // mog annotation:
 //
