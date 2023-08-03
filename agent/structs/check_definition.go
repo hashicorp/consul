@@ -225,6 +225,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		DisableRedirects:               c.DisableRedirects,
 		OutputMaxSize:                  c.OutputMaxSize,
 		TCP:                            c.TCP,
+		TCPUseTLS:                      c.TCPUseTLS,
 		UDP:                            c.UDP,
 		Interval:                       c.Interval,
 		DockerContainerID:              c.DockerContainerID,
