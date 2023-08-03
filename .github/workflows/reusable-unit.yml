@@ -54,7 +54,8 @@ env:
   GOTESTSUM_VERSION: "1.10.1"
   GOARCH: ${{inputs.go-arch}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
-  GOTAGS: ${{ inputs.go-tags }}
+  GOTAGS: "${{ inputs.go-tags }}"
+  GOTESTFLAGS: "${{ inputs.go-test-flags }}"
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
   DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
@@ -140,7 +141,7 @@ jobs:
             --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
             -- \
             -tags="${{env.GOTAGS}}" \
-            ${{ inputs.go-test-flags }} \
+            ${{ env.GOTESTFLAGS }} \
             $PACKAGE_NAMES 2>&1 | tee log | grep -v '^testcache:'
             grep '^testcache:' log > /tmp/testcache.log
       - name: calculate testcache hit rate
