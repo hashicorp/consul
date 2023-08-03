@@ -4,6 +4,7 @@
 package acl
 
 import (
+	"fmt"
 	"io"
 	"testing"
 
@@ -37,17 +38,14 @@ func Test_GetPolicyIDByName_Builtins(t *testing.T) {
 	client := a.Client()
 	client.AddHeader("X-Consul-Token", "root")
 
-	t.Run("global management policy", func(t *testing.T) {
-		id, err := GetPolicyIDByName(client, structs.ACLPolicyGlobalManagementName)
-		require.NoError(t, err)
-		require.Equal(t, structs.ACLPolicyGlobalManagementID, id)
-	})
-
-	t.Run("global read-only policy", func(t *testing.T) {
-		id, err := GetPolicyIDByName(client, structs.ACLPolicyGlobalReadOnlyName)
-		require.NoError(t, err)
-		require.Equal(t, structs.ACLPolicyGlobalReadOnlyID, id)
-	})
+	for _, policy := range structs.ACLBuiltinPolicies {
+		name := fmt.Sprintf("%s policy", policy.Name)
+		t.Run(name, func(t *testing.T) {
+			id, err := GetPolicyIDByName(client, policy.Name)
+			require.NoError(t, err)
+			require.Equal(t, policy.ID, id)
+		})
+	}
 }
 
 func Test_GetPolicyIDFromPartial_Builtins(t *testing.T) {
