@@ -438,8 +438,8 @@ func TestACL_HTTP(t *testing.T) {
 			policies, ok := raw.(structs.ACLPolicyListStubs)
 			require.True(t, ok)
 
-			// 2 we just created + global management
-			require.Len(t, policies, 3)
+			// 2 we just created + builtin policies
+			require.Len(t, policies, 2+len(structs.ACLBuiltinPolicies))
 
 			for policyID, expected := range policyMap {
 				found := false

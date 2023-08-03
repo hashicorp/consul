@@ -13,7 +13,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/safeio v0.2.2
 	github.com/stretchr/testify v1.8.3
-	golang.org/x/crypto v0.7.0
+	golang.org/x/crypto v0.11.0
 )
 
 require (
@@ -39,7 +39,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/zclconf/go-cty v1.12.1 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/net v0.13.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

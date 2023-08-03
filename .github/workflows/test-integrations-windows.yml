@@ -31,7 +31,7 @@ jobs:
       compute-xl: ${{ steps.runners.outputs.compute-xl }}
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - id: runners
         run: .github/scripts/get_runner_classes_windows.sh
 
@@ -57,14 +57,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: [ "1.23.10", "1.24.8", "1.25.7", "1.26.2" ]
+        envoy-version: [ "1.24.10", "1.25.9", "1.26.4", "1.27.0" ]
         xds-target: [ "server", "client" ]
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
       XDS_TARGET: ${{ matrix.xds-target }}
       AWS_LAMBDA_REGION: us-west-2
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version-file: 'go.mod'
@@ -86,7 +86,7 @@ jobs:
           docker build -t envoy-tcpdump -f Dockerfile-tcpdump-windows .
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4b4e9c3e2d4531116a6f8ba8e71fc6e2cb6e6c8c # v2.5.0
+        uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
 
       - name: Docker build consul
         run: docker build -t windows/consul -f Dockerfile-windows .
@@ -1197,7 +1197,6 @@ jobs:
   test-integrations-success:
     needs:
       - envoy-integration-test
-      - upgrade-integration-test
     runs-on: 'ubuntu-latest'
     if: ${{ always() }}
     steps:

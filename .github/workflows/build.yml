@@ -84,15 +84,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.6", goos: "linux", goarch: "386"}
-          - {go: "1.20.6", goos: "linux", goarch: "amd64"}
-          - {go: "1.20.6", goos: "linux", goarch: "arm"}
-          - {go: "1.20.6", goos: "linux", goarch: "arm64"}
-          - {go: "1.20.6", goos: "freebsd", goarch: "386"}
-          - {go: "1.20.6", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.20.6", goos: "windows", goarch: "386"}
-          - {go: "1.20.6", goos: "windows", goarch: "amd64"}
-          - {go: "1.20.6", goos: "solaris", goarch: "amd64"}
+          - {go: "1.20.7", goos: "linux", goarch: "386"}
+          - {go: "1.20.7", goos: "linux", goarch: "amd64"}
+          - {go: "1.20.7", goos: "linux", goarch: "arm"}
+          - {go: "1.20.7", goos: "linux", goarch: "arm64"}
+          - {go: "1.20.7", goos: "freebsd", goarch: "386"}
+          - {go: "1.20.7", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.20.7", goos: "windows", goarch: "386"}
+          - {go: "1.20.7", goos: "windows", goarch: "amd64"}
+          - {go: "1.20.7", goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -181,7 +181,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.6", goos: "linux", goarch: "s390x"}
+          - {go: "1.20.7", goos: "linux", goarch: "s390x"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -232,7 +232,7 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64", "arm64" ]
-        go: [ "1.20.6" ]
+        go: [ "1.20.7" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -282,7 +282,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "amd64", "arm", "arm64"]
+        include:
+          - { arch: "386" }
+          - { arch: "arm" }
+          - { arch: "amd64" }
+          - { arch: "arm64" }
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.set-product-version.outputs.product-version}}
@@ -371,7 +375,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "amd64", "arm", "arm64"]
+        include:
+          - { arch: "386" }
+          - { arch: "arm" }
+          - { arch: "amd64" }
+          - { arch: "arm64" }
       fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
@@ -432,7 +440,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["i386", "amd64", "armhf", "arm64"]
+        include:
+          - { arch: "i386" }
+          - { arch: "armhf" }
+          - { arch: "amd64" }
+          - { arch: "arm64" }
       # fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
@@ -469,8 +481,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        include:
+          - { arch: "i386" }
+          - { arch: "x86_64" }
         # TODO(eculver): re-enable when there is a smaller verification container available
-        arch: ["i386", "x86_64"] #, "armv7hl", "aarch64"]
+          # - { arch: "armv7hl" }
+          # - { arch: "aarch64" }
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
 

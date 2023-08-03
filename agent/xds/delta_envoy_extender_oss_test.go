@@ -748,7 +748,7 @@ end`,
 					cfgs := extensionruntime.GetRuntimeConfigurations(snap)
 					for _, extensions := range cfgs {
 						for _, ext := range extensions {
-							err := applyEnvoyExtension(hclog.NewNullLogger(), snap, indexedResources, ext, parsedEnvoyVersion, consulVersion)
+							indexedResources, err = validateAndApplyEnvoyExtension(hclog.NewNullLogger(), snap, indexedResources, ext, parsedEnvoyVersion, consulVersion)
 							require.NoError(t, err)
 						}
 					}

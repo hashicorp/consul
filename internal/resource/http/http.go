@@ -37,10 +37,9 @@ func NewHandler(
 }
 
 type writeRequest struct {
-	// TODO: Owner.
-	Version  string            `json:"version"`
 	Metadata map[string]string `json:"metadata"`
 	Data     json.RawMessage   `json:"data"`
+	Owner    *pbresource.ID    `json:"owner"`
 }
 
 type resourceHandler struct {
@@ -67,15 +66,15 @@ func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 	var req writeRequest
-	// convert req data to struct
+	// convert req body to writeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Request body didn't follow schema."))
 	}
-	// struct to proto message
+	// convert data struct to proto message
 	data := h.reg.Proto.ProtoReflect().New().Interface()
 	if err := protojson.Unmarshal(req.Data, data); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Request body didn't follow schema."))
 	}
 	// proto message to any
@@ -86,15 +85,8 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 
-	tenancyInfo, resourceName := checkURL(r)
-	if tenancyInfo == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Missing partition, peer_name or namespace in the query params"))
-	}
-	if resourceName == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Missing resource name in the URL"))
-	}
+	tenancyInfo, resourceName, version := checkURL(r)
+
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
@@ -102,7 +94,8 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 				Tenancy: tenancyInfo,
 				Name:    resourceName,
 			},
-			Version:  req.Version,
+			Owner:    req.Owner,
+			Version:  version,
 			Metadata: req.Metadata,
 			Data:     anyProtoMsg,
 		},
@@ -122,7 +115,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 }
 
 func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	tenancyInfo, resourceName := checkURL(r)
+	tenancyInfo, resourceName, _ := checkURL(r)
 	if tenancyInfo == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Missing partition, peer_name or namespace in the query params"))
@@ -152,21 +145,18 @@ func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx
 	w.Write(output)
 }
 
-func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string) {
+func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string, version string) {
 	params := r.URL.Query()
-	partition := params.Get("partition")
-	peerName := params.Get("peer_name")
-	namespace := params.Get("namespace")
-	if partition == "" || peerName == "" || namespace == "" {
-		tenancy = nil
-	} else {
-		tenancy = &pbresource.Tenancy{
-			Partition: partition,
-			PeerName:  peerName,
-			Namespace: namespace,
-		}
+	tenancy = &pbresource.Tenancy{
+		Partition: params.Get("partition"),
+		PeerName:  params.Get("peer_name"),
+		Namespace: params.Get("namespace"),
 	}
 	resourceName = path.Base(r.URL.Path)
+	if resourceName == "." || resourceName == "/" {
+		resourceName = ""
+	}
+	version = params.Get("version")
 
 	return
 }
@@ -189,18 +179,15 @@ func jsonMarshal(res *pbresource.Resource) ([]byte, error) {
 func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
 	if e, ok := status.FromError(err); ok {
 		switch e.Code() {
-		case codes.PermissionDenied:
-			w.WriteHeader(http.StatusForbidden)
-			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
-		case codes.Internal:
-			w.WriteHeader(http.StatusInternalServerError)
-			h.logger.Error("Failed to write to GRPC resource: Internal error", "error", err)
-		case codes.Aborted:
-			w.WriteHeader(http.StatusInternalServerError)
-			h.logger.Error("Failed to write to GRPC resource: GRPC aborted", "error", err)
+		case codes.InvalidArgument:
+			w.WriteHeader(http.StatusBadRequest)
+			h.logger.Info("User has mal-formed request", "error", err)
 		case codes.NotFound:
 			w.WriteHeader(http.StatusNotFound)
 			h.logger.Info("Failed to write to GRPC resource: Not found", "error", err)
+		case codes.PermissionDenied:
+			w.WriteHeader(http.StatusForbidden)
+			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
 			h.logger.Error("Failed to write to GRPC resource", "error", err)

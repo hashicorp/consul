@@ -8,9 +8,13 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
+	resourceSvc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -18,9 +22,21 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestResourceHandler(t *testing.T) {
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+const testACLTokenArtistV2WritePolicy = acl.AnonymousTokenID
+const testACLTokenArtistV2ReadPolicy = "00000000-0000-0000-0000-000000000001"
 
+func parseToken(req *http.Request, token *string) {
+	*token = req.Header.Get("x-Consul-Token")
+}
+
+func TestResourceHandler_InputValidation(t *testing.T) {
+	type testCase struct {
+		description          string
+		request              *http.Request
+		response             *httptest.ResponseRecorder
+		expectedResponseCode int
+	}
+	client := svctest.RunResourceService(t, demo.RegisterTypes)
 	resourceHandler := resourceHandler{
 		resource.Registration{
 			Type:  demo.TypeV2Artist,
@@ -31,9 +47,89 @@ func TestResourceHandler(t *testing.T) {
 		hclog.NewNullLogger(),
 	}
 
-	t.Run("Write", func(t *testing.T) {
+	testCases := []testCase{
+		{
+			description: "missing resource name",
+			request: httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+				{
+					"metadata": {
+						"foo": "bar"
+					},
+					"data": {
+						"name": "Keith Urban",
+						"genre": "GENRE_COUNTRY"
+					}
+				}
+			`)),
+			response:             httptest.NewRecorder(),
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			description: "wrong schema",
+			request: httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+				{
+					"version": "test_version",
+					"metadata": {
+						"foo": "bar"
+					},
+					"data": {
+						"name": "Keith Urban",
+						"genre": "GENRE_COUNTRY"
+					}
+				}
+			`)),
+			response:             httptest.NewRecorder(),
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			description: "missing tenancy info",
+			request: httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local", strings.NewReader(`
+				{
+					"metadata": {
+						"foo": "bar"
+					},
+					"data": {
+						"name": "Keith Urban",
+						"genre": "GENRE_COUNTRY"
+					}
+				}
+			`)),
+			response:             httptest.NewRecorder(),
+			expectedResponseCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			resourceHandler.ServeHTTP(tc.response, tc.request)
+
+			require.Equal(t, tc.expectedResponseCode, tc.response.Result().StatusCode)
+		})
+	}
+}
+
+func TestResourceWriteHandler(t *testing.T) {
+	aclResolver := &resourceSvc.MockACLResolver{}
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistV2WritePolicy, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistV2ReadPolicy, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, demo.ArtistV2ReadPolicy), nil)
+
+	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+
+	resourceHandler := resourceHandler{
+		resource.Registration{
+			Type:  demo.TypeV2Artist,
+			Proto: &pbdemov2.Artist{},
+		},
+		client,
+		parseToken,
+		hclog.NewNullLogger(),
+	}
+
+	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -45,6 +141,29 @@ func TestResourceHandler(t *testing.T) {
 			}
 		`))
 
+		req.Header.Add("x-consul-token", testACLTokenArtistV2ReadPolicy)
+
+		resourceHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusForbidden, rsp.Result().StatusCode)
+	})
+
+	t.Run("should write to the resource backend", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+			{
+				"metadata": {
+					"foo": "bar"
+				},
+				"data": {
+					"name": "Keith Urban",
+					"genre": "GENRE_COUNTRY"
+				}
+			}
+		`))
+
+		req.Header.Add("x-consul-token", testACLTokenArtistV2WritePolicy)
+
 		resourceHandler.ServeHTTP(rsp, req)
 
 		require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
@@ -52,6 +171,7 @@ func TestResourceHandler(t *testing.T) {
 		var result map[string]any
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
 		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
+		require.Equal(t, "keith-urban", result["id"].(map[string]any)["name"])
 
 		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
@@ -70,7 +190,9 @@ func TestResourceHandler(t *testing.T) {
 
 	t.Run("Read", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", nil)
+		req := httptest.NewRequest("GET", "/keith-urban?partition=default&peer_name=local&namespace=default", nil)
+
+		req.Header.Add("x-consul-token", testACLTokenArtistV2ReadPolicy)
 
 		resourceHandler.ServeHTTP(rsp, req)
 

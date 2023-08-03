@@ -1358,7 +1358,7 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 }
 
 func TestStructs_NodeService_ConnectNativeEmptyPortError(t *testing.T) {
-	ns := TestNodeService(t)
+	ns := TestNodeService()
 	ns.Connect.Native = true
 	ns.Port = 0
 	err := ns.Validate()

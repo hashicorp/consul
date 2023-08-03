@@ -630,6 +630,8 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 			"9997/tcp", // Envoy App Listener
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
+
+			"80/tcp", // Nginx - http port used in wasm tests
 		},
 		Hostname: opts.hostname,
 		Networks: opts.addtionalNetworks,
