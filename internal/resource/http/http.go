@@ -155,6 +155,9 @@ func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
 		case codes.PermissionDenied:
 			w.WriteHeader(http.StatusForbidden)
 			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
+		case codes.Aborted:
+			w.WriteHeader(http.StatusConflict)
+			h.logger.Info("Failed to write to GRPC resource: the request conflict with the current state of the target resource", "error", err)
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
 			h.logger.Error("Failed to write to GRPC resource", "error", err)
