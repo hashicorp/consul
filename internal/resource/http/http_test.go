@@ -27,7 +27,7 @@ const testACLTokenArtistWritePolicy = "00000000-0000-0000-0000-000000000002"
 const fakeToken = "fake-token"
 
 func parseToken(req *http.Request, token *string) {
-	*token = req.Header.Get("x-Consul-Token")
+	*token = req.Header.Get("X-Consul-Token")
 }
 
 func TestResourceHandler_InputValidation(t *testing.T) {
@@ -206,7 +206,7 @@ func TestResourceWriteHandler(t *testing.T) {
 					"foo": "bar"
 				},
 				"data": {
-					"name": "Keith Urban",
+					"name": "Keith Urban Two",
 					"genre": "GENRE_COUNTRY"
 				}
 			}
@@ -217,9 +217,13 @@ func TestResourceWriteHandler(t *testing.T) {
 		v2ArtistHandler.ServeHTTP(rsp, req)
 
 		require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
+		var result map[string]any
+		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
+		require.Equal(t, "Keith Urban Two", result["data"].(map[string]any)["name"])
+		require.Equal(t, "keith-urban", result["id"].(map[string]any)["name"])
 	})
 
-	t.Run("should fail the update if the record's version doesn't match the backend record", func(t *testing.T) {
+	t.Run("should fail the update if the resource's version doesn't match the version of the existing resource", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
 		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(`
 			{
