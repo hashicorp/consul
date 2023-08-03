@@ -125,6 +125,7 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
+          set -euo pipefail
           PACKAGE_NAMES=$(${{inputs.package-names-command}})
 
           # some tests expect this umask, and arm images have a different default
