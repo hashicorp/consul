@@ -131,13 +131,12 @@ jobs:
           umask 0022
           export GODEBUG=gocachetest=1
 
+          # Note: gotestum reruns work by invoking `go test -run <failed tests regex>`. 
+          # Unfortunately, this results in a totally different GOCACHE key, so we can't do reruns.
           gotestsum \
             --format=short-verbose \
             --jsonfile /tmp/jsonfile/go-test.log \
             --debug \
-            --rerun-fails=0 \
-            --rerun-fails-max-failures=40 \
-            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
             --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml \
             -- \
             -tags="${{env.GOTAGS}}" \
@@ -216,9 +215,6 @@ jobs:
         with:
           name: jsonfile-${{ inputs.artifact_namespace }}
           path: /tmp/jsonfile
-      - name: "Re-run fails report"
-        run: |
-          .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
       - name: Notify Slack
         if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
