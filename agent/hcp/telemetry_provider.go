@@ -117,7 +117,7 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 		endpoint:        telemetryCfg.MetricsConfig.Endpoint,
 		labels:          telemetryCfg.MetricsConfig.Labels,
 		refreshInterval: telemetryCfg.RefreshConfig.RefreshInterval,
-		disabled:        telemetryCfg.MetricsDisabled(),
+		disabled:        telemetryCfg.MetricsConfig.Disabled,
 	}
 
 	// Acquire write lock to update new configuration.

@@ -40,16 +40,12 @@ type MetricsConfig struct {
 	Labels   map[string]string
 	Filters  *regexp.Regexp
 	Endpoint *url.URL
+	Disabled bool
 }
 
 // RefreshConfig contains configuration for the periodic fetch of configuration from HCP.
 type RefreshConfig struct {
 	RefreshInterval time.Duration
-}
-
-// MetricsDisabled returns true if metrics export is disabled, i.e. no valid metrics endpoint exists.
-func (t *TelemetryConfig) MetricsDisabled() bool {
-	return t.MetricsConfig.Endpoint == nil
 }
 
 // validateAgentTelemetryConfigPayload ensures the returned payload from HCP is valid.
@@ -86,6 +82,11 @@ func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.Agent
 		return nil, errInvalidEndpoint
 	}
 
+	var disabled bool
+	if metricsEndpoint == nil {
+		disabled = true
+	}
+
 	metricsFilters := convertMetricFilters(ctx, telemetryConfig.Metrics.IncludeList)
 	metricLabels := convertMetricLabels(telemetryConfig.Labels, cfg)
 
@@ -94,6 +95,7 @@ func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.Agent
 			Endpoint: metricsEndpoint,
 			Labels:   metricLabels,
 			Filters:  metricsFilters,
+			Disabled: disabled,
 		},
 		RefreshConfig: &RefreshConfig{
 			RefreshInterval: refreshInterval,

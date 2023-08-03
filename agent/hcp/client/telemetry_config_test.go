@@ -85,7 +85,6 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 		resp                 *consul_telemetry_service.AgentTelemetryConfigOK
 		expectedTelemetryCfg *TelemetryConfig
 		wantErr              error
-		expectedDisabled     bool
 	}{
 		"success": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -133,12 +132,12 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 					Endpoint: nil,
 					Labels:   map[string]string{"test": "test"},
 					Filters:  validTestFilters,
+					Disabled: true,
 				},
 				RefreshConfig: &RefreshConfig{
 					RefreshInterval: 2 * time.Second,
 				},
 			},
-			expectedDisabled: true,
 		},
 		"successBadFilters": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -204,7 +203,6 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedTelemetryCfg, telemetryCfg)
-			require.Equal(t, tc.expectedDisabled, telemetryCfg.MetricsDisabled())
 		})
 	}
 }

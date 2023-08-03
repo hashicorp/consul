@@ -40,63 +40,30 @@ type testConfig struct {
 	disabled        bool
 }
 
-func TestNewTelemetryConfigProvider(t *testing.T) {
+func TestNewTelemetryConfigProvider_DefaultConfig(t *testing.T) {
 	t.Parallel()
-	for name, tc := range map[string]struct {
-		mock            func(*client.MockClient)
-		expectedTestCfg *testConfig
-	}{
-		"initWithDefaultConfig": {
-			mock: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, errors.New("failed to fetch config"))
-			},
-			expectedTestCfg: &testConfig{
-				refreshInterval: defaultTelemetryConfigRefreshInterval,
-				filters:         client.DefaultMetricFilters.String(),
-				labels:          map[string]string{},
-				disabled:        true,
-				endpoint:        "",
-			},
-		},
-		"initWithFirstUpdate": {
-			mock: func(mockClient *client.MockClient) {
-				cfg, err := testTelemetryCfg(&testConfig{
-					refreshInterval: 2 * time.Second,
-					filters:         "consul",
-					labels:          map[string]string{"test_label": "123"},
-					endpoint:        "https://test.com/v1/metrics",
-				})
-				require.NoError(t, err)
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(cfg, nil)
-			},
-			expectedTestCfg: &testConfig{
-				refreshInterval: 2 * time.Second,
-				filters:         "consul",
-				labels:          map[string]string{"test_label": "123"},
-				endpoint:        "https://test.com/v1/metrics",
-			},
-		},
-	} {
-		tc := tc
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-			mc := client.NewMockClient(t)
-			tc.mock(mc)
+	// Initialize new provider, but fail all HCP fetches.
+	mc := client.NewMockClient(t)
+	mc.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, errors.New("failed to fetch config"))
 
-			provider := NewHCPProvider(ctx, mc)
+	provider := NewHCPProvider(ctx, mc)
+	provider.updateConfig(ctx)
 
-			expectedCfg, err := testDynamicCfg(tc.expectedTestCfg)
-			require.NoError(t, err)
-
-			require.Equal(t, expectedCfg, provider.cfg)
-		})
+	// Assert provider has default configuration and metrics processing is disabled.
+	defaultCfg := &dynamicConfig{
+		labels:          map[string]string{},
+		filters:         client.DefaultMetricFilters,
+		refreshInterval: defaultTelemetryConfigRefreshInterval,
+		endpoint:        nil,
+		disabled:        true,
 	}
+	require.Equal(t, defaultCfg, provider.cfg)
 }
 
-func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
+func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 	for name, tc := range map[string]struct {
 		mockExpect       func(*client.MockClient)
 		metricKey        string
@@ -183,6 +150,7 @@ func TestTelemetryConfigProviderGetUpdate(t *testing.T) {
 						"new_label": "1234",
 					},
 					refreshInterval: 2 * time.Second,
+					disabled:        true,
 				})
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
 			},
@@ -446,6 +414,7 @@ func testTelemetryCfg(testCfg *testConfig) (*client.TelemetryConfig, error) {
 			Endpoint: endpoint,
 			Filters:  filters,
 			Labels:   testCfg.labels,
+			Disabled: testCfg.disabled,
 		},
 		RefreshConfig: &client.RefreshConfig{
 			RefreshInterval: testCfg.refreshInterval,
