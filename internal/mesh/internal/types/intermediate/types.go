@@ -42,6 +42,11 @@ type ProxyStateTemplate struct {
 	Tmpl     *pbmesh.ProxyStateTemplate
 }
 
+type ProxyConfiguration struct {
+	Resource *pbresource.Resource
+	Cfg      *pbmesh.ProxyConfiguration
+}
+
 type Destination struct {
 	Explicit         *pbmesh.Upstream
 	ServiceEndpoints *ServiceEndpoints
