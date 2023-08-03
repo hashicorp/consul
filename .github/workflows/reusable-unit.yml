@@ -86,6 +86,18 @@ jobs:
       # TODO: does this need to be an env var?
       - run: mkdir -p ${{env.TEST_RESULTS}}
       - run: go env
+      - id: cachekey_GOMODCACHE
+        run: |
+          # this cache key is not namespaced, so shared between all invocations of this workflow
+          # racy, but shouldn't be a problem
+          cachekey_GOMODCACHE="GOMODCACHEv1:${{ inputs.directory }}:${{ hashFiles(format('{0}/go.sum', inputs.directory)) }}"
+          echo "cachekey_GOMODCACHE=$cachekey_GOMODCACHE" >> "$GITHUB_OUTPUT"
+      - name: restore GOMODCACHE
+        id: restore_GOMODCACHE
+        uses: actions/cache/restore@v3
+        with:
+          key: "${{ steps.cachekey_GOMODCACHE.outputs.cachekey_GOMODCACHE }}"
+          path: "~/go/pkg/mod"
       - id: cachekey_GOCACHE
         run: |
           export GOMODULENAME=$(cd ${{inputs.directory }} && go list -m)
@@ -100,15 +112,10 @@ jobs:
         with:
           key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
           path: ~/.cache/go-build
-      - name: restore GOMODCACHE
-        id: restore_GOMODCACHE
-        uses: actions/cache/restore@v3
-        with:
-          key: "GOMODCACHEv1:${{ inputs.directory }}:${{ hashFiles(format('{0}/go.sum', inputs.directory)) }}"
-          path: "/home/runner/go/pkg/mod"
       - name: install gotestsum
         run: GOARCH=amd64 go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}}
-      - run: |
+      - name: build consul binary
+        run: |
           # we used to do dev-build in a separate step, but generally
           # that is slower (mostly due to overhead) than just doing it here
           export GOARCH=amd64
@@ -136,9 +143,9 @@ jobs:
             ${{ inputs.go-test-flags }} \
             $PACKAGE_NAMES 2>&1 | tee log | grep -v '^testcache:'
             grep '^testcache:' log > /tmp/testcache.log
-      - name: calculate test cache hit rate
-        run: |
-          .github/scripts/testcache-hit-rate.awk < /tmp/testcache.log | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: calculate testcache hit rate
+        # TODO: it would also be nice to report this to Datadog somehow, and get a graph
+        run: .github/scripts/testcache-summary.py < /tmp/testcache.log | tee -a "$GITHUB_STEP_SUMMARY"
       # GHA cache doesn't support overwriting in one action, so we just do delete+save
       # https://github.com/actions/toolkit/issues/505
       - name: delete old GOCACHE
@@ -158,8 +165,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/cache/save@v3
         with:
-          key: "GOMODCACHEv1:${{ inputs.directory }}:${{ hashFiles(format('{0}/go.sum', inputs.directory)) }}"
-          path: "/home/runner/go/pkg/mod"
+          key: "${{ steps.cachekey_GOMODCACHE.outputs.cachekey_GOMODCACHE }}"
+          path: "~/go/pkg/mod"
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
@@ -204,8 +211,8 @@ jobs:
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: ${{ always() }}
         with:
-          name: jsonfile
-          path: /tmp/jsonfile-${{ inputs.artifact_namespace }}
+          name: jsonfile-${{ inputs.artifact_namespace }}
+          path: /tmp/jsonfile
       - name: "Re-run fails report"
         run: |
           .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
