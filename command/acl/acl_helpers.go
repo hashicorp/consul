@@ -42,6 +42,12 @@ func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error)
 
 func GetPolicyIDFromPartial(client *api.Client, partialID string) (string, error) {
 	// try the builtin policies (by name) first
+	for _, policy := range structs.ACLBuiltinPolicies {
+		if partialID == policy.Name {
+			return policy.ID, nil
+		}
+	}
+
 	if policy, ok := structs.ACLBuiltinPolicies[partialID]; ok {
 		return policy.ID, nil
 	}
