@@ -67,6 +67,7 @@ type HealthCheckDefinition struct {
 	TLSServerName                          string
 	TLSSkipVerify                          bool
 	TCP                                    string
+	TCPUseTLS                              bool
 	UDP                                    string
 	GRPC                                   string
 	OSService                              string

@@ -1879,6 +1879,7 @@ type HealthCheckDefinition struct {
 	Body                           string              `json:",omitempty"`
 	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
+	TCPUseTLS                      bool                `json:",omitempty"`
 	UDP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	OSService                      string              `json:",omitempty"`
@@ -2031,6 +2032,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Body:                           c.Definition.Body,
 		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
+		TCPUseTLS:                      c.Definition.TCPUseTLS,
 		UDP:                            c.Definition.UDP,
 		H2PING:                         c.Definition.H2PING,
 		OSService:                      c.Definition.OSService,
