@@ -103,6 +103,10 @@ type BasicEnvoyExtender struct {
 	Extension BasicExtension
 }
 
+func (b *BasicEnvoyExtender) CanApply(config *RuntimeConfig) bool {
+	return b.Extension.CanApply(config)
+}
+
 func (b *BasicEnvoyExtender) Validate(config *RuntimeConfig) error {
 	return b.Extension.Validate(config)
 }
@@ -120,10 +124,6 @@ func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, confi
 	// Currently we only support extensions for terminating gateways and connect proxies.
 	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
 	default:
-		return resources, nil
-	}
-
-	if !b.Extension.CanApply(config) {
 		return resources, nil
 	}
 

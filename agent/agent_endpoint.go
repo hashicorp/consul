@@ -621,6 +621,21 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		}
 	}
 
+	// filter the members by parsed filter expression
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+	if filterExpression != "" {
+		filter, err := bexpr.CreateFilter(filterExpression, nil, members)
+		if err != nil {
+			return nil, err
+		}
+		raw, err := filter.Execute(members)
+		if err != nil {
+			return nil, err
+		}
+		members = raw.([]serf.Member)
+	}
+
 	total := len(members)
 	if err := s.agent.filterMembers(token, &members); err != nil {
 		return nil, err

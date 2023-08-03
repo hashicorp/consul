@@ -14,6 +14,7 @@ import (
 
 const (
 	EnterpriseACLPolicyGlobalManagement = ""
+	EnterpriseACLPolicyGlobalReadOnly   = ""
 
 	// aclPolicyTemplateServiceIdentity is the template used for synthesizing
 	// policies for service identities.
