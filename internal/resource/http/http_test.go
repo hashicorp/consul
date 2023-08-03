@@ -255,7 +255,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("Read resource", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", nil)
+		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&consistent", nil)
 
 		req.Header.Add("x-consul-token", testACLTokenArtistReadPolicy)
 

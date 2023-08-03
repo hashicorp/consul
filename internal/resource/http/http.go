@@ -116,9 +116,8 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 
 func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 	tenancyInfo, params := checkURL(r)
-	if tenancyInfo == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Missing partition, peer_name or namespace in the query params"))
+	if params["consistent"] != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
 	}
 
 	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
@@ -158,7 +157,9 @@ func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]s
 	params = make(map[string]string)
 	params["resourceName"] = resourceName
 	params["version"] = query.Get("version")
-	params["consistent"] = query.Get("consistent")
+	if _, ok := query["consistent"]; ok {
+		params["consistent"] = "true"
+	}
 
 	return
 }
