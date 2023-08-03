@@ -294,21 +294,6 @@ func TestResourceWriteHandler(t *testing.T) {
 		require.NoError(t, readRsp.Resource.Data.UnmarshalTo(&artist))
 		require.Equal(t, "Keith Urban V1", artist.Name)
 	})
-
-	t.Run("Read resource", func(t *testing.T) {
-		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&consistent", nil)
-
-		req.Header.Add("x-consul-token", testACLTokenArtistReadPolicy)
-
-		v2ArtistHandler.ServeHTTP(rsp, req)
-
-		require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
-
-		var result map[string]any
-		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
-		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
-	})
 }
 
 func TestResourceReadHandler(t *testing.T) {
