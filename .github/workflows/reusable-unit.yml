@@ -86,6 +86,18 @@ jobs:
       # TODO: does this need to be an env var?
       - run: mkdir -p ${{env.TEST_RESULTS}}
       - run: go env
+      - id: cachekey_GOMODCACHE
+        run: |
+          # this cache key is not namespaced, so shared between all invocations of this workflow
+          # racy, but shouldn't be a problem
+          cachekey_GOMODCACHE="GOMODCACHEv1:${{ inputs.directory }}:${{ hashFiles(format('{0}/go.sum', inputs.directory)) }}"
+          echo "cachekey_GOMODCACHE=$cachekey_GOMODCACHE" >> "$GITHUB_OUTPUT"
+      - name: restore GOMODCACHE
+        id: restore_GOMODCACHE
+        uses: actions/cache/restore@v3
+        with:
+          key: "${{ steps.cachekey_GOMODCACHE.outputs.cachekey_GOMODCACHE }}"
+          path: "~/go/pkg/mod"
       - id: cachekey_GOCACHE
         run: |
           export GOMODULENAME=$(cd ${{inputs.directory }} && go list -m)
@@ -149,6 +161,12 @@ jobs:
         with:
           key: "${{ steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE }}"
           path: "~/.cache/go-build"
+      - name: save GOMODCACHE
+        if: ${{ always() }}
+        uses: actions/cache/save@v3
+        with:
+          key: "${{ steps.cachekey_GOMODCACHE.outputs.cachekey_GOMODCACHE }}"
+          path: "~/go/pkg/mod"
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
