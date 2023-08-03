@@ -275,7 +275,6 @@ func TestResourceWriteHandler(t *testing.T) {
 
 		var result map[string]any
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
-
 		require.Equal(t, "Keith Urban V1", result["data"].(map[string]any)["name"])
 		require.Equal(t, "keith-urban-v1", result["id"].(map[string]any)["name"])
 
@@ -346,6 +345,17 @@ func TestResourceReadHandler(t *testing.T) {
 		var result map[string]any
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
 		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
+	})
+
+	t.Run("should not be found if resource not exist", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-not-exist?partition=default&peer_name=local&namespace=default&consistent", nil)
+
+		req.Header.Add("x-consul-token", testACLTokenArtistReadPolicy)
+
+		v2ArtistHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusNotFound, rsp.Result().StatusCode)
 	})
 
 	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
