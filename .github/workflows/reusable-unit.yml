@@ -142,10 +142,10 @@ jobs:
             -- \
             -tags="${{env.GOTAGS}}" \
             ${{ env.GOTESTFLAGS }} \
-            $PACKAGE_NAMES 2>&1 | tee log | grep -v '^testcache:'
-            grep '^testcache:' log > /tmp/testcache.log
+            $PACKAGE_NAMES 2>&1 | tee /tmp/test.log | grep -v '^testcache:'
       - name: calculate testcache hit rate
         run: |
+          grep '^testcache:' /tmp/test.log > /tmp/testcache.log
           echo "${{steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE}}" >> "$GITHUB_STEP_SUMMARY" 
           # TODO: it would also be nice to report this to Datadog somehow, and get a graph
           .github/scripts/testcache-summary.py < /tmp/testcache.log | tee -a "$GITHUB_STEP_SUMMARY"
