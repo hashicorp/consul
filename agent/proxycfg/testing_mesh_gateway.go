@@ -747,6 +747,73 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				},
 			},
 		)
+	case "mgw-peered-upstream":
+		// This is a modified version of "chain-and-l7-stuff" that adds a peer field to the resolver
+		// and removes some of the extraneous disco-chain testing.
+		entries = []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "alt",
+					Peer:    "peer-b",
+				},
+				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
+			},
+		}
+		for _, entry := range entries {
+			require.NoError(t, entry.Normalize())
+			require.NoError(t, entry.Validate())
+		}
+
+		set := configentry.NewDiscoveryChainSet()
+		set.AddEntries(entries...)
+
+		var (
+			dbSN  = structs.NewServiceName("db", nil)
+			altSN = structs.NewServiceName("alt", nil)
+
+			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+		)
+
+		needPeerA = true
+		needLeaf = true
+		discoChains[dbSN] = dbChain
+		endpoints[dbSN] = TestUpstreamNodes(t, "db")
+		endpoints[altSN] = TestUpstreamNodes(t, "alt")
+
+		extraUpdates = append(extraUpdates,
+			UpdateEvent{
+				CorrelationID: datacentersWatchID,
+				Result:        &[]string{"dc1"},
+			},
+			UpdateEvent{
+				CorrelationID: exportedServiceListWatchID,
+				Result: &structs.IndexedExportedServiceList{
+					Services: map[string]structs.ServiceList{
+						"peer-a": []structs.ServiceName{dbSN},
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: serviceListWatchID,
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{
+						dbSN,
+						altSN,
+					},
+				},
+			},
+		)
+
 	case "chain-and-l7-stuff":
 		entries = []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{
