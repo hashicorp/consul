@@ -107,7 +107,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 		}
 	case metricdata.Histogram[float64]:
 		if a.Temporality != metricdata.CumulativeTemporality {
-			return out, fmt.Errorf("failed to convert metric to otel format:: %w: %T", errTemporality, a)
+			return out, fmt.Errorf("failed to convert metric to otel format: %w: %T", errTemporality, a)
 		}
 		out.Data = &mpb.Metric_Histogram{
 			Histogram: &mpb.Histogram{
@@ -116,7 +116,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 			},
 		}
 	default:
-		return out, fmt.Errorf("failed to convert metric to otel format:: %w: %T", errAggregaton, a)
+		return out, fmt.Errorf("failed to convert metric to otel format: %w: %T", errAggregaton, a)
 	}
 	return out, nil
 }

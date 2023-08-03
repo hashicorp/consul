@@ -20,6 +20,7 @@ type MetricsClient interface {
 // EndpointProvider provides the endpoint where metrics are exported to by the OTELExporter.
 // EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
 // This abstraction layer offers flexibility, in particular for dynamic configuration or changes to the endpoint.
+// The OTELExporter calls the Disabled interface to verify that it should actually export metrics.
 type EndpointProvider interface {
 	Disabled
 	GetEndpoint() *url.URL
