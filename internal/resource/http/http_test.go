@@ -24,6 +24,7 @@ import (
 
 const testACLTokenArtistReadPolicy = "00000000-0000-0000-0000-000000000001"
 const testACLTokenArtistWritePolicy = "00000000-0000-0000-0000-000000000002"
+const fakeToken = "fake-token"
 
 func parseToken(req *http.Request, token *string) {
 	*token = req.Header.Get("x-Consul-Token")
@@ -266,5 +267,69 @@ func TestResourceWriteHandler(t *testing.T) {
 		var result map[string]any
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
 		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
+	})
+}
+
+func TestResourceReadHandler(t *testing.T) {
+	aclResolver := &resourceSvc.MockACLResolver{}
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, demo.ArtistV1ReadPolicy, demo.ArtistV2ReadPolicy), nil)
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, demo.ArtistV1WritePolicy, demo.ArtistV2WritePolicy), nil)
+	aclResolver.On("ResolveTokenAndDefaultMeta", fakeToken, mock.Anything, mock.Anything).
+		Return(svctest.AuthorizerFrom(t, ""), nil)
+
+	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+
+	v2ArtistHandler := resourceHandler{
+		resource.Registration{
+			Type:  demo.TypeV2Artist,
+			Proto: &pbdemov2.Artist{},
+		},
+		client,
+		parseToken,
+		hclog.NewNullLogger(),
+	}
+
+	rsp := httptest.NewRecorder()
+	req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+		{
+			"metadata": {
+				"foo": "bar"
+			},
+			"data": {
+				"name": "Keith Urban",
+				"genre": "GENRE_COUNTRY"
+			}
+		}
+	`))
+	req.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
+	v2ArtistHandler.ServeHTTP(rsp, req)
+	require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
+
+	t.Run("Read resource", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&consistent", nil)
+
+		req.Header.Add("x-consul-token", testACLTokenArtistReadPolicy)
+
+		v2ArtistHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
+
+		var result map[string]any
+		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
+		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
+	})
+
+	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&consistent", nil)
+
+		req.Header.Add("x-consul-token", fakeToken)
+
+		v2ArtistHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusForbidden, rsp.Result().StatusCode)
 	})
 }
