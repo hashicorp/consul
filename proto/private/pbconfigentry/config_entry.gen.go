@@ -62,10 +62,12 @@ func APIGatewayJWTProviderToStructs(s *APIGatewayJWTProvider, t *structs.APIGate
 	}
 	t.Name = s.Name
 	{
-		t.VerifyClaims = make([]structs.APIGatewayJWTClaimVerification, len(s.VerifyClaims))
+		t.VerifyClaims = make([]*structs.APIGatewayJWTClaimVerification, len(s.VerifyClaims))
 		for i := range s.VerifyClaims {
 			if s.VerifyClaims[i] != nil {
-				APIGatewayJWTClaimVerificationToStructs(s.VerifyClaims[i], &t.VerifyClaims[i])
+				var x structs.APIGatewayJWTClaimVerification
+				APIGatewayJWTClaimVerificationToStructs(s.VerifyClaims[i], &x)
+				t.VerifyClaims[i] = &x
 			}
 		}
 	}
@@ -78,9 +80,9 @@ func APIGatewayJWTProviderFromStructs(t *structs.APIGatewayJWTProvider, s *APIGa
 	{
 		s.VerifyClaims = make([]*APIGatewayJWTClaimVerification, len(t.VerifyClaims))
 		for i := range t.VerifyClaims {
-			{
+			if t.VerifyClaims[i] != nil {
 				var x APIGatewayJWTClaimVerification
-				APIGatewayJWTClaimVerificationFromStructs(&t.VerifyClaims[i], &x)
+				APIGatewayJWTClaimVerificationFromStructs(t.VerifyClaims[i], &x)
 				s.VerifyClaims[i] = &x
 			}
 		}
@@ -91,10 +93,12 @@ func APIGatewayJWTRequirementToStructs(s *APIGatewayJWTRequirement, t *structs.A
 		return
 	}
 	{
-		t.Providers = make([]structs.APIGatewayJWTProvider, len(s.Providers))
+		t.Providers = make([]*structs.APIGatewayJWTProvider, len(s.Providers))
 		for i := range s.Providers {
 			if s.Providers[i] != nil {
-				APIGatewayJWTProviderToStructs(s.Providers[i], &t.Providers[i])
+				var x structs.APIGatewayJWTProvider
+				APIGatewayJWTProviderToStructs(s.Providers[i], &x)
+				t.Providers[i] = &x
 			}
 		}
 	}
@@ -106,9 +110,9 @@ func APIGatewayJWTRequirementFromStructs(t *structs.APIGatewayJWTRequirement, s 
 	{
 		s.Providers = make([]*APIGatewayJWTProvider, len(t.Providers))
 		for i := range t.Providers {
-			{
+			if t.Providers[i] != nil {
 				var x APIGatewayJWTProvider
-				APIGatewayJWTProviderFromStructs(&t.Providers[i], &x)
+				APIGatewayJWTProviderFromStructs(t.Providers[i], &x)
 				s.Providers[i] = &x
 			}
 		}

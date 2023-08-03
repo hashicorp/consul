@@ -283,9 +283,11 @@ type APIGatewayListener struct {
 	// either be "http" or "tcp"
 	Protocol string
 	// TLS is the TLS settings for the listener.
-	TLS      APIGatewayTLSConfiguration
-	Override APIGatewayPolicyConfiguration
-	Default  APIGatewayPolicyConfiguration
+	TLS APIGatewayTLSConfiguration
+	// Override is the policy that overrides all other policy and route specific configuration
+	Override APIGatewayPolicy `json:",omitempty"`
+	// Default is the policy that is the default for the listener and route, routes can override this behavior
+	Default APIGatewayPolicy `json:",omitempty"`
 }
 
 // APIGatewayTLSConfiguration specifies the configuration of a listener’s
@@ -305,15 +307,19 @@ type APIGatewayTLSConfiguration struct {
 	CipherSuites []string `json:",omitempty" alias:"cipher_suites"`
 }
 
-type APIGatewayPolicyConfiguration struct {
-	// JWT APIGatewayJWTRequirement `json:"JWT"`
+// APIGatewayPolicy holds the policy that configures the gateway listener, this is used in the `Override` and `Default` fields of a listener
+type APIGatewayPolicy struct {
+	// JWT holds the JWT configuration for the Listener
+	JWT *APIGatewayJWTRequirement `json:",omitempty"`
 }
 
+// APIGatewayJWTRequirement holds the list of JWT providers to be verified against
 type APIGatewayJWTRequirement struct {
 	// Providers is a list of providers to consider when verifying a JWT.
 	Providers []*APIGatewayJWTProvider `json:",omitempty"`
 }
 
+// APIGatewayJWTProvider holds the provider and claim verification information
 type APIGatewayJWTProvider struct {
 	// Name is the name of the JWT provider. There MUST be a corresponding
 	// "jwt-provider" config entry with this name.
@@ -323,6 +329,7 @@ type APIGatewayJWTProvider struct {
 	VerifyClaims []*APIGatewayJWTClaimVerification `json:",omitempty" alias:"verify_claims"`
 }
 
+// APIGatewayJWTClaimVerification holds the actual claim information to be verified
 type APIGatewayJWTClaimVerification struct {
 	// Path is the path to the claim in the token JSON.
 	Path []string `json:",omitempty"`

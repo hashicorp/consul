@@ -888,26 +888,46 @@ type APIGatewayListener struct {
 	// TLS is the TLS settings for the listener.
 	TLS APIGatewayTLSConfiguration
 
-	Override APIGatewayPolicy
-	Default  APIGatewayPolicy
+	// Override is the policy that overrides all other policy and route specific configuration
+	Override APIGatewayPolicy `json:",omitempty"`
+	// Default is the policy that is the default for the listener and route, routes can override this behavior
+	Default APIGatewayPolicy `json:",omitempty"`
 }
 
+// APIGatewayPolicy holds the policy that configures the gateway listener, this is used in the `Override` and `Default` fields of a listener
 type APIGatewayPolicy struct {
-	JWT APIGatewayJWTRequirement
+	// JWT holds the JWT configuration for the Listener
+	JWT *APIGatewayJWTRequirement `json:",omitempty"`
 }
 
+// APIGatewayJWTRequirement holds the list of JWT providers to be verified against
 type APIGatewayJWTRequirement struct {
-	Providers []APIGatewayJWTProvider
+	// Providers is a list of providers to consider when verifying a JWT.
+	Providers []*APIGatewayJWTProvider `json:",omitempty"`
 }
 
+// APIGatewayJWTProvider holds the provider and claim verification information
 type APIGatewayJWTProvider struct {
-	Name         string
-	VerifyClaims []APIGatewayJWTClaimVerification
+	// Name is the name of the JWT provider. There MUST be a corresponding
+	// "jwt-provider" config entry with this name.
+	Name string `json:",omitempty"`
+
+	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
+	VerifyClaims []*APIGatewayJWTClaimVerification `json:",omitempty" alias:"verify_claims"`
 }
 
+// APIGatewayJWTClaimVerification holds the actual claim information to be verified
 type APIGatewayJWTClaimVerification struct {
-	Path  []string
-	Value string
+	// Path is the path to the claim in the token JSON.
+	Path []string `json:",omitempty"`
+
+	// Value is the expected value at the given path:
+	// - If the type at the path is a list then we verify
+	//   that this value is contained in the list.
+	//
+	// - If the type at the path is a string then we verify
+	//   that this value matches.
+	Value string `json:",omitempty"`
 }
 
 func (l APIGatewayListener) GetHostname() string {
