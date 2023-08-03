@@ -67,13 +67,12 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		},
 		{
 			description: "wrong schema",
-			request: httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+			request: httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
 				{
-					"version": "test_version",
 					"metadata": {
 						"foo": "bar"
 					},
-					"data": {
+					"dada": {
 						"name": "Keith Urban",
 						"genre": "GENRE_COUNTRY"
 					}
@@ -197,6 +196,48 @@ func TestResourceWriteHandler(t *testing.T) {
 		var artist pbdemov2.Artist
 		require.NoError(t, readRsp.Resource.Data.UnmarshalTo(&artist))
 		require.Equal(t, "Keith Urban", artist.Name)
+	})
+
+	t.Run("should update the record with version parameter", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(`
+			{
+				"metadata": {
+					"foo": "bar"
+				},
+				"data": {
+					"name": "Keith Urban",
+					"genre": "GENRE_COUNTRY"
+				}
+			}
+		`))
+
+		req.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
+
+		v2ArtistHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
+	})
+
+	t.Run("should fail the update if the record's version doesn't match the backend record", func(t *testing.T) {
+		rsp := httptest.NewRecorder()
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(`
+			{
+				"metadata": {
+					"foo": "bar"
+				},
+				"data": {
+					"name": "Keith Urban",
+					"genre": "GENRE_COUNTRY"
+				}
+			}
+		`))
+
+		req.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
+
+		v2ArtistHandler.ServeHTTP(rsp, req)
+
+		require.Equal(t, http.StatusConflict, rsp.Result().StatusCode)
 	})
 
 	t.Run("should write to the resource backend with owner", func(t *testing.T) {
