@@ -88,6 +88,7 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 		DockerContainerIDSnake              string      `json:"docker_container_id"`
 		TLSServerNameSnake                  string      `json:"tls_server_name"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
+		TCPUseTLSSnake                      bool        `json:"tcp_use_tls"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		H2PingUseTLSSnake                   bool        `json:"h2ping_use_tls"`
 
@@ -131,6 +132,9 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	}
 	if aux.TLSSkipVerifySnake {
 		t.TLSSkipVerify = aux.TLSSkipVerifySnake
+	}
+	if aux.TCPUseTLSSnake {
+		t.TCPUseTLS = aux.TCPUseTLSSnake
 	}
 	if aux.GRPCUseTLSSnake {
 		t.GRPCUseTLS = aux.GRPCUseTLSSnake
