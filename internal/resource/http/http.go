@@ -85,17 +85,17 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 
-	tenancyInfo, resourceName, version := checkURL(r)
+	tenancyInfo, params := checkURL(r)
 
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    h.reg.Type,
 				Tenancy: tenancyInfo,
-				Name:    resourceName,
+				Name:    params["resourceName"],
 			},
 			Owner:    req.Owner,
-			Version:  version,
+			Version:  params["version"],
 			Metadata: req.Metadata,
 			Data:     anyProtoMsg,
 		},
@@ -115,20 +115,17 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 }
 
 func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	tenancyInfo, resourceName, _ := checkURL(r)
+	tenancyInfo, params := checkURL(r)
 	if tenancyInfo == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Missing partition, peer_name or namespace in the query params"))
 	}
-	if resourceName == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Missing resource name in the URL"))
-	}
+
 	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Type:    h.reg.Type,
 			Tenancy: tenancyInfo,
-			Name:    resourceName,
+			Name:    params["resourceName"],
 		},
 	})
 	if err != nil {
@@ -145,18 +142,23 @@ func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx
 	w.Write(output)
 }
 
-func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string, version string) {
-	params := r.URL.Query()
+func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
+	query := r.URL.Query()
 	tenancy = &pbresource.Tenancy{
-		Partition: params.Get("partition"),
-		PeerName:  params.Get("peer_name"),
-		Namespace: params.Get("namespace"),
+		Partition: query.Get("partition"),
+		PeerName:  query.Get("peer_name"),
+		Namespace: query.Get("namespace"),
 	}
-	resourceName = path.Base(r.URL.Path)
+
+	resourceName := path.Base(r.URL.Path)
 	if resourceName == "." || resourceName == "/" {
 		resourceName = ""
 	}
-	version = params.Get("version")
+
+	params = make(map[string]string)
+	params["resourceName"] = resourceName
+	params["version"] = query.Get("version")
+	params["consistent"] = query.Get("consistent")
 
 	return
 }
