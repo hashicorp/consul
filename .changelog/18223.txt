@@ -1,0 +1,3 @@
+```release-note:feature
+cli: `consul members` command uses `-filter` expression to filter members based on bexpr.
+```

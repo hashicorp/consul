@@ -1304,9 +1304,12 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			_, s1 := testServerWithConfig(t, conf)
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
-			require.NoError(t, err)
-			require.NotNil(t, policy)
+			// check that the builtin policies were created
+			for _, builtinPolicy := range structs.ACLBuiltinPolicies {
+				_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, builtinPolicy.ID, nil)
+				require.NoError(t, err)
+				require.NotNil(t, policy)
+			}
 
 			if tt.initialManagement != "" {
 				_, initialManagement, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.initialManagement, nil)
@@ -1436,15 +1439,17 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	waitForLeaderEstablishment(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
-	// Everybody has the management policy.
+	// Everybody has the builtin policies.
 	retry.Run(t, func(r *retry.R) {
-		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-		require.NoError(r, err)
-		require.NotNil(r, policy1)
+		for _, builtinPolicy := range structs.ACLBuiltinPolicies {
+			_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, builtinPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
+			require.NoError(r, err)
+			require.NotNil(r, policy1)
 
-		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-		require.NoError(r, err)
-		require.NotNil(r, policy2)
+			_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, builtinPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
+			require.NoError(r, err)
+			require.NotNil(r, policy2)
+		}
 	})
 
 	// Shutdown s1 and s2.
