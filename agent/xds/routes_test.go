@@ -10,14 +10,13 @@ import (
 	"time"
 
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -40,6 +39,12 @@ func makeRouteDiscoChainTests(enterprise bool) []routeTestCase {
 			name: "connect-proxy-with-chain-external-sni",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-splitter-overweight",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-overweight", enterprise, nil, nil)
 			},
 		},
 		{
@@ -76,6 +81,18 @@ func makeRouteDiscoChainTests(enterprise bool) []routeTestCase {
 			name: "connect-proxy-lb-in-resolver",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", enterprise, nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-route-to-lb-resolver",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-lb-node", enterprise, nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-resolver-with-lb",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "resolver-with-lb", enterprise, nil, nil)
 			},
 		},
 	}
@@ -443,6 +460,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						FieldValue: "special-header",
 						Terminal:   true,
 					},
+					{
+						Field:      structs.HashPolicyQueryParam,
+						FieldValue: "my-pretty-param",
+						Terminal:   true,
+					},
 				},
 			},
 			expected: &envoy_route_v3.RouteAction{
@@ -477,6 +499,14 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Header_{
 							Header: &envoy_route_v3.RouteAction_HashPolicy_Header{
 								HeaderName: "special-header",
+							},
+						},
+						Terminal: true,
+					},
+					{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_QueryParameter_{
+							QueryParameter: &envoy_route_v3.RouteAction_HashPolicy_QueryParameter{
+								Name: "my-pretty-param",
 							},
 						},
 						Terminal: true,
