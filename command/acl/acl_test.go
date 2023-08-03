@@ -72,15 +72,12 @@ func Test_GetPolicyIDFromPartial_Builtins(t *testing.T) {
 	client := a.Client()
 	client.AddHeader("X-Consul-Token", "root")
 
-	t.Run("global management policy", func(t *testing.T) {
-		id, err := GetPolicyIDFromPartial(client, structs.ACLPolicyGlobalManagementName)
-		require.NoError(t, err)
-		require.Equal(t, structs.ACLPolicyGlobalManagementID, id)
-	})
-
-	t.Run("global read-only policy", func(t *testing.T) {
-		id, err := GetPolicyIDFromPartial(client, structs.ACLPolicyGlobalReadOnlyName)
-		require.NoError(t, err)
-		require.Equal(t, structs.ACLPolicyGlobalReadOnlyID, id)
-	})
+	for _, policy := range structs.ACLBuiltinPolicies {
+		name := fmt.Sprintf("%s policy", policy.Name)
+		t.Run(name, func(t *testing.T) {
+			id, err := GetPolicyIDFromPartial(client, policy.Name)
+			require.NoError(t, err)
+			require.Equal(t, policy.ID, id)
+		})
+	}
 }
