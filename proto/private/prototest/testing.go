@@ -100,5 +100,5 @@ func AssertContainsElement[V any](t TestingT, list []V, element V, opts ...cmp.O
 		}
 	}
 
-	t.Fatalf("assertion failed: list does not contain element\n--- list\n%+v\n--- element: %+v", list, element)
+	t.Fatalf("assertion failed: list does not contain element\n--- list\n%#v\n--- element: %#v", list, element)
 }

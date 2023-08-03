@@ -8,7 +8,7 @@ package envoy
 type BootstrapTplArgs struct {
 	GRPC
 
-	// ProxyCluster is the cluster name for the Envoy `node` specification and
+	// ProxyCluster is the cluster name for the the Envoy `node` specification and
 	// is typically the same as the ProxyID.
 	ProxyCluster string
 

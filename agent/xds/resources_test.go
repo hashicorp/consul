@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/types"
 
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -165,14 +164,6 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotPeering,
 		},
 		{
-			name:   "connect-proxy-with-peered-upstreams-escape-overrides",
-			create: proxycfg.TestConfigSnapshotPeeringWithEscapeOverrides,
-		},
-		{
-			name:   "connect-proxy-with-peered-upstreams-http2",
-			create: proxycfg.TestConfigSnapshotPeeringWithHTTP2,
-		},
-		{
 			name:   "transparent-proxy-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeeringTProxy,
 		},
@@ -255,11 +246,7 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 		{
 			name: "mesh-gateway-with-imported-peered-services",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "imported-services", func(ns *structs.NodeService) {
-					ns.Proxy.Config = map[string]interface{}{
-						"envoy_dns_discovery_type": "STRICT_DNS",
-					}
-				}, nil)
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "imported-services", nil, nil)
 			},
 		},
 		{
@@ -340,54 +327,6 @@ NtyHRuD+KYRmjXtyX1yHNqfGN3vOQmwavHq2R8wHYuBSc6LAHHV9vG+j0VsgMELO
 qwxn8SmLkSKbf2+MsQVzLCXXN5u+D8Yv+4py+oKP4EQ5aFZuDEx+r/G/31rTthww
 AAJAMaoXmoYVdgXV+CPuBb2M4XCpuzLu3bcA2PXm5ipSyIgntMKwXV7r
 -----END CERTIFICATE-----`
-	// openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -sha256 -days 3650 \
-	// -nodes -subj "/C=XX/CN=secondcert.com" -addext "subjectAltName = DNS:secondcert.com"
-	gatewayTestPrivateKeyTwo = `-----BEGIN PRIVATE KEY-----
-MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCiPr2HCbVzbZ1M
-IW89rfLLrciPTWWl48DF9CmYHS0C2gSD1W6bxzO7zdA+ced0ajI+YsQ9aBAXRhKl
-EHgnhBJ6sGsz1XBQ9+lNDHrg9AjugIiHoscYOeCcxMeXhp97ti+vpVsc2/AvEf2K
-GIUuOjcufXuRXkWQ2aB4RGyodkgRF6n8YrLJb7pWIjoCNwDAWtZX4wIVFgGq1ew0
-E/E9EyStMYTb5h1lvCpXYRN9AeSFKUQI/y0xsT3+nZ/gyzx3CrgzuSYRgptbuVwm
-5F2Q16sLR/EtCBIhA8npKagx/4U7KOilF31I2locH4Aq5l9VJd/6pTA5F4KCAW/E
-ybXz6DojAgMBAAECggEAPcOuuRqsFf4ztIjB5XQ0Cu/kexFW0flLKNDTiNIKkZxX
-vaxhyDHkculeDnekSkAnUnKdDFdyULnfXTFQ3JI9yrEgjoIBmQFXsno+ySZ9w/Xw
-g9om+wUFigirhva7/geUTcSgU/Myk2jA4XKGONv2p98jTGrcBtGickZyKwukUcTa
-M18phLdjejg09d45QV5pEtU5m0HuydvtMNCxL2UeWMxyIVezAH2S48m7IAn7Xs4p
-J9bwjboDWQYs+zLPfEZyosiJiKugpEKvApIKsJXf4JqRXHN+vvKKDeXkKrrGR+pg
-3e5foPjFrLcDltZMkrfnlm8fa0yLnoxdiyd1pDcJaQKBgQDSnJbM6CDb0b3bUyiz
-LpfJSBzEPqABM8mNeVHfEjHcBJ7YBOceBxDNasmAPvFbhoDrlHiEYW2QnDLRXKeF
-XVdXjSsUV30SPMeg6yeSd8L+LKXLjrGMNGDcJfnjLavv7Glu1xDnYyFSmeVIhWoo
-cOhfaFQ69vnHiU1idrOlz6zhPwKBgQDFNcY0S59f3tht7kgnItg8PSfJqJQrIdLt
-x6MC2Nc7Eui7/LTuO2rMG6HRA/8zQa/TfnfG7CsUwLB1NiC2R1TtM9YBYPxhMl1o
-JeGTfM+tD0lBwPhYpgnOCppuayRCfAsPYA6NcvXcGZbxOigxliOuvgVBH47EAApA
-zJ+8b6nKHQKBgQCZ0GDV/4XX5KNq5Z3o1tNl3jOcIzyKBD9kAkGHz+r4C6vSiioc
-pP5hd2b4MX/l3yKSapll3R2+qkT24Fs8LEJYn7Hhpk+inR8SaAs7jhmrtgHT2z/R
-7IL85QNOJhHXJGqP16PxyVUR1XE9eKpiJKug2joB4lPjpWQN0DE9nKFe0wKBgEo3
-qpgTva7+1sTIYC8aVfaVrVufLePtnswNzbNMl/OLcjsNJ6pgghi+bW+T6X8IwXr+
-pWUfjDcLLV1vOXBf9/4s++UY8uJBahW/69zto9qlXhR44v25vwbjxqq3d7XtqNvo
-cpGZKh3jI4M1N9sxfcxNhvyzO69XtIQefh8UhvmhAoGBAKzSA51l50ocOnWSNAXs
-QQoU+dYQjLDMtzc5N68EUf1GSjtgkpa3PYjVo09OMeb7+W9LhwHQDNMqgeeEDCsm
-B6NDnI4VyjVae7Hqz48WBERJBFMFWiLxEa1m2UwaV2jAubN8FKgH4KzDzOKtJEUy
-Rz9IUct6HXsDSs+Q3/zdFmPo
------END PRIVATE KEY-----`
-	gatewayTestCertificateTwo = `-----BEGIN CERTIFICATE-----
-MIIC7DCCAdSgAwIBAgIJAMHpuSA3ioNPMA0GCSqGSIb3DQEBCwUAMCYxCzAJBgNV
-BAYTAlhYMRcwFQYDVQQDDA5zZWNvbmRjZXJ0LmNvbTAeFw0yMzA3MTExNTE1MjBa
-Fw0zMzA3MDgxNTE1MjBaMCYxCzAJBgNVBAYTAlhYMRcwFQYDVQQDDA5zZWNvbmRj
-ZXJ0LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKI+vYcJtXNt
-nUwhbz2t8sutyI9NZaXjwMX0KZgdLQLaBIPVbpvHM7vN0D5x53RqMj5ixD1oEBdG
-EqUQeCeEEnqwazPVcFD36U0MeuD0CO6AiIeixxg54JzEx5eGn3u2L6+lWxzb8C8R
-/YoYhS46Ny59e5FeRZDZoHhEbKh2SBEXqfxisslvulYiOgI3AMBa1lfjAhUWAarV
-7DQT8T0TJK0xhNvmHWW8KldhE30B5IUpRAj/LTGxPf6dn+DLPHcKuDO5JhGCm1u5
-XCbkXZDXqwtH8S0IEiEDyekpqDH/hTso6KUXfUjaWhwfgCrmX1Ul3/qlMDkXgoIB
-b8TJtfPoOiMCAwEAAaMdMBswGQYDVR0RBBIwEIIOc2Vjb25kY2VydC5jb20wDQYJ
-KoZIhvcNAQELBQADggEBAJvP3deuEpJZktAny6/az09GLSUYddiNCE4sG/2ASj7C
-mwRTh2HM4BDnkhW9PNjfHoaWa2TDIhOyHQ5hLYz2tnaeU1sOrADCuFSxGiQqgr8J
-prahKh6AzNsXba4rumoO08QTTtJzoa8L6TV4PTQ6gi+OMdbyBe3CQ7DSRzLseHNH
-KG5tqRRu+Jm7dUuOXDV4MDHoloyZlksOvIYSC+gaS+ke3XlR+GzOW7hpgn5SIDlv
-aR/zlIKXUCvVux3/pNFgW6rduFE0f5Hbc1+J4ghTl8EQu1dwDTax7blXQwE+VDgJ
-u4fZGRmoUvvO/bjVCbehBxfJn0rHsxpuD5b4Jg2OZNc=
------END CERTIFICATE-----`
 )
 
 func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
@@ -452,80 +391,7 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 			},
 		},
 		{
-			name: "api-gateway-with-multiple-inline-certificates",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
-					entry.Listeners = []structs.APIGatewayListener{
-						{
-							Name:     "listener",
-							Protocol: structs.ListenerProtocolTCP,
-							Port:     8080,
-							TLS: structs.APIGatewayTLSConfiguration{
-								Certificates: []structs.ResourceReference{{
-									Kind: structs.InlineCertificate,
-									Name: "certificate",
-								}},
-								MinVersion: types.TLSv1_2,
-								MaxVersion: types.TLSv1_3,
-								CipherSuites: []types.TLSCipherSuite{
-									types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-									types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-								},
-							},
-						},
-					}
-					bound.Listeners = []structs.BoundAPIGatewayListener{
-						{
-							Name: "listener",
-							Certificates: []structs.ResourceReference{
-								{
-									Kind: structs.InlineCertificate,
-									Name: "certificate",
-								},
-								{
-									Kind: structs.InlineCertificate,
-									Name: "certificate-too",
-								},
-							},
-							Routes: []structs.ResourceReference{{
-								Kind: structs.TCPRoute,
-								Name: "route",
-							}},
-						},
-					}
-				},
-					[]structs.BoundRoute{
-						&structs.TCPRouteConfigEntry{
-							Kind: structs.TCPRoute,
-							Name: "route",
-							Services: []structs.TCPService{{
-								Name: "service",
-							}},
-							Parents: []structs.ResourceReference{
-								{
-									Kind: structs.APIGateway,
-									Name: "api-gateway",
-								},
-							},
-						},
-					}, []structs.InlineCertificateConfigEntry{
-						{
-							Kind:        structs.InlineCertificate,
-							Name:        "certificate",
-							PrivateKey:  gatewayTestPrivateKey,
-							Certificate: gatewayTestCertificate,
-						},
-						{
-							Kind:        structs.InlineCertificate,
-							Name:        "certificate-too",
-							PrivateKey:  gatewayTestPrivateKeyTwo,
-							Certificate: gatewayTestCertificateTwo,
-						},
-					}, nil)
-			},
-		},
-		{
-			name: "api-gateway-with-http-route",
+			name: "api-gateway-with-http-route-and-inline-certificate",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
 					entry.Listeners = []structs.APIGatewayListener{
@@ -538,10 +404,6 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 					bound.Listeners = []structs.BoundAPIGatewayListener{
 						{
 							Name: "listener",
-							Certificates: []structs.ResourceReference{{
-								Kind: structs.InlineCertificate,
-								Name: "certificate",
-							}},
 							Routes: []structs.ResourceReference{{
 								Kind: structs.HTTPRoute,
 								Name: "route",
@@ -577,12 +439,7 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 							},
 						},
 					},
-				}, []structs.InlineCertificateConfigEntry{{
-					Kind:        structs.InlineCertificate,
-					Name:        "certificate",
-					PrivateKey:  gatewayTestPrivateKey,
-					Certificate: gatewayTestCertificate,
-				}}, []proxycfg.UpdateEvent{{
+				}, nil, []proxycfg.UpdateEvent{{
 					CorrelationID: "discovery-chain:" + serviceUID.String(),
 					Result: &structs.DiscoveryChainResponse{
 						Chain: serviceChain,

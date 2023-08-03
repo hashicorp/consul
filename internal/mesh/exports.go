@@ -19,14 +19,11 @@ var (
 
 	ProxyConfigurationKind = types.ProxyConfigurationKind
 	UpstreamsKind          = types.UpstreamsKind
-	ProxyStateKind         = types.ProxyStateTemplateKind
 
 	// Resource Types for the v1alpha1 version.
 
-	ProxyConfigurationV1Alpha1Type              = types.ProxyConfigurationV1Alpha1Type
-	UpstreamsV1Alpha1Type                       = types.UpstreamsV1Alpha1Type
-	UpstreamsConfigurationV1Alpha1Type          = types.UpstreamsConfigurationV1Alpha1Type
-	ProxyStateTemplateConfigurationV1Alpha1Type = types.ProxyStateTemplateV1Alpha1Type
+	ProxyConfigurationV1Alpha1Type = types.ProxyConfigurationV1Alpha1Type
+	UpstreamsV1Alpha1Type          = types.UpstreamsV1Alpha1Type
 )
 
 // RegisterTypes adds all resource types within the "catalog" API group

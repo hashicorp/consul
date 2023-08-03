@@ -20,7 +20,7 @@ services {
           protocol = "grpc"
           envoy_dogstatsd_url = "udp://127.0.0.1:8125"
           envoy_stats_tags = ["foo=bar"]
-          envoy_stats_flush_interval = "5s"
+          envoy_stats_flush_interval = "1s"
         }
       }
     }

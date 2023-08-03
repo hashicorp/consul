@@ -148,7 +148,7 @@ func ParseSigner(pemValue string) (crypto.Signer, error) {
 }
 
 // ParseCSR parses a CSR from a PEM-encoded value. The certificate request
-// must be the first block in the PEM value.
+// must be the the first block in the PEM value.
 func ParseCSR(pemValue string) (*x509.CertificateRequest, error) {
 	// The _ result below is not an error but the remaining PEM bytes.
 	block, _ := pem.Decode([]byte(pemValue))

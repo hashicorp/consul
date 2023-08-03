@@ -29,7 +29,7 @@ Download a supported release from the [Consul Versions](https://releases.hashico
 
 ## Enable automated reporting
 
-Before you enable automated reporting, make sure that outbound network traffic is configured correctly and upgrade your enterprise product to a version that supports it. If your installation is air-gapped or network settings are not in place, automated reporting will not work. 
+Before you enable automated reporting, make sure that outbound network traffic is configured correctly and upgrade your enterprise product to a version that supports it. If your installation is air-gapped or network settings are not in place, automated reporting will not work.
 
 To enable automated reporting, complete the following steps:
 
@@ -38,7 +38,7 @@ To enable automated reporting, complete the following steps:
 
 ### Allow outbound HTTPS traffic on port 443
 
-Make sure that your network allows HTTPS egress on port 443 from `https://reporting.hashicorp.services` by adding the following IP adddresses to your allow-list:
+Make sure that your network allows HTTPS egress on port 443 from `https://reporting.hashicorp.services` by adding the following IP addresses to your allow-list:
 
 - `100.20.70.12`
 - `35.166.5.222`
@@ -67,7 +67,7 @@ Automatic license utilization reporting starts sending data within roughly 24 ho
 
 </CodeBlockConfig>
 
-If your installation is air-gapped or your network does not allow the correct egress, the logs show an error. 
+If your installation is air-gapped or your network does not allow the correct egress, the logs show an error.
 
 <CodeBlockConfig hideClipboard>
 
@@ -84,17 +84,17 @@ If your installation is air-gapped or your network does not allow the correct eg
 
 </CodeBlockConfig>
 
-In this case, reconfigure your network to allow egress and check the logs again in roughly 24 hours to confirm that automated reporting works correctly. 
+In this case, reconfigure your network to allow egress and check the logs again in roughly 24 hours to confirm that automated reporting works correctly.
 
 ## Opt out
 
-If your installation is air-gapped or you want to manually collect and report on the same license utilization metrics, you can opt out of automated reporting. 
+If your installation is air-gapped or you want to manually collect and report on the same license utilization metrics, you can opt out of automated reporting.
 
-Manually reporting these metrics can be time consuming. Opting out of automated reporting does not mean that you also opt out from sending license utilization metrics. Customers who opt out of automated reporting are still required to manually collect and send license utilization metrics to HashiCorp. 
+Manually reporting these metrics can be time consuming. Opting out of automated reporting does not mean that you also opt out from sending license utilization metrics. Customers who opt out of automated reporting are still required to manually collect and send license utilization metrics to HashiCorp.
 
-If you are considering opting out because you are worried about the data, we strongly recommend that you review the [example payloads](#example-payloads) before opting out. If you have concerns with any of the automatically reported data, raise these concerns with your account manager. 
+If you are considering opting out because you are worried about the data, we strongly recommend that you review the [example payloads](#example-payloads) before opting out. If you have concerns with any of the automatically reported data, raise these concerns with your account manager.
 
-There are two methods for opting out of automated reporting: 
+There are two methods for opting out of automated reporting:
 
 - HCL configuration (recommended)
 - Environment variable (requires restart)
@@ -130,7 +130,7 @@ Check your product logs roughly 24 hours after opting out to make sure that the 
 
 ## Example payloads
 
-HashiCorp collects the following utilization data as JSON payloads: 
+HashiCorp collects the following utilization data as JSON payloads:
 `exporter_version` - The version of the licensing exporter
 
 <CodeBlockConfig hideClipboard>

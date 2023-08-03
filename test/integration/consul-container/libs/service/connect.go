@@ -68,14 +68,17 @@ func (g ConnectContainer) GetPort(port int) (int, error) {
 }
 
 func (g ConnectContainer) Restart() error {
-	_, err := g.GetStatus()
-	if err != nil {
-		return fmt.Errorf("error fetching sidecar container state %s", err)
+	var deferClean utils.ResettableDefer
+	defer deferClean.Execute()
+
+	if utils.FollowLog {
+		if err := g.container.StopLogProducer(); err != nil {
+			return fmt.Errorf("stopping log producer: %w", err)
+		}
 	}
 
 	fmt.Printf("Stopping container: %s\n", g.GetName())
-	err = g.container.Stop(g.ctx, nil)
-
+	err := g.container.Stop(g.ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error stopping sidecar container %s", err)
 	}
@@ -85,6 +88,17 @@ func (g ConnectContainer) Restart() error {
 	if err != nil {
 		return fmt.Errorf("error starting sidecar container %s", err)
 	}
+
+	if utils.FollowLog {
+		if err := g.container.StartLogProducer(g.ctx); err != nil {
+			return fmt.Errorf("starting log producer: %w", err)
+		}
+		g.container.FollowOutput(&LogConsumer{})
+		deferClean.Add(func() {
+			_ = g.container.StopLogProducer()
+		})
+	}
+
 	return nil
 }
 
@@ -149,23 +163,17 @@ func (g ConnectContainer) GetStatus() (string, error) {
 type SidecarConfig struct {
 	Name         string
 	ServiceID    string
-	Namespace    string
 	EnableTProxy bool
+	Namespace    string
+	Partition    string
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
 // "consul connect envoy", for service name (serviceName) on the specified
 // node. The container exposes port serviceBindPort and envoy admin port
 // (19000) by mapping them onto host ports. The container's name has a prefix
-// combining datacenter and name. The customContainerConf parameter can be used
-// to mutate the testcontainers.ContainerRequest used to create the sidecar proxy.
-func NewConnectService(
-	ctx context.Context,
-	sidecarCfg SidecarConfig,
-	serviceBindPorts []int,
-	node cluster.Agent,
-	customContainerConf func(request testcontainers.ContainerRequest) testcontainers.ContainerRequest,
-) (*ConnectContainer, error) {
+// combining datacenter and name.
+func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBindPorts []int, node cluster.Agent) (*ConnectContainer, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
@@ -272,11 +280,6 @@ func NewConnectService(
 	exposedPorts := make([]string, len(appPortStrs))
 	copy(exposedPorts, appPortStrs)
 	exposedPorts = append(exposedPorts, adminPortStr)
-
-	if customContainerConf != nil {
-		req = customContainerConf(req)
-	}
-
 	info, err := cluster.LaunchContainerOnNode(ctx, node, req, exposedPorts)
 	if err != nil {
 		return nil, err

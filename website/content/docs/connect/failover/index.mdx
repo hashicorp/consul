@@ -21,10 +21,8 @@ The following table compares these strategies in deployments with multiple datac
 | Failover Strategy | Supports WAN Federation | Supports Cluster Peering | Multi-Datacenter Failover Strength | Multi-Datacenter Usage Scenario |
 | :---------------: | :---------------------: | :----------------------: | :--------------------------------- | :------------------------------ |
 | `Failover` stanza | &#9989;                 | &#9989;                  | Enables more granular logic for failover targeting | Configuring failover for a single service or service subset, especially for testing or debugging purposes |
-| Prepared query    | &#9989;                 |   &#10060;               | Central policies that can automatically target the nearest datacenter | WAN-federated deployments where a primary datacenter is configured. |
+| Prepared query    | &#9989;                 |   &#10060;               | Central policies that can automatically target the nearest datacenter | WAN-federated deployments where a primary datacenter is configured. Prepared queries are not replicated over peer connections. |
 | Sameness groups   | &#10060;                | &#9989;                  | Group size changes without edits to existing member configurations | Cluster peering deployments with consistently named services and namespaces |
-
-Although cluster peering connections support the [`Failover` field of the prepared query request schema](/consul/api-docs/query#failover) when using Consul's service discovery features to [perform dynamic DNS queries](/consul/docs/services/discovery/dns-dynamic-lookups), they do not support prepared queries for service mesh failover scenarios.
 
 ### Failover configurations for a service mesh with a single datacenter
 
@@ -34,9 +32,9 @@ Refer to the [`Failover` configuration ](/consul/docs/connect/config-entries/ser
 
 ### Failover configuration for WAN-federated datacenters
 
-If your network has multiple Consul datacenters that are WAN-federated, you can configure your applications to look for failover services with prepared queries. [Prepared queries](/consul/api-docs/) are configurations that enable you to define complex service discovery lookups. This strategy hinges on the secondary datacenter containing service instances that have the same name and residing in the same namespace as their counterparts in the primary datacenter.
+If your network has multiple Consul datacenters that are WAN-federated, you can configure your applications to look for failover services with prepared queries. [Prepared queries](/consul/api-docs/) are configurations that enable you to define complex service discovery lookups. This strategy hinges on the secondary datacenter containing service instances that have the same name and residing in the same namespace as their counterparts in the primary datacenter. 
 
-Refer to the [Automate geo-failover with prepared queries tutorial](/consul/tutorials/developer-discovery/automate-geo-failover) for additional information.
+Refer to the [Automate geo-failover with prepared queries tutorial](/consul/tutorials/developer-discovery/automate-geo-failover) for additional information. 
 
 ### Failover configuration for peered clusters and partitions
 
@@ -44,4 +42,4 @@ In networks with multiple datacenters or partitions that share a peer connection
 
 You can configure sameness groups for this type of network. Sameness groups allow you to define a group of admin partitions where identical services are deployed in identical namespaces. After you configure the sameness group, you can reference the `SamenessGroup` parameter in service resolver, exported service, and service intention configuration entries, enabling you to add or remove cluster peers from the group without making changes to every cluster peer every time. 
 
-Refer to [Sameness groups usage page](/consul/docs/connect/cluster-peering/usage/sameness-groups) for more information.
+Refer to [Sameness groups usage page](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for more information.

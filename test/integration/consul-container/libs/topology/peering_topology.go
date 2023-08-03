@@ -151,7 +151,7 @@ func BasicPeeringTwoClustersSetup(
 
 		// Create a service and proxy instance
 		var err error
-		clientSidecarService, err = libservice.CreateAndRegisterStaticClientSidecar(clientNode, DialingPeerName, true, false)
+		clientSidecarService, err = libservice.CreateAndRegisterStaticClientSidecar(clientNode, DialingPeerName, true, false, nil)
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy", nil)
@@ -194,22 +194,13 @@ type ClusterConfig struct {
 	ExposedPorts []int
 }
 
-func NewCluster(
-	t *testing.T,
-	config *ClusterConfig,
-) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
-	return NewClusterWithConfig(t, config, "", "")
-}
-
 // NewCluster creates a cluster with peering enabled. It also creates
 // and registers a mesh-gateway at the client agent. The API client returned is
 // pointed at the client agent.
 // - proxy-defaults.protocol = tcp
-func NewClusterWithConfig(
+func NewCluster(
 	t *testing.T,
 	config *ClusterConfig,
-	serverHclConfig string,
-	clientHclConfig string,
 ) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
 	var (
 		cluster *libcluster.Cluster
@@ -247,10 +238,6 @@ func NewClusterWithConfig(
 		serverConf.Cmd = append(serverConf.Cmd, config.Cmd)
 	}
 
-	if serverHclConfig != "" {
-		serverConf.MutatebyAgentConfig(serverHclConfig)
-	}
-
 	if config.ExposedPorts != nil {
 		cluster, err = libcluster.New(t, []libcluster.Config{*serverConf}, config.ExposedPorts...)
 	} else {
@@ -274,9 +261,6 @@ func NewClusterWithConfig(
 		RetryJoin(retryJoin...)
 	clientConf := configbuiilder.ToAgentConfig(t)
 	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
-	if clientHclConfig != "" {
-		clientConf.MutatebyAgentConfig(clientHclConfig)
-	}
 
 	require.NoError(t, cluster.AddN(*clientConf, config.NumClients, true))
 

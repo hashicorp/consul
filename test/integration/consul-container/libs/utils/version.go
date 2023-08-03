@@ -7,7 +7,6 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/go-version"
 )
 
@@ -25,7 +24,7 @@ var (
 )
 
 const (
-	DefaultImageNameOSS   = "hashicorp/consul"
+	DefaultImageNameCE    = "hashicorp/consul"
 	DefaultImageNameENT   = "hashicorp/consul-enterprise"
 	ImageVersionSuffixENT = "-ent"
 )
@@ -54,20 +53,6 @@ func GetLatestImageName() string {
 		return LatestImageName + "-dbg"
 	}
 	return LatestImageName
-}
-
-func TargetImages() topology.Images {
-	img := DockerImage(targetImageName, TargetVersion)
-
-	if IsEnterprise() {
-		return topology.Images{
-			ConsulEnterprise: img,
-		}
-	} else {
-		return topology.Images{
-			ConsulOSS: img,
-		}
-	}
 }
 
 func IsEnterprise() bool { return isInEnterpriseRepo }

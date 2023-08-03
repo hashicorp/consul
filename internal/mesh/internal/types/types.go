@@ -16,6 +16,4 @@ const (
 func Register(r resource.Registry) {
 	RegisterProxyConfiguration(r)
 	RegisterUpstreams(r)
-	RegisterUpstreamsConfiguration(r)
-	RegisterProxyStateTemplate(r)
 }

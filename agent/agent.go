@@ -71,7 +71,6 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
@@ -198,9 +197,6 @@ type delegate interface {
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
 	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
-
-	// ResourceServiceClient is a client for the gRPC Resource Service.
-	ResourceServiceClient() pbresource.ResourceServiceClient
 
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
@@ -3761,7 +3757,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		if acl.EqualPartitions("", p.Service.PartitionOrEmpty()) {
-			// NOTE: in case loading a service with empty partition (e.g., OSS -> ENT),
+			// NOTE: in case loading a service with empty partition (e.g., CE -> ENT),
 			// we always default the service partition to the agent's partition.
 			p.Service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
 		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
@@ -4578,7 +4574,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		// interact with ACLs and the streaming backend. See comments in `proxycfgglue.ServerHealthBlocking`
 		// for more details.
 		// sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
-		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth), server.FSM().State())
+		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.HTTPChecks = proxycfgglue.ServerHTTPChecks(deps, a.config.NodeName, proxycfgglue.CacheHTTPChecks(a.cache), a.State)
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)

@@ -120,22 +120,6 @@ func EqualReference(a, b *pbresource.Reference) bool {
 		a.Section == b.Section
 }
 
-// ReferenceOrIDMatch compares two references or IDs to see if they both refer
-// to the same thing.
-//
-// Note that this only compares fields that are common between them as
-// represented by the ReferenceOrID interface and notably ignores the section
-// field on references and the uid field on ids.
-func ReferenceOrIDMatch(ref1, ref2 ReferenceOrID) bool {
-	if ref1 == nil || ref2 == nil {
-		return false
-	}
-
-	return EqualType(ref1.GetType(), ref2.GetType()) &&
-		EqualTenancy(ref1.GetTenancy(), ref2.GetTenancy()) &&
-		ref1.GetName() == ref2.GetName()
-}
-
 // EqualStatusMap compares two status maps for equality without reflection.
 func EqualStatusMap(a, b map[string]*pbresource.Status) bool {
 	if len(a) != len(b) {

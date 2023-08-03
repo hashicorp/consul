@@ -342,7 +342,7 @@ immediately unlinks it so it can't be read by any other process that doesn't
 already have the file descriptor. It then writes the bootstrap JSON, and unsets
 the CLOEXEC bit on the file handle so that it remains available to the Envoy
 process after exec. Finally it `exec`s Envoy with `--config-file /dev/fd/X`
-where `X` is the file descriptor number of the temp file.
+where `X` is the the file descriptor number of the temp file.
 
 This ensures that Envoy can read the file without any other normal user process
 being able to (assuming they don't have privileged access to /proc). Once the

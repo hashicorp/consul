@@ -31,7 +31,7 @@ func TestTroubleshootProxy(t *testing.T) {
 		ApplyDefaultProxySettings: true,
 	})
 
-	serverService, clientService := topology.CreateServices(t, cluster, "http")
+	serverService, clientService := topology.CreateServices(t, cluster)
 
 	clientSidecar, ok := clientService.(*libservice.ConnectContainer)
 	require.True(t, ok)

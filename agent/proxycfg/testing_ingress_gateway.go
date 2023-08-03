@@ -1123,10 +1123,10 @@ func TestConfigSnapshotIngressGatewayWithChain(
 		webUpstream := structs.Upstream{
 			DestinationName: "web",
 			// We use empty not default here because of the way upstream identifiers
-			// vary between OSS and Enterprise currently causing test conflicts. In
+			// vary between CE and Enterprise currently causing test conflicts. In
 			// real life `proxycfg` always sets ingress upstream namespaces to
 			// `NamespaceOrDefault` which shouldn't matter because we should be
-			// consistent within a single binary it's just inconvenient if OSS and
+			// consistent within a single binary it's just inconvenient if CE and
 			// enterprise tests generate different output.
 			DestinationNamespace: webEntMeta.NamespaceOrEmpty(),
 			DestinationPartition: webEntMeta.PartitionOrEmpty(),
@@ -1888,8 +1888,8 @@ func TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners(t testing.T) *
 			entry.TLS.Enabled = true
 			entry.TLS.TLSMinVersion = types.TLSv1_2
 
-			// One listener should inherit TLS minimum version from the gateway config,
-			// two others each set explicit TLS minimum versions
+			// One listener disables TLS, one inherits TLS minimum version from the gateway
+			// config, two others set different versions
 			entry.Listeners = []structs.IngressListener{
 				{
 					Port:     8080,
@@ -1925,226 +1925,6 @@ func TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners(t testing.T) *
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
-					Services: []*structs.GatewayService{
-						{
-							Service:  s1,
-							Port:     8080,
-							Protocol: "http",
-						},
-						{
-							Service:  s2,
-							Port:     8081,
-							Protocol: "http",
-						},
-						{
-							Service:  s3,
-							Port:     8082,
-							Protocol: "http",
-						},
-					},
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s1UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s1Chain,
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s2UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s2Chain,
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s3UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s3Chain,
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s1"),
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s2"),
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s3Chain.ID() + ":" + s3UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s3"),
-				},
-			},
-		})
-}
-
-func TestConfigSnapshotIngressGateway_TLSMixedMaxVersionListeners(t testing.T) *ConfigSnapshot {
-	var (
-		s1      = structs.NewServiceName("s1", nil)
-		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-
-		s2      = structs.NewServiceName("s2", nil)
-		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-
-		s3      = structs.NewServiceName("s3", nil)
-		s3UID   = NewUpstreamIDFromServiceName(s3)
-		s3Chain = discoverychain.TestCompileConfigEntries(t, "s3", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-	)
-
-	return TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
-		func(entry *structs.IngressGatewayConfigEntry) {
-			entry.TLS.Enabled = true
-			entry.TLS.TLSMaxVersion = types.TLSv1_2
-
-			// One listener should inherit TLS maximum version from the gateway config,
-			// two others each set explicit TLS maximum versions
-			entry.Listeners = []structs.IngressListener{
-				{
-					Port:     8080,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s1"},
-					},
-				},
-				{
-					Port:     8081,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s2"},
-					},
-					TLS: &structs.GatewayTLSConfig{
-						Enabled:       true,
-						TLSMaxVersion: types.TLSv1_0,
-					},
-				},
-				{
-					Port:     8082,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s3"},
-					},
-					TLS: &structs.GatewayTLSConfig{
-						Enabled:       true,
-						TLSMaxVersion: types.TLSv1_3,
-					},
-				},
-			}
-		}, []UpdateEvent{
-			{
-				CorrelationID: gatewayServicesWatchID,
-				Result: &structs.IndexedGatewayServices{
-					Services: []*structs.GatewayService{
-						{
-							Service:  s1,
-							Port:     8080,
-							Protocol: "http",
-						},
-						{
-							Service:  s2,
-							Port:     8081,
-							Protocol: "http",
-						},
-						{
-							Service:  s3,
-							Port:     8082,
-							Protocol: "http",
-						},
-					},
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s1UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s1Chain,
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s2UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s2Chain,
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s3UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s3Chain,
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s1"),
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s2"),
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s3Chain.ID() + ":" + s3UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s3"),
-				},
-			},
-		})
-}
-
-func TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners(t testing.T) *ConfigSnapshot {
-	var (
-		s1      = structs.NewServiceName("s1", nil)
-		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-
-		s2      = structs.NewServiceName("s2", nil)
-		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-	)
-
-	return TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
-		func(entry *structs.IngressGatewayConfigEntry) {
-			entry.TLS.Enabled = true
-			entry.TLS.CipherSuites = []types.TLSCipherSuite{
-				types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			}
-
-			// One listener should inherit TLS Ciphers from the gateway config,
-			// the other should be set explicitly from the listener config
-			entry.Listeners = []structs.IngressListener{
-				{
-					Port:     8080,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s1"},
-					},
-				},
-				{
-					Port:     8081,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s2"},
-					},
-					TLS: &structs.GatewayTLSConfig{
-						Enabled: true,
-						CipherSuites: []types.TLSCipherSuite{
-							types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-							types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-						},
-					},
-				},
-			}
-		}, []UpdateEvent{
-			{
-				CorrelationID: gatewayServicesWatchID,
-				Result: &structs.IndexedGatewayServices{
 					// One listener should inherit TLS minimum version from the gateway config,
 					// two others each set explicit TLS minimum versions
 					Services: []*structs.GatewayService{
@@ -2158,6 +1938,11 @@ func TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners(t testing.T
 							Port:     8081,
 							Protocol: "http",
 						},
+						{
+							Service:  s3,
+							Port:     8082,
+							Protocol: "http",
+						},
 					},
 				},
 			},
@@ -2174,6 +1959,12 @@ func TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners(t testing.T
 				},
 			},
 			{
+				CorrelationID: "discovery-chain:" + s3UID.String(),
+				Result: &structs.DiscoveryChainResponse{
+					Chain: s3Chain,
+				},
+			},
+			{
 				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodes(t, "s1"),
@@ -2183,6 +1974,12 @@ func TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners(t testing.T
 				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodes(t, "s2"),
+				},
+			},
+			{
+				CorrelationID: "upstream-target:" + s3Chain.ID() + ":" + s3UID.String(),
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: TestUpstreamNodes(t, "s3"),
 				},
 			},
 		})
