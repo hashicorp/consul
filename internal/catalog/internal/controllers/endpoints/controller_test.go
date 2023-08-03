@@ -716,6 +716,7 @@ func (suite *controllerSuite) TestController() {
 			"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 		},
 		HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+		Identity:     "api",
 	})
 
 	// Delete the endpoints. The controller should bring these back momentarily
