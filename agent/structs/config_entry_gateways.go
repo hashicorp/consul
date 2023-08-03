@@ -900,36 +900,6 @@ type APIGatewayPolicy struct {
 	JWT *APIGatewayJWTRequirement `json:",omitempty"`
 }
 
-// APIGatewayJWTRequirement holds the list of JWT providers to be verified against
-type APIGatewayJWTRequirement struct {
-	// Providers is a list of providers to consider when verifying a JWT.
-	Providers []*APIGatewayJWTProvider `json:",omitempty"`
-}
-
-// APIGatewayJWTProvider holds the provider and claim verification information
-type APIGatewayJWTProvider struct {
-	// Name is the name of the JWT provider. There MUST be a corresponding
-	// "jwt-provider" config entry with this name.
-	Name string `json:",omitempty"`
-
-	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
-	VerifyClaims []*APIGatewayJWTClaimVerification `json:",omitempty" alias:"verify_claims"`
-}
-
-// APIGatewayJWTClaimVerification holds the actual claim information to be verified
-type APIGatewayJWTClaimVerification struct {
-	// Path is the path to the claim in the token JSON.
-	Path []string `json:",omitempty"`
-
-	// Value is the expected value at the given path:
-	// - If the type at the path is a list then we verify
-	//   that this value is contained in the list.
-	//
-	// - If the type at the path is a string then we verify
-	//   that this value matches.
-	Value string `json:",omitempty"`
-}
-
 func (l APIGatewayListener) GetHostname() string {
 	if l.Hostname != "" {
 		return l.Hostname

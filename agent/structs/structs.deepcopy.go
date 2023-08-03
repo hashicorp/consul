@@ -21,58 +21,10 @@ func (o *APIGatewayListener) DeepCopy() *APIGatewayListener {
 	if o.Override.JWT != nil {
 		cp.Override.JWT = new(APIGatewayJWTRequirement)
 		*cp.Override.JWT = *o.Override.JWT
-		if o.Override.JWT.Providers != nil {
-			cp.Override.JWT.Providers = make([]*APIGatewayJWTProvider, len(o.Override.JWT.Providers))
-			copy(cp.Override.JWT.Providers, o.Override.JWT.Providers)
-			for i5 := range o.Override.JWT.Providers {
-				if o.Override.JWT.Providers[i5] != nil {
-					cp.Override.JWT.Providers[i5] = new(APIGatewayJWTProvider)
-					*cp.Override.JWT.Providers[i5] = *o.Override.JWT.Providers[i5]
-					if o.Override.JWT.Providers[i5].VerifyClaims != nil {
-						cp.Override.JWT.Providers[i5].VerifyClaims = make([]*APIGatewayJWTClaimVerification, len(o.Override.JWT.Providers[i5].VerifyClaims))
-						copy(cp.Override.JWT.Providers[i5].VerifyClaims, o.Override.JWT.Providers[i5].VerifyClaims)
-						for i8 := range o.Override.JWT.Providers[i5].VerifyClaims {
-							if o.Override.JWT.Providers[i5].VerifyClaims[i8] != nil {
-								cp.Override.JWT.Providers[i5].VerifyClaims[i8] = new(APIGatewayJWTClaimVerification)
-								*cp.Override.JWT.Providers[i5].VerifyClaims[i8] = *o.Override.JWT.Providers[i5].VerifyClaims[i8]
-								if o.Override.JWT.Providers[i5].VerifyClaims[i8].Path != nil {
-									cp.Override.JWT.Providers[i5].VerifyClaims[i8].Path = make([]string, len(o.Override.JWT.Providers[i5].VerifyClaims[i8].Path))
-									copy(cp.Override.JWT.Providers[i5].VerifyClaims[i8].Path, o.Override.JWT.Providers[i5].VerifyClaims[i8].Path)
-								}
-							}
-						}
-					}
-				}
-			}
-		}
 	}
 	if o.Default.JWT != nil {
 		cp.Default.JWT = new(APIGatewayJWTRequirement)
 		*cp.Default.JWT = *o.Default.JWT
-		if o.Default.JWT.Providers != nil {
-			cp.Default.JWT.Providers = make([]*APIGatewayJWTProvider, len(o.Default.JWT.Providers))
-			copy(cp.Default.JWT.Providers, o.Default.JWT.Providers)
-			for i5 := range o.Default.JWT.Providers {
-				if o.Default.JWT.Providers[i5] != nil {
-					cp.Default.JWT.Providers[i5] = new(APIGatewayJWTProvider)
-					*cp.Default.JWT.Providers[i5] = *o.Default.JWT.Providers[i5]
-					if o.Default.JWT.Providers[i5].VerifyClaims != nil {
-						cp.Default.JWT.Providers[i5].VerifyClaims = make([]*APIGatewayJWTClaimVerification, len(o.Default.JWT.Providers[i5].VerifyClaims))
-						copy(cp.Default.JWT.Providers[i5].VerifyClaims, o.Default.JWT.Providers[i5].VerifyClaims)
-						for i8 := range o.Default.JWT.Providers[i5].VerifyClaims {
-							if o.Default.JWT.Providers[i5].VerifyClaims[i8] != nil {
-								cp.Default.JWT.Providers[i5].VerifyClaims[i8] = new(APIGatewayJWTClaimVerification)
-								*cp.Default.JWT.Providers[i5].VerifyClaims[i8] = *o.Default.JWT.Providers[i5].VerifyClaims[i8]
-								if o.Default.JWT.Providers[i5].VerifyClaims[i8].Path != nil {
-									cp.Default.JWT.Providers[i5].VerifyClaims[i8].Path = make([]string, len(o.Default.JWT.Providers[i5].VerifyClaims[i8].Path))
-									copy(cp.Default.JWT.Providers[i5].VerifyClaims[i8].Path, o.Default.JWT.Providers[i5].VerifyClaims[i8].Path)
-								}
-							}
-						}
-					}
-				}
-			}
-		}
 	}
 	return &cp
 }

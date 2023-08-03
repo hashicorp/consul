@@ -4741,11 +4741,6 @@ func (x *APIGatewayPolicy) GetJWT() *APIGatewayJWTRequirement {
 	return nil
 }
 
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.APIGatewayJWTRequirement
-// output=config_entry.gen.go
-// name=Structs
 type APIGatewayJWTRequirement struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4793,11 +4788,6 @@ func (x *APIGatewayJWTRequirement) GetProviders() []*APIGatewayJWTProvider {
 	return nil
 }
 
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.APIGatewayJWTProvider
-// output=config_entry.gen.go
-// name=Structs
 type APIGatewayJWTProvider struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4853,11 +4843,6 @@ func (x *APIGatewayJWTProvider) GetVerifyClaims() []*APIGatewayJWTClaimVerificat
 	return nil
 }
 
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.APIGatewayJWTClaimVerification
-// output=config_entry.gen.go
-// name=Structs
 type APIGatewayJWTClaimVerification struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

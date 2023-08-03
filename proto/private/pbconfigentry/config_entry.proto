@@ -735,30 +735,15 @@ message APIGatewayPolicy {
     APIGatewayJWTRequirement JWT = 1;
 }
 
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.APIGatewayJWTRequirement
-// output=config_entry.gen.go
-// name=Structs
 message APIGatewayJWTRequirement {
   repeated APIGatewayJWTProvider Providers = 1;
 }
 
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.APIGatewayJWTProvider
-// output=config_entry.gen.go
-// name=Structs
 message APIGatewayJWTProvider {
   string Name = 1;
   repeated APIGatewayJWTClaimVerification VerifyClaims = 2;
 }
 
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.APIGatewayJWTClaimVerification
-// output=config_entry.gen.go
-// name=Structs
 message APIGatewayJWTClaimVerification {
   repeated string Path = 1;
   string Value = 2;
