@@ -198,4 +198,5 @@ func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.logger.Error("Failed to write to GRPC resource: not able to parse error returned", "error", err)
 	}
+	w.Write([]byte(err.Error()))
 }
