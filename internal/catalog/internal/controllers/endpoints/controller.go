@@ -384,5 +384,6 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 		HealthStatus: health,
 		Addresses:    workloadAddrs,
 		Ports:        endpointPorts,
+		Identity:     data.workload.Identity,
 	}
 }

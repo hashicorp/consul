@@ -482,6 +482,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 						"http": {Port: 443, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 					},
 					HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+					Identity:     "api",
 				},
 			},
 		}).
@@ -530,6 +531,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 			{
 				TargetRef: api3.Id,
@@ -540,6 +542,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 		},
 	})
@@ -569,6 +572,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 					"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 			{
 				TargetRef: api2.Id,
@@ -580,6 +584,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 					"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 		},
 	})
@@ -614,6 +619,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 					"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 		},
 	})
@@ -645,6 +651,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 					"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 		},
 	})
@@ -664,6 +671,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 					"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 		},
 	})

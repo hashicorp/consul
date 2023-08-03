@@ -153,7 +153,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 			Resource: res,
 		})
 
-		if err == nil || res.Id.Uid != "" || status.Code(err) == codes.FailedPrecondition {
+		if err == nil || res.Id.Uid != "" || status.Code(err) != codes.FailedPrecondition {
 			if err != nil {
 				t.Logf("write saw error: %v", err)
 			}

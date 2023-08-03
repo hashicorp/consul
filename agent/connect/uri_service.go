@@ -74,7 +74,7 @@ func (id SpiffeIDIdentity) URI() *url.URL {
 	return &result
 }
 
-// SpiffeIDFromIdentityRef creates the SIFFE ID from an identity.
+// SpiffeIDFromIdentityRef creates the SPIFFE ID from an identity.
 func SpiffeIDFromIdentityRef(trustDomain string, ref *pbresource.Reference) string {
 	return SpiffeIDIdentity{
 		Host:      trustDomain,
