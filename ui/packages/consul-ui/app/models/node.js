@@ -67,4 +67,9 @@ export default class Node extends Model {
   get ChecksWarning() {
     return this.NodeChecks.filter((item) => item.Status === 'warning').length;
   }
+
+  @computed('Meta')
+  get Version() {
+    return this.Meta?.['consul-version'] ?? '';
+  }
 }

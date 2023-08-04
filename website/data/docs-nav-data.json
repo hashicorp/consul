@@ -410,39 +410,19 @@
           },
           {
             "title": "API gateway",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway"
           },
           {
             "title": "HTTP route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route"
           },
           {
             "title": "TCP route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route"
           },
           {
             "title": "Inline certificate",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate"
           },
           {
             "title": "Ingress gateway",
@@ -522,7 +502,7 @@
                   {
                     "title": "Delegate authorization to external services",
                     "path": "connect/proxies/envoy-extensions/usage/ext-authz"
-                  },                  
+                  },
                   {
                     "title": "Run Lua scripts in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lua"
@@ -538,7 +518,8 @@
                   {
                     "title": "Run WebAssembly plug-ins in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/wasm"
-                  }                ]
+                  }
+                ]
               },
               {
                 "title": "Configuration",
@@ -546,16 +527,16 @@
                   {
                     "title": "External authorization",
                     "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
-                  },                  
+                  },
                   {
                     "title": "Property override",
                     "path": "connect/proxies/envoy-extensions/configuration/property-override"
-                  },                  
+                  },
                   {
                     "title": "WebAssembly",
                     "path": "connect/proxies/envoy-extensions/configuration/wasm"
                   }
-                ]              
+                ]
               }
             ]
           },
@@ -658,11 +639,6 @@
           },
           {
             "title": "API Gateways",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            },
             "routes": [
               {
                 "title": "Overview",
@@ -950,6 +926,26 @@
                   {
                     "title": "Create a terminating gateway token",
                     "path": "security/acl/tokens/create/create-a-terminating-gateway-token"
+                  },
+                  {
+                    "title": "Create a DNS token",
+                    "path": "security/acl/tokens/create/create-a-dns-token"
+                  },
+                  {
+                    "title": "Create a replication token",
+                    "path": "security/acl/tokens/create/create-a-replication-token"
+                  },
+                  {
+                    "title": "Create a snapshot agent token",
+                    "path": "security/acl/tokens/create/create-a-snapshot-agent-token"
+                  },
+                  {
+                    "title": "Create a token for Vault's Consul storage backend",
+                    "path": "security/acl/tokens/create/create-a-token-for-vault-consul-storage"
+                  },
+                  {
+                    "title": "Create a Consul ESM token",
+                    "path": "security/acl/tokens/create/create-a-consul-esm-token"
                   }
                 ]
               }
@@ -1070,7 +1066,7 @@
               {
                 "title": "Limit traffic rates from source IP addresses",
                 "path": "agent/limits/usage/limit-request-rates-from-ips"
-              }    
+              }
             ]
           },
           {
@@ -1706,10 +1702,6 @@
       {
         "title": "NIA with TFE",
         "href": "/docs/nia/enterprise"
-      },
-      {
-        "title": "Sentinel",
-        "path": "enterprise/sentinel"
       },
       {
         "title": "License",

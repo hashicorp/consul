@@ -451,10 +451,11 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, testLocalInfo, tt.http, testPeerTrustBundle)
+			rbacIxns, err := intentionListToIntermediateRBACForm(tt.intentions, testLocalInfo, tt.http, testPeerTrustBundle, nil)
 			intentionDefaultAction := intentionActionFromBool(tt.intentionDefaultAllow)
 			rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction, testLocalInfo)
 
+			require.NoError(t, err)
 			require.Equal(t, tt.expect, rbacIxns)
 		})
 	}
@@ -528,6 +529,10 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			VerifyClaims: []*structs.IntentionJWTClaimVerification{
 				{Path: []string{"perms", "role"}, Value: "admin"},
 			},
+		}
+		testJWTProviderConfigEntry = map[string]*structs.JWTProviderConfigEntry{
+			"okta":  {Name: "okta", Issuer: "mytest.okta-issuer"},
+			"auth0": {Name: "auth0", Issuer: "mytest.auth0-issuer"},
 		}
 		jwtRequirement = &structs.IntentionJWTRequirement{
 			Providers: []*structs.IntentionJWTProvider{
@@ -922,7 +927,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 			})
 			t.Run("http filter", func(t *testing.T) {
-				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testLocalInfo, testPeerTrustBundle)
+				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testLocalInfo, testPeerTrustBundle, testJWTProviderConfigEntry)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
@@ -1202,7 +1207,7 @@ func TestPathToSegments(t *testing.T) {
 	}
 }
 
-func TestJwtClaimToPrincipal(t *testing.T) {
+func TestJWTClaimsToPrincipals(t *testing.T) {
 	var (
 		firstClaim = structs.IntentionJWTClaimVerification{
 			Path:  []string{"perms"},
@@ -1234,7 +1239,7 @@ func TestJwtClaimToPrincipal(t *testing.T) {
 			Identifier: &envoy_rbac_v3.Principal_Metadata{
 				Metadata: &envoy_matcher_v3.MetadataMatcher{
 					Filter: jwtEnvoyFilter,
-					Path:   pathToSegments(secondClaim.Path, "second-key"),
+					Path:   pathToSegments(secondClaim.Path, payloadKey),
 					Value: &envoy_matcher_v3.ValueMatcher{
 						MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
 							StringMatch: &envoy_matcher_v3.StringMatcher{
@@ -1249,38 +1254,21 @@ func TestJwtClaimToPrincipal(t *testing.T) {
 		}
 	)
 	tests := map[string]struct {
-		jwtInfos []*JWTInfo
-		expected *envoy_rbac_v3.Principal
+		claims             []*structs.IntentionJWTClaimVerification
+		metadataPayloadKey string
+		expected           *envoy_rbac_v3.Principal
 	}{
-		"single-jwt-info": {
-			jwtInfos: []*JWTInfo{
-				{
-					Claims:             []*structs.IntentionJWTClaimVerification{&firstClaim},
-					MetadataPayloadKey: payloadKey,
-				},
-			},
-			expected: &envoy_rbac_v3.Principal{
-				Identifier: &envoy_rbac_v3.Principal_OrIds{
-					OrIds: &envoy_rbac_v3.Principal_Set{
-						Ids: []*envoy_rbac_v3.Principal{&firstPrincipal},
-					},
-				},
-			},
+		"single-claim": {
+			claims:             []*structs.IntentionJWTClaimVerification{&firstClaim},
+			metadataPayloadKey: payloadKey,
+			expected:           &firstPrincipal,
 		},
-		"multiple-jwt-info": {
-			jwtInfos: []*JWTInfo{
-				{
-					Claims:             []*structs.IntentionJWTClaimVerification{&firstClaim},
-					MetadataPayloadKey: payloadKey,
-				},
-				{
-					Claims:             []*structs.IntentionJWTClaimVerification{&secondClaim},
-					MetadataPayloadKey: "second-key",
-				},
-			},
+		"multiple-claims": {
+			claims:             []*structs.IntentionJWTClaimVerification{&firstClaim, &secondClaim},
+			metadataPayloadKey: payloadKey,
 			expected: &envoy_rbac_v3.Principal{
-				Identifier: &envoy_rbac_v3.Principal_OrIds{
-					OrIds: &envoy_rbac_v3.Principal_Set{
+				Identifier: &envoy_rbac_v3.Principal_AndIds{
+					AndIds: &envoy_rbac_v3.Principal_Set{
 						Ids: []*envoy_rbac_v3.Principal{&firstPrincipal, &secondPrincipal},
 					},
 				},
@@ -1291,7 +1279,7 @@ func TestJwtClaimToPrincipal(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			principal := jwtInfosToPrincipals(tt.jwtInfos)
+			principal := jwtClaimsToPrincipals(tt.claims, tt.metadataPayloadKey)
 			require.Equal(t, principal, tt.expected)
 		})
 	}

@@ -11,6 +11,10 @@ import (
 // to be dynamically executed during runtime.
 type EnvoyExtender interface {
 
+	// CanApply checks whether the extension configured for this extender is eligible
+	// for application based on the specified RuntimeConfig.
+	CanApply(*RuntimeConfig) bool
+
 	// Validate ensures the data in config can successfuly be used
 	// to apply the specified Envoy extension.
 	Validate(*RuntimeConfig) error

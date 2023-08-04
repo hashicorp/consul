@@ -466,8 +466,9 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-federation-enabled)) (`boolean: false`) - If enabled, this datacenter will be federation-capable. Only federation
       via mesh gateways is supported.
       Mesh gateways and servers will be configured to allow federation.
-      Requires `global.tls.enabled`, `meshGateway.enabled` and `connectInject.enabled`
-      to be true. Requires Consul 1.8+.
+      Requires `global.tls.enabled`, `connectInject.enabled`, and one of 
+      `meshGateway.enabled` or `externalServers.enabled` to be true.
+      Requires Consul 1.8+.
 
     - `createFederationSecret` ((#v-global-federation-createfederationsecret)) (`boolean: false`) - If true, the chart will create a Kubernetes secret that can be imported
       into secondary datacenters so they can federate with this datacenter. The
@@ -479,8 +480,8 @@ Use these links to navigate to a particular top-level stanza.
 
     - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.
 
-    - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`.
-      (e.g. ["1.1.1.1:443", "2.3.4.5:443"]
+    - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`
+      (e.g. `["1.1.1.1:443", "2.3.4.5:443"]`).
 
     - `k8sAuthMethodHost` ((#v-global-federation-k8sauthmethodhost)) (`string: null`) - If you are setting `global.federation.enabled` to true and are in a secondary datacenter,
       set `k8sAuthMethodHost` to the address of the Kubernetes API server of the secondary datacenter.
@@ -488,6 +489,9 @@ Use these links to navigate to a particular top-level stanza.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
       Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+
+      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
+      `externalServers.k8sAuthMethodHost` should be set to the same value.
 
       You can retrieve this value from your `kubeconfig` by running:
 
@@ -1097,6 +1101,9 @@ Use these links to navigate to a particular top-level stanza.
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
     Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+
+    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
+    `externalServers.k8sAuthMethodHost` should be set to the same value.
 
     You could retrieve this value from your `kubeconfig` by running:
 
