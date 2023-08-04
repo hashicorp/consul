@@ -49,7 +49,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	// Instantiate a data fetcher to fetch all reconciliation data.
 	dataFetcher := fetcher.Fetcher{Client: rt.Client, Cache: r.cache}
 
-	// Check if the apiWorkload exists.
+	// Check if the workload exists.
 	workloadID := resource.ReplaceType(catalog.WorkloadType, req.ID)
 	workload, err := dataFetcher.FetchWorkload(ctx, resource.ReplaceType(catalog.WorkloadType, req.ID))
 	if err != nil {
@@ -57,7 +57,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 	if workload == nil {
-		// If apiWorkload has been deleted, then return as ProxyStateTemplate should be cleaned up
+		// If workload has been deleted, then return as ProxyStateTemplate should be cleaned up
 		// by the garbage collector because of the owner reference.
 		rt.Logger.Trace("workload doesn't exist; skipping reconciliation", "workload", workloadID)
 		return nil
@@ -70,7 +70,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	if proxyStateTemplate == nil {
-		// If proxy state template has been deleted
+		// If proxy state template has been deleted, we will need to generate a new one.
 		rt.Logger.Trace("proxy state template for this workload doesn't yet exist; generating a new one", "id", req.ID)
 	}
 
