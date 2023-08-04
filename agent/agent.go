@@ -3017,7 +3017,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			a.logger.Debug(fmt.Sprintf("PHIL: chkType.TCPUseTLS is %v", chkType.TCPUseTLS))
 			var tlsClientConfig *tls.Config
 			if chkType.TCPUseTLS {
 				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)

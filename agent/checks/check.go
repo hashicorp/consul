@@ -695,30 +695,31 @@ func (c *CheckTCP) run() {
 
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
-	var conn net.Conn
-	var err error
-	var checkType string
+	logAndUpdate := func(checkType string, err error) {
+		if err != nil {
+			c.Logger.Warn(fmt.Sprintf("Check %s socket connection failed", checkType),
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			return
+		}
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("%s connect %s: Success", checkType, c.TCP))
+	}
 
 	if c.TLSClientConfig != nil {
-		conn = conn.(*tls.Conn)
-		c.Logger.Debug("PHIL: this is the TLS dialer")
-		conn, err = tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
-		checkType = "TCP+TLS"
+		tlsConn, err := tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
+		logAndUpdate("TCP+TLS", err)
+		if err == nil {
+			defer tlsConn.Close()
+		}
 	} else {
-		c.Logger.Debug("PHIL: this is the regular dialer")
-		conn, err = c.dialer.Dial(`tcp`, c.TCP)
-		checkType = "TCP"
+		conn, err := c.dialer.Dial(`tcp`, c.TCP)
+		logAndUpdate("TCP", err)
+		if err == nil {
+			defer conn.Close()
+		}
 	}
-
-	if err != nil {
-		c.Logger.Warn(fmt.Sprintf("Check %s socket connection failed", checkType),
-			"check", c.CheckID.String(),
-			"error", err,
-		)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
-	}
-	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("%s connect %s: Success", checkType, c.TCP))
-	defer conn.Close()
 }
 
 // CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.

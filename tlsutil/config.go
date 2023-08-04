@@ -862,8 +862,6 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 // consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
 // be checked for checks.
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName string) *tls.Config {
-	c.log("OutgoingTLSConfigForCheck")
-
 	c.lock.RLock()
 	useAgentTLS := c.base.EnableAgentTLSForChecks
 	c.lock.RUnlock()
