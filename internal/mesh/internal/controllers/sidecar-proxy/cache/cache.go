@@ -9,11 +9,11 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// Cache stores information needed for the mesh controller to reconcile efficiently.
+// Cache stores information needed for the sidecar-proxy controller to reconcile efficiently.
 // This currently means storing a list of all destinations for easy look up
 // as well as indices of source proxies where those destinations are referenced.
 //
-// It is the responsibility of controller and its subcomponents (like mapper and data fetcher)
+// It is the responsibility of the controller and its subcomponents (like mapper and data fetcher)
 // to keep this cache up-to-date as we're observing new data.
 type Cache struct {
 	lock sync.RWMutex

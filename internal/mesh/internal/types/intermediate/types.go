@@ -6,18 +6,20 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// todo should it be destination?
-// the problem is that it's compiled from different source objects
+// CombinedDestinationRef contains all references we need for a specific
+// destination on the mesh.
 type CombinedDestinationRef struct {
-	// ServiceRef is the reference to the destination service for this upstream
+	// ServiceRef is the reference to the destination service.
 	ServiceRef *pbresource.Reference
 
+	// Port is the port name for this destination.
 	Port string
 
-	// sourceProxies are the IDs of source proxy state template resources.
+	// SourceProxies are the IDs of source proxy state template resources.
+	// The keys are a string representation of *pbresource.ID.
 	SourceProxies map[string]*pbresource.ID
 
-	// explicitUpstreamID is the id of an explicit upstreams resource. For implicit upstreams,
+	// ExplicitDestinationsID is the id of the pbmesh.Upstreams resource. For implicit destinations,
 	// this should be nil.
 	ExplicitDestinationsID *pbresource.ID
 }
