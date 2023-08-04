@@ -203,7 +203,7 @@ func (f *Fetcher) FetchDestinationsData(
 	return destinations, statuses, nil
 }
 
-// IsMeshEnabled returns true if apiWorkload or service endpoints port
+// IsMeshEnabled returns true if the workload or service endpoints port
 // contain a port with the "mesh" protocol.
 func IsMeshEnabled(ports map[string]*pbcatalog.WorkloadPort) bool {
 	for _, port := range ports {

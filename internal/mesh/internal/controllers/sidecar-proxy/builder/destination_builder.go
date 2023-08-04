@@ -23,15 +23,17 @@ func (b *Builder) buildExplicitDestination(destination *intermediate.Destination
 	clusterName := DestinationClusterName(destination.Explicit.DestinationRef, destination.Explicit.Datacenter, b.trustDomain)
 	statPrefix := DestinationStatPrefix(destination.Explicit.DestinationRef, destination.Explicit.Datacenter)
 
-	// We assume that all endpoints have the same port. Later, we will change service endpoints to
-	// have the global ports map rather than per address.
-	destPort := destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports[destination.Explicit.DestinationPort]
+	// All endpoints should have the same protocol as the endpoints controller ensures that is the case,
+	// so it's sufficient to read just the first endpoint.
+	if len(destination.ServiceEndpoints.Endpoints.Endpoints) > 0 {
+		destPort := destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports[destination.Explicit.DestinationPort]
 
-	if destPort != nil {
-		return b.addOutboundDestinationListener(destination.Explicit).
-			addRouter(clusterName, statPrefix, destPort.Protocol).
-			addCluster(clusterName, destination.Identities).
-			addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, destination.Explicit.DestinationPort)
+		if destPort != nil {
+			return b.addOutboundDestinationListener(destination.Explicit).
+				addRouter(clusterName, statPrefix, destPort.Protocol).
+				addCluster(clusterName, destination.Identities).
+				addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, destination.Explicit.DestinationPort)
+		}
 	}
 
 	return b
@@ -67,10 +69,10 @@ func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Bui
 	return b.addListener(listener)
 }
 
-// for explicit destinations, we have no filter chain match, and filters based on port protocol
 func (b *Builder) addRouter(clusterName, statPrefix string, protocol pbcatalog.Protocol) *Builder {
 	listener := b.getLastBuiltListener()
 
+	// For explicit destinations, we have no filter chain match, and filters are based on port protocol.
 	switch protocol {
 	case pbcatalog.Protocol_PROTOCOL_TCP:
 		router := &pbproxystate.Router{
@@ -123,7 +125,6 @@ func (b *Builder) addCluster(clusterName string, destinationIdentities []*pbreso
 }
 
 func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) *Builder {
-	// Finally, add endpoints references.
 	b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
 		Id:   serviceEndpointsID,
 		Port: destinationPort,
