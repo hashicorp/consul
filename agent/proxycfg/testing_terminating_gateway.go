@@ -4,6 +4,8 @@
 package proxycfg
 
 import (
+	"time"
+
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -648,6 +650,7 @@ func testConfigSnapshotTerminatingGatewayLBConfig(t testing.T, variant string) *
 				OnlyPassing: true,
 			},
 		},
+		RequestTimeout: 200 * time.Millisecond,
 		LoadBalancer: &structs.LoadBalancer{
 			Policy: "ring_hash",
 			RingHashConfig: &structs.RingHashConfig{

@@ -18,4 +18,9 @@ func Register(r resource.Registry) {
 	RegisterUpstreams(r)
 	RegisterUpstreamsConfiguration(r)
 	RegisterProxyStateTemplate(r)
+	RegisterHTTPRoute(r)
+	RegisterTCPRoute(r)
+	RegisterGRPCRoute(r)
+	RegisterDestinationPolicy(r)
+	RegisterComputedRoutes(r)
 }
