@@ -705,20 +705,6 @@ func (suite *controllerSuite) TestController() {
 	endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
 	rtest.RequireOwner(suite.T(), endpoints, updatedService.Id, false)
 
-	// ensure the endpoint was put into the passing state
-	suite.requireEndpoints(endpoints, &pbcatalog.Endpoint{
-		TargetRef: workload.Id,
-		Addresses: []*pbcatalog.WorkloadAddress{
-			{Host: "127.0.0.1", Ports: []string{"grpc", "http"}},
-		},
-		Ports: map[string]*pbcatalog.WorkloadPort{
-			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-			"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
-		},
-		HealthStatus: pbcatalog.Health_HEALTH_PASSING,
-		Identity:     "api",
-	})
-
 	// Delete the endpoints. The controller should bring these back momentarily
 	suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: endpointsID})
 

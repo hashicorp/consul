@@ -64,8 +64,10 @@ func (b *Builder) addInboundRouters(workload *pbcatalog.Workload) *Builder {
 	listener := b.getLastBuiltListener()
 
 	// Go through workload ports and add the first non-mesh port we see.
+	// Note that the order of ports is non-deterministic here but the xds generation
+	// code should make sure to send it in the same order to Envoy to avoid unnecessary
+	// updates.
 	// todo (ishustava): Note we will need to support multiple ports in the future.
-	// todo (ishustava): make sure we always iterate through ports in the same order so we don't need to send more updates to envoy.
 	for portName, port := range workload.Ports {
 		clusterName := fmt.Sprintf("%s:%s", xdscommon.LocalAppClusterName, portName)
 		if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP {

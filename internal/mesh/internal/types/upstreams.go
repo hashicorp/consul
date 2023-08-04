@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	UpstreamsKind = "Destinations"
+	UpstreamsKind = "Upstreams"
 )
 
 var (
