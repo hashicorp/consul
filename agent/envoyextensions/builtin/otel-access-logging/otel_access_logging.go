@@ -4,16 +4,19 @@
 package otelaccesslogging
 
 import (
+	"errors"
 	"fmt"
 
 	envoy_extensions_access_loggers_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_extensions_access_loggers_otel_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/open_telemetry/v3"
+	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	ext_cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/go-multierror"
@@ -28,6 +31,7 @@ type otelAccessLogging struct {
 	ProxyType api.ServiceKind
 	// InsertOptions controls how the extension inserts the filter.
 	InsertOptions ext_cmn.InsertOptions
+	Listener      string
 	// Config holds the extension configuration.
 	Config AccessLog
 }
@@ -66,11 +70,29 @@ func (a *otelAccessLogging) PatchClusters(cfg *ext_cmn.RuntimeConfig, c ext_cmn.
 	return c, nil
 }
 
+func (a *otelAccessLogging) matchesListenerDirection(p extensioncommon.FilterPayload) bool {
+	isInboundListener := p.IsInbound()
+	return (!isInboundListener && a.Listener == "outbound") || (isInboundListener && a.Listener == "inbound")
+}
+
 // PatchFilter adds the OTEL access log in the HTTP connection manager.
 func (a *otelAccessLogging) PatchFilter(p ext_cmn.FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
-	httpConnectionManager, _, err := ext_cmn.GetHTTPConnectionManager(p.Message)
-	if err != nil {
-		return nil, false, err
+	filter := p.Message
+	// Make sure filter matches extension config.
+	if !a.matchesListenerDirection(p) {
+		return filter, false, nil
+	}
+
+	if filter.Name != "envoy.filters.network.http_connection_manager" {
+		return filter, false, nil
+	}
+	if typedConfig := filter.GetTypedConfig(); typedConfig == nil {
+		return filter, false, errors.New("error getting typed config for http filter")
+	}
+
+	httpConnectionManager := envoy_resource_v3.GetHTTPConnectionManager(filter)
+	if httpConnectionManager == nil {
+		return filter, false, errors.New("error unmarshalling filter")
 	}
 
 	accessLog, err := a.toEnvoyAccessLog(p.RuntimeConfig)
@@ -141,6 +163,11 @@ func (a *otelAccessLogging) normalize() {
 	if a.ProxyType == "" {
 		a.ProxyType = api.ServiceKindConnectProxy
 	}
+
+	if a.Listener == "" {
+		a.Listener = "inbound"
+	}
+
 	a.Config.normalize()
 }
 
