@@ -875,8 +875,6 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 // Setting skipVerify will disable verification of the server's certificate
 // chain and hostname, which is generally not suitable for production use.
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName string) *tls.Config {
-	c.log("OutgoingTLSConfigForCheck")
-
 	c.lock.RLock()
 	useAgentTLS := c.base.EnableAgentTLSForChecks
 	c.lock.RUnlock()
