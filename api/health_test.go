@@ -227,6 +227,7 @@ func TestAPI_HealthChecks(t *testing.T) {
 				ServiceName: "foo",
 				ServiceTags: []string{"bar"},
 				Type:        "ttl",
+				TTL:         "15s",
 				Partition:   defaultPartition,
 				Namespace:   defaultNamespace,
 			},
@@ -282,6 +283,9 @@ func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 		}
 		if checks[0].Type != "ttl" {
 			r.Fatalf("expected type ttl, got %s", checks[0].Type)
+		}
+		if checks[0].TTL != "15s" {
+			r.Fatalf("expected ttl 15s, got %s", checks[0].TTL)
 		}
 	})
 }
@@ -367,6 +371,9 @@ func TestAPI_HealthService_SingleTag(t *testing.T) {
 		for _, check := range services[0].Checks {
 			if check.CheckID == "service:foo1" && check.Type != "ttl" {
 				r.Fatalf("expected type ttl, got %s", check.Type)
+			}
+			if check.Type == "ttl" {
+				require.Equal(t, "15s", check.TTL)
 			}
 		}
 	})

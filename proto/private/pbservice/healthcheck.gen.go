@@ -96,6 +96,7 @@ func HealthCheckToStructs(s *HealthCheck, t *structs.HealthCheck) {
 	t.Type = s.Type
 	t.Interval = s.Interval
 	t.Timeout = s.Timeout
+	t.TTL = s.TTL
 	t.ExposedPort = int(s.ExposedPort)
 	t.PeerName = s.PeerName
 	if s.Definition != nil {
@@ -120,6 +121,7 @@ func HealthCheckFromStructs(t *structs.HealthCheck, s *HealthCheck) {
 	s.Type = t.Type
 	s.Interval = t.Interval
 	s.Timeout = t.Timeout
+	s.TTL = t.TTL
 	s.ExposedPort = int32(t.ExposedPort)
 	s.PeerName = t.PeerName
 	{

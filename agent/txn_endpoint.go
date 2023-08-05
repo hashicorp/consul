@@ -285,6 +285,10 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 			if dur := time.Duration(check.Definition.Timeout); dur != 0 {
 				timeout = dur
 			}
+			ttl := check.Definition.TTLDuration
+			if dur := time.Duration(check.Definition.TTL); dur != 0 {
+				ttl = dur
+			}
 			deregisterCriticalServiceAfter := check.Definition.DeregisterCriticalServiceAfterDuration
 			if dur := time.Duration(check.Definition.DeregisterCriticalServiceAfter); dur != 0 {
 				deregisterCriticalServiceAfter = dur
@@ -318,6 +322,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							OSService:                      check.Definition.OSService,
 							Interval:                       interval,
 							Timeout:                        timeout,
+							TTL:                            ttl,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
 						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(

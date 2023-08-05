@@ -2470,11 +2470,15 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 
 		var intervalStr string
 		var timeoutStr string
+		var ttlStr string
 		if chkType.Interval != 0 {
 			intervalStr = chkType.Interval.String()
 		}
 		if chkType.Timeout != 0 {
 			timeoutStr = chkType.Timeout.String()
+		}
+		if chkType.TTL != 0 {
+			ttlStr = chkType.TTL.String()
 		}
 
 		check := &structs.HealthCheck{
@@ -2483,6 +2487,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 			Name:           name,
 			Interval:       intervalStr,
 			Timeout:        timeoutStr,
+			TTL:            ttlStr,
 			Status:         api.HealthCritical,
 			Notes:          chkType.Notes,
 			ServiceID:      service.ID,

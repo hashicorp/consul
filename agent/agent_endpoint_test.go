@@ -824,6 +824,7 @@ func TestAgent_ChecksWithFilter(t *testing.T) {
 		Node:    a.Config.NodeName,
 		CheckID: "redis",
 		Name:    "redis",
+		TTL:     "15s",
 		Status:  api.HealthPassing,
 	}
 	a.State.AddCheck(chk2, "", false)
@@ -837,8 +838,9 @@ func TestAgent_ChecksWithFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, val, 1)
-	_, ok := val["redis"]
+	chk, ok := val["redis"]
 	require.True(t, ok)
+	require.Equal(t, "15s", chk.TTL)
 }
 
 func TestAgent_HealthServiceByID(t *testing.T) {

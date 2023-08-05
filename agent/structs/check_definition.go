@@ -188,6 +188,7 @@ func (c *CheckDefinition) HealthCheck(node string) *HealthCheck {
 		ServiceID:      c.ServiceID,
 		Interval:       c.Interval.String(),
 		Timeout:        c.Timeout.String(),
+		TTL:            c.TTL.String(),
 		EnterpriseMeta: c.EnterpriseMeta,
 	}
 	if c.Status != "" {

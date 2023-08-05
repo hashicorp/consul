@@ -50,6 +50,9 @@ type HealthCheck struct {
 	Partition   string `json:",omitempty"`
 	ExposedPort int
 	PeerName    string `json:",omitempty"`
+	Interval    string
+	TTL         string
+	Timeout     string
 
 	Definition HealthCheckDefinition
 
@@ -73,11 +76,13 @@ type HealthCheckDefinition struct {
 	GRPCUseTLS                             bool
 	IntervalDuration                       time.Duration `json:"-"`
 	TimeoutDuration                        time.Duration `json:"-"`
+	TTLDuration                            time.Duration `json:"-"`
 	DeregisterCriticalServiceAfterDuration time.Duration `json:"-"`
 
 	// DEPRECATED in Consul 1.4.1. Use the above time.Duration fields instead.
 	Interval                       ReadableDuration
 	Timeout                        ReadableDuration
+	TTL                            ReadableDuration
 	DeregisterCriticalServiceAfter ReadableDuration
 }
 
@@ -86,15 +91,16 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	out := &struct {
 		Interval                       string
 		Timeout                        string
+		TTL                            string
 		DeregisterCriticalServiceAfter string
 		*Alias
 	}{
 		Interval:                       d.Interval.String(),
 		Timeout:                        d.Timeout.String(),
+		TTL:                            d.TTL.String(),
 		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
 		Alias:                          (*Alias)(d),
 	}
-
 	if d.IntervalDuration != 0 {
 		out.Interval = d.IntervalDuration.String()
 	} else if d.Interval != 0 {
@@ -104,6 +110,11 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 		out.Timeout = d.TimeoutDuration.String()
 	} else if d.Timeout != 0 {
 		out.Timeout = d.Timeout.String()
+	}
+	if d.TTLDuration != 0 {
+		out.TTL = d.TTLDuration.String()
+	} else if d.TTL != 0 {
+		out.TTL = d.TTL.String()
 	}
 	if d.DeregisterCriticalServiceAfterDuration != 0 {
 		out.DeregisterCriticalServiceAfter = d.DeregisterCriticalServiceAfterDuration.String()
@@ -119,6 +130,7 @@ func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	aux := &struct {
 		IntervalDuration                       interface{}
 		TimeoutDuration                        interface{}
+		TTLDuration                            interface{}
 		DeregisterCriticalServiceAfterDuration interface{}
 		*Alias
 	}{
@@ -156,6 +168,19 @@ func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 			t.TimeoutDuration = time.Duration(v)
 		}
 		t.Timeout = ReadableDuration(t.TimeoutDuration)
+	}
+	if aux.TTLDuration == nil {
+		t.TTLDuration = time.Duration(t.TTL)
+	} else {
+		switch v := aux.TTLDuration.(type) {
+		case string:
+			if t.TTLDuration, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.TTLDuration = time.Duration(v)
+		}
+		t.TTL = ReadableDuration(t.TTLDuration)
 	}
 	if aux.DeregisterCriticalServiceAfterDuration == nil {
 		t.DeregisterCriticalServiceAfterDuration = time.Duration(t.DeregisterCriticalServiceAfter)

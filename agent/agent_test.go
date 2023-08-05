@@ -491,6 +491,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname1",
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
+					TTL:            "1m0s",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
@@ -585,6 +586,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
+					TTL:            "1m0s",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"check-noname": {
@@ -598,6 +600,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
+					TTL:            "1m0s",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"service:svcid2:3": {
@@ -611,6 +614,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
+					TTL:            "1m0s",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"service:svcid2:4": {
@@ -624,6 +628,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
+					TTL:            "1m0s",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},

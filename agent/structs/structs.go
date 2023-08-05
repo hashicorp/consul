@@ -1809,6 +1809,7 @@ type HealthCheck struct {
 
 	Interval string // from definition
 	Timeout  string // from definition
+	TTL      string // from definition
 
 	// ExposedPort is the port of the exposed Envoy listener representing the
 	// HTTP or GRPC health check of the service.
@@ -1903,17 +1904,22 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 		Interval                       string `json:",omitempty"`
 		OutputMaxSize                  uint   `json:",omitempty"`
 		Timeout                        string `json:",omitempty"`
+		TTL                            string `json:",omitempty"`
 		DeregisterCriticalServiceAfter string `json:",omitempty"`
 		*Alias
 	}{
 		Interval:                       d.Interval.String(),
 		OutputMaxSize:                  d.OutputMaxSize,
 		Timeout:                        d.Timeout.String(),
+		TTL:                            d.TTL.String(),
 		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
 		Alias:                          (*Alias)(d),
 	}
 	if d.Interval == 0 {
 		exported.Interval = ""
+	}
+	if d.TTL == 0 {
+		exported.TTL = ""
 	}
 	if d.Timeout == 0 {
 		exported.Timeout = ""
@@ -1957,6 +1963,16 @@ func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 			}
 		case float64:
 			t.Timeout = time.Duration(v)
+		}
+	}
+	if aux.TTL != nil {
+		switch v := aux.TTL.(type) {
+		case string:
+			if t.TTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.TTL = time.Duration(v)
 		}
 	}
 	if aux.DeregisterCriticalServiceAfter != nil {
