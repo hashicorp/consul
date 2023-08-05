@@ -1601,14 +1601,35 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	})
 }
 
+func newDefaultBaseDeps(t *testing.T) BaseDeps {
+	dataDir := testutil.TempDir(t, "acl-agent")
+	logBuffer := testutil.NewLogBuffer(t)
+	logger := hclog.NewInterceptLogger(nil)
+	loader := func(source config.Source) (config.LoadResult, error) {
+		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
+		opts := config.LoadOpts{
+			HCL:           []string{TestConfigHCL(NodeID()), "", dataDir},
+			DefaultConfig: source,
+		}
+		result, err := config.Load(opts)
+		if result.RuntimeConfig != nil {
+			result.RuntimeConfig.Telemetry.Disable = true
+		}
+		return result, err
+	}
+	bd, err := NewBaseDeps(loader, logBuffer, logger)
+	require.NoError(t, err)
+	return bd
+}
+
 func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
-	bd := BaseDeps{}
+	bd := newDefaultBaseDeps(t)
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
+	d := fakeResolveTokenDelegate{delegate: &delegateMock{}, authorizer: acl.DenyAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1631,13 +1652,13 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 }
 
 func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
-	bd := BaseDeps{}
+	bd := newDefaultBaseDeps(t)
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
+	d := fakeResolveTokenDelegate{delegate: &delegateMock{}, authorizer: acl.ManageAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,

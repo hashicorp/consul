@@ -971,8 +971,10 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 			// Grab the discovery chain compiled in handlerAPIGateway.recompileDiscoveryChains
 			chain, ok := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if !ok {
-				// this should not happen
-				return nil, fmt.Errorf("no discovery chain for upstream %q", uid)
+				// this should not happen, but it can't error out because the equivalent
+				// listener generation will continue
+				s.Logger.Warn("could not find discovery chain for gateway upstream", "upstream", uid)
+				continue
 			}
 
 			// Generate the list of upstream clusters for the discovery chain
@@ -2027,6 +2029,7 @@ func (s *ResourceGenerator) getTargetClusterName(upstreamsSnapshot *proxycfg.Con
 	target := chain.Targets[tid]
 	clusterName := target.Name
 	targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
+
 	if targetUID.Peer != "" {
 		tbs, ok := upstreamsSnapshot.UpstreamPeerTrustBundles.Get(targetUID.Peer)
 		// We can't generate cluster on peers without the trust bundle. The
