@@ -20,16 +20,6 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
-type testcase struct {
-	oldVersion    string
-	targetVersion string
-	expectErr     bool
-}
-
-var (
-	tcs []testcase
-)
-
 // Test upgrade a cluster of latest version to the target version
 func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 	const numServers = 1
