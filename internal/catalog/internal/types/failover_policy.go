@@ -72,21 +72,6 @@ func ValidateFailoverPolicy(res *pbresource.Resource) error {
 
 	var merr error
 
-	if res.Id != nil && res.Id.Tenancy != nil {
-		if res.Id.Tenancy.PeerName != "local" {
-			merr = multierror.Append(merr, resource.ErrInvalidField{
-				Name: "id",
-				Wrapped: resource.ErrInvalidField{
-					Name: "tenancy",
-					Wrapped: resource.ErrInvalidField{
-						Name:    "peer_name",
-						Wrapped: fmt.Errorf("must be local"),
-					},
-				},
-			})
-		}
-	}
-
 	if failover.Config == nil && len(failover.PortConfigs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "config",
@@ -192,7 +177,10 @@ func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, port
 		}
 	}
 
-	hasPeer := dest.Ref.Tenancy.PeerName != "local"
+	hasPeer := false
+	if dest.Ref != nil {
+		hasPeer = dest.Ref.Tenancy.PeerName != "local"
+	}
 
 	if hasPeer && dest.Datacenter != "" {
 		errs = append(errs, resource.ErrInvalidField{
