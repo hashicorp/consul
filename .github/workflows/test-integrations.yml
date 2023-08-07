@@ -541,6 +541,7 @@ jobs:
             -json \
             -run \
             ^TestTrafficManagement_ResolverDefaultOnlyPassing$ ./l7_traffic_management \
+            --follow-log=false \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
