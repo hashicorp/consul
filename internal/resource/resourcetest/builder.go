@@ -37,8 +37,8 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					Kind:         rtype.Kind,
 				},
 				Tenancy: &pbresource.Tenancy{
-					Partition: "default",
-					Namespace: "default",
+					Partition: resource.DefaultPartitionName,
+					Namespace: resource.DefaultNamespaceName,
 					PeerName:  "local",
 				},
 				Name: name,
