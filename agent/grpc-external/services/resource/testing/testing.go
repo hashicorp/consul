@@ -77,7 +77,7 @@ func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, regist
 		Backend:         backend,
 		Registry:        registry,
 		Logger:          testutil.Logger(t),
-		ACLResolver:     resolver.DANGER_NO_AUTH{},
+		ACLResolver:     aclResolver,
 		V1TenancyBridge: mockTenancyBridge,
 	}).Register(server)
 
