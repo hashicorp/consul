@@ -103,11 +103,19 @@ func ValidateFailoverPolicy(res *pbresource.Resource) error {
 		}
 	}
 
-	for port, pc := range failover.PortConfigs {
+	for portName, pc := range failover.PortConfigs {
+		if portNameErr := validatePortName(portName); portNameErr != nil {
+			merr = multierror.Append(merr, resource.ErrInvalidMapKey{
+				Map:     "port_configs",
+				Key:     portName,
+				Wrapped: portNameErr,
+			})
+		}
+
 		for _, err := range validateFailoverConfig(pc, true) {
 			merr = multierror.Append(merr, resource.ErrInvalidMapValue{
 				Map:     "port_configs",
-				Key:     port,
+				Key:     portName,
 				Wrapped: err,
 			})
 		}
@@ -168,11 +176,20 @@ func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, port
 
 	// NOTE: Destinations here cannot define ports. Port equality is
 	// assumed and will be reconciled.
-	if !ported && dest.Port != "" {
-		errs = append(errs, resource.ErrInvalidField{
-			Name:    "port",
-			Wrapped: fmt.Errorf("ports cannot be specified explicitly for the general failover section since it relies upon port alignment"),
-		})
+	if dest.Port != "" {
+		if ported {
+			if portNameErr := validatePortName(dest.Port); portNameErr != nil {
+				errs = append(errs, resource.ErrInvalidField{
+					Name:    "port",
+					Wrapped: portNameErr,
+				})
+			}
+		} else {
+			errs = append(errs, resource.ErrInvalidField{
+				Name:    "port",
+				Wrapped: fmt.Errorf("ports cannot be specified explicitly for the general failover section since it relies upon port alignment"),
+			})
+		}
 	}
 
 	hasPeer := dest.Ref.Tenancy.PeerName != "local"
