@@ -224,7 +224,6 @@ func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.Failover
 			continue // skip
 		}
 
-		// TODO: this is wrong
 		if pc, ok := failover.PortConfigs[port.TargetPort]; ok {
 			for i, dest := range pc.Destinations {
 				// Assume port alignment.
