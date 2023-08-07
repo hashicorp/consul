@@ -32,7 +32,13 @@ func New() *Mapper {
 // FailoverPolicy and indexes them so that MapService can turn Service events
 // into FailoverPolicy events properly.
 func (m *Mapper) TrackFailover(failover *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy]) {
-	m.trackFailover(failover.Resource.Id, failover.Data.GetUnderlyingDestinationRefs())
+	destRefs := failover.Data.GetUnderlyingDestinationRefs()
+	destRefs = append(destRefs, &pbresource.Reference{
+		Type:    types.ServiceType,
+		Tenancy: failover.Resource.Id.Tenancy,
+		Name:    failover.Resource.Id.Name,
+	})
+	m.trackFailover(failover.Resource.Id, destRefs)
 }
 
 func (m *Mapper) trackFailover(failover *pbresource.ID, services []*pbresource.Reference) {
