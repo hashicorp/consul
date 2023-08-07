@@ -8,11 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/mod/semver"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
+
+// TODO: switch from semver to go-version
 
 const (
 	remoteCertDirectory = "/consul/config/certs"
@@ -66,7 +68,6 @@ type BuildOptions struct {
 	// cluster when none is specified.
 	ConsulImageName string
 
-	// TODO: switch from string to go-version.Version type
 	// ConsulVersion is the default Consul version for agents in the cluster
 	// when none is specified.
 	ConsulVersion string
@@ -206,8 +207,7 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 		b.conf.Set("ports.http", 8500)
 	}
 
-	tmpVersion, _ := version.NewVersion(ctx.consulVersion)
-	if ctx.consulVersion == "local" || tmpVersion.GreaterThanOrEqual(utils.Version_1_14) {
+	if ctx.consulVersion == "local" || semver.Compare("v"+ctx.consulVersion, "v1.14.0") >= 0 {
 		// Enable GRPCTLS for version after v1.14.0
 		b.conf.Set("ports.grpc_tls", 8503)
 	}
@@ -220,8 +220,7 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 
 	ls := string(ctx.logStore)
 	if ls != "" && (ctx.consulVersion == "local" ||
-		// semver.Compare("v"+ctx.consulVersion, "v1.15.0") >= 0) {
-		tmpVersion.GreaterThanOrEqual(utils.Version_1_15)) {
+		semver.Compare("v"+ctx.consulVersion, "v1.15.0") >= 0) {
 		// Enable logstore backend for version after v1.15.0
 		if ls != string(LogStore_WAL) && ls != string(LogStore_BoltDB) {
 			ls = string(LogStore_BoltDB)
@@ -270,13 +269,6 @@ func (b *Builder) Datacenter(name string) *Builder {
 }
 
 func (b *Builder) Peering(enable bool) *Builder {
-	if b.context.consulVersion != "local" {
-		tmpVersion, _ := version.NewVersion(b.context.consulVersion)
-		if tmpVersion.LessThan(utils.Version_1_14) {
-			return b
-		}
-	}
-
 	b.conf.Set("peering.enabled", enable)
 	return b
 }
@@ -380,14 +372,7 @@ func (b *Builder) injectContextOptions(t *testing.T) {
 	if b.context.injectAutoEncryption {
 		if server {
 			b.conf.Set("auto_encrypt.allow_tls", true) // This setting is different between client and servers
-			if b.context.consulVersion == "local" {
-				b.conf.Set("tls.grpc.use_auto_cert", true) // This is required for peering to work over the non-GRPC_TLS port
-			} else {
-				tmpVersion, _ := version.NewVersion(b.context.consulVersion)
-				if tmpVersion.GreaterThanOrEqual(utils.Version_1_14) {
-					b.conf.Set("tls.grpc.use_auto_cert", true) // This is required for peering to work over the non-GRPC_TLS port
-				}
-			}
+			b.conf.Set("tls.grpc.use_auto_cert", true) // This is required for peering to work over the non-GRPC_TLS port
 			// VerifyIncoming does not apply to client agents for auto-encrypt
 		} else {
 			b.conf.Set("auto_encrypt.tls", true)       // This setting is different between client and servers

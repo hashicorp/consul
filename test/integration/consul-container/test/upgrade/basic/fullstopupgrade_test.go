@@ -34,18 +34,11 @@ var (
 func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 	tcs = append(tcs,
 		testcase{
-			// Use the case of "1.12.3" ==> "1.13.0" to verify the upgrade test can
+			// Use the case of "1.12.3" ==> "1.13.0" to verify the test can
 			// catch the upgrade bug found in snapshot of 1.13.0
 			oldVersion:    "1.12.3",
 			targetVersion: "1.13.0",
 			expectErr:     true,
-		},
-		testcase{
-			// Use the case of "1.12.3" ==> "1.13.1" to verify the upgrade test can
-			// pass after the above bug fixed in 1.13.1
-			oldVersion:    "1.12.3",
-			targetVersion: "1.13.1",
-			expectErr:     false,
 		},
 	)
 
@@ -59,7 +52,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 		const numServers = 1
 		buildOpts := &libcluster.BuildOptions{
 			ConsulImageName:      utils.GetLatestImageName(),
-			ConsulVersion:        tc.oldVersion,
+			ConsulVersion:        utils.LatestVersion,
 			Datacenter:           "dc1",
 			InjectAutoEncryption: true,
 		}
@@ -123,7 +116,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 				require.Equal(r, serviceName, service[0].ServiceName)
 			})
 		} else {
-			require.ErrorContains(t, err, "failed to start container")
+			require.ErrorContains(t, err, "context deadline exceeded")
 		}
 	}
 

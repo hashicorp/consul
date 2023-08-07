@@ -22,7 +22,6 @@ var (
 
 	Debug           bool
 	Version_1_14, _ = version.NewVersion("1.14")
-	Version_1_15, _ = version.NewVersion("1.15")
 )
 
 const (
