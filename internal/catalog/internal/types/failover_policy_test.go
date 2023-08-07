@@ -66,7 +66,7 @@ func TestMutateFailoverPolicy(t *testing.T) {
 		"empty-map-config-1": {
 			failover: &pbcatalog.FailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": &pbcatalog.FailoverConfig{},
+					"http": {},
 				},
 			},
 			expect: &pbcatalog.FailoverPolicy{},
@@ -74,7 +74,7 @@ func TestMutateFailoverPolicy(t *testing.T) {
 		"empty-map-config-2": {
 			failover: &pbcatalog.FailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": &pbcatalog.FailoverConfig{
+					"http": {
 						Destinations: make([]*pbcatalog.FailoverDestination, 0),
 					},
 				},
@@ -92,13 +92,13 @@ func TestMutateFailoverPolicy(t *testing.T) {
 					},
 				},
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": &pbcatalog.FailoverConfig{
+					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
 							{Ref: newRef(ServiceType, "foo")},
 							{Ref: newRef(ServiceType, "bar")},
 						},
 					},
-					"admin": &pbcatalog.FailoverConfig{
+					"admin": {
 						Destinations: []*pbcatalog.FailoverDestination{
 							{Ref: newRef(ServiceType, "y")},
 							{Ref: newRef(ServiceType, "z")},
@@ -116,13 +116,13 @@ func TestMutateFailoverPolicy(t *testing.T) {
 					},
 				},
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": &pbcatalog.FailoverConfig{
+					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
 							{Ref: newRef(ServiceType, "foo")},
 							{Ref: newRef(ServiceType, "bar")},
 						},
 					},
-					"admin": &pbcatalog.FailoverConfig{
+					"admin": {
 						Destinations: []*pbcatalog.FailoverDestination{
 							{Ref: newRef(ServiceType, "y")},
 							{Ref: newRef(ServiceType, "z")},
