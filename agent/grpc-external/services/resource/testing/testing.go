@@ -46,7 +46,8 @@ func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
 }
 
 // RunResourceService runs a Resource Service for the duration of the test and
-// returns a client to interact with it. ACLs will be disabled.
+// returns a client to interact with it. ACLs will be disabled and only the
+// default partition and namespace are available.
 func RunResourceService(t *testing.T, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
 	return RunResourceServiceWithACL(t, resolver.DANGER_NO_AUTH{}, registerFns...)
 }
@@ -68,11 +69,16 @@ func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, regist
 
 	server := grpc.NewServer()
 
+	mockTenancyBridge := &svc.MockTenancyBridge{}
+	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
+	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
+
 	svc.NewServer(svc.Config{
-		Backend:     backend,
-		Registry:    registry,
-		Logger:      testutil.Logger(t),
-		ACLResolver: aclResolver,
+		Backend:         backend,
+		Registry:        registry,
+		Logger:          testutil.Logger(t),
+		ACLResolver:     resolver.DANGER_NO_AUTH{},
+		V1TenancyBridge: mockTenancyBridge,
 	}).Register(server)
 
 	pipe := internal.NewPipeListener()

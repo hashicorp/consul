@@ -24,9 +24,17 @@ import (
 var (
 	// TenancyDefault contains the default values for all tenancy units.
 	TenancyDefault = &pbresource.Tenancy{
-		Partition: "default",
+		Partition: resource.DefaultPartitionName,
 		PeerName:  "local",
-		Namespace: "default",
+		Namespace: resource.DefaultNamespaceName,
+	}
+
+	// TypeV1RecordLabel represents a record label which artists are signed to.
+	// Used specifically as a resource to test partition only scoped resources.
+	TypeV1RecordLabel = &pbresource.Type{
+		Group:        "demo",
+		GroupVersion: "v1",
+		Kind:         "RecordLabel",
 	}
 
 	// TypeV1Artist represents a musician or group of musicians.
@@ -72,9 +80,9 @@ const (
 // TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
 // system can be more modularly extended (or support generic resource permissions).
 func RegisterTypes(r resource.Registry) {
-	readACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
-		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
+		return authz.ToAllowAuthorizer().KeyReadAllowed(key, authzContext)
 	}
 
 	writeACL := func(authz acl.Authorizer, res *pbresource.Resource) error {
@@ -125,6 +133,17 @@ func RegisterTypes(r resource.Registry) {
 	}
 
 	r.Register(resource.Registration{
+		Type:  TypeV1RecordLabel,
+		Proto: &pbdemov1.RecordLabel{},
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV1RecordLabel),
+		},
+		Scope: resource.ScopePartition,
+	})
+
+	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
 		ACLs: &resource.ACLHooks{
@@ -170,6 +189,28 @@ func RegisterTypes(r resource.Registry) {
 		},
 		Scope: resource.ScopeNamespace,
 	})
+}
+
+// GenerateV1RecordLabel generates a named RecordLabel resource.
+func GenerateV1RecordLabel(name string) (*pbresource.Resource, error) {
+	data, err := anypb.New(&pbdemov1.RecordLabel{Name: name})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type: TypeV1RecordLabel,
+			Tenancy: &pbresource.Tenancy{
+				Partition: resource.DefaultPartitionName,
+			},
+			Name: name,
+		},
+		Data: data,
+		Metadata: map[string]string{
+			"generated_at": time.Now().Format(time.RFC3339),
+		},
+	}, nil
 }
 
 // GenerateV2Artist generates a random Artist resource.
