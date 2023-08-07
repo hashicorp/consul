@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/uiserver"
 	"github.com/hashicorp/consul/api"
+	resourcehttp "github.com/hashicorp/consul/internal/resource/http"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
@@ -258,6 +259,17 @@ func (s *HTTPHandlers) handler() http.Handler {
 	handlePProf("/debug/pprof/profile", pprof.Profile)
 	handlePProf("/debug/pprof/symbol", pprof.Symbol)
 	handlePProf("/debug/pprof/trace", pprof.Trace)
+
+	mux.Handle("/api/",
+		http.StripPrefix("/api",
+			resourcehttp.NewHandler(
+				s.agent.delegate.ResourceServiceClient(),
+				s.agent.baseDeps.Registry,
+				s.parseToken,
+				s.agent.logger.Named(logging.HTTP),
+			),
+		),
+	)
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
@@ -604,7 +616,9 @@ func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, 
 		if err != nil {
 			return nil, err
 		}
-		buf = append(buf, "\n"...)
+		if ok {
+			buf = append(buf, "\n"...)
+		}
 		return buf, nil
 	}
 

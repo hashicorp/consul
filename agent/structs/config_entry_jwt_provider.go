@@ -509,7 +509,7 @@ func (e *JWTProviderConfigEntry) Validate() error {
 		return err
 	}
 
-	if err := e.validatePartition(); err != nil {
+	if err := e.validatePartitionAndNamespace(); err != nil {
 		return err
 	}
 

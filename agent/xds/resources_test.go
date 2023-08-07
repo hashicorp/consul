@@ -157,8 +157,10 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name:   "transparent-proxy",
-			create: proxycfg.TestConfigSnapshotTransparentProxy,
+			name: "transparent-proxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxy(t)
+			},
 		},
 		{
 			name:   "connect-proxy-with-peered-upstreams",

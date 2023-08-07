@@ -30,6 +30,10 @@ type UpstreamEnvoyExtender struct {
 
 var _ EnvoyExtender = (*UpstreamEnvoyExtender)(nil)
 
+func (ext *UpstreamEnvoyExtender) CanApply(config *RuntimeConfig) bool {
+	return ext.Extension.CanApply(config)
+}
+
 func (ext *UpstreamEnvoyExtender) Validate(_ *RuntimeConfig) error {
 	return nil
 }
@@ -53,10 +57,6 @@ func (ext *UpstreamEnvoyExtender) Extend(resources *xdscommon.IndexedResources, 
 	switch config.Kind {
 	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
 	default:
-		return resources, nil
-	}
-
-	if !ext.Extension.CanApply(config) {
 		return resources, nil
 	}
 

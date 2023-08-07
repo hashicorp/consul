@@ -117,7 +117,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		// type => name => proto
 		resourceMap = xdscommon.EmptyIndexedResources()
 
-		// currentVersions is the the xDS versioning represented by Resources.
+		// currentVersions is the xDS versioning represented by Resources.
 		//
 		// type => name => version (as consul knows right now)
 		currentVersions = make(map[string]map[string]string)
@@ -258,7 +258,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				s.ResourceMapMutateFn(newResourceMap)
 			}
 
-			if err = s.applyEnvoyExtensions(newResourceMap, cfgSnap, node); err != nil {
+			if newResourceMap, err = s.applyEnvoyExtensions(newResourceMap, cfgSnap, node); err != nil {
 				// err is already the result of calling status.Errorf
 				return err
 			}
@@ -403,30 +403,30 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	}
 }
 
-func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot, node *envoy_config_core_v3.Node) error {
+func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot, node *envoy_config_core_v3.Node) (*xdscommon.IndexedResources, error) {
 	var err error
 	envoyVersion := xdscommon.DetermineEnvoyVersionFromNode(node)
 	consulVersion, err := goversion.NewVersion(version.Version)
 
 	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "failed to parse Consul version")
+		return nil, status.Errorf(codes.InvalidArgument, "failed to parse Consul version")
 	}
 
 	serviceConfigs := extensionruntime.GetRuntimeConfigurations(cfgSnap)
 	for _, cfgs := range serviceConfigs {
 		for _, cfg := range cfgs {
-			err = applyEnvoyExtension(s.Logger, cfgSnap, resources, cfg, envoyVersion, consulVersion)
+			resources, err = validateAndApplyEnvoyExtension(s.Logger, cfgSnap, resources, cfg, envoyVersion, consulVersion)
 
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	return nil
+	return resources, nil
 }
 
-func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, resources *xdscommon.IndexedResources, runtimeConfig extensioncommon.RuntimeConfig, envoyVersion, consulVersion *goversion.Version) error {
+func validateAndApplyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, resources *xdscommon.IndexedResources, runtimeConfig extensioncommon.RuntimeConfig, envoyVersion, consulVersion *goversion.Version) (*xdscommon.IndexedResources, error) {
 	logFn := logger.Warn
 	if runtimeConfig.EnvoyExtension.Required {
 		logFn = logger.Error
@@ -460,14 +460,14 @@ func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, 
 			logFn("failed to parse Envoy extension version constraint", errorParams...)
 
 			if ext.Required {
-				return status.Errorf(codes.InvalidArgument, "failed to parse Envoy version constraint for extension %q for service %q", ext.Name, svc.Name)
+				return nil, status.Errorf(codes.InvalidArgument, "failed to parse Envoy version constraint for extension %q for service %q", ext.Name, svc.Name)
 			}
-			return nil
+			return resources, nil
 		}
 
 		if !c.Check(envoyVersion) {
 			logger.Info("skipping envoy extension due to Envoy version constraint violation", errorParams...)
-			return nil
+			return resources, nil
 		}
 	}
 
@@ -477,14 +477,14 @@ func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, 
 			logFn("failed to parse Consul extension version constraint", errorParams...)
 
 			if ext.Required {
-				return status.Errorf(codes.InvalidArgument, "failed to parse Consul version constraint for extension %q for service %q", ext.Name, svc.Name)
+				return nil, status.Errorf(codes.InvalidArgument, "failed to parse Consul version constraint for extension %q for service %q", ext.Name, svc.Name)
 			}
-			return nil
+			return resources, nil
 		}
 
 		if !c.Check(consulVersion) {
 			logger.Info("skipping envoy extension due to Consul version constraint violation", errorParams...)
-			return nil
+			return resources, nil
 		}
 	}
 
@@ -496,10 +496,10 @@ func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, 
 		logFn("failed to construct extension", errorParams...)
 
 		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to construct extension %q for service %q", ext.Name, svc.Name)
+			return nil, status.Errorf(codes.InvalidArgument, "failed to construct extension %q for service %q", ext.Name, svc.Name)
 		}
 
-		return nil
+		return resources, nil
 	}
 
 	now = time.Now()
@@ -510,25 +510,59 @@ func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, 
 		logFn("failed to validate extension arguments", errorParams...)
 
 		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to validate arguments for extension %q for service %q", ext.Name, svc.Name)
+			return nil, status.Errorf(codes.InvalidArgument, "failed to validate arguments for extension %q for service %q", ext.Name, svc.Name)
 		}
 
-		return nil
+		return resources, nil
 	}
 
 	now = time.Now()
-	_, err = extender.Extend(resources, &runtimeConfig)
+	resources, err = applyEnvoyExtension(extender, resources, &runtimeConfig)
 	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
 	if err != nil {
 		errorParams = append(errorParams, "error", err)
 		logFn("failed to apply envoy extension", errorParams...)
 
 		if ext.Required {
-			return status.Errorf(codes.InvalidArgument, "failed to patch xDS resources in the %q extension: %v", ext.Name, err)
+			return nil, status.Errorf(codes.InvalidArgument, "failed to patch xDS resources in the %q extension: %v", ext.Name, err)
 		}
 	}
 
-	return nil
+	return resources, nil
+}
+
+// applyEnvoyExtension safely checks whether an extension can be applied, and if so attempts to apply it.
+//
+// applyEnvoyExtension makes a copy of the provided IndexedResources, then applies the given extension to them.
+// The copy ensures against partial application if a non-required extension modifies a resource then fails at a later
+// stage; this is necessary because IndexedResources and its proto messages are all passed by reference, and
+// non-required extensions do not lead to a terminal failure in xDS updates.
+//
+// If the application is successful, the modified copy is returned. If not, the original and an error is returned.
+// Returning resources in either case allows for applying extensions in a loop and reporting on non-required extension
+// failures simultaneously.
+func applyEnvoyExtension(extender extensioncommon.EnvoyExtender, resources *xdscommon.IndexedResources, runtimeConfig *extensioncommon.RuntimeConfig) (r *xdscommon.IndexedResources, e error) {
+	// Don't panic due to an extension misbehaving.
+	defer func() {
+		if err := recover(); err != nil {
+			r = resources
+			e = fmt.Errorf("attempt to apply Envoy extension %q caused an unexpected panic: %v",
+				runtimeConfig.EnvoyExtension.Name, err)
+		}
+	}()
+
+	// First check whether the extension is eligible for application in the current environment.
+	// Do this before copying indexed resources for the sake of efficiency.
+	if !extender.CanApply(runtimeConfig) {
+		return resources, nil
+	}
+
+	newResources, err := extender.Extend(xdscommon.Clone(resources), runtimeConfig)
+	if err != nil {
+		return resources, err
+	}
+
+	return newResources, nil
 }
 
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol#eventual-consistency-considerations

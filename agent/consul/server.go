@@ -36,6 +36,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
@@ -242,7 +243,7 @@ type Server struct {
 	// serf cluster that spans datacenters
 	eventChWAN chan serf.Event
 
-	// wanMembershipNotifyCh is used to receive notifications that the the
+	// wanMembershipNotifyCh is used to receive notifications that the
 	// serfWAN wan pool may have changed.
 	//
 	// If this is nil, notification is skipped.
@@ -1343,20 +1344,24 @@ func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registr
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    typeRegistry,
-		Backend:     s.raftStorageBackend,
-		ACLResolver: s.ACLResolver,
-		Logger:      logger.Named("grpc-api.resource"),
+		Registry:        typeRegistry,
+		Backend:         s.raftStorageBackend,
+		ACLResolver:     s.ACLResolver,
+		Logger:          logger.Named("grpc-api.resource"),
+		V1TenancyBridge: NewV1TenancyBridge(s),
 	})
 	s.resourceServiceServer.Register(s.externalGRPCServer)
+
+	reflection.Register(s.externalGRPCServer)
 }
 
 func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    typeRegistry,
-		Backend:     s.raftStorageBackend,
-		ACLResolver: resolver.DANGER_NO_AUTH{},
-		Logger:      logger.Named("grpc-api.resource"),
+		Registry:        typeRegistry,
+		Backend:         s.raftStorageBackend,
+		ACLResolver:     resolver.DANGER_NO_AUTH{},
+		Logger:          logger.Named("grpc-api.resource"),
+		V1TenancyBridge: NewV1TenancyBridge(s),
 	})
 
 	conn, err := s.runInProcessGRPCServer(server.Register)

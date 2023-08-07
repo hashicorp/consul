@@ -3,98 +3,97 @@ package hcp
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"regexp"
 	"testing"
+	"time"
 
-	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
 )
+
+type mockMetricsClient struct {
+	telemetry.MetricsClient
+}
 
 func TestSink(t *testing.T) {
 	t.Parallel()
 	for name, test := range map[string]struct {
 		expect       func(*client.MockClient)
-		cloudCfg     config.CloudConfig
+		wantErr      string
 		expectedSink bool
 	}{
 		"success": {
 			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "https://test.com",
-					MetricsConfig: &client.MetricsConfig{
-						Endpoint: "https://test.com",
-					},
-				}, nil)
-			},
-			cloudCfg: config.CloudConfig{
-				NodeID:   types.NodeID("nodeyid"),
-				NodeName: "nodey",
+				u, _ := url.Parse("https://test.com/v1/metrics")
+				filters, _ := regexp.Compile("test")
+				mt := mockTelemetryConfig(1*time.Second, u, filters)
+				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mt, nil)
 			},
 			expectedSink: true,
 		},
-		"noSinkWhenServerNotRegisteredWithCCM": {
-			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "",
-					MetricsConfig: &client.MetricsConfig{
-						Endpoint: "",
-					},
-				}, nil)
-			},
-			cloudCfg: config.CloudConfig{},
-		},
-		"noSinkWhenCCMVerificationFails": {
+		"noSinkWhenFetchTelemetryConfigFails": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("fetch failed"))
 			},
-			cloudCfg: config.CloudConfig{},
+			wantErr: "failed to fetch telemetry config",
 		},
-		"failsWithFetchTelemetryFailure": {
+		"noSinkWhenServerNotRegisteredWithCCM": {
 			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("FetchTelemetryConfig error"))
+				mt := mockTelemetryConfig(1*time.Second, nil, nil)
+				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mt, nil)
 			},
 		},
-		"failsWithURLParseErr": {
+		"noSinkWhenTelemetryConfigProviderInitFails": {
 			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					// Minimum 2 chars for a domain to be valid.
-					Endpoint: "s",
-					MetricsConfig: &client.MetricsConfig{
-						// Invalid domain chars
-						Endpoint: "			",
-					},
-				}, nil)
+				u, _ := url.Parse("https://test.com/v1/metrics")
+				// Bad refresh interval forces ConfigProvider creation failure.
+				mt := mockTelemetryConfig(0*time.Second, u, nil)
+				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mt, nil)
 			},
-		},
-		"noErrWithEmptyEndpoint": {
-			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "",
-					MetricsConfig: &client.MetricsConfig{
-						Endpoint: "",
-					},
-				}, nil)
-			},
+			wantErr: "failed to init config provider",
 		},
 	} {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			c := client.NewMockClient(t)
-			mc := client.MockMetricsClient{}
+			mc := mockMetricsClient{}
 
 			test.expect(c)
 			ctx := context.Background()
 
-			s := sink(ctx, c, mc, test.cloudCfg)
-			if !test.expectedSink {
+			s, err := sink(ctx, c, mc)
+
+			if test.wantErr != "" {
+				require.NotNil(t, err)
+				require.Contains(t, err.Error(), test.wantErr)
 				require.Nil(t, s)
 				return
 			}
+
+			if !test.expectedSink {
+				require.Nil(t, s)
+				require.Nil(t, err)
+				return
+			}
+
 			require.NotNil(t, s)
 		})
+	}
+}
+
+func mockTelemetryConfig(refreshInterval time.Duration, metricsEndpoint *url.URL, filters *regexp.Regexp) *client.TelemetryConfig {
+	return &client.TelemetryConfig{
+		MetricsConfig: &client.MetricsConfig{
+			Endpoint: metricsEndpoint,
+			Filters:  filters,
+		},
+		RefreshConfig: &client.RefreshConfig{
+			RefreshInterval: refreshInterval,
+		},
 	}
 }
