@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package telemetry
 
 // Keys for custom Go Metrics metrics emitted only for the OTEL

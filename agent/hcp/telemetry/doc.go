@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package telemetry implements functionality to collect, aggregate, convert and export
 // telemetry data in OpenTelemetry Protocol (OTLP) format.
 //
