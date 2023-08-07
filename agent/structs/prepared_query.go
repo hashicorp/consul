@@ -341,7 +341,7 @@ type PreparedQueryExecuteRemoteRequest struct {
 	Connect bool
 
 	// QueryOptions (unfortunately named here) controls the consistency
-	// settings for the the service lookups.
+	// settings for the service lookups.
 	QueryOptions
 }
 

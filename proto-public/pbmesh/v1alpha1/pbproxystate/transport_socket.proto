@@ -1,0 +1,135 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1.pbproxystate;
+
+message TLS {
+  // inbound_tls_parameters has default TLS parameter configuration for inbound connections. These can be overridden per
+  // transport socket.
+  TLSParameters inbound_tls_parameters = 1;
+  // outbound_tls_parameters has default TLS parameter configuration for inbound connections. These can be overridden per transport socket.
+  TLSParameters outbound_tls_parameters = 2;
+}
+
+message TransportSocket {
+  oneof connection_tls {
+    // inbound_mesh is for incoming connections FROM the mesh.
+    InboundMeshMTLS inbound_mesh = 1;
+    // outbound_mesh is for outbound connections TO mesh destinations.
+    OutboundMeshMTLS outbound_mesh = 2;
+    // inbound_non_mesh is for incoming connections FROM non mesh.
+    InboundNonMeshTLS inbound_non_mesh = 3;
+    // outbound_non_mesh is for outbound connections TO non mesh destinations.
+    OutboundNonMeshTLS outbound_non_mesh = 4;
+  }
+  // tls_parameters can override any top level tls parameters that are configured.
+  TLSParameters tls_parameters = 5;
+  repeated string alpn_protocols = 6;
+}
+
+message InboundMeshMTLS {
+  // identity_key is UUID key to use to look up the leaf certificate in ProxyState to present for incoming connections.
+  string identity_key = 1;
+  // validation_context has what is needed to validate incoming connections.
+  MeshInboundValidationContext validation_context = 2;
+}
+
+message OutboundMeshMTLS {
+  // identity_key is UUID key to use to look up the leaf certificate in ProxyState when connecting to destinations.
+  string identity_key = 1;
+  // validation_context has what is needed to validate the destination.
+  MeshOutboundValidationContext validation_context = 2;
+  // sni to use when connecting to the destination.
+  string sni = 3;
+}
+
+message InboundNonMeshTLS {
+  // identity is the reference to the leaf certificate to present for incoming connections.
+  oneof identity {
+    // leaf_key is the UUID key to use to look up the leaf certificate in the ProxyState leaf certificate map.
+    string leaf_key = 1;
+    // sds refers to certificates retrieved via Envoy SDS.
+    SDSCertificate sds = 2;
+  }
+}
+
+message OutboundNonMeshTLS {
+  // cert_file is a filename for a certificate to present for outbound connections.
+  string cert_file = 1;
+  // key_file is a filename for a key for outbound connections.
+  string key_file = 2;
+  // validation_context has what is needed to validate the destination.
+  NonMeshOutboundValidationContext validation_context = 3;
+}
+
+message MeshInboundValidationContext {
+  // trust_bundle_peer_name_keys is which trust bundles to use for validating incoming connections. If this workload is exported
+  // to peers, the incoming connection could be from a different peer, requiring that trust bundle to validate the
+  // connection. These could be local or peered trust bundles. This will be a key in the trust bundle map.
+  repeated string trust_bundle_peer_name_keys = 1;
+}
+
+message MeshOutboundValidationContext {
+  // trust_bundle_peer_name_key is which trust bundle to use for the destination. It could be the local or a peer's trust bundle.
+  // This will be a key in the trust bundle map.
+  string trust_bundle_peer_name_key = 1;
+  // spiffe_ids is one or more spiffe IDs to validate.
+  repeated string spiffe_ids = 2;
+}
+
+message NonMeshOutboundValidationContext {
+  // ca_file is a filename for a ca for outbound connections to validate the destination.
+  string ca_file = 1;
+}
+
+message SDSCertificate {
+  string cluster_name = 1;
+  string cert_resource = 2;
+}
+
+message TLSParameters {
+  TLSVersion min_version = 1;
+  TLSVersion max_version = 2;
+  repeated TLSCipherSuite cipher_suites = 3;
+}
+
+message LeafCertificate {
+  string cert = 1;
+  string key = 2;
+}
+
+message TrustBundle {
+  string trust_domain = 1;
+  repeated string roots = 2;
+}
+
+enum TLSVersion {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  TLS_VERSION_AUTO = 0;
+  TLS_VERSION_1_0 = 1;
+  TLS_VERSION_1_1 = 2;
+  TLS_VERSION_1_2 = 3;
+  TLS_VERSION_1_3 = 4;
+  TLS_VERSION_INVALID = 5;
+  TLS_VERSION_UNSPECIFIED = 6;
+}
+
+enum TLSCipherSuite {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_AES128_GCM_SHA256 = 0;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_CHACHA20_POLY1305 = 1;
+  TLS_CIPHER_SUITE_ECDHE_RSA_AES128_GCM_SHA256 = 2;
+  TLS_CIPHER_SUITE_ECDHE_RSA_CHACHA20_POLY1305 = 3;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_AES128_SHA = 4;
+  TLS_CIPHER_SUITE_ECDHE_RSA_AES128_SHA = 5;
+  TLS_CIPHER_SUITE_AES128_GCM_SHA256 = 6;
+  TLS_CIPHER_SUITE_AES128_SHA = 7;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_AES256_GCM_SHA384 = 8;
+  TLS_CIPHER_SUITE_ECDHE_RSA_AES256_GCM_SHA384 = 9;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_AES256_SHA = 10;
+  TLS_CIPHER_SUITE_ECDHE_RSA_AES256_SHA = 11;
+  TLS_CIPHER_SUITE_AES256_GCM_SHA384 = 12;
+  TLS_CIPHER_SUITE_AES256_SHA = 13;
+}

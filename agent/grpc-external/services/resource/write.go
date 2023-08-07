@@ -46,7 +46,8 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		return nil, err
 	}
 
-	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	// TODO(spatel): Refactor _ and entMeta as part of NET-4911
+	authz, _, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
 	if err != nil {
 		return nil, err
 	}

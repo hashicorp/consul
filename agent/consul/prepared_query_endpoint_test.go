@@ -2808,7 +2808,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 		t.Fatalf("bad: %v", ret)
 	}
 	// Since we have no idea when the joinWAN operation completes
-	// we keep on querying until the the join operation completes.
+	// we keep on querying until the join operation completes.
 	retry.Run(t, func(r *retry.R) {
 		r.Check(s1.forwardDC("Status.Ping", "dc2", &struct{}{}, &struct{}{}))
 	})

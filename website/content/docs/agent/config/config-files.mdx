@@ -948,7 +948,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       `service:write` permissions for service "B", the agent will successfully register service "A"
       and fail to register service "B". Failed registration requests are eventually retried as part
       of [anti-entropy enforcement](/consul/docs/architecture/anti-entropy). If a registration request is
-      failing due to missing permissions, the the token for this agent can be updated with
+      failing due to missing permissions, the token for this agent can be updated with
       additional policy rules or the `config_file_service_registration` token can be replaced using
       the [Set Agent Token](/consul/commands/acl/set-agent-token) CLI command.
 
