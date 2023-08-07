@@ -45,20 +45,29 @@ func MutateFailoverPolicy(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&failover, err)
 	}
 
+	changed := false
+
 	// Handle eliding empty configs.
 	if failover.Config != nil && failover.Config.IsEmpty() {
 		failover.Config = nil
+		changed = true
 	}
 	for port, pc := range failover.PortConfigs {
 		if pc.IsEmpty() {
 			delete(failover.PortConfigs, port)
+			changed = true
 		}
 	}
 	if len(failover.PortConfigs) == 0 {
 		failover.PortConfigs = nil
+		changed = true
 	}
 
 	// TODO(rb): normalize dest ref tenancies
+
+	if !changed {
+		return nil
+	}
 
 	return res.Data.MarshalFrom(&failover)
 }
