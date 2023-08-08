@@ -43,8 +43,8 @@ func TestRegister_Defaults(t *testing.T) {
 	require.True(t, ok)
 
 	// verify default read hook requires operator:read
-	require.NoError(t, reg.ACLs.Read(testutils.ACLOperatorRead(t), artist.Id))
-	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.Read(testutils.ACLNoPermissions(t), artist.Id)))
+	require.NoError(t, reg.ACLs.Read(testutils.ACLOperatorRead(t), nil, artist.Id))
+	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.Read(testutils.ACLNoPermissions(t), nil, artist.Id)))
 
 	// verify default write hook requires operator:write
 	require.NoError(t, reg.ACLs.Write(testutils.ACLOperatorWrite(t), artist))

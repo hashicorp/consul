@@ -36,19 +36,22 @@ func TestWrite_InputValidation(t *testing.T) {
 		"no tenancy":  func(req *pbresource.WriteRequest) { req.Resource.Id.Tenancy = nil },
 		"no name":     func(req *pbresource.WriteRequest) { req.Resource.Id.Name = "" },
 		"no data":     func(req *pbresource.WriteRequest) { req.Resource.Data = nil },
-		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition not default": func(req *pbresource.WriteRequest) {
-			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
-			req.Resource.Id.Tenancy.Partition = ""
-		},
-		"tenancy namespace not default": func(req *pbresource.WriteRequest) {
-			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
-			req.Resource.Id.Tenancy.Namespace = ""
-		},
-		"tenancy peername not local": func(req *pbresource.WriteRequest) {
-			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
-			req.Resource.Id.Tenancy.PeerName = ""
-		},
+
+		// TODO(spatel): Refactor tenancy as part of NET-4911
+		//
+		// // clone necessary to not pollute DefaultTenancy
+		// "tenancy partition not default": func(req *pbresource.WriteRequest) {
+		// 	req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+		// 	req.Resource.Id.Tenancy.Partition = ""
+		// },
+		// "tenancy namespace not default": func(req *pbresource.WriteRequest) {
+		// 	req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+		// 	req.Resource.Id.Tenancy.Namespace = ""
+		// },
+		// "tenancy peername not local": func(req *pbresource.WriteRequest) {
+		// 	req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+		// 	req.Resource.Id.Tenancy.PeerName = ""
+		// },
 		"wrong data type": func(req *pbresource.WriteRequest) {
 			var err error
 			req.Resource.Data, err = anypb.New(&pbdemov2.Album{})
@@ -99,28 +102,31 @@ func TestWrite_OwnerValidation(t *testing.T) {
 			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Name = "" },
 			errorContains: "resource.owner.name",
 		},
-		// clone necessary to not pollute DefaultTenancy
-		"owner tenancy partition not default": {
-			modReqFn: func(req *pbresource.WriteRequest) {
-				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
-				req.Resource.Owner.Tenancy.Partition = ""
-			},
-			errorContains: "resource.owner.tenancy.partition",
-		},
-		"owner tenancy namespace not default": {
-			modReqFn: func(req *pbresource.WriteRequest) {
-				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
-				req.Resource.Owner.Tenancy.Namespace = ""
-			},
-			errorContains: "resource.owner.tenancy.namespace",
-		},
-		"owner tenancy peername not local": {
-			modReqFn: func(req *pbresource.WriteRequest) {
-				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
-				req.Resource.Owner.Tenancy.PeerName = ""
-			},
-			errorContains: "resource.owner.tenancy.peername",
-		},
+
+		// TODO(spatel): Refactor tenancy as part of NET-4911
+		//
+		// // clone necessary to not pollute DefaultTenancy
+		// "owner tenancy partition not default": {
+		// 	modReqFn: func(req *pbresource.WriteRequest) {
+		// 		req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+		// 		req.Resource.Owner.Tenancy.Partition = ""
+		// 	},
+		// 	errorContains: "resource.owner.tenancy.partition",
+		// },
+		// "owner tenancy namespace not default": {
+		// 	modReqFn: func(req *pbresource.WriteRequest) {
+		// 		req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+		// 		req.Resource.Owner.Tenancy.Namespace = ""
+		// 	},
+		// 	errorContains: "resource.owner.tenancy.namespace",
+		// },
+		// "owner tenancy peername not local": {
+		// 	modReqFn: func(req *pbresource.WriteRequest) {
+		// 		req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+		// 		req.Resource.Owner.Tenancy.PeerName = ""
+		// 	},
+		// 	errorContains: "resource.owner.tenancy.peername",
+		// },
 	}
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {

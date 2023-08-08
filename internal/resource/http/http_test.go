@@ -80,22 +80,6 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
 		},
-		{
-			description: "missing tenancy info",
-			request: httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local", strings.NewReader(`
-				{
-					"metadata": {
-						"foo": "bar"
-					},
-					"data": {
-						"name": "Keith Urban",
-						"genre": "GENRE_COUNTRY"
-					}
-				}
-			`)),
-			response:             httptest.NewRecorder(),
-			expectedResponseCode: http.StatusBadRequest,
-		},
 	}
 
 	for _, tc := range testCases {

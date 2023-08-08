@@ -31,6 +31,9 @@ type Config struct {
 	// Backend is the storage backend that will be used for resource persistence.
 	Backend     Backend
 	ACLResolver ACLResolver
+	// V1TenancyBridge temporarily allows us to use V1 implementations of
+	// partitions and namespaces until V2 implementations are available.
+	V1TenancyBridge TenancyBridge
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -46,6 +49,12 @@ type Backend interface {
 //go:generate mockery --name ACLResolver --inpackage
 type ACLResolver interface {
 	ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (resolver.Result, error)
+}
+
+//go:generate mockery --name TenancyBridge --inpackage
+type TenancyBridge interface {
+	PartitionExists(partition string) (bool, error)
+	NamespaceExists(partition string, namespace string) (bool, error)
 }
 
 func NewServer(cfg Config) *Server {
@@ -100,12 +109,13 @@ func readConsistencyFrom(ctx context.Context) storage.ReadConsistency {
 	return storage.EventualConsistency
 }
 
-func (s *Server) getAuthorizer(token string) (acl.Authorizer, error) {
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, nil, nil)
+func (s *Server) getAuthorizer(token string, entMeta *acl.EnterpriseMeta) (acl.Authorizer, *acl.AuthorizerContext, error) {
+	authzContext := &acl.AuthorizerContext{}
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, entMeta, authzContext)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed getting authorizer: %v", err)
+		return nil, nil, status.Errorf(codes.Internal, "failed getting authorizer: %v", err)
 	}
-	return authz, nil
+	return authz, authzContext, nil
 }
 
 func isGRPCStatusError(err error) bool {
@@ -130,20 +140,30 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 	if field != "" {
 		return status.Errorf(codes.InvalidArgument, "%s.%s is required", errorPrefix, field)
 	}
+	resource.Normalize(id.Tenancy)
 
-	// Revisit defaulting and non-namespaced resources post-1.16
-	var expected string
-	switch {
-	case id.Tenancy.Partition != "default":
-		field, expected = "partition", "default"
-	case id.Tenancy.Namespace != "default":
-		field, expected = "namespace", "default"
-	case id.Tenancy.PeerName != "local":
-		field, expected = "peername", "local"
+	return nil
+}
+
+func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy) error {
+	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
+		exists, err := v1Bridge.PartitionExists(tenancy.Partition)
+		switch {
+		case err != nil:
+			return err
+		case !exists:
+			return status.Errorf(codes.NotFound, "partition resource not found: %v", tenancy.Partition)
+		}
 	}
 
-	if field != "" {
-		return status.Errorf(codes.InvalidArgument, "%s.tenancy.%s must be %s", errorPrefix, field, expected)
+	if reg.Scope == resource.ScopeNamespace {
+		exists, err := v1Bridge.NamespaceExists(tenancy.Partition, tenancy.Namespace)
+		switch {
+		case err != nil:
+			return err
+		case !exists:
+			return status.Errorf(codes.NotFound, "namespace resource not found: %v", tenancy.Namespace)
+		}
 	}
 	return nil
 }
