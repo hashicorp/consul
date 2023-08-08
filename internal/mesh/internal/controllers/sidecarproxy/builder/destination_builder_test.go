@@ -23,6 +23,7 @@ var (
 				Ports: map[string]*pbcatalog.WorkloadPort{
 					"tcp":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 		},
