@@ -212,18 +212,21 @@ func computeNewStatus(
 		key := resource.NewReferenceKey(dest.Ref)
 		if destService, ok := otherServices[key]; ok {
 			found := false
+			mesh := false
 			for _, port := range destService.Data.Ports {
-				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-					continue // skip
-				}
 				if port.TargetPort == dest.Port {
 					found = true
+					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+						mesh = true
+					}
 					break
 				}
 			}
 
 			if !found {
 				return ConditionUnknownDestinationPort(dest.Ref, dest.Port)
+			} else if mesh {
+				return ConditionUsingMeshDestinationPort(dest.Ref, dest.Port)
 			}
 		} else {
 			return ConditionMissingDestinationService(dest.Ref)

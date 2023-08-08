@@ -25,6 +25,9 @@ const (
 
 	UnknownDestinationPortReason        = "UnknownDestinationPort"
 	UnknownDestinationPortMessagePrefix = "port is not defined on destination service: "
+
+	UsingMeshDestinationPortReason        = "UsingMeshDestinationPort"
+	UsingMeshDestinationPortMessagePrefix = "port is a special unroutable mesh port on destination service: "
 )
 
 var (
@@ -62,6 +65,15 @@ func ConditionMissingDestinationService(ref *pbresource.Reference) *pbresource.C
 }
 
 func ConditionUnknownDestinationPort(ref *pbresource.Reference, port string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionHealthy,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  UnknownDestinationPortReason,
+		Message: UnknownDestinationPortMessagePrefix + port + " on " + resource.ReferenceToString(ref),
+	}
+}
+
+func ConditionUsingMeshDestinationPort(ref *pbresource.Reference, port string) *pbresource.Condition {
 	return &pbresource.Condition{
 		Type:    StatusConditionHealthy,
 		State:   pbresource.Condition_STATE_FALSE,

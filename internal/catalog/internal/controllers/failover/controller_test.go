@@ -106,7 +106,26 @@ func (suite *controllerSuite) TestController() {
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownPort("admin"))
 
-	// update the service to fix the stray reference
+	// update the service to fix the stray reference, but point to a mesh port
+	apiServiceData = &pbcatalog.Service{
+		Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
+		Ports: []*pbcatalog.ServicePort{
+			{
+				TargetPort: "http",
+				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+			},
+			{
+				TargetPort: "admin",
+				Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
+			},
+		},
+	}
+	_ = rtest.Resource(types.ServiceType, "api").
+		WithData(suite.T(), apiServiceData).
+		Write(suite.T(), suite.client)
+	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUsingMeshDestinationPort(apiServiceRef, "admin"))
+
+	// update the service to fix the stray reference to not be a mesh port
 	apiServiceData = &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
 		Ports: []*pbcatalog.ServicePort{
