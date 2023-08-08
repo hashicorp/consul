@@ -8,6 +8,9 @@ on:
     # * is a special character in YAML so you have to quote this string
     # Run nightly at 12AM UTC/8PM EST/5PM PST.
     - cron: '0 0 * * *'
+  push:
+    branches:
+      - 'fix-integration-test-for-ent'
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
@@ -76,7 +79,7 @@ jobs:
           path: ${{ github.workspace }}
 
       - name: Restore mode+x
-        run: icacls ${{ github.workspace }}\consul.exe /grant Users:RX
+        run: icacls ${{ github.workspace }}\consul.exe /grant:rx Everyone:RX
 
       - name: Setup TcpDump Docker Image
         shell: bash
@@ -1184,7 +1187,7 @@ jobs:
         if: ${{ !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/download/v2.17.2/datadog-ci_win-x64.exe" --output "C:/datadog-ci"
-          icacls C:/datadog-ci /grant Users:RX
+          icacls C:/datadog-ci /grant:rx Everyone:RX
 
       - name: Upload coverage
         # do not run on forks
