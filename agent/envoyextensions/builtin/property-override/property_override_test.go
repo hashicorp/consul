@@ -335,6 +335,36 @@ func TestConstructor(t *testing.T) {
 			},
 			ok: true,
 		},
+		// We may receive repeated fields decoded generically. Assert that
+		// we can successfully coerce them to their appropriate type.
+		"repeated value decoded as interface{} construction succeeds": {
+			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
+				makePatch(map[string]any{
+					"ResourceFilter": makeResourceFilter(map[string]any{
+						"ResourceType": ResourceTypeRoute,
+					}),
+					"Op":    OpAdd,
+					"Path":  "/internal_only_headers",
+					"Value": []any{"X-Custom-Header1", "X-Custom-Header2"},
+				}),
+			}}),
+			expected: propertyOverride{
+				Patches: []Patch{
+					{
+						ResourceFilter: ResourceFilter{
+							ResourceType:     ResourceTypeRoute,
+							TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+						},
+						Op:    OpAdd,
+						Path:  "/internal_only_headers",
+						Value: []any{"X-Custom-Header1", "X-Custom-Header2"},
+					},
+				},
+				Debug:     true,
+				ProxyType: api.ServiceKindConnectProxy,
+			},
+			ok: true,
+		},
 		"invalid ProxyType": {
 			arguments: makeArguments(map[string]any{
 				"Patches": []map[string]any{

@@ -429,6 +429,49 @@ func TestPatchStruct(t *testing.T) {
 			},
 			ok: true,
 		},
+		"add repeated field: int32 as any": {
+			args: args{
+				k: &envoy_route_v3.RetryPolicy{
+					RetriableStatusCodes: []uint32{429, 502},
+				},
+				patches: []Patch{makeAddPatch(
+					"/retriable_status_codes",
+					[]any{503, 504},
+				)},
+			},
+			expected: &envoy_route_v3.RetryPolicy{
+				RetriableStatusCodes: []uint32{503, 504},
+			},
+			ok: true,
+		},
+		"add repeated field: string as any": {
+			args: args{
+				k: &envoy_route_v3.RouteConfiguration{},
+				patches: []Patch{makeAddPatch(
+					"/internal_only_headers",
+					[]any{"X-Custom-Header1", "X-Custom-Header-2"},
+				)},
+			},
+			expected: &envoy_route_v3.RouteConfiguration{
+				InternalOnlyHeaders: []string{"X-Custom-Header1", "X-Custom-Header-2"},
+			},
+			ok: true,
+		},
+		"add repeated field: enum as any": {
+			args: args{
+				k: &corev3.HealthStatusSet{
+					Statuses: []corev3.HealthStatus{corev3.HealthStatus_DRAINING},
+				},
+				patches: []Patch{makeAddPatch(
+					"/statuses",
+					[]any{"HEALTHY", "UNHEALTHY"},
+				)},
+			},
+			expected: &corev3.HealthStatusSet{
+				Statuses: []corev3.HealthStatus{corev3.HealthStatus_HEALTHY, corev3.HealthStatus_UNHEALTHY},
+			},
+			ok: true,
+		},
 		"add message field: empty": {
 			args: args{
 				k: &envoy_listener_v3.Listener{},
@@ -856,7 +899,7 @@ func TestPatchStruct(t *testing.T) {
 				InternalOnlyHeaders: []string{"X-Custom-Header1", "X-Custom-Header-2"},
 			},
 			ok:     false,
-			errMsg: "patch value type []interface {} could not be applied to target field type 'repeated string'",
+			errMsg: "patch value type int could not be applied to target field type 'repeated string'",
 		},
 		"add unsupported target: message with non-scalar fields": {
 			args: args{

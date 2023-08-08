@@ -222,43 +222,57 @@ func fieldListStr(messageDesc protoreflect.MessageDescriptor, debug bool) string
 func toProtoValue(parentM protoreflect.Message, fieldDesc protoreflect.FieldDescriptor, patchValue interface{}) (v protoreflect.Value, e error) {
 	// Repeated fields. Check for these first, so we can use Kind below for single value
 	// fields (repeated fields have a Kind corresponding to their members).
-	// We have to do special handling for int types and strings since they could be enums.
 	if fieldDesc.IsList() {
-		list := parentM.NewField(fieldDesc).List()
-		switch val := patchValue.(type) {
-		case []int:
-			return toProtoIntOrEnumList(val, list, fieldDesc)
-		case []int32:
-			return toProtoIntOrEnumList(val, list, fieldDesc)
-		case []int64:
-			return toProtoIntOrEnumList(val, list, fieldDesc)
-		case []uint:
-			return toProtoIntOrEnumList(val, list, fieldDesc)
-		case []uint32:
-			return toProtoIntOrEnumList(val, list, fieldDesc)
-		case []uint64:
-			return toProtoIntOrEnumList(val, list, fieldDesc)
-		case []float32:
-			return toProtoNumericList(val, list, fieldDesc)
-		case []float64:
-			return toProtoNumericList(val, list, fieldDesc)
-		case []bool:
-			return toProtoList(val, list)
-		case []string:
-			if fieldDesc.Kind() == protoreflect.EnumKind {
-				return toProtoEnumList(val, list, fieldDesc)
-			}
-			return toProtoList(val, list)
-		default:
-			if fieldDesc.Kind() == protoreflect.MessageKind ||
-				fieldDesc.Kind() == protoreflect.GroupKind ||
-				fieldDesc.Kind() == protoreflect.BytesKind {
-				return unsupportedTargetTypeErr(fieldDesc)
-			}
-			return typeMismatchErr(fieldDesc, val)
-		}
+		return toListProtoValue(parentM, fieldDesc, patchValue)
+	}
+	return toSingleProtoValue(fieldDesc, patchValue)
+}
+
+func toListProtoValue(parentM protoreflect.Message, fieldDesc protoreflect.FieldDescriptor, patchValue interface{}) (v protoreflect.Value, e error) {
+	// Check for unsupported types first, so we can coerce 'any' below if needed.
+	if fieldDesc.Kind() == protoreflect.MessageKind ||
+		fieldDesc.Kind() == protoreflect.GroupKind ||
+		fieldDesc.Kind() == protoreflect.BytesKind {
+		return unsupportedTargetTypeErr(fieldDesc)
 	}
 
+	list := parentM.NewField(fieldDesc).List()
+	switch val := patchValue.(type) {
+	// We have to do special handling for int types and strings since they could be enums.
+	case []int:
+		return toProtoIntOrEnumList(val, list, fieldDesc)
+	case []int32:
+		return toProtoIntOrEnumList(val, list, fieldDesc)
+	case []int64:
+		return toProtoIntOrEnumList(val, list, fieldDesc)
+	case []uint:
+		return toProtoIntOrEnumList(val, list, fieldDesc)
+	case []uint32:
+		return toProtoIntOrEnumList(val, list, fieldDesc)
+	case []uint64:
+		return toProtoIntOrEnumList(val, list, fieldDesc)
+	case []float32:
+		return toProtoNumericList(val, list, fieldDesc)
+	case []float64:
+		return toProtoNumericList(val, list, fieldDesc)
+	case []bool:
+		return toProtoList(val, fieldDesc, list)
+	case []string:
+		if fieldDesc.Kind() == protoreflect.EnumKind {
+			return toProtoEnumList(val, list, fieldDesc)
+		}
+		return toProtoList(val, fieldDesc, list)
+	case []any:
+		if fieldDesc.Kind() == protoreflect.EnumKind {
+			return toProtoEnumList(val, list, fieldDesc)
+		}
+		return toProtoList(val, fieldDesc, list)
+	default:
+		return typeMismatchErr(fieldDesc, val)
+	}
+}
+
+func toSingleProtoValue(fieldDesc protoreflect.FieldDescriptor, patchValue interface{}) (v protoreflect.Value, e error) {
 	switch fieldDesc.Kind() {
 	case protoreflect.MessageKind:
 		// google.protobuf wrapper types are used for detecting presence of scalars. If the
@@ -314,9 +328,13 @@ func toProtoValue(parentM protoreflect.Message, fieldDesc protoreflect.FieldDesc
 	return protoreflect.ValueOf(patchValue), nil
 }
 
-func toProtoList[V float32 | float64 | bool | string](vs []V, l protoreflect.List) (protoreflect.Value, error) {
+func toProtoList[V any](vs []V, fieldDesc protoreflect.FieldDescriptor, l protoreflect.List) (protoreflect.Value, error) {
 	for _, v := range vs {
-		l.Append(protoreflect.ValueOf(v))
+		pv, err := toSingleProtoValue(fieldDesc, v)
+		if err != nil {
+			return protoreflect.Value{}, err
+		}
+		l.Append(pv)
 	}
 	return protoreflect.ValueOfList(l), nil
 }
@@ -343,7 +361,7 @@ func toProtoNumericList[V int | int32 | int64 | uint | uint32 | uint64 | float32
 	return protoreflect.ValueOfList(l), nil
 }
 
-func toProtoEnumList[V int | int32 | int64 | uint | uint32 | uint64 | string](vs []V, l protoreflect.List, fieldDesc protoreflect.FieldDescriptor) (protoreflect.Value, error) {
+func toProtoEnumList[V any](vs []V, l protoreflect.List, fieldDesc protoreflect.FieldDescriptor) (protoreflect.Value, error) {
 	for _, v := range vs {
 		e, err := toProtoEnumValue(fieldDesc, v)
 		if err != nil {

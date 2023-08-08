@@ -1,0 +1,3 @@
+```release-note:bug
+xds: Fix handling of repeated field deserialization in `property-override` Envoy extension
+```
