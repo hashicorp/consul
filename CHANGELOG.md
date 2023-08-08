@@ -1,3 +1,62 @@
+## 1.16.1 (August 8, 2023)
+
+SECURITY:
+
+* Update `golang.org/x/net` to v0.13.0 to address [CVE-2023-3978](https://nvd.nist.gov/vuln/detail/CVE-2023-3978). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
+* Upgrade golang.org/x/net to address [CVE-2023-29406](https://nvd.nist.gov/vuln/detail/CVE-2023-29406) [[GH-18186](https://github.com/hashicorp/consul/issues/18186)]
+* Upgrade to use Go 1.20.6.
+This resolves [CVE-2023-29406](https://github.com/advisories/GHSA-f8f7-69v5-w4vx)(`net/http`) for uses of the standard library.
+A separate change updates dependencies on `golang.org/x/net` to use `0.12.0`. [[GH-18190](https://github.com/hashicorp/consul/issues/18190)]
+* Upgrade to use Go 1.20.7.
+This resolves vulnerability [CVE-2023-29409](https://nvd.nist.gov/vuln/detail/CVE-2023-29409)(`crypto/tls`). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
+
+FEATURES:
+
+* cli: `consul members` command uses `-filter` expression to filter members based on bexpr. [[GH-18223](https://github.com/hashicorp/consul/issues/18223)]
+* cli: `consul operator raft list-peers` command shows the number of commits each follower is trailing the leader by to aid in troubleshooting. [[GH-17582](https://github.com/hashicorp/consul/issues/17582)]
+* cli: `consul watch` command uses `-filter` expression to filter response from checks, services, nodes, and service. [[GH-17780](https://github.com/hashicorp/consul/issues/17780)]
+* reloadable config: Made enable_debug config reloadable and enable pprof command to work when config toggles to true [[GH-17565](https://github.com/hashicorp/consul/issues/17565)]
+* ui: consul version is displayed in nodes list with filtering and sorting based on versions [[GH-17754](https://github.com/hashicorp/consul/issues/17754)]
+
+IMPROVEMENTS:
+
+* Fix some typos in metrics docs [[GH-18080](https://github.com/hashicorp/consul/issues/18080)]
+* acl: added builtin ACL policy that provides global read-only access (builtin/global-read-only) [[GH-18319](https://github.com/hashicorp/consul/issues/18319)]
+* acl: allow for a single slash character in policy names [[GH-18319](https://github.com/hashicorp/consul/issues/18319)]
+* connect: Add capture group labels from Envoy cluster FQDNs to Envoy exported metric labels [[GH-17888](https://github.com/hashicorp/consul/issues/17888)]
+* connect: Improve transparent proxy support for virtual services and failovers. [[GH-17757](https://github.com/hashicorp/consul/issues/17757)]
+* connect: update supported envoy versions to 1.23.12, 1.24.10, 1.25.9, 1.26.4 [[GH-18303](https://github.com/hashicorp/consul/issues/18303)]
+* debug: change default setting of consul debug command. now default duration is 5ms and default log level is 'TRACE' [[GH-17596](https://github.com/hashicorp/consul/issues/17596)]
+* extensions: Improve validation and error feedback for `property-override` builtin Envoy extension [[GH-17759](https://github.com/hashicorp/consul/issues/17759)]
+* hcp: Add dynamic configuration support for the export of server metrics to HCP. [[GH-18168](https://github.com/hashicorp/consul/issues/18168)]
+* hcp: Removes requirement for HCP to provide a management token [[GH-18140](https://github.com/hashicorp/consul/issues/18140)]
+* http: GET API `operator/usage` endpoint now returns node count
+cli: `consul operator usage` command now returns node count [[GH-17939](https://github.com/hashicorp/consul/issues/17939)]
+* mesh: Expose remote jwks cluster configuration through jwt-provider config entry [[GH-17978](https://github.com/hashicorp/consul/issues/17978)]
+* mesh: Stop jwt providers referenced by intentions from being deleted. [[GH-17755](https://github.com/hashicorp/consul/issues/17755)]
+* ui: the topology view now properly displays services with mixed connect and non-connect instances. [[GH-13023](https://github.com/hashicorp/consul/issues/13023)]
+* xds: Explicitly enable WebSocket connection upgrades in HTTP connection manager [[GH-18150](https://github.com/hashicorp/consul/issues/18150)]
+
+BUG FIXES:
+
+* Fix a bug that wrongly trims domains when there is an overlap with DC name. [[GH-17160](https://github.com/hashicorp/consul/issues/17160)]
+* api-gateway: fix race condition in proxy config generation when Consul is notified of the bound-api-gateway config entry before it is notified of the api-gateway config entry. [[GH-18291](https://github.com/hashicorp/consul/issues/18291)]
+* api: Fix client deserialization errors by marking new Enterprise-only prepared query fields as omit empty [[GH-18184](https://github.com/hashicorp/consul/issues/18184)]
+* ca: Fixes a Vault CA provider bug where updating RootPKIPath but not IntermediatePKIPath would not renew leaf signing certificates [[GH-18112](https://github.com/hashicorp/consul/issues/18112)]
+* connect/ca: Fixes a bug preventing CA configuration updates in secondary datacenters [[GH-17846](https://github.com/hashicorp/consul/issues/17846)]
+* connect: **(Enterprise only)** Fix bug where intentions referencing sameness groups would not always apply to members properly.
+* connect: Fix incorrect protocol config merging for transparent proxy implicit upstreams. [[GH-17894](https://github.com/hashicorp/consul/issues/17894)]
+* connect: Removes the default health check from the `consul connect envoy` command when starting an API Gateway.
+This health check would always fail. [[GH-18011](https://github.com/hashicorp/consul/issues/18011)]
+* connect: fix a bug with Envoy potentially starting with incomplete configuration by not waiting enough for initial xDS configuration. [[GH-18024](https://github.com/hashicorp/consul/issues/18024)]
+* gateway: Fixes a bug where envoy would silently reject RSA keys that are smaller than 2048 bits,
+we now reject those earlier in the process when we validate the certificate. [[GH-17911](https://github.com/hashicorp/consul/issues/17911)]
+* http: fixed API endpoint `PUT /acl/token/:AccessorID` (update token), no longer requires `AccessorID` in the request body. Web UI can now update tokens. [[GH-17739](https://github.com/hashicorp/consul/issues/17739)]
+* mesh: **(Enterprise Only)** Require that `jwt-provider` config entries are created in the `default` namespace. [[GH-18325](https://github.com/hashicorp/consul/issues/18325)]
+* snapshot: fix access denied and handle is invalid when we call snapshot save on windows - skip sync() for folders in windows in
+https://github.com/rboyer/safeio/pull/3 [[GH-18302](https://github.com/hashicorp/consul/issues/18302)]
+* xds: Prevent partial application of non-Required Envoy extensions in the case of failure. [[GH-18068](https://github.com/hashicorp/consul/issues/18068)]
+
 ## 1.16.0 (June 26, 2023)
 
 BREAKING CHANGES:
