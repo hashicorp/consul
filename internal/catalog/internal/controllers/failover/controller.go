@@ -6,9 +6,6 @@ package failover
 import (
 	"context"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -152,38 +149,11 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 }
 
 func getFailoverPolicy(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy], error) {
-	res, err := getResource(ctx, rt, id)
-	if err != nil {
-		return nil, err
-	}
-	if res == nil {
-		return nil, nil
-	}
-
-	return resource.Decode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](res)
+	return resource.GetDecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](ctx, rt.Client, id)
 }
 
 func getService(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service], error) {
-	res, err := getResource(ctx, rt, id)
-	if err != nil {
-		return nil, err
-	}
-	if res == nil {
-		return nil, nil
-	}
-
-	return resource.Decode[pbcatalog.Service, *pbcatalog.Service](res)
-}
-
-func getResource(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*pbresource.Resource, error) {
-	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
-	switch {
-	case status.Code(err) == codes.NotFound:
-		return nil, nil
-	case err != nil:
-		return nil, err
-	}
-	return rsp.Resource, nil
+	return resource.GetDecodedResource[pbcatalog.Service, *pbcatalog.Service](ctx, rt.Client, id)
 }
 
 func computeNewStatus(
