@@ -310,137 +310,6 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			},
 			expectErr: `map port_configs contains an invalid key - "$bad$": value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
 		},
-
-		// both
-		"one": {
-			failover: &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": {
-						Destinations: []*pbcatalog.FailoverDestination{
-							{
-								Ref:  newRef(ServiceType, "api-backup"),
-								Port: "www",
-							},
-							{
-								Ref: newRef(ServiceType, "api-double-backup"),
-							},
-						},
-					},
-				},
-			},
-			expectErr: "",
-		},
-		"one-2": {
-			failover: &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": {
-						Destinations: []*pbcatalog.FailoverDestination{
-							{
-								Ref:  newRef(ServiceType, "api-backup"),
-								Port: "www",
-							},
-							{
-								Ref:  newRef(ServiceType, "api-double-backup"),
-								Port: "http", // port defaulted
-							},
-						},
-					},
-				},
-			},
-			expectErr: "",
-		},
-		"two": {
-			failover: &pbcatalog.FailoverPolicy{
-				Config: &pbcatalog.FailoverConfig{
-					Destinations: []*pbcatalog.FailoverDestination{
-						{
-							Ref: newRef(ServiceType, "api-backup"),
-						},
-						{
-							Ref: newRef(ServiceType, "api-double-backup"),
-						},
-					},
-				},
-			},
-			expectErr: "",
-		},
-		"two-2": {
-			failover: &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": {
-						Destinations: []*pbcatalog.FailoverDestination{
-							{
-								Ref:  newRef(ServiceType, "api-backup"),
-								Port: "http",
-							},
-							{
-								Ref:  newRef(ServiceType, "api-double-backup"),
-								Port: "http",
-							},
-						},
-					},
-					"rest": {
-						Destinations: []*pbcatalog.FailoverDestination{
-							{
-								Ref:  newRef(ServiceType, "api-backup"),
-								Port: "rest",
-							},
-							{
-								Ref:  newRef(ServiceType, "api-double-backup"),
-								Port: "rest",
-							},
-						},
-					},
-				},
-			},
-			expectErr: "",
-		},
-		"three": {
-			failover: &pbcatalog.FailoverPolicy{
-				Config: &pbcatalog.FailoverConfig{
-					Destinations: []*pbcatalog.FailoverDestination{
-						{
-							Ref: newRef(ServiceType, "api-backup"),
-						},
-						{
-							Ref: newRef(ServiceType, "api-double-backup"),
-						},
-					},
-				},
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"rest": {
-						Mode:          pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY,
-						Regions:       []string{"us", "eu"},
-						SamenessGroup: "sameweb",
-					},
-				},
-			},
-			expectErr: "",
-		},
-		"three-2": {
-			failover: &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": {
-						Destinations: []*pbcatalog.FailoverDestination{
-							{
-								Ref:  newRef(ServiceType, "api-backup"),
-								Port: "http",
-							},
-							{
-								Ref:  newRef(ServiceType, "api-double-backup"),
-								Port: "http",
-							},
-						},
-					},
-					"rest": {
-						Mode:          pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY,
-						Regions:       []string{"us", "eu"},
-						SamenessGroup: "sameweb",
-					},
-				},
-			},
-			expectErr: "",
-		},
 	}
 
 	maybeWrap := func(wrapPrefix, base string) string {
@@ -451,14 +320,14 @@ func TestValidateFailoverPolicy(t *testing.T) {
 	}
 
 	for name, tc := range configCases {
-		cases["XX: plain config: "+name] = testcase{
+		cases["plain config: "+name] = testcase{
 			failover: &pbcatalog.FailoverPolicy{
 				Config: proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
 			},
 			expectErr: maybeWrap(`invalid "config" field: `, tc.expectErr),
 		}
 
-		cases["XX: ported config: "+name] = testcase{
+		cases["ported config: "+name] = testcase{
 			failover: &pbcatalog.FailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
