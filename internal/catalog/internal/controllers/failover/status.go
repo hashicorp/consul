@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	StatusKey              = "consul.io/failover-policy"
-	StatusConditionHealthy = "healthy"
+	StatusKey               = "consul.io/failover-policy"
+	StatusConditionAccepted = "accepted"
 
 	OKReason  = "Ok"
-	OKMessage = "failover policy is valid"
+	OKMessage = "failover policy was accepted"
 
 	MissingServiceReason  = "MissingService"
 	MissingServiceMessage = "service for failover policy does not exist"
@@ -33,14 +33,14 @@ const (
 
 var (
 	ConditionOK = &pbresource.Condition{
-		Type:    StatusConditionHealthy,
+		Type:    StatusConditionAccepted,
 		State:   pbresource.Condition_STATE_TRUE,
 		Reason:  OKReason,
 		Message: OKMessage,
 	}
 
 	ConditionMissingService = &pbresource.Condition{
-		Type:    StatusConditionHealthy,
+		Type:    StatusConditionAccepted,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  MissingServiceReason,
 		Message: MissingServiceMessage,
@@ -49,7 +49,7 @@ var (
 
 func ConditionUnknownPort(port string) *pbresource.Condition {
 	return &pbresource.Condition{
-		Type:    StatusConditionHealthy,
+		Type:    StatusConditionAccepted,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  UnknownPortReason,
 		Message: UnknownPortMessagePrefix + port,
@@ -58,7 +58,7 @@ func ConditionUnknownPort(port string) *pbresource.Condition {
 
 func ConditionMissingDestinationService(ref *pbresource.Reference) *pbresource.Condition {
 	return &pbresource.Condition{
-		Type:    StatusConditionHealthy,
+		Type:    StatusConditionAccepted,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  MissingDestinationServiceReason,
 		Message: MissingDestinationServiceMessagePrefix + resource.ReferenceToString(ref),
@@ -67,7 +67,7 @@ func ConditionMissingDestinationService(ref *pbresource.Reference) *pbresource.C
 
 func ConditionUnknownDestinationPort(ref *pbresource.Reference, port string) *pbresource.Condition {
 	return &pbresource.Condition{
-		Type:    StatusConditionHealthy,
+		Type:    StatusConditionAccepted,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  UnknownDestinationPortReason,
 		Message: UnknownDestinationPortMessagePrefix + port + " on " + resource.ReferenceToString(ref),
@@ -76,7 +76,7 @@ func ConditionUnknownDestinationPort(ref *pbresource.Reference, port string) *pb
 
 func ConditionUsingMeshDestinationPort(ref *pbresource.Reference, port string) *pbresource.Condition {
 	return &pbresource.Condition{
-		Type:    StatusConditionHealthy,
+		Type:    StatusConditionAccepted,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  UnknownDestinationPortReason,
 		Message: UnknownDestinationPortMessagePrefix + port + " on " + resource.ReferenceToString(ref),
