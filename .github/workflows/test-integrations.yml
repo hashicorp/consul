@@ -515,7 +515,9 @@ jobs:
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
-            -json ./... \
+            -json \
+            ./... \
+            --follow-log=false \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
