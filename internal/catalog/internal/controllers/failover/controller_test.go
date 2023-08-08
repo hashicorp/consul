@@ -6,7 +6,6 @@ package failover
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -159,7 +158,6 @@ func (suite *controllerSuite) TestController() {
 	_ = rtest.Resource(types.ServiceType, "other").
 		WithData(suite.T(), otherServiceData).
 		Write(suite.T(), suite.client)
-	time.Sleep(1 * time.Second)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownDestinationPort(otherServiceRef, "admin"))
 
 	// fix the destination leg's port
