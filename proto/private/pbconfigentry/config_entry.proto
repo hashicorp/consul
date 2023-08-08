@@ -884,6 +884,8 @@ message HTTPQueryMatch {
 message HTTPFilters {
   repeated HTTPHeaderFilter Headers = 1;
   URLRewrite URLRewrite = 2;
+  RetryFilter RetryFilter = 3;
+  TimeoutFilter TimeoutFilter = 4;
 }
 
 // mog annotation:
@@ -893,6 +895,30 @@ message HTTPFilters {
 // name=Structs
 message URLRewrite {
   string Path = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RetryFilter
+// output=config_entry.gen.go
+// name=Structs
+message RetryFilter {
+  uint32 NumRetries = 1;
+  repeated string RetryOn = 2;
+  repeated uint32 RetryOnStatusCodes = 3;
+  bool RetryOnConnectFailure = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TimeoutFilter
+// output=config_entry.gen.go
+// name=Structs
+message TimeoutFilter {
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration RequestTimeout = 1;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration IdleTimeout = 2;
 }
 
 // mog annotation:
