@@ -44,6 +44,16 @@ func MutateServiceEndpoints(res *pbresource.Resource) error {
 		}
 	}
 
+	return nil
+}
+
+func ValidateServiceEndpoints(res *pbresource.Resource) error {
+	var svcEndpoints pbcatalog.ServiceEndpoints
+
+	if err := res.Data.UnmarshalTo(&svcEndpoints); err != nil {
+		return resource.NewErrDataParse(&svcEndpoints, err)
+	}
+
 	var err error
 	if !resource.EqualType(res.Owner.Type, ServiceV1Alpha1Type) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{
@@ -70,17 +80,6 @@ func MutateServiceEndpoints(res *pbresource.Resource) error {
 		})
 	}
 
-	return err
-}
-
-func ValidateServiceEndpoints(res *pbresource.Resource) error {
-	var svcEndpoints pbcatalog.ServiceEndpoints
-
-	if err := res.Data.UnmarshalTo(&svcEndpoints); err != nil {
-		return resource.NewErrDataParse(&svcEndpoints, err)
-	}
-
-	var err error
 	for idx, endpoint := range svcEndpoints.Endpoints {
 		if endpointErr := validateEndpoint(endpoint, res); endpointErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
