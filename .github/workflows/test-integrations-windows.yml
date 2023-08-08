@@ -8,9 +8,6 @@ on:
     # * is a special character in YAML so you have to quote this string
     # Run nightly at 12AM UTC/8PM EST/5PM PST.
     - cron: '0 0 * * *'
-  push:
-    branches:
-      - 'fix-integration-test-for-ent'
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
