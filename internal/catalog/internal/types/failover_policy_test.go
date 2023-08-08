@@ -275,7 +275,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			},
 		},
 		// plain config
-		"plain config: bad dest: invalid port name": {
+		"plain config: bad dest: any port name": {
 			failover: &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Destinations: []*pbcatalog.FailoverDestination{
@@ -286,7 +286,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			expectErr: `invalid "config" field: invalid element at index 0 of list "destinations": invalid "port" field: ports cannot be specified explicitly for the general failover section since it relies upon port alignment`,
 		},
 		// ported config
-		"ported config: bad dest: any port name": {
+		"ported config: bad dest: invalid port name": {
 			failover: &pbcatalog.FailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
@@ -297,6 +297,18 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				},
 			},
 			expectErr: `invalid value of key "http" within port_configs: invalid element at index 0 of list "destinations": invalid "port" field: value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
+		},
+		"ported config: bad ported in map": {
+			failover: &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"$bad$": {
+						Destinations: []*pbcatalog.FailoverDestination{
+							{Ref: newRef(ServiceType, "api-backup"), Port: "http"},
+						},
+					},
+				},
+			},
+			expectErr: `map port_configs contains an invalid key - "$bad$": value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
 		},
 
 		// both
@@ -500,10 +512,46 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 	}
 
 	cases := map[string]testcase{
+		"implicit with mesh port skipping": {
+			svc: resourcetest.Resource(ServiceType, "api").
+				WithData(t, &pbcatalog.Service{
+					Ports: []*pbcatalog.ServicePort{
+						newPort("mesh", 21001, pbcatalog.Protocol_PROTOCOL_MESH),
+						newPort("http", 8080, pbcatalog.Protocol_PROTOCOL_HTTP),
+					},
+				}).
+				Build(),
+			failover: resourcetest.Resource(FailoverPolicyType, "api").
+				WithData(t, &pbcatalog.FailoverPolicy{
+					Config: &pbcatalog.FailoverConfig{
+						Destinations: []*pbcatalog.FailoverDestination{
+							{
+								Ref: newRef(ServiceType, "api-backup"),
+							},
+						},
+					},
+				}).
+				Build(),
+			expect: resourcetest.Resource(FailoverPolicyType, "api").
+				WithData(t, &pbcatalog.FailoverPolicy{
+					PortConfigs: map[string]*pbcatalog.FailoverConfig{
+						"http": {
+							Destinations: []*pbcatalog.FailoverDestination{
+								{
+									Ref:  newRef(ServiceType, "api-backup"),
+									Port: "http", // port defaulted
+								},
+							},
+						},
+					},
+				}).
+				Build(),
+		},
 		"explicit with port aligned defaulting": {
 			svc: resourcetest.Resource(ServiceType, "api").
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
+						newPort("mesh", 9999, pbcatalog.Protocol_PROTOCOL_MESH),
 						newPort("http", 8080, pbcatalog.Protocol_PROTOCOL_HTTP),
 						newPort("rest", 8282, pbcatalog.Protocol_PROTOCOL_HTTP2),
 					},
