@@ -159,7 +159,7 @@ func getService(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (
 func computeNewStatus(
 	failoverPolicy *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy],
 	service *resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service],
-	otherServices map[resource.ReferenceKey]*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service],
+	destServices map[resource.ReferenceKey]*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service],
 ) *pbresource.Status {
 	if service == nil {
 		return &pbresource.Status{
@@ -178,32 +178,6 @@ func computeNewStatus(
 		allowedPortProtocols[port.TargetPort] = port.Protocol
 	}
 
-	serviceHasPort := func(dest *pbcatalog.FailoverDestination) *pbresource.Condition {
-		key := resource.NewReferenceKey(dest.Ref)
-		if destService, ok := otherServices[key]; ok {
-			found := false
-			mesh := false
-			for _, port := range destService.Data.Ports {
-				if port.TargetPort == dest.Port {
-					found = true
-					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-						mesh = true
-					}
-					break
-				}
-			}
-
-			if !found {
-				return ConditionUnknownDestinationPort(dest.Ref, dest.Port)
-			} else if mesh {
-				return ConditionUsingMeshDestinationPort(dest.Ref, dest.Port)
-			}
-		} else {
-			return ConditionMissingDestinationService(dest.Ref)
-		}
-		return nil
-	}
-
 	var conditions []*pbresource.Condition
 
 	if failoverPolicy.Data.Config != nil {
@@ -217,7 +191,7 @@ func computeNewStatus(
 				continue
 			}
 
-			if cond := serviceHasPort(dest); cond != nil {
+			if cond := serviceHasPort(dest, destServices); cond != nil {
 				conditions = append(conditions, cond)
 			}
 		}
@@ -239,7 +213,7 @@ func computeNewStatus(
 				continue
 			}
 
-			if cond := serviceHasPort(dest); cond != nil {
+			if cond := serviceHasPort(dest, destServices); cond != nil {
 				conditions = append(conditions, cond)
 			}
 		}
@@ -260,6 +234,37 @@ func computeNewStatus(
 			ConditionOK,
 		},
 	}
+}
+
+func serviceHasPort(
+	dest *pbcatalog.FailoverDestination,
+	destServices map[resource.ReferenceKey]*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service],
+) *pbresource.Condition {
+	key := resource.NewReferenceKey(dest.Ref)
+	destService, ok := destServices[key]
+	if !ok {
+		return ConditionMissingDestinationService(dest.Ref)
+	}
+
+	found := false
+	mesh := false
+	for _, port := range destService.Data.Ports {
+		if port.TargetPort == dest.Port {
+			found = true
+			if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+				mesh = true
+			}
+			break
+		}
+	}
+
+	if !found {
+		return ConditionUnknownDestinationPort(dest.Ref, dest.Port)
+	} else if mesh {
+		return ConditionUsingMeshDestinationPort(dest.Ref, dest.Port)
+	}
+
+	return nil
 }
 
 func isServiceType(typ *pbresource.Type) bool {
