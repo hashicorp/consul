@@ -77,8 +77,14 @@ var (
 	EndpointsStatusConditionManaged          = endpoints.ConditionManaged
 	EndpointsStatusConditionUnmanaged        = endpoints.ConditionUnmanaged
 
-	FailoverStatusKey         = failover.StatusKey
-	FailoverStatusConditionOK = failover.ConditionOK
+	FailoverStatusKey                                              = failover.StatusKey
+	FailoverStatusConditionAccepted                                = failover.StatusConditionAccepted
+	FailoverStatusConditionAcceptedOKReason                        = failover.OKReason
+	FailoverStatusConditionAcceptedMissingServiceReason            = failover.MissingServiceReason
+	FailoverStatusConditionAcceptedUnknownPortReason               = failover.UnknownPortReason
+	FailoverStatusConditionAcceptedMissingDestinationServiceReason = failover.MissingDestinationServiceReason
+	FailoverStatusConditionAcceptedUnknownDestinationPortReason    = failover.UnknownDestinationPortReason
+	FailoverStatusConditionAcceptedUsingMeshDestinationPortReason  = failover.UsingMeshDestinationPortReason
 )
 
 // RegisterTypes adds all resource types within the "catalog" API group
