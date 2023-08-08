@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 )
 
 var (
@@ -93,4 +94,10 @@ func DefaultControllerDependencies() ControllerDependencies {
 // the given controller Manager.
 func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
 	controllers.Register(mgr, deps)
+}
+
+// SimplifyFailoverPolicy fully populates the PortConfigs map and clears the
+// Configs map using the provided Service.
+func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.FailoverPolicy) *pbcatalog.FailoverPolicy {
+	return types.SimplifyFailoverPolicy(svc, failover)
 }
