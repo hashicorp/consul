@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -21,21 +20,6 @@ var (
 		PeerName:  "local",
 	}
 )
-
-func createServiceEndpointsResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
-	res := &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    ServiceEndpointsType,
-			Tenancy: defaultEndpointTenancy,
-			Name:    "test-service",
-		},
-	}
-
-	var err error
-	res.Data, err = anypb.New(data)
-	require.NoError(t, err)
-	return res
-}
 
 func TestValidateServiceEndpoints_Ok(t *testing.T) {
 	data := &pbcatalog.ServiceEndpoints{
@@ -62,7 +46,7 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 		},
 	}
 
-	res := createServiceEndpointsResource(t, data)
+	res := resourcetest.Resource(ServiceEndpointsType, "test-service").WithData(t, data).Build()
 
 	err := ValidateServiceEndpoints(res)
 	require.NoError(t, err)
@@ -73,7 +57,7 @@ func TestValidateServiceEndpoints_ParseError(t *testing.T) {
 	// to cause the error we are expecting
 	data := &pbcatalog.IP{Address: "198.18.0.1"}
 
-	res := createServiceEndpointsResource(t, data)
+	res := resourcetest.Resource(ServiceEndpointsType, "test-service").WithData(t, data).Build()
 
 	err := ValidateServiceEndpoints(res)
 	require.Error(t, err)
@@ -167,18 +151,56 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			data := genData()
-			tcase.modify(data)
+			endpoint := genData()
+			tcase.modify(endpoint)
 
-			res := createServiceEndpointsResource(t, &pbcatalog.ServiceEndpoints{
+			data := &pbcatalog.ServiceEndpoints{
 				Endpoints: []*pbcatalog.Endpoint{
-					data,
+					endpoint,
 				},
-			})
+			}
+			res := resourcetest.Resource(ServiceEndpointsType, "test-service").WithData(t, data).Build()
 
 			err := ValidateServiceEndpoints(res)
 			require.Error(t, err)
 			tcase.validateErr(t, err)
 		})
 	}
+}
+
+func TestMutateServiceEndpoints_PopulateOwner(t *testing.T) {
+	res := resourcetest.Resource(ServiceEndpointsType, "test-service").Build()
+
+	require.NoError(t, MutateServiceEndpoints(res))
+	require.NotNil(t, res.Owner)
+	require.True(t, resource.EqualType(res.Owner.Type, ServiceType))
+	require.True(t, resource.EqualTenancy(res.Owner.Tenancy, defaultEndpointTenancy))
+	require.Equal(t, res.Owner.Name, res.Id.Name)
+}
+
+func TestMutateServiceEndpoints_InvalidOwner(t *testing.T) {
+	badTenancy := &pbresource.Tenancy{Partition: "default", Namespace: "other", PeerName: "local"}
+	res := resourcetest.Resource(ServiceEndpointsType, "test-service").
+		WithTenancy(defaultEndpointTenancy).
+		WithOwner(&pbresource.ID{
+			Type:    DNSPolicyType,
+			Tenancy: badTenancy,
+			Name:    "wrong"}).
+		Build()
+
+	err := MutateServiceEndpoints(res)
+	require.Error(t, err)
+
+	resourcetest.RequireError(t, err, resource.ErrOwnerTypeInvalid{ResourceType: ServiceEndpointsType, OwnerType: DNSPolicyType})
+	resourcetest.RequireError(t, err, resource.ErrOwnerTenantInvalid{
+		ResourceType:    ServiceEndpointsType,
+		ResourceTenancy: defaultEndpointTenancy,
+		OwnerTenancy:    badTenancy,
+	})
+	resourcetest.RequireError(t, err, resource.ErrInvalidField{
+		Name: "name",
+		Wrapped: errInvalidEndpointsOwnerName{
+			Name:      "test-service",
+			OwnerName: "wrong"},
+	})
 }

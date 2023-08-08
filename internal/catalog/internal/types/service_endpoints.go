@@ -54,6 +54,7 @@ func MutateServiceEndpoints(res *pbresource.Resource) error {
 
 	if !resource.EqualTenancy(res.Owner.Tenancy, res.Id.Tenancy) {
 		err = multierror.Append(err, resource.ErrOwnerTenantInvalid{
+			ResourceType:    ServiceEndpointsV1Alpha1Type,
 			ResourceTenancy: res.Id.Tenancy,
 			OwnerTenancy:    res.Owner.Tenancy,
 		})

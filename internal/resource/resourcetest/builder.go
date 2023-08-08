@@ -55,6 +55,11 @@ func ResourceID(id *pbresource.ID) *resourceBuilder {
 	}
 }
 
+func (b *resourceBuilder) WithTenancy(tenant *pbresource.Tenancy) *resourceBuilder {
+	b.resource.Id.Tenancy = tenant
+	return b
+}
+
 func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourceBuilder {
 	t.Helper()
 

@@ -8,6 +8,15 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
+// RequireError is useful for asserting that some chained multierror contains a specific error.
+func RequireError[E error](t T, err error, expected E) {
+	t.Helper()
+
+	var actual E
+	require.ErrorAs(t, err, &actual)
+	prototest.AssertDeepEqual(t, expected, actual)
+}
+
 func RequireVersionUnchanged(t T, res *pbresource.Resource, version string) {
 	t.Helper()
 	require.Equal(t, version, res.Version)
