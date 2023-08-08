@@ -290,28 +290,86 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 		}
 
 		if rule.Timeouts != nil {
-			// TODO(rb): validate timeouts
+			for _, err := range validateHTTPTimeouts(rule.Timeouts) {
+				merr = multierror.Append(merr, wrapRuleErr(
+					resource.ErrInvalidField{
+						Name:    "timeouts",
+						Wrapped: err,
+					},
+				))
+			}
 		}
 		if rule.Retries != nil {
-			// TODO(rb): validate retries
-			for j, condition := range rule.Retries.OnConditions {
-				if !isValidRetryCondition(condition) {
-					merr = multierror.Append(merr, wrapRuleErr(
-						resource.ErrInvalidListElement{
-							Name:  "retries",
-							Index: j,
-							Wrapped: resource.ErrInvalidField{
-								Name:    "on_conditions",
-								Wrapped: fmt.Errorf("not a valid retry condition: %q", condition),
-							},
-						},
-					))
-				}
+			for _, err := range validateHTTPRetries(rule.Retries) {
+				merr = multierror.Append(merr, wrapRuleErr(
+					resource.ErrInvalidField{
+						Name:    "retries",
+						Wrapped: err,
+					},
+				))
 			}
 		}
 	}
 
 	return merr
+}
+
+func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
+	if timeouts == nil {
+		return nil
+	}
+
+	var errs []error
+
+	if timeouts.Request != nil {
+		val := timeouts.Request.AsDuration()
+		if val < 0 {
+			errs = append(errs, resource.ErrInvalidField{
+				Name:    "request",
+				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+			})
+		}
+	}
+	if timeouts.BackendRequest != nil {
+		val := timeouts.BackendRequest.AsDuration()
+		if val < 0 {
+			errs = append(errs, resource.ErrInvalidField{
+				Name:    "request",
+				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+			})
+		}
+	}
+	if timeouts.Idle != nil {
+		val := timeouts.Idle.AsDuration()
+		if val < 0 {
+			errs = append(errs, resource.ErrInvalidField{
+				Name:    "idle",
+				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+			})
+		}
+	}
+
+	return errs
+}
+
+func validateHTTPRetries(retries *pbmesh.HTTPRouteRetries) []error {
+	if retries == nil {
+		return nil
+	}
+
+	var errs []error
+
+	for i, condition := range retries.OnConditions {
+		if !isValidRetryCondition(condition) {
+			errs = append(errs, resource.ErrInvalidListElement{
+				Name:    "on_conditions",
+				Index:   i,
+				Wrapped: fmt.Errorf("not a valid retry condition: %q", condition),
+			})
+		}
+	}
+
+	return errs
 }
 
 func validateBackendRef(backendRef *pbmesh.BackendReference) []error {

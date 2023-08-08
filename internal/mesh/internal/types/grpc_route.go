@@ -5,7 +5,6 @@ package types
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/hashicorp/go-multierror"
 
@@ -187,23 +186,23 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 		}
 
 		if rule.Timeouts != nil {
-			// TODO(rb): validate timeouts
+			for _, err := range validateHTTPTimeouts(rule.Timeouts) {
+				merr = multierror.Append(merr, wrapRuleErr(
+					resource.ErrInvalidField{
+						Name:    "timeouts",
+						Wrapped: err,
+					},
+				))
+			}
 		}
 		if rule.Retries != nil {
-			// TODO(rb): validate retries
-			for j, condition := range rule.Retries.OnConditions {
-				if !isValidRetryCondition(condition) {
-					merr = multierror.Append(merr, wrapRuleErr(
-						resource.ErrInvalidListElement{
-							Name:  "retries",
-							Index: j,
-							Wrapped: resource.ErrInvalidField{
-								Name:    "on_conditions",
-								Wrapped: fmt.Errorf("not a valid retry condition: %q", condition),
-							},
-						},
-					))
-				}
+			for _, err := range validateHTTPRetries(rule.Retries) {
+				merr = multierror.Append(merr, wrapRuleErr(
+					resource.ErrInvalidField{
+						Name:    "retries",
+						Wrapped: err,
+					},
+				))
 			}
 		}
 	}
