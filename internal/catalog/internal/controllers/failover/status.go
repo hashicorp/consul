@@ -12,7 +12,8 @@ const (
 	StatusKey              = "consul.io/failover-policy"
 	StatusConditionHealthy = "healthy"
 
-	OKReason = "Ok"
+	OKReason  = "Ok"
+	OKMessage = "failover policy is valid"
 
 	MissingServiceReason  = "MissingService"
 	MissingServiceMessage = "service for failover policy does not exist"
@@ -32,10 +33,10 @@ const (
 
 var (
 	ConditionOK = &pbresource.Condition{
-		Type:   StatusConditionHealthy,
-		State:  pbresource.Condition_STATE_TRUE,
-		Reason: OKReason,
-		// TODO: needs message?
+		Type:    StatusConditionHealthy,
+		State:   pbresource.Condition_STATE_TRUE,
+		Reason:  OKReason,
+		Message: OKMessage,
 	}
 
 	ConditionMissingService = &pbresource.Condition{
