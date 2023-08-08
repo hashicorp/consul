@@ -26,13 +26,19 @@ func (b *Builder) buildExplicitDestination(destination *intermediate.Destination
 	// All endpoints should have the same protocol as the endpoints controller ensures that is the case,
 	// so it's sufficient to read just the first endpoint.
 	if len(destination.ServiceEndpoints.Endpoints.Endpoints) > 0 {
+		// Get destination port so that we can configure this destination correctly based on its protocol.
 		destPort := destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports[destination.Explicit.DestinationPort]
+
+		// Find the destination proxy's port.
+		// Endpoints refs will need to route to mesh port instead of the destination port as that
+		// is the port of the destination's proxy.
+		meshPortName := findMeshPort(destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports)
 
 		if destPort != nil {
 			return b.addOutboundDestinationListener(destination.Explicit).
 				addRouter(clusterName, statPrefix, destPort.Protocol).
 				addCluster(clusterName, destination.Identities).
-				addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, destination.Explicit.DestinationPort)
+				addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, meshPortName)
 		}
 	}
 
@@ -130,4 +136,13 @@ func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbreso
 		Port: destinationPort,
 	}
 	return b
+}
+
+func findMeshPort(ports map[string]*pbcatalog.WorkloadPort) string {
+	for name, port := range ports {
+		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+			return name
+		}
+	}
+	return ""
 }

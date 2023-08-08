@@ -100,7 +100,7 @@
           "peerName":  "local"
         }
       },
-      "port":  "tcp"
+      "port":  "mesh"
     },
     "api-2.default.dc1.internal.foo.consul":  {
       "id":  {
@@ -116,7 +116,7 @@
           "peerName":  "local"
         }
       },
-      "port":  "tcp"
+      "port":  "mesh"
     }
   }
 }
