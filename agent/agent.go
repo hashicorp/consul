@@ -898,7 +898,7 @@ func (a *Agent) Start(ctx context.Context) error {
 var Gauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"version"},
-		Help: "Represents the Consul version.",
+		Help: "Sujata Test- Represents the Consul version.",
 	},
 }
 
