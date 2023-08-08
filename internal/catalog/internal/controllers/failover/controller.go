@@ -89,9 +89,9 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		rt.Logger.Error("error retrieving corresponding service", "error", err)
 		return err
 	}
-	otherServices := make(map[resource.ReferenceKey]*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service])
+	destServices := make(map[resource.ReferenceKey]*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service])
 	if service != nil {
-		otherServices[resource.NewReferenceKey(serviceID)] = service
+		destServices[resource.NewReferenceKey(serviceID)] = service
 	}
 
 	// Denorm the ports and stuff. After this we have no empty ports.
@@ -110,7 +110,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 
 		key := resource.NewReferenceKey(dest.Ref)
 
-		if _, ok := otherServices[key]; ok {
+		if _, ok := destServices[key]; ok {
 			continue
 		}
 
@@ -123,11 +123,11 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		}
 
 		if destService != nil {
-			otherServices[key] = destService
+			destServices[key] = destService
 		}
 	}
 
-	newStatus := computeNewStatus(failoverPolicy, service, otherServices)
+	newStatus := computeNewStatus(failoverPolicy, service, destServices)
 
 	if resource.EqualStatus(failoverPolicy.Resource.Status[StatusKey], newStatus, false) {
 		rt.Logger.Trace("resource's failover policy status is unchanged",
