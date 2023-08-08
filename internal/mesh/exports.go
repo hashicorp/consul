@@ -6,8 +6,8 @@ package mesh
 import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/status"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )
@@ -60,16 +60,11 @@ var (
 	// Controller statuses.
 
 	// Sidecar-proxy controller.
-
-	SidecarProxyStatusKey = sidecar_proxy.ControllerName
-
-	SidecarProxyStatusConditionMeshDestination = status.StatusConditionMeshDestination
-
-	SidecarProxyStatusReasonNonMeshDestination = status.StatusReasonNonMeshDestination
-	SidecarProxyStatusReasonMeshDestination    = status.StatusReasonMeshDestination
-
-	SidecarProxyStatusConditionDestinationExists = status.StatusConditionDestinationExists
-
+	SidecarProxyStatusKey                              = sidecarproxy.ControllerName
+	SidecarProxyStatusConditionMeshDestination         = status.StatusConditionMeshDestination
+	SidecarProxyStatusReasonNonMeshDestination         = status.StatusReasonNonMeshDestination
+	SidecarProxyStatusReasonMeshDestination            = status.StatusReasonMeshDestination
+	SidecarProxyStatusConditionDestinationExists       = status.StatusConditionDestinationExists
 	SidecarProxyStatusReasonDestinationServiceNotFound = status.StatusReasonDestinationServiceNotFound
 	SidecarProxyStatusReasonDestinationServiceFound    = status.StatusReasonDestinationServiceFound
 )
@@ -86,6 +81,6 @@ func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
 	controllers.Register(mgr, deps)
 }
 
-type TrustDomainFetcher = sidecar_proxy.TrustDomainFetcher
+type TrustDomainFetcher = sidecarproxy.TrustDomainFetcher
 
 type ControllerDependencies = controllers.Dependencies

@@ -1,17 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package sidecar_proxy
+package sidecarproxy
 
 import (
 	"context"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/builder"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/cache"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/fetcher"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/mapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"

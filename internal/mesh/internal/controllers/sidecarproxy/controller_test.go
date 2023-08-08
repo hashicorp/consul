@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package sidecar_proxy
+package sidecarproxy
 
 import (
 	"context"
@@ -10,10 +10,10 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/builder"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/cache"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/mapper"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/status"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/mapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"

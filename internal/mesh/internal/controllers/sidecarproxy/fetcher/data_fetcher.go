@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/cache"
-	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/status"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
