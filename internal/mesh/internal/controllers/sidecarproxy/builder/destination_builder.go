@@ -217,3 +217,12 @@ func findMeshPort(ports map[string]*pbcatalog.WorkloadPort) string {
 	}
 	return ""
 }
+
+func findMeshPort(ports map[string]*pbcatalog.WorkloadPort) string {
+	for name, port := range ports {
+		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+			return name
+		}
+	}
+	return ""
+}
