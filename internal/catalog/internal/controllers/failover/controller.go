@@ -58,7 +58,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 	// reconciliation request processing will not affect future invocations.
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
 
-	rt.Logger.Trace("reconciling failover policies")
+	rt.Logger.Trace("reconciling failover policy")
 
 	failoverPolicyID := req.ID
 
