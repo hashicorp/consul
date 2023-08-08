@@ -18,15 +18,7 @@
               },
               "route": {
                 "cluster": "service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "timeout": "30s",
-                "idleTimeout": "30s",
-                "retryPolicy": {
-                  "retryOn": "cancelled,connect-failure,retriable-status-codes",
-                  "numRetries": 3,
-                  "retriableStatusCodes": [
-                    500
-                  ]
-                }
+                "idleTimeout": "30s"
               },
               "requestHeadersToAdd": [
                 {
