@@ -20,6 +20,7 @@ import (
 	cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	ext_cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/go-multierror"
+	v1 "go.opentelemetry.io/proto/otlp/common/v1"
 )
 
 type otelAccessLogging struct {
@@ -135,11 +136,26 @@ func (a *otelAccessLogging) toEnvoyAccessLog(cfg *cmn.RuntimeConfig) (*envoy_ext
 		return nil, err
 	}
 
+	body, err := toEnvoyAnyValue(a.Config.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal Body: %w", err)
+	}
+
+	attributes, err := toEnvoyKeyValueList(a.Config.Attributes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal Attributes: %w", err)
+	}
+
+	resourceAttributes, err := toEnvoyKeyValueList(a.Config.ResourceAttributes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal ResourceAttributes: %w", err)
+	}
+
 	otelAccessLogConfig := &envoy_extensions_access_loggers_otel_v3.OpenTelemetryAccessLogConfig{
 		CommonConfig:       commonConfig,
-		ResourceAttributes: a.Config.Attributes,
-		Body:               a.Config.Body,
-		Attributes:         a.Config.Attributes,
+		Body:               body,
+		Attributes:         attributes,
+		ResourceAttributes: resourceAttributes,
 	}
 
 	// Marshal the struct to bytes.
@@ -179,9 +195,88 @@ func (a *otelAccessLogging) validate() error {
 			api.ServiceKindConnectProxy))
 	}
 
+	if a.Listener != "inbound" && a.Listener != "outbound" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected Listener %q", a.Listener))
+	}
+
 	if err := a.Config.validate(); err != nil {
 		resultErr = multierror.Append(resultErr, err)
 	}
 
 	return resultErr
+}
+
+func toEnvoyKeyValueList(attributes map[string]any) (*v1.KeyValueList, error) {
+	keyValueList := &v1.KeyValueList{}
+	for key, value := range attributes {
+		anyValue, err := toEnvoyAnyValue(value)
+		if err != nil {
+			return nil, err
+		}
+		keyValueList.Values = append(keyValueList.Values, &v1.KeyValue{
+			Key:   key,
+			Value: anyValue,
+		})
+	}
+
+	return keyValueList, nil
+}
+
+func toEnvoyAnyValue(value interface{}) (*v1.AnyValue, error) {
+	if value == nil {
+		return nil, nil
+	}
+
+	switch v := value.(type) {
+	case string:
+		return &v1.AnyValue{
+			Value: &v1.AnyValue_StringValue{
+				StringValue: v,
+			},
+		}, nil
+	case int:
+		return &v1.AnyValue{
+			Value: &v1.AnyValue_IntValue{
+				IntValue: int64(v),
+			},
+		}, nil
+	case int32:
+		return &v1.AnyValue{
+			Value: &v1.AnyValue_IntValue{
+				IntValue: int64(v),
+			},
+		}, nil
+	case int64:
+		return &v1.AnyValue{
+			Value: &v1.AnyValue_IntValue{
+				IntValue: v,
+			},
+		}, nil
+	case float32:
+		return &v1.AnyValue{
+			Value: &v1.AnyValue_DoubleValue{
+				DoubleValue: float64(v),
+			},
+		}, nil
+	case float64:
+		return &v1.AnyValue{
+			Value: &v1.AnyValue_DoubleValue{
+				DoubleValue: v,
+			},
+		}, nil
+	case bool:
+		return &v1.AnyValue{
+			Value: &v1.AnyValue_BoolValue{
+				BoolValue: v,
+			},
+		}, nil
+	case []byte:
+		return &v1.AnyValue{
+			Value: &v1.AnyValue_BytesValue{
+				BytesValue: v,
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported type %T", v)
+	}
 }

@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/go-multierror"
-	v1 "go.opentelemetry.io/proto/otlp/common/v1"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -34,17 +33,23 @@ const (
 
 type AccessLog struct {
 	CommonConfig       *CommonConfig
-	Body               *v1.AnyValue
-	Attributes         *v1.KeyValueList
-	ResourceAttributes *v1.KeyValueList
+	Body               interface{}
+	Attributes         map[string]interface{}
+	ResourceAttributes map[string]interface{}
 }
 
-func (a *AccessLog) normalize() {
-	a.CommonConfig.normalize()
+func (a *AccessLog) normalize() error {
+	if a.CommonConfig == nil {
+		return fmt.Errorf("missing CommonConfig")
+	}
+
+	return a.CommonConfig.normalize()
 }
 
 func (a *AccessLog) validate() error {
-	a.normalize()
+	if err := a.normalize(); err != nil {
+		return err
+	}
 
 	return a.CommonConfig.validate()
 }
@@ -58,12 +63,25 @@ type CommonConfig struct {
 	RetryPolicy             *RetryPolicy
 }
 
-func (c *CommonConfig) normalize() {
-	c.GrpcService.normalize()
-	c.RetryPolicy.normalize()
+func (c *CommonConfig) normalize() error {
+	if c.GrpcService != nil {
+		c.GrpcService.normalize()
+	} else {
+		return fmt.Errorf("missing GrpcService")
+	}
+
+	if c.RetryPolicy != nil {
+		c.RetryPolicy.normalize()
+	}
+
+	return nil
 }
 
 func (c *CommonConfig) validate() error {
+	if c == nil {
+		return nil
+	}
+
 	c.normalize()
 
 	var resultErr error
