@@ -14,9 +14,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/protohcl/testproto"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/hcl/v2/hclparse"
 )
 
@@ -497,44 +494,38 @@ func TestStructList(t *testing.T) {
 
 func TestFunctionExecution(t *testing.T) {
 	hcl := `
-	  id {
-		type = testgvk("demo.v1.Artist")
-		name = "test"
-	  }`
+		primitives = primitive_defaults()
+	`
 
-	var out pbresource.Resource
-
-	registry := resource.NewRegistry()
-	demo.RegisterTypes(registry)
+	var out testproto.NestedAndCollections
 
 	var (
-		typeType = cty.Capsule("type", reflect.TypeOf(pbresource.Type{}))
+		testType = cty.Capsule("type", reflect.TypeOf(testproto.Primitives{}))
 
-		gvk = function.New(&function.Spec{
-			Params: []function.Parameter{
-				{Name: "Test GVK String", Type: cty.String},
-			},
-			Type: function.StaticReturnType(typeType),
+		test = function.New(&function.Spec{
+			Params: []function.Parameter{},
+			Type:   function.StaticReturnType(testType),
 			Impl: func(args []cty.Value, _ cty.Type) (cty.Value, error) {
-				t, err := resource.ParseGVK(args[0].AsString())
-				if err != nil {
-					return cty.NilVal, err
+				t := &testproto.Primitives{
+					StringVal: "test",
+					Int32Val:  10,
+					BoolVal:   false,
 				}
-				return cty.CapsuleVal(typeType, t), nil
+				return cty.CapsuleVal(testType, t), nil
 			},
 		})
 	)
 
 	err := UnmarshalOptions{
-		Functions: map[string]function.Function{"testgvk": gvk},
+		Functions: map[string]function.Function{"primitive_defaults": test},
 	}.Unmarshal([]byte(hcl), &out)
 
 	require.NoError(t, err)
 
-	require.Equal(t, "demo", out.Id.Type.Group)
-	require.Equal(t, "v1", out.Id.Type.GroupVersion)
-	require.Equal(t, "Artist", out.Id.Type.Kind)
-	require.Equal(t, "test", out.Id.Name)
+	require.NotNil(t, out.Primitives)
+	require.Equal(t, out.Primitives.StringVal, "test")
+	require.Equal(t, out.Primitives.Int32Val, int32(10))
+	require.Equal(t, out.Primitives.BoolVal, false)
 }
 
 func TestSkipFields(t *testing.T) {
