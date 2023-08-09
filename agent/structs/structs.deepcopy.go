@@ -19,12 +19,10 @@ func (o *APIGatewayListener) DeepCopy() *APIGatewayListener {
 		copy(cp.TLS.CipherSuites, o.TLS.CipherSuites)
 	}
 	if o.Override.JWT != nil {
-		cp.Override.JWT = new(APIGatewayJWTRequirement)
-		*cp.Override.JWT = *o.Override.JWT
+		cp.Override.JWT = o.Override.JWT.DeepCopy()
 	}
 	if o.Default.JWT != nil {
-		cp.Default.JWT = new(APIGatewayJWTRequirement)
-		*cp.Default.JWT = *o.Default.JWT
+		cp.Default.JWT = o.Default.JWT.DeepCopy()
 	}
 	return &cp
 }
