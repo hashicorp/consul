@@ -54,7 +54,9 @@ type ACLResolver interface {
 //go:generate mockery --name TenancyBridge --inpackage
 type TenancyBridge interface {
 	PartitionExists(partition string) (bool, error)
-	NamespaceExists(partition string, namespace string) (bool, error)
+	IsPartitionMarkedForDeletion(partition string) (bool, error)
+	NamespaceExists(partition, namespace string) (bool, error)
+	IsNamespaceMarkedForDeletion(partition, namespace string) (bool, error)
 }
 
 func NewServer(cfg Config) *Server {
@@ -145,14 +147,15 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 	return nil
 }
 
-func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy) error {
+// v1TenancyExists return an error with the passed in gRPC status code when tenancy partition or namespace do not exist.
+func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy, errCode codes.Code) error {
 	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
 		exists, err := v1Bridge.PartitionExists(tenancy.Partition)
 		switch {
 		case err != nil:
 			return err
 		case !exists:
-			return status.Errorf(codes.NotFound, "partition resource not found: %v", tenancy.Partition)
+			return status.Errorf(errCode, "partition resource not found: %v", tenancy.Partition)
 		}
 	}
 
@@ -162,7 +165,31 @@ func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy
 		case err != nil:
 			return err
 		case !exists:
-			return status.Errorf(codes.NotFound, "namespace resource not found: %v", tenancy.Namespace)
+			return status.Errorf(errCode, "namespace resource not found: %v", tenancy.Namespace)
+		}
+	}
+	return nil
+}
+
+// v1TenancyMarkedForDeletion returns a gRPC InvalidArgument when either partition or namespace is marked for deletion.
+func v1TenancyMarkedForDeletion(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy) error {
+	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
+		marked, err := v1Bridge.IsPartitionMarkedForDeletion(tenancy.Partition)
+		switch {
+		case err != nil:
+			return err
+		case marked:
+			return status.Errorf(codes.InvalidArgument, "partition marked for deletion: %v", tenancy.Partition)
+		}
+	}
+
+	if reg.Scope == resource.ScopeNamespace {
+		marked, err := v1Bridge.IsNamespaceMarkedForDeletion(tenancy.Partition, tenancy.Namespace)
+		switch {
+		case err != nil:
+			return err
+		case marked:
+			return status.Errorf(codes.InvalidArgument, "namespace marked for deletion: %v", tenancy.Namespace)
 		}
 	}
 	return nil

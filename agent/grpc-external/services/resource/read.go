@@ -54,7 +54,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	}
 
 	// Check V1 tenancy exists for the V2 resource.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy); err != nil {
+	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
 		return nil, err
 	}
 
