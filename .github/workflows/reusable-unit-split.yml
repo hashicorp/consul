@@ -124,9 +124,6 @@ jobs:
           --format=short-verbose \
           --jsonfile /tmp/jsonfile/go-test.log \
           --debug \
-          --rerun-fails=3 \
-          --rerun-fails-max-failures=40 \
-          --rerun-fails-report=/tmp/gotestsum-rerun-fails \
           --packages="$PACKAGE_NAMES" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="${{env.GOTAGS}}" -p 2 \
@@ -172,9 +169,6 @@ jobs:
         with:
           name: jsonfile
           path: /tmp/jsonfile
-      - name: "Re-run fails report"
-        run: |
-          .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
       - name: Notify Slack
         if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
