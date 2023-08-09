@@ -85,7 +85,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 
-	tenancyInfo, resourceName, version := checkURL(r)
+	tenancyInfo, resourceName, version := parseParams(r)
 
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
@@ -114,7 +114,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	w.Write(output)
 }
 
-func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string, version string) {
+func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string, version string) {
 	params := r.URL.Query()
 	tenancy = &pbresource.Tenancy{
 		Partition: params.Get("partition"),
@@ -171,8 +171,9 @@ func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
 	w.Write([]byte(err.Error()))
 }
 
+// Note: The HTTP endpoints do not accept UID since it is quite unlikely that the user will have access to it
 func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	tenancyInfo, resourceName, version := checkURL(r)
+	tenancyInfo, resourceName, version := parseParams(r)
 	_, err := h.client.Delete(ctx, &pbresource.DeleteRequest{
 		Id: &pbresource.ID{
 			Type:    h.reg.Type,
