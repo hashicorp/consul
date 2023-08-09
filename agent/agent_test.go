@@ -355,6 +355,11 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 
 			srvs, err := a.listenHTTP()
 			require.NoError(t, err)
+			t.Cleanup(func() {
+				for _, s := range srvs {
+					s.Shutdown(context.Background())
+				}
+			})
 
 			require.Equal(t, tt.maxHeaderBytes, a.config.HTTPMaxHeaderBytes)
 
