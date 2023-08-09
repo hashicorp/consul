@@ -482,21 +482,24 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		sdkretry.RunWith(&sdkretry.Timer{Timeout: time.Minute}, t, func(r *sdkretry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(t, a, respRec)
 
-		out := respRec.Body.String()
-		require.Contains(t, out, "agent_5_raft_wal_head_truncations")
-		require.Contains(t, out, "agent_5_raft_wal_last_segment_age_seconds")
-		require.Contains(t, out, "agent_5_raft_wal_log_appends")
-		require.Contains(t, out, "agent_5_raft_wal_log_entries_read")
-		require.Contains(t, out, "agent_5_raft_wal_log_entries_written")
-		require.Contains(t, out, "agent_5_raft_wal_log_entry_bytes_read")
-		require.Contains(t, out, "agent_5_raft_wal_log_entry_bytes_written")
-		require.Contains(t, out, "agent_5_raft_wal_segment_rotations")
-		require.Contains(t, out, "agent_5_raft_wal_stable_gets")
-		require.Contains(t, out, "agent_5_raft_wal_stable_sets")
-		require.Contains(t, out, "agent_5_raft_wal_tail_truncations")
+			out := respRec.Body.String()
+			require.Contains(r, out, "agent_5_raft_wal_head_truncations")
+			require.Contains(r, out, "agent_5_raft_wal_last_segment_age_seconds")
+			require.Contains(r, out, "agent_5_raft_wal_log_appends")
+			require.Contains(r, out, "agent_5_raft_wal_log_entries_read")
+			require.Contains(r, out, "agent_5_raft_wal_log_entries_written")
+			require.Contains(r, out, "agent_5_raft_wal_log_entry_bytes_read")
+			require.Contains(r, out, "agent_5_raft_wal_log_entry_bytes_written")
+			require.Contains(r, out, "agent_5_raft_wal_segment_rotations")
+			require.Contains(r, out, "agent_5_raft_wal_stable_gets")
+			require.Contains(r, out, "agent_5_raft_wal_stable_sets")
+			require.Contains(r, out, "agent_5_raft_wal_tail_truncations")
+
+		})
 	})
 
 	t.Run("server without WAL enabled emits no WAL metrics", func(t *testing.T) {
