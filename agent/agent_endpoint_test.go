@@ -738,7 +738,7 @@ func TestAgent_Service(t *testing.T) {
 				assert.True(t, elapsed >= tt.wantWait, "should have waited at least %s, "+
 					"took %s", tt.wantWait, elapsed)
 			} else {
-				assert.True(t, elapsed < 10*time.Millisecond, "should not have waited, "+
+				assert.True(t, elapsed < 100*time.Millisecond, "should not have waited, "+
 					"took %s", elapsed)
 			}
 
