@@ -422,6 +422,7 @@ type HTTPFilters struct {
 	URLRewrite    *URLRewrite
 	RetryFilter   *RetryFilter
 	TimeoutFilter *TimeoutFilter
+	JWT           *JWTFilter
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
@@ -445,6 +446,11 @@ type RetryFilter struct {
 type TimeoutFilter struct {
 	RequestTimeout time.Duration
 	IdleTimeout    time.Duration
+}
+
+// JWTFilter holds the JWT Filter configuration for an HTTPRoute
+type JWTFilter struct {
+	Providers []*APIGatewayJWTProvider `json:",omitempty"`
 }
 
 // HTTPRouteRule specifies the routing rules used to determine what upstream

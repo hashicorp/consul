@@ -411,6 +411,11 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 		TimeoutFilterToStructs(s.TimeoutFilter, &x)
 		t.TimeoutFilter = &x
 	}
+	if s.JWT != nil {
+		var x structs.JWTFilter
+		JWTFilterToStructs(s.JWT, &x)
+		t.JWT = &x
+	}
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 	if s == nil {
@@ -440,6 +445,11 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 		var x TimeoutFilter
 		TimeoutFilterFromStructs(t.TimeoutFilter, &x)
 		s.TimeoutFilter = &x
+	}
+	if t.JWT != nil {
+		var x JWTFilter
+		JWTFilterFromStructs(t.JWT, &x)
+		s.JWT = &x
 	}
 }
 func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {
@@ -1253,6 +1263,18 @@ func JWTCacheConfigFromStructs(t *structs.JWTCacheConfig, s *JWTCacheConfig) {
 		return
 	}
 	s.Size = int32(t.Size)
+}
+func JWTFilterToStructs(s *JWTFilter, t *structs.JWTFilter) {
+	if s == nil {
+		return
+	}
+	t.Providers = gwJWTProviderToStructs(s.Providers)
+}
+func JWTFilterFromStructs(t *structs.JWTFilter, s *JWTFilter) {
+	if s == nil {
+		return
+	}
+	s.Providers = gwJWTProviderFromStructs(t.Providers)
 }
 func JWTForwardingConfigToStructs(s *JWTForwardingConfig, t *structs.JWTForwardingConfig) {
 	if s == nil {

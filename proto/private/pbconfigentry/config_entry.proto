@@ -912,6 +912,7 @@ message HTTPFilters {
   URLRewrite URLRewrite = 2;
   RetryFilter RetryFilter = 3;
   TimeoutFilter TimeoutFilter = 4;
+  JWTFilter JWT = 5;
 }
 
 // mog annotation:
@@ -945,6 +946,16 @@ message TimeoutFilter {
   google.protobuf.Duration RequestTimeout = 1;
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration IdleTimeout = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.JWTFilter
+// output=config_entry.gen.go
+// name=Structs
+message JWTFilter {
+  // mog: func-to=gwJWTProviderToStructs func-from=gwJWTProviderFromStructs
+  repeated APIGatewayJWTProvider Providers = 1;
 }
 
 // mog annotation:

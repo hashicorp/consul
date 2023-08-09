@@ -15,3 +15,11 @@ func gwJWTRequirementToStructs(m *APIGatewayJWTRequirement) *structs.APIGatewayJ
 func gwJWTRequirementFromStructs(*structs.APIGatewayJWTRequirement) *APIGatewayJWTRequirement {
 	return &APIGatewayJWTRequirement{}
 }
+
+func gwJWTProviderToStructs(m []*APIGatewayJWTProvider) []*structs.APIGatewayJWTProvider {
+	return []*structs.APIGatewayJWTProvider{}
+}
+
+func gwJWTProviderFromStructs([]*structs.APIGatewayJWTProvider) []*APIGatewayJWTProvider {
+	return []*APIGatewayJWTProvider{}
+}

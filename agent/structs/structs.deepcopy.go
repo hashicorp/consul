@@ -421,6 +421,20 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 				cp.Rules[i2].Filters.TimeoutFilter = new(TimeoutFilter)
 				*cp.Rules[i2].Filters.TimeoutFilter = *o.Rules[i2].Filters.TimeoutFilter
 			}
+			if o.Rules[i2].Filters.JWT != nil {
+				cp.Rules[i2].Filters.JWT = new(JWTFilter)
+				*cp.Rules[i2].Filters.JWT = *o.Rules[i2].Filters.JWT
+				if o.Rules[i2].Filters.JWT.Providers != nil {
+					cp.Rules[i2].Filters.JWT.Providers = make([]*APIGatewayJWTProvider, len(o.Rules[i2].Filters.JWT.Providers))
+					copy(cp.Rules[i2].Filters.JWT.Providers, o.Rules[i2].Filters.JWT.Providers)
+					for i7 := range o.Rules[i2].Filters.JWT.Providers {
+						if o.Rules[i2].Filters.JWT.Providers[i7] != nil {
+							cp.Rules[i2].Filters.JWT.Providers[i7] = new(APIGatewayJWTProvider)
+							*cp.Rules[i2].Filters.JWT.Providers[i7] = *o.Rules[i2].Filters.JWT.Providers[i7]
+						}
+					}
+				}
+			}
 			if o.Rules[i2].Matches != nil {
 				cp.Rules[i2].Matches = make([]HTTPMatch, len(o.Rules[i2].Matches))
 				copy(cp.Rules[i2].Matches, o.Rules[i2].Matches)
@@ -488,6 +502,20 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					if o.Rules[i2].Services[i4].Filters.TimeoutFilter != nil {
 						cp.Rules[i2].Services[i4].Filters.TimeoutFilter = new(TimeoutFilter)
 						*cp.Rules[i2].Services[i4].Filters.TimeoutFilter = *o.Rules[i2].Services[i4].Filters.TimeoutFilter
+					}
+					if o.Rules[i2].Services[i4].Filters.JWT != nil {
+						cp.Rules[i2].Services[i4].Filters.JWT = new(JWTFilter)
+						*cp.Rules[i2].Services[i4].Filters.JWT = *o.Rules[i2].Services[i4].Filters.JWT
+						if o.Rules[i2].Services[i4].Filters.JWT.Providers != nil {
+							cp.Rules[i2].Services[i4].Filters.JWT.Providers = make([]*APIGatewayJWTProvider, len(o.Rules[i2].Services[i4].Filters.JWT.Providers))
+							copy(cp.Rules[i2].Services[i4].Filters.JWT.Providers, o.Rules[i2].Services[i4].Filters.JWT.Providers)
+							for i9 := range o.Rules[i2].Services[i4].Filters.JWT.Providers {
+								if o.Rules[i2].Services[i4].Filters.JWT.Providers[i9] != nil {
+									cp.Rules[i2].Services[i4].Filters.JWT.Providers[i9] = new(APIGatewayJWTProvider)
+									*cp.Rules[i2].Services[i4].Filters.JWT.Providers[i9] = *o.Rules[i2].Services[i4].Filters.JWT.Providers[i9]
+								}
+							}
+						}
 					}
 				}
 			}
