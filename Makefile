@@ -364,7 +364,6 @@ else
 	gotestsum \
 		--format=short-verbose \
 		--debug \
-		--rerun-fails=3 \
 		--packages="./..." \
 		-- \
 		--tags $(GOTAGS) \
