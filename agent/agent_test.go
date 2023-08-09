@@ -346,7 +346,9 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 			require.NoError(t, err)
 
 			a, err := New(bd)
-			a.delegate = &delegateMock{}
+			mockDelegate := delegateMock{}
+			mockDelegate.On("LicenseCheck").Return()
+			a.delegate = &mockDelegate
 			require.NoError(t, err)
 
 			a.startLicenseManager(testutil.TestContext(t))
@@ -5503,7 +5505,9 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	agent.delegate = &delegateMock{}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	agent.startLicenseManager(testutil.TestContext(t))
@@ -6097,7 +6101,9 @@ func TestAgent_startListeners(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	agent.delegate = &delegateMock{}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// use up an address
@@ -6238,7 +6244,9 @@ func TestAgent_startListeners_scada(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	agent.delegate = &delegateMock{}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	_, err = agent.startListeners([]net.Addr{c})
@@ -6294,7 +6302,9 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 		Config:      leafcert.Config{},
 	})
 	agent, err := New(bd)
-	agent.delegate = &delegateMock{}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// Test that an ErrNotExist OS error is treated as ok.
