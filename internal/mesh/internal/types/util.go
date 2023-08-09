@@ -4,8 +4,11 @@
 package types
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -49,4 +52,23 @@ func IsComputedRoutesType(typ *pbresource.Type) bool {
 		return true
 	}
 	return false
+}
+
+// TODO: fix this format
+func BackendRefToString(backendRef *pbmesh.BackendReference) string {
+	ref := backendRef.Ref
+
+	s := fmt.Sprintf(
+		"%s/%s/%s?port=%s",
+		resource.TypeToString(ref.Type),
+		resource.TenancyToString(ref.Tenancy),
+		ref.Name,
+		backendRef.Port,
+	)
+
+	if backendRef.Datacenter != "" {
+		s += "&dc=" + backendRef.Datacenter
+	}
+
+	return s
 }

@@ -1,0 +1,311 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+package xroutemapper
+
+import (
+	"context"
+	"fmt"
+
+	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+)
+
+// Mapper tracks the following relationships:
+//
+// - xRoute         <-> ParentRef Service
+// - xRoute         <-> BackendRef Service
+// - FailoverPolicy <-> DestRef Service
+//
+// It is the job of the controller, loader, and mapper to keep the mappings up
+// to date whenever new data is loaded. Notably because the dep mapper events
+// do not signal when data is deleted, it is the job of the reconcile load of
+// the data causing the event to notice something has been deleted and to
+// untrack it here.
+type Mapper struct {
+	httpRouteParentMapper *bimapper.Mapper
+	grpcRouteParentMapper *bimapper.Mapper
+	tcpRouteParentMapper  *bimapper.Mapper
+
+	httpRouteBackendMapper *bimapper.Mapper
+	grpcRouteBackendMapper *bimapper.Mapper
+	tcpRouteBackendMapper  *bimapper.Mapper
+
+	failMapper catalog.FailoverPolicyMapper
+}
+
+// New creates a new Mapper.
+func New() *Mapper {
+	return &Mapper{
+		httpRouteParentMapper: bimapper.New(types.HTTPRouteType, catalog.ServiceType),
+		grpcRouteParentMapper: bimapper.New(types.GRPCRouteType, catalog.ServiceType),
+		tcpRouteParentMapper:  bimapper.New(types.TCPRouteType, catalog.ServiceType),
+
+		httpRouteBackendMapper: bimapper.New(types.HTTPRouteType, catalog.ServiceType),
+		grpcRouteBackendMapper: bimapper.New(types.GRPCRouteType, catalog.ServiceType),
+		tcpRouteBackendMapper:  bimapper.New(types.TCPRouteType, catalog.ServiceType),
+
+		failMapper: catalog.NewFailoverPolicyMapper(),
+	}
+}
+
+func (m *Mapper) getRouteBiMappers(typ *pbresource.Type) (parent, backend *bimapper.Mapper) {
+	switch {
+	case resource.EqualType(types.HTTPRouteType, typ):
+		return m.httpRouteParentMapper, m.httpRouteBackendMapper
+	case resource.EqualType(types.GRPCRouteType, typ):
+		return m.grpcRouteParentMapper, m.grpcRouteBackendMapper
+	case resource.EqualType(types.TCPRouteType, typ):
+		return m.tcpRouteParentMapper, m.tcpRouteBackendMapper
+	default:
+		panic("unknown xroute type: " + resource.TypeToString(typ))
+	}
+}
+
+func (m *Mapper) walkRouteParentBiMappers(fn func(bm *bimapper.Mapper)) {
+	for _, bm := range []*bimapper.Mapper{
+		m.httpRouteParentMapper,
+		m.grpcRouteParentMapper,
+		m.tcpRouteParentMapper,
+	} {
+		fn(bm)
+	}
+}
+
+func (m *Mapper) walkRouteBackendBiMappers(fn func(bm *bimapper.Mapper)) {
+	for _, bm := range []*bimapper.Mapper{
+		m.httpRouteBackendMapper,
+		m.grpcRouteBackendMapper,
+		m.tcpRouteBackendMapper,
+	} {
+		fn(bm)
+	}
+}
+
+// TrackXRoute indexes the xRoute->parentRefService and
+// xRoute->backendRefService relationship.
+func (m *Mapper) TrackXRoute(id *pbresource.ID, xroute types.XRouteData) {
+	parent, backend := m.getRouteBiMappers(id.Type)
+	if parent == nil || backend == nil {
+		return
+	}
+
+	parentRefs := parentRefSliceToRefSlice(xroute.GetParentRefs())
+	backendRefs := backendRefSliceToRefSlice(xroute.GetUnderlyingBackendRefs())
+
+	parent.TrackItem(id, parentRefs)
+	backend.TrackItem(id, backendRefs)
+}
+
+// UntrackXRoute undoes TrackXRoute.
+func (m *Mapper) UntrackXRoute(id *pbresource.ID) {
+	parent, backend := m.getRouteBiMappers(id.Type)
+	if parent == nil || backend == nil {
+		return
+	}
+
+	parent.UntrackItem(id)
+	backend.UntrackItem(id)
+}
+
+// RouteIDsByParentServiceRef returns xRoute IDs that have a direct parentRef link to
+// the provided service.
+func (m *Mapper) RouteIDsByParentServiceRef(ref *pbresource.Reference) []*pbresource.ID {
+	var out []*pbresource.ID
+	m.walkRouteParentBiMappers(func(bm *bimapper.Mapper) {
+		got := bm.ItemsForLink(resource.IDFromReference(ref))
+		out = append(out, got...)
+	})
+	return out
+}
+
+// RouteIDsByBackendServiceRef returns xRoute IDs that have a direct backendRef
+// link to the provided service.
+func (m *Mapper) RouteIDsByBackendServiceRef(ref *pbresource.Reference) []*pbresource.ID {
+	var out []*pbresource.ID
+	m.walkRouteBackendBiMappers(func(bm *bimapper.Mapper) {
+		got := bm.ItemsForLink(resource.IDFromReference(ref))
+		out = append(out, got...)
+	})
+	return out
+}
+
+// ParentServiceRefsByRouteID is the opposite of RouteIDsByParentServiceRef.
+func (m *Mapper) ParentServiceRefsByRouteID(item *pbresource.ID) []*pbresource.Reference {
+	parent, _ := m.getRouteBiMappers(item.Type)
+	if parent == nil {
+		return nil
+	}
+	return parent.LinksForItem(item)
+}
+
+// BackendServiceRefsByRouteID is the opposite of RouteIDsByBackendServiceRef.
+func (m *Mapper) BackendServiceRefsByRouteID(item *pbresource.ID) []*pbresource.Reference {
+	_, backend := m.getRouteBiMappers(item.Type)
+	if backend == nil {
+		return nil
+	}
+	return backend.LinksForItem(item)
+}
+
+// MapHTTPRoute will map HTTPRoute changes to ComputedRoutes changes.
+func (m *Mapper) MapHTTPRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	return mapXRouteToComputedRoutes[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](ctx, rt, res, m)
+}
+
+// MapGRPCRoute will map GRPCRoute changes to ComputedRoutes changes.
+func (m *Mapper) MapGRPCRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	return mapXRouteToComputedRoutes[pbmesh.GRPCRoute, *pbmesh.GRPCRoute](ctx, rt, res, m)
+}
+
+// MapTCPRoute will map TCPRoute changes to ComputedRoutes changes.
+func (m *Mapper) MapTCPRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	return mapXRouteToComputedRoutes[pbmesh.TCPRoute, *pbmesh.TCPRoute](ctx, rt, res, m)
+}
+
+// mapXRouteToComputedRoutes will map xRoute changes to ComputedRoutes changes.
+func mapXRouteToComputedRoutes[V any, PV interface {
+	proto.Message
+	*V
+	types.XRouteWithRefs
+}](ctx context.Context, rt controller.Runtime, res *pbresource.Resource, m *Mapper) ([]controller.Request, error) {
+	dec, err := resource.Decode[V, PV](res)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling xRoute: %w", err)
+	}
+
+	route := dec.Data
+
+	m.TrackXRoute(res.Id, route)
+
+	return DeduplicateRequests(makeControllerRequests(
+		types.ComputedRoutesType,
+		parentRefSliceToRefSlice(route.GetParentRefs()),
+	)), nil
+}
+
+func (m *Mapper) MapFailoverPolicy(
+	ctx context.Context,
+	rt controller.Runtime,
+	res *pbresource.Resource,
+) ([]controller.Request, error) {
+	if !types.IsFailoverPolicyType(res.Id.Type) {
+		return nil, fmt.Errorf("type is not a failover policy type: %s", res.Id.Type)
+	}
+
+	dec, err := resource.Decode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](res)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling failover policy: %w", err)
+	}
+
+	m.failMapper.TrackFailover(dec)
+
+	// Since this is name-aligned, just switch the type and find routes that
+	// will route any traffic to this destination service.
+	svcID := changeType(res.Id, catalog.ServiceType)
+
+	return m.mapXRouteDirectServiceRefToComputedRoutesByID(ctx, rt, svcID)
+}
+
+func (m *Mapper) TrackFailoverPolicy(failover *types.DecodedFailoverPolicy) {
+	if failover != nil {
+		m.failMapper.TrackFailover(failover)
+	}
+}
+
+func (m *Mapper) UntrackFailoverPolicy(failoverPolicyID *pbresource.ID) {
+	m.failMapper.UntrackFailover(failoverPolicyID)
+}
+
+func (m *Mapper) MapDestinationPolicy(
+	ctx context.Context,
+	rt controller.Runtime,
+	res *pbresource.Resource,
+) ([]controller.Request, error) {
+	if !types.IsDestinationPolicyType(res.Id.Type) {
+		return nil, fmt.Errorf("type is not a destination policy type: %s", res.Id.Type)
+	}
+
+	// Since this is name-aligned, just switch the type and find routes that
+	// will route any traffic to this destination service.
+	svcID := changeType(res.Id, catalog.ServiceType)
+
+	return m.mapXRouteDirectServiceRefToComputedRoutesByID(ctx, rt, svcID)
+}
+
+func (m *Mapper) MapService(
+	ctx context.Context,
+	rt controller.Runtime,
+	res *pbresource.Resource,
+) ([]controller.Request, error) {
+	// Ultimately we want to wake up a ComputedRoutes if either of the
+	// following exist:
+	//
+	// 1. xRoute[parentRef=OUTPUT_EVENT; backendRef=INPUT_EVENT]
+	// 2. xRoute[parentRef=OUTPUT_EVENT; backendRef=SOMETHING], FailoverPolicy[name=SOMETHING, destRef=INPUT_EVENT]
+
+	// (case 2) First find all failover policies that have a reference to our input service.
+	failPolicyIDs := m.failMapper.FailoverIDsByService(res.Id)
+	effectiveServiceIDs := changeTypeForSlice(failPolicyIDs, catalog.ServiceType)
+
+	// (case 1) Do the direct mapping also.
+	effectiveServiceIDs = append(effectiveServiceIDs, res.Id)
+
+	var reqs []controller.Request
+	for _, svcID := range effectiveServiceIDs {
+		got, err := m.mapXRouteDirectServiceRefToComputedRoutesByID(ctx, rt, svcID)
+		if err != nil {
+			return nil, err
+		}
+		reqs = append(reqs, got...)
+	}
+
+	return DeduplicateRequests(reqs), nil
+}
+
+// NOTE: this function does not interrogate down into failover policies
+func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(
+	ctx context.Context,
+	rt controller.Runtime,
+	svcID *pbresource.ID,
+) ([]controller.Request, error) {
+	if !types.IsServiceType(svcID.Type) {
+		return nil, fmt.Errorf("type is not a service type: %s", svcID.Type)
+	}
+
+	// return 1 hit for the name aligned mesh config
+	primaryReq := controller.Request{
+		ID: changeType(svcID, types.ComputedRoutesType),
+	}
+
+	svcRef := resource.Reference(svcID, "")
+
+	// Find all routes with an explicit backend ref to this service.
+	//
+	// the "name aligned" inclusion above should handle the implicit default
+	// destination implied by a parent ref without us having to do much more.
+	routeIDs := m.RouteIDsByBackendServiceRef(svcRef)
+
+	out := make([]controller.Request, 0, 1+len(routeIDs)) // estimated
+	out = append(out, primaryReq)
+
+	for _, routeID := range routeIDs {
+		// Find all parent refs of this route.
+		svcRefs := m.ParentServiceRefsByRouteID(routeID)
+
+		out = append(out, makeControllerRequests(
+			types.ComputedRoutesType,
+			svcRefs,
+		)...)
+	}
+
+	return DeduplicateRequests(out), nil
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds"
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
@@ -31,4 +32,6 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(
 		sidecarproxy.Controller(destinationsCache, proxyCfgCache, m, deps.TrustDomainFetcher, deps.LocalDatacenter),
 	)
+
+	mgr.Register(routes.Controller())
 }

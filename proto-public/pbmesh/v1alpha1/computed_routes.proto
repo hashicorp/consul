@@ -91,6 +91,8 @@ message BackendTargetDetails {
   // identity info
   BackendReference backend_ref = 1;
 
+  // NullRouteTraffic indicates that this backend target should
+  // have all traffic error with a 5xx error or equivalent.
   bool null_route_traffic = 2;
 
   hashicorp.consul.catalog.v1alpha1.Service service = 3;

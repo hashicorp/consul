@@ -743,7 +743,9 @@ type BackendTargetDetails struct {
 	unknownFields protoimpl.UnknownFields
 
 	// identity info
-	BackendRef        *BackendReference        `protobuf:"bytes,1,opt,name=backend_ref,json=backendRef,proto3" json:"backend_ref,omitempty"`
+	BackendRef *BackendReference `protobuf:"bytes,1,opt,name=backend_ref,json=backendRef,proto3" json:"backend_ref,omitempty"`
+	// NullRouteTraffic indicates that this backend target should
+	// have all traffic error with a 5xx error or equivalent.
 	NullRouteTraffic  bool                     `protobuf:"varint,2,opt,name=null_route_traffic,json=nullRouteTraffic,proto3" json:"null_route_traffic,omitempty"`
 	Service           *v1alpha1.Service        `protobuf:"bytes,3,opt,name=service,proto3" json:"service,omitempty"`
 	FailoverPolicy    *v1alpha1.FailoverPolicy `protobuf:"bytes,4,opt,name=failover_policy,json=failoverPolicy,proto3" json:"failover_policy,omitempty"`
