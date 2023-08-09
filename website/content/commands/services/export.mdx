@@ -5,4 +5,33 @@ description: |
   The `consul services export` command exports a service from one peer or admin partition to another.
 ---
 
-# Consul Agent Service Export
+# Consul Services Export
+
+Command: `consul services export`
+
+The services export subcommand is used to export a service from one admin partition
+or cluster peer to another.
+
+```text
+Usage: consul services export [options] -name <service name> -consumer-peers <other cluster name>
+
+  Export a service to a peered cluster.
+
+      $ consul services export -name=web -consumer-peers=other-cluster
+
+  Use the -consumer-partitions flag instead of -consumer-peers to export to a different partition in the same cluster.
+
+      $ consul services export -name=web -consumer-partitions=other-partition
+
+  Additional flags and more advanced use cases are detailed below.
+```
+
+#### Command Options
+
+- `-name` - (Required) The name of the service to export.
+
+- `-consumer-peers` - (Required) A comma-separated list of cluster peers to export the service to.
+  In Consul Enterprise, this flag is optional if -consumer-partitions is specified.
+
+- `-consumer-partitions` - (Enterprise only) A comma-separated list of admin partitions within the
+  same datacenter to export the service to. This flag is optional if -consumer-peers is specified.
