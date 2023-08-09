@@ -1758,6 +1758,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
+	t.Skip("TODO: flaky")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

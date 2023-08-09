@@ -227,6 +227,7 @@ func run(r Retryer, t Failer, f func(r *R)) {
 		// run f(rr), but if recover yields a runFailed value, we know
 		// FailNow was called.
 		func() {
+			t.Helper()
 			defer rr.runCleanup()
 			defer func() {
 				if p := recover(); p != nil && p != (runFailed{}) {
