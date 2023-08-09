@@ -21,7 +21,10 @@ func TestRegister(t *testing.T) {
 	r := resource.NewRegistry()
 
 	// register success
-	reg := resource.Registration{Type: demo.TypeV2Artist}
+	reg := resource.Registration{
+		Type:  demo.TypeV2Artist,
+		Scope: resource.ScopeNamespace,
+	}
 	r.Register(reg)
 	actual, ok := r.Resolve(demo.TypeV2Artist)
 	require.True(t, ok)
@@ -31,11 +34,22 @@ func TestRegister(t *testing.T) {
 	require.PanicsWithValue(t, "resource type demo.v2.Artist already registered", func() {
 		r.Register(reg)
 	})
+
+	// register should panic when scope is undefined
+	require.PanicsWithValue(t, "Scope required. Got: \"undefined\"", func() {
+		r.Register(resource.Registration{Type: demo.TypeV1Artist})
+	})
+
+	// register success when scope undefined and type exempt from scope
+	// skip: can't test this because tombstone type is registered as part of NewRegistry()
 }
 
 func TestRegister_Defaults(t *testing.T) {
 	r := resource.NewRegistry()
-	r.Register(resource.Registration{Type: demo.TypeV2Artist})
+	r.Register(resource.Registration{
+		Type:  demo.TypeV2Artist,
+		Scope: resource.ScopeNamespace,
+	})
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
@@ -83,7 +97,10 @@ func TestResolve(t *testing.T) {
 	assert.False(t, ok)
 
 	// found
-	r.Register(resource.Registration{Type: serviceType})
+	r.Register(resource.Registration{
+		Type:  serviceType,
+		Scope: resource.ScopeNamespace,
+	})
 	registration, ok := r.Resolve(serviceType)
 	assert.True(t, ok)
 	assert.Equal(t, registration.Type, serviceType)
@@ -162,7 +179,8 @@ func TestRegister_TypeValidation(t *testing.T) {
 					tc.fn(typ)
 				}
 				registry.Register(resource.Registration{
-					Type: typ,
+					Type:  typ,
+					Scope: resource.ScopeNamespace,
 				})
 			}
 

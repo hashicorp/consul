@@ -298,6 +298,10 @@ func UnversionedTypeFrom(t *pbresource.Type) UnversionedType {
 	}
 }
 
+func (u UnversionedType) String() string {
+	return fmt.Sprintf("%s.%s", u.Group, u.Kind)
+}
+
 // GroupVersionMismatchError is returned when a resource is stored as a type
 // with a different GroupVersion than was requested.
 type GroupVersionMismatchError struct {
