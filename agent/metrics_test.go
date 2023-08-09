@@ -589,15 +589,17 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		sdkretry.RunWith(&sdkretry.Timer{Timeout: time.Minute}, t, func(r *sdkretry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
 
-		out := respRec.Body.String()
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_checkpoints_written")
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_dropped_reports")
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_ranges_verified")
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_read_checksum_failures")
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_write_checksum_failures")
+			out := respRec.Body.String()
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_checkpoints_written")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_dropped_reports")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_ranges_verified")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_read_checksum_failures")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_write_checksum_failures")
+		})
 	})
 
 	t.Run("server with verifier disabled emits no extra metrics", func(t *testing.T) {
@@ -623,10 +625,12 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		sdkretry.RunWith(&sdkretry.Timer{Timeout: time.Minute}, t, func(r *sdkretry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
 
-		require.NotContains(t, respRec.Body.String(), "agent_6_raft_logstore_verifier")
+			require.NotContains(r, respRec.Body.String(), "agent_6_raft_logstore_verifier")
+		})
 	})
 
 }
