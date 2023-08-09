@@ -198,7 +198,6 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 	})
 
 	t.Run("Check that 1.12 rpc metrics are emitted when specified by operator.", func(t *testing.T) {
-		// t.Skip("TODO: flaky")
 		metricsPrefix := "new_rpc_metrics_2"
 		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
 		hcl := fmt.Sprintf(`
@@ -435,7 +434,7 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 }
 
 func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
-	t.Skip("TODO: flaky")
+	// t.Skip("TODO: flaky")
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
