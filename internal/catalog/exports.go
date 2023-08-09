@@ -6,14 +6,17 @@ package catalog
 import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/endpoints"
+	"github.com/hashicorp/consul/internal/catalog/internal/controllers/failover"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (
@@ -73,6 +76,15 @@ var (
 	EndpointsStatusConditionEndpointsManaged = endpoints.StatusConditionEndpointsManaged
 	EndpointsStatusConditionManaged          = endpoints.ConditionManaged
 	EndpointsStatusConditionUnmanaged        = endpoints.ConditionUnmanaged
+
+	FailoverStatusKey                                              = failover.StatusKey
+	FailoverStatusConditionAccepted                                = failover.StatusConditionAccepted
+	FailoverStatusConditionAcceptedOKReason                        = failover.OKReason
+	FailoverStatusConditionAcceptedMissingServiceReason            = failover.MissingServiceReason
+	FailoverStatusConditionAcceptedUnknownPortReason               = failover.UnknownPortReason
+	FailoverStatusConditionAcceptedMissingDestinationServiceReason = failover.MissingDestinationServiceReason
+	FailoverStatusConditionAcceptedUnknownDestinationPortReason    = failover.UnknownDestinationPortReason
+	FailoverStatusConditionAcceptedUsingMeshDestinationPortReason  = failover.UsingMeshDestinationPortReason
 )
 
 // RegisterTypes adds all resource types within the "catalog" API group
@@ -87,6 +99,7 @@ func DefaultControllerDependencies() ControllerDependencies {
 	return ControllerDependencies{
 		WorkloadHealthNodeMapper: nodemapper.New(),
 		EndpointsWorkloadMapper:  selectiontracker.New(),
+		FailoverMapper:           failovermapper.New(),
 	}
 }
 
@@ -100,4 +113,16 @@ func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
 // Configs map using the provided Service.
 func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.FailoverPolicy) *pbcatalog.FailoverPolicy {
 	return types.SimplifyFailoverPolicy(svc, failover)
+}
+
+// FailoverPolicyMapper maintains the bidirectional tracking relationship of a
+// FailoverPolicy to the Services related to it.
+type FailoverPolicyMapper interface {
+	TrackFailover(failover *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy])
+	UntrackFailover(failoverID *pbresource.ID)
+	FailoverIDsByService(svcID *pbresource.ID) []*pbresource.ID
+}
+
+func NewFailoverPolicyMapper() FailoverPolicyMapper {
+	return failovermapper.New()
 }
