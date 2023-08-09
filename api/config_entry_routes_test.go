@@ -13,31 +13,13 @@ func TestAPI_ConfigEntries_HTTPRoute(t *testing.T) {
 
 	configEntries := c.ConfigEntries()
 	route1 := &HTTPRouteConfigEntry{
-		Kind:        HTTPRoute,
-		Name:        "route1",
-		Parents:     []ResourceReference{},
-		Rules:       []HTTPRouteRule{},
-		Hostnames:   []string{},
-		Meta:        map[string]string{},
-		CreateIndex: 0,
-		ModifyIndex: 0,
-		Partition:   "",
-		Namespace:   "",
-		Status:      ConfigEntryStatus{},
+		Kind: HTTPRoute,
+		Name: "route1",
 	}
 
 	route2 := &HTTPRouteConfigEntry{
-		Kind:        HTTPRoute,
-		Name:        "route2",
-		Parents:     []ResourceReference{},
-		Rules:       []HTTPRouteRule{},
-		Hostnames:   []string{},
-		Meta:        map[string]string{},
-		CreateIndex: 0,
-		ModifyIndex: 0,
-		Partition:   "",
-		Namespace:   "",
-		Status:      ConfigEntryStatus{},
+		Kind: HTTPRoute,
+		Name: "route2",
 	}
 
 	// set it
