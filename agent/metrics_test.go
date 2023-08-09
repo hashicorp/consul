@@ -32,14 +32,17 @@ func skipIfShortTesting(t *testing.T) {
 	}
 }
 
-func recordPromMetrics(t *testing.T, a *TestAgent, respRec *httptest.ResponseRecorder) {
+// TODO: in practice, this is always called with a fresh respRec; we should just do that for the caller
+func recordPromMetrics(t interface {
+	require.TestingT
+	Helper()
+}, a *TestAgent, respRec *httptest.ResponseRecorder) {
 	t.Helper()
 	req, err := http.NewRequest("GET", "/v1/agent/metrics?format=prometheus", nil)
 	require.NoError(t, err, "Failed to generate new http request.")
 
 	_, err = a.srv.AgentMetrics(respRec, req)
 	require.NoError(t, err, "Failed to serve agent metrics")
-
 }
 
 // assertMetricExistsWithLabels looks in the prometheus metrics response for the metric name and all the labels. eg:
@@ -434,7 +437,6 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 }
 
 func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
-	// t.Skip("TODO: flaky")
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
@@ -484,7 +486,7 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 
 		sdkretry.RunWith(&sdkretry.Timer{Timeout: time.Minute}, t, func(r *sdkretry.R) {
 			respRec := httptest.NewRecorder()
-			recordPromMetrics(t, a, respRec)
+			recordPromMetrics(r, a, respRec)
 
 			out := respRec.Body.String()
 			require.Contains(r, out, "agent_5_raft_wal_head_truncations")
@@ -532,7 +534,6 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 }
 
 func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
-	t.Skip("TODO: flaky")
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
@@ -556,10 +557,12 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
 		a := StartTestAgent(t, TestAgent{HCL: hcl})
 		defer a.Shutdown()
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		sdkretry.RunWith(&sdkretry.Timer{Timeout: time.Minute}, t, func(r *sdkretry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
 
-		require.NotContains(t, respRec.Body.String(), "agent_4_raft_logstore_verifier")
+			require.NotContains(r, respRec.Body.String(), "agent_4_raft_logstore_verifier")
+		})
 	})
 
 	t.Run("server with verifier enabled emits all metrics", func(t *testing.T) {
