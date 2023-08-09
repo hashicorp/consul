@@ -20,11 +20,13 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
+	sdkretry "github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
 func skipIfShortTesting(t *testing.T) {
+	t.Helper()
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -40,19 +42,10 @@ func recordPromMetrics(t *testing.T, a *TestAgent, respRec *httptest.ResponseRec
 
 }
 
-func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
-	if respRec.Body.String() == "" {
-		t.Fatalf("Response body is empty.")
-	}
-
-	if !strings.Contains(respRec.Body.String(), metric) {
-		t.Fatalf("Could not find the metric \"%s\" in the /v1/agent/metrics response", metric)
-	}
-}
-
 // assertMetricExistsWithLabels looks in the prometheus metrics response for the metric name and all the labels. eg:
 // new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"}
 func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
+	t.Helper()
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -93,6 +86,7 @@ func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecord
 }
 
 func assertLabelWithValueForMetricExistsNTime(t *testing.T, respRec *httptest.ResponseRecorder, metric string, label string, labelValue string, occurrences int) {
+	t.Helper()
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -127,6 +121,7 @@ func assertLabelWithValueForMetricExistsNTime(t *testing.T, respRec *httptest.Re
 }
 
 func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorder, metric string, value string) {
+	t.Helper()
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -139,29 +134,31 @@ func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorde
 	}
 }
 
-func assertMetricsWithLabelIsNonZero(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string) {
-	if respRec.Body.String() == "" {
-		t.Fatalf("Response body is empty.")
-	}
+// TODO: this could be inlined; it has 1 caller
+func retryAssertMetricsWithLabelIsNonZero(t *testing.T, retryer sdkretry.Retryer, respRec *httptest.ResponseRecorder, label, labelValue string) {
+	t.Helper()
+	sdkretry.RunWith(retryer, t, func(r *sdkretry.R) {
+		metrics := respRec.Body.String()
+		require.NotEqual(r, "", metrics)
 
-	metrics := respRec.Body.String()
-	labelWithValueTarget := label + "=" + "\"" + labelValue + "\""
+		labelWithValueTarget := label + "=" + "\"" + labelValue + "\""
 
-	for _, line := range strings.Split(metrics, "\n") {
-		if len(line) < 1 || line[0] == '#' {
-			continue
-		}
+		for _, line := range strings.Split(metrics, "\n") {
+			if len(line) < 1 || line[0] == '#' {
+				continue
+			}
 
-		if strings.Contains(line, labelWithValueTarget) {
-			s := strings.SplitN(line, " ", 2)
-			if s[1] == "0" {
-				t.Fatalf("Metric with label provided \"%s:%s\" has the value 0", label, labelValue)
+			if strings.Contains(line, labelWithValueTarget) {
+				s := strings.SplitN(line, " ", 2)
+
+				require.NotEqual(r, "0", s[1])
 			}
 		}
-	}
+	})
 }
 
 func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
+	t.Helper()
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -174,7 +171,6 @@ func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, met
 // TestAgent_OneTwelveRPCMetrics test for the 1.12 style RPC metrics. These are the labeled metrics coming from
 // agent.rpc.middleware.interceptors package.
 func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
-	t.Skip("TODO: flaky")
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
@@ -202,6 +198,7 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 	})
 
 	t.Run("Check that 1.12 rpc metrics are emitted when specified by operator.", func(t *testing.T) {
+		// t.Skip("TODO: flaky")
 		metricsPrefix := "new_rpc_metrics_2"
 		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
 		hcl := fmt.Sprintf(`
@@ -232,7 +229,7 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
 		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
 		// make sure rpc calls with elapsed time below 1ms are reported as decimal
-		assertMetricsWithLabelIsNonZero(t, respRec, "method", "Status.Ping")
+		retryAssertMetricsWithLabelIsNonZero(t, &sdkretry.Timer{Timeout: time.Minute}, respRec, "method", "Status.Ping")
 	})
 }
 
