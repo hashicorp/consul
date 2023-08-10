@@ -10,7 +10,9 @@ description: |
 Command: `consul services export`
 
 The services export subcommand is used to export a service from one admin partition
-or cluster peer to another.
+or cluster peer to another. This is accomplished by creating or updating the corresponding
+`exported-services` configuration entry. Running the command multiple times with the same
+arguments will result in a no-op.
 
 ```text
 Usage: consul services export [options] -name <service name> -consumer-peers <other cluster name>
@@ -45,3 +47,19 @@ Usage: consul services export [options] -name <service name> -consumer-peers <ot
 #### API Options
 
 @include 'http_api_options_client.mdx'
+
+## Examples
+
+The example below shows using the `export` command to export the `web` service to a cluster
+peer named `dc2`.
+
+```shell-session hideClipboard
+$ consul services export -name=web -consumer-peers=dc2
+```
+
+The example below shows using the `export` command to export the `web` service located in the
+namespace `ns1` and the admin partition `part1` to other admin partitions named `part2` and `part3`.
+
+```shell-session hideClipboard
+$ consul services export -name=web -namespace=ns1 -partition=part1 -consumer-partitions=part2,part3
+```
