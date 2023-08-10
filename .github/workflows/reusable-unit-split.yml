@@ -93,6 +93,11 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
       - run: mkdir -p ${{env.TEST_RESULTS}}
+      - name: matrix SHA
+        id: matrix_sha
+        run: |
+          set -eux
+          echo matrix_sha=$(echo "${{ join(matrix.package, ' ') }}" | sha256sum) >> "$GITHUB_OUTPUT"
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
@@ -168,15 +173,18 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - name: upload test results
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: test-results
           path: ${{env.TEST_RESULTS}}
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - name: upload sar
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
-          name: ${{ env.GITHUB_JOB }}.sar
+          name: ${{steps.matrix_sha.outputs.matrix_sha}}.sar
           path: /tmp/stats.sar
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - name: upload jsonfile 
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: jsonfile
           path: /tmp/jsonfile
