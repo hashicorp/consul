@@ -6,6 +6,7 @@ package xds
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 
@@ -18,7 +19,7 @@ import (
 // resources for a single client.
 type ResourceGenerator struct {
 	Logger         hclog.Logger
-	CfgFetcher     ConfigFetcher
+	CfgFetcher     configfetcher.ConfigFetcher
 	IncrementalXDS bool
 
 	ProxyFeatures xdscommon.SupportedProxyFeatures
@@ -26,7 +27,7 @@ type ResourceGenerator struct {
 
 func NewResourceGenerator(
 	logger hclog.Logger,
-	cfgFetcher ConfigFetcher,
+	cfgFetcher configfetcher.ConfigFetcher,
 	incrementalXDS bool,
 ) *ResourceGenerator {
 	return &ResourceGenerator{
