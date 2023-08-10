@@ -421,6 +421,9 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 				cp.Rules[i2].Filters.TimeoutFilter = new(TimeoutFilter)
 				*cp.Rules[i2].Filters.TimeoutFilter = *o.Rules[i2].Filters.TimeoutFilter
 			}
+			if o.Rules[i2].Filters.JWT != nil {
+				cp.Rules[i2].Filters.JWT = o.Rules[i2].Filters.JWT.DeepCopy()
+			}
 			if o.Rules[i2].Matches != nil {
 				cp.Rules[i2].Matches = make([]HTTPMatch, len(o.Rules[i2].Matches))
 				copy(cp.Rules[i2].Matches, o.Rules[i2].Matches)
@@ -488,6 +491,9 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					if o.Rules[i2].Services[i4].Filters.TimeoutFilter != nil {
 						cp.Rules[i2].Services[i4].Filters.TimeoutFilter = new(TimeoutFilter)
 						*cp.Rules[i2].Services[i4].Filters.TimeoutFilter = *o.Rules[i2].Services[i4].Filters.TimeoutFilter
+					}
+					if o.Rules[i2].Services[i4].Filters.JWT != nil {
+						cp.Rules[i2].Services[i4].Filters.JWT = o.Rules[i2].Services[i4].Filters.JWT.DeepCopy()
 					}
 				}
 			}

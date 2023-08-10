@@ -422,6 +422,7 @@ type HTTPFilters struct {
 	URLRewrite    *URLRewrite
 	RetryFilter   *RetryFilter
 	TimeoutFilter *TimeoutFilter
+	JWT           *JWTFilter
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.

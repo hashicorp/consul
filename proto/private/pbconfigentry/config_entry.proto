@@ -912,6 +912,8 @@ message HTTPFilters {
   URLRewrite URLRewrite = 2;
   RetryFilter RetryFilter = 3;
   TimeoutFilter TimeoutFilter = 4;
+  // mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
+  JWTFilter JWT = 5;
 }
 
 // mog annotation:
@@ -945,6 +947,10 @@ message TimeoutFilter {
   google.protobuf.Duration RequestTimeout = 1;
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration IdleTimeout = 2;
+}
+
+message JWTFilter {
+  repeated APIGatewayJWTProvider Providers = 1;
 }
 
 // mog annotation:
