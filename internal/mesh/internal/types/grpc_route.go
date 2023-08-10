@@ -28,5 +28,6 @@ func RegisterGRPCRoute(r resource.Registry) {
 		Type:     GRPCRouteV1Alpha1Type,
 		Proto:    &pbmesh.GRPCRoute{},
 		Validate: nil,
+		Scope:    resource.ScopeNamespace,
 	})
 }

@@ -32,6 +32,7 @@ func RegisterServiceEndpoints(r resource.Registry) {
 		Proto:    &pbcatalog.ServiceEndpoints{},
 		Validate: ValidateServiceEndpoints,
 		Mutate:   MutateServiceEndpoints,
+		Scope:    resource.ScopeNamespace,
 	})
 }
 

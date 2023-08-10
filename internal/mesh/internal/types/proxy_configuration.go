@@ -28,5 +28,6 @@ func RegisterProxyConfiguration(r resource.Registry) {
 		Type:     ProxyConfigurationV1Alpha1Type,
 		Proto:    &pbmesh.ProxyConfiguration{},
 		Validate: nil,
+		Scope:    resource.ScopeNamespace,
 	})
 }

@@ -28,5 +28,6 @@ func RegisterComputedRoutes(r resource.Registry) {
 		Type:     ComputedRoutesV1Alpha1Type,
 		Proto:    &pbmesh.ComputedRoutes{},
 		Validate: nil,
+		Scope:    resource.ScopeNamespace,
 	})
 }

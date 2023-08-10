@@ -26,6 +26,7 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 		Type:     ProxyStateTemplateV1Alpha1Type,
 		Proto:    &pbmesh.ProxyStateTemplate{},
 		Validate: nil,
+		Scope:    resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
 				// Check service:read and operator:read permissions.

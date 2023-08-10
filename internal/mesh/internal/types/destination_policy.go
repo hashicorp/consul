@@ -28,5 +28,6 @@ func RegisterDestinationPolicy(r resource.Registry) {
 		Type:     DestinationPolicyV1Alpha1Type,
 		Proto:    &pbmesh.DestinationPolicy{},
 		Validate: nil,
+		Scope:    resource.ScopeNamespace,
 	})
 }

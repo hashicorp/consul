@@ -28,5 +28,6 @@ func RegisterTCPRoute(r resource.Registry) {
 		Type:     TCPRouteV1Alpha1Type,
 		Proto:    &pbmesh.TCPRoute{},
 		Validate: nil,
+		Scope:    resource.ScopeNamespace,
 	})
 }
