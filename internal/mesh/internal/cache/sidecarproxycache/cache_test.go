@@ -1,4 +1,4 @@
-package cache
+package sidecarproxycache
 
 import (
 	"testing"
@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
@@ -16,18 +17,20 @@ func TestWrite_Create(t *testing.T) {
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination := testDestination(proxyID)
-	cache.Write(destination)
+	cache.WriteDestination(destination)
 
 	destKey := KeyFromRefAndPort(destination.ServiceRef, destination.Port)
 	require.Equal(t, destination, cache.store[destKey])
 	actualSourceProxies := cache.sourceProxiesIndex
-	expectedSourceProxies := map[string]storeKeys{
-		KeyFromID(proxyID): {destKey: struct{}{}},
+	expectedSourceProxies := map[resource.ReferenceKey]storeKeys{
+		resource.NewReferenceKey(proxyID): {destKey: struct{}{}},
 	}
 	require.Equal(t, expectedSourceProxies, actualSourceProxies)
 
 	// Check that we can read back the destination successfully.
-	require.Equal(t, destination, cache.ReadDestination(destination.ServiceRef, destination.Port))
+	actualDestination, found := cache.ReadDestination(destination.ServiceRef, destination.Port)
+	require.True(t, found)
+	require.Equal(t, destination, actualDestination)
 }
 
 func TestWrite_Update(t *testing.T) {
@@ -35,17 +38,17 @@ func TestWrite_Update(t *testing.T) {
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination1 := testDestination(proxyID)
-	cache.Write(destination1)
+	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
 	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection()
-	cache.Write(destination2)
+	cache.WriteDestination(destination2)
 
 	// Check that the source proxies are updated.
 	actualSourceProxies := cache.sourceProxiesIndex
-	expectedSourceProxies := map[string]storeKeys{
-		KeyFromID(proxyID): {
+	expectedSourceProxies := map[resource.ReferenceKey]storeKeys{
+		resource.NewReferenceKey(proxyID): {
 			KeyFromRefAndPort(destination1.ServiceRef, destination1.Port): struct{}{},
 			KeyFromRefAndPort(destination2.ServiceRef, destination2.Port): struct{}{},
 		},
@@ -56,15 +59,31 @@ func TestWrite_Update(t *testing.T) {
 	anotherProxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-def").ID()
 	destination3 := testDestination(anotherProxyID)
 	destination3.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-3").ReferenceNoSection()
-	cache.Write(destination3)
+	cache.WriteDestination(destination3)
 
 	actualSourceProxies = cache.sourceProxiesIndex
-	expectedSourceProxies = map[string]storeKeys{
-		KeyFromID(proxyID): {
+	expectedSourceProxies = map[resource.ReferenceKey]storeKeys{
+		resource.NewReferenceKey(proxyID): {
 			KeyFromRefAndPort(destination1.ServiceRef, destination1.Port): struct{}{},
 			KeyFromRefAndPort(destination2.ServiceRef, destination2.Port): struct{}{},
 		},
-		KeyFromID(anotherProxyID): {
+		resource.NewReferenceKey(anotherProxyID): {
+			KeyFromRefAndPort(destination3.ServiceRef, destination3.Port): struct{}{},
+		},
+	}
+	require.Equal(t, expectedSourceProxies, actualSourceProxies)
+
+	// Overwrite the proxy id completely.
+	destination1.SourceProxies = map[resource.ReferenceKey]struct{}{resource.NewReferenceKey(anotherProxyID): {}}
+	cache.WriteDestination(destination1)
+
+	actualSourceProxies = cache.sourceProxiesIndex
+	expectedSourceProxies = map[resource.ReferenceKey]storeKeys{
+		resource.NewReferenceKey(proxyID): {
+			KeyFromRefAndPort(destination2.ServiceRef, destination2.Port): struct{}{},
+		},
+		resource.NewReferenceKey(anotherProxyID): {
+			KeyFromRefAndPort(destination1.ServiceRef, destination1.Port): struct{}{},
 			KeyFromRefAndPort(destination3.ServiceRef, destination3.Port): struct{}{},
 		},
 	}
@@ -76,28 +95,28 @@ func TestWrite_Delete(t *testing.T) {
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination1 := testDestination(proxyID)
-	cache.Write(destination1)
+	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
 	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection()
-	cache.Write(destination2)
+	cache.WriteDestination(destination2)
 
-	cache.Delete(destination1.ServiceRef, destination1.Port)
+	cache.DeleteDestination(destination1.ServiceRef, destination1.Port)
 
 	require.NotContains(t, cache.store, KeyFromRefAndPort(destination1.ServiceRef, destination1.Port))
 
 	// Check that the source proxies are updated.
 	actualSourceProxies := cache.sourceProxiesIndex
-	expectedSourceProxies := map[string]storeKeys{
-		KeyFromID(proxyID): {
+	expectedSourceProxies := map[resource.ReferenceKey]storeKeys{
+		resource.NewReferenceKey(proxyID): {
 			KeyFromRefAndPort(destination2.ServiceRef, destination2.Port): struct{}{},
 		},
 	}
 	require.Equal(t, expectedSourceProxies, actualSourceProxies)
 
 	// Try to delete non-existing destination and check that nothing has changed..
-	cache.Delete(
+	cache.DeleteDestination(
 		resourcetest.Resource(catalog.ServiceType, "does-not-exist").ReferenceNoSection(),
 		"doesn't-matter")
 
@@ -110,17 +129,17 @@ func TestDeleteSourceProxy(t *testing.T) {
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination1 := testDestination(proxyID)
-	cache.Write(destination1)
+	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
 	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection()
-	cache.Write(destination2)
+	cache.WriteDestination(destination2)
 
 	cache.DeleteSourceProxy(proxyID)
 
 	// Check that source proxy index is gone.
-	proxyKey := KeyFromID(proxyID)
+	proxyKey := resource.NewReferenceKey(proxyID)
 	require.NotContains(t, cache.sourceProxiesIndex, proxyKey)
 
 	// Check that the destinations no longer have this proxy as the source.
@@ -128,7 +147,8 @@ func TestDeleteSourceProxy(t *testing.T) {
 	require.NotContains(t, destination2.SourceProxies, proxyKey)
 
 	// Try to add a non-existent key to source proxy index
-	cache.sourceProxiesIndex[proxyKey] = map[string]struct{}{"doesn't-exist": {}}
+	cache.sourceProxiesIndex[proxyKey] = map[ReferenceKeyWithPort]struct{}{
+		{port: "doesn't-matter"}: {}}
 	cache.DeleteSourceProxy(proxyID)
 
 	// Check that source proxy index is gone.
@@ -144,25 +164,25 @@ func TestDestinationsBySourceProxy(t *testing.T) {
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination1 := testDestination(proxyID)
-	cache.Write(destination1)
+	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
 	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection()
-	cache.Write(destination2)
+	cache.WriteDestination(destination2)
 
 	actualDestinations := cache.DestinationsBySourceProxy(proxyID)
-	expectedDestinations := []*intermediate.CombinedDestinationRef{destination1, destination2}
+	expectedDestinations := []intermediate.CombinedDestinationRef{destination1, destination2}
 	require.ElementsMatch(t, expectedDestinations, actualDestinations)
 }
 
-func testDestination(proxyID *pbresource.ID) *intermediate.CombinedDestinationRef {
-	return &intermediate.CombinedDestinationRef{
+func testDestination(proxyID *pbresource.ID) intermediate.CombinedDestinationRef {
+	return intermediate.CombinedDestinationRef{
 		ServiceRef:             resourcetest.Resource(catalog.ServiceType, "test-service").ReferenceNoSection(),
 		Port:                   "tcp",
 		ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "test-servicedestinations").ID(),
-		SourceProxies: map[string]*pbresource.ID{
-			KeyFromID(proxyID): proxyID,
+		SourceProxies: map[resource.ReferenceKey]struct{}{
+			resource.NewReferenceKey(proxyID): {},
 		},
 	}
 }
