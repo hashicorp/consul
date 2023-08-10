@@ -28,14 +28,14 @@ Usage: consul services export [options] -name <service name> -consumer-peers <ot
 
 #### Command Options
 
-- `-name` - (Required) The name of the service to export.
+- `-name=<string>` - (Required) The name of the service to export.
 
-- `-consumer-peers` - (Required) A comma-separated list of cluster peers to export the service to.
+- `-consumer-peers=<string>` - (Required) A comma-separated list of cluster peers to export the service to.
   In Consul Enterprise, this flag is optional if -consumer-partitions is specified.
 
 #### Enterprise Options
 
-- `-consumer-partitions` - (Enterprise only) A comma-separated list of admin partitions within the
+- `-consumer-partitions=<string>` - A comma-separated list of admin partitions within the
   same datacenter to export the service to. This flag is optional if -consumer-peers is specified.
 
 @include 'http_api_partition_options.mdx'
