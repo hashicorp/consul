@@ -38,20 +38,20 @@ type AccessLog struct {
 	ResourceAttributes map[string]interface{}
 }
 
-func (a *AccessLog) normalize() error {
+func (a *AccessLog) normalize(listenerType string) error {
 	if a.CommonConfig == nil {
 		return fmt.Errorf("missing CommonConfig")
 	}
 
-	return a.CommonConfig.normalize()
+	return a.CommonConfig.normalize(listenerType)
 }
 
-func (a *AccessLog) validate() error {
-	if err := a.normalize(); err != nil {
+func (a *AccessLog) validate(listenerType string) error {
+	if err := a.normalize(listenerType); err != nil {
 		return err
 	}
 
-	return a.CommonConfig.validate()
+	return a.CommonConfig.validate(listenerType)
 }
 
 type CommonConfig struct {
@@ -63,7 +63,7 @@ type CommonConfig struct {
 	RetryPolicy             *RetryPolicy
 }
 
-func (c *CommonConfig) normalize() error {
+func (c *CommonConfig) normalize(listenerType string) error {
 	if c.GrpcService != nil {
 		c.GrpcService.normalize()
 	} else {
@@ -74,15 +74,19 @@ func (c *CommonConfig) normalize() error {
 		c.RetryPolicy.normalize()
 	}
 
+	if c.LogName == "" {
+		c.LogName = listenerType
+	}
+
 	return nil
 }
 
-func (c *CommonConfig) validate() error {
+func (c *CommonConfig) validate(listenerType string) error {
 	if c == nil {
 		return nil
 	}
 
-	c.normalize()
+	c.normalize(listenerType)
 
 	var resultErr error
 

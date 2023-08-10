@@ -1,0 +1,7 @@
+```release-note:feature
+xds: Add a built-in Envoy extension that appends OpenTelemetry Access Logging (otel-access-logging) to the HTTP Connection Manager filter.
+```
+
+```release-note:feature
+xds: Added support of the outbound listener for the built-in Envoy extension External Authorization.
+```

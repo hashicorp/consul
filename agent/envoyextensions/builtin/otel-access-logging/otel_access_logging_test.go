@@ -66,8 +66,8 @@ func TestConstructor(t *testing.T) {
 		"default proxy type": {
 			arguments: makeArguments(map[string]interface{}{"ProxyType": ""}),
 			expected: otelAccessLogging{
-				ProxyType: "connect-proxy",
-				Listener:  "inbound",
+				ProxyType:    "connect-proxy",
+				ListenerType: "inbound",
 				Config: AccessLog{
 					CommonConfig: &CommonConfig{
 						LogName: "access.log",

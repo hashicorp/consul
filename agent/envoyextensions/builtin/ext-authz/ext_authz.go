@@ -23,7 +23,7 @@ type extAuthz struct {
 	ProxyType api.ServiceKind
 	// InsertOptions controls how the extension inserts the filter.
 	InsertOptions ext_cmn.InsertOptions
-	Listener      string
+	ListenerType  string
 	// Config holds the extension configuration.
 	Config extAuthzConfig
 }
@@ -63,7 +63,7 @@ func (a *extAuthz) PatchClusters(cfg *ext_cmn.RuntimeConfig, c ext_cmn.ClusterMa
 }
 
 func (a *extAuthz) matchesListenerDirection(isInboundListener bool) bool {
-	return (!isInboundListener && a.Listener == "outbound") || (isInboundListener && a.Listener == "inbound")
+	return (!isInboundListener && a.ListenerType == "outbound") || (isInboundListener && a.ListenerType == "inbound")
 }
 
 // PatchFilters inserts an ext-authz filter into the list of network filters or the filter chain of the HTTP connection manager.
@@ -136,8 +136,8 @@ func (a *extAuthz) normalize() {
 	}
 
 	// Defaulting this to inbound for backward compatibility.
-	if a.Listener == "" {
-		a.Listener = "inbound"
+	if a.ListenerType == "" {
+		a.ListenerType = "inbound"
 	}
 
 	a.Config.normalize()
@@ -151,8 +151,8 @@ func (a *extAuthz) validate() error {
 			api.ServiceKindConnectProxy))
 	}
 
-	if a.Listener != "inbound" && a.Listener != "outbound" {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected Listener %q", a.Listener))
+	if a.ListenerType != "inbound" && a.ListenerType != "outbound" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected Listener %q", a.ListenerType))
 	}
 
 	if err := a.Config.validate(); err != nil {

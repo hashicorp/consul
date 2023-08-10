@@ -32,7 +32,7 @@ type otelAccessLogging struct {
 	ProxyType api.ServiceKind
 	// InsertOptions controls how the extension inserts the filter.
 	InsertOptions ext_cmn.InsertOptions
-	Listener      string
+	ListenerType  string
 	// Config holds the extension configuration.
 	Config AccessLog
 }
@@ -73,7 +73,7 @@ func (a *otelAccessLogging) PatchClusters(cfg *ext_cmn.RuntimeConfig, c ext_cmn.
 
 func (a *otelAccessLogging) matchesListenerDirection(p extensioncommon.FilterPayload) bool {
 	isInboundListener := p.IsInbound()
-	return (!isInboundListener && a.Listener == "outbound") || (isInboundListener && a.Listener == "inbound")
+	return (!isInboundListener && a.ListenerType == "outbound") || (isInboundListener && a.ListenerType == "inbound")
 }
 
 // PatchFilter adds the OTEL access log in the HTTP connection manager.
@@ -126,7 +126,9 @@ func (a *otelAccessLogging) fromArguments(args map[string]any) error {
 	if err := mapstructure.Decode(args, a); err != nil {
 		return err
 	}
-	a.normalize()
+	if err := a.normalize(); err != nil {
+		return err
+	}
 	return a.validate()
 }
 
@@ -175,16 +177,16 @@ func (a *otelAccessLogging) toEnvoyAccessLog(cfg *cmn.RuntimeConfig) (*envoy_ext
 	}, nil
 }
 
-func (a *otelAccessLogging) normalize() {
+func (a *otelAccessLogging) normalize() error {
 	if a.ProxyType == "" {
 		a.ProxyType = api.ServiceKindConnectProxy
 	}
 
-	if a.Listener == "" {
-		a.Listener = "inbound"
+	if a.ListenerType == "" {
+		a.ListenerType = "inbound"
 	}
 
-	a.Config.normalize()
+	return a.Config.normalize(a.ListenerType)
 }
 
 func (a *otelAccessLogging) validate() error {
@@ -195,11 +197,11 @@ func (a *otelAccessLogging) validate() error {
 			api.ServiceKindConnectProxy))
 	}
 
-	if a.Listener != "inbound" && a.Listener != "outbound" {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected Listener %q", a.Listener))
+	if a.ListenerType != "inbound" && a.ListenerType != "outbound" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected Listener %q", a.ListenerType))
 	}
 
-	if err := a.Config.validate(); err != nil {
+	if err := a.Config.validate(a.ListenerType); err != nil {
 		resultErr = multierror.Append(resultErr, err)
 	}
 
