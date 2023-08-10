@@ -889,9 +889,9 @@ type APIGatewayListener struct {
 	TLS APIGatewayTLSConfiguration
 
 	// Override is the policy that overrides all other policy and route specific configuration
-	Override APIGatewayPolicy `json:",omitempty"`
+	Override *APIGatewayPolicy `json:",omitempty"`
 	// Default is the policy that is the default for the listener and route, routes can override this behavior
-	Default APIGatewayPolicy `json:",omitempty"`
+	Default *APIGatewayPolicy `json:",omitempty"`
 }
 
 // APIGatewayPolicy holds the policy that configures the gateway listener, this is used in the `Override` and `Default` fields of a listener
