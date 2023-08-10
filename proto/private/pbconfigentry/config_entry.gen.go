@@ -54,10 +54,14 @@ func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayLis
 		APIGatewayTLSConfigurationToStructs(s.TLS, &t.TLS)
 	}
 	if s.Override != nil {
-		APIGatewayPolicyToStructs(s.Override, &t.Override)
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Override, &x)
+		t.Override = &x
 	}
 	if s.Default != nil {
-		APIGatewayPolicyToStructs(s.Default, &t.Default)
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Default, &x)
+		t.Default = &x
 	}
 }
 func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayListener) {
@@ -73,14 +77,14 @@ func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayL
 		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
 		s.TLS = &x
 	}
-	{
+	if t.Override != nil {
 		var x APIGatewayPolicy
-		APIGatewayPolicyFromStructs(&t.Override, &x)
+		APIGatewayPolicyFromStructs(t.Override, &x)
 		s.Override = &x
 	}
-	{
+	if t.Default != nil {
 		var x APIGatewayPolicy
-		APIGatewayPolicyFromStructs(&t.Default, &x)
+		APIGatewayPolicyFromStructs(t.Default, &x)
 		s.Default = &x
 	}
 }
