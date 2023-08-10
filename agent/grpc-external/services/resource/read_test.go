@@ -161,20 +161,20 @@ func TestRead_Success(t *testing.T) {
 				"namespaced resource provides nonempty partition and namespace": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
 					return artistId
 				},
-				"namespaced resource provides uppercase namespace and partition": func(artistId, _ *pbresource.ID) *pbresource.ID {
+				"namespaced resource provides uppercase partition and namespace": func(artistId, _ *pbresource.ID) *pbresource.ID {
 					id := clone(artistId)
 					id.Tenancy.Partition = strings.ToUpper(artistId.Tenancy.Partition)
 					id.Tenancy.Namespace = strings.ToUpper(artistId.Tenancy.Namespace)
 					return id
 				},
-				"namespaced resource inherits tokens namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
-					id := clone(artistId)
-					id.Tenancy.Namespace = ""
-					return id
-				},
 				"namespaced resource inherits tokens partition when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
 					id := clone(artistId)
 					id.Tenancy.Partition = ""
+					return id
+				},
+				"namespaced resource inherits tokens namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+					id := clone(artistId)
+					id.Tenancy.Namespace = ""
 					return id
 				},
 				"namespaced resource inherits tokens partition and namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {

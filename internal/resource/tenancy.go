@@ -43,11 +43,38 @@ func (s Scope) String() string {
 	panic(fmt.Sprintf("string mapping missing for scope %v", int(s)))
 }
 
-// Normalize lowercases partition and namespace.
+// Normalize lowercases the partition and namespace.
 func Normalize(tenancy *pbresource.Tenancy) {
 	if tenancy == nil {
 		return
 	}
 	tenancy.Partition = strings.ToLower(tenancy.Partition)
 	tenancy.Namespace = strings.ToLower(tenancy.Namespace)
+}
+
+// DefaultClusteredTenancy returns the default tenancy for a cluster scoped resource.
+func DefaultClusteredTenancy() *pbresource.Tenancy {
+	return &pbresource.Tenancy{
+		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		PeerName: "local",
+	}
+}
+
+// DefaultPartitionedTenancy returns the default tenancy for a partition scoped resource.
+func DefaultPartitionedTenancy() *pbresource.Tenancy {
+	return &pbresource.Tenancy{
+		Partition: DefaultPartitionName,
+		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		PeerName: "local",
+	}
+}
+
+// DefaultNamespedTenancy returns the default tenancy for a namespace scoped resource.
+func DefaultNamespacedTenancy() *pbresource.Tenancy {
+	return &pbresource.Tenancy{
+		Partition: DefaultPartitionName,
+		Namespace: DefaultNamespaceName,
+		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		PeerName: "local",
+	}
 }

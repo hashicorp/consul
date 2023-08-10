@@ -80,6 +80,8 @@ func testServer(t *testing.T) *Server {
 	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
 	mockTenancyBridge.On("PartitionExists", mock.Anything).Return(false, nil)
 	mockTenancyBridge.On("NamespaceExists", mock.Anything, mock.Anything).Return(false, nil)
+	mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
+	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	return NewServer(Config{
 		Logger:          testutil.Logger(t),

@@ -10,10 +10,10 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/hashicorp/consul v0.0.0-00010101000000-000000000000
-	github.com/hashicorp/consul/api v1.22.0
-	github.com/hashicorp/consul/envoyextensions v0.3.0
-	github.com/hashicorp/consul/proto-public v0.4.0
-	github.com/hashicorp/consul/sdk v0.14.0
+	github.com/hashicorp/consul/api v1.24.0
+	github.com/hashicorp/consul/envoyextensions v0.4.1
+	github.com/hashicorp/consul/proto-public v0.4.1
+	github.com/hashicorp/consul/sdk v0.14.1
 	github.com/hashicorp/consul/testing/deployer v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1

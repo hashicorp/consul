@@ -44,10 +44,10 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 
 				return nil
 			},
-			Write: func(authorizer acl.Authorizer, p *pbresource.Resource) error {
+			Write: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, p *pbresource.Resource) error {
 				// Require operator:write only for "break-glass" scenarios as this resource should be mostly
 				// managed by a controller.
-				return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(resource.AuthorizerContext(p.Id.Tenancy))
+				return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
 			},
 			List: func(authorizer acl.Authorizer, tenancy *pbresource.Tenancy) error {
 				// No-op List permission as we want to default to filtering resources

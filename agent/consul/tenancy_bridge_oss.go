@@ -6,6 +6,17 @@
 
 package consul
 
+func (b *V1TenancyBridge) PartitionExists(partition string) (bool, error) {
+	if partition == "default" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (b *V1TenancyBridge) IsPartitionMarkedForDeletion(partition string) (bool, error) {
+	return false, nil
+}
+
 func (b *V1TenancyBridge) NamespaceExists(partition, namespace string) (bool, error) {
 	if partition == "default" && namespace == "default" {
 		return true, nil
@@ -13,9 +24,6 @@ func (b *V1TenancyBridge) NamespaceExists(partition, namespace string) (bool, er
 	return false, nil
 }
 
-func (b *V1TenancyBridge) PartitionExists(partition string) (bool, error) {
-	if partition == "default" {
-		return true, nil
-	}
+func (b *V1TenancyBridge) IsNamespaceMarkedForDeletion(partition, namespace string) (bool, error) {
 	return false, nil
 }

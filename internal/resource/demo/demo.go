@@ -85,7 +85,7 @@ func RegisterTypes(r resource.Registry) {
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, authzContext)
 	}
 
-	writeACL := func(authz acl.Authorizer, res *pbresource.Resource) error {
+	writeACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
 		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
 	}
@@ -200,11 +200,9 @@ func GenerateV1RecordLabel(name string) (*pbresource.Resource, error) {
 
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type: TypeV1RecordLabel,
-			Tenancy: &pbresource.Tenancy{
-				Partition: resource.DefaultPartitionName,
-			},
-			Name: name,
+			Type:    TypeV1RecordLabel,
+			Tenancy: resource.DefaultPartitionedTenancy(),
+			Name:    name,
 		},
 		Data: data,
 		Metadata: map[string]string{
@@ -236,7 +234,7 @@ func GenerateV2Artist() (*pbresource.Resource, error) {
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    TypeV2Artist,
-			Tenancy: TenancyDefault,
+			Tenancy: resource.DefaultNamespacedTenancy(),
 			Name:    fmt.Sprintf("%s-%s", strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Data: data,
@@ -279,7 +277,7 @@ func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Reso
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    TypeV2Album,
-			Tenancy: artistID.Tenancy,
+			Tenancy: clone(artistID.Tenancy),
 			Name:    fmt.Sprintf("%s/%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Owner: artistID,
