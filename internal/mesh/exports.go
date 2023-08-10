@@ -21,16 +21,16 @@ var (
 
 	// Resource Kind Names.
 
-	ProxyConfigurationKind         = types.ProxyConfigurationKind
-	UpstreamsKind                  = types.UpstreamsKind
-	UpstreamsConfigurationKind     = types.UpstreamsConfigurationKind
-	ProxyStateKind                 = types.ProxyStateTemplateKind
-	HTTPRouteKind                  = types.HTTPRouteKind
-	GRPCRouteKind                  = types.GRPCRouteKind
-	TCPRouteKind                   = types.TCPRouteKind
-	DestinationPolicyKind          = types.DestinationPolicyKind
-	ComputedRoutesKind             = types.ComputedRoutesKind
-	ProxyStateTemplateV1Alpha1Type = types.ProxyStateTemplateV1Alpha1Type
+	ProxyConfigurationKind     = types.ProxyConfigurationKind
+	UpstreamsKind              = types.UpstreamsKind
+	UpstreamsConfigurationKind = types.UpstreamsConfigurationKind
+	ProxyStateKind             = types.ProxyStateTemplateKind
+	HTTPRouteKind              = types.HTTPRouteKind
+	GRPCRouteKind              = types.GRPCRouteKind
+	TCPRouteKind               = types.TCPRouteKind
+	DestinationPolicyKind      = types.DestinationPolicyKind
+	ComputedRoutesKind         = types.ComputedRoutesKind
+	ProxyStateTemplateKind     = types.ProxyStateTemplateKind
 
 	// Resource Types for the v1alpha1 version.
 
@@ -43,30 +43,31 @@ var (
 	TCPRouteV1Alpha1Type                        = types.TCPRouteV1Alpha1Type
 	DestinationPolicyV1Alpha1Type               = types.DestinationPolicyV1Alpha1Type
 	ComputedRoutesV1Alpha1Type                  = types.ComputedRoutesV1Alpha1Type
-	ProxyStateTemplateType                      = types.ProxyStateTemplateV1Alpha1Type
+	ProxyStateTemplateV1AlphaType               = types.ProxyStateTemplateV1Alpha1Type
 
 	// Resource Types for the latest version.
 
-	ProxyConfigurationType              = types.ProxyConfigurationType
-	UpstreamsType                       = types.UpstreamsType
-	UpstreamsConfigurationType          = types.UpstreamsConfigurationType
-	ProxyStateTemplateConfigurationType = types.ProxyStateTemplateType
-	HTTPRouteType                       = types.HTTPRouteType
-	GRPCRouteType                       = types.GRPCRouteType
-	TCPRouteType                        = types.TCPRouteType
-	DestinationPolicyType               = types.DestinationPolicyType
-	ComputedRoutesType                  = types.ComputedRoutesType
+	ProxyConfigurationType     = types.ProxyConfigurationType
+	UpstreamsType              = types.UpstreamsType
+	UpstreamsConfigurationType = types.UpstreamsConfigurationType
+	ProxyStateTemplateType     = types.ProxyStateTemplateType
+	HTTPRouteType              = types.HTTPRouteType
+	GRPCRouteType              = types.GRPCRouteType
+	TCPRouteType               = types.TCPRouteType
+	DestinationPolicyType      = types.DestinationPolicyType
+	ComputedRoutesType         = types.ComputedRoutesType
 
 	// Controller statuses.
 
 	// Sidecar-proxy controller.
-	SidecarProxyStatusKey                              = sidecarproxy.ControllerName
-	SidecarProxyStatusConditionMeshDestination         = status.StatusConditionMeshDestination
-	SidecarProxyStatusReasonNonMeshDestination         = status.StatusReasonNonMeshDestination
-	SidecarProxyStatusReasonMeshDestination            = status.StatusReasonMeshDestination
-	SidecarProxyStatusConditionDestinationExists       = status.StatusConditionDestinationExists
-	SidecarProxyStatusReasonDestinationServiceNotFound = status.StatusReasonDestinationServiceNotFound
-	SidecarProxyStatusReasonDestinationServiceFound    = status.StatusReasonDestinationServiceFound
+	SidecarProxyStatusKey                                  = sidecarproxy.ControllerName
+	SidecarProxyStatusConditionMeshDestination             = status.StatusConditionDestinationAccepted
+	SidecarProxyStatusReasonNonMeshDestination             = status.StatusReasonMeshProtocolNotFound
+	SidecarProxyStatusReasonMeshDestination                = status.StatusReasonMeshProtocolFound
+	SidecarProxyStatusReasonDestinationServiceNotFound     = status.StatusReasonDestinationServiceNotFound
+	SidecarProxyStatusReasonDestinationServiceFound        = status.StatusReasonDestinationServiceFound
+	SidecarProxyStatusReasonMeshProtocolDestinationPort    = status.StatusReasonMeshProtocolDestinationPort
+	SidecarProxyStatusReasonNonMeshProtocolDestinationPort = status.StatusReasonNonMeshProtocolDestinationPort
 )
 
 // RegisterTypes adds all resource types within the "mesh" API group

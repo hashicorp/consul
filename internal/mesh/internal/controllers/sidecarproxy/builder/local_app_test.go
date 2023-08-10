@@ -70,7 +70,7 @@ func TestBuildLocalApp(t *testing.T) {
 			actual := protoToJSON(t, proxyTmpl)
 			expected := goldenValue(t, name, actual, *update)
 
-			require.Equal(t, expected, actual)
+			require.JSONEq(t, expected, actual)
 		})
 	}
 }

@@ -10,10 +10,10 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
+	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -53,7 +53,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
 
 	suite.ctl = &reconciler{
-		cache: cache.New(),
+		cache: sidecarproxycache.New(),
 		getTrustDomain: func() (string, error) {
 			return "test.consul", nil
 		},
@@ -260,8 +260,8 @@ func (suite *meshControllerTestSuite) TestController() {
 
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
-	c := cache.New()
-	m := mapper.New(c)
+	c := sidecarproxycache.New()
+	m := sidecarproxymapper.New(c)
 
 	mgr.Register(Controller(c, m, func() (string, error) {
 		return "test.consul", nil
@@ -293,7 +293,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		}).Write(suite.T(), suite.client)
 	webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-	// Update destination's service apiEndpoints and workload to be non-mesh
+	// Update destination's service endpoints and workload to be non-mesh
 	// and check that:
 	// * api's proxy state template is deleted
 	// * we get a new web proxy resource re-generated
@@ -301,6 +301,19 @@ func (suite *meshControllerTestSuite) TestController() {
 	nonMeshPorts := map[string]*pbcatalog.WorkloadPort{
 		"tcp": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 	}
+
+	// Note: the order matters here because in reality service endpoints will only
+	// be reconciled after the workload has been updated, and so we need to write the
+	// workload before we write service endpoints.
+	suite.runtime.Logger.Trace("test: updating api-abc workload to be non-mesh")
+	resourcetest.Resource(catalog.WorkloadType, "api-abc").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Identity:  "api-identity",
+			Addresses: suite.apiWorkload.Addresses,
+			Ports:     nonMeshPorts}).
+		Write(suite.T(), suite.client)
+
+	suite.runtime.Logger.Trace("test: updating api-service to be non-mesh")
 	resourcetest.Resource(catalog.ServiceEndpointsType, "api-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
@@ -314,22 +327,15 @@ func (suite *meshControllerTestSuite) TestController() {
 		}).
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
-	resourcetest.Resource(catalog.WorkloadType, "api-abc").
-		WithData(suite.T(), &pbcatalog.Workload{
-			Identity:  "api-identity",
-			Addresses: suite.apiWorkload.Addresses,
-			Ports:     nonMeshPorts}).
-		Write(suite.T(), suite.client)
-
 	// Check that api proxy template is gone.
 	retry.Run(suite.T(), func(r *retry.R) {
 		suite.client.RequireResourceNotFound(r, apiProxyStateTemplateID)
 	})
 
 	// Check status on the pbmesh.Upstreams resource.
-	serviceRef := cache.KeyFromRefAndPort(resource.Reference(suite.apiService.Id, ""), "tcp")
+	serviceRef := resource.ReferenceToString(resource.Reference(suite.apiService.Id, ""))
 	suite.client.WaitForStatusCondition(suite.T(), webDestinations.Id, ControllerName,
-		status.ConditionNonMeshDestination(serviceRef))
+		status.ConditionMeshProtocolNotFound(serviceRef))
 
 	// We should get a new web proxy template resource because this destination should be removed.
 	webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
@@ -341,7 +347,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
 	suite.client.WaitForStatusCondition(suite.T(), webDestinations.Id, ControllerName,
-		status.ConditionMeshDestination(serviceRef))
+		status.ConditionMeshProtocolFound(serviceRef))
 
 	// We should also get a new web proxy template resource as this destination should be added again.
 	webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)

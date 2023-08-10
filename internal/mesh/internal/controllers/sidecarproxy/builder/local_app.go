@@ -9,45 +9,58 @@ import (
 )
 
 func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload) *Builder {
-	return b.addInboundListener(xdscommon.PublicListenerName, workload).
-		addInboundRouters(workload).
-		addInboundTLS()
+	// Go through workload ports and add the first non-mesh port we see.
+	// Note that the order of ports is non-deterministic here but the xds generation
+	// code should make sure to send it in the same order to Envoy to avoid unnecessary
+	// updates.
+	// todo (ishustava): Note we will need to support multiple ports in the future.
+	for portName, port := range workload.Ports {
+		clusterName := fmt.Sprintf("%s:%s", xdscommon.LocalAppClusterName, portName)
+
+		if port.Protocol != pbcatalog.Protocol_PROTOCOL_MESH {
+			b.addInboundListener(xdscommon.PublicListenerName, workload).
+				addInboundRouter(clusterName, port).
+				addInboundTLS().
+				buildListener().
+				addLocalAppCluster(clusterName).
+				addLocalAppStaticEndpoints(clusterName, port)
+			break
+		}
+	}
+
+	return b
 }
 
-func (b *Builder) getLastBuiltListener() *pbproxystate.Listener {
-	lastBuiltIndex := len(b.proxyStateTemplate.ProxyState.Listeners) - 1
-	return b.proxyStateTemplate.ProxyState.Listeners[lastBuiltIndex]
-}
-
-func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) *Builder {
+func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) *ListenerBuilder {
 	listener := &pbproxystate.Listener{
 		Name:      name,
 		Direction: pbproxystate.Direction_DIRECTION_INBOUND,
 	}
 
-	// We will take listener bind port from the workload for now.
+	// We will take listener bind port from the workload.
 	// Find mesh port.
-	var meshPort string
-	for portName, port := range workload.Ports {
-		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-			meshPort = portName
-			break
+	meshPort, ok := workload.GetMeshPortName()
+	if !ok {
+		// At this point, we should only get workloads that have mesh ports.
+		return &ListenerBuilder{
+			builder: b,
 		}
 	}
 
 	// Check if the workload has a specific address for the mesh port.
-	var meshAddress string
-	for _, address := range workload.Addresses {
-		for _, port := range address.Ports {
-			if port == meshPort {
-				meshAddress = address.Host
-			}
+	meshAddresses := workload.GetNonExternalAddressesForPort(meshPort)
+
+	// If there are no mesh addresses, return. This should be impossible.
+	if len(meshAddresses) == 0 {
+		return &ListenerBuilder{
+			builder: b,
 		}
 	}
-	// Otherwise, assume the first address in the addresses list.
-	if meshAddress == "" {
-		// It is safe to assume that there's at least one address because we validate it when creating the workload.
-		meshAddress = workload.Addresses[0].Host
+
+	// If there are more than one mesh address, use the first one in the list.
+	var meshAddress string
+	if len(meshAddresses) > 0 {
+		meshAddress = meshAddresses[0].Host
 	}
 
 	listener.BindAddress = &pbproxystate.Listener_HostPort{
@@ -57,85 +70,90 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 		},
 	}
 
-	return b.addListener(listener)
+	return b.NewListenerBuilder(listener)
 }
 
-func (b *Builder) addInboundRouters(workload *pbcatalog.Workload) *Builder {
-	listener := b.getLastBuiltListener()
+func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.WorkloadPort) *ListenerBuilder {
+	if l.listener == nil {
+		return l
+	}
 
-	// Go through workload ports and add the first non-mesh port we see.
-	// Note that the order of ports is non-deterministic here but the xds generation
-	// code should make sure to send it in the same order to Envoy to avoid unnecessary
-	// updates.
-	// todo (ishustava): Note we will need to support multiple ports in the future.
-	for portName, port := range workload.Ports {
-		clusterName := fmt.Sprintf("%s:%s", xdscommon.LocalAppClusterName, portName)
-		if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP {
-			r := &pbproxystate.Router{
-				Destination: &pbproxystate.Router_L4{
-					L4: &pbproxystate.L4Destination{
-						Name:       clusterName,
-						StatPrefix: listener.Name,
-					},
+	if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP {
+		r := &pbproxystate.Router{
+			Destination: &pbproxystate.Router_L4{
+				L4: &pbproxystate.L4Destination{
+					Name:       clusterName,
+					StatPrefix: l.listener.Name,
 				},
-			}
-			listener.Routers = append(listener.Routers, r)
-
-			// Make cluster for this router destination.
-			b.proxyStateTemplate.ProxyState.Clusters[clusterName] = &pbproxystate.Cluster{
-				Group: &pbproxystate.Cluster_EndpointGroup{
-					EndpointGroup: &pbproxystate.EndpointGroup{
-						Group: &pbproxystate.EndpointGroup_Static{
-							Static: &pbproxystate.StaticEndpointGroup{},
-						},
-					},
-				},
-			}
-
-			// Finally, add static endpoints. We're adding it statically as opposed to creating an endpoint ref
-			// because this endpoint is less likely to change as we're not tracking the health.
-			endpoint := &pbproxystate.Endpoint{
-				Address: &pbproxystate.Endpoint_HostPort{
-					HostPort: &pbproxystate.HostPortAddress{
-						Host: "127.0.0.1",
-						Port: port.Port,
-					},
-				},
-			}
-			b.proxyStateTemplate.ProxyState.Endpoints[clusterName] = &pbproxystate.Endpoints{
-				Endpoints: []*pbproxystate.Endpoint{endpoint},
-			}
-			break
+			},
 		}
+		l.listener.Routers = append(l.listener.Routers, r)
+	}
+	return l
+}
+
+func (b *Builder) addLocalAppCluster(clusterName string) *Builder {
+	// Make cluster for this router destination.
+	b.proxyStateTemplate.ProxyState.Clusters[clusterName] = &pbproxystate.Cluster{
+		Group: &pbproxystate.Cluster_EndpointGroup{
+			EndpointGroup: &pbproxystate.EndpointGroup{
+				Group: &pbproxystate.EndpointGroup_Static{
+					Static: &pbproxystate.StaticEndpointGroup{},
+				},
+			},
+		},
 	}
 	return b
 }
 
-func (b *Builder) addInboundTLS() *Builder {
-	listener := b.getLastBuiltListener()
+func (b *Builder) addLocalAppStaticEndpoints(clusterName string, port *pbcatalog.WorkloadPort) *Builder {
+	// We're adding endpoints statically as opposed to creating an endpoint ref
+	// because this endpoint is less likely to change as we're not tracking the health.
+	endpoint := &pbproxystate.Endpoint{
+		Address: &pbproxystate.Endpoint_HostPort{
+			HostPort: &pbproxystate.HostPortAddress{
+				Host: "127.0.0.1",
+				Port: port.Port,
+			},
+		},
+	}
+	b.proxyStateTemplate.ProxyState.Endpoints[clusterName] = &pbproxystate.Endpoints{
+		Endpoints: []*pbproxystate.Endpoint{endpoint},
+	}
+
+	return b
+}
+
+func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
+	if l.listener == nil {
+		return nil
+	}
+
 	// For inbound TLS, we want to use this proxy's identity.
-	workloadIdentity := b.proxyStateTemplate.ProxyState.Identity.Name
+	workloadIdentity := l.builder.proxyStateTemplate.ProxyState.Identity.Name
 
 	inboundTLS := &pbproxystate.TransportSocket{
 		ConnectionTls: &pbproxystate.TransportSocket_InboundMesh{
 			InboundMesh: &pbproxystate.InboundMeshMTLS{
-				IdentityKey:       workloadIdentity,
-				ValidationContext: &pbproxystate.MeshInboundValidationContext{TrustBundlePeerNameKeys: []string{b.id.Tenancy.PeerName}},
+				IdentityKey: workloadIdentity,
+				ValidationContext: &pbproxystate.MeshInboundValidationContext{
+					TrustBundlePeerNameKeys: []string{l.builder.id.Tenancy.PeerName},
+				},
 			},
 		},
 	}
-	b.proxyStateTemplate.RequiredLeafCertificates[workloadIdentity] = &pbproxystate.LeafCertificateRef{
+	l.builder.proxyStateTemplate.RequiredLeafCertificates[workloadIdentity] = &pbproxystate.LeafCertificateRef{
 		Name:      workloadIdentity,
-		Namespace: b.id.Tenancy.Namespace,
-		Partition: b.id.Tenancy.Partition,
+		Namespace: l.builder.id.Tenancy.Namespace,
+		Partition: l.builder.id.Tenancy.Partition,
 	}
 
-	b.proxyStateTemplate.RequiredTrustBundles[b.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
-		Peer: b.id.Tenancy.PeerName,
+	l.builder.proxyStateTemplate.RequiredTrustBundles[l.builder.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
+		Peer: l.builder.id.Tenancy.PeerName,
 	}
 
-	for i := range listener.Routers {
-		listener.Routers[i].InboundTls = inboundTLS
+	for i := range l.listener.Routers {
+		l.listener.Routers[i].InboundTls = inboundTLS
 	}
-	return b
+	return l
 }

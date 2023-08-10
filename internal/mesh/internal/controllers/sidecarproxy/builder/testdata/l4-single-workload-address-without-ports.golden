@@ -1,32 +1,32 @@
 {
-  "proxyState":  {
-    "identity":  {
-      "tenancy":  {
-        "partition":  "default",
-        "namespace":  "default",
-        "peerName":  "local"
+  "proxyState": {
+    "identity": {
+      "tenancy": {
+        "partition": "default",
+        "namespace": "default",
+        "peerName": "local"
       },
-      "name":  "test-identity"
+      "name": "test-identity"
     },
-    "listeners":  [
+    "listeners": [
       {
-        "name":  "public_listener",
-        "direction":  "DIRECTION_INBOUND",
-        "hostPort":  {
-          "host":  "10.0.0.1",
-          "port":  20000
+        "name": "public_listener",
+        "direction": "DIRECTION_INBOUND",
+        "hostPort": {
+          "host": "10.0.0.1",
+          "port": 20000
         },
-        "routers":  [
+        "routers": [
           {
-            "l4":  {
-              "name":  "local_app:port1",
-              "statPrefix":  "public_listener"
+            "l4": {
+              "name": "local_app:port1",
+              "statPrefix": "public_listener"
             },
-            "inboundTls":  {
-              "inboundMesh":  {
-                "identityKey":  "test-identity",
-                "validationContext":  {
-                  "trustBundlePeerNameKeys":  [
+            "inboundTls": {
+              "inboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "trustBundlePeerNameKeys": [
                     "local"
                   ]
                 }
@@ -36,36 +36,36 @@
         ]
       }
     ],
-    "clusters":  {
-      "local_app:port1":  {
-        "endpointGroup":  {
-          "static":  {}
+    "clusters": {
+      "local_app:port1": {
+        "endpointGroup": {
+          "static": {}
         }
       }
     },
-    "endpoints":  {
-      "local_app:port1":  {
-        "endpoints":  [
+    "endpoints": {
+      "local_app:port1": {
+        "endpoints": [
           {
-            "hostPort":  {
-              "host":  "127.0.0.1",
-              "port":  8080
+            "hostPort": {
+              "host": "127.0.0.1",
+              "port": 8080
             }
           }
         ]
       }
     }
   },
-  "requiredLeafCertificates":  {
-    "test-identity":  {
-      "name":  "test-identity",
-      "namespace":  "default",
-      "partition":  "default"
+  "requiredLeafCertificates": {
+    "test-identity": {
+      "name": "test-identity",
+      "namespace": "default",
+      "partition": "default"
     }
   },
-  "requiredTrustBundles":  {
-    "local":  {
-      "peer":  "local"
+  "requiredTrustBundles": {
+    "local": {
+      "peer": "local"
     }
   }
 }

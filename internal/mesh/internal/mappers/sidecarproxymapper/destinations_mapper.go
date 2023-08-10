@@ -1,11 +1,10 @@
-package mapper
+package sidecarproxymapper
 
 import (
 	"context"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
@@ -21,7 +20,7 @@ func (m *Mapper) MapDestinationsToProxyStateTemplate(ctx context.Context, rt con
 	}
 
 	// Look up workloads for this destinations.
-	sourceProxyIDs := make(map[string]*pbresource.ID)
+	sourceProxyIDs := make(map[resource.ReferenceKey]struct{})
 	var result []controller.Request
 	for _, prefix := range destinations.Workloads.Prefixes {
 		resp, err := rt.Client.List(ctx, &pbresource.ListRequest{
@@ -34,7 +33,7 @@ func (m *Mapper) MapDestinationsToProxyStateTemplate(ctx context.Context, rt con
 		}
 		for _, r := range resp.Resources {
 			proxyID := resource.ReplaceType(types.ProxyStateTemplateType, r.Id)
-			sourceProxyIDs[cache.KeyFromID(proxyID)] = proxyID
+			sourceProxyIDs[resource.NewReferenceKey(proxyID)] = struct{}{}
 			result = append(result, controller.Request{
 				ID: proxyID,
 			})
@@ -42,13 +41,12 @@ func (m *Mapper) MapDestinationsToProxyStateTemplate(ctx context.Context, rt con
 	}
 
 	for _, name := range destinations.Workloads.Names {
-		id := &pbresource.ID{
+		proxyID := &pbresource.ID{
 			Name:    name,
 			Tenancy: res.Id.Tenancy,
-			Type:    catalog.WorkloadType,
+			Type:    types.ProxyStateTemplateType,
 		}
-		proxyID := resource.ReplaceType(types.ProxyStateTemplateType, id)
-		sourceProxyIDs[cache.KeyFromID(proxyID)] = proxyID
+		sourceProxyIDs[resource.NewReferenceKey(proxyID)] = struct{}{}
 		result = append(result, controller.Request{
 			ID: proxyID,
 		})
@@ -56,13 +54,13 @@ func (m *Mapper) MapDestinationsToProxyStateTemplate(ctx context.Context, rt con
 
 	// Add this destination to cache.
 	for _, destination := range destinations.Upstreams {
-		destinationRef := &intermediate.CombinedDestinationRef{
+		destinationRef := intermediate.CombinedDestinationRef{
 			ServiceRef:             destination.DestinationRef,
 			Port:                   destination.DestinationPort,
 			ExplicitDestinationsID: res.Id,
 			SourceProxies:          sourceProxyIDs,
 		}
-		m.cache.Write(destinationRef)
+		m.cache.WriteDestination(destinationRef)
 	}
 
 	return result, nil

@@ -19,7 +19,7 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 	return b
 }
 
-func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) *Builder {
+func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) {
 	clusterName := DestinationClusterName(destination.Explicit.DestinationRef, destination.Explicit.Datacenter, b.trustDomain)
 	statPrefix := DestinationStatPrefix(destination.Explicit.DestinationRef, destination.Explicit.Datacenter)
 
@@ -35,17 +35,16 @@ func (b *Builder) buildExplicitDestination(destination *intermediate.Destination
 		meshPortName := findMeshPort(destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports)
 
 		if destPort != nil {
-			return b.addOutboundDestinationListener(destination.Explicit).
+			b.addOutboundDestinationListener(destination.Explicit).
 				addRouter(clusterName, statPrefix, destPort.Protocol).
+				buildListener().
 				addCluster(clusterName, destination.Identities).
 				addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, meshPortName)
 		}
 	}
-
-	return b
 }
 
-func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Builder {
+func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *ListenerBuilder {
 	listener := &pbproxystate.Listener{
 		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
 	}
@@ -72,12 +71,10 @@ func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Bui
 		listener.Name = DestinationListenerName(explicit.DestinationRef.Name, explicit.DestinationPort, destinationAddr.Unix.Path, 0)
 	}
 
-	return b.addListener(listener)
+	return b.NewListenerBuilder(listener)
 }
 
-func (b *Builder) addRouter(clusterName, statPrefix string, protocol pbcatalog.Protocol) *Builder {
-	listener := b.getLastBuiltListener()
-
+func (l *ListenerBuilder) addRouter(clusterName, statPrefix string, protocol pbcatalog.Protocol) *ListenerBuilder {
 	// For explicit destinations, we have no filter chain match, and filters are based on port protocol.
 	switch protocol {
 	case pbcatalog.Protocol_PROTOCOL_TCP:
@@ -89,9 +86,9 @@ func (b *Builder) addRouter(clusterName, statPrefix string, protocol pbcatalog.P
 				},
 			},
 		}
-		listener.Routers = append(listener.Routers, router)
+		l.listener.Routers = append(l.listener.Routers, router)
 	}
-	return b
+	return l
 }
 
 func (b *Builder) addCluster(clusterName string, destinationIdentities []*pbresource.Reference) *Builder {

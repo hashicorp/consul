@@ -7,7 +7,7 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	meshStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
@@ -175,25 +175,25 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 
 	// Create cache and pre-populate it.
-	c := cache.New()
-	dest1 := &intermediate.CombinedDestinationRef{
+	c := sidecarproxycache.New()
+	dest1 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resourcetest.Resource(catalog.ServiceType, "test-service-1").ReferenceNoSection(),
 		Port:                   "tcp",
 		ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "test-servicedestinations-1").ID(),
-		SourceProxies: map[string]*pbresource.ID{
-			cache.KeyFromID(proxyID): proxyID,
+		SourceProxies: map[resource.ReferenceKey]struct{}{
+			resource.NewReferenceKey(proxyID): {},
 		},
 	}
-	dest2 := &intermediate.CombinedDestinationRef{
+	dest2 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection(),
 		Port:                   "tcp",
 		ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "test-servicedestinations-2").ID(),
-		SourceProxies: map[string]*pbresource.ID{
-			cache.KeyFromID(proxyID): proxyID,
+		SourceProxies: map[resource.ReferenceKey]struct{}{
+			resource.NewReferenceKey(proxyID): {},
 		},
 	}
-	c.Write(dest1)
-	c.Write(dest2)
+	c.WriteDestination(dest1)
+	c.WriteDestination(dest2)
 
 	f := Fetcher{Cache: c, Client: suite.client}
 	_, err := f.FetchWorkload(context.Background(), proxyID)
@@ -313,35 +313,35 @@ func (suite *dataFetcherSuite) TestFetcher_FetchErrors() {
 }
 
 func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
-	destination1 := &intermediate.CombinedDestinationRef{
+	destination1 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resource.Reference(suite.api1Service.Id, ""),
 		Port:                   "tcp",
 		ExplicitDestinationsID: suite.webDestinations.Id,
-		SourceProxies: map[string]*pbresource.ID{
-			cache.KeyFromID(suite.webProxy.Id): suite.webProxy.Id,
+		SourceProxies: map[resource.ReferenceKey]struct{}{
+			resource.NewReferenceKey(suite.webProxy.Id): {},
 		},
 	}
-	destination2 := &intermediate.CombinedDestinationRef{
+	destination2 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resource.Reference(suite.api2Service.Id, ""),
 		Port:                   "tcp1",
 		ExplicitDestinationsID: suite.webDestinations.Id,
-		SourceProxies: map[string]*pbresource.ID{
-			cache.KeyFromID(suite.webProxy.Id): suite.webProxy.Id,
+		SourceProxies: map[resource.ReferenceKey]struct{}{
+			resource.NewReferenceKey(suite.webProxy.Id): {},
 		},
 	}
-	destination3 := &intermediate.CombinedDestinationRef{
+	destination3 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resource.Reference(suite.api2Service.Id, ""),
 		Port:                   "tcp2",
 		ExplicitDestinationsID: suite.webDestinations.Id,
-		SourceProxies: map[string]*pbresource.ID{
-			cache.KeyFromID(suite.webProxy.Id): suite.webProxy.Id,
+		SourceProxies: map[resource.ReferenceKey]struct{}{
+			resource.NewReferenceKey(suite.webProxy.Id): {},
 		},
 	}
 
-	c := cache.New()
-	c.Write(destination1)
-	c.Write(destination2)
-	c.Write(destination3)
+	c := sidecarproxycache.New()
+	c.WriteDestination(destination1)
+	c.WriteDestination(destination2)
+	c.WriteDestination(destination3)
 
 	f := Fetcher{
 		Cache:  c,
@@ -349,48 +349,50 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 	}
 
 	suite.T().Run("destinations not found", func(t *testing.T) {
-		destinationRefNoDestinations := &intermediate.CombinedDestinationRef{
+		destinationRefNoDestinations := intermediate.CombinedDestinationRef{
 			ServiceRef:             resource.Reference(suite.api1Service.Id, ""),
 			Port:                   "tcp",
 			ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "not-found").ID(),
-			SourceProxies: map[string]*pbresource.ID{
-				cache.KeyFromID(suite.webProxy.Id): suite.webProxy.Id,
+			SourceProxies: map[resource.ReferenceKey]struct{}{
+				resource.NewReferenceKey(suite.webProxy.Id): {},
 			},
 		}
-		c.Write(destinationRefNoDestinations)
+		c.WriteDestination(destinationRefNoDestinations)
 
-		destinationRefs := []*intermediate.CombinedDestinationRef{destinationRefNoDestinations}
+		destinationRefs := []intermediate.CombinedDestinationRef{destinationRefNoDestinations}
 		destinations, _, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
-		require.Nil(t, c.ReadDestination(destinationRefNoDestinations.ServiceRef, destinationRefNoDestinations.Port))
+		_, foundDest := c.ReadDestination(destinationRefNoDestinations.ServiceRef, destinationRefNoDestinations.Port)
+		require.False(t, foundDest)
 	})
 
 	suite.T().Run("service endpoints not found", func(t *testing.T) {
 		notFoundServiceRef := resourcetest.Resource(catalog.ServiceType, "not-found").ReferenceNoSection()
-		destinationNoServiceEndpoints := &intermediate.CombinedDestinationRef{
+		destinationNoServiceEndpoints := intermediate.CombinedDestinationRef{
 			ServiceRef:             notFoundServiceRef,
 			Port:                   "tcp",
 			ExplicitDestinationsID: suite.webDestinations.Id,
-			SourceProxies: map[string]*pbresource.ID{
-				cache.KeyFromID(suite.webProxy.Id): suite.webProxy.Id,
+			SourceProxies: map[resource.ReferenceKey]struct{}{
+				resource.NewReferenceKey(suite.webProxy.Id): {},
 			},
 		}
-		c.Write(destinationNoServiceEndpoints)
+		c.WriteDestination(destinationNoServiceEndpoints)
 
-		destinationRefs := []*intermediate.CombinedDestinationRef{destinationNoServiceEndpoints}
+		destinationRefs := []intermediate.CombinedDestinationRef{destinationNoServiceEndpoints}
 		destinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 
-		destinationRef := cache.KeyFromID(destinationNoServiceEndpoints.ExplicitDestinationsID)
-		serviceRef := cache.KeyFromRefAndPort(destinationNoServiceEndpoints.ServiceRef, destinationNoServiceEndpoints.Port)
+		destinationRef := resource.IDToString(destinationNoServiceEndpoints.ExplicitDestinationsID)
+		serviceRef := resource.ReferenceToString(destinationNoServiceEndpoints.ServiceRef)
 
 		require.Len(t, statuses[destinationRef].Conditions, 1)
 		require.Equal(t, statuses[destinationRef].Conditions[0],
 			meshStatus.ConditionDestinationServiceNotFound(serviceRef))
 
-		require.NotNil(t, c.ReadDestination(destinationNoServiceEndpoints.ServiceRef, destinationNoServiceEndpoints.Port))
+		_, foundDest := c.ReadDestination(destinationNoServiceEndpoints.ServiceRef, destinationNoServiceEndpoints.Port)
+		require.True(t, foundDest)
 	})
 
 	suite.T().Run("service endpoints not on mesh", func(t *testing.T) {
@@ -407,35 +409,36 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 		}
 		apiNonMeshServiceEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-1").
 			WithData(suite.T(), apiNonMeshServiceEndpointsData).Write(suite.T(), suite.client)
-		destinationNonMeshServiceEndpoints := &intermediate.CombinedDestinationRef{
+		destinationNonMeshServiceEndpoints := intermediate.CombinedDestinationRef{
 			ServiceRef:             resource.Reference(apiNonMeshServiceEndpoints.Owner, ""),
 			Port:                   "tcp",
 			ExplicitDestinationsID: suite.webDestinations.Id,
-			SourceProxies: map[string]*pbresource.ID{
-				cache.KeyFromID(suite.webProxy.Id): suite.webProxy.Id,
+			SourceProxies: map[resource.ReferenceKey]struct{}{
+				resource.NewReferenceKey(suite.webProxy.Id): {},
 			},
 		}
-		c.Write(destinationNonMeshServiceEndpoints)
+		c.WriteDestination(destinationNonMeshServiceEndpoints)
 
-		destinationRefs := []*intermediate.CombinedDestinationRef{destinationNonMeshServiceEndpoints}
+		destinationRefs := []intermediate.CombinedDestinationRef{destinationNonMeshServiceEndpoints}
 		destinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 
-		destinationRef := cache.KeyFromID(destinationNonMeshServiceEndpoints.ExplicitDestinationsID)
-		serviceRef := cache.KeyFromRefAndPort(destinationNonMeshServiceEndpoints.ServiceRef, destinationNonMeshServiceEndpoints.Port)
+		destinationRef := resource.IDToString(destinationNonMeshServiceEndpoints.ExplicitDestinationsID)
+		serviceRef := resource.ReferenceToString(destinationNonMeshServiceEndpoints.ServiceRef)
 
 		require.Len(t, statuses[destinationRef].Conditions, 2)
 		prototest.AssertElementsMatch(t, statuses[destinationRef].Conditions,
 			[]*pbresource.Condition{
 				meshStatus.ConditionDestinationServiceFound(serviceRef),
-				meshStatus.ConditionNonMeshDestination(serviceRef),
+				meshStatus.ConditionMeshProtocolNotFound(serviceRef),
 			})
 
-		require.NotNil(t, c.ReadDestination(destinationNonMeshServiceEndpoints.ServiceRef, destinationNonMeshServiceEndpoints.Port))
+		_, foundDest := c.ReadDestination(destinationNonMeshServiceEndpoints.ServiceRef, destinationNonMeshServiceEndpoints.Port)
+		require.True(t, foundDest)
 	})
 
-	suite.T().Run("invalid destinations", func(t *testing.T) {
+	suite.T().Run("invalid destinations: destination is not on the mesh", func(t *testing.T) {
 		// Update api1 to no longer be on the mesh.
 		suite.api1ServiceEndpoints = resourcetest.Resource(catalog.ServiceEndpointsType, "api-1").
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{
@@ -450,17 +453,17 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 				},
 			}).Write(suite.T(), suite.client)
 
-		destinationRefs := []*intermediate.CombinedDestinationRef{destination1}
+		destinationRefs := []intermediate.CombinedDestinationRef{destination1}
 
 		destinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
-		serviceRef := cache.KeyFromRefAndPort(destination1.ServiceRef, destination1.Port)
-		destinationRef := cache.KeyFromID(destination1.ExplicitDestinationsID)
+		serviceRef := resource.ReferenceToString(destination1.ServiceRef)
+		destinationRef := resource.IDToString(destination1.ExplicitDestinationsID)
 		expectedStatus := &intermediate.Status{
 			ID:         suite.webDestinations.Id,
 			Generation: suite.webDestinations.Generation,
 			Conditions: []*pbresource.Condition{
 				meshStatus.ConditionDestinationServiceFound(serviceRef),
-				meshStatus.ConditionNonMeshDestination(serviceRef),
+				meshStatus.ConditionMeshProtocolNotFound(serviceRef),
 			},
 		}
 
@@ -474,7 +477,8 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 
 		// Check that destination service is still in cache because it's still referenced from the pbmesh.Upstreams
 		// resource.
-		require.NotNil(t, c.ReadDestination(destination1.ServiceRef, destination1.Port))
+		_, foundDest := c.ReadDestination(destination1.ServiceRef, destination1.Port)
+		require.True(t, foundDest)
 
 		// Update the endpoints to be mesh enabled again and check that the status is now valid.
 		suite.api1ServiceEndpoints = resourcetest.Resource(catalog.ServiceEndpointsType, "api-1").
@@ -484,7 +488,65 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 			Generation: suite.webDestinations.Generation,
 			Conditions: []*pbresource.Condition{
 				meshStatus.ConditionDestinationServiceFound(serviceRef),
-				meshStatus.ConditionMeshDestination(serviceRef),
+				meshStatus.ConditionMeshProtocolFound(serviceRef),
+				meshStatus.ConditionNonMeshProtocolDestinationPort(serviceRef, destination1.Port),
+			},
+		}
+
+		_, statuses, err = f.FetchDestinationsData(suite.ctx, destinationRefs)
+		require.NoError(t, err)
+		prototest.AssertDeepEqual(t, expectedStatus, statuses[destinationRef])
+	})
+
+	suite.T().Run("invalid destinations: destination is pointing to a mesh port", func(t *testing.T) {
+		// Create a destination pointing to the mesh port.
+		destinationMeshDestinationPort := intermediate.CombinedDestinationRef{
+			ServiceRef:             resource.Reference(suite.api1Service.Id, ""),
+			Port:                   "mesh",
+			ExplicitDestinationsID: suite.webDestinations.Id,
+			SourceProxies: map[resource.ReferenceKey]struct{}{
+				resource.NewReferenceKey(suite.webProxy.Id): {},
+			},
+		}
+		c.WriteDestination(destinationMeshDestinationPort)
+		destinationRefs := []intermediate.CombinedDestinationRef{destinationMeshDestinationPort}
+
+		destinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
+		serviceRef := resource.ReferenceToString(destination1.ServiceRef)
+		destinationRef := resource.IDToString(destination1.ExplicitDestinationsID)
+		expectedStatus := &intermediate.Status{
+			ID:         suite.webDestinations.Id,
+			Generation: suite.webDestinations.Generation,
+			Conditions: []*pbresource.Condition{
+				meshStatus.ConditionDestinationServiceFound(serviceRef),
+				meshStatus.ConditionMeshProtocolFound(serviceRef),
+				meshStatus.ConditionMeshProtocolDestinationPort(serviceRef, destinationMeshDestinationPort.Port),
+			},
+		}
+
+		require.NoError(t, err)
+
+		// Check that the status is generated correctly.
+		prototest.AssertDeepEqual(t, expectedStatus, statuses[destinationRef])
+
+		// Check that we didn't return any destinations.
+		require.Nil(t, destinations)
+
+		// Check that destination service is still in cache because it's still referenced from the pbmesh.Upstreams
+		// resource.
+		_, foundDest := c.ReadDestination(destinationMeshDestinationPort.ServiceRef, destinationMeshDestinationPort.Port)
+		require.True(t, foundDest)
+
+		// Update the destination to point to a non-mesh port and check that the status is now updated.
+		destinationRefs[0].Port = "tcp"
+		c.WriteDestination(destinationMeshDestinationPort)
+		expectedStatus = &intermediate.Status{
+			ID:         suite.webDestinations.Id,
+			Generation: suite.webDestinations.Generation,
+			Conditions: []*pbresource.Condition{
+				meshStatus.ConditionDestinationServiceFound(serviceRef),
+				meshStatus.ConditionMeshProtocolFound(serviceRef),
+				meshStatus.ConditionNonMeshProtocolDestinationPort(serviceRef, destinationRefs[0].Port),
 			},
 		}
 
@@ -494,7 +556,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 	})
 
 	suite.T().Run("happy path", func(t *testing.T) {
-		destinationRefs := []*intermediate.CombinedDestinationRef{destination1, destination2, destination3}
+		destinationRefs := []intermediate.CombinedDestinationRef{destination1, destination2, destination3}
 		expectedDestinations := []*intermediate.Destination{
 			{
 				Explicit: suite.webDestinationsData.Upstreams[0],
@@ -538,17 +600,18 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 		}
 		var expectedConditions []*pbresource.Condition
 		for _, d := range destinationRefs {
-			ref := cache.KeyFromRefAndPort(d.ServiceRef, d.Port)
+			ref := resource.ReferenceToString(d.ServiceRef)
 			expectedConditions = append(expectedConditions,
 				meshStatus.ConditionDestinationServiceFound(ref),
-				meshStatus.ConditionMeshDestination(ref))
+				meshStatus.ConditionMeshProtocolFound(ref),
+				meshStatus.ConditionNonMeshProtocolDestinationPort(ref, d.Port))
 		}
 
 		actualDestinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 
 		// Check that all statuses have "happy" conditions.
-		dref := cache.KeyFromID(destination1.ExplicitDestinationsID)
+		dref := resource.IDToString(destination1.ExplicitDestinationsID)
 		prototest.AssertElementsMatch(t, expectedConditions, statuses[dref].Conditions)
 
 		// Check that we've computed expanded destinations correctly.

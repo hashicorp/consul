@@ -34,9 +34,20 @@ func (b *Builder) Build() *pbmesh.ProxyStateTemplate {
 	return b.proxyStateTemplate
 }
 
-func (b *Builder) addListener(l *pbproxystate.Listener) *Builder {
-	// Add listener to proxy state template
-	b.proxyStateTemplate.ProxyState.Listeners = append(b.proxyStateTemplate.ProxyState.Listeners, l)
+type ListenerBuilder struct {
+	listener *pbproxystate.Listener
+	builder  *Builder
+}
 
-	return b
+func (b *Builder) NewListenerBuilder(l *pbproxystate.Listener) *ListenerBuilder {
+	return &ListenerBuilder{
+		listener: l,
+		builder:  b,
+	}
+}
+
+func (l *ListenerBuilder) buildListener() *Builder {
+	l.builder.proxyStateTemplate.ProxyState.Listeners = append(l.builder.proxyStateTemplate.ProxyState.Listeners, l.listener)
+
+	return l.builder
 }

@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 func protoToJSON(t *testing.T, pb proto.Message) string {
 	t.Helper()
 	m := protojson.MarshalOptions{
-		Multiline: true,
+		Indent: "  ",
 	}
 	gotJSON, err := m.Marshal(pb)
 	require.NoError(t, err)
