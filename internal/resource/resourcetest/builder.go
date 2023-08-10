@@ -1,24 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package resourcetest
 
 import (
-	"strings"
+	"context"
 
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
-
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type resourceBuilder struct {
@@ -37,27 +27,14 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					Kind:         rtype.Kind,
 				},
 				Tenancy: &pbresource.Tenancy{
-					Partition: resource.DefaultPartitionName,
-					Namespace: resource.DefaultNamespaceName,
+					Partition: "default",
+					Namespace: "default",
 					PeerName:  "local",
 				},
 				Name: name,
 			},
 		},
 	}
-}
-
-func ResourceID(id *pbresource.ID) *resourceBuilder {
-	return &resourceBuilder{
-		resource: &pbresource.Resource{
-			Id: id,
-		},
-	}
-}
-
-func (b *resourceBuilder) WithTenancy(tenant *pbresource.Tenancy) *resourceBuilder {
-	b.resource.Id.Tenancy = tenant
-	return b
 }
 
 func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourceBuilder {
@@ -128,47 +105,25 @@ func (b *resourceBuilder) ID() *pbresource.ID {
 	return b.resource.Id
 }
 
-func (b *resourceBuilder) Reference(section string) *pbresource.Reference {
-	return resource.Reference(b.ID(), section)
-}
-
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 
-	ctx := testutil.TestContext(t)
-
 	res := b.resource
 
-	var rsp *pbresource.WriteResponse
-	var err error
-
-	// Retry any writes where the error is a UID mismatch and the UID was not specified. This is indicative
-	// of using a follower to rewrite an object who is not perfectly in-sync with the leader.
-	retry.Run(t, func(r *retry.R) {
-		rsp, err = client.Write(ctx, &pbresource.WriteRequest{
-			Resource: res,
-		})
-
-		if err == nil || res.Id.Uid != "" || status.Code(err) != codes.FailedPrecondition {
-			if err != nil {
-				t.Logf("write saw error: %v", err)
-			}
-			return
-		}
-
-		if strings.Contains(err.Error(), storage.ErrWrongUid.Error()) {
-			r.Fatalf("resource write failed due to uid mismatch - most likely a transient issue when talking to a non-leader")
-		} else {
-			// other errors are unexpected and should cause an immediate failure
-			r.Stop(err)
-		}
+	rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{
+		Resource: res,
 	})
 
+	require.NoError(t, err)
+
 	if !b.dontCleanup {
-		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
-		id.Uid = ""
-		t.Cleanup(func() {
-			NewClient(client).MustDelete(t, id)
+		cleaner, ok := t.(CleanupT)
+		require.True(t, ok, "T does not implement a Cleanup method and cannot be used with automatic resource cleanup")
+		cleaner.Cleanup(func() {
+			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{
+				Id: rsp.Resource.Id,
+			})
+			require.NoError(t, err)
 		})
 	}
 
@@ -181,7 +136,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 			ObservedGeneration: rsp.Resource.Generation,
 			Conditions:         original.Conditions,
 		}
-		_, err := client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
+		_, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{
 			Id:     rsp.Resource.Id,
 			Key:    key,
 			Status: status,
@@ -189,7 +144,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		require.NoError(t, err)
 	}
 
-	readResp, err := client.Read(ctx, &pbresource.ReadRequest{
+	readResp, err := client.Read(context.Background(), &pbresource.ReadRequest{
 		Id: rsp.Resource.Id,
 	})
 

@@ -14,9 +14,9 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -56,12 +56,16 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
+		explicit := cfgSnap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
 		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false)
 		if err != nil {
 			return nil, err
-		}
-		if virtualHost == nil {
-			continue
 		}
 
 		route := &envoy_route_v3.RouteConfiguration{
@@ -245,6 +249,10 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			continue // ignore; not relevant
 		}
 
+		if cfgSnap.MeshGateway.Leaf == nil {
+			continue // ignore; not ready
+		}
+
 		uid := proxycfg.NewUpstreamIDFromServiceName(svc)
 
 		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(
@@ -256,9 +264,6 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 		)
 		if err != nil {
 			return nil, err
-		}
-		if virtualHost == nil {
-			continue
 		}
 
 		route := &envoy_route_v3.RouteConfiguration{
@@ -369,9 +374,6 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			uid := proxycfg.NewUpstreamID(&u)
 			chain := cfgSnap.IngressGateway.DiscoveryChain[uid]
 			if chain == nil {
-				// Note that if we continue here we must also do this in the cluster generation
-				s.Logger.Warn("could not find discovery chain for ingress upstream",
-					"listener", listenerKey, "upstream", uid)
 				continue
 			}
 
@@ -379,9 +381,6 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
 			if err != nil {
 				return nil, err
-			}
-			if virtualHost == nil {
-				continue
 			}
 
 			// Lookup listener and service config details from ingress gateway
@@ -467,7 +466,6 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			uid := proxycfg.NewUpstreamID(&upstream)
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
-				// Note that if we continue here we must also do this in the cluster generation
 				s.Logger.Debug("Discovery chain not found for flattened route", "discovery chain ID", uid)
 				continue
 			}
@@ -477,9 +475,6 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
 			if err != nil {
 				return nil, err
-			}
-			if virtualHost == nil {
-				continue
 			}
 
 			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
@@ -923,7 +918,7 @@ func (s *ResourceGenerator) makeRouteActionForChainCluster(
 	chain *structs.CompiledDiscoveryChain,
 	forMeshGateway bool,
 ) (*envoy_route_v3.Route_Route, bool) {
-	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
+	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
 	if clusterName == "" {
 		return nil, false
 	}
@@ -956,7 +951,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		}
 		targetID := nextNode.Resolver.Target
 
-		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
+		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
 		if clusterName == "" {
 			continue
 		}
@@ -980,18 +975,19 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
 	}
 
-	var envoyWeightScale *wrapperspb.UInt32Value
-	if totalWeight == 10000 {
-		envoyWeightScale = makeUint32Value(10000)
+	envoyWeightScale := 10000
+	if envoyWeightScale < totalWeight {
+		clusters[0].Weight.Value += uint32(totalWeight - envoyWeightScale)
+	} else {
+		clusters[0].Weight.Value += uint32(envoyWeightScale - totalWeight)
 	}
 
 	return &envoy_route_v3.Route_Route{
 		Route: &envoy_route_v3.RouteAction{
 			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
 				WeightedClusters: &envoy_route_v3.WeightedCluster{
-					Clusters: clusters,
-					// this field is deprecated, and we should get the desired behavior with the front-end validation
-					TotalWeight: envoyWeightScale, // scaled up 100%
+					Clusters:    clusters,
+					TotalWeight: makeUint32Value(envoyWeightScale), // scaled up 100%
 				},
 			},
 		},

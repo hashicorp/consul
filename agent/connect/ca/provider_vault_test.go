@@ -60,7 +60,6 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
 		rawConfig map[string]interface{}
 		expConfig *structs.VaultCAProviderConfig
-		isPrimary bool
 		expError  string
 	}{
 		"no token and no auth method provided": {
@@ -71,26 +70,15 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
 			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
 		},
-		"primary no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
-			isPrimary: true,
+		"no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test"},
 			expError:  "must provide a valid path to a root PKI backend",
-		},
-		"secondary no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
-			isPrimary: false,
-			expConfig: &structs.VaultCAProviderConfig{
-				CommonCAProviderConfig: defaultCommonConfig(),
-				Token:                  "test",
-				IntermediatePKIPath:    "test/",
-			},
 		},
 		"no root intermediate path": {
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
 			expError:  "must provide a valid path for the intermediate PKI backend",
 		},
 		"adds a slash to RootPKIPath and IntermediatePKIPath": {
-			isPrimary: true,
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
@@ -103,7 +91,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			config, err := ParseVaultCAConfig(c.rawConfig, c.isPrimary)
+			config, err := ParseVaultCAConfig(c.rawConfig)
 			if c.expError != "" {
 				require.EqualError(t, err, c.expError)
 			} else {

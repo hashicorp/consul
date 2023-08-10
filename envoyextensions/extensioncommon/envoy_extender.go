@@ -21,7 +21,7 @@ type EnvoyExtender interface {
 
 	// Extend updates indexed xDS structures to include patches for
 	// built-in extensions. It is responsible for applying extensions to
-	// the appropriate xDS resources. If any portion of this function fails,
+	// the the appropriate xDS resources. If any portion of this function fails,
 	// it will attempt continue and return an error. The caller can then determine
 	// if it is better to use a partially applied extension or error out.
 	Extend(*xdscommon.IndexedResources, *RuntimeConfig) (*xdscommon.IndexedResources, error)

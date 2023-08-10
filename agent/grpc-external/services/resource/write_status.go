@@ -20,8 +20,7 @@ import (
 )
 
 func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
-	// TODO(spatel): Refactor _ and entMeta as part of NET-4912
-	authz, _, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}

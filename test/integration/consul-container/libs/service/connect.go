@@ -157,15 +157,8 @@ type SidecarConfig struct {
 // "consul connect envoy", for service name (serviceName) on the specified
 // node. The container exposes port serviceBindPort and envoy admin port
 // (19000) by mapping them onto host ports. The container's name has a prefix
-// combining datacenter and name. The customContainerConf parameter can be used
-// to mutate the testcontainers.ContainerRequest used to create the sidecar proxy.
-func NewConnectService(
-	ctx context.Context,
-	sidecarCfg SidecarConfig,
-	serviceBindPorts []int,
-	node cluster.Agent,
-	customContainerConf func(request testcontainers.ContainerRequest) testcontainers.ContainerRequest,
-) (*ConnectContainer, error) {
+// combining datacenter and name.
+func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBindPorts []int, node cluster.Agent) (*ConnectContainer, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
@@ -272,11 +265,6 @@ func NewConnectService(
 	exposedPorts := make([]string, len(appPortStrs))
 	copy(exposedPorts, appPortStrs)
 	exposedPorts = append(exposedPorts, adminPortStr)
-
-	if customContainerConf != nil {
-		req = customContainerConf(req)
-	}
-
 	info, err := cluster.LaunchContainerOnNode(ctx, node, req, exposedPorts)
 	if err != nil {
 		return nil, err

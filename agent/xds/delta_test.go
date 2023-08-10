@@ -1697,12 +1697,6 @@ func Test_validateAndApplyEnvoyExtension_Validations(t *testing.T) {
 			err:           false,
 		},
 		{
-			name:          "valid everything - no resources and required",
-			runtimeConfig: makeRuntimeConfig(true, ">= 1.15.0", ">= 1.25.0", nil),
-			err:           true,
-			errString:     "failed to patch xDS resources in",
-		},
-		{
 			name:          "valid everything",
 			runtimeConfig: makeRuntimeConfig(false, ">= 1.15.0", ">= 1.25.0", nil),
 			err:           false,

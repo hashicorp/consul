@@ -28,8 +28,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		return nil, status.Errorf(codes.Internal, "failed list by owner: %v", err)
 	}
 
-	// TODO(spatel): Refactor _ and entMeta in NET-4917
-	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +41,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		}
 
 		// ACL filter
-		err = reg.ACLs.Read(authz, authzContext, child.Id)
+		err = reg.ACLs.Read(authz, child.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue

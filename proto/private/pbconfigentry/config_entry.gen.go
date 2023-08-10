@@ -53,16 +53,6 @@ func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayLis
 	if s.TLS != nil {
 		APIGatewayTLSConfigurationToStructs(s.TLS, &t.TLS)
 	}
-	if s.Override != nil {
-		var x structs.APIGatewayPolicy
-		APIGatewayPolicyToStructs(s.Override, &x)
-		t.Override = &x
-	}
-	if s.Default != nil {
-		var x structs.APIGatewayPolicy
-		APIGatewayPolicyToStructs(s.Default, &x)
-		t.Default = &x
-	}
 }
 func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayListener) {
 	if s == nil {
@@ -77,28 +67,6 @@ func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayL
 		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
 		s.TLS = &x
 	}
-	if t.Override != nil {
-		var x APIGatewayPolicy
-		APIGatewayPolicyFromStructs(t.Override, &x)
-		s.Override = &x
-	}
-	if t.Default != nil {
-		var x APIGatewayPolicy
-		APIGatewayPolicyFromStructs(t.Default, &x)
-		s.Default = &x
-	}
-}
-func APIGatewayPolicyToStructs(s *APIGatewayPolicy, t *structs.APIGatewayPolicy) {
-	if s == nil {
-		return
-	}
-	t.JWT = gwJWTRequirementToStructs(s.JWT)
-}
-func APIGatewayPolicyFromStructs(t *structs.APIGatewayPolicy, s *APIGatewayPolicy) {
-	if s == nil {
-		return
-	}
-	s.JWT = gwJWTRequirementFromStructs(t.JWT)
 }
 func APIGatewayTLSConfigurationToStructs(s *APIGatewayTLSConfiguration, t *structs.APIGatewayTLSConfiguration) {
 	if s == nil {
@@ -401,17 +369,6 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 		URLRewriteToStructs(s.URLRewrite, &x)
 		t.URLRewrite = &x
 	}
-	if s.RetryFilter != nil {
-		var x structs.RetryFilter
-		RetryFilterToStructs(s.RetryFilter, &x)
-		t.RetryFilter = &x
-	}
-	if s.TimeoutFilter != nil {
-		var x structs.TimeoutFilter
-		TimeoutFilterToStructs(s.TimeoutFilter, &x)
-		t.TimeoutFilter = &x
-	}
-	t.JWT = routeJWTFilterToStructs(s.JWT)
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 	if s == nil {
@@ -432,17 +389,6 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 		URLRewriteFromStructs(t.URLRewrite, &x)
 		s.URLRewrite = &x
 	}
-	if t.RetryFilter != nil {
-		var x RetryFilter
-		RetryFilterFromStructs(t.RetryFilter, &x)
-		s.RetryFilter = &x
-	}
-	if t.TimeoutFilter != nil {
-		var x TimeoutFilter
-		TimeoutFilterFromStructs(t.TimeoutFilter, &x)
-		s.TimeoutFilter = &x
-	}
-	s.JWT = routeJWTFilterFromStructs(t.JWT)
 }
 func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {
 	if s == nil {
@@ -1704,24 +1650,6 @@ func ResourceReferenceFromStructs(t *structs.ResourceReference, s *ResourceRefer
 	s.SectionName = t.SectionName
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
-func RetryFilterToStructs(s *RetryFilter, t *structs.RetryFilter) {
-	if s == nil {
-		return
-	}
-	t.NumRetries = &s.NumRetries
-	t.RetryOn = s.RetryOn
-	t.RetryOnStatusCodes = s.RetryOnStatusCodes
-	t.RetryOnConnectFailure = &s.RetryOnConnectFailure
-}
-func RetryFilterFromStructs(t *structs.RetryFilter, s *RetryFilter) {
-	if s == nil {
-		return
-	}
-	s.NumRetries = *t.NumRetries
-	s.RetryOn = t.RetryOn
-	s.RetryOnStatusCodes = t.RetryOnStatusCodes
-	s.RetryOnConnectFailure = *t.RetryOnConnectFailure
-}
 func RetryPolicyBackOffToStructs(s *RetryPolicyBackOff, t *structs.RetryPolicyBackOff) {
 	if s == nil {
 		return
@@ -2295,20 +2223,6 @@ func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
 	}
 	s.Name = t.Name
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
-}
-func TimeoutFilterToStructs(s *TimeoutFilter, t *structs.TimeoutFilter) {
-	if s == nil {
-		return
-	}
-	t.RequestTimeout = structs.DurationFromProto(s.RequestTimeout)
-	t.IdleTimeout = structs.DurationFromProto(s.IdleTimeout)
-}
-func TimeoutFilterFromStructs(t *structs.TimeoutFilter, s *TimeoutFilter) {
-	if s == nil {
-		return
-	}
-	s.RequestTimeout = structs.DurationToProto(t.RequestTimeout)
-	s.IdleTimeout = structs.DurationToProto(t.IdleTimeout)
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
 	if s == nil {

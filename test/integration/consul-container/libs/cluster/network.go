@@ -20,7 +20,6 @@ func createNetwork(t TestingT, name string) (testcontainers.Network, error) {
 			Name:           name,
 			Attachable:     true,
 			CheckDuplicate: true,
-			SkipReaper:     isRYUKDisabled(),
 		},
 	}
 	first := true

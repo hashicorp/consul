@@ -227,14 +227,6 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 }
 
 func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotExposedChecks(t, false)
-}
-
-func TestConfigSnapshotExposeChecksWithBindOverride(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotExposedChecks(t, true)
-}
-
-func testConfigSnapshotExposedChecks(t testing.T, overrideBind bool) *ConfigSnapshot {
 	return TestConfigSnapshot(t,
 		func(ns *structs.NodeService) {
 			ns.Address = "1.2.3.4"
@@ -242,12 +234,6 @@ func testConfigSnapshotExposedChecks(t testing.T, overrideBind bool) *ConfigSnap
 			ns.Proxy.Upstreams = nil
 			ns.Proxy.Expose = structs.ExposeConfig{
 				Checks: true,
-			}
-			if overrideBind {
-				if ns.Proxy.Config == nil {
-					ns.Proxy.Config = map[string]any{}
-				}
-				ns.Proxy.Config["bind_address"] = "6.7.8.9"
 			}
 		},
 		[]UpdateEvent{
@@ -259,32 +245,6 @@ func testConfigSnapshotExposedChecks(t testing.T, overrideBind bool) *ConfigSnap
 					HTTP:      "http://127.0.0.1:8181/debug",
 					ProxyHTTP: "http://:21500/debug",
 					Method:    "GET",
-					Interval:  10 * time.Second,
-					Timeout:   1 * time.Second,
-				}},
-			},
-		},
-	)
-}
-
-func TestConfigSnapshotExposeChecksGRPC(t testing.T) *ConfigSnapshot {
-	return TestConfigSnapshot(t,
-		func(ns *structs.NodeService) {
-			ns.Address = "1.2.3.4"
-			ns.Port = 9090
-			ns.Proxy.Upstreams = nil
-			ns.Proxy.Expose = structs.ExposeConfig{
-				Checks: true,
-			}
-		},
-		[]UpdateEvent{
-			{
-				CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("web", nil),
-				Result: []structs.CheckType{{
-					CheckID:   types.CheckID("grpc"),
-					Name:      "grpc",
-					GRPC:      "localhost:9090/v1.Health",
-					ProxyGRPC: "localhost:21501/myservice",
 					Interval:  10 * time.Second,
 					Timeout:   1 * time.Second,
 				}},

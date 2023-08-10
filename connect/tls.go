@@ -425,7 +425,7 @@ func (cfg *dynamicTLSConfig) Ready() bool {
 	return cfg.VerifyLeafWithRoots() == nil
 }
 
-// ReadyWait returns a chan that is closed when the Service becomes ready
+// ReadyWait returns a chan that is closed when the the Service becomes ready
 // for use for the first time. Note that if the Service is ready when it is
 // called it returns a nil chan. Ready means that it has root and leaf
 // certificates configured but not that the combination is valid nor that

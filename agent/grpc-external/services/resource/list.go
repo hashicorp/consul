@@ -25,8 +25,7 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		return nil, err
 	}
 
-	// TODO(spatel): Refactor _ and entMeta in NET-4915
-	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +58,7 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		}
 
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, authzContext, resource.Id)
+		err = reg.ACLs.Read(authz, resource.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue
