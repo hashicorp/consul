@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
@@ -18,7 +18,7 @@ import (
 
 type Fetcher struct {
 	Client pbresource.ResourceServiceClient
-	Cache  *cache.Cache
+	Cache  *sidecarproxycache.Cache
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*intermediateTypes.Workload, error) {
@@ -122,7 +122,7 @@ func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*in
 
 func (f *Fetcher) FetchDestinationsData(
 	ctx context.Context,
-	destinationRefs []*intermediateTypes.CombinedDestinationRef,
+	destinationRefs []intermediateTypes.CombinedDestinationRef,
 ) ([]*intermediateTypes.Destination, map[string]*intermediateTypes.Status, error) {
 
 	var destinations []*intermediateTypes.Destination
@@ -138,14 +138,14 @@ func (f *Fetcher) FetchDestinationsData(
 
 		if us == nil {
 			// If the Destinations resource is not found, then we should delete it from cache and continue.
-			f.Cache.Delete(dest.ServiceRef, dest.Port)
+			f.Cache.DeleteDestination(dest.ServiceRef, dest.Port)
 			continue
 		}
 
-		u := &intermediateTypes.Destination{}
+		d := &intermediateTypes.Destination{}
 		// As Destinations resource contains a list of destinations,
 		// we need to find the one that references our service and port.
-		u.Explicit = findDestination(dest.ServiceRef, dest.Port, us.Destinations)
+		d.Explicit = findDestination(dest.ServiceRef, dest.Port, us.Destinations)
 
 		// Fetch ServiceEndpoints.
 		serviceID := resource.IDFromReference(dest.ServiceRef)
@@ -154,11 +154,11 @@ func (f *Fetcher) FetchDestinationsData(
 			return nil, statuses, err
 		}
 
-		serviceRef := cache.KeyFromRefAndPort(dest.ServiceRef, dest.Port)
-		upstreamsRef := cache.KeyFromID(us.Resource.Id)
+		serviceRef := resource.ReferenceToString(dest.ServiceRef)
+		upstreamsRef := resource.IDToString(us.Resource.Id)
 		if se == nil {
 			// If the Service Endpoints resource is not found, then we update the status of the Upstreams resource
-			// but not remove it from cache in case it comes back.
+			// but don't remove it from cache in case it comes back.
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
 				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionDestinationServiceNotFound(serviceRef))
 			continue
@@ -167,14 +167,14 @@ func (f *Fetcher) FetchDestinationsData(
 				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionDestinationServiceFound(serviceRef))
 		}
 
-		u.ServiceEndpoints = se
+		d.ServiceEndpoints = se
 
 		// Check if this endpoints is mesh-enabled. If not, remove it from cache and return an error.
 		if !IsMeshEnabled(se.Endpoints.Endpoints[0].Ports) {
 			// Add invalid status but don't remove from cache. If this state changes,
 			// we want to be able to detect this change.
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
-				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionNonMeshDestination(serviceRef))
+				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionMeshProtocolNotFound(serviceRef))
 
 			// This error should not cause the execution to stop, as we want to make sure that this non-mesh destination
 			// gets removed from the proxy state.
@@ -182,7 +182,18 @@ func (f *Fetcher) FetchDestinationsData(
 		} else {
 			// If everything was successful, add an empty condition so that we can remove any existing statuses.
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
-				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionMeshDestination(serviceRef))
+				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionMeshProtocolFound(serviceRef))
+		}
+
+		// No destination port should point to a port with "mesh" protocol,
+		// so check if destination port has the mesh protocol and update the status.
+		if se.Endpoints.Endpoints[0].Ports[dest.Port].Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
+				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionMeshProtocolDestinationPort(serviceRef, dest.Port))
+			continue
+		} else {
+			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
+				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionNonMeshProtocolDestinationPort(serviceRef, dest.Port))
 		}
 
 		// Gather all identities.
@@ -194,10 +205,10 @@ func (f *Fetcher) FetchDestinationsData(
 					Tenancy: se.Resource.Id.Tenancy,
 				})
 			}
-			u.Identities = identities
+			d.Identities = identities
 		}
 
-		destinations = append(destinations, u)
+		destinations = append(destinations, d)
 	}
 
 	return destinations, statuses, nil

@@ -60,13 +60,14 @@ var (
 	// Controller statuses.
 
 	// Sidecar-proxy controller.
-	SidecarProxyStatusKey                              = sidecarproxy.ControllerName
-	SidecarProxyStatusConditionMeshDestination         = status.StatusConditionMeshDestination
-	SidecarProxyStatusReasonNonMeshDestination         = status.StatusReasonNonMeshDestination
-	SidecarProxyStatusReasonMeshDestination            = status.StatusReasonMeshDestination
-	SidecarProxyStatusConditionDestinationExists       = status.StatusConditionDestinationExists
-	SidecarProxyStatusReasonDestinationServiceNotFound = status.StatusReasonDestinationServiceNotFound
-	SidecarProxyStatusReasonDestinationServiceFound    = status.StatusReasonDestinationServiceFound
+	SidecarProxyStatusKey                                  = sidecarproxy.ControllerName
+	SidecarProxyStatusConditionMeshDestination             = status.StatusConditionDestinationAccepted
+	SidecarProxyStatusReasonNonMeshDestination             = status.StatusReasonMeshProtocolNotFound
+	SidecarProxyStatusReasonMeshDestination                = status.StatusReasonMeshProtocolFound
+	SidecarProxyStatusReasonDestinationServiceNotFound     = status.StatusReasonDestinationServiceNotFound
+	SidecarProxyStatusReasonDestinationServiceFound        = status.StatusReasonDestinationServiceFound
+	SidecarProxyStatusReasonMeshProtocolDestinationPort    = status.StatusReasonMeshProtocolDestinationPort
+	SidecarProxyStatusReasonNonMeshProtocolDestinationPort = status.StatusReasonNonMeshProtocolDestinationPort
 )
 
 // RegisterTypes adds all resource types within the "mesh" API group

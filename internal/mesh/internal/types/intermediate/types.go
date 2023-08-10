@@ -1,6 +1,7 @@
 package intermediate
 
 import (
+	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -15,9 +16,8 @@ type CombinedDestinationRef struct {
 	// Port is the port name for this destination.
 	Port string
 
-	// SourceProxies are the IDs of source proxy state template resources.
-	// The keys are a string representation of *pbresource.ID.
-	SourceProxies map[string]*pbresource.ID
+	// SourceProxies are the reference keys of source proxy state template resources.
+	SourceProxies map[resource.ReferenceKey]struct{}
 
 	// ExplicitDestinationsID is the id of the pbmesh.Upstreams resource. For implicit destinations,
 	// this should be nil.

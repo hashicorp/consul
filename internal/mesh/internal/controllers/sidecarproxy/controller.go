@@ -8,10 +8,10 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/mapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
@@ -25,7 +25,7 @@ const ControllerName = "consul.io/sidecar-proxy-controller"
 
 type TrustDomainFetcher func() (string, error)
 
-func Controller(cache *cache.Cache, mapper *mapper.Mapper, trustDomainFetcher TrustDomainFetcher) controller.Controller {
+func Controller(cache *sidecarproxycache.Cache, mapper *sidecarproxymapper.Mapper, trustDomainFetcher TrustDomainFetcher) controller.Controller {
 	if cache == nil || mapper == nil || trustDomainFetcher == nil {
 		panic("cache, mapper and trust domain fetcher are required")
 	}
@@ -37,7 +37,7 @@ func Controller(cache *cache.Cache, mapper *mapper.Mapper, trustDomainFetcher Tr
 }
 
 type reconciler struct {
-	cache          *cache.Cache
+	cache          *sidecarproxycache.Cache
 	getTrustDomain TrustDomainFetcher
 }
 
