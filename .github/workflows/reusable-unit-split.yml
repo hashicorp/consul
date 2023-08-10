@@ -120,6 +120,8 @@ jobs:
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
+          sar -A -o /tmp/stats.sar 5 > /dev/null 2>&1 & 
+
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
           --format=short-verbose \
           --jsonfile /tmp/jsonfile/go-test.log \
@@ -132,6 +134,8 @@ jobs:
           -tags="${{env.GOTAGS}}" -p 2 \
           ${GO_TEST_FLAGS-} \
           -cover -coverprofile=coverage.txt
+
+          killall sar
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
@@ -168,6 +172,10 @@ jobs:
         with:
           name: test-results
           path: ${{env.TEST_RESULTS}}
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        with:
+          name: ${{ env.GITHUB_JOB }}.sar
+          path: /tmp/stats.sar
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: jsonfile
