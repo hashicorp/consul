@@ -55,6 +55,8 @@ Only resources in the `default` admin partition will be replicated to secondary 
 
 Client agents will be configured to operate within a specific admin partition. The DNS interface will only return results for the admin partition within the scope of the client.
 
+-> **Consul Dataplane and DNS**: As of Consul v1.14, The Consul clients are optional in Kubernetes since the introduction of [Consul Dataplane](/consul/docs/connect/dataplane), however, to utilize the Consul DNS for service discovery a Consul client is required in the client admin partitions
+
 ### Service Mesh Configurations
 
 The partition in which [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) and [`mesh`](/consul/docs/connect/config-entries/mesh) configurations are created define the scope of the configurations. Services registered in a partition will use the `proxy-defaults` and `mesh` configurations that have been created in the partition.
