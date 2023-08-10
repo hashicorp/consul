@@ -16,10 +16,10 @@ func gwJWTRequirementFromStructs(*structs.APIGatewayJWTRequirement) *APIGatewayJ
 	return &APIGatewayJWTRequirement{}
 }
 
-func gwJWTProviderToStructs(m []*APIGatewayJWTProvider) []*structs.APIGatewayJWTProvider {
-	return []*structs.APIGatewayJWTProvider{}
+func routeJWTFilterToStructs(m *JWTFilter) *structs.JWTFilter {
+	return &structs.JWTFilter{}
 }
 
-func gwJWTProviderFromStructs([]*structs.APIGatewayJWTProvider) []*APIGatewayJWTProvider {
-	return []*APIGatewayJWTProvider{}
+func routeJWTFilterFromStructs(*structs.JWTFilter) *JWTFilter {
+	return &JWTFilter{}
 }

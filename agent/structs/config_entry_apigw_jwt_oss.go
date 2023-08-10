@@ -9,5 +9,5 @@ package structs
 // APIGatewayJWTRequirement holds the list of JWT providers to be verified against
 type APIGatewayJWTRequirement struct{}
 
-// APIGatewayJWTProvider defines the provider to verify a JWT against
-type APIGatewayJWTProvider struct{}
+// JWTFilter holds the JWT Filter configuration for an HTTPRoute
+type JWTFilter struct{}

@@ -448,11 +448,6 @@ type TimeoutFilter struct {
 	IdleTimeout    time.Duration
 }
 
-// JWTFilter holds the JWT Filter configuration for an HTTPRoute
-type JWTFilter struct {
-	Providers []*APIGatewayJWTProvider `json:",omitempty"`
-}
-
 // HTTPRouteRule specifies the routing rules used to determine what upstream
 // service an HTTP request is routed to.
 type HTTPRouteRule struct {

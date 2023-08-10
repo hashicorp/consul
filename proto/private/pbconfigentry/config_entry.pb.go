@@ -5616,7 +5616,8 @@ type HTTPFilters struct {
 	URLRewrite    *URLRewrite         `protobuf:"bytes,2,opt,name=URLRewrite,proto3" json:"URLRewrite,omitempty"`
 	RetryFilter   *RetryFilter        `protobuf:"bytes,3,opt,name=RetryFilter,proto3" json:"RetryFilter,omitempty"`
 	TimeoutFilter *TimeoutFilter      `protobuf:"bytes,4,opt,name=TimeoutFilter,proto3" json:"TimeoutFilter,omitempty"`
-	JWT           *JWTFilter          `protobuf:"bytes,5,opt,name=JWT,proto3" json:"JWT,omitempty"`
+	// mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
+	JWT *JWTFilter `protobuf:"bytes,5,opt,name=JWT,proto3" json:"JWT,omitempty"`
 }
 
 func (x *HTTPFilters) Reset() {
@@ -5876,17 +5877,11 @@ func (x *TimeoutFilter) GetIdleTimeout() *durationpb.Duration {
 	return nil
 }
 
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.JWTFilter
-// output=config_entry.gen.go
-// name=Structs
 type JWTFilter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// mog: func-to=gwJWTProviderToStructs func-from=gwJWTProviderFromStructs
 	Providers []*APIGatewayJWTProvider `protobuf:"bytes,1,rep,name=Providers,proto3" json:"Providers,omitempty"`
 }
 
