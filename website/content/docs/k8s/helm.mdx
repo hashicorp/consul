@@ -308,6 +308,8 @@ Use these links to navigate to a particular top-level stanza.
     - `secretKey` ((#v-global-gossipencryption-secretkey)) (`string: ""`) - The key within the Kubernetes secret or Vault secret key that holds the gossip
       encryption key.
 
+    - `logLevel` ((#v-global-gossipencryption-loglevel)) (`string: ""`) - Override global log verbosity level for `gossip-encryption-autogenerate-job` pods. One of "trace", "debug", "info", "warn", or "error".
+
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
     Refer to [`-recursor`](https://developer.hashicorp.com/consul/docs/agent/config/cli-flags#_recursor) for more details.
@@ -321,6 +323,8 @@ Use these links to navigate to a particular top-level stanza.
       servers and clients and all consul-k8s-control-plane components, as well as generate certificate
       authority (optional) and server and client certificates.
       This setting is required for [Cluster Peering](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s).
+
+    - `logLevel` ((#v-global-tls-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
     - `enableAutoEncrypt` ((#v-global-tls-enableautoencrypt)) (`boolean: false`) - If true, turns on the auto-encrypt feature on clients and servers.
       It also switches consul-k8s-control-plane components to retrieve the CA from the servers
@@ -381,6 +385,15 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretKey` ((#v-global-tls-cakey-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the CA key.
 
+    - `annotations` ((#v-global-tls-annotations)) (`string: null`) - This value defines additional annotations for
+      tls init jobs. Format this value as a multi-line string.
+
+      ```yaml
+      annotations: |
+        "sample/annotation1": "foo"
+        "sample/annotation2": "bar"
+      ```
+
   - `enableConsulNamespaces` ((#v-global-enableconsulnamespaces)) (`boolean: false`) - <EnterpriseAlert inline /> `enableConsulNamespaces` indicates that you are running
     Consul Enterprise v1.7+ with a valid Consul Enterprise license and would
     like to make use of configuration beyond registering everything into
@@ -393,6 +406,8 @@ Use these links to navigate to a particular top-level stanza.
     - `manageSystemACLs` ((#v-global-acls-managesystemacls)) (`boolean: false`) - If true, the Helm chart will automatically manage ACL tokens and policies
       for all Consul and consul-k8s-control-plane components.
       This requires Consul >= 1.4.
+
+    - `logLevel` ((#v-global-acls-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
     - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes or Vault secret containing the bootstrap token to use for
       creating policies and tokens for all Consul and consul-k8s-control-plane components.
@@ -461,6 +476,15 @@ Use these links to navigate to a particular top-level stanza.
         beta.kubernetes.io/arch: amd64
       ```
 
+    - `annotations` ((#v-global-acls-annotations)) (`string: null`) - This value defines additional annotations for
+      acl init jobs. Format this value as a multi-line string.
+
+      ```yaml
+      annotations: |
+        "sample/annotation1": "foo"
+        "sample/annotation2": "bar"
+      ```
+
   - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes or Vault secret that you have created
     that contains your enterprise license. It is required if you are using an
     enterprise binary. Defining it here applies it to your cluster once a leader
@@ -513,6 +537,8 @@ Use these links to navigate to a particular top-level stanza.
       $ kubectl config view \
         -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
       ```
+
+    - `logLevel` ((#v-global-federation-loglevel)) (`string: ""`) - Override global log verbosity level for the `create-federation-secret-job` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
 
@@ -612,6 +638,8 @@ Use these links to navigate to a particular top-level stanza.
     Consul server cluster. If you're running Consul externally and want agents
     within Kubernetes to join that cluster, this should probably be false.
 
+  - `logLevel` ((#v-server-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
+
   - `image` ((#v-server-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers running
     Consul server agents.
 
@@ -703,11 +731,11 @@ Use these links to navigate to a particular top-level stanza.
     contains best practices and recommendations for selecting suitable
     hardware sizes for your Consul servers.
 
-  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [Connect](https://developer.hashicorp.com/consul/docs/connect). Setting this to true
+  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [service mesh](https://developer.hashicorp.com/consul/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize
-    a new CA and set of certificates. Additional Connect settings can be configured
-    by setting the `server.extraConfig` value.
+    a new CA and set of certificates. Additional service mesh settings can be configured
+    by setting the `server.extraConfig` value or by applying [configuration entries](https://developer.hashicorp.com/consul/docs/connect/config-entries).
 
   - `serviceAccount` ((#v-server-serviceaccount))
 
@@ -750,6 +778,10 @@ Use these links to navigate to a particular top-level stanza.
     root file systems in the container is read-only.
 
     - `server` ((#v-server-containersecuritycontext-server)) (`map`) - The consul server agent container
+
+    - `aclInit` ((#v-server-containersecuritycontext-aclinit)) (`map`) - The acl-init job
+
+    - `tlsInit` ((#v-server-containersecuritycontext-tlsinit)) (`map`) - The tls-init job
 
   - `updatePartition` ((#v-server-updatepartition)) (`integer: 0`) - This value is used to carefully
     control a rolling update of Consul server agents. This value specifies the
@@ -1090,6 +1122,8 @@ Use these links to navigate to a particular top-level stanza.
     the resources necessary for a Consul client on every Kubernetes node. This _does not_ require
     `server.enabled`, since the agents can be configured to join an external cluster.
 
+  - `logLevel` ((#v-client-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
+
   - `image` ((#v-client-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers
     running Consul client agents.
 
@@ -1312,7 +1346,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-dns-enabled)) (`boolean: -`)
 
-  - `enableRedirection` ((#v-dns-enableredirection)) (`boolean: -`) - If true, services using Consul Connect will use Consul DNS
+  - `enableRedirection` ((#v-dns-enableredirection)) (`boolean: -`) - If true, services using Consul service mesh will use Consul DNS
     for default DNS resolution. The DNS lookups fall back to the nameserver IPs
     listed in /etc/resolv.conf if not found in Consul.
 
@@ -1748,7 +1782,7 @@ Use these links to navigate to a particular top-level stanza.
         persistent: true
       ```
 
-  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
+  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul service mesh services. All values are overridable
     via annotations on a per-pod basis.
 
     - `defaultEnabled` ((#v-connectinject-metrics-defaultenabled)) (`string: -`) - If true, the connect-injector will automatically
@@ -1871,7 +1905,7 @@ Use these links to navigate to a particular top-level stanza.
     annotated. Use `["*"]` to automatically allow all k8s namespaces.
 
     For example, `["namespace1", "namespace2"]` will only allow pods in the k8s
-    namespaces `namespace1` and `namespace2` to have Connect sidecars injected
+    namespaces `namespace1` and `namespace2` to have Consul service mesh sidecars injected
     and registered with Consul. All other k8s namespaces will be ignored.
 
     To deny all namespaces, set this to `[]`.
@@ -2031,9 +2065,11 @@ Use these links to navigate to a particular top-level stanza.
 - `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](https://developer.hashicorp.com/consul/docs/connect/gateways/mesh-gateway) enable Consul Connect to work across Consul datacenters.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](https://developer.hashicorp.com/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
-    gateways and Consul Connect will be configured to use gateways.
+    gateways and Consul service mesh will be configured to use gateways.
     This setting is required for [Cluster Peering](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
+
+  - `logLevel` ((#v-meshgateway-loglevel)) (`string: ""`) - Override global log verbosity level for `mesh-gateway-deployment` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `replicas` ((#v-meshgateway-replicas)) (`integer: 1`) - Number of replicas for the Deployment.
 
@@ -2199,6 +2235,8 @@ Use these links to navigate to a particular top-level stanza.
   - `enabled` ((#v-ingressgateways-enabled)) (`boolean: false`) - Enable ingress gateway deployment. Requires `connectInject.enabled=true`
     and `client.enabled=true`.
 
+  - `logLevel` ((#v-ingressgateways-loglevel)) (`string: ""`) - Override global log verbosity level for `ingress-gateways-deployment` pods. One of "trace", "debug", "info", "warn", or "error".
+
   - `defaults` ((#v-ingressgateways-defaults)) - Defaults sets default values for all gateway fields. With the exception
     of annotations, defining any of these values in the `gateways` list
     will override the default values provided here. Annotations will
@@ -2328,6 +2366,8 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-terminatinggateways-enabled)) (`boolean: false`) - Enable terminating gateway deployment. Requires `connectInject.enabled=true`
     and `client.enabled=true`.
+
+  - `logLevel` ((#v-terminatinggateways-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
   - `defaults` ((#v-terminatinggateways-defaults)) - Defaults sets default values for all gateway fields. With the exception
     of annotations, defining any of these values in the `gateways` list
