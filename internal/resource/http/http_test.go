@@ -333,21 +333,7 @@ func TestResourceReadHandler(t *testing.T) {
 		hclog.NewNullLogger(),
 	}
 
-	rsp := httptest.NewRecorder()
-	req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
-		{
-			"metadata": {
-				"foo": "bar"
-			},
-			"data": {
-				"name": "Keith Urban",
-				"genre": "GENRE_COUNTRY"
-			}
-		}
-	`))
-	req.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
-	v2ArtistHandler.ServeHTTP(rsp, req)
-	require.Equal(t, http.StatusOK, rsp.Result().StatusCode)
+	createResource(t, v2ArtistHandler)
 
 	t.Run("Read resource", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
