@@ -42,7 +42,11 @@ func (m *Mapper) TrackFailover(failover *resource.DecodedResource[pbcatalog.Fail
 }
 
 func (m *Mapper) trackFailover(failover *pbresource.ID, services []*pbresource.Reference) {
-	m.b.TrackItem(failover, services)
+	var servicesAsIDsOrRefs []resource.ReferenceOrID
+	for _, s := range services {
+		servicesAsIDsOrRefs = append(servicesAsIDsOrRefs, s)
+	}
+	m.b.TrackItem(failover, servicesAsIDsOrRefs)
 }
 
 // UntrackFailover forgets the links inserted by TrackFailover for the provided
