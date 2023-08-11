@@ -23,28 +23,27 @@ Click on a property name to view additional details, including default values.
    - [`ProxyType`](#arguments-proxytype): string | required | `connect-proxy`
    - [`ListenerType`](#arguments-listenertype): string | required | `inbound`
    - [`Config`](#arguments-config): map | required
-      - [`CommonConfig`](#arguments-config-commonconfig): map
-        - [`LogName`](#arguments-config-commonconfig-logname): string
-        - [`GrpcService`](#arguments-config-commonconfig-grpcservice): map
-          - [`Target`](#arguments-config-commonconfig-grpcservice-target): map | required
-            - [`Service`](#arguments-config-commonconfig-grpcservice-target-service): map
-              - [`Name`](#arguments-config-commonconfig-grpcservice-target-service): string
-              - [`Namespace`](#arguments-config-commonconfig-grpcservice-target-service): string | <EnterpriseAlert inline/>
-              - [`Partition`](#arguments-config-commonconfig-grpcservice-target-service): string | <EnterpriseAlert inline/>
-            - [`URI`](#arguments-config-commonconfig-grpcservice-target-uri): string
-            - [`Timeout`](#arguments-config-commonconfig-grpcservice-target-timeout): string | `1s`
-          - [`Authority`](#arguments-config-commonconfig-grpcservice-authority): string
-          - [`InitialMetadata`](#arguments-config-commonconfig-grpcservice-initialmetadata): list
-            - [`Key`](#arguments-config-commonconfig-grpcservice-initialmetadata): string
-            - [`Value`](#arguments-config-commonconfig-grpcservice-initialmetadata): string
-        - [`BufferFlushInterval`](#arguments-config-commonconfig-bufferflushinterval): string
-        - [`BufferSizeBytes`](#arguments-config-commonconfig-buffersizebytes): number
-        - [`FilterStateObjectsToLog`](#arguments-config-commonconfig-filterstateobjectstolog): list of strings
-        - [`RetryPolicy`](#arguments-config-commonconfig-retrypolicy): map
-          - [`RetryBackOff`](#arguments-config-commonconfig-retrypolicy-retrybackoff): map
-            - [`BaseInterval`](#arguments-config-commonconfig-retrypolicy-retrybackoff): string | `1s`
-            - [`MaxInterval`](#arguments-config-commonconfig-retrypolicy-retrybackoff): string | `30s`
-          - [`NumRetries`](#arguments-config-commonconfig-retrypolicy-numretries): number
+      - [`LogName`](#arguments-config-logname): string
+      - [`GrpcService`](#arguments-config-grpcservice): map
+        - [`Target`](#arguments-config-grpcservice-target): map | required
+          - [`Service`](#arguments-config-grpcservice-target-service): map
+            - [`Name`](#arguments-config-grpcservice-target-service): string
+            - [`Namespace`](#arguments-config-grpcservice-target-service): string | <EnterpriseAlert inline/>
+            - [`Partition`](#arguments-config-grpcservice-target-service): string | <EnterpriseAlert inline/>
+          - [`URI`](#arguments-config-grpcservice-target-uri): string
+          - [`Timeout`](#arguments-config-grpcservice-target-timeout): string | `1s`
+        - [`Authority`](#arguments-config-grpcservice-authority): string
+        - [`InitialMetadata`](#arguments-config-grpcservice-initialmetadata): list
+          - [`Key`](#arguments-config-grpcservice-initialmetadata): string
+          - [`Value`](#arguments-config-grpcservice-initialmetadata): string
+      - [`BufferFlushInterval`](#arguments-config-bufferflushinterval): string
+      - [`BufferSizeBytes`](#arguments-config-buffersizebytes): number
+      - [`FilterStateObjectsToLog`](#arguments-config-filterstateobjectstolog): list of strings
+      - [`RetryPolicy`](#arguments-config-retrypolicy): map
+        - [`RetryBackOff`](#arguments-config-retrypolicy-retrybackoff): map
+          - [`BaseInterval`](#arguments-config-retrypolicy-retrybackoff): string | `1s`
+          - [`MaxInterval`](#arguments-config-retrypolicy-retrybackoff): string | `30s`
+        - [`NumRetries`](#arguments-config-retrypolicy-numretries): number
       - [`Body`](#arguments-config-body): string, number, boolean or list of bytes
       - [`Attributes`](#arguments-config-attributes): map of string to string, number, boolean or list of bytes
       - [`ResourceAttributes`](#arguments-config-resourceattributes): map of string to string, number, boolean or list of bytes
@@ -59,35 +58,33 @@ Arguments = {
    ProxyType = "connect-proxy"
    ListenerType = "<inbound or outbound>"
    Config = {
-      CommonConfig = {
-         LogName = "<The friendly name of the access log>"
-         GrpcService = {
-            Target = {
-               Service = {
-                  Name = "<upstream service to send gRPC authorization requests to>"
-                  Namespace = "<namespace containing the upstream service>"
-                  Partition = "<partition containing the upstream service>"
-               }
-               URI = "<URI of the upstream service>"   
-               Timeout = "1s"
+      LogName = "<The friendly name of the access log>"
+      GrpcService = {
+        Target = {
+            Service = {
+              Name = "<upstream service to send gRPC authorization requests to>"
+              Namespace = "<namespace containing the upstream service>"
+              Partition = "<partition containing the upstream service>"
             }
-            Authority = "<authority header to send in the gRPC request>"     
-            InitialMetadata = [
-               "<Key>" : "<value>"
-            ]
-         }
-         BufferFlushInterval = "1s"
-         BufferSizeBytes = 16384
-         FilterStateObjectsToLog = [
-            "Additional filter state objects to log in filter_state_objects"
-         ]
-         RetryPolicy = {
-            RetryBackOff = {
-               BaseInterval = "1s"
-               MaxInterval = "30s"
-            }
-            NumRetries = <uint32 value specifying the max number of retries>
-         }
+            URI = "<URI of the upstream service>"   
+            Timeout = "1s"
+        }
+        Authority = "<authority header to send in the gRPC request>"     
+        InitialMetadata = [
+            "<Key>" : "<value>"
+        ]
+      }
+      BufferFlushInterval = "1s"
+      BufferSizeBytes = 16384
+      FilterStateObjectsToLog = [
+        "Additional filter state objects to log in filter_state_objects"
+      ]
+      RetryPolicy = {
+        RetryBackOff = {
+            BaseInterval = "1s"
+            MaxInterval = "30s"
+        }
+        NumRetries = <uint32 value specifying the max number of retries>
       }
       Body = "Log Request Body"
       Attributes = {
@@ -153,17 +150,7 @@ Contains the configuration settings for the extension.
 - This field is required.
 - Data type: Map
 
-### `Arguments.Config.CommonConfig`
-
-Contains the common configuration settings for the gRPC access logs.
-
-#### Values
-
-- Default: None
-- This field is required.
-- Data type: Map
-
-### `Arguments.Config.CommonConfig.LogName`
+### `Arguments.Config.LogName`
 
 Specifies the friendly name of the access log to be returned in StreamAccessLogsMessage.Identifier. This allows the access log server to differentiate between different access logs coming from the same Envoy.
 
@@ -172,7 +159,7 @@ Specifies the friendly name of the access log to be returned in StreamAccessLogs
 - Default: value given to ListenerType
 - Data type: String
 
-### `Arguments.Config.CommonConfig.GrpcService`
+### `Arguments.Config.GrpcService`
 
 Specifies the OpenTelemetry Access Logging configuration for gRPC requests.
 
@@ -182,12 +169,12 @@ Specifies the OpenTelemetry Access Logging configuration for gRPC requests.
 - This field is required.
 - Data type: Map
 
-### `Arguments.Config.CommonConfig.GrpcService.Target`
+### `Arguments.Config.GrpcService.Target`
 
 Configuration for specifying the service to send gRPC access logging requests to. The `Target` field may contain the following fields:
 
-- [`Service`](#arguments-config-commonconfig-grpcservice-target-service) or [`Uri`](#arguments-config-commonconfig-grpcservice-target-uri)
-- [`Timeout`](#arguments-config-commonconfig-grpcservice-target-timeout)
+- [`Service`](#arguments-config-grpcservice-target-service) or [`Uri`](#arguments-config-grpcservice-target-uri)
+- [`Timeout`](#arguments-config-grpcservice-target-timeout)
 
 #### Values
 
@@ -195,16 +182,16 @@ Configuration for specifying the service to send gRPC access logging requests to
 - This field is required.
 - Data type: Map
 
-### `Arguments.Config.CommonConfig.GrpcService.Target.Service`
+### `Arguments.Config.GrpcService.Target.Service`
 
 Specifies the upstream OpenTelemetry collector service. Configure this field when access logging requests are sent to an upstream service within the service mesh. The service must be configured as an upstream of the service that the filter is applied to.
 
-Configure either the `Service` field or the [`Uri`](#arguments-config-commonconfig-grpcservice-target-uri) field, but not both. 
+Configure either the `Service` field or the [`Uri`](#arguments-config-grpcservice-target-uri) field, but not both. 
  
 #### Values
 
 - Default: None
-- This field or [`Uri`](#arguments-config-commonconfig-grpcservice-target-uri) is required.
+- This field or [`Uri`](#arguments-config-grpcservice-target-uri) is required.
 - Data type: Map
 
 The following table describes how to configure parameters for the `Service` field:
@@ -215,19 +202,19 @@ The following table describes how to configure parameters for the `Service` fiel
 | `Namespace` | <EnterpriseAlert inline/> Specifies the Consul namespace that the upstream service belongs to.       | String    | `default` |
 | `Partition` | <EnterpriseAlert inline/> Specifies the Consul admin partition that the upstream service belongs to. | String    | `default` |
 
-### `Arguments.Config.CommonConfig.GrpcService.Target.Uri`
+### `Arguments.Config.GrpcService.Target.Uri`
 
 Specifies the URI of the OpenTelemetry collector service. Configure this field when you must provide an explicit URI to the OpenTelemetry collector service, such as cases in which the access logging service is running on the same host or pod. If set, the value of this field must be one of `localhost:<port>`, `127.0.0.1:<port>`, or `::1:<port>`.
 
-Configure either the `Uri` field or the [`Service`](#arguments-config-commonconfig-grpcservice-target-service) field, but not both. 
+Configure either the `Uri` field or the [`Service`](#arguments-config-grpcservice-target-service) field, but not both. 
  
 #### Values
 
 - Default: None
-- This field or [`Service`](#arguments-config-commonconfig-grpcservice-target-service) is required.
+- This field or [`Service`](#arguments-config-grpcservice-target-service) is required.
 - Data type: String
 
-### `Arguments.Config.CommonConfig.GrpcService.Target.Timeout`
+### `Arguments.Config.GrpcService.Target.Timeout`
 
 Specifies the maximum duration that a response can take to arrive upon request.
  
@@ -236,7 +223,7 @@ Specifies the maximum duration that a response can take to arrive upon request.
 - Default: `1s`
 - Data type: String
 
-### `Arguments.Config.CommonConfig.GrpcService.Authority`
+### `Arguments.Config.GrpcService.Authority`
 
 Specifies the authority header to send in the gRPC request. If this field is not set, the authority field is set to the cluster name. This field does not override the SNI that Envoy sends to the OpenTelemetry collector service.
  
@@ -245,7 +232,7 @@ Specifies the authority header to send in the gRPC request. If this field is not
 - Default: Cluster name
 - Data type: String
 
-### `Arguments.Config.CommonConfig.GrpcService.InitialMetadata`
+### `Arguments.Config.GrpcService.InitialMetadata`
 
 Specifies additional metadata to include in streams initiated to the `GrpcService`. You can specify metadata for injecting additional ad-hoc authorization headers, for example, `x-foo-bar: baz-key`. For more information, including details on header value syntax, refer to the [Envoy documentation on custom request headers](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#config-http-conn-man-headers-custom-request-headers).
  
@@ -257,7 +244,7 @@ Specifies additional metadata to include in streams initiated to the `GrpcServic
    - KEY: String
    - VALUE: String
 
-### `Arguments.Config.CommonConfig.BufferFlushInterval`
+### `Arguments.Config.BufferFlushInterval`
 
 Specifies interval for flushing access logs to the gRPC stream. Logger will flush requests every time this interval is elapsed, or when batch size limit is hit, whichever comes first.
 
@@ -266,7 +253,7 @@ Specifies interval for flushing access logs to the gRPC stream. Logger will flus
 - Default: `1s`
 - Data type: String
 
-### `Arguments.Config.CommonConfig.BufferSizeBytes`
+### `Arguments.Config.BufferSizeBytes`
 
 Specifies soft size limit in bytes for access log entries buffer. Logger will buffer requests until this limit it hit, or every time flush interval is elapsed, whichever comes first. Setting it to zero effectively disables the batching.
 
@@ -275,7 +262,7 @@ Specifies soft size limit in bytes for access log entries buffer. Logger will bu
 - Default: `16384`
 - Data type: Integer
 
-### `Arguments.Config.CommonConfig.FilterStateObjectsToLog`
+### `Arguments.Config.FilterStateObjectsToLog`
 
 Specifies additional filter state objects to log in filter_state_objects. Logger will call FilterState::Object::serializeAsProto to serialize the filter state object.
 
@@ -284,7 +271,7 @@ Specifies additional filter state objects to log in filter_state_objects. Logger
 - Default: None
 - Data type: List of String
 
-### `Arguments.Config.CommonConfig.RetryPolicy`
+### `Arguments.Config.RetryPolicy`
 
 Defines a policy for retrying requests to the upstream service when fetching the plugin data. The `RetryPolicy` field is a map containing the following parameters:
 
@@ -296,7 +283,7 @@ Defines a policy for retrying requests to the upstream service when fetching the
 - Default: None
 - Data type: Map
 
-### `Arguments.Config.CommonConfig.RetryPolicy.RetryBackOff`
+### `Arguments.Config.RetryPolicy.RetryBackOff`
 
 Specifies parameters that control retry backoff strategy. 
 
@@ -312,7 +299,7 @@ The following table describes the fields you can specify in the `RetryBackOff` m
 | `BaseInterval` | Specifies the base interval for determining the next backoff computation. Set a value greater than `0` and less than or equal to the `MaxInterval` value.  | String    | `1s`    |
 | `MaxInterval`  | Specifies the maximum interval between retries. Set the value greater than or equal to the `BaseInterval` value.                                           | String    | `10s`   |
 
-### `Arguments.Config.CommonConfig.RetryPolicy.NumRetries`
+### `Arguments.Config.RetryPolicy.NumRetries`
 
 Specifies the number of times Envoy retries to fetch plugin data if the initial attempt is unsuccessful.
 
@@ -365,11 +352,9 @@ EnvoyExtensions = [
     Arguments = {
       ProxyType = "connect-proxy"
       Config = {
-        CommonConfig = {
-          GrpcService = {
-            Target = {
-               URI = "127.0.0.1:9191"
-            }
+        GrpcService = {
+          Target = {
+              URI = "127.0.0.1:9191"
           }
         }
       }
@@ -391,12 +376,10 @@ EnvoyExtensions = [
     Arguments = {
       ProxyType = "connect-proxy"
       Config = {
-        CommonConfig = {
-          GrpcService = {
-            Target = {
-              Service = {
-                Name = "otel-collector"
-              }
+        GrpcService = {
+          Target = {
+            Service = {
+              Name = "otel-collector"
             }
           }
         }

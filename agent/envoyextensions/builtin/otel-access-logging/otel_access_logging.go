@@ -4,13 +4,11 @@
 package otelaccesslogging
 
 import (
-	"errors"
 	"fmt"
 
 	envoy_extensions_access_loggers_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_extensions_access_loggers_otel_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/open_telemetry/v3"
-	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -32,7 +30,8 @@ type otelAccessLogging struct {
 	ProxyType api.ServiceKind
 	// InsertOptions controls how the extension inserts the filter.
 	InsertOptions ext_cmn.InsertOptions
-	ListenerType  string
+	// ListenerType controls which listener the extension applies to. It supports "inbound" or "outbound" listeners.
+	ListenerType string
 	// Config holds the extension configuration.
 	Config AccessLog
 }
@@ -61,7 +60,7 @@ func (a *otelAccessLogging) CanApply(config *ext_cmn.RuntimeConfig) bool {
 // configured to target an upstream service because the existing cluster for the upstream will be
 // used directly by the filter.
 func (a *otelAccessLogging) PatchClusters(cfg *ext_cmn.RuntimeConfig, c ext_cmn.ClusterMap) (ext_cmn.ClusterMap, error) {
-	cluster, err := a.Config.CommonConfig.toEnvoyCluster(cfg)
+	cluster, err := a.Config.toEnvoyCluster(cfg)
 	if err != nil {
 		return c, err
 	}
@@ -84,27 +83,20 @@ func (a *otelAccessLogging) PatchFilter(p ext_cmn.FilterPayload) (*envoy_listene
 		return filter, false, nil
 	}
 
-	if filter.Name != "envoy.filters.network.http_connection_manager" {
+	httpConnectionManager, _, err := ext_cmn.GetHTTPConnectionManager(filter)
+	if err != nil {
 		return filter, false, nil
-	}
-	if typedConfig := filter.GetTypedConfig(); typedConfig == nil {
-		return filter, false, errors.New("error getting typed config for http filter")
-	}
-
-	httpConnectionManager := envoy_resource_v3.GetHTTPConnectionManager(filter)
-	if httpConnectionManager == nil {
-		return filter, false, errors.New("error unmarshalling filter")
 	}
 
 	accessLog, err := a.toEnvoyAccessLog(p.RuntimeConfig)
 	if err != nil {
-		return nil, false, err
+		return filter, false, err
 	}
 
 	httpConnectionManager.AccessLog = append(httpConnectionManager.AccessLog, accessLog)
 	newHCM, err := ext_cmn.MakeFilter("envoy.filters.network.http_connection_manager", httpConnectionManager)
 	if err != nil {
-		return nil, false, err
+		return filter, false, err
 	}
 
 	return newHCM, true, nil
@@ -133,7 +125,7 @@ func (a *otelAccessLogging) fromArguments(args map[string]any) error {
 }
 
 func (a *otelAccessLogging) toEnvoyAccessLog(cfg *cmn.RuntimeConfig) (*envoy_extensions_access_loggers_v3.AccessLog, error) {
-	commonConfig, err := a.Config.CommonConfig.toEnvoy(cfg)
+	commonConfig, err := a.Config.toEnvoyCommonGrpcAccessLogConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +178,11 @@ func (a *otelAccessLogging) normalize() error {
 		a.ListenerType = "inbound"
 	}
 
-	return a.Config.normalize(a.ListenerType)
+	if a.Config.LogName == "" {
+		a.Config.LogName = a.ListenerType
+	}
+
+	return a.Config.normalize()
 }
 
 func (a *otelAccessLogging) validate() error {
@@ -198,10 +194,10 @@ func (a *otelAccessLogging) validate() error {
 	}
 
 	if a.ListenerType != "inbound" && a.ListenerType != "outbound" {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected Listener %q", a.ListenerType))
+		resultErr = multierror.Append(resultErr, fmt.Errorf(`unexpected ListenerType %q, supported values are "inbound" or "outbound"`, a.ListenerType))
 	}
 
-	if err := a.Config.validate(a.ListenerType); err != nil {
+	if err := a.Config.validate(); err != nil {
 		resultErr = multierror.Append(resultErr, err)
 	}
 

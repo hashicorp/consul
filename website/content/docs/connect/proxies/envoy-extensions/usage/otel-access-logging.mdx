@@ -39,12 +39,10 @@ EnvoyExtensions = [
     Arguments = {
       ProxyType = "connect-proxy"
       Config = {
-        CommonConfig = {
-          GrpcService = {
-            Target = {
-              Service = {
-                Name = "otel-collector"
-              }
+        GrpcService = {
+          Target = {
+            Service = {
+              Name = "otel-collector"
             }
           }
         }
@@ -66,12 +64,10 @@ EnvoyExtensions = [
   "Arguments": {
     "ProxyType": "connect-proxy",
     "Config": {
-      "CommonConfig": {
-        "GrpcService": {
-          "Target": {
-            "Service": {
-              "Name": "otel-collector"
-            }
+      "GrpcService": {
+        "Target": {
+          "Service": {
+            "Name": "otel-collector"
           }
         }
       }
@@ -97,12 +93,11 @@ spec:
     arguments:
       proxyType: connect-proxy
       config:
-        commonConfig:
-          grpcService:
-            target:
-              service:
-                name: otel-collector
-                namespace: otel-collector
+        grpcService:
+          target:
+            service:
+              name: otel-collector
+              namespace: otel-collector
 ```
 </CodeBlockConfig>
 </Tab>

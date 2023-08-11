@@ -15,18 +15,16 @@ import (
 func TestConstructor(t *testing.T) {
 	makeArguments := func(overrides map[string]interface{}) map[string]interface{} {
 		m := map[string]interface{}{
-			"ProxyType": "connect-proxy",
-			"Listener":  "inbound",
+			"ProxyType":    "connect-proxy",
+			"ListenerType": "inbound",
 			"Config": AccessLog{
-				CommonConfig: &CommonConfig{
-					LogName: "access.log",
-					GrpcService: &GrpcService{
-						Target: &Target{
-							Service: api.CompoundServiceName{
-								Name:      "otel-collector",
-								Namespace: "default",
-								Partition: "default",
-							},
+				LogName: "access.log",
+				GrpcService: &GrpcService{
+					Target: &Target{
+						Service: api.CompoundServiceName{
+							Name:      "otel-collector",
+							Namespace: "default",
+							Partition: "default",
 						},
 					},
 				},
@@ -60,7 +58,7 @@ func TestConstructor(t *testing.T) {
 			ok:        false,
 		},
 		"invalid listener": {
-			arguments: makeArguments(map[string]interface{}{"Listener": "invalid"}),
+			arguments: makeArguments(map[string]interface{}{"ListenerType": "invalid"}),
 			ok:        false,
 		},
 		"default proxy type": {
@@ -69,15 +67,13 @@ func TestConstructor(t *testing.T) {
 				ProxyType:    "connect-proxy",
 				ListenerType: "inbound",
 				Config: AccessLog{
-					CommonConfig: &CommonConfig{
-						LogName: "access.log",
-						GrpcService: &GrpcService{
-							Target: &Target{
-								Service: api.CompoundServiceName{
-									Name:      "otel-collector",
-									Namespace: "default",
-									Partition: "default",
-								},
+					LogName: "access.log",
+					GrpcService: &GrpcService{
+						Target: &Target{
+							Service: api.CompoundServiceName{
+								Name:      "otel-collector",
+								Namespace: "default",
+								Partition: "default",
 							},
 						},
 					},

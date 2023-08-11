@@ -23,7 +23,8 @@ type extAuthz struct {
 	ProxyType api.ServiceKind
 	// InsertOptions controls how the extension inserts the filter.
 	InsertOptions ext_cmn.InsertOptions
-	ListenerType  string
+	// ListenerType controls which listener the extension applies to. It supports "inbound" or "outbound" listeners.
+	ListenerType string
 	// Config holds the extension configuration.
 	Config extAuthzConfig
 }
@@ -135,7 +136,6 @@ func (a *extAuthz) normalize() {
 		a.ProxyType = api.ServiceKindConnectProxy
 	}
 
-	// Defaulting this to inbound for backward compatibility.
 	if a.ListenerType == "" {
 		a.ListenerType = "inbound"
 	}
@@ -152,7 +152,7 @@ func (a *extAuthz) validate() error {
 	}
 
 	if a.ListenerType != "inbound" && a.ListenerType != "outbound" {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected Listener %q", a.ListenerType))
+		resultErr = multierror.Append(resultErr, fmt.Errorf(`unexpected ListenerType %q, supported values are "inbound" or "outbound"`, a.ListenerType))
 	}
 
 	if err := a.Config.validate(); err != nil {

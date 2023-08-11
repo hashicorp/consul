@@ -32,68 +32,44 @@ const (
 )
 
 type AccessLog struct {
-	CommonConfig       *CommonConfig
-	Body               interface{}
-	Attributes         map[string]interface{}
-	ResourceAttributes map[string]interface{}
-}
-
-func (a *AccessLog) normalize(listenerType string) error {
-	if a.CommonConfig == nil {
-		return fmt.Errorf("missing CommonConfig")
-	}
-
-	return a.CommonConfig.normalize(listenerType)
-}
-
-func (a *AccessLog) validate(listenerType string) error {
-	if err := a.normalize(listenerType); err != nil {
-		return err
-	}
-
-	return a.CommonConfig.validate(listenerType)
-}
-
-type CommonConfig struct {
 	LogName                 string
 	GrpcService             *GrpcService
 	BufferFlushInterval     *time.Duration
 	BufferSizeBytes         uint32
 	FilterStateObjectsToLog []string
 	RetryPolicy             *RetryPolicy
+	Body                    interface{}
+	Attributes              map[string]interface{}
+	ResourceAttributes      map[string]interface{}
 }
 
-func (c *CommonConfig) normalize(listenerType string) error {
-	if c.GrpcService != nil {
-		c.GrpcService.normalize()
+func (a *AccessLog) normalize() error {
+	if a.GrpcService != nil {
+		a.GrpcService.normalize()
 	} else {
 		return fmt.Errorf("missing GrpcService")
 	}
 
-	if c.RetryPolicy != nil {
-		c.RetryPolicy.normalize()
-	}
-
-	if c.LogName == "" {
-		c.LogName = listenerType
+	if a.RetryPolicy != nil {
+		a.RetryPolicy.normalize()
 	}
 
 	return nil
 }
 
-func (c *CommonConfig) validate(listenerType string) error {
-	if c == nil {
+func (a *AccessLog) validate() error {
+	if a == nil {
 		return nil
 	}
 
-	c.normalize(listenerType)
+	a.normalize()
 
 	var resultErr error
 
 	var field string
 	var validate func() error
 	field = "GrpcService"
-	validate = c.GrpcService.validate
+	validate = a.GrpcService.validate
 
 	if err := validate(); err != nil {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("failed to validate Config.%s: %w", field, err))
@@ -102,15 +78,15 @@ func (c *CommonConfig) validate(listenerType string) error {
 	return resultErr
 }
 
-func (c CommonConfig) envoyGrpcService(cfg *cmn.RuntimeConfig) (*envoy_core_v3.GrpcService, error) {
-	target := c.GrpcService.Target
-	clusterName, err := c.getClusterName(cfg, target)
+func (a *AccessLog) envoyGrpcService(cfg *cmn.RuntimeConfig) (*envoy_core_v3.GrpcService, error) {
+	target := a.GrpcService.Target
+	clusterName, err := a.getClusterName(cfg, target)
 	if err != nil {
 		return nil, err
 	}
 
 	var initialMetadata []*envoy_core_v3.HeaderValue
-	for _, meta := range c.GrpcService.InitialMetadata {
+	for _, meta := range a.GrpcService.InitialMetadata {
 		initialMetadata = append(initialMetadata, meta.toEnvoy())
 	}
 
@@ -118,7 +94,7 @@ func (c CommonConfig) envoyGrpcService(cfg *cmn.RuntimeConfig) (*envoy_core_v3.G
 		TargetSpecifier: &envoy_core_v3.GrpcService_EnvoyGrpc_{
 			EnvoyGrpc: &envoy_core_v3.GrpcService_EnvoyGrpc{
 				ClusterName: clusterName,
-				Authority:   c.GrpcService.Authority,
+				Authority:   a.GrpcService.Authority,
 			},
 		},
 		Timeout:         target.timeoutDurationPB(),
@@ -130,7 +106,7 @@ func (c CommonConfig) envoyGrpcService(cfg *cmn.RuntimeConfig) (*envoy_core_v3.G
 // If the extension is configured with an upstream OpenTelemetry access logging service then the name of the cluster for
 // that upstream is returned. If the extension is configured with a URI, the only allowed host is `localhost`
 // and the extension will insert a new cluster with the name "local_access_log", so we use that name.
-func (c CommonConfig) getClusterName(cfg *cmn.RuntimeConfig, target *Target) (string, error) {
+func (a *AccessLog) getClusterName(cfg *cmn.RuntimeConfig, target *Target) (string, error) {
 	var err error
 	clusterName := LocalAccessLogClusterName
 	if target.isService() {
@@ -141,8 +117,8 @@ func (c CommonConfig) getClusterName(cfg *cmn.RuntimeConfig, target *Target) (st
 	return clusterName, nil
 }
 
-func (c CommonConfig) isGRPC() bool {
-	return c.GrpcService != nil
+func (a *AccessLog) isGRPC() bool {
+	return a.GrpcService != nil
 }
 
 // toEnvoyCluster returns an Envoy cluster for connecting to the OpenTelemetry access logging service.
@@ -152,8 +128,8 @@ func (c CommonConfig) isGRPC() bool {
 //
 // If the extension is configured with the OpenTelemetry access logging service as an upstream there is no need to insert
 // a new cluster so this method returns nil.
-func (c *CommonConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3.Cluster, error) {
-	target := c.GrpcService.Target
+func (a *AccessLog) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3.Cluster, error) {
+	target := a.GrpcService.Target
 
 	// If the target is an upstream we do not need to create a cluster. We will use the cluster of the upstream.
 	if target.isService() {
@@ -172,7 +148,7 @@ func (c *CommonConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3.C
 	}
 
 	var typedExtProtoOpts map[string]*anypb.Any
-	if c.isGRPC() {
+	if a.isGRPC() {
 		// By default HTTP/1.1 is used for the transport protocol. gRPC requires that we explicitly configure HTTP/2
 		httpProtoOpts := &envoy_upstreams_http_v3.HttpProtocolOptions{
 			UpstreamProtocolOptions: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig_{
@@ -220,23 +196,23 @@ func (c *CommonConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3.C
 	}, nil
 }
 
-func (c CommonConfig) toEnvoy(cfg *cmn.RuntimeConfig) (*envoy_extensions_access_loggers_grpc_v3.CommonGrpcAccessLogConfig, error) {
+func (a *AccessLog) toEnvoyCommonGrpcAccessLogConfig(cfg *cmn.RuntimeConfig) (*envoy_extensions_access_loggers_grpc_v3.CommonGrpcAccessLogConfig, error) {
 	config := &envoy_extensions_access_loggers_grpc_v3.CommonGrpcAccessLogConfig{
-		LogName:                 c.LogName,
-		BufferSizeBytes:         wrapperspb.UInt32(c.BufferSizeBytes),
-		FilterStateObjectsToLog: c.FilterStateObjectsToLog,
+		LogName:                 a.LogName,
+		BufferSizeBytes:         wrapperspb.UInt32(a.BufferSizeBytes),
+		FilterStateObjectsToLog: a.FilterStateObjectsToLog,
 		TransportApiVersion:     envoy_core_v3.ApiVersion_V3,
 	}
 
-	if c.BufferFlushInterval != nil {
-		config.BufferFlushInterval = durationpb.New(*c.BufferFlushInterval)
+	if a.BufferFlushInterval != nil {
+		config.BufferFlushInterval = durationpb.New(*a.BufferFlushInterval)
 	}
 
-	if c.RetryPolicy != nil {
-		config.GrpcStreamRetryPolicy = c.RetryPolicy.toEnvoy()
+	if a.RetryPolicy != nil {
+		config.GrpcStreamRetryPolicy = a.RetryPolicy.toEnvoy()
 	}
 
-	grpcSvc, err := c.envoyGrpcService(cfg)
+	grpcSvc, err := a.envoyGrpcService(cfg)
 	if err != nil {
 		return nil, err
 	}

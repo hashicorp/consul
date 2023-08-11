@@ -3,5 +3,5 @@ xds: Add a built-in Envoy extension that appends OpenTelemetry Access Logging (o
 ```
 
 ```release-note:feature
-xds: Added support of the outbound listener for the built-in Envoy extension External Authorization.
+xds: Add support for patching outbound listeners to the built-in Envoy External Authorization extension.
 ```
