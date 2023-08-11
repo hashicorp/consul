@@ -30,6 +30,8 @@ func validateUnusedKeys(unused []string) error {
 			// to exist on the target.
 		case strings.HasSuffix(strings.ToLower(k), "namespace"):
 			err = multierror.Append(err, fmt.Errorf("invalid config key %q, namespaces are a consul enterprise feature", k))
+		case strings.Contains(strings.ToLower(k), "jwt"):
+			err = multierror.Append(err, fmt.Errorf("invalid config key %q, api-gateway jwt validation is a consul enterprise feature", k))
 		default:
 			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
 		}

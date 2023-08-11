@@ -5,6 +5,7 @@ package resource
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -12,6 +13,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
@@ -24,35 +26,37 @@ import (
 func TestRead_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-
 	demo.RegisterTypes(server.Registry)
 
-	testCases := map[string]func(*pbresource.ReadRequest){
-		"no id":      func(req *pbresource.ReadRequest) { req.Id = nil },
-		"no type":    func(req *pbresource.ReadRequest) { req.Id.Type = nil },
-		"no tenancy": func(req *pbresource.ReadRequest) { req.Id.Tenancy = nil },
-		"no name":    func(req *pbresource.ReadRequest) { req.Id.Name = "" },
-		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition not default": func(req *pbresource.ReadRequest) {
-			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Partition = ""
+	testCases := map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID{
+		"no id": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID { return nil },
+		"no type": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			artistId.Type = nil
+			return artistId
 		},
-		"tenancy namespace not default": func(req *pbresource.ReadRequest) {
-			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Namespace = ""
+		"no tenancy": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			artistId.Tenancy = nil
+			return artistId
 		},
-		"tenancy peername not local": func(req *pbresource.ReadRequest) {
-			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.PeerName = ""
+		"no name": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			artistId.Name = ""
+			return artistId
+		},
+		"partition scope with non-empty namespace": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
+			return recordLabelId
 		},
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
-			res, err := demo.GenerateV2Artist()
+			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			req := &pbresource.ReadRequest{Id: res.Id}
-			modFn(req)
+			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+			require.NoError(t, err)
+
+			// Each test case picks which resource to use based on the resource type's scope.
+			req := &pbresource.ReadRequest{Id: modFn(artist.Id, recordLabel.Id)}
 
 			_, err = client.Read(testContext(t), req)
 			require.Error(t, err)
@@ -77,18 +81,50 @@ func TestRead_TypeNotFound(t *testing.T) {
 func TestRead_ResourceNotFound(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
+			tenancyCases := map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID{
+				"resource not found by name": func(artistId, _ *pbresource.ID) *pbresource.ID {
+					artistId.Name = "bogusname"
+					return artistId
+				},
+				"partition not found when namespace scoped": func(artistId, _ *pbresource.ID) *pbresource.ID {
+					id := clone(artistId)
+					id.Tenancy.Partition = "boguspartition"
+					return id
+				},
+				"namespace not found when namespace scoped": func(artistId, _ *pbresource.ID) *pbresource.ID {
+					id := clone(artistId)
+					id.Tenancy.Namespace = "bogusnamespace"
+					return id
+				},
+				"partition not found when partition scoped": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+					id := clone(recordLabelId)
+					id.Tenancy.Partition = "boguspartition"
+					return id
+				},
+			}
+			for tenancyDesc, modFn := range tenancyCases {
+				t.Run(tenancyDesc, func(t *testing.T) {
+					server := testServer(t)
+					demo.RegisterTypes(server.Registry)
+					client := testClient(t, server)
 
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+					recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+					require.NoError(t, err)
+					recordLabel, err = server.Backend.WriteCAS(tc.ctx, recordLabel)
+					require.NoError(t, err)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
+					artist, err := demo.GenerateV2Artist()
+					require.NoError(t, err)
+					artist, err = server.Backend.WriteCAS(tc.ctx, artist)
+					require.NoError(t, err)
 
-			_, err = client.Read(tc.ctx, &pbresource.ReadRequest{Id: artist.Id})
-			require.Error(t, err)
-			require.Equal(t, codes.NotFound.String(), status.Code(err).String())
-			require.Contains(t, err.Error(), "resource not found")
+					// Each tenancy test case picks which resource to use based on the resource type's scope.
+					_, err = client.Read(tc.ctx, &pbresource.ReadRequest{Id: modFn(artist.Id, recordLabel.Id)})
+					require.Error(t, err)
+					require.Equal(t, codes.NotFound.String(), status.Code(err).String())
+					require.Contains(t, err.Error(), "resource not found")
+				})
+			}
 		})
 	}
 }
@@ -121,20 +157,77 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 func TestRead_Success(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
+			tenancyCases := map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID{
+				"namespaced resource provides nonempty partition and namespace": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
+					return artistId
+				},
+				"namespaced resource provides uppercase partition and namespace": func(artistId, _ *pbresource.ID) *pbresource.ID {
+					id := clone(artistId)
+					id.Tenancy.Partition = strings.ToUpper(artistId.Tenancy.Partition)
+					id.Tenancy.Namespace = strings.ToUpper(artistId.Tenancy.Namespace)
+					return id
+				},
+				"namespaced resource inherits tokens partition when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+					id := clone(artistId)
+					id.Tenancy.Partition = ""
+					return id
+				},
+				"namespaced resource inherits tokens namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+					id := clone(artistId)
+					id.Tenancy.Namespace = ""
+					return id
+				},
+				"namespaced resource inherits tokens partition and namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+					id := clone(artistId)
+					id.Tenancy.Partition = ""
+					id.Tenancy.Namespace = ""
+					return id
+				},
+				"partitioned resource provides nonempty partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+					return recordLabelId
+				},
+				"partitioned resource provides uppercase partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+					id := clone(recordLabelId)
+					id.Tenancy.Partition = strings.ToUpper(recordLabelId.Tenancy.Partition)
+					return id
+				},
+				"partitioned resource inherits tokens partition when empty": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+					id := clone(recordLabelId)
+					id.Tenancy.Partition = ""
+					return id
+				},
+			}
+			for tenancyDesc, modFn := range tenancyCases {
+				t.Run(tenancyDesc, func(t *testing.T) {
+					server := testServer(t)
+					demo.RegisterTypes(server.Registry)
+					client := testClient(t, server)
 
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+					recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+					require.NoError(t, err)
+					recordLabel, err = server.Backend.WriteCAS(tc.ctx, recordLabel)
+					require.NoError(t, err)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
+					artist, err := demo.GenerateV2Artist()
+					require.NoError(t, err)
+					artist, err = server.Backend.WriteCAS(tc.ctx, artist)
+					require.NoError(t, err)
 
-			resource1, err := server.Backend.WriteCAS(tc.ctx, artist)
-			require.NoError(t, err)
+					// Each tenancy test case picks which resource to use based on the resource type's scope.
+					req := &pbresource.ReadRequest{Id: modFn(artist.Id, recordLabel.Id)}
+					rsp, err := client.Read(tc.ctx, req)
+					require.NoError(t, err)
 
-			rsp, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: artist.Id})
-			require.NoError(t, err)
-			prototest.AssertDeepEqual(t, resource1, rsp.Resource)
+					switch {
+					case proto.Equal(rsp.Resource.Id.Type, demo.TypeV2Artist):
+						prototest.AssertDeepEqual(t, artist, rsp.Resource)
+					case proto.Equal(rsp.Resource.Id.Type, demo.TypeV1RecordLabel):
+						prototest.AssertDeepEqual(t, recordLabel, rsp.Resource)
+					default:
+						require.Fail(t, "unexpected resource type")
+					}
+				})
+			}
 		})
 	}
 }

@@ -7,6 +7,11 @@ syntax = "proto3";
 // Consul's generic storage APIs.
 package hashicorp.consul.internal.demo.v1;
 
+message RecordLabel {
+  string name = 1;
+  string description = 2;
+}
+
 message Artist {
   string name = 1;
   string description = 2;

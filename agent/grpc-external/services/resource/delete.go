@@ -36,7 +36,8 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		return nil, err
 	}
 
-	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	// TODO(spatel): Refactor _ and entMeta in NET-4919
+	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	}
 
 	// Check ACLs
-	err = reg.ACLs.Write(authz, existing)
+	err = reg.ACLs.Write(authz, authzContext, existing)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())

@@ -20,34 +20,6 @@ var (
 	kindRegexp         = regexp.MustCompile(`^[A-Z][A-Za-z\d]+$`)
 )
 
-// Scope describes the tenancy scope of a resource.
-type Scope int
-
-const (
-	// There is no default scope, it must be set explicitly.
-	ScopeUndefined Scope = iota
-	// ScopeCluster describes a resource that is scoped to a cluster.
-	ScopeCluster
-	// ScopePartition describes a resource that is scoped to a partition.
-	ScopePartition
-	// ScopeNamespace applies to a resource that is scoped to a partition and namespace.
-	ScopeNamespace
-)
-
-func (s Scope) String() string {
-	switch s {
-	case ScopeUndefined:
-		return "undefined"
-	case ScopeCluster:
-		return "cluster"
-	case ScopePartition:
-		return "partition"
-	case ScopeNamespace:
-		return "namespace"
-	}
-	panic(fmt.Sprintf("string mapping missing for scope %v", int(s)))
-}
-
 type Registry interface {
 	// Register the given resource type and its hooks.
 	Register(reg Registration)
@@ -85,12 +57,12 @@ type ACLHooks struct {
 	// RPCs.
 	//
 	// If it is omitted, `operator:read` permission is assumed.
-	Read func(acl.Authorizer, *pbresource.ID) error
+	Read func(acl.Authorizer, *acl.AuthorizerContext, *pbresource.ID) error
 
 	// Write is used to authorize Write and Delete RPCs.
 	//
 	// If it is omitted, `operator:write` permission is assumed.
-	Write func(acl.Authorizer, *pbresource.Resource) error
+	Write func(acl.Authorizer, *acl.AuthorizerContext, *pbresource.Resource) error
 
 	// List is used to authorize List RPCs.
 	//
@@ -147,13 +119,13 @@ func (r *TypeRegistry) Register(registration Registration) {
 		registration.ACLs = &ACLHooks{}
 	}
 	if registration.ACLs.Read == nil {
-		registration.ACLs.Read = func(authz acl.Authorizer, id *pbresource.ID) error {
-			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
+		registration.ACLs.Read = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+			return authz.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
 		}
 	}
 	if registration.ACLs.Write == nil {
-		registration.ACLs.Write = func(authz acl.Authorizer, id *pbresource.Resource) error {
-			return authz.ToAllowAuthorizer().OperatorWriteAllowed(&acl.AuthorizerContext{})
+		registration.ACLs.Write = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.Resource) error {
+			return authz.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
 		}
 	}
 	if registration.ACLs.List == nil {

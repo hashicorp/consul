@@ -27,13 +27,13 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 		Proto:    &pbmesh.ProxyStateTemplate{},
 		Validate: nil,
 		ACLs: &resource.ACLHooks{
-			Read: func(authorizer acl.Authorizer, id *pbresource.ID) error {
+			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
 				// Check service:read and operator:read permissions.
 				// If service:read is not allowed, check operator:read. We want to allow both as this
 				// resource is mostly useful for debuggability and we want to cover
 				// the most cases that serve that purpose.
-				serviceReadErr := authorizer.ToAllowAuthorizer().ServiceReadAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
-				operatorReadErr := authorizer.ToAllowAuthorizer().OperatorReadAllowed(resource.AuthorizerContext(id.Tenancy))
+				serviceReadErr := authorizer.ToAllowAuthorizer().ServiceReadAllowed(id.Name, authzContext)
+				operatorReadErr := authorizer.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
 
 				switch {
 				case serviceReadErr != nil:
@@ -44,10 +44,10 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 
 				return nil
 			},
-			Write: func(authorizer acl.Authorizer, p *pbresource.Resource) error {
+			Write: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, p *pbresource.Resource) error {
 				// Require operator:write only for "break-glass" scenarios as this resource should be mostly
 				// managed by a controller.
-				return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(resource.AuthorizerContext(p.Id.Tenancy))
+				return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
 			},
 			List: func(authorizer acl.Authorizer, tenancy *pbresource.Tenancy) error {
 				// No-op List permission as we want to default to filtering resources

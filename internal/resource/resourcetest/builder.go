@@ -37,8 +37,8 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					Kind:         rtype.Kind,
 				},
 				Tenancy: &pbresource.Tenancy{
-					Partition: "default",
-					Namespace: "default",
+					Partition: resource.DefaultPartitionName,
+					Namespace: resource.DefaultNamespaceName,
 					PeerName:  "local",
 				},
 				Name: name,
@@ -53,6 +53,11 @@ func ResourceID(id *pbresource.ID) *resourceBuilder {
 			Id: id,
 		},
 	}
+}
+
+func (b *resourceBuilder) WithTenancy(tenant *pbresource.Tenancy) *resourceBuilder {
+	b.resource.Id.Tenancy = tenant
+	return b
 }
 
 func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourceBuilder {

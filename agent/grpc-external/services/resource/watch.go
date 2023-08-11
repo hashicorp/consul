@@ -25,7 +25,8 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 		return err
 	}
 
-	authz, err := s.getAuthorizer(tokenFromContext(stream.Context()))
+	// TODO(spatel): Refactor _ and entMeta as part of NET-4914
+	authz, authzContext, err := s.getAuthorizer(tokenFromContext(stream.Context()), acl.DefaultEnterpriseMeta())
 	if err != nil {
 		return err
 	}
@@ -66,7 +67,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 		}
 
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, event.Resource.Id)
+		err = reg.ACLs.Read(authz, authzContext, event.Resource.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue
