@@ -44,7 +44,8 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
     "codemirror/mode/javascript/javascript.js": "${rootURL}assets/codemirror/mode/javascript/javascript.js",
     "codemirror/mode/ruby/ruby.js": "${rootURL}assets/codemirror/mode/ruby/ruby.js",
     "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js",
-    "codemirror/mode/xml/xml.js": "${rootURL}assets/codemirror/mode/xml/xml.js"
+    "codemirror/mode/xml/xml.js": "${rootURL}assets/codemirror/mode/xml/xml.js",
+    "codemirror/mode/toml/toml.js": "${rootURL}assets/codemirror/mode/toml/toml.js"
   }
   </script>
   <script src="${rootURL}assets/consul-ui/services.js"></script>

@@ -295,6 +295,10 @@ module.exports = function (defaults, $ = process.env) {
   app.import('node_modules/codemirror/mode/xml/xml.js', {
     outputFile: 'assets/codemirror/mode/xml/xml.js',
   });
+  // TOML linting support. Possibly dynamically loaded via CodeMirror linting. See services/code-mirror/linter.js
+  app.import('node_modules/codemirror/mode/toml/toml.js', {
+    outputFile: 'assets/codemirror/mode/toml/toml.js',
+  });
   // metrics-providers
   app.import('vendor/metrics-providers/consul.js', {
     outputFile: 'assets/metrics-providers/consul.js',
