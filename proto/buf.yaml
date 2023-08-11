@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 version: v1
+deps:
+  - buf.build/hashicorp/consul
 lint:
   use:
     - DEFAULT
