@@ -878,7 +878,6 @@ func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName str
 	c.log("OutgoingTLSConfigForCheck")
 
 	c.lock.RLock()
-
 	useAgentTLS := c.base.EnableAgentTLSForChecks
 	c.lock.RUnlock()
 
