@@ -47,9 +47,8 @@ func (c Controller) WithWatch(watchedType *pbresource.Type, mapper DependencyMap
 	return c
 }
 
-// WithCustomWatch adds a custom watch on the given type/dependency to the controller. custom mapper
-// will be called to determine which resources must be reconciled as a result of
-// an event.
+// WithCustomWatch adds a custom watch on the given dependency to the controller. Custom mapper
+// will be called to map events produced by source to the controller's watched type.
 func (c Controller) WithCustomWatch(source *Source, mapper CustomDependencyMapper) Controller {
 	if source == nil {
 		panic("source must not be nil")
@@ -146,7 +145,10 @@ func (s *Source) Watch(ctx context.Context, add func(e Event)) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		case evt := <-s.Source:
+		case evt, ok := <-s.Source:
+			if !ok {
+				return nil
+			}
 			add(evt)
 		}
 	}
@@ -158,14 +160,18 @@ type Source struct {
 	Source <-chan Event
 }
 
+// Event captures an event in the system which the API can choose to respond to.
 type Event struct {
 	Obj queue.ItemType
 }
 
+// Key returns a string that will be used to de-duplicate items in the queue.
 func (e Event) Key() string {
 	return e.Obj.Key()
 }
 
+// customWatch represent a Watch on a custom Event source and a Mapper to map said
+// Events into Requests that the controller can respond to.
 type customWatch struct {
 	source *Source
 	mapper CustomDependencyMapper

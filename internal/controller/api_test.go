@@ -26,6 +26,7 @@ func TestController_API(t *testing.T) {
 	client := svctest.RunResourceService(t, demo.RegisterTypes)
 
 	concertsChan := make(chan controller.Event)
+	defer close(concertsChan)
 	concertSource := &controller.Source{Source: concertsChan}
 	concertMapper := func(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
 		artistID := event.Obj.(*Concert).artistID

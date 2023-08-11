@@ -18,6 +18,8 @@ type DependencyMapper func(
 	res *pbresource.Resource,
 ) ([]Request, error)
 
+// CustomDependencyMapper is called when an Event occurs to determine which of the
+// controller's managed resources need to be reconciled.
 type CustomDependencyMapper func(
 	ctx context.Context,
 	rt Runtime,
