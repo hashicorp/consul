@@ -361,7 +361,28 @@ func TestResourceReadHandler(t *testing.T) {
 
 		var result map[string]any
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
-		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
+		// generation and uid are random
+		delete(result, "generation")
+		delete(result["id"].(map[string]interface{}), "uid")
+		expected := map[string]interface{}(map[string]interface{}{
+			"data": map[string]interface{}{"genre": "GENRE_COUNTRY", "name": "Keith Urban"},
+			"id": map[string]interface{}{
+				"name": "keith-urban",
+				"tenancy": map[string]interface{}{
+					"namespace": "default",
+					"partition": "default",
+					"peerName":  "local",
+				},
+				"type": map[string]interface{}{
+					"group":        "demo",
+					"groupVersion": "v2",
+					"kind":         "Artist",
+				},
+			},
+			"metadata": map[string]interface{}{"foo": "bar"},
+			"version":  "1",
+		})
+		require.Equal(t, expected, result)
 	})
 
 	t.Run("should not be found if resource not exist", func(t *testing.T) {
