@@ -308,7 +308,7 @@ Use these links to navigate to a particular top-level stanza.
     - `secretKey` ((#v-global-gossipencryption-secretkey)) (`string: ""`) - The key within the Kubernetes secret or Vault secret key that holds the gossip
       encryption key.
 
-    - `logLevel` ((#v-global-gossipencryption-loglevel)) (`string: ""`) - Override global log verbosity level for gossip-encryption-autogenerate-job pods. One of "trace", "debug", "info", "warn", or "error".
+    - `logLevel` ((#v-global-gossipencryption-loglevel)) (`string: ""`) - Override global log verbosity level for `gossip-encryption-autogenerate-job` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
@@ -386,7 +386,7 @@ Use these links to navigate to a particular top-level stanza.
       - `secretKey` ((#v-global-tls-cakey-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the CA key.
 
     - `annotations` ((#v-global-tls-annotations)) (`string: null`) - This value defines additional annotations for
-      tls init jobs. This should be formatted as a multi-line string.
+      tls init jobs. Format this value as a multi-line string.
 
       ```yaml
       annotations: |
@@ -477,7 +477,7 @@ Use these links to navigate to a particular top-level stanza.
       ```
 
     - `annotations` ((#v-global-acls-annotations)) (`string: null`) - This value defines additional annotations for
-      acl init jobs. This should be formatted as a multi-line string.
+      acl init jobs. Format this value as a multi-line string.
 
       ```yaml
       annotations: |
@@ -538,7 +538,7 @@ Use these links to navigate to a particular top-level stanza.
         -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
       ```
 
-    - `logLevel` ((#v-global-federation-loglevel)) (`string: ""`) - Override global log verbosity level for the create-federation-secret-job pods. One of "trace", "debug", "info", "warn", or "error".
+    - `logLevel` ((#v-global-federation-loglevel)) (`string: ""`) - Override global log verbosity level for the `create-federation-secret-job` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
 
@@ -2069,7 +2069,7 @@ Use these links to navigate to a particular top-level stanza.
     This setting is required for [Cluster Peering](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
-  - `logLevel` ((#v-meshgateway-loglevel)) (`string: ""`) - Override global log verbosity level for mesh-gateway-deployment pods. One of "trace", "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-meshgateway-loglevel)) (`string: ""`) - Override global log verbosity level for `mesh-gateway-deployment` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `replicas` ((#v-meshgateway-replicas)) (`integer: 1`) - Number of replicas for the Deployment.
 
@@ -2235,7 +2235,7 @@ Use these links to navigate to a particular top-level stanza.
   - `enabled` ((#v-ingressgateways-enabled)) (`boolean: false`) - Enable ingress gateway deployment. Requires `connectInject.enabled=true`
     and `client.enabled=true`.
 
-  - `logLevel` ((#v-ingressgateways-loglevel)) (`string: ""`) - Override global log verbosity level for ingress-gateways-deployment pods. One of "trace", "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-ingressgateways-loglevel)) (`string: ""`) - Override global log verbosity level for `ingress-gateways-deployment` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `defaults` ((#v-ingressgateways-defaults)) - Defaults sets default values for all gateway fields. With the exception
     of annotations, defining any of these values in the `gateways` list
