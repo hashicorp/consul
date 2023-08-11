@@ -9,10 +9,10 @@ description: |
 
 Command: `consul services export`
 
-The services export subcommand is used to export a service from one admin partition
-or cluster peer to another. This is accomplished by creating or updating the corresponding
+The `services export` command exports a service from one admin partition
+or cluster peer to another. This command can be used in lieu of creating or updating the corresponding
 `exported-services` configuration entry. Running the command multiple times with the same
-arguments will result in a no-op.
+arguments results in a no-op.
 
 ```text
 Usage: consul services export [options] -name <service name> -consumer-peers <other cluster name>
@@ -28,38 +28,37 @@ Usage: consul services export [options] -name <service name> -consumer-peers <ot
   Additional flags and more advanced use cases are detailed below.
 ```
 
-#### Command Options
+#### Command options
 
 - `-name=<string>` - (Required) The name of the service to export.
 
 - `-consumer-peers=<string>` - (Required) A comma-separated list of cluster peers to export the service to.
-  In Consul Enterprise, this flag is optional if -consumer-partitions is specified.
+  In Consul Enterprise, this flag is optional when `-consumer-partitions` is specified.
 
-#### Enterprise Options
+#### Enterprise options
 
 - `-consumer-partitions=<string>` - A comma-separated list of admin partitions within the
-  same datacenter to export the service to. This flag is optional if -consumer-peers is specified.
+  same datacenter to export the service to. This flag is optional when `-consumer-peers` is specified.
 
 @include 'http_api_partition_options.mdx'
 
 @include 'http_api_namespace_options.mdx'
 
-#### API Options
+#### API options
 
 @include 'http_api_options_client.mdx'
 
 ## Examples
 
-The example below shows using the `export` command to export the `web` service to a cluster
-peer named `dc2`.
+In the following example, the `consul services export` command makes the `web` service available to services running in a cluster named `dc2` that has a previously-established cluster peering connection.
 
 ```shell-session hideClipboard
 $ consul services export -name=web -consumer-peers=dc2
 ```
 
-The example below shows using the `export` command to export the `web` service located in the
-namespace `ns1` and the admin partition `part1` to other admin partitions named `part2` and `part3`.
+In the following example, the `consul services export` command makes the `web` service located in the
+namespace `ns1` and the admin partition `alpha` to other admin partitions named `beta` and `delta`.
 
 ```shell-session hideClipboard
-$ consul services export -name=web -namespace=ns1 -partition=part1 -consumer-partitions=part2,part3
+$ consul services export -name=web -namespace=ns1 -partition=alpha -consumer-partitions=beta,delta
 ```
