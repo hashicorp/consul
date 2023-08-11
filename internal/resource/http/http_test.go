@@ -350,7 +350,7 @@ func TestResourceReadHandler(t *testing.T) {
 		// generation and uid are random
 		delete(result, "generation")
 		delete(result["id"].(map[string]interface{}), "uid")
-		expected := map[string]interface{}(map[string]interface{}{
+		expected := map[string]interface{}{
 			"data": map[string]interface{}{"genre": "GENRE_COUNTRY", "name": "Keith Urban"},
 			"id": map[string]interface{}{
 				"name": "keith-urban",
@@ -367,7 +367,7 @@ func TestResourceReadHandler(t *testing.T) {
 			},
 			"metadata": map[string]interface{}{"foo": "bar"},
 			"version":  "1",
-		})
+		}
 		require.Equal(t, expected, result)
 	})
 
