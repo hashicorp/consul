@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package bimapper
 
@@ -145,14 +145,14 @@ func (m *Mapper) LinksForItem(item *pbresource.ID) []*pbresource.Reference {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	items, ok := m.linkToItem[resource.NewReferenceKey(item)]
+	links, ok := m.itemToLink[resource.NewReferenceKey(item)]
 	if !ok {
 		return nil
 	}
 
-	out := make([]*pbresource.Reference, 0, len(items))
-	for item := range items {
-		out = append(out, item.ToReference())
+	out := make([]*pbresource.Reference, 0, len(links))
+	for link := range links {
+		out = append(out, link.ToReference())
 	}
 	return out
 }
@@ -195,11 +195,11 @@ func (m *Mapper) MapLink(_ context.Context, _ controller.Runtime, res *pbresourc
 	return out, nil
 }
 
-func (m *Mapper) itemsByLink(ref resource.ReferenceKey) []*pbresource.ID {
+func (m *Mapper) itemsByLink(link resource.ReferenceKey) []*pbresource.ID {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	items, ok := m.linkToItem[ref]
+	items, ok := m.linkToItem[link]
 	if !ok {
 		return nil
 	}

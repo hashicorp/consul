@@ -1,50 +1,59 @@
 {
-  "versionInfo":  "00000001",
-  "resources":  [
+  "versionInfo": "00000001",
+  "resources": [
     {
-      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "8080",
-      "virtualHosts":  [
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "8080",
+      "virtualHosts": [
         {
-          "name":  "api-gateway-listener-9b9265b",
-          "domains":  [
+          "name": "api-gateway-listener-9b9265b",
+          "domains": [
             "*",
             "*:8080"
           ],
-          "routes":  [
+          "routes": [
             {
-              "match":  {
-                "prefix":  "/"
+              "match": {
+                "prefix": "/"
               },
-              "route":  {
-                "cluster":  "service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              "route": {
+                "cluster": "service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "timeout": "30s",
+                "idleTimeout": "30s",
+                "retryPolicy": {
+                  "retryOn": "cancelled,connect-failure,retriable-status-codes",
+                  "numRetries": 3,
+                  "retriableStatusCodes": [
+                    500
+                  ]
+                }
               },
-              "requestHeadersToAdd":  [
+              "requestHeadersToAdd": [
                 {
-                  "header":  {
-                    "key":  "X-Header-Add",
-                    "value":  "added"
+                  "header": {
+                    "key": "X-Header-Add",
+                    "value": "added"
                   },
-                  "append":  true
+                  "append": true
                 },
                 {
-                  "header":  {
-                    "key":  "X-Header-Set",
-                    "value":  "set"
+                  "header": {
+                    "key": "X-Header-Set",
+                    "value": "set"
                   },
-                  "append":  false
+                  "append": false
                 }
               ],
-              "requestHeadersToRemove":  [
+              "requestHeadersToRemove": [
                 "X-Header-Remove"
               ]
             }
           ]
         }
       ],
-      "validateClusters":  true
+      "validateClusters": true
     }
   ],
-  "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-  "nonce":  "00000001"
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "nonce": "00000001"
 }

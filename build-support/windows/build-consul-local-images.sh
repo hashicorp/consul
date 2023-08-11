@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package bimapper
 
@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -42,28 +43,40 @@ func TestMapper(t *testing.T) {
 	barSvc := rtest.Resource(fakeBarType, "bar").Build()
 	wwwSvc := rtest.Resource(fakeBarType, "www").Build()
 
+	apiRef := newRef(fakeBarType, "api")
+	fooRef := newRef(fakeBarType, "foo")
+	barRef := newRef(fakeBarType, "bar")
+	wwwRef := newRef(fakeBarType, "www")
+
 	fail1 := rtest.Resource(fakeFooType, "api").Build()
 	fail1_refs := []*pbresource.Reference{
-		newRef(fakeBarType, "api"),
-		newRef(fakeBarType, "foo"),
-		newRef(fakeBarType, "bar"),
+		apiRef,
+		fooRef,
+		barRef,
 	}
 
 	fail2 := rtest.Resource(fakeFooType, "www").Build()
 	fail2_refs := []*pbresource.Reference{
-		newRef(fakeBarType, "www"),
-		newRef(fakeBarType, "foo"),
+		wwwRef,
+		fooRef,
 	}
 
 	fail1_updated := rtest.Resource(fakeFooType, "api").Build()
 	fail1_updated_refs := []*pbresource.Reference{
-		newRef(fakeBarType, "api"),
-		newRef(fakeBarType, "bar"),
+		apiRef,
+		barRef,
 	}
 
 	m := New(fakeFooType, fakeBarType)
 
 	// Nothing tracked yet so we assume nothing.
+	requireLinksForItem(t, m, fail1.Id)
+	requireLinksForItem(t, m, fail2.Id)
+	requireItemsForLink(t, m, apiRef)
+	requireItemsForLink(t, m, fooRef)
+	requireItemsForLink(t, m, barRef)
+	requireItemsForLink(t, m, wwwRef)
+
 	requireServicesTracked(t, m, randoSvc)
 	requireServicesTracked(t, m, apiSvc)
 	requireServicesTracked(t, m, fooSvc)
@@ -74,6 +87,13 @@ func TestMapper(t *testing.T) {
 	m.UntrackItem(fail1.Id)
 
 	// still nothing
+	requireLinksForItem(t, m, fail1.Id)
+	requireLinksForItem(t, m, fail2.Id)
+	requireItemsForLink(t, m, apiRef)
+	requireItemsForLink(t, m, fooRef)
+	requireItemsForLink(t, m, barRef)
+	requireItemsForLink(t, m, wwwRef)
+
 	requireServicesTracked(t, m, randoSvc)
 	requireServicesTracked(t, m, apiSvc)
 	requireServicesTracked(t, m, fooSvc)
@@ -82,6 +102,12 @@ func TestMapper(t *testing.T) {
 
 	// Actually insert some data.
 	m.TrackItem(fail1.Id, fail1_refs)
+
+	requireLinksForItem(t, m, fail1.Id, fail1_refs...)
+	requireItemsForLink(t, m, apiRef, fail1.Id)
+	requireItemsForLink(t, m, fooRef, fail1.Id)
+	requireItemsForLink(t, m, barRef, fail1.Id)
+	requireItemsForLink(t, m, wwwRef)
 
 	requireServicesTracked(t, m, randoSvc)
 	requireServicesTracked(t, m, apiSvc, fail1.Id)
@@ -92,6 +118,12 @@ func TestMapper(t *testing.T) {
 	// track it again, no change
 	m.TrackItem(fail1.Id, fail1_refs)
 
+	requireLinksForItem(t, m, fail1.Id, fail1_refs...)
+	requireItemsForLink(t, m, apiRef, fail1.Id)
+	requireItemsForLink(t, m, fooRef, fail1.Id)
+	requireItemsForLink(t, m, barRef, fail1.Id)
+	requireItemsForLink(t, m, wwwRef)
+
 	requireServicesTracked(t, m, randoSvc)
 	requireServicesTracked(t, m, apiSvc, fail1.Id)
 	requireServicesTracked(t, m, fooSvc, fail1.Id)
@@ -100,6 +132,13 @@ func TestMapper(t *testing.T) {
 
 	// track new one that overlaps slightly
 	m.TrackItem(fail2.Id, fail2_refs)
+
+	requireLinksForItem(t, m, fail1.Id, fail1_refs...)
+	requireLinksForItem(t, m, fail2.Id, fail2_refs...)
+	requireItemsForLink(t, m, apiRef, fail1.Id)
+	requireItemsForLink(t, m, fooRef, fail1.Id, fail2.Id)
+	requireItemsForLink(t, m, barRef, fail1.Id)
+	requireItemsForLink(t, m, wwwRef, fail2.Id)
 
 	requireServicesTracked(t, m, randoSvc)
 	requireServicesTracked(t, m, apiSvc, fail1.Id)
@@ -110,6 +149,13 @@ func TestMapper(t *testing.T) {
 	// update the original to change it
 	m.TrackItem(fail1_updated.Id, fail1_updated_refs)
 
+	requireLinksForItem(t, m, fail1.Id, fail1_updated_refs...)
+	requireLinksForItem(t, m, fail2.Id, fail2_refs...)
+	requireItemsForLink(t, m, apiRef, fail1.Id)
+	requireItemsForLink(t, m, fooRef, fail2.Id)
+	requireItemsForLink(t, m, barRef, fail1.Id)
+	requireItemsForLink(t, m, wwwRef, fail2.Id)
+
 	requireServicesTracked(t, m, randoSvc)
 	requireServicesTracked(t, m, apiSvc, fail1.Id)
 	requireServicesTracked(t, m, fooSvc, fail2.Id)
@@ -119,6 +165,13 @@ func TestMapper(t *testing.T) {
 	// delete the original
 	m.UntrackItem(fail1.Id)
 
+	requireLinksForItem(t, m, fail1.Id)
+	requireLinksForItem(t, m, fail2.Id, fail2_refs...)
+	requireItemsForLink(t, m, apiRef)
+	requireItemsForLink(t, m, fooRef, fail2.Id)
+	requireItemsForLink(t, m, barRef)
+	requireItemsForLink(t, m, wwwRef, fail2.Id)
+
 	requireServicesTracked(t, m, randoSvc)
 	requireServicesTracked(t, m, apiSvc)
 	requireServicesTracked(t, m, fooSvc, fail2.Id)
@@ -127,6 +180,13 @@ func TestMapper(t *testing.T) {
 
 	// delete the other one
 	m.UntrackItem(fail2.Id)
+
+	requireLinksForItem(t, m, fail1.Id)
+	requireLinksForItem(t, m, fail2.Id)
+	requireItemsForLink(t, m, apiRef)
+	requireItemsForLink(t, m, fooRef)
+	requireItemsForLink(t, m, barRef)
+	requireItemsForLink(t, m, wwwRef)
 
 	requireServicesTracked(t, m, randoSvc)
 	requireServicesTracked(t, m, apiSvc)
@@ -150,6 +210,22 @@ func requireServicesTracked(t *testing.T, mapper *Mapper, link *pbresource.Resou
 	for _, item := range items {
 		prototest.AssertContainsElement(t, reqs, controller.Request{ID: item})
 	}
+}
+
+func requireLinksForItem(t *testing.T, mapper *Mapper, item *pbresource.ID, links ...*pbresource.Reference) {
+	t.Helper()
+
+	got := mapper.LinksForItem(item)
+
+	prototest.AssertElementsMatch(t, links, got)
+}
+
+func requireItemsForLink(t *testing.T, mapper *Mapper, link *pbresource.Reference, items ...*pbresource.ID) {
+	t.Helper()
+
+	got := mapper.ItemsForLink(resource.IDFromReference(link))
+
+	prototest.AssertElementsMatch(t, items, got)
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {

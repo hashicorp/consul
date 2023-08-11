@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -1629,7 +1629,9 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	d := fakeResolveTokenDelegate{delegate: &delegateMock{}, authorizer: acl.DenyAll()}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.DenyAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1658,7 +1660,9 @@ func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	d := fakeResolveTokenDelegate{delegate: &delegateMock{}, authorizer: acl.ManageAll()}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.ManageAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,

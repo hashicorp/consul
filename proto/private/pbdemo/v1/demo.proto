@@ -1,11 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 syntax = "proto3";
 
 // This package contains fake resource types, which are useful for working on
 // Consul's generic storage APIs.
 package hashicorp.consul.internal.demo.v1;
+
+message RecordLabel {
+  string name = 1;
+  string description = 2;
+}
 
 message Artist {
   string name = 1;

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -616,7 +616,9 @@ func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, 
 		if err != nil {
 			return nil, err
 		}
-		buf = append(buf, "\n"...)
+		if ok {
+			buf = append(buf, "\n"...)
+		}
 		return buf, nil
 	}
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource_test
 
@@ -10,12 +10,59 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func TestGetDecodedResource(t *testing.T) {
+	var (
+		baseClient = svctest.RunResourceService(t, demo.RegisterTypes)
+		client     = rtest.NewClient(baseClient)
+		ctx        = testutil.TestContext(t)
+	)
+
+	babypantsID := &pbresource.ID{
+		Type:    demo.TypeV2Artist,
+		Tenancy: demo.TenancyDefault,
+		Name:    "babypants",
+	}
+
+	testutil.RunStep(t, "not found", func(t *testing.T) {
+		got, err := resource.GetDecodedResource[pbdemo.Artist, *pbdemo.Artist](ctx, client, babypantsID)
+		require.NoError(t, err)
+		require.Nil(t, got)
+	})
+
+	testutil.RunStep(t, "found", func(t *testing.T) {
+		data := &pbdemo.Artist{
+			Name: "caspar babypants",
+		}
+		res := rtest.Resource(demo.TypeV2Artist, "babypants").
+			WithData(t, data).
+			Write(t, client)
+
+		got, err := resource.GetDecodedResource[pbdemo.Artist, *pbdemo.Artist](ctx, client, babypantsID)
+		require.NoError(t, err)
+		require.NotNil(t, got)
+
+		// Clone generated fields over.
+		res.Id.Uid = got.Resource.Id.Uid
+		res.Version = got.Resource.Version
+		res.Generation = got.Resource.Generation
+
+		// Clone defaulted fields over
+		data.Genre = pbdemo.Genre_GENRE_DISCO
+
+		prototest.AssertDeepEqual(t, res, got.Resource)
+		prototest.AssertDeepEqual(t, data, got.Data)
+	})
+}
 
 func TestDecode(t *testing.T) {
 	t.Run("good", func(t *testing.T) {

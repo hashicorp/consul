@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package http
 
 import (
@@ -58,6 +61,8 @@ func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.handleWrite(w, r, ctx)
 	case http.MethodGet:
 		h.handleRead(w, r, ctx)
+	case http.MethodDelete:
+		h.handleDelete(w, r, ctx)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -85,7 +90,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 
-	tenancyInfo, params := checkURL(r)
+	tenancyInfo, params := parseParams(r)
 
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
@@ -115,7 +120,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 }
 
 func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	tenancyInfo, params := checkURL(r)
+	tenancyInfo, params := parseParams(r)
 	if params["consistent"] != "" {
 		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
 	}
@@ -141,7 +146,26 @@ func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx
 	w.Write(output)
 }
 
-func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
+// Note: The HTTP endpoints do not accept UID since it is quite unlikely that the user will have access to it
+func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	tenancyInfo, params := parseParams(r)
+	_, err := h.client.Delete(ctx, &pbresource.DeleteRequest{
+		Id: &pbresource.ID{
+			Type:    h.reg.Type,
+			Tenancy: tenancyInfo,
+			Name:    params["resourceName"],
+		},
+		Version: params["version"],
+	})
+	if err != nil {
+		handleResponseError(err, w, h)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+	w.Write([]byte("{}"))
+}
+
+func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
 	query := r.URL.Query()
 	tenancy = &pbresource.Tenancy{
 		Partition: query.Get("partition"),
@@ -187,20 +211,20 @@ func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
 			h.logger.Info("User has mal-formed request", "error", err)
 		case codes.NotFound:
 			w.WriteHeader(http.StatusNotFound)
-			h.logger.Info("Failed to write to GRPC resource: Not found", "error", err)
+			h.logger.Info("Received error from resource service: Not found", "error", err)
 		case codes.PermissionDenied:
 			w.WriteHeader(http.StatusForbidden)
-			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
+			h.logger.Info("Received error from resource service: User not authenticated", "error", err)
 		case codes.Aborted:
 			w.WriteHeader(http.StatusConflict)
-			h.logger.Info("Failed to write to GRPC resource: the request conflict with the current state of the target resource", "error", err)
+			h.logger.Info("Received error from resource service: the request conflict with the current state of the target resource", "error", err)
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
-			h.logger.Error("Failed to write to GRPC resource", "error", err)
+			h.logger.Error("Received error from resource service", "error", err)
 		}
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("Failed to write to GRPC resource: not able to parse error returned", "error", err)
+		h.logger.Error("Received error from resource service: not able to parse error returned", "error", err)
 	}
 	w.Write([]byte(err.Error()))
 }
