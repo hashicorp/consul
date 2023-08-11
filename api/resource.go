@@ -1,0 +1,43 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+package api
+
+import (
+	"fmt"
+)
+
+type Resource struct {
+	c *Client
+}
+
+type GVK struct {
+	Group   string
+	Version string
+	Kind    string
+}
+
+// Config returns a handle to the Config endpoints
+func (c *Client) Resource() *Resource {
+	return &Resource{c}
+}
+
+func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) ([]byte, error) {
+	r := resource.c.newRequest("GET", fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
+	r.setQueryOptions(q)
+	_, resp, err := resource.c.doRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
+
+	var out []byte
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
