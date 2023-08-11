@@ -97,7 +97,8 @@ jobs:
         id: matrix_sha
         run: |
           set -eux
-          echo matrix_sha=$(echo "${{ join(matrix.package, ' ') }}" | sha256sum) >> "$GITHUB_OUTPUT"
+          echo package1=$(echo "${{ matrix.package[0] }}" | sed 's|github.com/hashicorp||' | tr '/' '_' ) >> "$GITHUB_OUTPUT"
+          echo matrix_sha=$(echo "${{ join(matrix.package, ' ') }}" | sha256sum | cut -d' ' -f1 ) >> "$GITHUB_OUTPUT"
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
@@ -125,7 +126,7 @@ jobs:
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
-          sar -A -o /tmp/stats.sar 5 > /dev/null 2>&1 & 
+          sar -A -o /tmp/stats.sar 1 > /dev/null 2>&1 & 
 
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
           --format=short-verbose \
@@ -181,7 +182,7 @@ jobs:
       - name: upload sar
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
-          name: ${{steps.matrix_sha.outputs.matrix_sha}}.sar
+          name: ${{steps.matrix_sha.outputs.package1}}-${{steps.matrix_sha.outputs.matrix_sha}}.sar
           path: /tmp/stats.sar
       - name: upload jsonfile 
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
