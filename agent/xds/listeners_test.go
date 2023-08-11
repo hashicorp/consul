@@ -1301,24 +1301,24 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 					var listeners []proto.Message
 
-					// Need server just for logger dependency
-					g := NewResourceGenerator(testutil.Logger(t), nil, false)
-					g.ProxyFeatures = sf
-					if tt.generatorSetup != nil {
-						tt.generatorSetup(g)
-					}
-					listeners, err = g.listenersFromSnapshot(snap)
-					require.NoError(t, err)
-					// The order of listeners returned via LDS isn't relevant, so it's safe
-					// to sort these for the purposes of test comparisons.
-					sort.Slice(listeners, func(i, j int) bool {
-						return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
-					})
-
-					r, err := createResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
-					require.NoError(t, err)
-
 					t.Run("current-xdsv1", func(t *testing.T) {
+						// Need server just for logger dependency
+						g := NewResourceGenerator(testutil.Logger(t), nil, false)
+						g.ProxyFeatures = sf
+						if tt.generatorSetup != nil {
+							tt.generatorSetup(g)
+						}
+						listeners, err = g.listenersFromSnapshot(snap)
+						require.NoError(t, err)
+						// The order of listeners returned via LDS isn't relevant, so it's safe
+						// to sort these for the purposes of test comparisons.
+						sort.Slice(listeners, func(i, j int) bool {
+							return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
+						})
+
+						r, err := createResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
+						require.NoError(t, err)
+
 						gotJSON := protoToJSON(t, r)
 
 						gName := tt.name
@@ -1331,25 +1331,25 @@ func TestListenersFromSnapshot(t *testing.T) {
 					})
 
 					if tt.alsoRunTestForV2 {
-						generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
-						converter := proxystateconverter.NewConverter(testutil.Logger(t), nil)
-						proxyState, err := converter.ProxyStateFromSnapshot(snap)
-						require.NoError(t, err)
-
-						res, err := generator.AllResourcesFromIR(proxyState)
-						require.NoError(t, err)
-
-						listeners = res[xdscommon.ListenerType]
-						// The order of listeners returned via LDS isn't relevant, so it's safe
-						// to sort these for the purposes of test comparisons.
-						sort.Slice(listeners, func(i, j int) bool {
-							return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
-						})
-
-						r, err := createResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
-						require.NoError(t, err)
-
 						t.Run("current-xdsv2", func(t *testing.T) {
+							generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
+							converter := proxystateconverter.NewConverter(testutil.Logger(t), nil)
+							proxyState, err := converter.ProxyStateFromSnapshot(snap)
+							require.NoError(t, err)
+
+							res, err := generator.AllResourcesFromIR(proxyState)
+							require.NoError(t, err)
+
+							listeners = res[xdscommon.ListenerType]
+							// The order of listeners returned via LDS isn't relevant, so it's safe
+							// to sort these for the purposes of test comparisons.
+							sort.Slice(listeners, func(i, j int) bool {
+								return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
+							})
+
+							r, err := createResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
+							require.NoError(t, err)
+
 							gotJSON := protoToJSON(t, r)
 
 							gName := tt.name
