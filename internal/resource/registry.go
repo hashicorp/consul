@@ -6,6 +6,7 @@ package resource
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
 	"google.golang.org/protobuf/proto"
@@ -170,4 +171,16 @@ func (r *TypeRegistry) Types() []Registration {
 
 func ToGVK(resourceType *pbresource.Type) string {
 	return fmt.Sprintf("%s.%s.%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
+}
+
+func ParseGVK(gvk string) (*pbresource.Type, error) {
+	parts := strings.Split(gvk, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("GVK string must be in the form <Group>.<GroupVersion>.<Kind>, got: %s", gvk)
+	}
+	return &pbresource.Type{
+		Group:        parts[0],
+		GroupVersion: parts[1],
+		Kind:         parts[2],
+	}, nil
 }
