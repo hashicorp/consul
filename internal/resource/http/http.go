@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package http
 
 import (
@@ -56,6 +59,10 @@ func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPut:
 		h.handleWrite(w, r, ctx)
+	case http.MethodGet:
+		h.handleRead(w, r, ctx)
+	case http.MethodDelete:
+		h.handleDelete(w, r, ctx)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -83,17 +90,17 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 
-	tenancyInfo, resourceName, version := checkURL(r)
+	tenancyInfo, params := parseParams(r)
 
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    h.reg.Type,
 				Tenancy: tenancyInfo,
-				Name:    resourceName,
+				Name:    params["resourceName"],
 			},
 			Owner:    req.Owner,
-			Version:  version,
+			Version:  params["version"],
 			Metadata: req.Metadata,
 			Data:     anyProtoMsg,
 		},
@@ -112,18 +119,71 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	w.Write(output)
 }
 
-func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string, version string) {
-	params := r.URL.Query()
-	tenancy = &pbresource.Tenancy{
-		Partition: params.Get("partition"),
-		PeerName:  params.Get("peer_name"),
-		Namespace: params.Get("namespace"),
+func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	tenancyInfo, params := parseParams(r)
+	if params["consistent"] != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
 	}
-	resourceName = path.Base(r.URL.Path)
+
+	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Type:    h.reg.Type,
+			Tenancy: tenancyInfo,
+			Name:    params["resourceName"],
+		},
+	})
+	if err != nil {
+		handleResponseError(err, w, h)
+		return
+	}
+
+	output, err := jsonMarshal(rsp.Resource)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to unmarshal GRPC resource response", "error", err)
+		return
+	}
+	w.Write(output)
+}
+
+// Note: The HTTP endpoints do not accept UID since it is quite unlikely that the user will have access to it
+func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	tenancyInfo, params := parseParams(r)
+	_, err := h.client.Delete(ctx, &pbresource.DeleteRequest{
+		Id: &pbresource.ID{
+			Type:    h.reg.Type,
+			Tenancy: tenancyInfo,
+			Name:    params["resourceName"],
+		},
+		Version: params["version"],
+	})
+	if err != nil {
+		handleResponseError(err, w, h)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+	w.Write([]byte("{}"))
+}
+
+func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
+	query := r.URL.Query()
+	tenancy = &pbresource.Tenancy{
+		Partition: query.Get("partition"),
+		PeerName:  query.Get("peer_name"),
+		Namespace: query.Get("namespace"),
+	}
+
+	resourceName := path.Base(r.URL.Path)
 	if resourceName == "." || resourceName == "/" {
 		resourceName = ""
 	}
-	version = params.Get("version")
+
+	params = make(map[string]string)
+	params["resourceName"] = resourceName
+	params["version"] = query.Get("version")
+	if _, ok := query["consistent"]; ok {
+		params["consistent"] = "true"
+	}
 
 	return
 }
@@ -151,20 +211,20 @@ func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
 			h.logger.Info("User has mal-formed request", "error", err)
 		case codes.NotFound:
 			w.WriteHeader(http.StatusNotFound)
-			h.logger.Info("Failed to write to GRPC resource: Not found", "error", err)
+			h.logger.Info("Received error from resource service: Not found", "error", err)
 		case codes.PermissionDenied:
 			w.WriteHeader(http.StatusForbidden)
-			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
+			h.logger.Info("Received error from resource service: User not authenticated", "error", err)
 		case codes.Aborted:
 			w.WriteHeader(http.StatusConflict)
-			h.logger.Info("Failed to write to GRPC resource: the request conflict with the current state of the target resource", "error", err)
+			h.logger.Info("Received error from resource service: the request conflict with the current state of the target resource", "error", err)
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
-			h.logger.Error("Failed to write to GRPC resource", "error", err)
+			h.logger.Error("Received error from resource service", "error", err)
 		}
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("Failed to write to GRPC resource: not able to parse error returned", "error", err)
+		h.logger.Error("Received error from resource service: not able to parse error returned", "error", err)
 	}
 	w.Write([]byte(err.Error()))
 }
