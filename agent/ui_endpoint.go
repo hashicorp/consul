@@ -26,22 +26,27 @@ import (
 
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
-	Kind                structs.ServiceKind `json:",omitempty"`
-	Name                string
-	Datacenter          string
-	Tags                []string
-	Nodes               []string
-	ExternalSources     []string
-	externalSourceSet   map[string]struct{} // internal to track uniqueness
-	checks              map[string]*structs.HealthCheck
-	InstanceCount       int
-	ChecksPassing       int
-	ChecksWarning       int
-	ChecksCritical      int
-	GatewayConfig       GatewayConfig
-	TransparentProxy    bool
-	transparentProxySet bool
-	ConnectNative       bool
+	Kind                       structs.ServiceKind `json:",omitempty"`
+	Name                       string
+	Datacenter                 string
+	Tags                       []string
+	Nodes                      []string
+	ExternalSources            []string
+	externalSourceSet          map[string]struct{} // internal to track uniqueness
+	checks                     map[string]*structs.HealthCheck
+	instanceChecks             map[UniqueInstance]structs.HealthChecks // internal to map or group checks per instance
+	InstanceCount              int
+	ChecksPassing              int
+	ChecksWarning              int
+	ChecksCritical             int
+	InstancesPassing           int
+	InstancesWarning           int
+	InstancesCritical          int
+	MarkServiceStatusThreshold float64
+	GatewayConfig              GatewayConfig
+	TransparentProxy           bool
+	transparentProxySet        bool
+	ConnectNative              bool
 
 	PeerName string `json:",omitempty"`
 
@@ -83,6 +88,18 @@ type ServiceTopology struct {
 	Upstreams        []*ServiceTopologySummary
 	Downstreams      []*ServiceTopologySummary
 	FilteredByACLs   bool
+}
+
+type ChecksSummary struct {
+	ChecksPassing  int
+	ChecksWarning  int
+	ChecksCritical int
+}
+
+type UniqueInstance struct {
+	Node    string
+	Address string
+	Port    int
 }
 
 // UINodes is used to list the nodes in a given datacenter. We return a
@@ -348,7 +365,7 @@ RPC:
 	}
 
 	summaries, hasProxy := summarizeServices(append(out.Nodes, out.ImportedNodes...).ToServiceDump(), nil, "")
-	sorted := prepSummaryOutput(summaries, false)
+	sorted := prepSummaryOutput(summaries, false, s.agent.config, hasProxy)
 
 	// Ensure at least a zero length slice
 	result := make([]*ServiceListingSummary, 0)
@@ -404,9 +421,9 @@ RPC:
 		return nil, err
 	}
 
-	summaries, _ := summarizeServices(out.Dump, s.agent.config, args.Datacenter)
+	summaries, hasProxy := summarizeServices(out.Dump, s.agent.config, args.Datacenter)
 
-	prepped := prepSummaryOutput(summaries, false)
+	prepped := prepSummaryOutput(summaries, false, s.agent.config, hasProxy)
 	if prepped == nil {
 		prepped = make([]*ServiceSummary, 0)
 	}
@@ -457,8 +474,8 @@ RPC:
 		return nil, err
 	}
 
-	upstreams, _ := summarizeServices(out.ServiceTopology.Upstreams.ToServiceDump(), nil, "")
-	downstreams, _ := summarizeServices(out.ServiceTopology.Downstreams.ToServiceDump(), nil, "")
+	upstreams, hasProxyUps := summarizeServices(out.ServiceTopology.Upstreams.ToServiceDump(), nil, "")
+	downstreams, hasProxyDwns := summarizeServices(out.ServiceTopology.Downstreams.ToServiceDump(), nil, "")
 
 	var (
 		upstreamResp   = make([]*ServiceTopologySummary, 0)
@@ -466,7 +483,7 @@ RPC:
 	)
 
 	// Sort and attach intention data for upstreams and downstreams
-	sortedUpstreams := prepSummaryOutput(upstreams, true)
+	sortedUpstreams := prepSummaryOutput(upstreams, true, s.agent.config, hasProxyUps)
 	for _, svc := range sortedUpstreams {
 		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
 		sum := ServiceTopologySummary{
@@ -492,7 +509,7 @@ RPC:
 		}
 	}
 
-	sortedDownstreams := prepSummaryOutput(downstreams, true)
+	sortedDownstreams := prepSummaryOutput(downstreams, true, s.agent.config, hasProxyDwns)
 	for _, svc := range sortedDownstreams {
 		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
 		sum := ServiceTopologySummary{
@@ -597,6 +614,21 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 				destination.checks[uid] = check
 			}
 
+			// group checks w.r.t to instance
+			if destination.instanceChecks == nil {
+				destination.instanceChecks = make(map[UniqueInstance]structs.HealthChecks)
+			}
+			iid := UniqueInstance{Node: csn.Node.Node, Address: csn.Service.Address, Port: csn.Service.Port}
+			var found bool
+			if _, ok := destination.instanceChecks[iid]; ok {
+				found = true
+			}
+			if found {
+				destination.instanceChecks[iid] = append(destination.instanceChecks[iid], csn.Checks...)
+			} else {
+				destination.instanceChecks[iid] = csn.Checks
+			}
+
 			// Only consider the target service to be transparent when all its proxy instances are in that mode.
 			// This is done because the flag is used to display warnings about proxies needing to enable
 			// transparent proxy mode. If ANY instance isn't in the right mode then the warming applies.
@@ -644,18 +676,33 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 			}
 			sum.checks[uid] = check
 		}
+
+		// group checks w.r.t to instance
+		if sum.instanceChecks == nil {
+			sum.instanceChecks = make(map[UniqueInstance]structs.HealthChecks)
+		}
+		iid := UniqueInstance{Node: csn.Node.Node, Address: csn.Service.Address, Port: csn.Service.Port}
+		var foundInstChk bool
+		if _, ok := sum.instanceChecks[iid]; ok {
+			foundInstChk = true
+		}
+		if foundInstChk {
+			sum.instanceChecks[iid] = append(sum.instanceChecks[iid], csn.Checks...)
+		} else {
+			sum.instanceChecks[iid] = csn.Checks
+		}
 	}
 
 	return summary, hasProxy
 }
 
-func prepSummaryOutput(summaries map[structs.PeeredServiceName]*ServiceSummary, excludeSidecars bool) []*ServiceSummary {
+func prepSummaryOutput(summaries map[structs.PeeredServiceName]*ServiceSummary, excludeSidecars bool, cfg *config.RuntimeConfig, hasProxy map[structs.PeeredServiceName]bool) []*ServiceSummary {
 	var resp []*ServiceSummary
 	// Ensure at least a zero length slice
 	resp = make([]*ServiceSummary, 0)
 
 	// Collect and sort resp for display
-	for _, sum := range summaries {
+	for psn, sum := range summaries {
 		sort.Strings(sum.Nodes)
 		sort.Strings(sum.Tags)
 
@@ -672,8 +719,47 @@ func prepSummaryOutput(summaries map[structs.PeeredServiceName]*ServiceSummary, 
 		if excludeSidecars && sum.Kind != structs.ServiceKindTypical && sum.Kind != structs.ServiceKindIngressGateway {
 			continue
 		}
+
+		// in case of proxy, aggregate checks into single instance
+		if hasProxy[psn] {
+			newInstanceChecks := make(map[UniqueInstance]structs.HealthChecks)
+			for key, checks := range sum.instanceChecks {
+				newKey := UniqueInstance{Node: key.Node, Address: key.Address, Port: 0}
+				if instChks, ok := newInstanceChecks[newKey]; ok {
+					newInstanceChecks[newKey] = append(newInstanceChecks[newKey], instChks...)
+				} else {
+					newInstanceChecks[newKey] = checks
+				}
+			}
+			sum.instanceChecks = newInstanceChecks
+		}
+
+		// summarize checks w.r.t instances
+		for _, checks := range sum.instanceChecks {
+			checksSummary := ChecksSummary{ChecksPassing: 0, ChecksWarning: 0, ChecksCritical: 0}
+			for _, check := range checks {
+				switch check.Status {
+				case api.HealthPassing:
+					checksSummary.ChecksPassing++
+				case api.HealthWarning:
+					checksSummary.ChecksWarning++
+				case api.HealthCritical:
+					checksSummary.ChecksCritical++
+				}
+			}
+			if checksSummary.ChecksCritical > 0 {
+				sum.InstancesCritical++
+			} else if checksSummary.ChecksWarning > 0 {
+				sum.InstancesWarning++
+			} else if checksSummary.ChecksPassing > 0 {
+				sum.InstancesPassing++
+			}
+		}
+		sum.MarkServiceStatusThreshold = cfg.UIConfig.MarkServiceStatusThreshold // this is required for reponse to UI
+		sum.instanceChecks = nil                                                 // as instanceChecks is for internal grouping of checks and it is not used elsewhere
 		resp = append(resp, sum)
 	}
+
 	sort.Slice(resp, func(i, j int) bool {
 		return resp[i].LessThan(resp[j])
 	})

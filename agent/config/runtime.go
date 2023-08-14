@@ -1540,6 +1540,7 @@ type UIConfig struct {
 	MetricsProxy               UIMetricsProxy
 	DashboardURLTemplates      map[string]string
 	HCPEnabled                 bool
+	MarkServiceStatusThreshold float64
 }
 
 type UIMetricsProxy struct {

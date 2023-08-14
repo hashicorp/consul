@@ -1915,6 +1915,7 @@ func (b *builder) uiConfigVal(v RawUIConfig) UIConfig {
 		MetricsProxy:               b.uiMetricsProxyVal(v.MetricsProxy),
 		DashboardURLTemplates:      v.DashboardURLTemplates,
 		HCPEnabled:                 os.Getenv("CONSUL_HCP_ENABLED") == "true",
+		MarkServiceStatusThreshold: float64ValWithDefault(v.MarkServiceStatusThreshold, 0.6),
 	}
 }
 

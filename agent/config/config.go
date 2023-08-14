@@ -869,6 +869,7 @@ type RawUIConfig struct {
 	MetricsProviderOptionsJSON *string           `mapstructure:"metrics_provider_options_json"`
 	MetricsProxy               RawUIMetricsProxy `mapstructure:"metrics_proxy"`
 	DashboardURLTemplates      map[string]string `mapstructure:"dashboard_url_templates"`
+	MarkServiceStatusThreshold *float64          `mapstructure:"mark_service_status_threshold"`
 }
 
 type RawUIMetricsProxy struct {
