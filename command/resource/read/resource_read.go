@@ -26,13 +26,10 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
-
-	consistent bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.BoolVar(&c.consistent, "consistent", false, "The reading mode.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -64,11 +61,10 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	opts := &api.QueryOptions{
-		Namespace:         c.http.Namespace(),
-		Partition:         c.http.Partition(),
-		Peer:              c.http.PeerName(),
-		Token:             c.http.Token(),
-		RequireConsistent: c.consistent,
+		Namespace: c.http.Namespace(),
+		Partition: c.http.Partition(),
+		Peer:      c.http.PeerName(),
+		Token:     c.http.Token(),
 	}
 
 	entry, err := client.Resource().Read(gvk, resourceName, opts)

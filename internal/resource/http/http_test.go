@@ -54,7 +54,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 	testCases := []testCase{
 		{
 			description: "missing resource name",
-			request: httptest.NewRequest("PUT", "/?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+			request: httptest.NewRequest("PUT", "/?partition=default&peer=local&namespace=default", strings.NewReader(`
 				{
 					"metadata": {
 						"foo": "bar"
@@ -70,7 +70,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		},
 		{
 			description: "wrong schema",
-			request: httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+			request: httptest.NewRequest("PUT", "/keith-urban?partition=default&peer=local&namespace=default", strings.NewReader(`
 				{
 					"metadata": {
 						"foo": "bar"
@@ -86,7 +86,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		},
 		{
 			description:          "no id",
-			request:              httptest.NewRequest("DELETE", "/?partition=default&peer_name=local&namespace=default", strings.NewReader("")),
+			request:              httptest.NewRequest("DELETE", "/?partition=default&peer=local&namespace=default", strings.NewReader("")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
 		},
@@ -116,7 +116,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -137,7 +137,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("should write to the resource backend", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -177,7 +177,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("should update the record with version parameter", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default&version=1", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -202,7 +202,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("should fail the update if the resource's version doesn't match the version of the existing resource", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default&version=1", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -223,7 +223,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("should write to the resource backend with owner", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/demo/v1/artist/keith-urban-v1?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/demo/v1/artist/keith-urban-v1?partition=default&peer=local&namespace=default", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -278,7 +278,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 func createResource(t *testing.T, artistHandler http.Handler) map[string]any {
 	rsp := httptest.NewRecorder()
-	req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
+	req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default", strings.NewReader(`
 		{
 			"metadata": {
 				"foo": "bar"
@@ -319,7 +319,7 @@ func TestResourceReadHandler(t *testing.T) {
 
 	t.Run("Read resource", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&consistent", nil)
+		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default&consistent", nil)
 
 		req.Header.Add("x-consul-token", testACLTokenArtistReadPolicy)
 
@@ -334,7 +334,7 @@ func TestResourceReadHandler(t *testing.T) {
 
 	t.Run("should not be found if resource not exist", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-not-exist?partition=default&peer_name=local&namespace=default&consistent", nil)
+		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-not-exist?partition=default&peer=local&namespace=default&consistent", nil)
 
 		req.Header.Add("x-consul-token", testACLTokenArtistReadPolicy)
 
@@ -345,7 +345,7 @@ func TestResourceReadHandler(t *testing.T) {
 
 	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&consistent", nil)
+		req := httptest.NewRequest("GET", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default&consistent", nil)
 
 		req.Header.Add("x-consul-token", fakeToken)
 
@@ -373,7 +373,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 		createResource(t, handler)
 
 		deleteRsp := httptest.NewRecorder()
-		deletReq := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(""))
+		deletReq := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default", strings.NewReader(""))
 
 		deletReq.Header.Add("x-consul-token", testACLTokenArtistReadPolicy)
 
@@ -386,7 +386,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 		createResource(t, handler)
 
 		deleteRsp := httptest.NewRecorder()
-		deletReq := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(""))
+		deletReq := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default", strings.NewReader(""))
 
 		deletReq.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
 
@@ -412,7 +412,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 		createResource(t, handler)
 
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(""))
+		req := httptest.NewRequest("DELETE", "/demo/v2/artist/keith-urban?partition=default&peer=local&namespace=default&version=1", strings.NewReader(""))
 
 		req.Header.Add("x-consul-token", testACLTokenArtistWritePolicy)
 

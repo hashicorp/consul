@@ -167,10 +167,14 @@ func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, c
 
 func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
 	query := r.URL.Query()
+	namespace := query.Get("namespace")
+	if namespace == "" {
+		namespace = query.Get("ns")
+	}
 	tenancy = &pbresource.Tenancy{
 		Partition: query.Get("partition"),
-		PeerName:  query.Get("peer_name"),
-		Namespace: query.Get("namespace"),
+		PeerName:  query.Get("peer"),
+		Namespace: namespace,
 	}
 
 	resourceName := path.Base(r.URL.Path)
