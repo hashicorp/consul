@@ -92,85 +92,80 @@ func compile(
 		res *pbresource.Resource,
 		xroute types.XRouteData,
 	) {
-		port := ""
-		found := false
+		logger.Info("RBOYER working out route", "r", resource.IDToString(res.Id))
+		var ports []string
 		for _, ref := range xroute.GetParentRefs() {
 			if resource.ReferenceOrIDMatch(ref.Ref, parentServiceRef) {
-				found = true
-				port = ref.Port
-				break
+				ports = append(ports, ref.Port)
 			}
 		}
 
-		if !found {
+		if len(ports) == 0 {
 			return // not relevant to this mesh config
-
 		}
 
-		var node *inputRouteNode
-		switch route := xroute.(type) {
-		case *pbmesh.HTTPRoute:
-			node = compileHTTPRouteNode(port, res, route)
-		case *pbmesh.GRPCRoute:
-			node = compileGRPCRouteNode(port, res, route)
-		case *pbmesh.TCPRoute:
-			node = compileTCPRouteNode(port, res, route)
-		default:
-			return // unknown xroute type (impossible)
-		}
-
-		// Check if the user provided port is actually valid.
-		if port != "" {
-			if _, ok := allowedPortProtocols[port]; !ok {
-				for _, details := range node.NewTargets {
-					details.NullRouteTraffic = true
+		for _, port := range ports {
+			// Check if the user provided port is actually valid.
+			nullRouteTraffic := (parentServiceDec == nil)
+			if port != "" {
+				if _, ok := allowedPortProtocols[port]; !ok {
+					nullRouteTraffic = true
 				}
 			}
-		}
 
-		if node.ParentPort == "" {
-			// Do a port explosion.
-			for port := range allowedPortProtocols {
-				nodeCopy := node.Clone()
-				nodeCopy.ParentPort = port
-				routeNodesByPort[nodeCopy.ParentPort] = append(routeNodesByPort[nodeCopy.ParentPort], nodeCopy)
+			var node *inputRouteNode
+			switch route := xroute.(type) {
+			case *pbmesh.HTTPRoute:
+				if nullRouteTraffic {
+					node := newInputRouteNode(port)
+					setupDefaultHTTPRouteNode(node, types.NullRouteBackend)
+				} else {
+					node = compileHTTPRouteNode(parentServiceRef, port, res, route, related)
+				}
+			case *pbmesh.GRPCRoute:
+				if nullRouteTraffic {
+					node := newInputRouteNode(port)
+					setupDefaultGRPCRouteNode(node, types.NullRouteBackend)
+				} else {
+					node = compileGRPCRouteNode(parentServiceRef, port, res, route, related)
+				}
+			case *pbmesh.TCPRoute:
+				if nullRouteTraffic {
+					node := newInputRouteNode(port)
+					setupDefaultTCPRouteNode(node, types.NullRouteBackend)
+				} else {
+					node = compileTCPRouteNode(parentServiceRef, port, res, route, related)
+				}
+			default:
+				return // unknown xroute type (impossible)
 			}
-		} else {
-			routeNodesByPort[node.ParentPort] = append(routeNodesByPort[node.ParentPort], node)
+
+			if node.ParentPort == "" {
+				// Do a port explosion.
+				for port := range allowedPortProtocols {
+					nodeCopy := node.Clone()
+					nodeCopy.ParentPort = port
+					routeNodesByPort[nodeCopy.ParentPort] = append(routeNodesByPort[nodeCopy.ParentPort], nodeCopy)
+				}
+			} else {
+				routeNodesByPort[node.ParentPort] = append(routeNodesByPort[node.ParentPort], node)
+			}
 		}
 	})
 
-	// Fill in defaults where there was no xroute defined
+	// Fill in defaults where there was no xroute defined at all.
 	for port, protocol := range allowedPortProtocols {
-		// always add the parent as a possible target due to catch-all
-		defaultBackendRef := &pbmesh.BackendReference{
-			Ref:  parentServiceRef,
-			Port: port,
-		}
-
-		routeNode, ok := routeNodesByPort[port]
-		if ok {
-			// TODO: ignore this whole section?
-
-			// TODO: figure out how to add the catchall route/match section like in v1.
-			//
-			// Just add it to one of them.
-			defaultBackendTarget := routeNode[0].AddTarget(defaultBackendRef, &pbmesh.BackendTargetDetails{
-				BackendRef: defaultBackendRef,
-				// TODO
-			})
-			_ = defaultBackendTarget
-		} else {
+		if _, ok := routeNodesByPort[port]; !ok {
 			var typ *pbresource.Type
 			switch protocol {
 			case pbcatalog.Protocol_PROTOCOL_HTTP2:
-				fallthrough // to HTTP
+				typ = types.HTTPRouteType
 			case pbcatalog.Protocol_PROTOCOL_HTTP:
 				typ = types.HTTPRouteType
 			case pbcatalog.Protocol_PROTOCOL_GRPC:
 				typ = types.GRPCRouteType
 			case pbcatalog.Protocol_PROTOCOL_TCP:
-				fallthrough // to default
+				typ = types.TCPRouteType
 			default:
 				typ = types.TCPRouteType
 			}
@@ -214,16 +209,18 @@ func compile(
 		// Now we can do the big sort.
 		gammaSortRouteRules(top)
 
-		// Inject catch-all rules to ensure stray requests will ultimately end
-		// up routing to the parent ref.
+		// Inject catch-all rules to ensure stray requests will explicitly be blackholed.
 		if !top.Default {
-			defaultRouteNode := createDefaultRouteNode(parentServiceRef, port, top.RouteType)
-			top.AppendRulesFrom(defaultRouteNode)
-			top.AddTargetsFrom(defaultRouteNode)
+			if !types.IsTCPRouteType(top.RouteType) {
+				// There are no match criteria on a TCPRoute, so never a need
+				// to add a catch-all.
+				appendDefaultRouteNode(top, types.NullRouteBackend)
+			}
 		}
 
 		mc := &pbmesh.ComputedPortRoutes{
-			Targets: top.NewTargets,
+			UsingDefaultConfig: top.Default,
+			Targets:            top.NewTargets,
 		}
 		parentRef := &pbmesh.ParentReference{
 			Ref:  parentServiceRef,
@@ -261,6 +258,8 @@ func compile(
 
 		meshConfig.PortedConfigs[port] = mc
 
+		// TODO: prune dead targets from targets map
+
 		for _, details := range mc.Targets {
 			svcRef := details.BackendRef.Ref
 
@@ -269,19 +268,18 @@ func compile(
 			destConfig := related.GetDestinationPolicy(svcRef)
 
 			if svc == nil {
-				details.NullRouteTraffic = true
-			} else {
-				details.Service = svc.Data
+				panic("impossible at this point; should already have been handled before getting here")
+			}
+			details.Service = svc.Data
 
-				if failoverPolicy != nil {
-					details.FailoverPolicy = catalog.SimplifyFailoverPolicy(
-						svc.Data,
-						failoverPolicy.Data,
-					)
-				}
-				if destConfig != nil {
-					details.DestinationPolicy = destConfig.Data
-				}
+			if failoverPolicy != nil {
+				details.FailoverPolicy = catalog.SimplifyFailoverPolicy(
+					svc.Data,
+					failoverPolicy.Data,
+				)
+			}
+			if destConfig != nil {
+				details.DestinationPolicy = destConfig.Data
 			}
 		}
 
@@ -301,10 +299,13 @@ func compile(
 }
 
 func compileHTTPRouteNode(
+	parentServiceRef *pbresource.Reference,
 	port string,
 	res *pbresource.Resource,
 	route *pbmesh.HTTPRoute,
+	serviceGetter serviceGetter,
 ) *inputRouteNode {
+	route = protoClone(route)
 	node := newInputRouteNode(port)
 
 	dec := &types.DecodedHTTPRoute{
@@ -329,33 +330,55 @@ func compileHTTPRouteNode(
 		// If no matches are specified, the default is a prefix path match
 		// on “/”, which has the effect of matching every HTTP request.
 		if len(irule.Matches) == 0 {
-			irule.Matches = []*pbmesh.HTTPRouteMatch{{
-				Path: &pbmesh.HTTPPathMatch{
-					Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
-					Value: "/",
-				},
-			}}
+			irule.Matches = defaultHTTPRouteMatches()
 		}
 		for _, match := range irule.Matches {
 			if match.Path == nil {
 				// Path specifies a HTTP request path matcher. If this
 				// field is not specified, a default prefix match on
 				// the “/” path is provided.
-				match.Path = &pbmesh.HTTPPathMatch{
-					Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
-					Value: "/",
-				}
+				match.Path = defaultHTTPPathMatch()
 			}
 		}
 
 		for _, backendRef := range rule.BackendRefs {
-			details := &pbmesh.BackendTargetDetails{
-				BackendRef: backendRef.BackendRef,
-				// TODO
+			// Infer port name from parent ref.
+			if backendRef.BackendRef.Port == "" {
+				backendRef.BackendRef.Port = port
 			}
-			key := node.AddTarget(backendRef.BackendRef, details)
+
+			var (
+				backendTarget string
+				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
+			)
+
+			if backendSvc == nil {
+				backendTarget = types.NullRouteBackend
+			} else {
+				found := false
+				inMesh := false
+				for _, port := range backendSvc.Data.Ports {
+					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+						inMesh = true
+						continue // skip
+					}
+					if port.TargetPort == backendRef.BackendRef.Port {
+						found = true
+					}
+				}
+
+				if inMesh && found {
+					details := &pbmesh.BackendTargetDetails{
+						BackendRef: backendRef.BackendRef,
+						// TODO
+					}
+					backendTarget = node.AddTarget(backendRef.BackendRef, details)
+				} else {
+					backendTarget = types.NullRouteBackend
+				}
+			}
 			ibr := &pbmesh.InterpretedHTTPBackendRef{
-				BackendTarget: key,
+				BackendTarget: backendTarget,
 				Weight:        backendRef.Weight,
 				Filters:       backendRef.Filters,
 			}
@@ -365,15 +388,18 @@ func compileHTTPRouteNode(
 		node.HTTPRules = append(node.HTTPRules, irule)
 	}
 
-	// TODO: finish populating backendrefs using parentrefs if target unspecified
 	return node
 }
 
 func compileGRPCRouteNode(
+	parentServiceRef *pbresource.Reference,
 	port string,
 	res *pbresource.Resource,
 	route *pbmesh.GRPCRoute,
+	serviceGetter serviceGetter,
 ) *inputRouteNode {
+	route = protoClone(route)
+
 	node := newInputRouteNode(port)
 	dec := &types.DecodedGRPCRoute{
 		Resource: res,
@@ -396,17 +422,47 @@ func compileGRPCRouteNode(
 		//
 		// If no matches are specified, the implementation MUST match every gRPC request.
 		if len(irule.Matches) == 0 {
-			irule.Matches = []*pbmesh.GRPCRouteMatch{{}}
+			irule.Matches = defaultGRPCRouteMatches()
 		}
 
 		for _, backendRef := range rule.BackendRefs {
-			details := &pbmesh.BackendTargetDetails{
-				BackendRef: backendRef.BackendRef,
-				// TODO
+			// Infer port name from parent ref.
+			if backendRef.BackendRef.Port == "" {
+				backendRef.BackendRef.Port = port
 			}
-			key := node.AddTarget(backendRef.BackendRef, details)
+
+			var (
+				backendTarget string
+				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
+			)
+			if backendSvc == nil {
+				backendTarget = types.NullRouteBackend
+			} else {
+				found := false
+				inMesh := false
+				for _, port := range backendSvc.Data.Ports {
+					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+						inMesh = true
+						continue // skip
+					}
+					if port.TargetPort == backendRef.BackendRef.Port {
+						found = true
+					}
+				}
+
+				if inMesh && found {
+					details := &pbmesh.BackendTargetDetails{
+						BackendRef: backendRef.BackendRef,
+						// TODO
+					}
+					backendTarget = node.AddTarget(backendRef.BackendRef, details)
+				} else {
+					backendTarget = types.NullRouteBackend
+				}
+			}
+
 			ibr := &pbmesh.InterpretedGRPCBackendRef{
-				BackendTarget: key,
+				BackendTarget: backendTarget,
 				Weight:        backendRef.Weight,
 				Filters:       backendRef.Filters,
 			}
@@ -416,15 +472,18 @@ func compileGRPCRouteNode(
 		node.GRPCRules = append(node.GRPCRules, irule)
 	}
 
-	// TODO: finish populating backendrefs using parentrefs if target unspecified
 	return node
 }
 
 func compileTCPRouteNode(
+	parentServiceRef *pbresource.Reference,
 	port string,
 	res *pbresource.Resource,
 	route *pbmesh.TCPRoute,
+	serviceGetter serviceGetter,
 ) *inputRouteNode {
+	route = protoClone(route)
+
 	node := newInputRouteNode(port)
 	dec := &types.DecodedTCPRoute{
 		Resource: res,
@@ -442,13 +501,43 @@ func compileTCPRouteNode(
 		// https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.TCPRoute
 
 		for _, backendRef := range rule.BackendRefs {
-			details := &pbmesh.BackendTargetDetails{
-				BackendRef: backendRef.BackendRef,
-				// TODO
+			// Infer port name from parent ref.
+			if backendRef.BackendRef.Port == "" {
+				backendRef.BackendRef.Port = port
 			}
-			key := node.AddTarget(backendRef.BackendRef, details)
+
+			var (
+				backendTarget string
+				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
+			)
+			if backendSvc == nil {
+				backendTarget = types.NullRouteBackend
+			} else {
+				found := false
+				inMesh := false
+				for _, port := range backendSvc.Data.Ports {
+					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+						inMesh = true
+						continue // skip
+					}
+					if port.TargetPort == backendRef.BackendRef.Port {
+						found = true
+					}
+				}
+
+				if inMesh && found {
+					details := &pbmesh.BackendTargetDetails{
+						BackendRef: backendRef.BackendRef,
+						// TODO
+					}
+					backendTarget = node.AddTarget(backendRef.BackendRef, details)
+				} else {
+					backendTarget = types.NullRouteBackend
+				}
+			}
+
 			ibr := &pbmesh.InterpretedTCPBackendRef{
-				BackendTarget: key,
+				BackendTarget: backendTarget,
 				Weight:        backendRef.Weight,
 			}
 			irule.BackendRefs = append(irule.BackendRefs, ibr)
@@ -457,7 +546,6 @@ func compileTCPRouteNode(
 		node.TCPRules = append(node.TCPRules, irule)
 	}
 
-	// TODO: finish populating backendrefs using parentrefs if target unspecified
 	return node
 }
 
@@ -493,22 +581,41 @@ func createDefaultRouteNode(
 	return routeNode
 }
 
+func appendDefaultRouteNode(
+	routeNode *inputRouteNode,
+	defaultBackendTarget string,
+) {
+	switch {
+	case resource.EqualType(types.HTTPRouteType, routeNode.RouteType):
+		appendDefaultHTTPRouteRule(routeNode, defaultBackendTarget)
+	case resource.EqualType(types.GRPCRouteType, routeNode.RouteType):
+		appendDefaultGRPCRouteRule(routeNode, defaultBackendTarget)
+	case resource.EqualType(types.TCPRouteType, routeNode.RouteType):
+		fallthrough
+	default:
+		// skip: unnecessary since
+		appendDefaultTCPRouteRule(routeNode, defaultBackendTarget)
+	}
+}
+
 func setupDefaultHTTPRouteNode(
 	routeNode *inputRouteNode,
 	defaultBackendTarget string,
 ) {
 	routeNode.RouteType = types.HTTPRouteType
-	routeNode.HTTPRules = []*pbmesh.InterpretedHTTPRouteRule{{
-		Matches: []*pbmesh.HTTPRouteMatch{{
-			Path: &pbmesh.HTTPPathMatch{
-				Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
-				Value: "/",
-			},
-		}},
+	appendDefaultHTTPRouteRule(routeNode, defaultBackendTarget)
+}
+
+func appendDefaultHTTPRouteRule(
+	routeNode *inputRouteNode,
+	backendTarget string,
+) {
+	routeNode.HTTPRules = append(routeNode.HTTPRules, &pbmesh.InterpretedHTTPRouteRule{
+		Matches: defaultHTTPRouteMatches(),
 		BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
-			BackendTarget: defaultBackendTarget,
+			BackendTarget: backendTarget,
 		}},
-	}}
+	})
 }
 
 func setupDefaultGRPCRouteNode(
@@ -516,12 +623,19 @@ func setupDefaultGRPCRouteNode(
 	defaultBackendTarget string,
 ) {
 	routeNode.RouteType = types.GRPCRouteType
-	routeNode.GRPCRules = []*pbmesh.InterpretedGRPCRouteRule{{
-		Matches: []*pbmesh.GRPCRouteMatch{{}},
+	appendDefaultGRPCRouteRule(routeNode, defaultBackendTarget)
+}
+
+func appendDefaultGRPCRouteRule(
+	routeNode *inputRouteNode,
+	backendTarget string,
+) {
+	routeNode.GRPCRules = append(routeNode.GRPCRules, &pbmesh.InterpretedGRPCRouteRule{
+		Matches: defaultGRPCRouteMatches(),
 		BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
-			BackendTarget: defaultBackendTarget,
+			BackendTarget: backendTarget,
 		}},
-	}}
+	})
 }
 
 func setupDefaultTCPRouteNode(
@@ -529,9 +643,33 @@ func setupDefaultTCPRouteNode(
 	defaultBackendTarget string,
 ) {
 	routeNode.RouteType = types.TCPRouteType
-	routeNode.TCPRules = []*pbmesh.InterpretedTCPRouteRule{{
+	appendDefaultTCPRouteRule(routeNode, defaultBackendTarget)
+}
+
+func appendDefaultTCPRouteRule(
+	routeNode *inputRouteNode,
+	backendTarget string,
+) {
+	routeNode.TCPRules = append(routeNode.TCPRules, &pbmesh.InterpretedTCPRouteRule{
 		BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
-			BackendTarget: defaultBackendTarget,
+			BackendTarget: backendTarget,
 		}},
+	})
+}
+
+func defaultHTTPRouteMatches() []*pbmesh.HTTPRouteMatch {
+	return []*pbmesh.HTTPRouteMatch{{
+		Path: defaultHTTPPathMatch(),
 	}}
+}
+
+func defaultHTTPPathMatch() *pbmesh.HTTPPathMatch {
+	return &pbmesh.HTTPPathMatch{
+		Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+		Value: "/",
+	}
+}
+
+func defaultGRPCRouteMatches() []*pbmesh.GRPCRouteMatch {
+	return []*pbmesh.GRPCRouteMatch{{}}
 }

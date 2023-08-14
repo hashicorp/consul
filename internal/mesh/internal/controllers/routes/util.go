@@ -10,16 +10,17 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
 )
 
-func protoSliceClone[V any, PV interface {
-	proto.Message
-	*V
-}](in []PV) []PV {
+func protoClone[T proto.Message](v T) T {
+	return proto.Clone(v).(T)
+}
+
+func protoSliceClone[T proto.Message](in []T) []T {
 	if in == nil {
 		return nil
 	}
-	out := make([]PV, 0, len(in))
+	out := make([]T, 0, len(in))
 	for _, v := range in {
-		out = append(out, proto.Clone(v).(PV))
+		out = append(out, protoClone[T](v))
 	}
 	return out
 }

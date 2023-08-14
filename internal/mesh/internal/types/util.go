@@ -13,10 +13,30 @@ import (
 )
 
 func IsRouteType(typ *pbresource.Type) bool {
+	return IsHTTPRouteType(typ) ||
+		IsGRPCRouteType(typ) ||
+		IsTCPRouteType(typ)
+}
+
+func IsHTTPRouteType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, HTTPRouteType),
-		resource.EqualType(typ, GRPCRouteType),
-		resource.EqualType(typ, TCPRouteType):
+	case resource.EqualType(typ, HTTPRouteType):
+		return true
+	}
+	return false
+}
+
+func IsGRPCRouteType(typ *pbresource.Type) bool {
+	switch {
+	case resource.EqualType(typ, GRPCRouteType):
+		return true
+	}
+	return false
+}
+
+func IsTCPRouteType(typ *pbresource.Type) bool {
+	switch {
+	case resource.EqualType(typ, TCPRouteType):
 		return true
 	}
 	return false

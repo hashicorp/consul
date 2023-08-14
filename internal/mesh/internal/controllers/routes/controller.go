@@ -100,17 +100,20 @@ func ensureComputedRoutesIsSynced(
 	prev *types.DecodedComputedRoutes,
 ) error {
 	if result.Data == nil {
+		logger.Info("DELETE WRITE")
 		return deleteComputedRoutes(ctx, logger, client, prev)
 	}
 
 	// Upsert the resource if changed.
 	if prev != nil {
 		if proto.Equal(prev.Data, result.Data) {
+			logger.Info("SKIPPING WRITE")
 			return nil // no change
 		}
 		result.ID = prev.Resource.Id
 	}
 
+	logger.Info("UPSERT WRITE")
 	return upsertComputedRoutes(ctx, logger, client, result.ID, result.OwnerID, result.Data)
 }
 

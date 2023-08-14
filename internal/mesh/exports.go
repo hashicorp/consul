@@ -70,6 +70,12 @@ var (
 	SidecarProxyStatusReasonNonMeshProtocolDestinationPort = status.StatusReasonNonMeshProtocolDestinationPort
 )
 
+const (
+	// Important constants
+
+	NullRouteBackend = types.NullRouteBackend
+)
+
 // RegisterTypes adds all resource types within the "mesh" API group
 // to the given type registry
 func RegisterTypes(r resource.Registry) {

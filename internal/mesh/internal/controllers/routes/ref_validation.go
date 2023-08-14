@@ -24,15 +24,18 @@ func ValidateXRouteReferences(related *loader.RelatedResources, pending PendingS
 		parentRefs := route.GetParentRefs()
 		backendRefs := route.GetUnderlyingBackendRefs()
 
-		conditions := computeNewRouteRefConditions(related, res, parentRefs, backendRefs)
+		conditions := computeNewRouteRefConditions(related, parentRefs, backendRefs)
 
 		pending.AddConditions(rk, res, conditions)
 	})
 }
 
+type serviceGetter interface {
+	GetService(ref resource.ReferenceOrID) *types.DecodedService
+}
+
 func computeNewRouteRefConditions(
-	related *loader.RelatedResources,
-	routeRes *pbresource.Resource,
+	related serviceGetter,
 	parentRefs []*pbmesh.ParentReference,
 	backendRefs []*pbmesh.BackendReference,
 ) []*pbresource.Condition {
@@ -48,15 +51,29 @@ func computeNewRouteRefConditions(
 			continue
 		}
 		if svc := related.GetService(parentRef.Ref); svc != nil {
-			allowedPorts, hasMesh := getAllowedPorts(svc)
-			if hasMesh {
-				if parentRef.Port != "" {
-					if _, found := allowedPorts[parentRef.Port]; !found {
-						conditions = append(conditions, ConditionUnknownParentRefPort(parentRef.Ref, parentRef.Port))
+			found := false
+			usingMesh := false
+			hasMesh := false
+			for _, port := range svc.Data.Ports {
+				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+					hasMesh = true
+				}
+				if port.TargetPort == parentRef.Port {
+					found = true
+					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+						usingMesh = true
 					}
 				}
-			} else {
+			}
+			switch {
+			case !hasMesh:
 				conditions = append(conditions, ConditionParentRefOutsideMesh(parentRef.Ref))
+			case !found:
+				if parentRef.Port != "" {
+					conditions = append(conditions, ConditionUnknownParentRefPort(parentRef.Ref, parentRef.Port))
+				}
+			case usingMesh:
+				conditions = append(conditions, ConditionParentRefUsingMeshPort(parentRef.Ref, parentRef.Port))
 			}
 		} else {
 			conditions = append(conditions, ConditionMissingParentRef(parentRef.Ref))
@@ -71,15 +88,29 @@ func computeNewRouteRefConditions(
 			continue
 		}
 		if svc := related.GetService(backendRef.Ref); svc != nil {
-			allowedPorts, hasMesh := getAllowedPorts(svc)
-			if hasMesh {
-				if backendRef.Port != "" {
-					if _, found := allowedPorts[backendRef.Port]; !found {
-						conditions = append(conditions, ConditionUnknownBackendRefPort(backendRef.Ref, backendRef.Port))
+			found := false
+			usingMesh := false
+			hasMesh := false
+			for _, port := range svc.Data.Ports {
+				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+					hasMesh = true
+				}
+				if port.TargetPort == backendRef.Port {
+					found = true
+					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+						usingMesh = true
 					}
 				}
-			} else {
+			}
+			switch {
+			case !hasMesh:
 				conditions = append(conditions, ConditionBackendRefOutsideMesh(backendRef.Ref))
+			case !found:
+				if backendRef.Port != "" {
+					conditions = append(conditions, ConditionUnknownBackendRefPort(backendRef.Ref, backendRef.Port))
+				}
+			case usingMesh:
+				conditions = append(conditions, ConditionBackendRefUsingMeshPort(backendRef.Ref, backendRef.Port))
 			}
 		} else {
 			conditions = append(conditions, ConditionMissingBackendRef(backendRef.Ref))
@@ -87,17 +118,4 @@ func computeNewRouteRefConditions(
 	}
 
 	return conditions
-}
-
-func getAllowedPorts(svc *types.DecodedService) (map[string]pbcatalog.Protocol, bool) {
-	allowedPortProtocols := make(map[string]pbcatalog.Protocol)
-	hasMesh := false
-	for _, port := range svc.Data.Ports {
-		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-			hasMesh = true
-			continue // skip
-		}
-		allowedPortProtocols[port.TargetPort] = port.Protocol
-	}
-	return allowedPortProtocols, hasMesh
 }

@@ -13,6 +13,11 @@ import (
 
 const (
 	ComputedRoutesKind = "ComputedRoutes"
+
+	// NullRouteBackend is the sentinel string used in ComputedRoutes backend
+	// targets to indicate that traffic arriving at this destination should
+	// fail in a protocol-specific way (i.e. HTTP is 5xx)
+	NullRouteBackend = "NULL-ROUTE"
 )
 
 var (

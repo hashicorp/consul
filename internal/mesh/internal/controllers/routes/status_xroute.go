@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	StatusConditionValid = "valid"
+	StatusConditionAccepted = "accepted"
+	// Deprecated: see StatusConditionAccepted
+	StatusConditionValid = StatusConditionAccepted
 
 	OKReason = "Ok"
 
@@ -20,6 +22,9 @@ const (
 
 	ParentRefOutsideMeshReason  = "ParentRefOutsideMesh"
 	BackendRefOutsideMeshReason = "BackendRefOutsideMesh"
+
+	ParentRefUsingMeshPortReason  = "ParentRefUsingMeshPort"
+	BackendRefUsingMeshPortReason = "BackendRefUsingMeshPort"
 
 	UnknownParentRefPortReason  = "UnknownParentRefPort"
 	UnknownBackendRefPortReason = "UnknownBackendRefPort"
@@ -35,6 +40,34 @@ var (
 		// TODO: needs message?
 	}
 )
+
+func ConditionParentRefUsingMeshPort(ref *pbresource.Reference, port string) *pbresource.Condition {
+	return conditionRefUsingMeshPort(ref, port, false)
+}
+
+func ConditionBackendRefUsingMeshPort(ref *pbresource.Reference, port string) *pbresource.Condition {
+	return conditionRefUsingMeshPort(ref, port, true)
+}
+
+func conditionRefUsingMeshPort(ref *pbresource.Reference, port string, forBackend bool) *pbresource.Condition {
+	reason := ParentRefUsingMeshPortReason
+	short := "parent"
+	if forBackend {
+		reason = BackendRefUsingMeshPortReason
+		short = "backend"
+	}
+	return &pbresource.Condition{
+		Type:   StatusConditionAccepted,
+		State:  pbresource.Condition_STATE_FALSE,
+		Reason: reason,
+		Message: fmt.Sprintf(
+			"service for %s ref %q uses port %q which is a special unroutable mesh port",
+			short,
+			resource.ReferenceToString(ref),
+			port,
+		),
+	}
+}
 
 func ConditionMissingParentRef(ref *pbresource.Reference) *pbresource.Condition {
 	return conditionMissingRef(ref, false)

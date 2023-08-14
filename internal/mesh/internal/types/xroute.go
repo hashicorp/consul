@@ -135,6 +135,16 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				))
 			}
 
+			if parent.Ref.Name == "" {
+				merr = multierror.Append(merr, resource.ErrInvalidField{
+					Name: "ref",
+					Wrapped: resource.ErrInvalidField{
+						Name:    "name",
+						Wrapped: resource.ErrMissing,
+					},
+				})
+			}
+
 			prk := portedRefKey{
 				Key:  resource.NewReferenceKey(parent.Ref),
 				Port: parent.Port,
@@ -225,6 +235,16 @@ func validateBackendRef(backendRef *pbmesh.BackendReference) []error {
 				Name: "ref",
 				Wrapped: resource.ErrInvalidReferenceType{
 					AllowedType: catalog.ServiceType,
+				},
+			})
+		}
+
+		if backendRef.Ref.Name == "" {
+			errs = append(errs, resource.ErrInvalidField{
+				Name: "ref",
+				Wrapped: resource.ErrInvalidField{
+					Name:    "name",
+					Wrapped: resource.ErrMissing,
 				},
 			})
 		}

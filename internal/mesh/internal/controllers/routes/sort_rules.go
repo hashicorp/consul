@@ -18,9 +18,9 @@ func gammaSortRouteRules(node *inputRouteNode) {
 	case resource.EqualType(node.RouteType, types.HTTPRouteType):
 		gammaSortHTTPRouteRules(node.HTTPRules)
 	case resource.EqualType(node.RouteType, types.GRPCRouteType):
-		// TODO
+		// TODO(rb): do a determinstic sort of something
 	case resource.EqualType(node.RouteType, types.TCPRouteType):
-		// TODO
+		// TODO(rb): do a determinstic sort of something
 	default:
 		panic("impossible")
 	}
