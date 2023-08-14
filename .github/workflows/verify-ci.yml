@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 # verify-ci is a no-op workflow that must run on every PR. It is used in a
 # branch protection rule to detect when CI workflows are not running.

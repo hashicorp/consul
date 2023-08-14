@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 name: build
 
@@ -146,7 +146,7 @@ jobs:
           version: ${{ needs.set-product-version.outputs.product-version }}
           maintainer: "HashiCorp"
           homepage: "https://github.com/hashicorp/consul"
-          license: "MPL-2.0"
+          license: "BUSL-1.1"
           binary: "dist/${{ env.PKG_NAME }}"
           deb_depends: "openssl"
           rpm_depends: "openssl"

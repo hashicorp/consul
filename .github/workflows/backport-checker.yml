@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 # This workflow checks that there is either a 'pr/no-backport' label applied to a PR
 # or there is a backport/* label indicating a backport has been set

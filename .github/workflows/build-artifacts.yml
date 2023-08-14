@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 # This workflow builds a dev binary and distributes a Docker image on every push to the main branch.
 name: build-artifacts
