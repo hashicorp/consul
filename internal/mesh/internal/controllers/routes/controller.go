@@ -65,7 +65,7 @@ func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 
 	ValidateXRouteReferences(related, pending)
 
-	generatedResults := GenerateComputedRoutes(ctx, rt.Logger, related, pending)
+	generatedResults := GenerateComputedRoutes(ctx, loggerFor, related, pending)
 
 	if err := UpdatePendingStatuses(ctx, rt, pending); err != nil {
 		rt.Logger.Error("error updating statuses for affected relevant resources", "error", err)

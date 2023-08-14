@@ -26,13 +26,18 @@ import (
 // This should not internally generate, nor return any errors.
 func GenerateComputedRoutes(
 	ctx context.Context,
-	logger hclog.Logger,
+	loggerFor func(*pbresource.ID) hclog.Logger,
 	related *loader.RelatedResources,
 	pending PendingStatuses,
 ) []*ComputedRoutesResult {
+	if loggerFor == nil {
+		loggerFor = func(_ *pbresource.ID) hclog.Logger {
+			return hclog.NewNullLogger()
+		}
+	}
 	out := make([]*ComputedRoutesResult, 0, len(related.ComputedRoutesList))
 	for _, computedRoutesID := range related.ComputedRoutesList {
-		out = append(out, compile(ctx, logger, related, computedRoutesID, pending))
+		out = append(out, compile(ctx, loggerFor, related, computedRoutesID, pending))
 	}
 	return out
 }
@@ -46,12 +51,12 @@ type ComputedRoutesResult struct {
 
 func compile(
 	ctx context.Context,
-	logger hclog.Logger,
+	loggerFor func(*pbresource.ID) hclog.Logger,
 	related *loader.RelatedResources,
 	computedRoutesID *pbresource.ID,
 	pending PendingStatuses,
 ) *ComputedRoutesResult {
-	logger = logger.With("mesh-config-id", resource.IDToString(computedRoutesID))
+	logger := loggerFor(computedRoutesID)
 
 	// There is one mesh config for the entire service (perfect name alignment).
 	//
