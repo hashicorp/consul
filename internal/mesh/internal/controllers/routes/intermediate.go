@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// TODO: move to a new package? compiler?
-
 // inputRouteNode is a dressed up version of an XRoute meant as working state
 // for one pass of the compilation procedure.
 type inputRouteNode struct {
