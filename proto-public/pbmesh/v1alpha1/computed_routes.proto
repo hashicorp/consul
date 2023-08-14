@@ -46,6 +46,13 @@ message InterpretedHTTPRouteRule {
 }
 
 message InterpretedHTTPBackendRef {
+  // BackendTarget indicates which key in the targets map provides
+  // the rest of the configuration.
+  //
+  // If this field is set to the empty string, or is the sentinel value
+  // "NULL-ROUTE" is an indication that all of the traffic destined for this
+  // backend reference should be null routed in a format appropriate for the
+  // protocol (i.e. for HTTP use 5xx).
   string backend_target = 1;
   uint32 weight = 2;
   repeated HTTPRouteFilter filters = 3;
@@ -66,6 +73,13 @@ message InterpretedGRPCRouteRule {
 }
 
 message InterpretedGRPCBackendRef {
+  // BackendTarget indicates which key in the targets map provides
+  // the rest of the configuration.
+  //
+  // If this field is set to the empty string, or is the sentinel value
+  // "NULL-ROUTE" is an indication that all of the traffic destined for this
+  // backend reference should be null routed in a format appropriate for the
+  // protocol (i.e. for HTTP use 5xx).
   string backend_target = 1;
   uint32 weight = 2;
   repeated GRPCRouteFilter filters = 3;
@@ -83,6 +97,13 @@ message InterpretedTCPRouteRule {
 // TODO: look into smuggling the target through a different typeURL, or just
 // skip in favor of letting the caller do their own lookups?
 message InterpretedTCPBackendRef {
+  // BackendTarget indicates which key in the targets map provides
+  // the rest of the configuration.
+  //
+  // If this field is set to the empty string, or is the sentinel value
+  // "NULL-ROUTE" is an indication that all of the traffic destined for this
+  // backend reference should be null routed in a format appropriate for the
+  // protocol (i.e. for HTTP use 5xx).
   string backend_target = 1;
   uint32 weight = 2;
 }

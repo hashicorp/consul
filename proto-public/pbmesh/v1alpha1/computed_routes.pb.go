@@ -323,6 +323,13 @@ type InterpretedHTTPBackendRef struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// BackendTarget indicates which key in the targets map provides
+	// the rest of the configuration.
+	//
+	// If this field is set to the empty string, or is the sentinel value
+	// "NULL-ROUTE" is an indication that all of the traffic destined for this
+	// backend reference should be null routed in a format appropriate for the
+	// protocol (i.e. for HTTP use 5xx).
 	BackendTarget string             `protobuf:"bytes,1,opt,name=backend_target,json=backendTarget,proto3" json:"backend_target,omitempty"`
 	Weight        uint32             `protobuf:"varint,2,opt,name=weight,proto3" json:"weight,omitempty"`
 	Filters       []*HTTPRouteFilter `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
@@ -520,6 +527,13 @@ type InterpretedGRPCBackendRef struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// BackendTarget indicates which key in the targets map provides
+	// the rest of the configuration.
+	//
+	// If this field is set to the empty string, or is the sentinel value
+	// "NULL-ROUTE" is an indication that all of the traffic destined for this
+	// backend reference should be null routed in a format appropriate for the
+	// protocol (i.e. for HTTP use 5xx).
 	BackendTarget string             `protobuf:"bytes,1,opt,name=backend_target,json=backendTarget,proto3" json:"backend_target,omitempty"`
 	Weight        uint32             `protobuf:"varint,2,opt,name=weight,proto3" json:"weight,omitempty"`
 	Filters       []*GRPCRouteFilter `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
@@ -687,6 +701,13 @@ type InterpretedTCPBackendRef struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// BackendTarget indicates which key in the targets map provides
+	// the rest of the configuration.
+	//
+	// If this field is set to the empty string, or is the sentinel value
+	// "NULL-ROUTE" is an indication that all of the traffic destined for this
+	// backend reference should be null routed in a format appropriate for the
+	// protocol (i.e. for HTTP use 5xx).
 	BackendTarget string `protobuf:"bytes,1,opt,name=backend_target,json=backendTarget,proto3" json:"backend_target,omitempty"`
 	Weight        uint32 `protobuf:"varint,2,opt,name=weight,proto3" json:"weight,omitempty"`
 }
