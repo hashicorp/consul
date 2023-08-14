@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -26,20 +27,33 @@ const ControllerName = "consul.io/sidecar-proxy-controller"
 
 type TrustDomainFetcher func() (string, error)
 
-func Controller(cache *sidecarproxycache.Cache, mapper *sidecarproxymapper.Mapper, trustDomainFetcher TrustDomainFetcher) controller.Controller {
-	if cache == nil || mapper == nil || trustDomainFetcher == nil {
-		panic("cache, mapper and trust domain fetcher are required")
+func Controller(destinationsCache *sidecarproxycache.DestinationsCache,
+	proxyCfgCache *sidecarproxycache.ProxyConfigurationCache,
+	mapper *sidecarproxymapper.Mapper,
+	trustDomainFetcher TrustDomainFetcher,
+	dc string) controller.Controller {
+
+	if destinationsCache == nil || proxyCfgCache == nil || mapper == nil || trustDomainFetcher == nil {
+		panic("destinations cache, proxy configuration cache, mapper and trust domain fetcher are required")
 	}
 
 	return controller.ForType(types.ProxyStateTemplateType).
 		WithWatch(catalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
 		WithWatch(types.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
-		WithReconciler(&reconciler{cache: cache, getTrustDomain: trustDomainFetcher})
+		WithWatch(types.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
+		WithReconciler(&reconciler{
+			destinationsCache: destinationsCache,
+			proxyCfgCache:     proxyCfgCache,
+			getTrustDomain:    trustDomainFetcher,
+			dc:                dc,
+		})
 }
 
 type reconciler struct {
-	cache          *sidecarproxycache.Cache
-	getTrustDomain TrustDomainFetcher
+	destinationsCache *sidecarproxycache.DestinationsCache
+	proxyCfgCache     *sidecarproxycache.ProxyConfigurationCache
+	getTrustDomain    TrustDomainFetcher
+	dc                string
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -48,7 +62,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	rt.Logger.Trace("reconciling proxy state template")
 
 	// Instantiate a data fetcher to fetch all reconciliation data.
-	dataFetcher := fetcher.Fetcher{Client: rt.Client, Cache: r.cache}
+	dataFetcher := fetcher.New(rt.Client, r.destinationsCache, r.proxyCfgCache)
 
 	// Check if the workload exists.
 	workloadID := resource.ReplaceType(catalog.WorkloadType, req.ID)
@@ -87,8 +101,8 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 				return err
 			}
 
-			// Remove it from cache.
-			r.cache.DeleteSourceProxy(req.ID)
+			// Remove it from destinationsCache.
+			r.destinationsCache.DeleteSourceProxy(req.ID)
 		}
 		rt.Logger.Trace("skipping proxy state template generation because workload is not on the mesh", "workload", workload.Resource.Id)
 		return nil
@@ -101,15 +115,31 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 
-	b := builder.New(req.ID, workloadIdentityRefFromWorkload(workload), trustDomain).
+	// Fetch proxy configuration.
+	proxyCfg, err := dataFetcher.FetchAndMergeProxyConfigurations(ctx, req.ID)
+	if err != nil {
+		rt.Logger.Error("error fetching proxy and merging proxy configurations", "error", err)
+		return err
+	}
+	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, proxyCfg).
 		BuildLocalApp(workload.Workload)
 
 	// Get all destinationsData.
-	destinationsRefs := r.cache.DestinationsBySourceProxy(req.ID)
-	destinationsData, statuses, err := dataFetcher.FetchDestinationsData(ctx, destinationsRefs)
+	destinationsRefs := r.destinationsCache.DestinationsBySourceProxy(req.ID)
+	destinationsData, statuses, err := dataFetcher.FetchExplicitDestinationsData(ctx, destinationsRefs)
 	if err != nil {
-		rt.Logger.Error("error fetching destinations for this proxy", "error", err)
+		rt.Logger.Error("error fetching explicit destinations for this proxy", "error", err)
 		return err
+	}
+
+	if proxyCfg.GetDynamicConfig() != nil &&
+		proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
+
+		destinationsData, err = dataFetcher.FetchImplicitDestinationsData(ctx, req.ID, destinationsData)
+		if err != nil {
+			rt.Logger.Error("error fetching implicit destinations for this proxy", "error", err)
+			return err
+		}
 	}
 
 	b.BuildDestinations(destinationsData)
@@ -117,6 +147,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	newProxyTemplate := b.Build()
 
 	if proxyStateTemplate == nil || !proto.Equal(proxyStateTemplate.Tmpl, newProxyTemplate) {
+		if proxyStateTemplate == nil {
+			req.ID.Uid = ""
+		}
 		proxyTemplateData, err := anypb.New(newProxyTemplate)
 		if err != nil {
 			rt.Logger.Error("error creating proxy state template data", "error", err)
@@ -161,7 +194,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	return nil
 }
 
-func workloadIdentityRefFromWorkload(w *intermediate.Workload) *pbresource.Reference {
+func identityRefFromWorkload(w *intermediate.Workload) *pbresource.Reference {
 	return &pbresource.Reference{
 		Name:    w.Workload.Identity,
 		Tenancy: w.Resource.Id.Tenancy,
