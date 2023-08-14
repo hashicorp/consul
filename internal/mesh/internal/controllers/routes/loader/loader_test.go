@@ -240,7 +240,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 		},
 	})
 
-	testutil.RunStep(t, "two overlapping mesh configs", func(t *testing.T) {
+	testutil.RunStep(t, "two overlapping computed routes resources", func(t *testing.T) {
 		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
 		require.NoError(t, err)
 
@@ -274,7 +274,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 		},
 	})
 
-	testutil.RunStep(t, "three overlapping mesh configs", func(t *testing.T) {
+	testutil.RunStep(t, "three overlapping computed routes resources", func(t *testing.T) {
 		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
 		require.NoError(t, err)
 

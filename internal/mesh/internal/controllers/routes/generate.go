@@ -58,7 +58,7 @@ func compile(
 ) *ComputedRoutesResult {
 	logger := loggerFor(computedRoutesID)
 
-	// There is one mesh config for the entire service (perfect name alignment).
+	// There is one computed routes resource for the entire service (perfect name alignment).
 	//
 	// All ports are embedded within.
 
@@ -86,11 +86,11 @@ func compile(
 		}
 	}
 
-	meshConfig := &pbmesh.ComputedRoutes{
+	computedRoutes := &pbmesh.ComputedRoutes{
 		PortedConfigs: make(map[string]*pbmesh.ComputedPortRoutes),
 	}
 
-	// Visit all of the routes relevant to this mesh config.
+	// Visit all of the routes relevant to this computed routes.
 	routeNodesByPort := make(map[string][]*inputRouteNode)
 	related.WalkRoutesForParentRef(parentServiceRef, func(
 		rk resource.ReferenceKey,
@@ -120,7 +120,7 @@ func compile(
 		}
 
 		if len(ports) == 0 {
-			return // not relevant to this mesh config
+			return // not relevant to this computed routes
 		}
 
 		for _, port := range ports {
@@ -273,7 +273,7 @@ func compile(
 			panic("impossible")
 		}
 
-		meshConfig.PortedConfigs[port] = mc
+		computedRoutes.PortedConfigs[port] = mc
 
 		// TODO: prune dead targets from targets map
 
@@ -301,17 +301,17 @@ func compile(
 		}
 
 		// TODO: Create derived composite routing instruction.
-		meshConfig.PortedConfigs[port] = mc
+		computedRoutes.PortedConfigs[port] = mc
 	}
 
 	if !inMesh {
-		meshConfig = nil
+		computedRoutes = nil
 	}
 
 	return &ComputedRoutesResult{
 		ID:      computedRoutesID,
 		OwnerID: parentServiceID,
-		Data:    meshConfig,
+		Data:    computedRoutes,
 	}
 }
 

@@ -117,7 +117,7 @@ func (l *loader) loadOne(
 ) error {
 	logger := loggerFor(computedRoutesID)
 
-	// There is one mesh config for the entire service (perfect name alignment).
+	// There is one computed routes for the entire service (perfect name alignment).
 	//
 	// All ports are embedded within.
 
@@ -280,13 +280,13 @@ func (l *loader) gatherSingleXRouteAsInput(
 
 	for _, parentRef := range route.GetParentRefs() {
 		if types.IsServiceType(parentRef.Ref.Type) {
-			parentMeshConfigID := &pbresource.ID{
+			parentComputedRoutesID := &pbresource.ID{
 				Type:    types.ComputedRoutesType,
 				Tenancy: parentRef.Ref.Tenancy,
 				Name:    parentRef.Ref.Name,
 			}
 			// Note: this will only schedule things to load that have not already been loaded
-			l.requestLoad(parentMeshConfigID)
+			l.requestLoad(parentComputedRoutesID)
 		}
 	}
 

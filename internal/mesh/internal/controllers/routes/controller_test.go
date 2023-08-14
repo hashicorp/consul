@@ -404,9 +404,9 @@ func (suite *controllerSuite) TestController() {
 
 		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
 
-		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionOK)
-		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionOK)
-		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionXRouteOK)
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
+		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionXRouteOK)
 	})
 
 	// Add another route, with a bad mapping.
@@ -618,9 +618,9 @@ func (suite *controllerSuite) TestController() {
 
 		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
 
-		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionOK)
-		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionOK)
-		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionXRouteOK)
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
+		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionXRouteOK)
 
 		suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
 			ConditionMissingBackendRef(newRef(catalog.ServiceType, "bar")))
@@ -801,9 +801,9 @@ func (suite *controllerSuite) TestController() {
 
 		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
 
-		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionOK)
-		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionOK)
-		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionXRouteOK)
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
+		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionXRouteOK)
 
 		suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
 			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "http", types.HTTPRouteType))
@@ -956,8 +956,8 @@ func (suite *controllerSuite) TestController() {
 
 		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, "" /*no change*/, expect)
 
-		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionOK)
-		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionXRouteOK)
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
 
 	})
 

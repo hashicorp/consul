@@ -57,7 +57,7 @@ func UpdatePendingStatuses(
 			newStatus = &pbresource.Status{
 				ObservedGeneration: state.Generation,
 				Conditions: []*pbresource.Condition{
-					ConditionOK,
+					ConditionXRouteOK,
 				},
 			}
 		}
