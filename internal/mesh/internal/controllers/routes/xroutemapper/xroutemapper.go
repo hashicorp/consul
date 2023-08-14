@@ -157,18 +157,18 @@ func (m *Mapper) BackendServiceRefsByRouteID(item *pbresource.ID) []*pbresource.
 }
 
 // MapHTTPRoute will map HTTPRoute changes to ComputedRoutes changes.
-func (m *Mapper) MapHTTPRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	return mapXRouteToComputedRoutes[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](ctx, rt, res, m)
+func (m *Mapper) MapHTTPRoute(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	return mapXRouteToComputedRoutes[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](res, m)
 }
 
 // MapGRPCRoute will map GRPCRoute changes to ComputedRoutes changes.
-func (m *Mapper) MapGRPCRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	return mapXRouteToComputedRoutes[pbmesh.GRPCRoute, *pbmesh.GRPCRoute](ctx, rt, res, m)
+func (m *Mapper) MapGRPCRoute(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	return mapXRouteToComputedRoutes[pbmesh.GRPCRoute, *pbmesh.GRPCRoute](res, m)
 }
 
 // MapTCPRoute will map TCPRoute changes to ComputedRoutes changes.
-func (m *Mapper) MapTCPRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	return mapXRouteToComputedRoutes[pbmesh.TCPRoute, *pbmesh.TCPRoute](ctx, rt, res, m)
+func (m *Mapper) MapTCPRoute(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	return mapXRouteToComputedRoutes[pbmesh.TCPRoute, *pbmesh.TCPRoute](res, m)
 }
 
 // mapXRouteToComputedRoutes will map xRoute changes to ComputedRoutes changes.
@@ -176,7 +176,7 @@ func mapXRouteToComputedRoutes[V any, PV interface {
 	proto.Message
 	*V
 	types.XRouteWithRefs
-}](ctx context.Context, rt controller.Runtime, res *pbresource.Resource, m *Mapper) ([]controller.Request, error) {
+}](res *pbresource.Resource, m *Mapper) ([]controller.Request, error) {
 	dec, err := resource.Decode[V, PV](res)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling xRoute: %w", err)
@@ -193,8 +193,8 @@ func mapXRouteToComputedRoutes[V any, PV interface {
 }
 
 func (m *Mapper) MapFailoverPolicy(
-	ctx context.Context,
-	rt controller.Runtime,
+	_ context.Context,
+	_ controller.Runtime,
 	res *pbresource.Resource,
 ) ([]controller.Request, error) {
 	if !types.IsFailoverPolicyType(res.Id.Type) {
@@ -212,7 +212,7 @@ func (m *Mapper) MapFailoverPolicy(
 	// will route any traffic to this destination service.
 	svcID := changeType(res.Id, catalog.ServiceType)
 
-	return m.mapXRouteDirectServiceRefToComputedRoutesByID(ctx, rt, svcID)
+	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
 
 func (m *Mapper) TrackFailoverPolicy(failover *types.DecodedFailoverPolicy) {
@@ -226,8 +226,8 @@ func (m *Mapper) UntrackFailoverPolicy(failoverPolicyID *pbresource.ID) {
 }
 
 func (m *Mapper) MapDestinationPolicy(
-	ctx context.Context,
-	rt controller.Runtime,
+	_ context.Context,
+	_ controller.Runtime,
 	res *pbresource.Resource,
 ) ([]controller.Request, error) {
 	if !types.IsDestinationPolicyType(res.Id.Type) {
@@ -238,12 +238,12 @@ func (m *Mapper) MapDestinationPolicy(
 	// will route any traffic to this destination service.
 	svcID := changeType(res.Id, catalog.ServiceType)
 
-	return m.mapXRouteDirectServiceRefToComputedRoutesByID(ctx, rt, svcID)
+	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
 
 func (m *Mapper) MapService(
-	ctx context.Context,
-	rt controller.Runtime,
+	_ context.Context,
+	_ controller.Runtime,
 	res *pbresource.Resource,
 ) ([]controller.Request, error) {
 	// Ultimately we want to wake up a ComputedRoutes if either of the
@@ -261,7 +261,7 @@ func (m *Mapper) MapService(
 
 	var reqs []controller.Request
 	for _, svcID := range effectiveServiceIDs {
-		got, err := m.mapXRouteDirectServiceRefToComputedRoutesByID(ctx, rt, svcID)
+		got, err := m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 		if err != nil {
 			return nil, err
 		}
@@ -272,11 +272,7 @@ func (m *Mapper) MapService(
 }
 
 // NOTE: this function does not interrogate down into failover policies
-func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(
-	ctx context.Context,
-	rt controller.Runtime,
-	svcID *pbresource.ID,
-) ([]controller.Request, error) {
+func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(svcID *pbresource.ID) ([]controller.Request, error) {
 	if !types.IsServiceType(svcID.Type) {
 		return nil, fmt.Errorf("type is not a service type: %s", svcID.Type)
 	}

@@ -4,10 +4,6 @@
 package routes
 
 import (
-	"context"
-
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -25,19 +21,12 @@ import (
 //
 // This should not internally generate, nor return any errors.
 func GenerateComputedRoutes(
-	ctx context.Context,
-	loggerFor func(*pbresource.ID) hclog.Logger,
 	related *loader.RelatedResources,
 	pending PendingStatuses,
 ) []*ComputedRoutesResult {
-	if loggerFor == nil {
-		loggerFor = func(_ *pbresource.ID) hclog.Logger {
-			return hclog.NewNullLogger()
-		}
-	}
 	out := make([]*ComputedRoutesResult, 0, len(related.ComputedRoutesList))
 	for _, computedRoutesID := range related.ComputedRoutesList {
-		out = append(out, compile(ctx, loggerFor, related, computedRoutesID, pending))
+		out = append(out, compile(related, computedRoutesID, pending))
 	}
 	return out
 }
@@ -50,8 +39,6 @@ type ComputedRoutesResult struct {
 }
 
 func compile(
-	ctx context.Context,
-	loggerFor func(*pbresource.ID) hclog.Logger,
 	related *loader.RelatedResources,
 	computedRoutesID *pbresource.ID,
 	pending PendingStatuses,
@@ -139,21 +126,21 @@ func compile(
 					node = newInputRouteNode(port)
 					setupDefaultHTTPRouteNode(node, types.NullRouteBackend)
 				} else {
-					node = compileHTTPRouteNode(parentServiceRef, port, res, route, related)
+					node = compileHTTPRouteNode(port, res, route, related)
 				}
 			case *pbmesh.GRPCRoute:
 				if nullRouteTraffic {
 					node = newInputRouteNode(port)
 					setupDefaultGRPCRouteNode(node, types.NullRouteBackend)
 				} else {
-					node = compileGRPCRouteNode(parentServiceRef, port, res, route, related)
+					node = compileGRPCRouteNode(port, res, route, related)
 				}
 			case *pbmesh.TCPRoute:
 				if nullRouteTraffic {
 					node = newInputRouteNode(port)
 					setupDefaultTCPRouteNode(node, types.NullRouteBackend)
 				} else {
-					node = compileTCPRouteNode(parentServiceRef, port, res, route, related)
+					node = compileTCPRouteNode(port, res, route, related)
 				}
 			default:
 				return // unknown xroute type (impossible)
@@ -303,7 +290,6 @@ func compile(
 }
 
 func compileHTTPRouteNode(
-	parentServiceRef *pbresource.Reference,
 	port string,
 	res *pbresource.Resource,
 	route *pbmesh.HTTPRoute,
@@ -378,7 +364,6 @@ func compileHTTPRouteNode(
 }
 
 func compileGRPCRouteNode(
-	parentServiceRef *pbresource.Reference,
 	port string,
 	res *pbresource.Resource,
 	route *pbmesh.GRPCRoute,
@@ -445,7 +430,6 @@ func compileGRPCRouteNode(
 }
 
 func compileTCPRouteNode(
-	parentServiceRef *pbresource.Reference,
 	port string,
 	res *pbresource.Resource,
 	route *pbmesh.TCPRoute,

@@ -48,7 +48,7 @@ func LoadResourcesForComputedRoutes(
 		mcDone:   make(map[resource.ReferenceKey]struct{}),
 	}
 
-	if err := loader.load(ctx, loggerFor, client, computedRoutesID); err != nil {
+	if err := loader.load(ctx, loggerFor, computedRoutesID); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +87,6 @@ func (l *loader) nextRequested() *pbresource.ID {
 func (l *loader) load(
 	ctx context.Context,
 	loggerFor func(*pbresource.ID) hclog.Logger,
-	client pbresource.ResourceServiceClient,
 	computedRoutesID *pbresource.ID,
 ) error {
 	l.out = NewRelatedResources()
@@ -101,7 +100,7 @@ func (l *loader) load(
 			break
 		}
 
-		if err := l.loadOne(ctx, loggerFor, client, mcID); err != nil {
+		if err := l.loadOne(ctx, loggerFor, mcID); err != nil {
 			return err
 		}
 	}
@@ -112,7 +111,6 @@ func (l *loader) load(
 func (l *loader) loadOne(
 	ctx context.Context,
 	loggerFor func(*pbresource.ID) hclog.Logger,
-	client pbresource.ResourceServiceClient,
 	computedRoutesID *pbresource.ID,
 ) error {
 	logger := loggerFor(computedRoutesID)
@@ -128,7 +126,7 @@ func (l *loader) loadOne(
 		return err
 	}
 
-	if err := l.gatherXRoutesAsInput(ctx, logger, computedRoutesID, parentServiceRef); err != nil {
+	if err := l.gatherXRoutesAsInput(ctx, logger, parentServiceRef); err != nil {
 		return err
 	}
 
@@ -142,7 +140,6 @@ func (l *loader) loadOne(
 func (l *loader) gatherXRoutesAsInput(
 	ctx context.Context,
 	logger hclog.Logger,
-	computedRoutesID *pbresource.ID,
 	parentServiceRef *pbresource.Reference,
 ) error {
 	routeIDs := l.mapper.RouteIDsByParentServiceRef(parentServiceRef)
@@ -159,7 +156,7 @@ func (l *loader) gatherXRoutesAsInput(
 			if route != nil {
 				routeData = route.Data
 			}
-			err = l.gatherSingleXRouteAsInput(ctx, logger, computedRoutesID, routeID, routeData, func() {
+			err = l.gatherSingleXRouteAsInput(ctx, logger, routeID, routeData, func() {
 				l.out.AddResource(route)
 			})
 			if err != nil {
@@ -174,7 +171,7 @@ func (l *loader) gatherXRoutesAsInput(
 			if route != nil {
 				routeData = route.Data
 			}
-			err = l.gatherSingleXRouteAsInput(ctx, logger, computedRoutesID, routeID, routeData, func() {
+			err = l.gatherSingleXRouteAsInput(ctx, logger, routeID, routeData, func() {
 				l.out.AddResource(route)
 			})
 			if err != nil {
@@ -189,7 +186,7 @@ func (l *loader) gatherXRoutesAsInput(
 			if route != nil {
 				routeData = route.Data
 			}
-			err = l.gatherSingleXRouteAsInput(ctx, logger, computedRoutesID, routeID, routeData, func() {
+			err = l.gatherSingleXRouteAsInput(ctx, logger, routeID, routeData, func() {
 				l.out.AddResource(route)
 			})
 			if err != nil {
@@ -264,7 +261,6 @@ func (l *loader) loadUpstreamService(
 func (l *loader) gatherSingleXRouteAsInput(
 	ctx context.Context,
 	logger hclog.Logger,
-	computedRoutesID *pbresource.ID,
 	routeID *pbresource.ID,
 	route types.XRouteData,
 	relatedRouteCaptureFn func(),
