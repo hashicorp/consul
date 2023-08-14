@@ -191,9 +191,6 @@ func compile(
 	// First sort the input routes by the final criteria, so we can let the
 	// stable sort take care of the ultimate tiebreakers.
 	for port, routeNodes := range routeNodesByPort {
-		if port == "grpc" {
-			logger.Info("RBOYER - print routes", "N", len(routeNodes), "r", routeNodes)
-		}
 		gammaInitialSortWrappedRoutes(routeNodes)
 
 		// Now that they are sorted by age and name, we can figure out which
