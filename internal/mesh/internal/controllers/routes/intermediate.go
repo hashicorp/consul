@@ -4,8 +4,6 @@
 package routes
 
 import (
-	"google.golang.org/protobuf/proto"
-
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
@@ -90,19 +88,4 @@ func (n *inputRouteNode) OriginalResource() *pbresource.Resource {
 	default:
 		panic("impossible")
 	}
-}
-
-func (n *inputRouteNode) Clone() *inputRouteNode {
-	n2 := *n
-	n2.HTTPRules = protoSliceClone(n.HTTPRules)
-	n2.GRPCRules = protoSliceClone(n.GRPCRules)
-	n2.TCPRules = protoSliceClone(n.TCPRules)
-
-	n2.NewTargets = make(map[string]*pbmesh.BackendTargetDetails)
-	for key, details := range n.NewTargets {
-		n2.NewTargets[key] = proto.Clone(details).(*pbmesh.BackendTargetDetails)
-	}
-
-	// only shallow copy the protobuf stuff since we don't touch it
-	return &n2
 }

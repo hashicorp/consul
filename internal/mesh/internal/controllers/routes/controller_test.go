@@ -814,6 +814,154 @@ func (suite *controllerSuite) TestController() {
 			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "tcp", types.TCPRouteType))
 	})
 
+	// - Delete the bad routes
+	// - delete the original grpc route
+	// - create a new grpc route with a later name so it loses the conflict
+	//   battle, and do a wildcard port binding
+
+	suite.client.MustDelete(suite.T(), tcpRoute2ID)
+	suite.client.MustDelete(suite.T(), httpRoute2ID)
+	suite.client.MustDelete(suite.T(), grpcRoute1ID)
+	suite.client.MustDelete(suite.T(), grpcRoute2ID)
+
+	suite.client.WaitForDeletion(suite.T(), tcpRoute2ID)
+	suite.client.WaitForDeletion(suite.T(), httpRoute2ID)
+	suite.client.WaitForDeletion(suite.T(), grpcRoute1ID)
+	suite.client.WaitForDeletion(suite.T(), grpcRoute2ID)
+
+	// Re-create with newarly the same data (wildcard port now) with a newer name.
+	grpcRoute1 = &pbmesh.GRPCRoute{
+		ParentRefs: []*pbmesh.ParentReference{
+			newParentRef(newRef(catalog.ServiceType, "api"), ""),
+		},
+		Rules: []*pbmesh.GRPCRouteRule{{
+			BackendRefs: []*pbmesh.GRPCBackendRef{{
+				BackendRef: newBackendRef(fooServiceRef, "", ""),
+			}},
+		}},
+	}
+	grpcRoute1ID = rtest.Resource(types.GRPCRouteType, "zzz-bad-route").
+		WithData(suite.T(), grpcRoute1).
+		Write(suite.T(), suite.client).
+		Id
+
+	testutil.RunStep(suite.T(), "overlapping xRoutes due to port wildcarding", func(t *testing.T) {
+		expect := &pbmesh.ComputedRoutes{
+			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+				"tcp": {
+					Config: &pbmesh.ComputedPortRoutes_Tcp{
+						Tcp: &pbmesh.InterpretedTCPRoute{
+							ParentRef: newParentRef(apiServiceRef, "tcp"),
+							Rules: []*pbmesh.InterpretedTCPRouteRule{{
+								BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+									BackendTarget: backendName("foo", "tcp"),
+								}},
+							}},
+						},
+					},
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("foo", "tcp"): {
+							BackendRef: newBackendRef(fooServiceRef, "tcp", ""),
+							Service:    fooServiceData,
+						},
+					},
+				},
+				"http": {
+					Config: &pbmesh.ComputedPortRoutes_Http{
+						Http: &pbmesh.InterpretedHTTPRoute{
+							ParentRef: newParentRef(apiServiceRef, "http"),
+							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+										BackendTarget: backendName("foo", "http"),
+									}},
+								},
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+										BackendTarget: types.NullRouteBackend,
+									}},
+								},
+							},
+						},
+					},
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("foo", "http"): {
+							BackendRef: newBackendRef(fooServiceRef, "http", ""),
+							Service:    fooServiceData,
+						},
+					},
+				},
+				"grpc": {
+					Config: &pbmesh.ComputedPortRoutes_Grpc{
+						Grpc: &pbmesh.InterpretedGRPCRoute{
+							ParentRef: newParentRef(apiServiceRef, "grpc"),
+							Rules: []*pbmesh.InterpretedGRPCRouteRule{
+								{
+									Matches: []*pbmesh.GRPCRouteMatch{{}},
+									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+										BackendTarget: backendName("foo", "grpc"),
+									}},
+								},
+								{
+									Matches: []*pbmesh.GRPCRouteMatch{{}},
+									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+										BackendTarget: types.NullRouteBackend,
+									}},
+								},
+							},
+						},
+					},
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("foo", "grpc"): {
+							BackendRef: newBackendRef(fooServiceRef, "grpc", ""),
+							Service:    fooServiceData,
+						},
+					},
+				},
+				"http2": {
+					Config: &pbmesh.ComputedPortRoutes_Http{
+						Http: &pbmesh.InterpretedHTTPRoute{
+							ParentRef: newParentRef(apiServiceRef, "http2"),
+							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+										BackendTarget: backendName("foo", "http2"),
+									}},
+								},
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+										BackendTarget: types.NullRouteBackend,
+									}},
+								},
+							},
+						},
+					},
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("foo", "http2"): {
+							BackendRef: newBackendRef(fooServiceRef, "http2", ""),
+							Service:    fooServiceData,
+						},
+					},
+				},
+			},
+		}
+
+		suite.client.WaitForStatusConditions(t, grpcRoute1ID, StatusKey,
+			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "http", types.HTTPRouteType),
+			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "http2", types.HTTPRouteType),
+			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "tcp", types.TCPRouteType))
+
+		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, "" /*no change*/, expect)
+
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionOK)
+
+	})
+
 	// Remove the mesh port from api service.
 
 	apiServiceData = &pbcatalog.Service{
@@ -833,25 +981,15 @@ func (suite *controllerSuite) TestController() {
 		Write(suite.T(), suite.client)
 
 	testutil.RunStep(suite.T(), "entire generated resource is deleted", func(t *testing.T) {
-		retry.Run(t, func(r *retry.R) {
-			suite.client.RequireResourceNotFound(r, computedRoutesID)
+		suite.client.WaitForDeletion(t, computedRoutesID)
 
-			suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey,
-				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
-			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey,
-				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
-			suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey,
-				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
-
-			suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
-				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
-			suite.client.WaitForStatusCondition(t, httpRoute2ID, StatusKey,
-				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
-			suite.client.WaitForStatusCondition(t, grpcRoute2ID, StatusKey,
-				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
-		})
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey,
+			ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey,
+			ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey,
+			ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
 	})
-
 }
 
 func newParentRef(ref *pbresource.Reference, port string) *pbmesh.ParentReference {

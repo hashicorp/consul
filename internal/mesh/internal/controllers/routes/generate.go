@@ -92,10 +92,25 @@ func compile(
 		res *pbresource.Resource,
 		xroute types.XRouteData,
 	) {
-		var ports []string
+		var (
+			ports          []string
+			wildcardedPort bool
+		)
 		for _, ref := range xroute.GetParentRefs() {
 			if resource.ReferenceOrIDMatch(ref.Ref, parentServiceRef) {
 				ports = append(ports, ref.Port)
+				if ref.Port == "" {
+					wildcardedPort = true
+					break
+				}
+			}
+		}
+
+		// Do a port explosion.
+		if wildcardedPort {
+			ports = nil
+			for port := range allowedPortProtocols {
+				ports = append(ports, port)
 			}
 		}
 
@@ -104,12 +119,14 @@ func compile(
 		}
 
 		for _, port := range ports {
+			if port == "" {
+				panic("impossible to have an empty port here")
+			}
+
 			// Check if the user provided port is actually valid.
 			nullRouteTraffic := (parentServiceDec == nil)
-			if port != "" {
-				if _, ok := allowedPortProtocols[port]; !ok {
-					nullRouteTraffic = true
-				}
+			if _, ok := allowedPortProtocols[port]; !ok {
+				nullRouteTraffic = true
 			}
 
 			var node *inputRouteNode
@@ -139,16 +156,7 @@ func compile(
 				return // unknown xroute type (impossible)
 			}
 
-			if node.ParentPort == "" {
-				// Do a port explosion.
-				for port := range allowedPortProtocols {
-					nodeCopy := node.Clone()
-					nodeCopy.ParentPort = port
-					routeNodesByPort[nodeCopy.ParentPort] = append(routeNodesByPort[nodeCopy.ParentPort], nodeCopy)
-				}
-			} else {
-				routeNodesByPort[node.ParentPort] = append(routeNodesByPort[node.ParentPort], node)
-			}
+			routeNodesByPort[node.ParentPort] = append(routeNodesByPort[node.ParentPort], node)
 		}
 	})
 
@@ -178,6 +186,9 @@ func compile(
 	// First sort the input routes by the final criteria, so we can let the
 	// stable sort take care of the ultimate tiebreakers.
 	for port, routeNodes := range routeNodesByPort {
+		if port == "grpc" {
+			logger.Info("RBOYER - print routes", "N", len(routeNodes), "r", routeNodes)
+		}
 		gammaInitialSortWrappedRoutes(routeNodes)
 
 		// Now that they are sorted by age and name, we can figure out which
@@ -189,6 +200,8 @@ func compile(
 				continue
 			}
 			if top.RouteType != routeNode.RouteType {
+				// This should only happen with user-provided ones, since we
+				// would never have two synthetic default routes at once.
 				res := routeNode.OriginalResource()
 				pending.AddConditions(resource.NewReferenceKey(res.Id), res, []*pbresource.Condition{
 					ConditionConflictNotBoundToParentRef(

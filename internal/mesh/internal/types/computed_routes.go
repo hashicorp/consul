@@ -71,12 +71,9 @@ func ValidateComputedRoutes(res *pbresource.Resource) error {
 				Wrapped: resource.ErrEmpty,
 			}))
 		}
-		if len(pmc.Targets) == 0 {
-			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-				Name:    "targets",
-				Wrapped: resource.ErrEmpty,
-			}))
-		}
+
+		// TODO(rb): do a deep inspection of the config to verify that all
+		// xRoute backends ultimately point to an item in the targets map.
 	}
 
 	return merr
