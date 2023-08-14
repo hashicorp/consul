@@ -44,7 +44,6 @@ type routesReconciler struct {
 	mapper *xroutemapper.Mapper
 }
 
-// TODO: only emit status updates on the xRoute types and when we do so, suffix them with the parent they apply to
 func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	// Notably don't inject the resource-id here, since we have to do a fan-out
 	// to multiple resources due to xRoutes having multiple parent refs.
