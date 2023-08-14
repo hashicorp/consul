@@ -605,7 +605,6 @@ func appendDefaultRouteNode(
 	case resource.EqualType(types.TCPRouteType, routeNode.RouteType):
 		fallthrough
 	default:
-		// skip: unnecessary since
 		appendDefaultTCPRouteRule(routeNode, defaultBackendTarget)
 	}
 }
