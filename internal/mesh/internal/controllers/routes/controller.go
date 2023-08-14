@@ -142,11 +142,11 @@ func upsertComputedRoutes(
 		},
 	})
 	if err != nil {
-		logger.Error("error writing generated mesh config", "error", err)
+		logger.Error("error writing computed routes", "error", err)
 		return err
 	}
 
-	logger.Trace("updated mesh config was successfully written")
+	logger.Trace("updated computed routes resource was successfully written")
 
 	return nil
 }
@@ -161,7 +161,7 @@ func deleteComputedRoutes(
 		return nil
 	}
 
-	// The service the mesh config controls no longer participates in the
+	// The service the computed routes controls no longer participates in the
 	// mesh at all.
 
 	logger.Trace("removing previous computed routes")
@@ -177,7 +177,7 @@ func deleteComputedRoutes(
 	// besides CAS version mismatches. The simplest thing to do is to just
 	// propagate the error and retry reconciliation later.
 	if err != nil {
-		logger.Error("error deleting previous mesh config", "error", err)
+		logger.Error("error deleting previous computed routes resource", "error", err)
 		return err
 	}
 

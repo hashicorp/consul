@@ -67,7 +67,7 @@ func (suite *controllerSuite) TestController() {
 	)
 
 	// Start out by creating a single port service and let it create the
-	// default mesh config for tcp.
+	// default computed routes for tcp.
 
 	apiServiceData := &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{
@@ -86,7 +86,7 @@ func (suite *controllerSuite) TestController() {
 
 	var lastVersion string
 	testutil.RunStep(suite.T(), "default tcp route", func(t *testing.T) {
-		// Check that the mesh config resource exists and it has one port that is the default.
+		// Check that the computed routes resource exists and it has one port that is the default.
 		expect := &pbmesh.ComputedRoutes{
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
@@ -152,7 +152,6 @@ func (suite *controllerSuite) TestController() {
 		Write(suite.T(), suite.client)
 
 	testutil.RunStep(suite.T(), "default other routes", func(t *testing.T) {
-		// Check that the mesh config resource exists and it has one port that is the default.
 		expect := &pbmesh.ComputedRoutes{
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
