@@ -84,6 +84,10 @@ ${kind !== '' ? `
             "Kind": "${kind}",
 ` : `` }
             "InstanceCount": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
+            "InstancesPassing": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
+            "InstancesWarning": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
+            "InstancesCritical": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
+            "MarkServiceStatusThreshold":0.6,
 ${ fake.random.number({min: 1, max: 10}) > 2 ? `
             "ExternalSources": [
                 ${

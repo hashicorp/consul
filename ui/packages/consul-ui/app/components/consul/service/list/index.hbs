@@ -51,6 +51,28 @@
         {{format-number item.InstanceCount}}
         {{pluralize item.InstanceCount 'instance' without-count=true}}
       </span>
+      {{#if (gt item.MeshInstancesPassing 0)}}
+        <dl class="passing">
+          <dt>
+            {{format-number item.MeshInstancesPassing}}/{{format-number item.InstanceCount}}
+            {{pluralize item.InstanceCount 'instance' without-count=true}} passing
+          </dt>
+        </dl>
+      {{else if (gt item.MeshInstancesCritical 0)}}
+        <dl class="critical">
+          <dt>
+            {{format-number item.MeshInstancesCritical}}/{{format-number item.InstanceCount}}
+            {{pluralize item.InstanceCount 'instance' without-count=true}} critical
+          </dt>
+        </dl>
+      {{else if (gt item.MeshInstancesWarning 0)}}
+        <dl class="warning">
+          <dt>
+            {{format-number item.MeshInstancesWarning}}/{{format-number item.InstanceCount}}
+            {{pluralize item.InstanceCount 'instance' without-count=true}} warning
+          </dt>
+        </dl>
+      {{/if}}
     {{/if}}
     {{! we are displaying imported-services - don't show bucket-list }}
     {{#unless @isPeerDetail}}
