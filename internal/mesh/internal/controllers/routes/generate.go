@@ -355,30 +355,13 @@ func compileHTTPRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
-
-			if backendSvc == nil {
-				backendTarget = types.NullRouteBackend
+			if shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef) {
+				details := &pbmesh.BackendTargetDetails{
+					BackendRef: backendRef.BackendRef,
+				}
+				backendTarget = node.AddTarget(backendRef.BackendRef, details)
 			} else {
-				found := false
-				inMesh := false
-				for _, port := range backendSvc.Data.Ports {
-					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-						inMesh = true
-						continue // skip
-					}
-					if port.TargetPort == backendRef.BackendRef.Port {
-						found = true
-					}
-				}
-
-				if inMesh && found {
-					details := &pbmesh.BackendTargetDetails{
-						BackendRef: backendRef.BackendRef,
-					}
-					backendTarget = node.AddTarget(backendRef.BackendRef, details)
-				} else {
-					backendTarget = types.NullRouteBackend
-				}
+				backendTarget = types.NullRouteBackend
 			}
 			ibr := &pbmesh.ComputedHTTPBackendRef{
 				BackendTarget: backendTarget,
@@ -438,29 +421,13 @@ func compileGRPCRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
-			if backendSvc == nil {
-				backendTarget = types.NullRouteBackend
+			if shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef) {
+				details := &pbmesh.BackendTargetDetails{
+					BackendRef: backendRef.BackendRef,
+				}
+				backendTarget = node.AddTarget(backendRef.BackendRef, details)
 			} else {
-				found := false
-				inMesh := false
-				for _, port := range backendSvc.Data.Ports {
-					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-						inMesh = true
-						continue // skip
-					}
-					if port.TargetPort == backendRef.BackendRef.Port {
-						found = true
-					}
-				}
-
-				if inMesh && found {
-					details := &pbmesh.BackendTargetDetails{
-						BackendRef: backendRef.BackendRef,
-					}
-					backendTarget = node.AddTarget(backendRef.BackendRef, details)
-				} else {
-					backendTarget = types.NullRouteBackend
-				}
+				backendTarget = types.NullRouteBackend
 			}
 
 			ibr := &pbmesh.ComputedGRPCBackendRef{
@@ -512,29 +479,13 @@ func compileTCPRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
-			if backendSvc == nil {
-				backendTarget = types.NullRouteBackend
+			if shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef) {
+				details := &pbmesh.BackendTargetDetails{
+					BackendRef: backendRef.BackendRef,
+				}
+				backendTarget = node.AddTarget(backendRef.BackendRef, details)
 			} else {
-				found := false
-				inMesh := false
-				for _, port := range backendSvc.Data.Ports {
-					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-						inMesh = true
-						continue // skip
-					}
-					if port.TargetPort == backendRef.BackendRef.Port {
-						found = true
-					}
-				}
-
-				if inMesh && found {
-					details := &pbmesh.BackendTargetDetails{
-						BackendRef: backendRef.BackendRef,
-					}
-					backendTarget = node.AddTarget(backendRef.BackendRef, details)
-				} else {
-					backendTarget = types.NullRouteBackend
-				}
+				backendTarget = types.NullRouteBackend
 			}
 
 			ibr := &pbmesh.ComputedTCPBackendRef{
@@ -548,6 +499,28 @@ func compileTCPRouteNode(
 	}
 
 	return node
+}
+
+func shouldRouteTrafficToBackend(backendSvc *types.DecodedService, backendRef *pbmesh.BackendReference) bool {
+	if backendSvc == nil {
+		return false
+	}
+
+	var (
+		found  = false
+		inMesh = false
+	)
+	for _, port := range backendSvc.Data.Ports {
+		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+			inMesh = true
+			continue
+		}
+		if port.TargetPort == backendRef.Port {
+			found = true
+		}
+	}
+
+	return inMesh && found
 }
 
 func createDefaultRouteNode(
