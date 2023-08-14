@@ -92,10 +92,10 @@ func (suite *controllerSuite) TestController() {
 				"tcp": {
 					UsingDefaultConfig: true,
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
-						Tcp: &pbmesh.InterpretedTCPRoute{
+						Tcp: &pbmesh.ComputedTCPRoute{
 							ParentRef: newParentRef(apiServiceRef, "tcp"),
-							Rules: []*pbmesh.InterpretedTCPRouteRule{{
-								BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+							Rules: []*pbmesh.ComputedTCPRouteRule{{
+								BackendRefs: []*pbmesh.ComputedTCPBackendRef{{
 									BackendTarget: backendName("api", "tcp"),
 								}},
 							}},
@@ -157,10 +157,10 @@ func (suite *controllerSuite) TestController() {
 				"tcp": {
 					UsingDefaultConfig: true,
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
-						Tcp: &pbmesh.InterpretedTCPRoute{
+						Tcp: &pbmesh.ComputedTCPRoute{
 							ParentRef: newParentRef(apiServiceRef, "tcp"),
-							Rules: []*pbmesh.InterpretedTCPRouteRule{{
-								BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+							Rules: []*pbmesh.ComputedTCPRouteRule{{
+								BackendRefs: []*pbmesh.ComputedTCPBackendRef{{
 									BackendTarget: backendName("api", "tcp"),
 								}},
 							}},
@@ -176,16 +176,16 @@ func (suite *controllerSuite) TestController() {
 				"http": {
 					UsingDefaultConfig: true,
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{{
 								Matches: []*pbmesh.HTTPRouteMatch{{
 									Path: &pbmesh.HTTPPathMatch{
 										Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
 										Value: "/",
 									},
 								}},
-								BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+								BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 									BackendTarget: backendName("api", "http"),
 								}},
 							}},
@@ -201,16 +201,16 @@ func (suite *controllerSuite) TestController() {
 				"http2": {
 					UsingDefaultConfig: true,
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http2"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{{
 								Matches: []*pbmesh.HTTPRouteMatch{{
 									Path: &pbmesh.HTTPPathMatch{
 										Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
 										Value: "/",
 									},
 								}},
-								BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+								BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 									BackendTarget: backendName("api", "http2"),
 								}},
 							}},
@@ -226,11 +226,11 @@ func (suite *controllerSuite) TestController() {
 				"grpc": {
 					UsingDefaultConfig: true,
 					Config: &pbmesh.ComputedPortRoutes_Grpc{
-						Grpc: &pbmesh.InterpretedGRPCRoute{
+						Grpc: &pbmesh.ComputedGRPCRoute{
 							ParentRef: newParentRef(apiServiceRef, "grpc"),
-							Rules: []*pbmesh.InterpretedGRPCRouteRule{{
+							Rules: []*pbmesh.ComputedGRPCRouteRule{{
 								Matches: []*pbmesh.GRPCRouteMatch{{}},
-								BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+								BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 									BackendTarget: backendName("api", "grpc"),
 								}},
 							}},
@@ -302,10 +302,10 @@ func (suite *controllerSuite) TestController() {
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
-						Tcp: &pbmesh.InterpretedTCPRoute{
+						Tcp: &pbmesh.ComputedTCPRoute{
 							ParentRef: newParentRef(apiServiceRef, "tcp"),
-							Rules: []*pbmesh.InterpretedTCPRouteRule{{
-								BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+							Rules: []*pbmesh.ComputedTCPRouteRule{{
+								BackendRefs: []*pbmesh.ComputedTCPBackendRef{{
 									BackendTarget: backendName("foo", "tcp"),
 								}},
 							}},
@@ -320,18 +320,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"http": {
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: backendName("foo", "http"),
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -347,18 +347,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"grpc": {
 					Config: &pbmesh.ComputedPortRoutes_Grpc{
-						Grpc: &pbmesh.InterpretedGRPCRoute{
+						Grpc: &pbmesh.ComputedGRPCRoute{
 							ParentRef: newParentRef(apiServiceRef, "grpc"),
-							Rules: []*pbmesh.InterpretedGRPCRouteRule{
+							Rules: []*pbmesh.ComputedGRPCRouteRule{
 								{
 									Matches: []*pbmesh.GRPCRouteMatch{{}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: backendName("foo", "grpc"),
 									}},
 								},
 								{
 									Matches: []*pbmesh.GRPCRouteMatch{{}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -374,18 +374,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"http2": {
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http2"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: backendName("foo", "http2"),
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -475,16 +475,16 @@ func (suite *controllerSuite) TestController() {
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
-						Tcp: &pbmesh.InterpretedTCPRoute{
+						Tcp: &pbmesh.ComputedTCPRoute{
 							ParentRef: newParentRef(apiServiceRef, "tcp"),
-							Rules: []*pbmesh.InterpretedTCPRouteRule{
+							Rules: []*pbmesh.ComputedTCPRouteRule{
 								{
-									BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedTCPBackendRef{{
 										BackendTarget: backendName("foo", "tcp"),
 									}},
 								},
 								{
-									BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedTCPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -500,9 +500,9 @@ func (suite *controllerSuite) TestController() {
 				},
 				"http": {
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
 								{
 									Matches: []*pbmesh.HTTPRouteMatch{{
 										Path: &pbmesh.HTTPPathMatch{
@@ -510,19 +510,19 @@ func (suite *controllerSuite) TestController() {
 											Value: "/healthz",
 										},
 									}},
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: backendName("foo", "http"),
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -538,12 +538,12 @@ func (suite *controllerSuite) TestController() {
 				},
 				"grpc": {
 					Config: &pbmesh.ComputedPortRoutes_Grpc{
-						Grpc: &pbmesh.InterpretedGRPCRoute{
+						Grpc: &pbmesh.ComputedGRPCRoute{
 							ParentRef: newParentRef(apiServiceRef, "grpc"),
-							Rules: []*pbmesh.InterpretedGRPCRouteRule{
+							Rules: []*pbmesh.ComputedGRPCRouteRule{
 								{
 									Matches: []*pbmesh.GRPCRouteMatch{{}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: backendName("foo", "grpc"),
 									}},
 								},
@@ -555,13 +555,13 @@ func (suite *controllerSuite) TestController() {
 											Method:  "charge",
 										},
 									}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
 								{
 									Matches: []*pbmesh.GRPCRouteMatch{{}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -577,9 +577,9 @@ func (suite *controllerSuite) TestController() {
 				},
 				"http2": {
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http2"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
 								{
 									Matches: []*pbmesh.HTTPRouteMatch{{
 										Path: &pbmesh.HTTPPathMatch{
@@ -587,19 +587,19 @@ func (suite *controllerSuite) TestController() {
 											Value: "/healthz",
 										},
 									}},
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: backendName("foo", "http2"),
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -699,10 +699,10 @@ func (suite *controllerSuite) TestController() {
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
-						Tcp: &pbmesh.InterpretedTCPRoute{
+						Tcp: &pbmesh.ComputedTCPRoute{
 							ParentRef: newParentRef(apiServiceRef, "tcp"),
-							Rules: []*pbmesh.InterpretedTCPRouteRule{{
-								BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+							Rules: []*pbmesh.ComputedTCPRouteRule{{
+								BackendRefs: []*pbmesh.ComputedTCPBackendRef{{
 									BackendTarget: backendName("foo", "tcp"),
 								}},
 							}},
@@ -717,18 +717,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"http": {
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: backendName("foo", "http"),
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -744,18 +744,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"grpc": {
 					Config: &pbmesh.ComputedPortRoutes_Grpc{
-						Grpc: &pbmesh.InterpretedGRPCRoute{
+						Grpc: &pbmesh.ComputedGRPCRoute{
 							ParentRef: newParentRef(apiServiceRef, "grpc"),
-							Rules: []*pbmesh.InterpretedGRPCRouteRule{
+							Rules: []*pbmesh.ComputedGRPCRouteRule{
 								{
 									Matches: []*pbmesh.GRPCRouteMatch{{}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: backendName("foo", "grpc"),
 									}},
 								},
 								{
 									Matches: []*pbmesh.GRPCRouteMatch{{}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -771,18 +771,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"http2": {
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http2"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: backendName("foo", "http2"),
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -849,10 +849,10 @@ func (suite *controllerSuite) TestController() {
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
-						Tcp: &pbmesh.InterpretedTCPRoute{
+						Tcp: &pbmesh.ComputedTCPRoute{
 							ParentRef: newParentRef(apiServiceRef, "tcp"),
-							Rules: []*pbmesh.InterpretedTCPRouteRule{{
-								BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+							Rules: []*pbmesh.ComputedTCPRouteRule{{
+								BackendRefs: []*pbmesh.ComputedTCPBackendRef{{
 									BackendTarget: backendName("foo", "tcp"),
 								}},
 							}},
@@ -867,18 +867,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"http": {
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: backendName("foo", "http"),
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -894,18 +894,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"grpc": {
 					Config: &pbmesh.ComputedPortRoutes_Grpc{
-						Grpc: &pbmesh.InterpretedGRPCRoute{
+						Grpc: &pbmesh.ComputedGRPCRoute{
 							ParentRef: newParentRef(apiServiceRef, "grpc"),
-							Rules: []*pbmesh.InterpretedGRPCRouteRule{
+							Rules: []*pbmesh.ComputedGRPCRouteRule{
 								{
 									Matches: []*pbmesh.GRPCRouteMatch{{}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: backendName("foo", "grpc"),
 									}},
 								},
 								{
 									Matches: []*pbmesh.GRPCRouteMatch{{}},
-									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+									BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},
@@ -921,18 +921,18 @@ func (suite *controllerSuite) TestController() {
 				},
 				"http2": {
 					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.InterpretedHTTPRoute{
+						Http: &pbmesh.ComputedHTTPRoute{
 							ParentRef: newParentRef(apiServiceRef, "http2"),
-							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: backendName("foo", "http2"),
 									}},
 								},
 								{
 									Matches: defaultHTTPRouteMatches(),
-									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 										BackendTarget: types.NullRouteBackend,
 									}},
 								},

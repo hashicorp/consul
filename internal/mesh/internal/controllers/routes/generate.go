@@ -56,8 +56,6 @@ func compile(
 	computedRoutesID *pbresource.ID,
 	pending PendingStatuses,
 ) *ComputedRoutesResult {
-	logger := loggerFor(computedRoutesID)
-
 	// There is one computed routes resource for the entire service (perfect name alignment).
 	//
 	// All ports are embedded within.
@@ -242,21 +240,21 @@ func compile(
 		switch {
 		case resource.EqualType(top.RouteType, types.HTTPRouteType):
 			mc.Config = &pbmesh.ComputedPortRoutes_Http{
-				Http: &pbmesh.InterpretedHTTPRoute{
+				Http: &pbmesh.ComputedHTTPRoute{
 					ParentRef: parentRef,
 					Rules:     top.HTTPRules,
 				},
 			}
 		case resource.EqualType(top.RouteType, types.GRPCRouteType):
 			mc.Config = &pbmesh.ComputedPortRoutes_Grpc{
-				Grpc: &pbmesh.InterpretedGRPCRoute{
+				Grpc: &pbmesh.ComputedGRPCRoute{
 					ParentRef: parentRef,
 					Rules:     top.GRPCRules,
 				},
 			}
 		case resource.EqualType(top.RouteType, types.TCPRouteType):
 			mc.Config = &pbmesh.ComputedPortRoutes_Tcp{
-				Tcp: &pbmesh.InterpretedTCPRoute{
+				Tcp: &pbmesh.ComputedTCPRoute{
 					ParentRef: parentRef,
 					Rules:     top.TCPRules,
 				},
@@ -321,12 +319,12 @@ func compileHTTPRouteNode(
 
 	node.RouteType = types.HTTPRouteType
 	node.HTTP = dec
-	node.HTTPRules = make([]*pbmesh.InterpretedHTTPRouteRule, 0, len(route.Rules))
+	node.HTTPRules = make([]*pbmesh.ComputedHTTPRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
-		irule := &pbmesh.InterpretedHTTPRouteRule{
+		irule := &pbmesh.ComputedHTTPRouteRule{
 			Matches:     protoSliceClone(rule.Matches),
 			Filters:     protoSliceClone(rule.Filters),
-			BackendRefs: make([]*pbmesh.InterpretedHTTPBackendRef, 0, len(rule.BackendRefs)),
+			BackendRefs: make([]*pbmesh.ComputedHTTPBackendRef, 0, len(rule.BackendRefs)),
 			Timeouts:    rule.Timeouts,
 			Retries:     rule.Retries,
 		}
@@ -382,7 +380,7 @@ func compileHTTPRouteNode(
 					backendTarget = types.NullRouteBackend
 				}
 			}
-			ibr := &pbmesh.InterpretedHTTPBackendRef{
+			ibr := &pbmesh.ComputedHTTPBackendRef{
 				BackendTarget: backendTarget,
 				Weight:        backendRef.Weight,
 				Filters:       backendRef.Filters,
@@ -413,12 +411,12 @@ func compileGRPCRouteNode(
 
 	node.RouteType = types.GRPCRouteType
 	node.GRPC = dec
-	node.GRPCRules = make([]*pbmesh.InterpretedGRPCRouteRule, 0, len(route.Rules))
+	node.GRPCRules = make([]*pbmesh.ComputedGRPCRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
-		irule := &pbmesh.InterpretedGRPCRouteRule{
+		irule := &pbmesh.ComputedGRPCRouteRule{
 			Matches:     protoSliceClone(rule.Matches),
 			Filters:     protoSliceClone(rule.Filters),
-			BackendRefs: make([]*pbmesh.InterpretedGRPCBackendRef, 0, len(rule.BackendRefs)),
+			BackendRefs: make([]*pbmesh.ComputedGRPCBackendRef, 0, len(rule.BackendRefs)),
 			Timeouts:    rule.Timeouts,
 			Retries:     rule.Retries,
 		}
@@ -465,7 +463,7 @@ func compileGRPCRouteNode(
 				}
 			}
 
-			ibr := &pbmesh.InterpretedGRPCBackendRef{
+			ibr := &pbmesh.ComputedGRPCBackendRef{
 				BackendTarget: backendTarget,
 				Weight:        backendRef.Weight,
 				Filters:       backendRef.Filters,
@@ -496,10 +494,10 @@ func compileTCPRouteNode(
 
 	node.RouteType = types.TCPRouteType
 	node.TCP = dec
-	node.TCPRules = make([]*pbmesh.InterpretedTCPRouteRule, 0, len(route.Rules))
+	node.TCPRules = make([]*pbmesh.ComputedTCPRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
-		irule := &pbmesh.InterpretedTCPRouteRule{
-			BackendRefs: make([]*pbmesh.InterpretedTCPBackendRef, 0, len(rule.BackendRefs)),
+		irule := &pbmesh.ComputedTCPRouteRule{
+			BackendRefs: make([]*pbmesh.ComputedTCPBackendRef, 0, len(rule.BackendRefs)),
 		}
 
 		// https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.TCPRoute
@@ -539,7 +537,7 @@ func compileTCPRouteNode(
 				}
 			}
 
-			ibr := &pbmesh.InterpretedTCPBackendRef{
+			ibr := &pbmesh.ComputedTCPBackendRef{
 				BackendTarget: backendTarget,
 				Weight:        backendRef.Weight,
 			}
@@ -611,9 +609,9 @@ func appendDefaultHTTPRouteRule(
 	routeNode *inputRouteNode,
 	backendTarget string,
 ) {
-	routeNode.HTTPRules = append(routeNode.HTTPRules, &pbmesh.InterpretedHTTPRouteRule{
+	routeNode.HTTPRules = append(routeNode.HTTPRules, &pbmesh.ComputedHTTPRouteRule{
 		Matches: defaultHTTPRouteMatches(),
-		BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+		BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
 			BackendTarget: backendTarget,
 		}},
 	})
@@ -631,9 +629,9 @@ func appendDefaultGRPCRouteRule(
 	routeNode *inputRouteNode,
 	backendTarget string,
 ) {
-	routeNode.GRPCRules = append(routeNode.GRPCRules, &pbmesh.InterpretedGRPCRouteRule{
+	routeNode.GRPCRules = append(routeNode.GRPCRules, &pbmesh.ComputedGRPCRouteRule{
 		Matches: defaultGRPCRouteMatches(),
-		BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+		BackendRefs: []*pbmesh.ComputedGRPCBackendRef{{
 			BackendTarget: backendTarget,
 		}},
 	})
@@ -651,8 +649,8 @@ func appendDefaultTCPRouteRule(
 	routeNode *inputRouteNode,
 	backendTarget string,
 ) {
-	routeNode.TCPRules = append(routeNode.TCPRules, &pbmesh.InterpretedTCPRouteRule{
-		BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+	routeNode.TCPRules = append(routeNode.TCPRules, &pbmesh.ComputedTCPRouteRule{
+		BackendRefs: []*pbmesh.ComputedTCPBackendRef{{
 			BackendTarget: backendTarget,
 		}},
 	})

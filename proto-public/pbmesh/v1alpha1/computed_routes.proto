@@ -21,9 +21,9 @@ message ComputedRoutes {
 
 message ComputedPortRoutes {
   oneof config {
-    InterpretedHTTPRoute http = 1;
-    InterpretedGRPCRoute grpc = 2;
-    InterpretedTCPRoute tcp = 3;
+    ComputedHTTPRoute http = 1;
+    ComputedGRPCRoute grpc = 2;
+    ComputedTCPRoute tcp = 3;
   }
   bool using_default_config = 4; // TODO
 
@@ -31,21 +31,21 @@ message ComputedPortRoutes {
   map<string, BackendTargetDetails> targets = 5;
 }
 
-message InterpretedHTTPRoute {
+message ComputedHTTPRoute {
   ParentReference parent_ref = 1;
   reserved 2; // hostnames
-  repeated InterpretedHTTPRouteRule rules = 3;
+  repeated ComputedHTTPRouteRule rules = 3;
 }
 
-message InterpretedHTTPRouteRule {
+message ComputedHTTPRouteRule {
   repeated HTTPRouteMatch matches = 1;
   repeated HTTPRouteFilter filters = 2;
-  repeated InterpretedHTTPBackendRef backend_refs = 3;
+  repeated ComputedHTTPBackendRef backend_refs = 3;
   HTTPRouteTimeouts timeouts = 4;
   HTTPRouteRetries retries = 5;
 }
 
-message InterpretedHTTPBackendRef {
+message ComputedHTTPBackendRef {
   // BackendTarget indicates which key in the targets map provides
   // the rest of the configuration.
   //
@@ -58,21 +58,21 @@ message InterpretedHTTPBackendRef {
   repeated HTTPRouteFilter filters = 3;
 }
 
-message InterpretedGRPCRoute {
+message ComputedGRPCRoute {
   ParentReference parent_ref = 1;
   reserved 2; // hostnames
-  repeated InterpretedGRPCRouteRule rules = 3;
+  repeated ComputedGRPCRouteRule rules = 3;
 }
 
-message InterpretedGRPCRouteRule {
+message ComputedGRPCRouteRule {
   repeated GRPCRouteMatch matches = 1;
   repeated GRPCRouteFilter filters = 2;
-  repeated InterpretedGRPCBackendRef backend_refs = 3;
+  repeated ComputedGRPCBackendRef backend_refs = 3;
   HTTPRouteTimeouts timeouts = 4;
   HTTPRouteRetries retries = 5;
 }
 
-message InterpretedGRPCBackendRef {
+message ComputedGRPCBackendRef {
   // BackendTarget indicates which key in the targets map provides
   // the rest of the configuration.
   //
@@ -85,18 +85,18 @@ message InterpretedGRPCBackendRef {
   repeated GRPCRouteFilter filters = 3;
 }
 
-message InterpretedTCPRoute {
+message ComputedTCPRoute {
   ParentReference parent_ref = 1;
-  repeated InterpretedTCPRouteRule rules = 2;
+  repeated ComputedTCPRouteRule rules = 2;
 }
 
-message InterpretedTCPRouteRule {
-  repeated InterpretedTCPBackendRef backend_refs = 1;
+message ComputedTCPRouteRule {
+  repeated ComputedTCPBackendRef backend_refs = 1;
 }
 
 // TODO: look into smuggling the target through a different typeURL, or just
 // skip in favor of letting the caller do their own lookups?
-message InterpretedTCPBackendRef {
+message ComputedTCPBackendRef {
   // BackendTarget indicates which key in the targets map provides
   // the rest of the configuration.
   //

@@ -58,7 +58,7 @@ func TestValidateComputedRoutes(t *testing.T) {
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						Config: &pbmesh.ComputedPortRoutes_Tcp{
-							Tcp: &pbmesh.InterpretedTCPRoute{},
+							Tcp: &pbmesh.ComputedTCPRoute{},
 						},
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							"foo": {},

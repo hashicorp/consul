@@ -26,7 +26,7 @@ func gammaSortRouteRules(node *inputRouteNode) {
 	}
 }
 
-func gammaSortHTTPRouteRules(rules []*pbmesh.InterpretedHTTPRouteRule) {
+func gammaSortHTTPRouteRules(rules []*pbmesh.ComputedHTTPRouteRule) {
 	// First generate a parallel slice.
 	sortable := &sortableHTTPRouteRules{
 		rules:       rules,
@@ -83,7 +83,7 @@ type derivedHTTPRouteRuleInfo struct {
 }
 
 type sortableHTTPRouteRules struct {
-	rules       []*pbmesh.InterpretedHTTPRouteRule
+	rules       []*pbmesh.ComputedHTTPRouteRule
 	derivedInfo []*derivedHTTPRouteRuleInfo
 }
 

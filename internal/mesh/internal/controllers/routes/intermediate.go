@@ -18,9 +18,9 @@ type inputRouteNode struct {
 	ParentPort string // always set
 
 	// only one of these can be set to non-empty
-	HTTPRules []*pbmesh.InterpretedHTTPRouteRule
-	GRPCRules []*pbmesh.InterpretedGRPCRouteRule
-	TCPRules  []*pbmesh.InterpretedTCPRouteRule
+	HTTPRules []*pbmesh.ComputedHTTPRouteRule
+	GRPCRules []*pbmesh.ComputedGRPCRouteRule
+	TCPRules  []*pbmesh.ComputedTCPRouteRule
 
 	RouteType *pbresource.Type
 	Default   bool
