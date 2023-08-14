@@ -74,8 +74,14 @@ func IsComputedRoutesType(typ *pbresource.Type) bool {
 	return false
 }
 
-// TODO: fix this format
-func BackendRefToString(backendRef *pbmesh.BackendReference) string {
+// BackendRefToComputedRoutesTarget turns the provided BackendReference into an
+// opaque string format suitable for use as a map key and reference in a
+// standalone object or reference.
+//
+// It is opaque in that the caller should not attempt to parse it, and there is
+// no implied storage or wire compatibility concern, since the data is treated
+// opaquely at use time.
+func BackendRefToComputedRoutesTarget(backendRef *pbmesh.BackendReference) string {
 	ref := backendRef.Ref
 
 	s := fmt.Sprintf(

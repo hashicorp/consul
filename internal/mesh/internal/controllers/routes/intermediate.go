@@ -47,7 +47,7 @@ func newInputRouteNode(port string) *inputRouteNode {
 
 func (n *inputRouteNode) AddTarget(backendRef *pbmesh.BackendReference, data *pbmesh.BackendTargetDetails) string {
 	n.Default = false
-	key := types.BackendRefToString(backendRef)
+	key := types.BackendRefToComputedRoutesTarget(backendRef)
 
 	if _, ok := n.NewTargets[key]; !ok {
 		n.NewTargets[key] = data
