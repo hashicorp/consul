@@ -262,9 +262,10 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	_ = rtest.Resource(types.TCPRouteType, "api-tcp-route1").
+	tcpRoute1ID := rtest.Resource(types.TCPRouteType, "api-tcp-route1").
 		WithData(suite.T(), tcpRoute1).
-		Write(suite.T(), suite.client)
+		Write(suite.T(), suite.client).
+		Id
 
 	httpRoute1 := &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
@@ -277,9 +278,10 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	_ = rtest.Resource(types.HTTPRouteType, "api-http-route1").
+	httpRoute1ID := rtest.Resource(types.HTTPRouteType, "api-http-route1").
 		WithData(suite.T(), httpRoute1).
-		Write(suite.T(), suite.client)
+		Write(suite.T(), suite.client).
+		Id
 
 	grpcRoute1 := &pbmesh.GRPCRoute{
 		ParentRefs: []*pbmesh.ParentReference{
@@ -291,9 +293,10 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	_ = rtest.Resource(types.GRPCRouteType, "api-grpc-route1").
+	grpcRoute1ID := rtest.Resource(types.GRPCRouteType, "api-grpc-route1").
 		WithData(suite.T(), grpcRoute1).
-		Write(suite.T(), suite.client)
+		Write(suite.T(), suite.client).
+		Id
 
 	testutil.RunStep(suite.T(), "one of each", func(t *testing.T) {
 		expect := &pbmesh.ComputedRoutes{
@@ -401,6 +404,10 @@ func (suite *controllerSuite) TestController() {
 		}
 
 		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
+
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionOK)
 	})
 
 	// Add another route, with a bad mapping.
@@ -415,9 +422,10 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	_ = rtest.Resource(types.TCPRouteType, "api-tcp-route2").
+	tcpRoute2ID := rtest.Resource(types.TCPRouteType, "api-tcp-route2").
 		WithData(suite.T(), tcpRoute2).
-		Write(suite.T(), suite.client)
+		Write(suite.T(), suite.client).
+		Id
 
 	httpRoute2 := &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
@@ -436,9 +444,10 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	_ = rtest.Resource(types.HTTPRouteType, "api-http-route2").
+	httpRoute2ID := rtest.Resource(types.HTTPRouteType, "api-http-route2").
 		WithData(suite.T(), httpRoute2).
-		Write(suite.T(), suite.client)
+		Write(suite.T(), suite.client).
+		Id
 
 	grpcRoute2 := &pbmesh.GRPCRoute{
 		ParentRefs: []*pbmesh.ParentReference{
@@ -457,9 +466,10 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	_ = rtest.Resource(types.GRPCRouteType, "api-grpc-route2").
+	grpcRoute2ID := rtest.Resource(types.GRPCRouteType, "api-grpc-route2").
 		WithData(suite.T(), grpcRoute2).
-		Write(suite.T(), suite.client)
+		Write(suite.T(), suite.client).
+		Id
 
 	testutil.RunStep(suite.T(), "one good one bad route", func(t *testing.T) {
 		expect := &pbmesh.ComputedRoutes{
@@ -608,6 +618,200 @@ func (suite *controllerSuite) TestController() {
 		}
 
 		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
+
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionOK)
+
+		suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
+			ConditionMissingBackendRef(newRef(catalog.ServiceType, "bar")))
+		suite.client.WaitForStatusCondition(t, httpRoute2ID, StatusKey,
+			ConditionMissingBackendRef(newRef(catalog.ServiceType, "bar")))
+		suite.client.WaitForStatusCondition(t, grpcRoute2ID, StatusKey,
+			ConditionMissingBackendRef(newRef(catalog.ServiceType, "bar")))
+	})
+
+	// Update the route2 routes to point to a real service, but overlap in
+	// their parentrefs with existing ports tied to other xRoutes.
+	//
+	// tcp2 -> http1
+	// http2 -> grpc1
+	// grpc2 -> tcp1
+	//
+	// Also remove customization for the protocol http2.
+
+	tcpRoute2 = &pbmesh.TCPRoute{
+		ParentRefs: []*pbmesh.ParentReference{
+			newParentRef(newRef(catalog.ServiceType, "api"), "http"),
+		},
+		Rules: []*pbmesh.TCPRouteRule{{
+			BackendRefs: []*pbmesh.TCPBackendRef{{
+				BackendRef: newBackendRef(fooServiceRef, "", ""),
+			}},
+		}},
+	}
+	rtest.ResourceID(tcpRoute2ID).
+		WithData(suite.T(), tcpRoute2).
+		Write(suite.T(), suite.client)
+
+	httpRoute2 = &pbmesh.HTTPRoute{
+		ParentRefs: []*pbmesh.ParentReference{
+			newParentRef(newRef(catalog.ServiceType, "api"), "grpc"),
+		},
+		Rules: []*pbmesh.HTTPRouteRule{{
+			Matches: []*pbmesh.HTTPRouteMatch{{
+				Path: &pbmesh.HTTPPathMatch{
+					Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+					Value: "/healthz",
+				},
+			}},
+			BackendRefs: []*pbmesh.HTTPBackendRef{{
+				BackendRef: newBackendRef(fooServiceRef, "", ""),
+			}},
+		}},
+	}
+	rtest.ResourceID(httpRoute2ID).
+		WithData(suite.T(), httpRoute2).
+		Write(suite.T(), suite.client)
+
+	grpcRoute2 = &pbmesh.GRPCRoute{
+		ParentRefs: []*pbmesh.ParentReference{
+			newParentRef(newRef(catalog.ServiceType, "api"), "tcp"),
+		},
+		Rules: []*pbmesh.GRPCRouteRule{{
+			Matches: []*pbmesh.GRPCRouteMatch{{
+				Method: &pbmesh.GRPCMethodMatch{
+					Type:    pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_EXACT,
+					Service: "billing",
+					Method:  "charge",
+				},
+			}},
+			BackendRefs: []*pbmesh.GRPCBackendRef{{
+				BackendRef: newBackendRef(fooServiceRef, "", ""),
+			}},
+		}},
+	}
+	rtest.ResourceID(grpcRoute2ID).
+		WithData(suite.T(), grpcRoute2).
+		Write(suite.T(), suite.client)
+
+	testutil.RunStep(suite.T(), "overlapping xRoutes generate conflicts", func(t *testing.T) {
+		expect := &pbmesh.ComputedRoutes{
+			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+				"tcp": {
+					Config: &pbmesh.ComputedPortRoutes_Tcp{
+						Tcp: &pbmesh.InterpretedTCPRoute{
+							ParentRef: newParentRef(apiServiceRef, "tcp"),
+							Rules: []*pbmesh.InterpretedTCPRouteRule{{
+								BackendRefs: []*pbmesh.InterpretedTCPBackendRef{{
+									BackendTarget: backendName("foo", "tcp"),
+								}},
+							}},
+						},
+					},
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("foo", "tcp"): {
+							BackendRef: newBackendRef(fooServiceRef, "tcp", ""),
+							Service:    fooServiceData,
+						},
+					},
+				},
+				"http": {
+					Config: &pbmesh.ComputedPortRoutes_Http{
+						Http: &pbmesh.InterpretedHTTPRoute{
+							ParentRef: newParentRef(apiServiceRef, "http"),
+							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+										BackendTarget: backendName("foo", "http"),
+									}},
+								},
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+										BackendTarget: types.NullRouteBackend,
+									}},
+								},
+							},
+						},
+					},
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("foo", "http"): {
+							BackendRef: newBackendRef(fooServiceRef, "http", ""),
+							Service:    fooServiceData,
+						},
+					},
+				},
+				"grpc": {
+					Config: &pbmesh.ComputedPortRoutes_Grpc{
+						Grpc: &pbmesh.InterpretedGRPCRoute{
+							ParentRef: newParentRef(apiServiceRef, "grpc"),
+							Rules: []*pbmesh.InterpretedGRPCRouteRule{
+								{
+									Matches: []*pbmesh.GRPCRouteMatch{{}},
+									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+										BackendTarget: backendName("foo", "grpc"),
+									}},
+								},
+								{
+									Matches: []*pbmesh.GRPCRouteMatch{{}},
+									BackendRefs: []*pbmesh.InterpretedGRPCBackendRef{{
+										BackendTarget: types.NullRouteBackend,
+									}},
+								},
+							},
+						},
+					},
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("foo", "grpc"): {
+							BackendRef: newBackendRef(fooServiceRef, "grpc", ""),
+							Service:    fooServiceData,
+						},
+					},
+				},
+				"http2": {
+					Config: &pbmesh.ComputedPortRoutes_Http{
+						Http: &pbmesh.InterpretedHTTPRoute{
+							ParentRef: newParentRef(apiServiceRef, "http2"),
+							Rules: []*pbmesh.InterpretedHTTPRouteRule{
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+										BackendTarget: backendName("foo", "http2"),
+									}},
+								},
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.InterpretedHTTPBackendRef{{
+										BackendTarget: types.NullRouteBackend,
+									}},
+								},
+							},
+						},
+					},
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("foo", "http2"): {
+							BackendRef: newBackendRef(fooServiceRef, "http2", ""),
+							Service:    fooServiceData,
+						},
+					},
+				},
+			},
+		}
+
+		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
+
+		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionOK)
+		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionOK)
+
+		suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
+			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "http", types.HTTPRouteType))
+		suite.client.WaitForStatusCondition(t, httpRoute2ID, StatusKey,
+			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "grpc", types.GRPCRouteType))
+		suite.client.WaitForStatusCondition(t, grpcRoute2ID, StatusKey,
+			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "tcp", types.TCPRouteType))
 	})
 
 	// Remove the mesh port from api service.
@@ -631,6 +835,20 @@ func (suite *controllerSuite) TestController() {
 	testutil.RunStep(suite.T(), "entire generated resource is deleted", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			suite.client.RequireResourceNotFound(r, computedRoutesID)
+
+			suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey,
+				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey,
+				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+			suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey,
+				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+
+			suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
+				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+			suite.client.WaitForStatusCondition(t, httpRoute2ID, StatusKey,
+				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+			suite.client.WaitForStatusCondition(t, grpcRoute2ID, StatusKey,
+				ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
 		})
 	})
 

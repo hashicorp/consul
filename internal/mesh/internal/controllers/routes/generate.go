@@ -116,21 +116,21 @@ func compile(
 			switch route := xroute.(type) {
 			case *pbmesh.HTTPRoute:
 				if nullRouteTraffic {
-					node := newInputRouteNode(port)
+					node = newInputRouteNode(port)
 					setupDefaultHTTPRouteNode(node, types.NullRouteBackend)
 				} else {
 					node = compileHTTPRouteNode(parentServiceRef, port, res, route, related)
 				}
 			case *pbmesh.GRPCRoute:
 				if nullRouteTraffic {
-					node := newInputRouteNode(port)
+					node = newInputRouteNode(port)
 					setupDefaultGRPCRouteNode(node, types.NullRouteBackend)
 				} else {
 					node = compileGRPCRouteNode(parentServiceRef, port, res, route, related)
 				}
 			case *pbmesh.TCPRoute:
 				if nullRouteTraffic {
-					node := newInputRouteNode(port)
+					node = newInputRouteNode(port)
 					setupDefaultTCPRouteNode(node, types.NullRouteBackend)
 				} else {
 					node = compileTCPRouteNode(parentServiceRef, port, res, route, related)
