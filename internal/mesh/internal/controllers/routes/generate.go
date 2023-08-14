@@ -92,7 +92,6 @@ func compile(
 		res *pbresource.Resource,
 		xroute types.XRouteData,
 	) {
-		logger.Info("RBOYER working out route", "r", resource.IDToString(res.Id))
 		var ports []string
 		for _, ref := range xroute.GetParentRefs() {
 			if resource.ReferenceOrIDMatch(ref.Ref, parentServiceRef) {
