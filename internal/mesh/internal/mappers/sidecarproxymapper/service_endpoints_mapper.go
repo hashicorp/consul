@@ -5,26 +5,16 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type Mapper struct {
-	cache *sidecarproxycache.Cache
-}
-
-func New(c *sidecarproxycache.Cache) *Mapper {
-	return &Mapper{
-		cache: c,
-	}
-}
-
 // MapServiceEndpointsToProxyStateTemplate maps catalog.ServiceEndpoints objects to the IDs of
 // ProxyStateTemplate.
-func (m *Mapper) MapServiceEndpointsToProxyStateTemplate(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+func (m *Mapper) MapServiceEndpointsToProxyStateTemplate(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	// This mapper needs to look up workload IDs from service endpoints and replace them with ProxyStateTemplate type.
 	var serviceEndpoints pbcatalog.ServiceEndpoints
 	err := res.Data.UnmarshalTo(&serviceEndpoints)
@@ -68,12 +58,30 @@ func (m *Mapper) MapServiceEndpointsToProxyStateTemplate(_ context.Context, _ co
 				continue
 			}
 			serviceRef := resource.Reference(serviceID, "")
-			if destination, ok := m.cache.ReadDestination(serviceRef, portName); ok {
+			if destination, ok := m.destinationsCache.ReadDestination(serviceRef, portName); ok {
 				for refKey := range destination.SourceProxies {
 					result = append(result, controller.Request{ID: refKey.ToID()})
 				}
 			}
 		}
+	}
+
+	// todo (ishustava): this is a stub for now until we implement implicit destinations.
+	// For tproxy, we generate requests for all proxy states in the cluster.
+	// This will generate duplicate events for proxies already added above,
+	// however, we expect that the controller runtime will de-dup for us.
+	rsp, err := rt.Client.List(ctx, &pbresource.ListRequest{
+		Type: types.ProxyStateTemplateType,
+		Tenancy: &pbresource.Tenancy{
+			Namespace: storage.Wildcard,
+			Partition: res.Id.Tenancy.Partition,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rsp.Resources {
+		result = append(result, controller.Request{ID: r.Id})
 	}
 
 	return result, err

@@ -175,7 +175,8 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 
 	// Create cache and pre-populate it.
-	c := sidecarproxycache.New()
+	destCache := sidecarproxycache.NewDestinationsCache()
+	proxyCfgCache := sidecarproxycache.NewProxyConfigurationCache()
 	dest1 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resourcetest.Resource(catalog.ServiceType, "test-service-1").ReferenceNoSection(),
 		Port:                   "tcp",
@@ -192,15 +193,19 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 			resource.NewReferenceKey(proxyID): {},
 		},
 	}
-	c.WriteDestination(dest1)
-	c.WriteDestination(dest2)
+	destCache.WriteDestination(dest1)
+	destCache.WriteDestination(dest2)
 
-	f := Fetcher{Cache: c, Client: suite.client}
+	proxyCfgID := resourcetest.Resource(types.ProxyConfigurationType, "proxy-config").ID()
+	proxyCfgCache.TrackProxyConfiguration(proxyCfgID, []resource.ReferenceOrID{proxyID})
+
+	f := Fetcher{DestinationsCache: destCache, ProxyCfgCache: proxyCfgCache, Client: suite.client}
 	_, err := f.FetchWorkload(context.Background(), proxyID)
 	require.NoError(suite.T(), err)
 
 	// Check that cache is updated to remove proxy id.
-	require.Nil(suite.T(), c.DestinationsBySourceProxy(proxyID))
+	require.Nil(suite.T(), destCache.DestinationsBySourceProxy(proxyID))
+	require.Nil(suite.T(), proxyCfgCache.ProxyConfigurationsByProxyID(proxyID))
 }
 
 func (suite *dataFetcherSuite) TestFetcher_NotFound() {
@@ -232,6 +237,13 @@ func (suite *dataFetcherSuite) TestFetcher_NotFound() {
 			typ: types.UpstreamsType,
 			fetchFunc: func(id *pbresource.ID) error {
 				_, err := f.FetchDestinations(context.Background(), id)
+				return err
+			},
+		},
+		"service": {
+			typ: catalog.ServiceType,
+			fetchFunc: func(id *pbresource.ID) error {
+				_, err := f.FetchService(context.Background(), id)
 				return err
 			},
 		},
@@ -282,6 +294,13 @@ func (suite *dataFetcherSuite) TestFetcher_FetchErrors() {
 				return err
 			},
 		},
+		"service": {
+			name: "web-service",
+			fetchFunc: func(id *pbresource.ID) error {
+				_, err := f.FetchService(context.Background(), id)
+				return err
+			},
+		},
 	}
 
 	for name, c := range cases {
@@ -312,7 +331,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchErrors() {
 	}
 }
 
-func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
+func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 	destination1 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resource.Reference(suite.api1Service.Id, ""),
 		Port:                   "tcp",
@@ -338,14 +357,14 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 		},
 	}
 
-	c := sidecarproxycache.New()
+	c := sidecarproxycache.NewDestinationsCache()
 	c.WriteDestination(destination1)
 	c.WriteDestination(destination2)
 	c.WriteDestination(destination3)
 
 	f := Fetcher{
-		Cache:  c,
-		Client: suite.client,
+		DestinationsCache: c,
+		Client:            suite.client,
 	}
 
 	suite.T().Run("destinations not found", func(t *testing.T) {
@@ -360,7 +379,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 		c.WriteDestination(destinationRefNoDestinations)
 
 		destinationRefs := []intermediate.CombinedDestinationRef{destinationRefNoDestinations}
-		destinations, _, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
+		destinations, _, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 		_, foundDest := c.ReadDestination(destinationRefNoDestinations.ServiceRef, destinationRefNoDestinations.Port)
@@ -380,7 +399,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 		c.WriteDestination(destinationNoServiceEndpoints)
 
 		destinationRefs := []intermediate.CombinedDestinationRef{destinationNoServiceEndpoints}
-		destinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
+		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 
@@ -420,7 +439,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 		c.WriteDestination(destinationNonMeshServiceEndpoints)
 
 		destinationRefs := []intermediate.CombinedDestinationRef{destinationNonMeshServiceEndpoints}
-		destinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
+		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 
@@ -455,7 +474,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 
 		destinationRefs := []intermediate.CombinedDestinationRef{destination1}
 
-		destinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
+		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		serviceRef := resource.ReferenceToString(destination1.ServiceRef)
 		destinationRef := resource.IDToString(destination1.ExplicitDestinationsID)
 		expectedStatus := &intermediate.Status{
@@ -493,7 +512,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 			},
 		}
 
-		_, statuses, err = f.FetchDestinationsData(suite.ctx, destinationRefs)
+		_, statuses, err = f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 		prototest.AssertDeepEqual(t, expectedStatus, statuses[destinationRef])
 	})
@@ -511,7 +530,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 		c.WriteDestination(destinationMeshDestinationPort)
 		destinationRefs := []intermediate.CombinedDestinationRef{destinationMeshDestinationPort}
 
-		destinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
+		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		serviceRef := resource.ReferenceToString(destination1.ServiceRef)
 		destinationRef := resource.IDToString(destination1.ExplicitDestinationsID)
 		expectedStatus := &intermediate.Status{
@@ -550,7 +569,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 			},
 		}
 
-		_, statuses, err = f.FetchDestinationsData(suite.ctx, destinationRefs)
+		_, statuses, err = f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 		prototest.AssertDeepEqual(t, expectedStatus, statuses[destinationRef])
 	})
@@ -607,7 +626,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 				meshStatus.ConditionNonMeshProtocolDestinationPort(ref, d.Port))
 		}
 
-		actualDestinations, statuses, err := f.FetchDestinationsData(suite.ctx, destinationRefs)
+		actualDestinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
 
 		// Check that all statuses have "happy" conditions.
@@ -617,6 +636,152 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 		// Check that we've computed expanded destinations correctly.
 		prototest.AssertElementsMatch(t, expectedDestinations, actualDestinations)
 	})
+}
+
+func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
+	existingDestinations := []*intermediate.Destination{
+		{
+			Explicit: suite.webDestinationsData.Upstreams[0],
+			ServiceEndpoints: &intermediate.ServiceEndpoints{
+				Resource:  suite.api1ServiceEndpoints,
+				Endpoints: suite.api1ServiceEndpointsData,
+			},
+			Identities: []*pbresource.Reference{
+				{
+					Name:    "api-1-identity",
+					Tenancy: suite.api1Service.Id.Tenancy,
+				},
+			},
+		},
+		{
+			Explicit: suite.webDestinationsData.Upstreams[1],
+			ServiceEndpoints: &intermediate.ServiceEndpoints{
+				Resource:  suite.api2ServiceEndpoints,
+				Endpoints: suite.api2ServiceEndpointsData,
+			},
+			Identities: []*pbresource.Reference{
+				{
+					Name:    "api-2-identity",
+					Tenancy: suite.api2Service.Id.Tenancy,
+				},
+			},
+		},
+		{
+			Explicit: suite.webDestinationsData.Upstreams[2],
+			ServiceEndpoints: &intermediate.ServiceEndpoints{
+				Resource:  suite.api2ServiceEndpoints,
+				Endpoints: suite.api2ServiceEndpointsData,
+			},
+			Identities: []*pbresource.Reference{
+				{
+					Name:    "api-2-identity",
+					Tenancy: suite.api2Service.Id.Tenancy,
+				},
+			},
+		},
+	}
+
+	// Create a few other services to be implicit upstreams.
+	api3Service := resourcetest.Resource(catalog.ServiceType, "api-3").
+		WithData(suite.T(), &pbcatalog.Service{
+			VirtualIps: []string{"192.1.1.1"},
+		}).
+		Write(suite.T(), suite.client)
+
+	api3ServiceEndpointsData := &pbcatalog.ServiceEndpoints{
+		Endpoints: []*pbcatalog.Endpoint{
+			{
+				TargetRef: &pbresource.ID{
+					Name:    "api-3-abc",
+					Tenancy: api3Service.Id.Tenancy,
+					Type:    catalog.WorkloadType,
+				},
+				Addresses: []*pbcatalog.WorkloadAddress{{Host: "10.0.0.1"}},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"tcp":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"mesh": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+				Identity: "api-3-identity",
+			},
+		},
+	}
+	api3ServiceEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-3").
+		WithData(suite.T(), api3ServiceEndpointsData).Write(suite.T(), suite.client)
+
+	f := Fetcher{
+		Client: suite.client,
+	}
+
+	expDestinations := append(existingDestinations, &intermediate.Destination{
+		ServiceEndpoints: &intermediate.ServiceEndpoints{
+			Resource:  api3ServiceEndpoints,
+			Endpoints: api3ServiceEndpointsData,
+		},
+		Identities: []*pbresource.Reference{
+			{
+				Name:    "api-3-identity",
+				Tenancy: api3Service.Id.Tenancy,
+			},
+		},
+		VirtualIPs: []string{"192.1.1.1"},
+	})
+
+	actualDestinations, err := f.FetchImplicitDestinationsData(context.Background(), suite.webProxy.Id, existingDestinations)
+	require.NoError(suite.T(), err)
+
+	prototest.AssertElementsMatch(suite.T(), expDestinations, actualDestinations)
+}
+
+func (suite *dataFetcherSuite) TestFetcher_FetchAndMergeProxyConfigurations() {
+	// Create some proxy configurations.
+	proxyCfg1Data := &pbmesh.ProxyConfiguration{
+		DynamicConfig: &pbmesh.DynamicConfig{
+			Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+		},
+	}
+
+	proxyCfg2Data := &pbmesh.ProxyConfiguration{
+		DynamicConfig: &pbmesh.DynamicConfig{
+			MutualTlsMode: pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_DEFAULT,
+		},
+	}
+
+	proxyCfg1 := resourcetest.Resource(types.ProxyConfigurationType, "config-1").
+		WithData(suite.T(), proxyCfg1Data).
+		Write(suite.T(), suite.client)
+
+	proxyCfg2 := resourcetest.Resource(types.ProxyConfigurationType, "config-2").
+		WithData(suite.T(), proxyCfg2Data).
+		Write(suite.T(), suite.client)
+
+	proxyCfgCache := sidecarproxycache.NewProxyConfigurationCache()
+	proxyCfgCache.TrackProxyConfiguration(proxyCfg1.Id, []resource.ReferenceOrID{suite.webProxy.Id})
+	proxyCfgCache.TrackProxyConfiguration(proxyCfg2.Id, []resource.ReferenceOrID{suite.webProxy.Id})
+
+	expectedProxyCfg := &pbmesh.ProxyConfiguration{
+		DynamicConfig: &pbmesh.DynamicConfig{
+			Mode:          pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+			MutualTlsMode: pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_DEFAULT,
+		},
+	}
+
+	fetcher := Fetcher{Client: suite.client, ProxyCfgCache: proxyCfgCache}
+
+	actualProxyCfg, err := fetcher.FetchAndMergeProxyConfigurations(suite.ctx, suite.webProxy.Id)
+	require.NoError(suite.T(), err)
+	prototest.AssertDeepEqual(suite.T(), expectedProxyCfg, actualProxyCfg)
+
+	// Delete proxy cfg and check that the cache gets updated.
+	_, err = suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: proxyCfg1.Id})
+	require.NoError(suite.T(), err)
+
+	_, err = fetcher.FetchAndMergeProxyConfigurations(suite.ctx, suite.webProxy.Id)
+	require.NoError(suite.T(), err)
+
+	proxyCfg2.Id.Uid = ""
+	prototest.AssertElementsMatch(suite.T(),
+		[]*pbresource.ID{proxyCfg2.Id},
+		fetcher.ProxyCfgCache.ProxyConfigurationsByProxyID(suite.webProxy.Id))
 }
 
 func TestDataFetcher(t *testing.T) {

@@ -94,7 +94,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul").
+		proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
 			BuildDestinations(c.destinations).
 			Build()
 
@@ -103,5 +103,92 @@ func TestBuildExplicitDestinations(t *testing.T) {
 
 		require.Equal(t, expected, actual)
 	}
+}
 
+func TestBuildImplicitDestinations(t *testing.T) {
+	api1Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-1").
+		WithOwner(resourcetest.Resource(catalog.ServiceType, "api-1").ID()).
+		WithData(t, endpointsData).Build()
+
+	api2Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-2").
+		WithOwner(resourcetest.Resource(catalog.ServiceType, "api-2").ID()).
+		WithData(t, endpointsData).Build()
+
+	api1Identity := &pbresource.Reference{
+		Name:    "api1-identity",
+		Tenancy: api1Endpoints.Id.Tenancy,
+	}
+
+	api2Identity := &pbresource.Reference{
+		Name:    "api2-identity",
+		Tenancy: api2Endpoints.Id.Tenancy,
+	}
+
+	proxyCfg := &pbmesh.ProxyConfiguration{
+		DynamicConfig: &pbmesh.DynamicConfig{
+			Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+			TransparentProxy: &pbmesh.TransparentProxy{
+				OutboundListenerPort: 15001,
+			},
+		},
+	}
+
+	destination1 := &intermediate.Destination{
+		ServiceEndpoints: &intermediate.ServiceEndpoints{
+			Resource:  api1Endpoints,
+			Endpoints: endpointsData,
+		},
+		Identities: []*pbresource.Reference{api1Identity},
+		VirtualIPs: []string{"1.1.1.1"},
+	}
+
+	destination2 := &intermediate.Destination{
+		ServiceEndpoints: &intermediate.ServiceEndpoints{
+			Resource:  api2Endpoints,
+			Endpoints: endpointsData,
+		},
+		Identities: []*pbresource.Reference{api2Identity},
+		VirtualIPs: []string{"2.2.2.2", "3.3.3.3"},
+	}
+
+	destination3 := &intermediate.Destination{
+		Explicit: &pbmesh.Upstream{
+			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
+			DestinationPort: "tcp",
+			Datacenter:      "dc1",
+			ListenAddr: &pbmesh.Upstream_IpPort{
+				IpPort: &pbmesh.IPPortAddress{Ip: "1.1.1.1", Port: 1234},
+			},
+		},
+		ServiceEndpoints: &intermediate.ServiceEndpoints{
+			Resource:  api1Endpoints,
+			Endpoints: endpointsData,
+		},
+		Identities: []*pbresource.Reference{api1Identity},
+	}
+
+	cases := map[string]struct {
+		destinations []*intermediate.Destination
+	}{
+		"l4-single-implicit-destination-tproxy": {
+			destinations: []*intermediate.Destination{destination1},
+		},
+		"l4-multiple-implicit-destinations-tproxy": {
+			destinations: []*intermediate.Destination{destination1, destination2},
+		},
+		"l4-implicit-and-explicit-destinations-tproxy": {
+			destinations: []*intermediate.Destination{destination2, destination3},
+		},
+	}
+
+	for name, c := range cases {
+		proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", proxyCfg).
+			BuildDestinations(c.destinations).
+			Build()
+
+		actual := protoToJSON(t, proxyTmpl)
+		expected := goldenValue(t, name, actual, *update)
+
+		require.Equal(t, expected, actual)
+	}
 }

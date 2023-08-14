@@ -10,35 +10,30 @@
     },
     "listeners":  [
       {
-        "name":  "api-1:tcp:1.1.1.1:1234",
+        "name":  "outbound_listener",
         "direction":  "DIRECTION_OUTBOUND",
         "hostPort":  {
-          "host":  "1.1.1.1",
-          "port":  1234
+          "host":  "127.0.0.1",
+          "port":  15001
         },
         "routers":  [
           {
+            "match":  {
+              "prefixRanges":  [
+                {
+                  "addressPrefix":  "1.1.1.1",
+                  "prefixLen":  32
+                }
+              ]
+            },
             "l4":  {
               "name":  "api-1.default.dc1.internal.foo.consul",
               "statPrefix":  "upstream.api-1.default.default.dc1"
             }
           }
-        ]
-      },
-      {
-        "name":  "api-2:tcp:/path/to/socket",
-        "direction":  "DIRECTION_OUTBOUND",
-        "unixSocket":  {
-          "path":  "/path/to/socket",
-          "mode":  "0666"
-        },
-        "routers":  [
-          {
-            "l4":  {
-              "name":  "api-2.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.api-2.default.default.dc1"
-            }
-          }
+        ],
+        "capabilities":  [
+          "CAPABILITY_TRANSPARENT"
         ]
       }
     ],
@@ -62,26 +57,6 @@
             }
           }
         }
-      },
-      "api-2.default.dc1.internal.foo.consul":  {
-        "endpointGroup":  {
-          "dynamic":  {
-            "config":  {
-              "disablePanicThreshold":  true
-            },
-            "outboundTls":  {
-              "outboundMesh":  {
-                "identityKey":  "test-identity",
-                "validationContext":  {
-                  "spiffeIds":  [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
-                  ]
-                },
-                "sni":  "api-2.default.dc1.internal.foo.consul"
-              }
-            }
-          }
-        }
       }
     }
   },
@@ -89,22 +64,6 @@
     "api-1.default.dc1.internal.foo.consul":  {
       "id":  {
         "name":  "api-1",
-        "type":  {
-          "group":  "catalog",
-          "groupVersion":  "v1alpha1",
-          "kind":  "ServiceEndpoints"
-        },
-        "tenancy":  {
-          "partition":  "default",
-          "namespace":  "default",
-          "peerName":  "local"
-        }
-      },
-      "port":  "mesh"
-    },
-    "api-2.default.dc1.internal.foo.consul":  {
-      "id":  {
-        "name":  "api-2",
         "type":  {
           "group":  "catalog",
           "groupVersion":  "v1alpha1",

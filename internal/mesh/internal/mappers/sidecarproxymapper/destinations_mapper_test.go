@@ -64,8 +64,8 @@ func TestMapDestinationsToProxyStateTemplate(t *testing.T) {
 		WithData(t, webDestinationsData).
 		Write(t, client)
 
-	c := sidecarproxycache.New()
-	mapper := &Mapper{cache: c}
+	c := sidecarproxycache.NewDestinationsCache()
+	mapper := &Mapper{destinationsCache: c}
 
 	expRequests := []controller.Request{
 		{ID: resource.ReplaceType(types.ProxyStateTemplateType, webWorkload1.Id)},
