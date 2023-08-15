@@ -4,8 +4,8 @@
 //go:build !linux
 // +build !linux
 
-package xds
+package platform
 
-func kernelSupportsIPv6() (bool, error) {
+func SupportsIPv6() (bool, error) {
 	return true, nil
 }
