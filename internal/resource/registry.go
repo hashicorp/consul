@@ -68,7 +68,7 @@ type ACLHooks struct {
 	// List is used to authorize List RPCs.
 	//
 	// If it is omitted, we only filter the results using Read.
-	List func(acl.Authorizer, *pbresource.Tenancy) error
+	List func(acl.Authorizer, *acl.AuthorizerContext) error
 }
 
 // Resource type registry
@@ -130,7 +130,7 @@ func (r *TypeRegistry) Register(registration Registration) {
 		}
 	}
 	if registration.ACLs.List == nil {
-		registration.ACLs.List = func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+		registration.ACLs.List = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
 		}
 	}
