@@ -29,6 +29,8 @@ export default class HealthCheck extends Fragment {
   @attr('string') ServiceName;
   @attr('string') ServiceID;
   @attr('string') Node;
+  @attr('string') Interval;
+  @attr('string') LastCheckStartTime;
   @nullValue([]) @array('string') ServiceTags;
   @attr() Definition; // {}
 
@@ -44,5 +46,10 @@ export default class HealthCheck extends Fragment {
   @computed('Type')
   get Exposable() {
     return ['http', 'grpc'].includes(this.Type);
+  }
+
+  @computed('LastCheckStartTime')
+  get LastCheckStartTimeDisplay() {
+    return new Date(this.LastCheckStartTime).toLocaleString();
   }
 }

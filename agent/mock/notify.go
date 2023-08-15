@@ -6,6 +6,7 @@ package mock
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -62,7 +63,7 @@ func (m *Notify) StateMap() string   { return m.sprintf(m.state) }
 func (m *Notify) UpdatesMap() string { return m.sprintf(m.updates) }
 func (m *Notify) OutputMap() string  { return m.sprintf(m.output) }
 
-func (m *Notify) UpdateCheck(id structs.CheckID, status, output string) {
+func (m *Notify) UpdateCheck(id structs.CheckID, status, output string, lastCheckStartTime time.Time) {
 	m.Lock()
 	m.state[id] = status
 	old := m.updates[id]

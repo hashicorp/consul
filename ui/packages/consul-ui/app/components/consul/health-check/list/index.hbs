@@ -44,6 +44,14 @@
           <dd>{{or item.Notes '-'}}</dd>
         </dl>
         <dl>
+            <dt>Last Check Start Time</dt>
+            {{#if item.Interval }}
+                <dd>{{ item.LastCheckStartTimeDisplay }}</dd>
+            {{else}}
+                <dd>{{ '-' }}</dd>
+            {{/if}}
+        </dl>
+        <dl>
           <dt>Output</dt>
           <dd>
               <pre><code>{{item.Output}}</code></pre>

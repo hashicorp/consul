@@ -217,7 +217,7 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 			attempt++
 			if attempt > 1 {
 				c.Notify.UpdateCheck(c.CheckID, api.HealthCritical,
-					fmt.Sprintf("Failure checking aliased node or service: %s", err), c.LastCheckStartTime)
+					fmt.Sprintf("Failure checking aliased node or service: %s", err))
 			}
 
 			continue
@@ -288,5 +288,5 @@ func (c *CheckAlias) processChecks(checks []*structs.HealthCheck, CheckIfService
 			health = api.HealthCritical
 		}
 	}
-	c.Notify.UpdateCheck(c.CheckID, health, msg, c.LastCheckStartTime)
+	c.Notify.UpdateCheck(c.CheckID, health, msg)
 }

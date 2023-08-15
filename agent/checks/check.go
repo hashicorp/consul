@@ -58,9 +58,10 @@ type RPC interface {
 // to notify when a check has a status update. The update
 // should take care to be idempotent.
 type CheckNotifier interface {
-	UpdateCheck(checkID structs.CheckID, status, output string, lastCheckStartTime time.Time)
+	UpdateCheck(checkID structs.CheckID, status, output string)
 	// ServiceExists return true if the given service does exists
 	ServiceExists(serviceID structs.ServiceID) bool
+	UpdateCheckLastRunTime(checkID structs.CheckID, lastCheckStartTime time.Time)
 }
 
 // CheckMonitor is used to periodically invoke a script to
@@ -137,7 +138,7 @@ func (c *CheckMonitor) check() {
 			"check", c.CheckID.String(),
 			"error", err,
 		)
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 
@@ -166,7 +167,7 @@ func (c *CheckMonitor) check() {
 			"check", c.CheckID.String(),
 			"error", err,
 		)
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 
@@ -199,7 +200,7 @@ func (c *CheckMonitor) check() {
 		if len(outputStr) > 0 {
 			msg += "\n\n" + outputStr
 		}
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, msg, c.LastCheckStartTime)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, msg)
 
 		// Now wait for the process to exit so we never start another
 		// instance concurrently.
@@ -290,7 +291,7 @@ func (c *CheckTTL) run() {
 				"check", c.CheckID.String(),
 			)
 			c.LastCheckStartTime = time.Now()
-			c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, c.getExpiredOutput(), c.LastCheckStartTime)
+			c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, c.getExpiredOutput())
 
 		case <-c.stopCh:
 			return
@@ -324,7 +325,7 @@ func (c *CheckTTL) SetStatus(status, output string) string {
 		output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
 			output[:c.OutputMaxSize], c.OutputMaxSize, total)
 	}
-	c.Notify.UpdateCheck(c.CheckID, status, output, c.LastCheckStartTime)
+	c.Notify.UpdateCheck(c.CheckID, status, output)
 	// Store the last output so we can retain it if the TTL expires.
 	c.lastOutputLock.Lock()
 	c.lastOutput = output
@@ -1216,6 +1217,8 @@ func NewStatusHandler(inner CheckNotifier, logger hclog.Logger, successBeforePas
 
 func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output string, lastCheckStartTime time.Time) {
 
+	s.inner.UpdateCheckLastRunTime(checkID, lastCheckStartTime)
+
 	if status == api.HealthPassing || status == api.HealthWarning {
 		s.successCounter++
 		s.failuresCounter = 0
@@ -1224,7 +1227,7 @@ func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output stri
 				"check", checkID.String(),
 				"status", status,
 			)
-			s.inner.UpdateCheck(checkID, status, output, lastCheckStartTime)
+			s.inner.UpdateCheck(checkID, status, output)
 			return
 		}
 		s.logger.Warn("Check passed but has not reached success threshold",
@@ -1238,13 +1241,13 @@ func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output stri
 		s.successCounter = 0
 		if s.failuresCounter >= s.failuresBeforeCritical {
 			s.logger.Warn("Check is now critical", "check", checkID.String())
-			s.inner.UpdateCheck(checkID, status, output, lastCheckStartTime)
+			s.inner.UpdateCheck(checkID, status, output)
 			return
 		}
 		// Defaults to same value as failuresBeforeCritical if not set.
 		if s.failuresCounter >= s.failuresBeforeWarning {
 			s.logger.Warn("Check is now warning", "check", checkID.String())
-			s.inner.UpdateCheck(checkID, api.HealthWarning, output, lastCheckStartTime)
+			s.inner.UpdateCheck(checkID, api.HealthWarning, output)
 			return
 		}
 		s.logger.Warn("Check failed but has not reached warning/failure threshold",

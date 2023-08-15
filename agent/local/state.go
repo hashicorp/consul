@@ -666,13 +666,24 @@ func (l *State) removeCheckLocked(id structs.CheckID) error {
 	return nil
 }
 
-// UpdateCheck is used to update the status of a check
-func (l *State) UpdateCheck(id structs.CheckID, status, output string, lastCheckStartTime time.Time) {
+func (l *State) UpdateCheckLastRunTime(id structs.CheckID, lastCheckStartTime time.Time) {
 	l.Lock()
 	defer l.Unlock()
 
 	c := l.checks[id]
+	if c == nil || c.Deleted {
+		return
+	}
+
 	c.Check.LastCheckStartTime = lastCheckStartTime
+}
+
+// UpdateCheck is used to update the status of a check
+func (l *State) UpdateCheck(id structs.CheckID, status, output string) {
+	l.Lock()
+	defer l.Unlock()
+
+	c := l.checks[id]
 	if c == nil || c.Deleted {
 		return
 	}
