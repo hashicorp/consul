@@ -52,7 +52,7 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 				// managed by a controller.
 				return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
 			},
-			List: func(authorizer acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			List: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 				// No-op List permission as we want to default to filtering resources
 				// from the list using the Read enforcement.
 				return nil
