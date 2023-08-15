@@ -676,6 +676,12 @@ func (l *State) UpdateCheckLastRunTime(id structs.CheckID, lastCheckStartTime ti
 	}
 
 	c.Check.LastCheckStartTime = lastCheckStartTime
+	c = c.Clone()
+	defer func(c *CheckState) {
+		l.checks[id] = c
+	}(c)
+	c.InSync = false
+	l.TriggerSyncChanges()
 }
 
 // UpdateCheck is used to update the status of a check

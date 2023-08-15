@@ -1999,7 +1999,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) ||
 		!reflect.DeepEqual(c.Definition, other.Definition) ||
 		c.PeerName != other.PeerName ||
-		!c.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
+		!c.EnterpriseMeta.IsSame(&other.EnterpriseMeta) ||
+		c.LastCheckStartTime != other.LastCheckStartTime {
 		return false
 	}
 
