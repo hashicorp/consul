@@ -87,13 +87,13 @@ func RegisterTypes(r resource.Registry) {
 
 	writeACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
-		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
+		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, authzContext)
 	}
 
-	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *pbresource.Tenancy) error {
-		return func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *acl.AuthorizerContext) error {
+		return func(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 			key := fmt.Sprintf("resource/%s", resource.ToGVK(typ))
-			return authz.ToAllowAuthorizer().KeyListAllowed(key, &acl.AuthorizerContext{})
+			return authz.ToAllowAuthorizer().KeyListAllowed(key, authzContext)
 		}
 	}
 

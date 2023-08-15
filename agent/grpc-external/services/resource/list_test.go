@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -31,12 +32,16 @@ func TestList_InputValidation(t *testing.T) {
 	testCases := map[string]func(*pbresource.ListRequest){
 		"no type":    func(req *pbresource.ListRequest) { req.Type = nil },
 		"no tenancy": func(req *pbresource.ListRequest) { req.Tenancy = nil },
+		"partitioned resource provides non-empty namespace": func(req *pbresource.ListRequest) {
+			req.Type = demo.TypeV1RecordLabel
+			req.Tenancy.Namespace = "bad"
+		},
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			req := &pbresource.ListRequest{
 				Type:    demo.TypeV2Album,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 			}
 			modFn(req)
 
@@ -53,7 +58,7 @@ func TestList_TypeNotFound(t *testing.T) {
 
 	_, err := client.List(context.Background(), &pbresource.ListRequest{
 		Type:       demo.TypeV2Artist,
-		Tenancy:    demo.TenancyDefault,
+		Tenancy:    resource.DefaultNamespacedTenancy(),
 		NamePrefix: "",
 	})
 	require.Error(t, err)
@@ -70,7 +75,7 @@ func TestList_Empty(t *testing.T) {
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
 				Type:       demo.TypeV1Artist,
-				Tenancy:    demo.TenancyDefault,
+				Tenancy:    resource.DefaultNamespacedTenancy(),
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
@@ -102,12 +107,126 @@ func TestList_Many(t *testing.T) {
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
 				Type:       demo.TypeV2Artist,
-				Tenancy:    demo.TenancyDefault,
+				Tenancy:    resource.DefaultNamespacedTenancy(),
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
 			prototest.AssertElementsMatch(t, resources, rsp.Resources)
 		})
+	}
+}
+
+func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
+	// Test units of tenancy get defaulted correctly when empty.
+	ctx := context.Background()
+	testCases := map[string]struct {
+		typ     *pbresource.Type
+		tenancy *pbresource.Tenancy
+	}{
+		"namespaced type with empty partition": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: resource.DefaultNamespaceName,
+				PeerName:  "local",
+			},
+		},
+		"namespaced type with empty namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: resource.DefaultPartitionName,
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		"namespaced type with empty partition and namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		"namespaced type with uppercase partition and namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "DEFAULT",
+				Namespace: "DEFAULT",
+				PeerName:  "local",
+			},
+		},
+		"namespaced type with wildcard partition and empty namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		"namespaced type with empty partition and wildcard namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "*",
+				PeerName:  "local",
+			},
+		},
+		"partitioned type with empty partition": {
+			typ: demo.TypeV1RecordLabel,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		"partitioned type with uppercase partition": {
+			typ: demo.TypeV1RecordLabel,
+			tenancy: &pbresource.Tenancy{
+				Partition: "DEFAULT",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		"partitioned type with wildcard partition": {
+			typ: demo.TypeV1RecordLabel,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				PeerName:  "local",
+			},
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			demo.RegisterTypes(server.Registry)
+			client := testClient(t, server)
+
+			// Write partition scoped record label
+			recordLabel, err := demo.GenerateV1RecordLabel("LooneyTunes")
+			require.NoError(t, err)
+			recordLabelRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
+			require.NoError(t, err)
+
+			// Write namespace scoped artist
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+			artistRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+			require.NoError(t, err)
+
+			// List and verify correct resource returned for empty tenancy units.
+			listRsp, err := client.List(ctx, &pbresource.ListRequest{
+				Type:    tc.typ,
+				Tenancy: tc.tenancy,
+			})
+			require.NoError(t, err)
+			require.Len(t, listRsp.Resources, 1)
+			if tc.typ == demo.TypeV1RecordLabel {
+				prototest.AssertDeepEqual(t, recordLabelRsp.Resource, listRsp.Resources[0])
+			} else {
+				prototest.AssertDeepEqual(t, artistRsp.Resource, listRsp.Resources[0])
+			}
+		})
+
 	}
 }
 

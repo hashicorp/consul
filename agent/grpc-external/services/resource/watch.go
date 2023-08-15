@@ -32,7 +32,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	}
 
 	// check acls
-	err = reg.ACLs.List(authz, req.Tenancy)
+	err = reg.ACLs.List(authz, authzContext)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return status.Error(codes.PermissionDenied, err.Error())

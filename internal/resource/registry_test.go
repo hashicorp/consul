@@ -51,8 +51,8 @@ func TestRegister_Defaults(t *testing.T) {
 	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.Write(testutils.ACLNoPermissions(t), nil, artist)))
 
 	// verify default list hook requires operator:read
-	require.NoError(t, reg.ACLs.List(testutils.ACLOperatorRead(t), artist.Id.Tenancy))
-	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.List(testutils.ACLNoPermissions(t), artist.Id.Tenancy)))
+	require.NoError(t, reg.ACLs.List(testutils.ACLOperatorRead(t), nil))
+	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.List(testutils.ACLNoPermissions(t), nil)))
 
 	// verify default validate is a no-op
 	require.NoError(t, reg.Validate(nil))
