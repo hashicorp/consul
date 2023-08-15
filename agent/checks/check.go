@@ -625,8 +625,8 @@ func (c *CheckH2PING) Start() {
 	go c.run()
 }
 
-// CheckTCP is used to periodically make an TCP/UDP connection to
-// determine the health of a given check.
+// CheckTCP is used to periodically make a TCP connection to determine the
+// health of a given check.
 // The check is passing if the connection succeeds
 // The check is critical if the connection returns an error
 // Supports failures_before_critical and success_before_passing.
@@ -654,6 +654,7 @@ func (c *CheckTCP) Start() {
 
 	if c.dialer == nil {
 		// Create the socket dialer
+		fmt.Println("Had to make a dialer")
 		c.dialer = &net.Dialer{
 			Timeout: 10 * time.Second,
 		}
@@ -708,7 +709,9 @@ func (c *CheckTCP) check() {
 	}
 
 	if c.TLSClientConfig != nil {
+		fmt.Printf("Dialing %s\n", c.TCP)
 		tlsConn, err := tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
+		fmt.Printf("MADE A DIAL: %v\n", err)
 		logAndUpdate("TCP+TLS", err)
 		if err == nil {
 			defer tlsConn.Close()
