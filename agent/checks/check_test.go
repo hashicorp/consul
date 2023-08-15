@@ -12,12 +12,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
 	"log"
 	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -86,10 +88,23 @@ func makeACert(names []string) (*tls.Certificate, error) {
 		return nil, err
 	}
 	certBytes, _ := x509.CreateCertificate(rand.Reader, template, template, &privKey.PublicKey, &privKey)
-	return &tls.Certificate{
+
+	keyOut, _ := os.Create("/tmp/ecdsa.key.pem")
+	defer keyOut.Close()
+	certOut, _ := os.Create("/tmp/ecdsa.cert.pem")
+	defer certOut.Close()
+
+	privKeyBytes, _ := x509.MarshalECPrivateKey(privKey)
+	pubKeyBytes, _ := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
+	_ = pem.Encode(certOut, &pem.Block{Type: "PUBLIC KEY", Bytes: pubKeyBytes})
+	_ = pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: privKeyBytes})
+
+	cert := &tls.Certificate{
 		Certificate: [][]byte{certBytes},
 		PrivateKey:  &privKey,
-	}, nil
+	}
+
+	return cert, nil
 }
 
 func TestCheckMonitor_Script(t *testing.T) {
@@ -907,8 +922,8 @@ func isInvalidCertificateError(err string) bool {
 }
 
 // mockTCPServer takes an IP address string, a boolean to enable/disable
-// listening for TLS connections, and an optional *tls.Config. It returns a net.Listener
-// and an error.
+// listening for TLS connections, and an optional *tls.Config. It returns an
+// appropriate net.Listener (based on the bool) and an error.
 func mockTCPServer(network string, useTLS bool, tlsConfig *tls.Config) (net.Listener, error) {
 	var (
 		addr     string
@@ -952,6 +967,8 @@ func expectTCPStatus(t *testing.T, tcp string, status string, tlsConfig *tls.Con
 	}
 	check.Start()
 	defer check.Stop()
+	fmt.Println("Sleeping")
+	time.Sleep(30 * time.Second)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := notif.Updates(cid), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
@@ -1243,10 +1260,17 @@ func TestCheckTCPPassing(t *testing.T) {
 
 	cert, err := makeACert([]string{"example.com"})
 	require.Equal(t, err, nil)
-	goodTLSConfig := &tls.Config{
-		Certificates: []tls.Certificate{*cert},
-		ServerName:   "example.com",
-		ClientAuth:   tls.NoClientCert,
+	goodTLSServerConfig := &tls.Config{
+		Certificates:       []tls.Certificate{*cert},
+		ServerName:         "example.com",
+		ClientAuth:         tls.RequireAndVerifyClientCert,
+		InsecureSkipVerify: true,
+	}
+	goodTLSAgentConfig := &tls.Config{
+		Certificates:       []tls.Certificate{*cert},
+		ServerName:         "example.com",
+		ClientAuth:         tls.RequestClientCert,
+		InsecureSkipVerify: true,
 	}
 
 	// Plain old TCP
@@ -1263,9 +1287,9 @@ func TestCheckTCPPassing(t *testing.T) {
 	*/
 
 	// TCP+TLS with a functional TLS configuration
-	tcpServer, err = mockTCPServer(`tcp`, true, goodTLSConfig)
+	tcpServer, err = mockTCPServer(`tcp`, true, goodTLSServerConfig)
 	require.Equal(t, err, nil)
-	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing, goodTLSConfig)
+	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing, goodTLSAgentConfig)
 	tcpServer.Close()
 
 	/*
