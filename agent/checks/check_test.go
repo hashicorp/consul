@@ -6,20 +6,12 @@ package checks
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
 	"log"
-	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -47,64 +39,6 @@ func uniqueID() string {
 		panic(err)
 	}
 	return id
-}
-
-// Returns a template *x509.Certificate containing the specified DNSNames (Subject
-// Alternate Names).
-func tlsCertTemplate(names []string) *x509.Certificate {
-	return &x509.Certificate{
-		SerialNumber: big.NewInt(1337),
-		Subject: pkix.Name{
-			Organization: []string{"tests"},
-		},
-		NotBefore: time.Now(),
-		NotAfter:  time.Now().AddDate(0, 0, 1),
-
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
-
-		DNSNames: names,
-	}
-}
-
-// Generates an ECDSA certificate key pair. Returns the private key from which
-// the corresponding public key can be accessed and an error.
-func genECKeyPair() (*ecdsa.PrivateKey, error) {
-	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-
-	return privKey, nil
-}
-
-// Creates a valid x509.Certificate from a given certificate template. Returns a
-// *tls.Certificate and an error.
-func makeACert(names []string) (*tls.Certificate, error) {
-	template := tlsCertTemplate(names)
-	privKey, err := genECKeyPair()
-	if err != nil {
-		return nil, err
-	}
-	certBytes, _ := x509.CreateCertificate(rand.Reader, template, template, &privKey.PublicKey, &privKey)
-
-	keyOut, _ := os.Create("/tmp/ecdsa.key.pem")
-	defer keyOut.Close()
-	certOut, _ := os.Create("/tmp/ecdsa.cert.pem")
-	defer certOut.Close()
-
-	privKeyBytes, _ := x509.MarshalECPrivateKey(privKey)
-	pubKeyBytes, _ := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
-	_ = pem.Encode(certOut, &pem.Block{Type: "PUBLIC KEY", Bytes: pubKeyBytes})
-	_ = pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: privKeyBytes})
-
-	cert := &tls.Certificate{
-		Certificate: [][]byte{certBytes},
-		PrivateKey:  &privKey,
-	}
-
-	return cert, nil
 }
 
 func TestCheckMonitor_Script(t *testing.T) {
@@ -967,8 +901,6 @@ func expectTCPStatus(t *testing.T, tcp string, status string, tlsConfig *tls.Con
 	}
 	check.Start()
 	defer check.Stop()
-	fmt.Println("Sleeping")
-	time.Sleep(30 * time.Second)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := notif.Updates(cid), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
@@ -1213,10 +1145,8 @@ func TestCheckTCPCritical(t *testing.T) {
 		err       error
 	)
 
-	cert, err := makeACert([]string{"example.com"})
-	require.Equal(t, err, nil)
 	goodTLSConfig := &tls.Config{
-		Certificates: []tls.Certificate{*cert},
+		Certificates: []tls.Certificate{},
 	}
 	badTLSConfig := &tls.Config{
 		Certificates: []tls.Certificate{},
@@ -1258,17 +1188,20 @@ func TestCheckTCPPassing(t *testing.T) {
 		err error
 	)
 
-	cert, err := makeACert([]string{"example.com"})
+	certFile := "../../test/hostname/Bob.crt"
+	keyFile := "../../test/hostname/Bob.key"
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.Equal(t, err, nil)
+
 	goodTLSServerConfig := &tls.Config{
-		Certificates:       []tls.Certificate{*cert},
-		ServerName:         "example.com",
+		Certificates:       []tls.Certificate{cert},
+		ServerName:         "server.dc1.consul",
 		ClientAuth:         tls.RequireAndVerifyClientCert,
 		InsecureSkipVerify: true,
 	}
 	goodTLSAgentConfig := &tls.Config{
-		Certificates:       []tls.Certificate{*cert},
-		ServerName:         "example.com",
+		Certificates:       []tls.Certificate{cert},
+		ServerName:         "server.dc1.consul",
 		ClientAuth:         tls.RequestClientCert,
 		InsecureSkipVerify: true,
 	}
