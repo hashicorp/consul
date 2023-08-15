@@ -168,9 +168,13 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 		if _, ok := params["http_handler_config"]; !ok {
 			return nil, fmt.Errorf("Handler type 'http' requires 'http_handler_config' to be set")
 		}
-		config, err := parseHttpHandlerConfig(params["http_handler_config"])
+		config, err := parseHttpHandlerConfig(params["http_handler_config"], false) // Use Decode
 		if err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse 'http_handler_config': %v", err))
+			// Try using WeakDecode in second attempt
+			config, err = parseHttpHandlerConfig(params["http_handler_config"], true)
+			if err != nil {
+				return nil, fmt.Errorf(fmt.Sprintf("Failed to parse 'http_handler_config': %v", err))
+			}
 		}
 		plan.Exempt["http_handler_config"] = config
 		delete(params, "http_handler_config")
@@ -272,10 +276,16 @@ func assignValueStringSlice(params map[string]interface{}, name string, out *[]s
 }
 
 // Parse the 'http_handler_config' parameters
-func parseHttpHandlerConfig(configParams interface{}) (*HttpHandlerConfig, error) {
+func parseHttpHandlerConfig(configParams interface{}, useWeakDecode bool) (*HttpHandlerConfig, error) {
 	var config HttpHandlerConfig
-	if err := mapstructure.WeakDecode(configParams, &config); err != nil {
-		return nil, err
+	if useWeakDecode {
+		if err := mapstructure.WeakDecode(configParams, &config); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := mapstructure.Decode(configParams, &config); err != nil {
+			return nil, err
+		}
 	}
 
 	if config.Path == "" {
