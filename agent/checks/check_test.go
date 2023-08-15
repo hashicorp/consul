@@ -6,12 +6,12 @@ package checks
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -835,7 +835,7 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		// This should fail due to an invalid TLS cert
+		// This should fail due to an invalid SSL cert
 		if got, want := notif.State(cid), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
@@ -855,14 +855,9 @@ func isInvalidCertificateError(err string) bool {
 		strings.Contains(err, "certificate is not trusted")
 }
 
-// mockTCPServer takes an IP address string, a boolean to enable/disable
-// listening for TLS connections, and an optional *tls.Config. It returns an
-// appropriate net.Listener (based on the bool) and an error.
-func mockTCPServer(network string, useTLS bool, tlsConfig *tls.Config) (net.Listener, error) {
+func mockTCPServer(network string) net.Listener {
 	var (
-		addr     string
-		err      error
-		listener net.Listener
+		addr string
 	)
 
 	if network == `tcp6` {
@@ -871,33 +866,26 @@ func mockTCPServer(network string, useTLS bool, tlsConfig *tls.Config) (net.List
 		addr = `127.0.0.1:0`
 	}
 
-	if useTLS {
-		if tlsConfig == nil {
-			return nil, fmt.Errorf("Specified to use TLS, but the tlsConfig was nil.")
-		}
-		listener, err = tls.Listen(network, addr, tlsConfig)
-	} else {
-		listener, err = net.Listen(network, addr)
-	}
+	listener, err := net.Listen(network, addr)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return listener, nil
+	return listener
 }
 
-func expectTCPStatus(t *testing.T, tcp string, status string, tlsConfig *tls.Config) {
+func expectTCPStatus(t *testing.T, tcp string, status string) {
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
 	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
+
 	check := &CheckTCP{
-		CheckID:         cid,
-		TCP:             tcp,
-		Interval:        10 * time.Millisecond,
-		Logger:          logger,
-		StatusHandler:   statusHandler,
-		TLSClientConfig: tlsConfig,
+		CheckID:       cid,
+		TCP:           tcp,
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
@@ -1142,41 +1130,10 @@ func TestCheckTCPCritical(t *testing.T) {
 	t.Parallel()
 	var (
 		tcpServer net.Listener
-		err       error
 	)
 
-	goodTLSConfig := &tls.Config{
-		Certificates: []tls.Certificate{},
-	}
-	badTLSConfig := &tls.Config{
-		Certificates: []tls.Certificate{},
-	}
-
-	// Plain old TCP
-	tcpServer, err = mockTCPServer(`tcp`, false, nil)
-	require.Equal(t, err, nil)
-	expectTCPStatus(t, `127.0.0.1:0`, api.HealthCritical, nil)
-	tcpServer.Close()
-
-	// TCP+TLS, but a nil TLS configuration which causes no net.Listener to be returned.
-	tcpServer, err = mockTCPServer(`tcp`, true, nil)
-	require.NotEqual(t, err, nil)
-	require.Error(t, err, fmt.Errorf("tls: neither Certificates, GetCertificate, nor GetConfigForClient set in Config"))
-
-	// TCP+TLS, but an empty TLS configuration which causes no net.Listener to be returned.
-	tcpServer, err = mockTCPServer(`tcp`, true, &tls.Config{})
-	require.NotEqual(t, err, nil)
-	require.Error(t, err, fmt.Errorf("tls: neither Certificates, GetCertificate, nor GetConfigForClient set in Config"))
-
-	// TCP+TLS with a broken TLS configuration
-	tcpServer, err = mockTCPServer(`tcp`, true, badTLSConfig)
-	require.NotEqual(t, err, nil)
-	require.Error(t, err, fmt.Errorf("both client cert and client key must be provided"))
-
-	// TCP+TLS with a functional TLS configuration
-	tcpServer, err = mockTCPServer(`tcp`, true, goodTLSConfig)
-	require.Equal(t, err, nil)
-	expectTCPStatus(t, `127.0.0.1:0`, api.HealthCritical, &tls.Config{})
+	tcpServer = mockTCPServer(`tcp`)
+	expectTCPStatus(t, `127.0.0.1:0`, api.HealthCritical)
 	tcpServer.Close()
 }
 
@@ -1184,53 +1141,18 @@ func TestCheckTCPPassing(t *testing.T) {
 	t.Parallel()
 	var (
 		tcpServer net.Listener
-		//		tcp6Server net.Listener
-		err error
 	)
 
-	certFile := "../../test/hostname/Bob.crt"
-	keyFile := "../../test/hostname/Bob.key"
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	require.Equal(t, err, nil)
-
-	goodTLSServerConfig := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		ServerName:         "server.dc1.consul",
-		ClientAuth:         tls.RequireAndVerifyClientCert,
-		InsecureSkipVerify: true,
-	}
-	goodTLSAgentConfig := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		ServerName:         "server.dc1.consul",
-		ClientAuth:         tls.RequestClientCert,
-		InsecureSkipVerify: true,
-	}
-
-	// Plain old TCP
-	/*
-		tcpServer, err = mockTCPServer(`tcp`, false, nil)
-		require.Equal(t, err, nil)
-		expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing, nil)
-		tcpServer.Close()
-
-		tcp6Server, err = mockTCPServer(`tcp6`, false, nil)
-		require.Equal(t, err, nil)
-		expectTCPStatus(t, tcp6Server.Addr().String(), api.HealthPassing, nil)
-		tcpServer.Close()
-	*/
-
-	// TCP+TLS with a functional TLS configuration
-	tcpServer, err = mockTCPServer(`tcp`, true, goodTLSServerConfig)
-	require.Equal(t, err, nil)
-	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing, goodTLSAgentConfig)
+	tcpServer = mockTCPServer(`tcp`)
+	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)
 	tcpServer.Close()
 
-	/*
-		tcp6Server, err = mockTCPServer(`tcp6`, true, goodTLSConfig)
-		require.Equal(t, err, nil)
-		expectTCPStatus(t, tcp6Server.Addr().String(), api.HealthPassing, goodTLSConfig)
-		tcpServer.Close()
-	*/
+	if os.Getenv("TRAVIS") == "true" {
+		t.Skip("IPV6 not supported on travis-ci")
+	}
+	tcpServer = mockTCPServer(`tcp6`)
+	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)
+	tcpServer.Close()
 }
 
 func sendResponse(conn *net.UDPConn, addr *net.UDPAddr) {
