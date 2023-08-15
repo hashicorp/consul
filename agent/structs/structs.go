@@ -1796,16 +1796,17 @@ type NodeServiceList struct {
 
 // HealthCheck represents a single check on a given node.
 type HealthCheck struct {
-	Node        string
-	CheckID     types.CheckID // Unique per-node ID
-	Name        string        // Check name
-	Status      string        // The current check status
-	Notes       string        // Additional notes with the status
-	Output      string        // Holds output of script runs
-	ServiceID   string        // optional associated service
-	ServiceName string        // optional service name
-	ServiceTags []string      // optional service tags
-	Type        string        // Check type: http/ttl/tcp/udp/etc
+	Node               string
+	CheckID            types.CheckID // Unique per-node ID
+	Name               string        // Check name
+	Status             string        // The current check status
+	Notes              string        // Additional notes with the status
+	Output             string        // Holds output of script runs
+	ServiceID          string        // optional associated service
+	ServiceName        string        // optional service name
+	ServiceTags        []string      // optional service tags
+	Type               string        // Check type: http/ttl/tcp/udp/etc
+	LastCheckStartTime time.Time     //Last time the check was executed
 
 	Interval string // from definition
 	Timeout  string // from definition

@@ -2848,7 +2848,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 	existing := a.State.Check(cid)
 	defer func() {
 		if existing != nil {
-			a.State.UpdateCheck(cid, existing.Status, existing.Output)
+			a.State.UpdateCheck(cid, existing.Status, existing.Output, existing.LastCheckStartTime)
 		}
 	}()
 

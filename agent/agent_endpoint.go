@@ -562,7 +562,6 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 	if token != "" {
 		setResultsFilteredByACLs(resp, total != len(agentChecks))
 	}
-
 	return agentChecks, nil
 }
 

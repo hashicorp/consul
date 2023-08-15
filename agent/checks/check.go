@@ -58,7 +58,7 @@ type RPC interface {
 // to notify when a check has a status update. The update
 // should take care to be idempotent.
 type CheckNotifier interface {
-	UpdateCheck(checkID structs.CheckID, status, output string)
+	UpdateCheck(checkID structs.CheckID, status, output string, lastCheckStartTime time.Time)
 	// ServiceExists return true if the given service does exists
 	ServiceExists(serviceID structs.ServiceID) bool
 }
@@ -68,16 +68,17 @@ type CheckNotifier interface {
 // nagios plugins and expects the output in the same format.
 // Supports failures_before_critical and success_before_passing.
 type CheckMonitor struct {
-	Notify        CheckNotifier
-	CheckID       structs.CheckID
-	ServiceID     structs.ServiceID
-	Script        string
-	ScriptArgs    []string
-	Interval      time.Duration
-	Timeout       time.Duration
-	Logger        hclog.Logger
-	OutputMaxSize int
-	StatusHandler *StatusHandler
+	Notify             CheckNotifier
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	Script             string
+	ScriptArgs         []string
+	Interval           time.Duration
+	Timeout            time.Duration
+	Logger             hclog.Logger
+	OutputMaxSize      int
+	StatusHandler      *StatusHandler
+	LastCheckStartTime time.Time
 
 	stop     bool
 	stopCh   chan struct{}
@@ -122,6 +123,7 @@ func (c *CheckMonitor) run() {
 
 // check is invoked periodically to perform the script check
 func (c *CheckMonitor) check() {
+	c.LastCheckStartTime = time.Now()
 	// Create the command
 	var cmd *osexec.Cmd
 	var err error
@@ -135,7 +137,7 @@ func (c *CheckMonitor) check() {
 			"check", c.CheckID.String(),
 			"error", err,
 		)
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 		return
 	}
 
@@ -164,7 +166,7 @@ func (c *CheckMonitor) check() {
 			"check", c.CheckID.String(),
 			"error", err,
 		)
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 		return
 	}
 
@@ -197,7 +199,7 @@ func (c *CheckMonitor) check() {
 		if len(outputStr) > 0 {
 			msg += "\n\n" + outputStr
 		}
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, msg)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, msg, c.LastCheckStartTime)
 
 		// Now wait for the process to exit so we never start another
 		// instance concurrently.
@@ -211,7 +213,7 @@ func (c *CheckMonitor) check() {
 	// Check if the check passed
 	outputStr := truncateAndLogOutput()
 	if err == nil {
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, outputStr)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, outputStr, c.LastCheckStartTime)
 		return
 	}
 
@@ -221,14 +223,14 @@ func (c *CheckMonitor) check() {
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			code := status.ExitStatus()
 			if code == 1 {
-				c.StatusHandler.updateCheck(c.CheckID, api.HealthWarning, outputStr)
+				c.StatusHandler.updateCheck(c.CheckID, api.HealthWarning, outputStr, c.LastCheckStartTime)
 				return
 			}
 		}
 	}
 
 	// Set the health as critical
-	c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, outputStr)
+	c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, outputStr, c.LastCheckStartTime)
 }
 
 // CheckTTL is used to apply a TTL to check status,
@@ -236,11 +238,12 @@ func (c *CheckMonitor) check() {
 // but upon the TTL expiring, the check status is
 // automatically set to critical.
 type CheckTTL struct {
-	Notify    CheckNotifier
-	CheckID   structs.CheckID
-	ServiceID structs.ServiceID
-	TTL       time.Duration
-	Logger    hclog.Logger
+	Notify             CheckNotifier
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	TTL                time.Duration
+	Logger             hclog.Logger
+	LastCheckStartTime time.Time
 
 	timer *time.Timer
 
@@ -286,7 +289,8 @@ func (c *CheckTTL) run() {
 			c.Logger.Warn("Check missed TTL, is now critical",
 				"check", c.CheckID.String(),
 			)
-			c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, c.getExpiredOutput())
+			c.LastCheckStartTime = time.Now()
+			c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, c.getExpiredOutput(), c.LastCheckStartTime)
 
 		case <-c.stopCh:
 			return
@@ -320,7 +324,7 @@ func (c *CheckTTL) SetStatus(status, output string) string {
 		output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
 			output[:c.OutputMaxSize], c.OutputMaxSize, total)
 	}
-	c.Notify.UpdateCheck(c.CheckID, status, output)
+	c.Notify.UpdateCheck(c.CheckID, status, output, c.LastCheckStartTime)
 	// Store the last output so we can retain it if the TTL expires.
 	c.lastOutputLock.Lock()
 	c.lastOutput = output
@@ -338,19 +342,20 @@ func (c *CheckTTL) SetStatus(status, output string) string {
 // or if the request returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckHTTP struct {
-	CheckID          structs.CheckID
-	ServiceID        structs.ServiceID
-	HTTP             string
-	Header           map[string][]string
-	Method           string
-	Body             string
-	Interval         time.Duration
-	Timeout          time.Duration
-	Logger           hclog.Logger
-	TLSClientConfig  *tls.Config
-	OutputMaxSize    int
-	StatusHandler    *StatusHandler
-	DisableRedirects bool
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	HTTP               string
+	Header             map[string][]string
+	Method             string
+	Body               string
+	Interval           time.Duration
+	Timeout            time.Duration
+	Logger             hclog.Logger
+	TLSClientConfig    *tls.Config
+	OutputMaxSize      int
+	StatusHandler      *StatusHandler
+	DisableRedirects   bool
+	LastCheckStartTime time.Time
 
 	httpClient *http.Client
 	stop       bool
@@ -449,6 +454,7 @@ func (c *CheckHTTP) run() {
 
 // check is invoked periodically to perform the HTTP check
 func (c *CheckHTTP) check() {
+	c.LastCheckStartTime = time.Now()
 	method := c.Method
 	if method == "" {
 		method = "GET"
@@ -462,7 +468,7 @@ func (c *CheckHTTP) check() {
 	bodyReader := strings.NewReader(c.Body)
 	req, err := http.NewRequest(method, target, bodyReader)
 	if err != nil {
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 		return
 	}
 
@@ -486,7 +492,7 @@ func (c *CheckHTTP) check() {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 		return
 	}
 	defer resp.Body.Close()
@@ -505,27 +511,28 @@ func (c *CheckHTTP) check() {
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, result)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, result, c.LastCheckStartTime)
 	} else if resp.StatusCode == 429 {
 		// WARNING
 		// 429 Too Many Requests (RFC 6585)
 		// The user has sent too many requests in a given amount of time.
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthWarning, result)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthWarning, result, c.LastCheckStartTime)
 	} else {
 		// CRITICAL
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, result)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, result, c.LastCheckStartTime)
 	}
 }
 
 type CheckH2PING struct {
-	CheckID         structs.CheckID
-	ServiceID       structs.ServiceID
-	H2PING          string
-	Interval        time.Duration
-	Timeout         time.Duration
-	Logger          hclog.Logger
-	TLSClientConfig *tls.Config
-	StatusHandler   *StatusHandler
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	H2PING             string
+	Interval           time.Duration
+	Timeout            time.Duration
+	Logger             hclog.Logger
+	TLSClientConfig    *tls.Config
+	StatusHandler      *StatusHandler
+	LastCheckStartTime time.Time
 
 	stop     bool
 	stopCh   chan struct{}
@@ -545,6 +552,7 @@ func shutdownHTTP2ClientConn(clientConn *http2.ClientConn, timeout time.Duration
 }
 
 func (c *CheckH2PING) check() {
+	c.LastCheckStartTime = time.Now()
 	t := &http2.Transport{}
 	var dialFunc func(ctx context.Context, network, address string, tlscfg *tls.Config) (net.Conn, error)
 	if c.TLSClientConfig != nil {
@@ -566,23 +574,23 @@ func (c *CheckH2PING) check() {
 	conn, err := dialFunc(ctx, "tcp", target, c.TLSClientConfig)
 	if err != nil {
 		message := fmt.Sprintf("Failed to dial to %s: %s", target, err)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message, c.LastCheckStartTime)
 		return
 	}
 	defer conn.Close()
 	clientConn, err := t.NewClientConn(conn)
 	if err != nil {
 		message := fmt.Sprintf("Failed to create client connection %s", err)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message, c.LastCheckStartTime)
 		return
 	}
 	defer shutdownHTTP2ClientConn(clientConn, c.Timeout, c.CheckID.String(), c.Logger)
 	err = clientConn.Ping(ctx)
 	if err == nil {
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, "HTTP2 ping was successful")
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, "HTTP2 ping was successful", c.LastCheckStartTime)
 	} else {
 		message := fmt.Sprintf("HTTP2 ping failed: %s", err)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message, c.LastCheckStartTime)
 	}
 }
 
@@ -631,13 +639,14 @@ func (c *CheckH2PING) Start() {
 // The check is critical if the connection returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckTCP struct {
-	CheckID       structs.CheckID
-	ServiceID     structs.ServiceID
-	TCP           string
-	Interval      time.Duration
-	Timeout       time.Duration
-	Logger        hclog.Logger
-	StatusHandler *StatusHandler
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	TCP                string
+	Interval           time.Duration
+	Timeout            time.Duration
+	Logger             hclog.Logger
+	StatusHandler      *StatusHandler
+	LastCheckStartTime time.Time
 
 	dialer   *net.Dialer
 	stop     bool
@@ -694,17 +703,18 @@ func (c *CheckTCP) run() {
 
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
+	c.LastCheckStartTime = time.Now()
 	conn, err := c.dialer.Dial(`tcp`, c.TCP)
 	if err != nil {
 		c.Logger.Warn("Check socket connection failed",
 			"check", c.CheckID.String(),
 			"error", err,
 		)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 		return
 	}
 	conn.Close()
-	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
+	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP), c.LastCheckStartTime)
 }
 
 // CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.
@@ -713,14 +723,15 @@ func (c *CheckTCP) check() {
 // The check is critical if: the connection succeeds but the response is not equal to the bytes passed in,
 // the connection succeeds but the error returned is not a timeout error or the connection fails
 type CheckUDP struct {
-	CheckID       structs.CheckID
-	ServiceID     structs.ServiceID
-	UDP           string
-	Message       string
-	Interval      time.Duration
-	Timeout       time.Duration
-	Logger        hclog.Logger
-	StatusHandler *StatusHandler
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	UDP                string
+	Message            string
+	Interval           time.Duration
+	Timeout            time.Duration
+	Logger             hclog.Logger
+	StatusHandler      *StatusHandler
+	LastCheckStartTime time.Time
 
 	dialer   *net.Dialer
 	stop     bool
@@ -773,19 +784,20 @@ func (c *CheckUDP) run() {
 }
 
 func (c *CheckUDP) check() {
+	c.LastCheckStartTime = time.Now()
 
 	conn, err := c.dialer.Dial(`udp`, c.UDP)
 
 	if err != nil {
 		if e, ok := err.(net.Error); ok && e.Timeout() {
-			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP), c.LastCheckStartTime)
 			return
 		} else {
 			c.Logger.Warn("Check socket connection failed",
 				"check", c.CheckID.String(),
 				"error", err,
 			)
-			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 			return
 		}
 	}
@@ -797,7 +809,7 @@ func (c *CheckUDP) check() {
 			"check", c.CheckID.String(),
 			"error", err,
 		)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 		return
 	}
 
@@ -806,7 +818,7 @@ func (c *CheckUDP) check() {
 			"check", c.CheckID.String(),
 			"error", err,
 		)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 		return
 	}
 
@@ -815,24 +827,24 @@ func (c *CheckUDP) check() {
 			"check", c.CheckID.String(),
 			"error", err,
 		)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 		return
 	}
 	_, err = bufio.NewReader(conn).Read(make([]byte, 1))
 	if err != nil {
 		if strings.Contains(err.Error(), "i/o timeout") {
-			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP), c.LastCheckStartTime)
 			return
 		} else {
 			c.Logger.Warn("Check socket read failed",
 				"check", c.CheckID.String(),
 				"error", err,
 			)
-			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 			return
 		}
 	} else if err == nil {
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP), c.LastCheckStartTime)
 	}
 }
 
@@ -842,16 +854,17 @@ func (c *CheckUDP) check() {
 // with nagios plugins and expects the output in the same format.
 // Supports failures_before_critical and success_before_passing.
 type CheckDocker struct {
-	CheckID           structs.CheckID
-	ServiceID         structs.ServiceID
-	Script            string
-	ScriptArgs        []string
-	DockerContainerID string
-	Shell             string
-	Interval          time.Duration
-	Logger            hclog.Logger
-	Client            *DockerClient
-	StatusHandler     *StatusHandler
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	Script             string
+	ScriptArgs         []string
+	DockerContainerID  string
+	Shell              string
+	Interval           time.Duration
+	Logger             hclog.Logger
+	Client             *DockerClient
+	StatusHandler      *StatusHandler
+	LastCheckStartTime time.Time
 
 	stop chan struct{}
 }
@@ -898,6 +911,7 @@ func (c *CheckDocker) run() {
 }
 
 func (c *CheckDocker) check() {
+	c.LastCheckStartTime = time.Now()
 	var out string
 	status, b, err := c.doCheck()
 	if err != nil {
@@ -919,7 +933,7 @@ func (c *CheckDocker) check() {
 			"output", out,
 		)
 	}
-	c.StatusHandler.updateCheck(c.CheckID, status, out)
+	c.StatusHandler.updateCheck(c.CheckID, status, out, c.LastCheckStartTime)
 }
 
 func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
@@ -970,14 +984,15 @@ func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
 // not SERVING.
 // Supports failures_before_critical and success_before_passing.
 type CheckGRPC struct {
-	CheckID         structs.CheckID
-	ServiceID       structs.ServiceID
-	GRPC            string
-	Interval        time.Duration
-	Timeout         time.Duration
-	TLSClientConfig *tls.Config
-	Logger          hclog.Logger
-	StatusHandler   *StatusHandler
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	GRPC               string
+	Interval           time.Duration
+	Timeout            time.Duration
+	TLSClientConfig    *tls.Config
+	Logger             hclog.Logger
+	StatusHandler      *StatusHandler
+	LastCheckStartTime time.Time
 
 	probe    *GrpcHealthProbe
 	stop     bool
@@ -1028,6 +1043,7 @@ func (c *CheckGRPC) run() {
 }
 
 func (c *CheckGRPC) check() {
+	c.LastCheckStartTime = time.Now()
 	target := c.GRPC
 	if c.ProxyGRPC != "" {
 		target = c.ProxyGRPC
@@ -1035,9 +1051,10 @@ func (c *CheckGRPC) check() {
 
 	err := c.probe.Check(target)
 	if err != nil {
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		c.LastCheckStartTime = time.Now()
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 	} else {
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", target))
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", target), c.LastCheckStartTime)
 	}
 }
 
@@ -1051,14 +1068,15 @@ func (c *CheckGRPC) Stop() {
 }
 
 type CheckOSService struct {
-	CheckID       structs.CheckID
-	ServiceID     structs.ServiceID
-	OSService     string
-	Interval      time.Duration
-	Timeout       time.Duration
-	Logger        hclog.Logger
-	StatusHandler *StatusHandler
-	Client        *OSServiceClient
+	CheckID            structs.CheckID
+	ServiceID          structs.ServiceID
+	OSService          string
+	Interval           time.Duration
+	Timeout            time.Duration
+	Logger             hclog.Logger
+	StatusHandler      *StatusHandler
+	Client             *OSServiceClient
+	LastCheckStartTime time.Time
 
 	stop     bool
 	stopCh   chan struct{}
@@ -1125,6 +1143,7 @@ func (c *CheckOSService) doCheck() (string, error) {
 }
 
 func (c *CheckOSService) check() {
+	c.LastCheckStartTime = time.Now()
 	var out string
 	var status string
 	var err error
@@ -1147,7 +1166,7 @@ func (c *CheckOSService) check() {
 			"timeout", timeout.String(),
 		)
 
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, msg)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, msg, c.LastCheckStartTime)
 
 		// Now wait for the process to exit so we never start another
 		// instance concurrently.
@@ -1166,7 +1185,7 @@ func (c *CheckOSService) check() {
 		)
 		out = err.Error()
 	}
-	c.StatusHandler.updateCheck(c.CheckID, status, out)
+	c.StatusHandler.updateCheck(c.CheckID, status, out, c.LastCheckStartTime)
 }
 
 // StatusHandler keep tracks of successive error/success counts and ensures
@@ -1195,7 +1214,7 @@ func NewStatusHandler(inner CheckNotifier, logger hclog.Logger, successBeforePas
 	}
 }
 
-func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output string) {
+func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output string, lastCheckStartTime time.Time) {
 
 	if status == api.HealthPassing || status == api.HealthWarning {
 		s.successCounter++
@@ -1205,7 +1224,7 @@ func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output stri
 				"check", checkID.String(),
 				"status", status,
 			)
-			s.inner.UpdateCheck(checkID, status, output)
+			s.inner.UpdateCheck(checkID, status, output, lastCheckStartTime)
 			return
 		}
 		s.logger.Warn("Check passed but has not reached success threshold",
@@ -1219,13 +1238,13 @@ func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output stri
 		s.successCounter = 0
 		if s.failuresCounter >= s.failuresBeforeCritical {
 			s.logger.Warn("Check is now critical", "check", checkID.String())
-			s.inner.UpdateCheck(checkID, status, output)
+			s.inner.UpdateCheck(checkID, status, output, lastCheckStartTime)
 			return
 		}
 		// Defaults to same value as failuresBeforeCritical if not set.
 		if s.failuresCounter >= s.failuresBeforeWarning {
 			s.logger.Warn("Check is now warning", "check", checkID.String())
-			s.inner.UpdateCheck(checkID, api.HealthWarning, output)
+			s.inner.UpdateCheck(checkID, api.HealthWarning, output, lastCheckStartTime)
 			return
 		}
 		s.logger.Warn("Check failed but has not reached warning/failure threshold",

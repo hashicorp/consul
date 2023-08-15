@@ -30,10 +30,11 @@ type CheckAlias struct {
 	Node      string            // Node name of the service. If empty, assumed to be this node.
 	ServiceID structs.ServiceID // ID (not name) of the service to alias
 
-	CheckID structs.CheckID             // ID of this check
-	RPC     RPC                         // Used to query remote server if necessary
-	RPCReq  structs.NodeSpecificRequest // Base request
-	Notify  AliasNotifier               // For updating the check state
+	CheckID            structs.CheckID             // ID of this check
+	RPC                RPC                         // Used to query remote server if necessary
+	RPCReq             structs.NodeSpecificRequest // Base request
+	Notify             AliasNotifier               // For updating the check state
+	LastCheckStartTime time.Time
 
 	stop     bool
 	stopCh   chan struct{}
@@ -84,6 +85,7 @@ func (c *CheckAlias) Stop() {
 func (c *CheckAlias) run(stopCh chan struct{}) {
 	defer c.stopWg.Done()
 
+	c.LastCheckStartTime = time.Now()
 	// If we have a specific node set, then use a blocking query
 	if c.Node != "" {
 		c.runQuery(stopCh)
@@ -215,7 +217,7 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 			attempt++
 			if attempt > 1 {
 				c.Notify.UpdateCheck(c.CheckID, api.HealthCritical,
-					fmt.Sprintf("Failure checking aliased node or service: %s", err))
+					fmt.Sprintf("Failure checking aliased node or service: %s", err), c.LastCheckStartTime)
 			}
 
 			continue
@@ -286,5 +288,5 @@ func (c *CheckAlias) processChecks(checks []*structs.HealthCheck, CheckIfService
 			health = api.HealthCritical
 		}
 	}
-	c.Notify.UpdateCheck(c.CheckID, health, msg)
+	c.Notify.UpdateCheck(c.CheckID, health, msg, c.LastCheckStartTime)
 }
