@@ -197,9 +197,6 @@ func TestValidateUpstreams(t *testing.T) {
 		},
 	}
 
-	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
-	sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(latestEnvoyVersion)
-	require.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Sanity check default with no overrides first
@@ -211,7 +208,6 @@ func TestValidateUpstreams(t *testing.T) {
 			testcommon.SetupTLSRootsAndLeaf(t, snap)
 
 			g := xds.NewResourceGenerator(testutil.Logger(t), nil, false)
-			g.ProxyFeatures = sf
 
 			res, err := g.AllResourcesFromSnapshot(snap)
 			require.NoError(t, err)

@@ -20,8 +20,6 @@ type ResourceGenerator struct {
 	Logger         hclog.Logger
 	CfgFetcher     ConfigFetcher
 	IncrementalXDS bool
-
-	ProxyFeatures xdscommon.SupportedProxyFeatures
 }
 
 func NewResourceGenerator(

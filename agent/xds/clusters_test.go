@@ -923,8 +923,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
-		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
-		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
@@ -938,7 +936,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 
 					// Need server just for logger dependency
 					g := NewResourceGenerator(testutil.Logger(t), nil, false)
-					g.ProxyFeatures = sf
 
 					clusters, err := g.clustersFromSnapshot(snap)
 					require.NoError(t, err)

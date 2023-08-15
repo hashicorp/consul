@@ -219,8 +219,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
-		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
-		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
@@ -233,7 +231,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					testcommon.SetupTLSRootsAndLeaf(t, snap)
 
 					g := NewResourceGenerator(testutil.Logger(t), nil, false)
-					g.ProxyFeatures = sf
 
 					routes, err := g.routesFromSnapshot(snap)
 					require.NoError(t, err)

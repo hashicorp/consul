@@ -10,8 +10,8 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -100,6 +100,10 @@ type ProxyConfigSource interface {
 	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error)
 }
 
+type ProxyWatcher interface {
+	Watch(proxyID *pbresource.ID, nodeName string, token string) (<-chan proxycfg.ProxySnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error)
+}
+
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
 // of it's public members must be set before the gRPC server is started.
 //
@@ -108,7 +112,7 @@ type ProxyConfigSource interface {
 type Server struct {
 	NodeName     string
 	Logger       hclog.Logger
-	CfgSrc       ProxyConfigSource
+	CfgSrc       ProxyWatcher
 	ResolveToken ACLResolverFunc
 	CfgFetcher   ConfigFetcher
 
@@ -159,7 +163,7 @@ func (c *activeStreamCounters) Increment(ctx context.Context) func() {
 func NewServer(
 	nodeName string,
 	logger hclog.Logger,
-	cfgMgr ProxyConfigSource,
+	cfgMgr ProxyWatcher,
 	resolveTokenSecret ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
 ) *Server {
@@ -215,7 +219,7 @@ func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
 // proxy ID. We assume that any data in the snapshot was already filtered,
 // which allows this authorization to be a shallow authorization check
 // for all the data in a ConfigSnapshot.
-func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
+func (s *Server) authorize(ctx context.Context, cfgSnap proxycfg.ProxySnapshot) error {
 	if cfgSnap == nil {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
@@ -225,22 +229,5 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 		return err
 	}
 
-	var authzContext acl.AuthorizerContext
-	switch cfgSnap.Kind {
-	case structs.ServiceKindConnectProxy:
-		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Proxy.DestinationServiceName, &authzContext); err != nil {
-			return status.Errorf(codes.PermissionDenied, err.Error())
-		}
-	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway:
-		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Service, &authzContext); err != nil {
-			return status.Errorf(codes.PermissionDenied, err.Error())
-		}
-	default:
-		return status.Errorf(codes.Internal, "Invalid service kind")
-	}
-
-	// Authed OK!
-	return nil
+	return cfgSnap.Authorize(authz)
 }

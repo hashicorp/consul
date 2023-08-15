@@ -4,9 +4,11 @@
 package local
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
-	structs "github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // ConfigSource wraps a proxycfg.Manager to create watches on services
@@ -20,7 +22,10 @@ func NewConfigSource(cfgMgr ConfigManager) *ConfigSource {
 	return &ConfigSource{cfgMgr}
 }
 
-func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, _ string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
+func (m *ConfigSource) Watch(proxyID *pbresource.ID, nodeName string, _ string) (<-chan proxycfg.ProxySnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
+	// todo: properly convert ent meta
+	serviceID := structs.NewServiceID(proxyID.Name, acl.DefaultEnterpriseMeta())
+
 	watchCh, cancelWatch := m.manager.Watch(proxycfg.ProxyID{
 		ServiceID: serviceID,
 		NodeName:  nodeName,

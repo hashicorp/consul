@@ -17,6 +17,8 @@ import (
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
 	goversion "github.com/hashicorp/go-version"
 
@@ -29,7 +31,6 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -98,12 +99,11 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	// Loop state
 	var (
-		cfgSnap     *proxycfg.ConfigSnapshot
+		cfgSnap     proxycfg.ProxySnapshot
 		node        *envoy_config_core_v3.Node
-		stateCh     <-chan *proxycfg.ConfigSnapshot
+		stateCh     <-chan proxycfg.ProxySnapshot
 		drainCh     limiter.SessionTerminatedChan
 		watchCancel func()
-		proxyID     structs.ServiceID
 		nonce       uint64 // xDS requires a unique nonce to correlate response/request pairs
 		ready       bool   // set to true after the first snapshot arrives
 
@@ -123,36 +123,18 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		currentVersions = make(map[string]map[string]string)
 	)
 
-	generator := NewResourceGenerator(
-		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
-		s.CfgFetcher,
-		true,
-	)
+	logger := s.Logger.Named(logging.XDS).With("xdsVersion", "v3")
 
 	// need to run a small state machine to get through initial authentication.
 	var state = stateDeltaInit
 
 	// Configure handlers for each type of request we currently care about.
 	handlers := map[string]*xDSDeltaType{
-		xdscommon.ListenerType: newDeltaType(generator, stream, xdscommon.ListenerType, func(kind structs.ServiceKind) bool {
-			// Ingress and API gateways are allowed to inform LDS of no listeners.
-			return cfgSnap.Kind == structs.ServiceKindIngressGateway ||
-				cfgSnap.Kind == structs.ServiceKindAPIGateway
-		}),
-		xdscommon.RouteType: newDeltaType(generator, stream, xdscommon.RouteType, func(kind structs.ServiceKind) bool {
-			// Ingress and API gateways are allowed to inform RDS of no routes.
-			return cfgSnap.Kind == structs.ServiceKindIngressGateway ||
-				cfgSnap.Kind == structs.ServiceKindAPIGateway
-		}),
-		xdscommon.ClusterType: newDeltaType(generator, stream, xdscommon.ClusterType, func(kind structs.ServiceKind) bool {
-			// Mesh, Ingress, API and Terminating gateways are allowed to inform CDS of no clusters.
-			return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
-				cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
-				cfgSnap.Kind == structs.ServiceKindIngressGateway ||
-				cfgSnap.Kind == structs.ServiceKindAPIGateway
-		}),
-		xdscommon.EndpointType: newDeltaType(generator, stream, xdscommon.EndpointType, nil),
-		xdscommon.SecretType:   newDeltaType(generator, stream, xdscommon.SecretType, nil), // TODO allowEmptyFn
+		xdscommon.ListenerType: newDeltaType(logger, stream, xdscommon.ListenerType, cfgSnap.AllowEmptyListeners),
+		xdscommon.RouteType:    newDeltaType(logger, stream, xdscommon.RouteType, cfgSnap.AllowEmptyRoutes),
+		xdscommon.ClusterType:  newDeltaType(logger, stream, xdscommon.ClusterType, cfgSnap.AllowEmptyClusters),
+		xdscommon.EndpointType: newDeltaType(logger, stream, xdscommon.EndpointType, nil),
+		xdscommon.SecretType:   newDeltaType(logger, stream, xdscommon.SecretType, nil), // TODO allowEmptyFn
 	}
 
 	// Endpoints are stored within a Cluster (and Routes
@@ -178,14 +160,14 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		authTimer = time.After(s.AuthCheckFrequency)
 	}
 
-	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {
+	checkStreamACLs := func(cfgSnap proxycfg.ProxySnapshot) error {
 		return s.authorize(stream.Context(), cfgSnap)
 	}
 
 	for {
 		select {
 		case <-drainCh:
-			generator.Logger.Debug("draining stream to rebalance load")
+			logger.Debug("draining stream to rebalance load")
 			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
 			return errOverwhelmed
 		case <-authTimer:
@@ -204,28 +186,29 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return nil
 			}
 
-			generator.logTraceRequest("Incremental xDS v3", req)
+			logTraceRequest(logger, "Incremental xDS v3", req)
 
 			if req.TypeUrl == "" {
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
 
+			var proxyFeatures xdscommon.SupportedProxyFeatures
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				generator.ProxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
+				proxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
 			}
 
 			if handler, ok := handlers[req.TypeUrl]; ok {
-				switch handler.Recv(req, generator.ProxyFeatures) {
+				switch handler.Recv(req, proxyFeatures) {
 				case deltaRecvNewSubscription:
-					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
+					logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
 
 				case deltaRecvResponseNack:
-					generator.Logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
+					logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
 
 					// There is no reason to believe that generating new xDS resources from the same snapshot
 					// would lead to an ACK from Envoy. Instead we continue to the top of this for loop and wait
@@ -246,13 +229,30 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 			cfgSnap = cs
 
-			newRes, err := generator.AllResourcesFromSnapshot(cfgSnap)
-			if err != nil {
-				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
+			var newRes map[string][]proto.Message
+			var err error
+
+			switch cfgSnap.(type) {
+			case *proxycfg.ConfigSnapshot:
+				generator := NewResourceGenerator(
+					logger,
+					s.CfgFetcher,
+					true,
+				)
+
+				c := cfgSnap.(*proxycfg.ConfigSnapshot)
+				newRes, err = generator.AllResourcesFromSnapshot(c)
+				if err != nil {
+					return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
+				}
+			case *mesh.ProxyState:
+				// todo (for Ashwin)
+			default:
+
 			}
 
 			// index and hash the xDS structures
-			newResourceMap := xdscommon.IndexResources(generator.Logger, newRes)
+			newResourceMap := xdscommon.IndexResources(logger, newRes)
 
 			if s.ResourceMapMutateFn != nil {
 				s.ResourceMapMutateFn(newResourceMap)
@@ -292,7 +292,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 
 			// Start authentication process, we need the proxyID
-			proxyID = structs.NewServiceID(node.Id, parseEnterpriseMeta(node))
+			proxyID := newProxyID(node)
 
 			// Start watching config for that proxy
 			var err error
@@ -306,7 +306,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			case errors.Is(err, limiter.ErrCapacityReached):
 				return errOverwhelmed
 			case err != nil:
-				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+				return status.Errorf(codes.Internal, "failed to watch proxy: %s", err)
 			}
 			// Note that in this case we _intend_ the defer to only be triggered when
 			// this whole process method ends (i.e. when streaming RPC aborts) not at
@@ -315,9 +315,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			// state machine.
 			defer watchCancel()
 
-			generator.Logger = generator.Logger.With("service_id", proxyID.String()) // enhance future logs
+			logger = logger.With("proxy_id", proxyID.Name) // enhance future logs
 
-			generator.Logger.Trace("watching proxy, pending initial proxycfg snapshot for xDS")
+			logger.Trace("watching proxy, pending initial snapshot for xDS")
 
 			// Now wait for the config so we can check ACL
 			state = stateDeltaPendingInitialConfig
@@ -331,17 +331,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			state = stateDeltaRunning
 
 			// Upgrade the logger
-			switch cfgSnap.Kind {
-			case structs.ServiceKindConnectProxy:
-			case structs.ServiceKindTerminatingGateway:
-				generator.Logger = generator.Logger.Named(logging.TerminatingGateway)
-			case structs.ServiceKindMeshGateway:
-				generator.Logger = generator.Logger.Named(logging.MeshGateway)
-			case structs.ServiceKindIngressGateway:
-				generator.Logger = generator.Logger.Named(logging.IngressGateway)
+			loggerName := cfgSnap.LoggerName()
+			if loggerName != "" {
+				logger = logger.Named(loggerName)
 			}
 
-			generator.Logger.Trace("Got initial config snapshot")
+			logger.Trace("Got initial config snapshot")
 
 			// Let's actually process the config we just got, or we'll miss responding
 			fallthrough
@@ -355,11 +350,11 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			extendAuthTimer()
 
 			if !ready {
-				generator.Logger.Trace("Skipping delta computation because we haven't gotten a snapshot yet")
+				logger.Trace("Skipping delta computation because we haven't gotten a snapshot yet")
 				continue
 			}
 
-			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
+			logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
 			streamStartOnce.Do(func() {
 				metrics.MeasureSince([]string{"xds", "server", "streamStart"}, streamStartTime)
@@ -368,7 +363,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			for _, op := range xDSUpdateOrder {
 				if op.TypeUrl == xdscommon.ListenerType || op.TypeUrl == xdscommon.RouteType {
 					if clusterHandler := handlers[xdscommon.ClusterType]; clusterHandler.registered && len(clusterHandler.pendingUpdates) > 0 {
-						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
+						logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
 							"typeUrl", op.TypeUrl, "dependent", xdscommon.ClusterType)
 
 						// Receiving an ACK from Envoy will unblock the select statement above,
@@ -376,7 +371,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						break
 					}
 					if endpointHandler := handlers[xdscommon.EndpointType]; endpointHandler.registered && len(endpointHandler.pendingUpdates) > 0 {
-						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
+						logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
 							"typeUrl", op.TypeUrl, "dependent", xdscommon.EndpointType)
 
 						// Receiving an ACK from Envoy will unblock the select statement above,
@@ -384,14 +379,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						break
 					}
 				}
-				err, _ := handlers[op.TypeUrl].SendIfNew(
-					cfgSnap.Kind,
-					currentVersions[op.TypeUrl],
-					resourceMap,
-					&nonce,
-					op.Upsert,
-					op.Remove,
-				)
+				err, _ := handlers[op.TypeUrl].SendIfNew(currentVersions[op.TypeUrl], resourceMap, &nonce, op.Upsert, op.Remove)
 				if err != nil {
 					return status.Errorf(codes.Unavailable,
 						"failed to send %sreply for type %q: %v",
@@ -403,7 +391,34 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	}
 }
 
-func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot, node *envoy_config_core_v3.Node) (*xdscommon.IndexedResources, error) {
+func newProxyID(node *envoy_config_core_v3.Node) *pbresource.ID {
+	entMeta := parseEnterpriseMeta(node)
+
+	return &pbresource.ID{
+		Name: node.Id,
+		Tenancy: &pbresource.Tenancy{
+			Namespace: entMeta.NamespaceOrDefault(),
+			Partition: entMeta.PartitionOrDefault(),
+		},
+		// todo (ishustava): should this have a type?
+		//Type:
+	}
+}
+
+func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap proxycfg.ProxySnapshot, node *envoy_config_core_v3.Node) (*xdscommon.IndexedResources, error) {
+	// This is a workaround for now as envoy extensions are not yet supported with ProxyState.
+	// For now, we cast to proxycfg.ConfigSnapshot and no-op if it's the pbmesh.ProxyState type.
+	var snapshot *proxycfg.ConfigSnapshot
+	switch cfgSnap.(type) {
+	//case *pbmesh.ProxyState:
+	//	return resources, nil
+	case *proxycfg.ConfigSnapshot:
+		snapshot = cfgSnap.(*proxycfg.ConfigSnapshot)
+	default:
+		return nil, status.Errorf(codes.InvalidArgument,
+			"unsupported config snapshot type to apply envoy extensions to %T", cfgSnap)
+	}
+
 	var err error
 	envoyVersion := xdscommon.DetermineEnvoyVersionFromNode(node)
 	consulVersion, err := goversion.NewVersion(version.Version)
@@ -412,10 +427,10 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfg
 		return nil, status.Errorf(codes.InvalidArgument, "failed to parse Consul version")
 	}
 
-	serviceConfigs := extensionruntime.GetRuntimeConfigurations(cfgSnap)
+	serviceConfigs := extensionruntime.GetRuntimeConfigurations(snapshot)
 	for _, cfgs := range serviceConfigs {
 		for _, cfg := range cfgs {
-			resources, err = validateAndApplyEnvoyExtension(s.Logger, cfgSnap, resources, cfg, envoyVersion, consulVersion)
+			resources, err = validateAndApplyEnvoyExtension(s.Logger, snapshot, resources, cfg, envoyVersion, consulVersion)
 
 			if err != nil {
 				return nil, err
@@ -625,10 +640,10 @@ type xDSDeltaChild struct {
 }
 
 type xDSDeltaType struct {
-	generator    *ResourceGenerator
+	logger       hclog.Logger
 	stream       ADSDeltaStream
 	typeURL      string
-	allowEmptyFn func(kind structs.ServiceKind) bool
+	allowEmptyFn func() bool
 
 	// deltaChild contains data for an xDS child type if there is one.
 	// For example, endpoints are a child type of clusters.
@@ -677,13 +692,13 @@ type PendingUpdate struct {
 }
 
 func newDeltaType(
-	generator *ResourceGenerator,
+	logger hclog.Logger,
 	stream ADSDeltaStream,
 	typeUrl string,
-	allowEmptyFn func(kind structs.ServiceKind) bool,
+	allowEmptyFn func() bool,
 ) *xDSDeltaType {
 	return &xDSDeltaType{
-		generator:        generator,
+		logger:           logger.With("typeUrl", typeUrl),
 		stream:           stream,
 		typeURL:          typeUrl,
 		allowEmptyFn:     allowEmptyFn,
@@ -700,7 +715,6 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xd
 	if t == nil {
 		return deltaRecvUnknownType // not something we care about
 	}
-	logger := t.generator.Logger.With("typeUrl", t.typeURL)
 
 	registeredThisTime := false
 	if !t.registered {
@@ -737,10 +751,10 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xd
 			response_nonce, with presence of error_detail making it a NACK).
 		*/
 		if req.ErrorDetail == nil {
-			logger.Trace("got ok response from envoy proxy", "nonce", req.ResponseNonce)
+			t.logger.Trace("got ok response from envoy proxy", "nonce", req.ResponseNonce)
 			t.ack(req.ResponseNonce)
 		} else {
-			logger.Error("got error response from envoy proxy", "nonce", req.ResponseNonce,
+			t.logger.Error("got error response from envoy proxy", "nonce", req.ResponseNonce,
 				"error", status.ErrorProto(req.ErrorDetail))
 			t.nack(req.ResponseNonce)
 			return deltaRecvResponseNack
@@ -756,7 +770,7 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xd
 			the client already possesses, using the initial_resource_versions
 			field.
 		*/
-		logger.Trace("setting initial resource versions for stream",
+		t.logger.Trace("setting initial resource versions for stream",
 			"resources", req.InitialResourceVersions)
 		t.resourceVersions = req.InitialResourceVersions
 		if !t.wildcard {
@@ -807,9 +821,9 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xd
 			}
 
 			if alreadySubscribed {
-				logger.Trace("re-subscribing resource for stream", "resource", name)
+				t.logger.Trace("re-subscribing resource for stream", "resource", name)
 			} else {
-				logger.Trace("subscribing resource for stream", "resource", name)
+				t.logger.Trace("subscribing resource for stream", "resource", name)
 			}
 		}
 
@@ -818,7 +832,7 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xd
 				continue
 			}
 			delete(t.subscriptions, name)
-			logger.Trace("unsubscribing resource for stream", "resource", name)
+			t.logger.Trace("unsubscribing resource for stream", "resource", name)
 			// NOTE: we'll let the normal differential comparison handle cleaning up resourceVersions
 		}
 	}
@@ -852,7 +866,6 @@ func (t *xDSDeltaType) nack(nonce string) {
 }
 
 func (t *xDSDeltaType) SendIfNew(
-	kind structs.ServiceKind,
 	currentVersions map[string]string, // type => name => version (as consul knows right now)
 	resourceMap *xdscommon.IndexedResources,
 	nonce *uint64,
@@ -867,9 +880,9 @@ func (t *xDSDeltaType) SendIfNew(
 		return nil, false
 	}
 
-	logger := t.generator.Logger.With("typeUrl", t.typeURL)
+	logger := t.logger.With("typeUrl", t.typeURL)
 
-	allowEmpty := t.allowEmptyFn != nil && t.allowEmptyFn(kind)
+	allowEmpty := t.allowEmptyFn != nil && t.allowEmptyFn()
 
 	// Zero length resource responses should be ignored and are the result of no
 	// data yet. Notice that this caused a bug originally where we had zero
@@ -894,7 +907,7 @@ func (t *xDSDeltaType) SendIfNew(
 	*nonce++
 	resp.Nonce = fmt.Sprintf("%08x", *nonce)
 
-	t.generator.logTraceResponse("Incremental xDS v3", resp)
+	logTraceResponse(t.logger, "Incremental xDS v3", resp)
 
 	logger.Trace("sending response", "nonce", resp.Nonce)
 	if err := t.stream.Send(resp); err != nil {
@@ -1046,7 +1059,7 @@ func (t *xDSDeltaType) ensureChildResend(parentName, childName string) {
 		return
 	}
 
-	t.generator.Logger.Trace(
+	t.logger.Trace(
 		"triggering implicit update of resource",
 		"typeUrl", t.typeURL,
 		"resource", parentName,

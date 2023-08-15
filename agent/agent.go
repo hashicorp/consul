@@ -914,7 +914,7 @@ func (a *Agent) listenAndServeGRPC() error {
 	}
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
-	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
+	var cfg xds.ProxyWatcher = localproxycfg.NewConfigSource(a.proxyConfig)
 	if server, ok := a.delegate.(*consul.Server); ok {
 		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
 			NodeName:          a.config.NodeName,
