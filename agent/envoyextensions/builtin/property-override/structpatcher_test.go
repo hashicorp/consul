@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package propertyoverride
 
 import (
 	"fmt"
+	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -592,6 +596,31 @@ func TestPatchStruct(t *testing.T) {
 			},
 			ok: true,
 		},
+		"remove single field: Any": {
+			args: args{
+				k: &envoy_cluster_v3.Cluster{
+					ClusterDiscoveryType: &envoy_cluster_v3.Cluster_ClusterType{
+						ClusterType: &envoy_cluster_v3.Cluster_CustomClusterType{
+							TypedConfig: &anypb.Any{
+								TypeUrl: "foo",
+							},
+						},
+					},
+				},
+				patches: []Patch{
+					makeRemovePatch(
+						"/cluster_type/typed_config",
+					),
+				},
+			},
+			// Invalid actual config, but used as an example of removing Any field directly
+			expected: &envoy_cluster_v3.Cluster{
+				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_ClusterType{
+					ClusterType: &envoy_cluster_v3.Cluster_CustomClusterType{},
+				},
+			},
+			ok: true,
+		},
 		"remove single field deeply nested": {
 			args: args{
 				k: &envoy_cluster_v3.Cluster{
@@ -857,6 +886,69 @@ func TestPatchStruct(t *testing.T) {
 			},
 			ok:     false,
 			errMsg: "unsupported target field type 'map'",
+		},
+		"add unsupported target: non-message field via map": {
+			args: args{
+				k: &envoy_cluster_v3.Cluster{},
+				patches: []Patch{
+					makeAddPatch(
+						"/name",
+						map[string]any{
+							"cluster_refresh_rate":       "5s",
+							"cluster_refresh_timeout":    "3s",
+							"redirect_refresh_interval":  "5s",
+							"redirect_refresh_threshold": 5,
+						},
+					),
+				},
+			},
+			ok:     false,
+			errMsg: "non-message field type 'string' cannot be set via a map",
+		},
+		"add unsupported target: non-message parent field via single value": {
+			args: args{
+				k: &envoy_cluster_v3.Cluster{},
+				patches: []Patch{
+					makeAddPatch(
+						"/name/foo",
+						"bar",
+					),
+				},
+			},
+			ok:     false,
+			errMsg: "path contains member of non-message field 'name' (type 'string'); this type does not support child fields",
+		},
+		"add unsupported target: non-message parent field via map": {
+			args: args{
+				k: &envoy_cluster_v3.Cluster{},
+				patches: []Patch{
+					makeAddPatch(
+						"/name/foo",
+						map[string]any{
+							"cluster_refresh_rate":       "5s",
+							"cluster_refresh_timeout":    "3s",
+							"redirect_refresh_interval":  "5s",
+							"redirect_refresh_threshold": 5,
+						},
+					),
+				},
+			},
+			ok:     false,
+			errMsg: "path contains member of non-message field 'name' (type 'string'); this type does not support child fields",
+		},
+		"add unsupported target: Any field": {
+			args: args{
+				k: &envoy_cluster_v3.Cluster{},
+				patches: []Patch{
+					makeAddPatch(
+						// Purposefully use a wrong-but-reasonable field name to ensure special error is returned
+						"/cluster_type/typed_config/@type",
+						"foo",
+					),
+				},
+			},
+			ok:     false,
+			errMsg: "variant-type message fields (google.protobuf.Any) are not supported",
 		},
 		"add unsupported target: repeated message": {
 			args: args{

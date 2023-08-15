@@ -1,14 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 @keyframes icon-cancel-circle-outline {
   100% {
-
     -webkit-mask-image: var(--icon-x-circle-16);
     mask-image: var(--icon-x-circle-16);
     background-color: var(--icon-color, var(--color-cancel-circle-outline-500, currentColor));
-
   }
 }

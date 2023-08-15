@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package watch
 
@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	ErrorNotFound   = errors.New("no data found for query")
-	ErrorNotChanged = errors.New("data did not change for query")
+	ErrorNotFound     = errors.New("no data found for query")
+	ErrorNotChanged   = errors.New("data did not change for query")
+	ErrorACLResetData = errors.New("an acl update forced a state reset")
 
 	errNilContext  = errors.New("cannot call ServerLocalNotify with a nil context")
 	errNilGetStore = errors.New("cannot call ServerLocalNotify without a callback to get a StateStore")
@@ -320,8 +321,15 @@ func serverLocalNotifyRoutine[ResultType any, StoreType StateStore](
 			return
 		}
 
+		// An ACL reset error can be raised so that the index greater-than check is
+		// bypassed. We should not propagate it to the caller.
+		forceReset := errors.Is(err, ErrorACLResetData)
+		if forceReset {
+			err = nil
+		}
+
 		// Check the index to see if we should call notify
-		if minIndex == 0 || minIndex < index {
+		if minIndex == 0 || minIndex < index || forceReset {
 			notify(ctx, correlationID, result, err)
 			minIndex = index
 		}

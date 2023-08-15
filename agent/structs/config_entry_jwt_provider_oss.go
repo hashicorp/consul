@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
 // +build !consulent
@@ -12,9 +12,14 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
-func (e *JWTProviderConfigEntry) validatePartition() error {
+func (e *JWTProviderConfigEntry) validatePartitionAndNamespace() error {
 	if !acl.IsDefaultPartition(e.PartitionOrDefault()) {
 		return fmt.Errorf("Partitions are an enterprise only feature")
 	}
+
+	if acl.DefaultNamespaceName != e.NamespaceOrDefault() {
+		return fmt.Errorf("Namespaces are an enterprise only feature")
+	}
+
 	return nil
 }

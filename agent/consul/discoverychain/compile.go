@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package discoverychain
 
@@ -1009,19 +1009,25 @@ RESOLVE_AGAIN:
 		Type: structs.DiscoveryGraphNodeTypeResolver,
 		Name: target.ID,
 		Resolver: &structs.DiscoveryResolver{
-			Default:              resolver.IsDefault(),
-			Target:               target.ID,
-			ConnectTimeout:       connectTimeout,
-			RequestTimeout:       resolver.RequestTimeout,
-			PrioritizeByLocality: resolver.PrioritizeByLocality.ToDiscovery(),
+			Default:        resolver.IsDefault(),
+			Target:         target.ID,
+			ConnectTimeout: connectTimeout,
+			RequestTimeout: resolver.RequestTimeout,
 		},
 		LoadBalancer: resolver.LoadBalancer,
 	}
 
-	// Merge default values from the proxy defaults
 	proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
-	if proxyDefault != nil && node.Resolver.PrioritizeByLocality == nil {
-		node.Resolver.PrioritizeByLocality = proxyDefault.PrioritizeByLocality.ToDiscovery()
+
+	// Only set PrioritizeByLocality for targets in the same partition.
+	if target.Partition == c.evaluateInPartition && target.Peer == "" {
+		if resolver.PrioritizeByLocality != nil {
+			target.PrioritizeByLocality = resolver.PrioritizeByLocality.ToDiscovery()
+		}
+
+		if target.PrioritizeByLocality == nil && proxyDefault != nil {
+			target.PrioritizeByLocality = proxyDefault.PrioritizeByLocality.ToDiscovery()
+		}
 	}
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]

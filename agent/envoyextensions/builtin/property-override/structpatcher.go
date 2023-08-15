@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package propertyoverride
 
 import (
@@ -75,7 +78,7 @@ func findTargetMessageAndField(m protoreflect.Message, parsedPath []string, patc
 		}
 
 		// Check whether we have a non-terminal (parent) field in the path for which we
-		// don't support child lookup.
+		// don't support child operations.
 		switch {
 		case fieldDesc.IsList():
 			return nil, nil, fmt.Errorf("path contains member of repeated field '%s'; repeated field member access is not supported",
@@ -83,6 +86,21 @@ func findTargetMessageAndField(m protoreflect.Message, parsedPath []string, patc
 		case fieldDesc.IsMap():
 			return nil, nil, fmt.Errorf("path contains member of map field '%s'; map field member access is not supported",
 				fieldName)
+		case fieldDesc.Message() != nil && fieldDesc.Message().FullName() == "google.protobuf.Any":
+			// Return a more helpful error for Any fields early.
+			//
+			// Doing this here prevents confusing two-step errors, e.g. "no match for field @type"
+			// on Any, when in fact we don't support variant proto message fields like Any in general.
+			// Because Any is a Message, we'd fail on invalid child fields or unsupported bytes target
+			// fields first.
+			//
+			// In the future, we could support Any by using the type field to initialize a struct for
+			// the nested message value.
+			return nil, nil, fmt.Errorf("variant-type message fields (google.protobuf.Any) are not supported")
+		case !(fieldDesc.Kind() == protoreflect.MessageKind):
+			// Non-Any fields that could be used to serialize protos as bytes will get a clear error message
+			// in this scenario. This also catches accidental use of non-complex fields as parent fields.
+			return nil, nil, fmt.Errorf("path contains member of non-message field '%s' (type '%s'); this type does not support child fields", fieldName, fieldDesc.Kind())
 		}
 
 		fieldM := m.Get(fieldDesc).Message()
@@ -137,6 +155,10 @@ func applyAdd(parentM protoreflect.Message, fieldDesc protoreflect.FieldDescript
 	// similar to a list (repeated field). This map handling is specific to _our_ patch semantics for
 	// updating multiple message fields at once.
 	if isMapValue && !fieldDesc.IsMap() {
+		if fieldDesc.Kind() != protoreflect.MessageKind {
+			return fmt.Errorf("non-message field type '%s' cannot be set via a map", fieldDesc.Kind())
+		}
+
 		// Get a fresh copy of the target field's message, then set the children indicated by the patch.
 		fieldM := parentM.Get(fieldDesc).Message().New()
 		for k, v := range mapValue {
@@ -151,6 +173,7 @@ func applyAdd(parentM protoreflect.Message, fieldDesc protoreflect.FieldDescript
 			fieldM.Set(targetFieldDesc, val)
 		}
 		parentM.Set(fieldDesc, protoreflect.ValueOf(fieldM))
+
 	} else {
 		// Just set the field directly, as our patch value is not a map.
 		val, err := toProtoValue(parentM, fieldDesc, patch.Value)
@@ -280,6 +303,9 @@ func toProtoValue(parentM protoreflect.Message, fieldDesc protoreflect.FieldDesc
 		case float64:
 			return toProtoNumericValue(fieldDesc, val)
 		}
+	case protoreflect.BytesKind,
+		protoreflect.GroupKind:
+		return unsupportedTargetTypeErr(fieldDesc)
 	}
 
 	// Fall back to protoreflect.ValueOf, which may panic if an unexpected type is passed.

@@ -1,14 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 @keyframes icon-check-hexagon {
   100% {
-
     -webkit-mask-image: var(--icon-check-hexagon-16);
     mask-image: var(--icon-check-hexagon-16);
     background-color: var(--icon-color, var(--color-check-hexagon-500, currentColor));
-
   }
 }

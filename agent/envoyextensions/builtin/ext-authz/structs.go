@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package extauthz
 
@@ -31,8 +31,12 @@ import (
 const (
 	LocalExtAuthzClusterName = "local_ext_authz"
 
+	defaultMetadataNS    = "consul"
 	defaultStatPrefix    = "response"
 	defaultStatusOnError = 403
+	localhost            = "localhost"
+	localhostIPv4        = "127.0.0.1"
+	localhostIPv6        = "::1"
 )
 
 type extAuthzConfig struct {
@@ -44,7 +48,6 @@ type extAuthzConfig struct {
 	MetadataContextNamespaces  []string
 	StatusOnError              *int
 	StatPrefix                 string
-	TransportApiVersion        TransportApiVersion
 	WithRequestBody            *BufferSettings
 
 	failureModeAllow bool
@@ -185,6 +188,12 @@ func (c *extAuthzConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3
 		return nil, err
 	}
 
+	clusterType := &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC}
+	if host == localhost {
+		// If the host is "localhost" use a STRICT_DNS cluster type to perform DNS lookup.
+		clusterType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STRICT_DNS}
+	}
+
 	var typedExtProtoOpts map[string]*anypb.Any
 	if c.isGRPC() {
 		// By default HTTP/1.1 is used for the transport protocol. gRPC requires that we explicitly configure HTTP/2
@@ -205,7 +214,7 @@ func (c *extAuthzConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3
 
 	return &envoy_cluster_v3.Cluster{
 		Name:                 LocalExtAuthzClusterName,
-		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
+		ClusterDiscoveryType: clusterType,
 		ConnectTimeout:       target.timeoutDurationPB(),
 		LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
 			ClusterName: LocalExtAuthzClusterName,
@@ -238,8 +247,8 @@ func (c extAuthzConfig) toEnvoyHttpFilter(cfg *cmn.RuntimeConfig) (*envoy_http_v
 	extAuthzFilter := &envoy_http_ext_authz_v3.ExtAuthz{
 		StatPrefix:                 c.StatPrefix,
 		WithRequestBody:            c.WithRequestBody.toEnvoy(),
-		TransportApiVersion:        c.TransportApiVersion.toEnvoy(),
-		MetadataContextNamespaces:  c.MetadataContextNamespaces,
+		TransportApiVersion:        envoy_core_v3.ApiVersion_V3,
+		MetadataContextNamespaces:  append(c.MetadataContextNamespaces, defaultMetadataNS),
 		FailureModeAllow:           c.failureModeAllow,
 		BootstrapMetadataLabelsKey: c.BootstrapMetadataLabelsKey,
 	}
@@ -281,7 +290,7 @@ func (c extAuthzConfig) toEnvoyNetworkFilter(cfg *cmn.RuntimeConfig) (*envoy_lis
 	extAuthzFilter := &envoy_ext_authz_v3.ExtAuthz{
 		GrpcService:         grpcSvc,
 		StatPrefix:          c.StatPrefix,
-		TransportApiVersion: c.TransportApiVersion.toEnvoy(),
+		TransportApiVersion: envoy_core_v3.ApiVersion_V3,
 		FailureModeAllow:    c.failureModeAllow,
 	}
 
@@ -645,18 +654,13 @@ func (t *Target) validate() error {
 	}
 
 	if t.isURI() {
-		// Strip the protocol if one was provided
-		if _, addr, hasProto := strings.Cut(t.URI, "://"); hasProto {
-			t.URI = addr
-		}
-		addr := strings.Split(t.URI, ":")
-		if len(addr) == 2 {
-			t.host = addr[0]
-			if t.host != "localhost" && t.host != "127.0.0.1" {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("invalid host for Target.URI %q: expected 'localhost' or '127.0.0.1'", t.URI))
-			}
-			if t.port, err = strconv.Atoi(addr[1]); err != nil {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("invalid port for Target.URI %q", addr[1]))
+		t.host, t.port, err = parseAddr(t.URI)
+		if err == nil {
+			switch t.host {
+			case localhost, localhostIPv4, localhostIPv6:
+			default:
+				resultErr = multierror.Append(resultErr,
+					fmt.Errorf("invalid host for Target.URI %q: expected %q, %q, or %q", t.URI, localhost, localhostIPv4, localhostIPv6))
 			}
 		} else {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("invalid format for Target.URI %q: expected host:port", t.URI))
@@ -673,17 +677,21 @@ func (t *Target) validate() error {
 	return resultErr
 }
 
-type TransportApiVersion string
-
-func (t TransportApiVersion) toEnvoy() envoy_core_v3.ApiVersion {
-	switch strings.ToLower(string(t)) {
-	case "v2":
-		//nolint:staticcheck
-		return envoy_core_v3.ApiVersion_V2
-	case "auto":
-		//nolint:staticcheck
-		return envoy_core_v3.ApiVersion_AUTO
-	default:
-		return envoy_core_v3.ApiVersion_V3
+func parseAddr(s string) (host string, port int, err error) {
+	// Strip the protocol if one was provided
+	if _, addr, hasProto := strings.Cut(s, "://"); hasProto {
+		s = addr
 	}
+	idx := strings.LastIndex(s, ":")
+	switch idx {
+	case -1, len(s) - 1:
+		err = fmt.Errorf("invalid input format %q: expected host:port", s)
+	case 0:
+		host = localhost
+		port, err = strconv.Atoi(s[idx+1:])
+	default:
+		host = s[:idx]
+		port, err = strconv.Atoi(s[idx+1:])
+	}
+	return
 }

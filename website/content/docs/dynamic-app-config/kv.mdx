@@ -33,7 +33,7 @@ To restrict access, enable and configure
 [ACLs](/consul/tutorials/security/access-control-setup-production).
 Once the ACL system has been bootstrapped, users and services, will need a
 valid token with KV [privileges](/consul/docs/security/acl/acl-rules#key-value-rules) to
-access the the data store, this includes even reads. We recommend creating a
+access the data store, this includes even reads. We recommend creating a
 token with limited privileges, for example, you could create a token with write
 privileges on one key for developers to update the value related to their
 application.
@@ -60,6 +60,24 @@ similar to Amazon S3 buckets. However, `/` is still useful for organizing data
 and when recursively searching within the data store. We also recommend that
 you avoid the use of `*`, `?`, `'`, and `%` because they can cause issues when
 using the API and in shell scripts.
+
+## Using Sentinel to apply policies for Consul KV 
+
+<EnterpriseAlert>
+
+This feature requires
+HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
+
+</EnterpriseAlert>
+
+You can also use Sentinel as a Policy-as-code framework for defining advanced key-value storage access control policies. Sentinel policies extend the ACL system in Consul beyond static "read", "write",
+and "deny" policies to support full conditional logic and integration with
+external systems. Reference the [Sentinel documentation](https://docs.hashicorp.com/sentinel/concepts) for high-level Sentinel concepts.
+
+To get started with Sentinel in Consul,
+refer to the [Sentinel documentation](https://docs.hashicorp.com/sentinel/consul) or
+[Consul documentation](/consul/docs/agent/sentinel).
+
 
 ## Extending Consul KV
 

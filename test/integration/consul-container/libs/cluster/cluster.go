@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cluster
 
@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/serf/serf"
 
 	goretry "github.com/avast/retry-go"

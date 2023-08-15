@@ -7,16 +7,25 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
+      "outlierDetection": {}
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "connectTimeout": "5s",
+      "outlierDetection": {}
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
@@ -24,16 +33,12 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
+      "outlierDetection": {}
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
@@ -42,32 +47,22 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",
-      "circuitBreakers": {
-
-      },
-      "outlierDetection": {
-
-      },
+      "circuitBreakers": {},
+      "outlierDetection": {},
       "commonLbConfig": {
-        "healthyPanicThreshold": {
-
-        }
+        "healthyPanicThreshold": {}
       },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {
-
-            },
+            "tlsParams": {},
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -100,32 +95,22 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "33s",
-      "circuitBreakers": {
-
-      },
-      "outlierDetection": {
-
-      },
+      "circuitBreakers": {},
+      "outlierDetection": {},
       "commonLbConfig": {
-        "healthyPanicThreshold": {
-
-        }
+        "healthyPanicThreshold": {}
       },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {
-
-            },
+            "tlsParams": {},
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -158,32 +143,22 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",
-      "circuitBreakers": {
-
-      },
-      "outlierDetection": {
-
-      },
+      "circuitBreakers": {},
+      "outlierDetection": {},
       "commonLbConfig": {
-        "healthyPanicThreshold": {
-
-        }
+        "healthyPanicThreshold": {}
       },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {
-
-            },
+            "tlsParams": {},
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -208,6 +183,32 @@
           "sni": "v2.api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
         }
       }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "v1.api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "connectTimeout": "5s",
+      "outlierDetection": {}
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "v2.api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "connectTimeout": "5s",
+      "outlierDetection": {}
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",

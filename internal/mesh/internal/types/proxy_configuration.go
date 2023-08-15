@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -16,7 +16,7 @@ const (
 var (
 	ProxyConfigurationV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: CurrentVersion,
+		GroupVersion: VersionV1Alpha1,
 		Kind:         ProxyConfigurationKind,
 	}
 

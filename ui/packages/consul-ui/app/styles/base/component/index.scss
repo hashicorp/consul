@@ -1,11 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 /* allows easy application of animation-name based composition */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   animation-play-state: paused;
   animation-fill-mode: forwards;
 }
-

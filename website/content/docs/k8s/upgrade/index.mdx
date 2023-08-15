@@ -5,14 +5,23 @@ description: >-
   Consul on Kubernetes relies on packages and binaries that have individual upgrade requirements. Learn how to update Helm configurations, Helm versions, Consul versions, and Consul agents, as well as how to determine what will change and its impact on your service mesh.
 ---
 
-# Upgrading Consul on Kubernetes Components
+# Upgrading Consul on Kubernetes components
+
+This topic describes considerations and strategies for upgrading Consul deployments running on Kubernetes clusters. In addition to upgrading the version of Consul, you may need to update your Helm chart or the release version of the Helm chart.
+
+## Version-specific upgrade requirements
+
+As of Consul v1.14.0, Kubernetes deployments use [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. If you upgrade Consul from a version that uses client agents to a version that uses dataplanes, you must follow specific steps to update your Helm chart and remove client agents from the existing deployment. Refer to [Upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplane) for more information.
+
+The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs`](https://github.com/hashicorp/go-netaddrs) library and command line tool for more information.
 
 ## Upgrade types
 
 We recommend updating Consul on Kubernetes when:
+
   - You change your Helm configuration
   - A new Helm chart is released
-  - You want to upgrade your Consul version.
+  - You want to upgrade your Consul version
 
 ### Helm configuration changes
 
@@ -219,24 +228,39 @@ In earlier versions, Consul on Kubernetes used client agents in its deployments.
 
 If you upgrade Consul from a version that uses client agents to a version the uses dataplanes, complete the following steps to upgrade your deployment safely and without downtime.
 
-1. Before you upgrade, edit your Helm chart to enable Consul client agents by setting `client.enabled` and `client.updateStrategy`:
+1. If ACLs are enabled, you must first upgrade to consul-k8s 0.49.8 or above. These versions expose the setting `connectInject.prepareDataplanesUpgrade`
+   which is required for no-downtime upgrades when ACLs are enabled.
+
+   Set `connectInject.prepareDataplanesUpgrade` to `true` and then perform the upgrade to 0.49.8 or above (whichever is the latest in the 0.49.x series)
+
+  ```yaml filename="values.yaml"
+  connectInject:
+    prepareDataplanesUpgrade: true
+  ```
+
+1. Consul dataplanes disables Consul clients by default, but during an upgrade you need to ensure Consul clients continue to run. Edit your Helm chart configuration and set the [`client.enabled`](/consul/docs/k8s/helm#v-client-enabled) field to `true` and specify an action for Consul to take during the upgrade process in the [`client.updateStrategy`](/consul/docs/k8s/helm#v-client-updatestrategy) field:
 
   ```yaml filename="values.yaml"
   client:
-      enabled: true
-      updateStrategy: |
-        type: OnDelete
+    enabled: true
+    updateStrategy: |
+      type: OnDelete
   ```
 
-1. Add `consul.hashicorp.com/consul-k8s-version: 1.0.0` to the annotations for each pod you upgrade.
-
-1. Follow our [recommended procedures to upgrade servers](#upgrading-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
+1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul. The latest version of consul-k8s components may be in a CrashLoopBackoff state during the performance of the server upgrade from versions <1.14.x until all Consul servers are on versions >=1.14.x. Components in CrashLoopBackoff will not negatively affect the cluster because older versioned components will still be operating. Once all servers have been fully upgraded, the latest consul-k8s components will automatically restore from CrashLoopBackoff and older component versions will be spun down.
 
 1. Run `kubectl rollout restart` to restart your service mesh applications. Restarting service mesh application causes Kubernetes to re-inject them with the webhook for dataplanes.
 
 1. Restart all gateways in your service mesh.
 
-1. Disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false`.
+1. Now that all services and gateways are using Consul dataplanes, disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false` and running a `consul-k8s` or Helm upgrade.
+
+1. If ACLs are enabled, outdated ACL tokens will persist a result of the upgrade. You can manually delete the tokens to declutter your Consul environment.
+
+   Outdated connect-injector tokens have the following description: `token created via login: {"component":"connect-injector"}`. Do not delete
+   the tokens that have a description where `pod` is a key, for example `token created via login: {"component":"connect-injector","pod":"default/consul-connect-injector-576b65747c-9547x"}`). The dataplane-enabled connect inject pods use these tokens.    
+
+   You can also review the creation date for the tokens and only delete the injector tokens created before your upgrade, but do not delete all old tokens without considering if they are still in use. Some tokens, such as the server tokens, are still necessary.
 
 ## Configuring TLS on an existing cluster
 

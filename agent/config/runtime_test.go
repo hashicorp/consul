@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
@@ -324,6 +324,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DevMode = true
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
+			rt.Experiments = []string{"resource-apis"}
 			rt.EnableDebug = true
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
@@ -618,6 +619,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeName = "a"
 			rt.TLS.NodeName = "a"
 			rt.DataDir = dataDir
+			rt.Cloud.NodeName = "a"
 		},
 	})
 	run(t, testCase{
@@ -629,6 +631,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.NodeID = "a"
 			rt.DataDir = dataDir
+			rt.Cloud.NodeID = "a"
 		},
 	})
 	run(t, testCase{
@@ -1034,6 +1037,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				return nil, fmt.Errorf("should not detect advertise_addr")
 			},
 		},
+	})
+	run(t, testCase{
+		desc:        "locality invalid",
+		args:        []string{`-data-dir=` + dataDir},
+		json:        []string{`{"locality": {"zone": "us-west-1a"}}`},
+		hcl:         []string{`locality { zone = "us-west-1a" }`},
+		expectedErr: "locality is invalid: zone cannot be set without region",
 	})
 	run(t, testCase{
 		desc: "client addr and ports == 0",
@@ -2318,6 +2328,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Cloud = hcpconfig.CloudConfig{
 				// ID is only populated from env if not populated from other sources.
 				ResourceID: "env-id",
+				NodeName:   "thehostname",
+				NodeID:     "",
 			}
 
 			// server things
@@ -2358,6 +2370,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Cloud = hcpconfig.CloudConfig{
 				// ID is only populated from env if not populated from other sources.
 				ResourceID: "file-id",
+				NodeName:   "thehostname",
 			}
 
 			// server things
@@ -2723,7 +2736,44 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
+	})
+	run(t, testCase{
+		desc: "verify_server_hostname in the defaults stanza and internal_rpc",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		hcl: []string{`
+			tls {
+				defaults {
+					verify_server_hostname = false
+				},
+				internal_rpc {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		json: []string{`
+			{
+				"tls": {
+					"defaults": {
+						"verify_server_hostname": false
+					},
+					"internal_rpc": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
 	})
 	run(t, testCase{
 		desc: "verify_server_hostname in the grpc stanza",
@@ -2746,7 +2796,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+		expectedErr: "verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "verify_server_hostname in the https stanza",
@@ -2769,7 +2819,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+		expectedErr: "verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "translated keys",
@@ -5711,6 +5761,74 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "tls.defaults.verify_server_hostname implies tls.internal_rpc.verify_outgoing",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"defaults": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				defaults {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
+	})
+	run(t, testCase{
+		desc: "tls.internal_rpc.verify_server_hostname overwrites tls.defaults.verify_server_hostname",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"defaults": {
+						"verify_server_hostname": false
+					},
+					"internal_rpc": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				defaults {
+					verify_server_hostname = false
+				},
+				internal_rpc {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
+	})
+	run(t, testCase{
 		desc: "tls.grpc.use_auto_cert defaults to false",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -6316,6 +6434,8 @@ func TestLoad_FullConfig(t *testing.T) {
 			Hostname:     "DH4bh7aC",
 			AuthURL:      "332nCdR2",
 			ScadaAddress: "aoeusth232",
+			NodeID:       types.NodeID("AsUIlw99"),
+			NodeName:     "otlLxGaI",
 		},
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
@@ -6355,6 +6475,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",
+		Experiments:                      []string{"foo"},
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,

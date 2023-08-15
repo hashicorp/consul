@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package client
 
 import (
@@ -18,6 +21,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
 	"github.com/hashicorp/consul/version"
 )
 
@@ -32,12 +36,11 @@ const (
 	// defaultRetryMax is set to 0 to turn off retry functionality, until dynamic configuration is possible.
 	// This is to circumvent any spikes in load that may cause or exacerbate server-side issues for now.
 	defaultRetryMax = 0
-)
 
-// MetricsClient exports Consul metrics in OTLP format to the HCP Telemetry Gateway.
-type MetricsClient interface {
-	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error
-}
+	// defaultErrRespBodyLength refers to the max character length of the body on a failure to export metrics.
+	// anything beyond we will truncate.
+	defaultErrRespBodyLength = 100
+)
 
 // cloudConfig represents cloud config for TLS abstracted in an interface for easy testing.
 type CloudConfig interface {
@@ -54,7 +57,7 @@ type otlpClient struct {
 
 // NewMetricsClient returns a configured MetricsClient.
 // The current implementation uses otlpClient to provide retry functionality.
-func NewMetricsClient(cfg CloudConfig, ctx context.Context) (MetricsClient, error) {
+func NewMetricsClient(ctx context.Context, cfg CloudConfig) (telemetry.MetricsClient, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("failed to init telemetry client: provide valid cloudCfg (Cloud Configuration for TLS)")
 	}
@@ -150,8 +153,18 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to export metrics: code %d: %s", resp.StatusCode, string(body))
+		truncatedBody := truncate(respData.String(), defaultErrRespBodyLength)
+		return fmt.Errorf("failed to export metrics: code %d: %s", resp.StatusCode, truncatedBody)
 	}
 
 	return nil
+}
+
+func truncate(text string, width uint) string {
+	if len(text) <= int(width) {
+		return text
+	}
+	r := []rune(text)
+	trunc := r[:width]
+	return string(trunc) + "..."
 }

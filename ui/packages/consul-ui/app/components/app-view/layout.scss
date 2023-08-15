@@ -1,13 +1,13 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 /* layout */
 %app-view-title {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas: "title actions";
+  grid-template-areas: 'title actions';
   position: relative;
   z-index: 5;
 }

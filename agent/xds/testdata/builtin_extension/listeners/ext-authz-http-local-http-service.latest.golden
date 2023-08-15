@@ -187,6 +187,9 @@
                       },
                       "transportApiVersion": "V3",
                       "failureModeAllow": true,
+                      "metadataContextNamespaces": [
+                        "consul"
+                      ],
                       "statPrefix": "response"
                     }
                   },
@@ -207,7 +210,12 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],

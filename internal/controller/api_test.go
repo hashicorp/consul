@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package controller_test
 
@@ -190,7 +190,7 @@ func TestController_String(t *testing.T) {
 		WithPlacement(controller.PlacementEachServer)
 
 	require.Equal(t,
-		`<Controller managed_type="demo.v2.artist", watched_types=["demo.v2.album"], backoff=<base="5s", max="1h0m0s">, placement="each-server">`,
+		`<Controller managed_type="demo.v2.Artist", watched_types=["demo.v2.Album"], backoff=<base="5s", max="1h0m0s">, placement="each-server">`,
 		ctrl.String(),
 	)
 }
@@ -201,7 +201,7 @@ func TestController_NoReconciler(t *testing.T) {
 
 	ctrl := controller.ForType(demo.TypeV2Artist)
 	require.PanicsWithValue(t,
-		`cannot register controller without a reconciler <Controller managed_type="demo.v2.artist", watched_types=[], backoff=<base="5ms", max="16m40s">, placement="singleton">`,
+		`cannot register controller without a reconciler <Controller managed_type="demo.v2.Artist", watched_types=[], backoff=<base="5ms", max="16m40s">, placement="singleton">`,
 		func() { mgr.Register(ctrl) })
 }
 

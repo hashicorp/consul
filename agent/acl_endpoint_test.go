@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -438,8 +438,8 @@ func TestACL_HTTP(t *testing.T) {
 			policies, ok := raw.(structs.ACLPolicyListStubs)
 			require.True(t, ok)
 
-			// 2 we just created + global management
-			require.Len(t, policies, 3)
+			// 2 we just created + builtin policies
+			require.Len(t, policies, 2+len(structs.ACLBuiltinPolicies))
 
 			for policyID, expected := range policyMap {
 				found := false
@@ -871,6 +871,48 @@ func TestACL_HTTP(t *testing.T) {
 			tokenInput := &structs.ACLToken{
 				AccessorID:  tokenMap[idMap["token-cloned"]].AccessorID,
 				Description: "Better description for this cloned token",
+				Policies: []structs.ACLTokenPolicyLink{
+					{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "bar",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID, jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+
+			require.Equal(t, originalToken.AccessorID, token.AccessorID)
+			require.Equal(t, originalToken.SecretID, token.SecretID)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.Equal(t, tokenInput.NodeIdentities, token.NodeIdentities)
+			require.True(t, token.CreateIndex > 0)
+			require.True(t, token.CreateIndex < token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, token.Hash, originalToken.Hash)
+
+			tokenMap[token.AccessorID] = token
+		})
+
+		t.Run("Update without AccessorID in request body", func(t *testing.T) {
+			originalToken := tokenMap[idMap["token-cloned"]]
+
+			// Secret will be filled in
+			tokenInput := &structs.ACLToken{
+				Description: "Even Better description for this cloned token",
 				Policies: []structs.ACLTokenPolicyLink{
 					{
 						ID:   idMap["policy-read-all-nodes"],

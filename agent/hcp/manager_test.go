@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package hcp
 
@@ -58,7 +58,11 @@ func TestManager_SendUpdate(t *testing.T) {
 		StatusFn: statusF,
 	})
 	mgr.testUpdateSent = updateCh
-	go mgr.Run(context.Background())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go mgr.Run(ctx)
 	select {
 	case <-updateCh:
 	case <-time.After(time.Second):
@@ -90,7 +94,11 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 		MinInterval: 100 * time.Millisecond,
 	})
 	mgr.testUpdateSent = updateCh
-	go mgr.Run(context.Background())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go mgr.Run(ctx)
 	select {
 	case <-updateCh:
 	case <-time.After(time.Second):

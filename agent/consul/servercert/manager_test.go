@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package servercert
 
@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-memdb"
-	"github.com/stretchr/testify/require"
 )
 
 type fakeStore struct {
@@ -109,7 +111,7 @@ type watchInfo struct {
 	token string
 }
 
-type fakeCache struct {
+type fakeLeafCertManager struct {
 	updateCh chan<- cache.UpdateEvent
 
 	// watched is a map of watched correlation IDs to the ACL token of the request.
@@ -120,7 +122,7 @@ type fakeCache struct {
 	syncCh chan struct{}
 }
 
-func (c *fakeCache) triggerLeafUpdate() {
+func (c *fakeLeafCertManager) triggerLeafUpdate() {
 	c.updateCh <- cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result: &structs.IssuedCert{
@@ -131,14 +133,14 @@ func (c *fakeCache) triggerLeafUpdate() {
 	}
 }
 
-func (c *fakeCache) Notify(ctx context.Context, t string, r cache.Request, correlationID string, ch chan<- cache.UpdateEvent) error {
-	c.watched[correlationID] = watchInfo{ctx: ctx, token: r.CacheInfo().Token}
+func (c *fakeLeafCertManager) Notify(ctx context.Context, r *leafcert.ConnectCALeafRequest, correlationID string, ch chan<- cache.UpdateEvent) error {
+	c.watched[correlationID] = watchInfo{ctx: ctx, token: r.Token}
 	c.updateCh = ch
 	c.syncCh <- struct{}{}
 	return nil
 }
 
-func (c *fakeCache) timeoutIfNotUpdated(t *testing.T) error {
+func (c *fakeLeafCertManager) timeoutIfNotUpdated(t *testing.T) error {
 	t.Helper()
 
 	select {
@@ -159,7 +161,7 @@ func testWaiter() retry.Waiter {
 
 func TestCertManager_ACLsDisabled(t *testing.T) {
 	tlsConfigurator := fakeTLSConfigurator{syncCh: make(chan struct{}, 1)}
-	cache := fakeCache{watched: make(map[string]watchInfo), syncCh: make(chan struct{}, 1)}
+	leafCerts := fakeLeafCertManager{watched: make(map[string]watchInfo), syncCh: make(chan struct{}, 1)}
 	store := fakeStore{
 		conf:       make(chan *structs.CAConfiguration, 1),
 		tokenEntry: make(chan *structs.SystemMetadataEntry, 1),
@@ -172,7 +174,7 @@ func TestCertManager_ACLsDisabled(t *testing.T) {
 			ACLsEnabled: false,
 		},
 		TLSConfigurator: &tlsConfigurator,
-		Cache:           &cache,
+		LeafCertManager: &leafCerts,
 		GetStore:        func() Store { return &store },
 	})
 
@@ -185,11 +187,11 @@ func TestCertManager_ACLsDisabled(t *testing.T) {
 		require.Empty(t, tlsConfigurator.cert)
 		require.Empty(t, tlsConfigurator.peeringServerName)
 
-		require.Contains(t, cache.watched, leafWatchID)
+		require.Contains(t, leafCerts.watched, leafWatchID)
 	})
 
 	testutil.RunStep(t, "leaf cert update", func(t *testing.T) {
-		cache.triggerLeafUpdate()
+		leafCerts.triggerLeafUpdate()
 
 		// Wait for the update to arrive.
 		require.NoError(t, tlsConfigurator.timeoutIfNotUpdated(t))
@@ -214,7 +216,7 @@ func TestCertManager_ACLsDisabled(t *testing.T) {
 
 func TestCertManager_ACLsEnabled(t *testing.T) {
 	tlsConfigurator := fakeTLSConfigurator{syncCh: make(chan struct{}, 1)}
-	cache := fakeCache{watched: make(map[string]watchInfo), syncCh: make(chan struct{}, 1)}
+	leafCerts := fakeLeafCertManager{watched: make(map[string]watchInfo), syncCh: make(chan struct{}, 1)}
 	store := fakeStore{
 		conf:       make(chan *structs.CAConfiguration, 1),
 		tokenEntry: make(chan *structs.SystemMetadataEntry, 1),
@@ -227,7 +229,7 @@ func TestCertManager_ACLsEnabled(t *testing.T) {
 			ACLsEnabled: true,
 		},
 		TLSConfigurator: &tlsConfigurator,
-		Cache:           &cache,
+		LeafCertManager: &leafCerts,
 		GetStore:        func() Store { return &store },
 	})
 
@@ -240,7 +242,7 @@ func TestCertManager_ACLsEnabled(t *testing.T) {
 		require.Empty(t, tlsConfigurator.cert)
 		require.Empty(t, tlsConfigurator.peeringServerName)
 
-		require.Empty(t, cache.watched)
+		require.Empty(t, leafCerts.watched)
 	})
 
 	var leafCtx context.Context
@@ -249,16 +251,16 @@ func TestCertManager_ACLsEnabled(t *testing.T) {
 	testutil.RunStep(t, "server token update", func(t *testing.T) {
 		store.setServerToken("first-secret", tokenCanceler)
 
-		require.NoError(t, cache.timeoutIfNotUpdated(t))
+		require.NoError(t, leafCerts.timeoutIfNotUpdated(t))
 
-		require.Contains(t, cache.watched, leafWatchID)
-		require.Equal(t, "first-secret", cache.watched[leafWatchID].token)
+		require.Contains(t, leafCerts.watched, leafWatchID)
+		require.Equal(t, "first-secret", leafCerts.watched[leafWatchID].token)
 
-		leafCtx = cache.watched[leafWatchID].ctx
+		leafCtx = leafCerts.watched[leafWatchID].ctx
 	})
 
 	testutil.RunStep(t, "leaf cert update", func(t *testing.T) {
-		cache.triggerLeafUpdate()
+		leafCerts.triggerLeafUpdate()
 
 		// Wait for the update to arrive.
 		require.NoError(t, tlsConfigurator.timeoutIfNotUpdated(t))
@@ -276,15 +278,15 @@ func TestCertManager_ACLsEnabled(t *testing.T) {
 		// Fire the existing WatchSet to simulate a state store update.
 		tokenCanceler <- struct{}{}
 
-		// The leaf watch in the cache should have been reset.
-		require.NoError(t, cache.timeoutIfNotUpdated(t))
+		// The leaf watch in the leafCerts should have been reset.
+		require.NoError(t, leafCerts.timeoutIfNotUpdated(t))
 
 		// The original leaf watch context should have been canceled.
 		require.Error(t, leafCtx.Err())
 
 		// A new leaf watch is expected with the new token.
-		require.Contains(t, cache.watched, leafWatchID)
-		require.Equal(t, "second-secret", cache.watched[leafWatchID].token)
+		require.Contains(t, leafCerts.watched, leafWatchID)
+		require.Equal(t, "second-secret", leafCerts.watched[leafWatchID].token)
 	})
 
 	testutil.RunStep(t, "ca config update", func(t *testing.T) {

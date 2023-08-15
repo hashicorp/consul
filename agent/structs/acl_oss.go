@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
 // +build !consulent
@@ -14,6 +14,7 @@ import (
 
 const (
 	EnterpriseACLPolicyGlobalManagement = ""
+	EnterpriseACLPolicyGlobalReadOnly   = ""
 
 	// aclPolicyTemplateServiceIdentity is the template used for synthesizing
 	// policies for service identities.

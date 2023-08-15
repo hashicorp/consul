@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -167,7 +167,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil, err
 			}
 
-			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false, false)
+			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false)
 			if clusterName == "" {
 				continue
 			}
@@ -1291,6 +1291,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 					partition:   cfgSnap.ProxyID.PartitionOrDefault(),
 				},
 				cfgSnap.ConnectProxy.InboundPeerTrustBundles,
+				cfgSnap.JWTProviders,
 			)
 			if err != nil {
 				return nil, err
@@ -1364,9 +1365,9 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		logger:           s.Logger,
 	}
 	if useHTTPFilter {
-		jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
-		if jwtFilterErr != nil {
-			return nil, jwtFilterErr
+		jwtFilter, err := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
+		if err != nil {
+			return nil, err
 		}
 		rbacFilter, err := makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
@@ -1377,16 +1378,16 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
 			},
 			cfgSnap.ConnectProxy.InboundPeerTrustBundles,
+			cfgSnap.JWTProviders,
 		)
 		if err != nil {
 			return nil, err
 		}
-
-		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
-
+		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{}
 		if jwtFilter != nil {
 			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, jwtFilter)
 		}
+		filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, rbacFilter)
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
@@ -1845,6 +1846,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
 			},
 			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
+			cfgSnap.JWTProviders,
 		)
 		if err != nil {
 			return nil, err
@@ -2467,6 +2469,10 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 			// explicitly propagates trace headers that indicate this should be
 			// sampled.
 			RandomSampling: &envoy_type_v3.Percent{Value: 0.0},
+		},
+		// Explicitly enable WebSocket upgrades for all HTTP listeners
+		UpgradeConfigs: []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
+			{UpgradeType: "websocket"},
 		},
 	}
 

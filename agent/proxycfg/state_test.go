@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	apimod "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
@@ -139,7 +139,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		IntentionUpstreams:              typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		IntentionUpstreamsDestination:   typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		InternalServiceDump:             typedWatchRecorder[*structs.ServiceDumpRequest]{wr},
-		LeafCertificate:                 typedWatchRecorder[*cachetype.ConnectCALeafRequest]{wr},
+		LeafCertificate:                 typedWatchRecorder[*leafcert.ConnectCALeafRequest]{wr},
 		PeeringList:                     typedWatchRecorder[*cachetype.PeeringListRequest]{wr},
 		PeeredUpstreams:                 typedWatchRecorder[*structs.PartitionSpecificRequest]{wr},
 		PreparedQuery:                   typedWatchRecorder[*structs.PreparedQueryExecuteRequest]{wr},
@@ -224,7 +224,7 @@ func genVerifyTrustBundleReadWatch(peer string) verifyWatchRequest {
 
 func genVerifyLeafWatchWithDNSSANs(expectedService string, expectedDatacenter string, expectedDNSSANs []string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
-		reqReal, ok := request.(*cachetype.ConnectCALeafRequest)
+		reqReal, ok := request.(*leafcert.ConnectCALeafRequest)
 		reqReal.Token = aclToken
 		require.True(t, ok)
 		require.Equal(t, aclToken, reqReal.Token)

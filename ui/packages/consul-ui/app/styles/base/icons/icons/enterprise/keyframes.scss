@@ -1,14 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 @keyframes icon-enterprise {
   100% {
-
     -webkit-mask-image: var(--icon-enterprise-16);
     mask-image: var(--icon-enterprise-16);
     background-color: var(--icon-color, var(--color-enterprise-500, currentColor));
-
   }
 }

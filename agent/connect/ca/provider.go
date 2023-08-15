@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package ca
 
@@ -135,9 +135,12 @@ type PrimaryProvider interface {
 	// provider.
 	//
 	// Depending on the provider and its configuration, GenerateCAChain may return
-	// a single root certificate or a chain of certs. The provider should return an
-	// existing CA chain if one exists or generate a new one and return it.
-	GenerateCAChain() (CAChainResult, error)
+	// a single root certificate or a chain of certs.
+	// The first certificate must be the primary CA used to sign intermediates for
+	// secondary datacenters, and the last certificate must be the trusted CA.
+	// The provider should return an existing CA chain if one exists or generate a
+	// new one and return it.
+	GenerateCAChain() (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
 	// URI SAN matches the local one and that basic constraints for a CA
@@ -149,7 +152,7 @@ type PrimaryProvider interface {
 	SignIntermediate(*x509.CertificateRequest) (string, error)
 
 	// CrossSignCA must accept a CA certificate from another CA provider and cross
-	// sign it exactly as it is such that it forms a chain back the the
+	// sign it exactly as it is such that it forms a chain back the
 	// CAProvider's current root. Specifically, the Distinguished Name, Subject
 	// Alternative Name, SubjectKeyID and other relevant extensions must be kept.
 	// The resulting certificate must have a distinct Serial Number and the

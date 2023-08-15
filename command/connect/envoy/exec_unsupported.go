@@ -1,8 +1,8 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
-//go:build !linux && !darwin
-// +build !linux,!darwin
+//go:build !linux && !darwin && !windows
+// +build !linux,!darwin,!windows
 
 package envoy
 

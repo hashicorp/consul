@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 %horizontal-kv-list-visible-title::after {
@@ -9,9 +9,9 @@
 %horizontal-kv-list-visible-title::after {
   content: var(--horizontal-kv-list-key-separator);
 }
-%horizontal-kv-list-reversed dt[class=""]::after {
+%horizontal-kv-list-reversed dt[class='']::after {
   content: var(--horizontal-kv-list-key-wrapper-end);
 }
-%horizontal-kv-list-reversed dt[class=""]::before {
+%horizontal-kv-list-reversed dt[class='']::before {
   content: var(--horizontal-kv-list-key-wrapper-start);
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -130,7 +130,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Datacenter:   "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token"},
 	}
-	leafReq := &cachetype.ConnectCALeafRequest{
+	leafReq := &leafcert.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Token:      "my-token",
 		Service:    "web",
@@ -358,7 +358,7 @@ func testManager_BasicLifecycle(
 	t *testing.T,
 	dataSources *TestDataSources,
 	rootsReq *structs.DCSpecificRequest,
-	leafReq *cachetype.ConnectCALeafRequest,
+	leafReq *leafcert.ConnectCALeafRequest,
 	roots *structs.IndexedCARoots,
 	webProxy *structs.NodeService,
 	expectSnap *ConfigSnapshot,

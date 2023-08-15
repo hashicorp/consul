@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -1362,10 +1362,12 @@ func TestNewCARoot(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		root, err := newCARoot(ca.CAChainResult{
-			PEM:             tc.pem,
-			IntermediatePEM: tc.intermediatePem,
-		}, "provider-name", "cluster-id")
+		root, err := newCARoot(
+			tc.pem,
+			"provider-name", "cluster-id")
+		if tc.intermediatePem != "" {
+			setLeafSigningCert(root, tc.intermediatePem)
+		}
 		if tc.expectedErr != "" {
 			testutil.RequireErrorContains(t, err, tc.expectedErr)
 			return

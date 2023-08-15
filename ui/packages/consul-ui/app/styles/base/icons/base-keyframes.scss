@@ -1,9 +1,10 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
-*::before, *::after {
+*::before,
+*::after {
   display: inline-block;
   vertical-align: text-top;
 
@@ -13,16 +14,15 @@
   -webkit-mask-repeat: no-repeat;
   mask-position: center;
   -webkit-mask-position: center;
-
 }
 *::before {
   animation-name: var(--icon-name-start, var(--icon-name)),
-                  var(--icon-size-start, var(--icon-size, icon-000));
+    var(--icon-size-start, var(--icon-size, icon-000));
   background-color: var(--icon-color-start, var(--icon-color));
 }
 *::after {
   animation-name: var(--icon-name-end, var(--icon-name)),
-                  var(--icon-size-end, var(--icon-size, icon-000));
+    var(--icon-size-end, var(--icon-size, icon-000));
   background-color: var(--icon-color-end, var(--icon-color));
 }
 
@@ -69,8 +69,8 @@
 }
 @keyframes icon-500 {
   100% {
-    width: 1.250rem; /* 20px */
-    height: 1.250rem; /* 20px */
+    width: 1.25rem; /* 20px */
+    height: 1.25rem; /* 20px */
   }
 }
 @keyframes icon-600 {
@@ -81,8 +81,8 @@
 }
 @keyframes icon-700 {
   100% {
-    width: 1.500rem; /* 24px */
-    height: 1.500rem; /* 24px */
+    width: 1.5rem; /* 24px */
+    height: 1.5rem; /* 24px */
   }
 }
 @keyframes icon-800 {
@@ -93,8 +93,8 @@
 }
 @keyframes icon-900 {
   100% {
-    width: 1.750rem; /* 28px */
-    height: 1.750rem; /* 28px */
+    width: 1.75rem; /* 28px */
+    height: 1.75rem; /* 28px */
   }
 }
 @keyframes icon-999 {

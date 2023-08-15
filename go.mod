@@ -21,8 +21,8 @@ require (
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
-	github.com/aws/aws-sdk-go v1.42.34
-	github.com/coredns/coredns v1.6.6
+	github.com/aws/aws-sdk-go v1.44.289
+	github.com/coredns/coredns v1.10.1
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/envoyproxy/go-control-plane v0.11.0
@@ -38,11 +38,11 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.20.0
-	github.com/hashicorp/consul/envoyextensions v0.1.2
-	github.com/hashicorp/consul/proto-public v0.2.1
-	github.com/hashicorp/consul/sdk v0.13.1
-	github.com/hashicorp/consul/troubleshoot v0.1.2
+	github.com/hashicorp/consul/api v1.24.0
+	github.com/hashicorp/consul/envoyextensions v0.4.1
+	github.com/hashicorp/consul/proto-public v0.4.1
+	github.com/hashicorp/consul/sdk v0.14.1
+	github.com/hashicorp/consul/troubleshoot v0.3.1
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -61,8 +61,9 @@ require (
 	github.com/hashicorp/go-version v1.2.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
+	github.com/hashicorp/hcl/v2 v2.6.0
 	github.com/hashicorp/hcp-scada-provider v0.2.3
-	github.com/hashicorp/hcp-sdk-go v0.48.0
+	github.com/hashicorp/hcp-sdk-go v0.55.0
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 	github.com/hashicorp/memberlist v0.5.0
 	github.com/hashicorp/raft v1.5.0
@@ -77,7 +78,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87
 	github.com/imdario/mergo v0.3.15
 	github.com/kr/text v0.2.0
-	github.com/miekg/dns v1.1.41
+	github.com/miekg/dns v1.1.50
 	github.com/mitchellh/cli v1.1.0
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-testing-interface v1.14.0
@@ -86,15 +87,17 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/pointerstructure v1.2.1
 	github.com/mitchellh/reflectwalk v1.0.2
+	github.com/natefinch/npipe v0.0.0-20160621034901-c1b8fa8bdcce
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
-	github.com/rboyer/safeio v0.2.1
+	github.com/rboyer/safeio v0.2.3
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/shirou/gopsutil/v3 v3.22.8
 	github.com/stretchr/testify v1.8.3
+	github.com/zclconf/go-cty v1.2.0
 	go.etcd.io/bbolt v1.3.7
 	go.opentelemetry.io/otel v1.16.0
 	go.opentelemetry.io/otel/metric v1.16.0
@@ -102,12 +105,12 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v0.39.0
 	go.opentelemetry.io/proto/otlp v0.19.0
 	go.uber.org/goleak v1.1.10
-	golang.org/x/crypto v0.1.0
+	golang.org/x/crypto v0.11.0
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
-	golang.org/x/net v0.10.0
+	golang.org/x/net v0.13.0
 	golang.org/x/oauth2 v0.6.0
 	golang.org/x/sync v0.2.0
-	golang.org/x/sys v0.8.0
+	golang.org/x/sys v0.10.0
 	golang.org/x/time v0.3.0
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1
 	google.golang.org/grpc v1.55.0
@@ -117,25 +120,29 @@ require (
 	k8s.io/api v0.26.2
 	k8s.io/apimachinery v0.26.2
 	k8s.io/client-go v0.26.2
+	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 )
 
 require (
 	cloud.google.com/go/compute v1.19.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v0.13.0 // indirect
-	github.com/Azure/azure-sdk-for-go v44.0.0+incompatible // indirect
+	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.13 // indirect
-	github.com/Azure/go-autorest/autorest/azure/auth v0.5.0 // indirect
-	github.com/Azure/go-autorest/autorest/azure/cli v0.4.0 // indirect
+	github.com/Azure/go-autorest/autorest v0.11.28 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.18 // indirect
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12 // indirect
+	github.com/Azure/go-autorest/autorest/azure/cli v0.4.5 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.3.0 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
-	github.com/DataDog/datadog-go v3.2.0+incompatible // indirect
+	github.com/DataDog/datadog-go v4.8.2+incompatible // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
+	github.com/agext/levenshtein v1.2.1 // indirect
+	github.com/apparentlymart/go-textseg v1.0.0 // indirect
+	github.com/apparentlymart/go-textseg/v12 v12.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/benbjohnson/immutable v0.4.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -153,10 +160,9 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/denverdino/aliyungo v0.0.0-20170926055100-d3308649c661 // indirect
 	github.com/digitalocean/godo v1.10.0 // indirect
-	github.com/dimchansky/utfbom v1.1.0 // indirect
+	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.10.0 // indirect
-	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -170,6 +176,7 @@ require (
 	github.com/go-openapi/validate v0.22.1 // indirect
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -205,6 +212,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -219,7 +227,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.37.0 // indirect
+	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/renier/xmlrpc v0.0.0-20170708154548-ce4a1a486c03 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -243,19 +251,19 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
+	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/resty.v1 v1.12.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
-	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect

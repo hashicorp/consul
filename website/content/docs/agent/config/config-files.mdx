@@ -472,8 +472,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   that match a registering service instance. If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any affected service registrations.
   This defaults to `false` in versions of Consul prior to 1.9.0, and defaults to `true` in Consul 1.9.0 and later.
 
-- `enable_debug` When set, enables some additional debugging features. Currently, this is only used to
-  access runtime profiling HTTP endpoints, which are available with an `operator:read` ACL regardless of the value of `enable_debug`.
+- `enable_debug` (boolean, default is `false`): When set to `true`, enables Consul to report additional debugging information, including runtime profiling (`pprof`) data. This setting is only required for clusters without ACL [enabled](#acl_enabled). If you change this setting, you must restart the agent for the change to take effect.
 
 - `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/docs/agent/config/cli-flags#_enable_script_checks).
 
@@ -711,6 +710,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     servers in all federated datacenters must have this enabled before any client can use
     [`use_streaming_backend`](#use_streaming_backend).
 
+- `reporting`<EnterpriseAlert inline /> - This option allows options for HashiCorp reporting.
+    - `license` - The license object allows users to control automatic reporting of license utilization metrics to HashiCorp.
+      - `enabled`: (Defaults to `true`) Enables automatic license utilization reporting.
+
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/docs/agent/config/cli-flags#_segment).
 
   ~> **Warning:** The `segment` option cannot be used with the [`partition`](#partition-1) option.
@@ -739,7 +742,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `server_rejoin_age_max` - controls the allowed maximum age of a stale server attempting to rejoin a cluster.
   If a server is not running for this period, then it will refuse to start up again until an operator intervenes. This is to protect
   clusters from instability caused by decommissioned servers accidentally being started again.
-  Note: the default value is 7d and the minimum value is 6h.
+  Note: the default value is 168h (equal to 7d) and the minimum value is 6h.
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
 
@@ -945,7 +948,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       `service:write` permissions for service "B", the agent will successfully register service "A"
       and fail to register service "B". Failed registration requests are eventually retried as part
       of [anti-entropy enforcement](/consul/docs/architecture/anti-entropy). If a registration request is
-      failing due to missing permissions, the the token for this agent can be updated with
+      failing due to missing permissions, the token for this agent can be updated with
       additional policy rules or the `config_file_service_registration` token can be replaced using
       the [Set Agent Token](/consul/commands/acl/set-agent-token) CLI command.
 
@@ -2091,6 +2094,12 @@ specially crafted certificate signed by the CA can be used to gain full access t
       * `TLSv1_2` (default)
       * `TLSv1_3`
 
+    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When 
+      set to true, Consul verifies the TLS certificate presented by the servers 
+      match the hostname `server.<datacenter>.<domain>`. By default this is false, 
+      and Consul does not verify the hostname of the certificate, only that it 
+      is signed by a trusted CA. 
+
       **WARNING: TLS 1.1 and lower are generally considered less secure and
       should not be used if possible.**
 
@@ -2198,7 +2207,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       only way to enforce that no client can communicate with a server unencrypted
       is to also enable `verify_incoming` which requires client certificates too.
 
-    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When
+    - `verify_server_hostname` Overrides [tls.defaults.verify_server_hostname](#tls_defaults_verify_server_hostname). When
       set to true, Consul verifies the TLS certificate presented by the servers
       match the hostname `server.<datacenter>.<domain>`. By default this is false,
       and Consul does not verify the hostname of the certificate, only that it
@@ -2282,9 +2291,6 @@ tls {
     ca_file = "/etc/pki/tls/certs/ca-bundle.crt"
     verify_incoming = true
     verify_outgoing = true
-  }
-
-  internal_rpc {
     verify_server_hostname = true
   }
 }
@@ -2313,9 +2319,7 @@ tls {
       "cert_file": "/etc/pki/tls/certs/my.crt",
       "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
       "verify_incoming": true,
-      "verify_outgoing": true
-    },
-    "internal_rpc": {
+      "verify_outgoing": true,
       "verify_server_hostname": true
     }
   }

@@ -208,7 +208,8 @@
                       },
                       "metadataContextNamespaces": [
                         "test-ns-1",
-                        "test-ns-2"
+                        "test-ns-2",
+                        "consul"
                       ],
                       "includePeerCertificate": true,
                       "statPrefix": "ext_authz_stats",
@@ -232,7 +233,12 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],

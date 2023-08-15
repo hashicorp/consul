@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -20,7 +20,8 @@ import (
 )
 
 func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
-	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	// TODO(spatel): Refactor _ and entMeta as part of NET-4912
+	authz, _, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 %breadcrumbs {
@@ -13,7 +13,7 @@
 %breadcrumbs > li {
   list-style-type: none;
   display: inline-flex;
-  overflow: hidden
+  overflow: hidden;
 }
 %breadcrumb-milestone::before {
   margin-right: 4px;

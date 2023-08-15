@@ -1,14 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 @keyframes icon-credit-card {
   100% {
-
     -webkit-mask-image: var(--icon-credit-card-16);
     mask-image: var(--icon-credit-card-16);
     background-color: var(--icon-color, var(--color-credit-card-500, currentColor));
-
   }
 }

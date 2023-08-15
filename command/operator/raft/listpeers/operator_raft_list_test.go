@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package listpeers
 
@@ -28,7 +28,7 @@ func TestOperatorRaftListPeersCommand(t *testing.T) {
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
-	expected := fmt.Sprintf("%s  %s  127.0.0.1:%d  leader  true   3",
+	expected := fmt.Sprintf("%s  %s  127.0.0.1:%d  leader  true   3             1             -",
 		a.Config.NodeName, a.Config.NodeID, a.Config.ServerPort)
 
 	// Test the list-peers subcommand directly

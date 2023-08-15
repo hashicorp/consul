@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package lua
 
@@ -45,6 +45,9 @@ func (l *lua) fromArguments(args map[string]interface{}) error {
 	if err := mapstructure.Decode(args, l); err != nil {
 		return fmt.Errorf("error decoding extension arguments: %v", err)
 	}
+	if l.ProxyType == "" {
+		l.ProxyType = string(api.ServiceKindConnectProxy)
+	}
 	return l.validate()
 }
 
@@ -53,7 +56,7 @@ func (l *lua) validate() error {
 	if l.Script == "" {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("missing Script value"))
 	}
-	if l.ProxyType != "connect-proxy" {
+	if l.ProxyType != string(api.ServiceKindConnectProxy) {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected ProxyType %q", l.ProxyType))
 	}
 	if l.Listener != "inbound" && l.Listener != "outbound" {

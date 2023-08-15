@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package propertyoverride
 
 import (
@@ -191,6 +194,10 @@ func (f *ResourceFilter) validate() error {
 		return err
 	}
 
+	if len(f.Services) > 0 && f.TrafficDirection != extensioncommon.TrafficDirectionOutbound {
+		return fmt.Errorf("patch contains non-empty ResourceFilter.Services but ResourceFilter.TrafficDirection is not %q",
+			extensioncommon.TrafficDirectionOutbound)
+	}
 	for i := range f.Services {
 		sn := f.Services[i]
 		sn.normalize()
@@ -255,12 +262,15 @@ func (p *propertyOverride) validate() error {
 	}
 
 	var resultErr error
-	for _, patch := range p.Patches {
+	for i, patch := range p.Patches {
 		if err := patch.validate(p.Debug); err != nil {
-			resultErr = multierror.Append(resultErr, err)
+			resultErr = multierror.Append(resultErr, fmt.Errorf("invalid Patches[%d]: %w", i, err))
 		}
 	}
 
+	if p.ProxyType == "" {
+		p.ProxyType = api.ServiceKindConnectProxy
+	}
 	if err := validProxyTypes.CheckRequired(string(p.ProxyType), "ProxyType"); err != nil {
 		resultErr = multierror.Append(resultErr, err)
 	}

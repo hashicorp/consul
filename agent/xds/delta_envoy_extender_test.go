@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -49,6 +49,13 @@ func makeExtAuthzEnvoyExtension(svc string, opts ...string) []structs.EnvoyExten
 						"Location":   location,
 						"FilterName": filterName,
 					}
+				}
+			case "target-uri":
+				target = map[string]any{"URI": v}
+				configMap = map[string]any{
+					serviceKey: map[string]any{
+						"Target": target,
+					},
 				}
 			case "config-type":
 				if v == "full" {

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package bootstrap
 
 import (
@@ -305,9 +308,10 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 		warning string
 	}
 	type testCase struct {
-		existingCluster bool
-		mutateFn        func(t *testing.T, dir string)
-		expect          expect
+		existingCluster        bool
+		disableManagementToken bool
+		mutateFn               func(t *testing.T, dir string)
+		expect                 expect
 	}
 
 	run := func(t *testing.T, tc testCase) {
@@ -319,7 +323,7 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 
 		// Do some common setup as if we received config from HCP and persisted it to disk.
 		require.NoError(t, lib.EnsurePath(dir, true))
-		require.NoError(t, persistSucessMarker(dir))
+		require.NoError(t, persistSuccessMarker(dir))
 
 		if !tc.existingCluster {
 			caCert, caKey, err := tlsutil.GenerateCA(tlsutil.CAOpts{})
@@ -333,9 +337,12 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 			require.NoError(t, persistBootstrapConfig(dir, cfgJSON))
 		}
 
-		token, err := uuid.GenerateUUID()
-		require.NoError(t, err)
-		require.NoError(t, persistManagementToken(dir, token))
+		var token string
+		if !tc.disableManagementToken {
+			token, err = uuid.GenerateUUID()
+			require.NoError(t, err)
+			require.NoError(t, persistManagementToken(dir, token))
+		}
 
 		// Optionally mutate the persisted data to trigger errors while loading.
 		if tc.mutateFn != nil {
@@ -348,7 +355,6 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 		if loaded {
 			require.Equal(t, token, cfg.ManagementToken)
 			require.Empty(t, ui.ErrorWriter.String())
-
 		} else {
 			require.Nil(t, cfg)
 			require.Contains(t, ui.ErrorWriter.String(), tc.expect.warning)
@@ -365,15 +371,11 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 				warning: "",
 			},
 		},
-		"existing cluster missing token": {
-			existingCluster: true,
-			mutateFn: func(t *testing.T, dir string) {
-				// Remove the token file while leaving the existing cluster marker.
-				require.NoError(t, os.Remove(filepath.Join(dir, tokenFileName)))
-			},
+		"existing cluster no token": {
+			existingCluster:        true,
+			disableManagementToken: true,
 			expect: expect{
-				loaded:  false,
-				warning: "configuration files on disk are incomplete",
+				loaded: false,
 			},
 		},
 		"existing cluster no files": {
@@ -394,6 +396,12 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 			expect: expect{
 				loaded:  true,
 				warning: "",
+			},
+		},
+		"new cluster with no token": {
+			disableManagementToken: true,
+			expect: expect{
+				loaded: false,
 			},
 		},
 		"new cluster some files": {

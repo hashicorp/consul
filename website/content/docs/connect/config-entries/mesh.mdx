@@ -7,8 +7,6 @@ description: >-
 
 # Mesh Configuration Entry
 
--> **v1.10.0+:** This configuration entry is supported in Consul versions 1.10.0+.
-
 The `mesh` configuration entry allows you to define a global default configuration that applies to all service mesh proxies.
 Settings in this config entry apply across all namespaces and federated datacenters.
 
@@ -337,6 +335,12 @@ Note that the Kubernetes example does not include a `partition` field. Configura
                         original destination IP address. Consul will not encrypt the connection.`,
         },
       ],
+    },
+    {
+      name: 'AllowEnablingPermissiveMutualTLS',
+      type: 'bool: false',
+      description:
+        'Controls whether `MutualTLSMode=permissive` can be set in the `proxy-defaults` and `service-defaults` configuration entries. '
     },
     {
       name: 'TLS',

@@ -91,20 +91,6 @@
                 },
                 "httpFilters": [
                   {
-                    "name": "envoy.filters.http.ext_authz",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz",
-                      "grpcService": {
-                        "envoyGrpc": {
-                          "clusterName": "local_ext_authz"
-                        }
-                      },
-                      "transportApiVersion": "V3",
-                      "failureModeAllow": true,
-                      "statPrefix": "response"
-                    }
-                  },
-                  {
                     "name": "envoy.filters.http.rbac",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
@@ -190,6 +176,23 @@
                     }
                   },
                   {
+                    "name": "envoy.filters.http.ext_authz",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz",
+                      "grpcService": {
+                        "envoyGrpc": {
+                          "clusterName": "local_ext_authz"
+                        }
+                      },
+                      "transportApiVersion": "V3",
+                      "failureModeAllow": true,
+                      "metadataContextNamespaces": [
+                        "consul"
+                      ],
+                      "statPrefix": "response"
+                    }
+                  },
+                  {
                     "name": "envoy.filters.http.router",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
@@ -206,7 +209,12 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],

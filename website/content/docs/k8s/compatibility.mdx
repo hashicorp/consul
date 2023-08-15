@@ -11,13 +11,19 @@ For every release of Consul on Kubernetes, a Helm chart, `consul-k8s-control-pla
 
 ## Supported Consul and Kubernetes versions
 
-Consul Kubernetes versions all of its components (`consul-k8s` CLI, `consul-k8s-control-plane`, and Helm chart) with a single semantic version. When installing or upgrading to a specific versions, ensure that you are using the correct Consul version with the compatible `consul-k8s` helm chart and/or CLI.
+Consul Kubernetes versions all of its components (`consul-k8s` CLI, `consul-k8s-control-plane`, and Helm chart) with a single semantic version. When installing or upgrading to a specific versions, ensure that you are using the correct Consul version with the compatible Helm chart or `consul-k8s` CLI.
 
-| Consul Version | Compatible consul-k8s Versions   | Compatible Kubernetes Versions | 
-| -------------- | -------------------------------- | -------------------------------|
-| 1.15.x         | 1.1.x                            | 1.23.x - 1.26.x                |
-| 1.14.x         | 1.0.x                            | 1.22.x - 1.25.x                |
-| 1.13.x         | 0.49.x                           | 1.21.x - 1.24.x                |
+| Consul version | Compatible `consul-k8s` versions | Compatible Kubernetes versions | Compatible OpenShift versions |
+| -------------- | -------------------------------- | -------------------------------| ----------------------------- |
+| 1.16.x         | 1.2.x                            | 1.24.x - 1.27.x                | 4.11.x - 4.14.x               |
+| 1.15.x         | 1.1.x                            | 1.23.x - 1.26.x                | 4.10.x - 4.13.x               |
+| 1.14.x         | 1.0.x                            | 1.22.x - 1.25.x                | 4.9.x - 4.12.x                |
+
+### Version-specific upgrade requirements
+
+As of Consul v1.14.0, Kubernetes deployments use [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. If you upgrade Consul from a version that uses client agents to a version that uses dataplanes, you must follow specific steps to update your Helm chart and remove client agents from the existing deployment. Refer to [Upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplane) for more information.
+
+The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs`](https://github.com/hashicorp/go-netaddrs) library and command line tool for more information.
 
 ## Supported Envoy versions
 
@@ -35,9 +41,7 @@ Starting with Consul K8s 0.39.0 and Consul 1.11.x, Consul Kubernetes supports th
 
 ### Red Hat OpenShift
 
-Consul Kubernetes delivered Red Hat OpenShift support starting with Consul Helm chart version 0.25.0 for Consul 1.8.4. Please note the following details regarding OpenShift support.
-
-- Red Hat OpenShift is only supported for OpenShift 4.4.x and above.
+You can enable support for Red Hat OpenShift by setting `enabled: true` in the `global.openshift` stanza. Refer to the [Deploy Consul on RedHat OpenShift tutorial](https://developer.hashicorp.com/consul/tutorials/kubernetes/kubernetes-openshift-red-hat) for instructions on deploying to OpenShift. 
 - Only the default CNI Plugin, [OpenShift SDN CNI Plugin](https://docs.openshift.com/container-platform/4.9/networking/openshift_sdn/about-openshift-sdn.html) is currently supported.
 
 ### VMware Tanzu Kubernetes Grid and Tanzu Kubernetes Grid Integrated Edition

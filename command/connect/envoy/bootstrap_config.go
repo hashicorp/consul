@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package envoy
 
@@ -847,7 +847,8 @@ func appendTelemetryCollectorConfig(args *BootstrapTplArgs, telemetryCollectorBi
 			"envoy_grpc": {
 			  "cluster_name": "consul_telemetry_collector_loopback"
 			}
-		  }
+		  },
+		  "emit_tags_as_labels": true
 		}
 	  }`
 

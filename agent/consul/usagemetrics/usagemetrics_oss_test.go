@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
 // +build !consulent
@@ -147,6 +147,22 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "ingress-gateway"},
+				},
+			},
+			"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=api-gateway": { // Legacy
+				Name:  "consul.usage.test.consul.state.connect_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "api-gateway"},
+				},
+			},
+			"consul.usage.test.state.connect_instances;datacenter=dc1;kind=api-gateway": {
+				Name:  "consul.usage.test.state.connect_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "api-gateway"},
 				},
 			},
 			"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=mesh-gateway": { // Legacy
@@ -622,6 +638,22 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "ingress-gateway"},
+				},
+			},
+			"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=api-gateway": { // Legacy
+				Name:  "consul.usage.test.consul.state.connect_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "api-gateway"},
+				},
+			},
+			"consul.usage.test.state.connect_instances;datacenter=dc1;kind=api-gateway": {
+				Name:  "consul.usage.test.state.connect_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "api-gateway"},
 				},
 			},
 			"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=mesh-gateway": { // Legacy
@@ -1127,6 +1159,9 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 		require.NoError(t, s.EnsureNode(3, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
 		require.NoError(t, s.EnsureNode(4, &structs.Node{Node: "qux", Address: "127.0.0.3"}))
 
+		apigw := structs.TestNodeServiceAPIGateway(t)
+		apigw.ID = "api-gateway"
+
 		mgw := structs.TestNodeServiceMeshGateway(t)
 		mgw.ID = "mesh-gateway"
 
@@ -1141,16 +1176,17 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 		require.NoError(t, s.EnsureRegistration(10, structs.TestRegisterIngressGateway(t)))
 		require.NoError(t, s.EnsureService(11, "foo", mgw))
 		require.NoError(t, s.EnsureService(12, "foo", tgw))
-		require.NoError(t, s.EnsureService(13, "bar", &structs.NodeService{ID: "db-native", Service: "db", Tags: nil, Address: "", Port: 5000, Connect: structs.ServiceConnect{Native: true}}))
-		require.NoError(t, s.EnsureConfigEntry(14, &structs.IngressGatewayConfigEntry{
+		require.NoError(t, s.EnsureService(13, "foo", apigw))
+		require.NoError(t, s.EnsureService(14, "bar", &structs.NodeService{ID: "db-native", Service: "db", Tags: nil, Address: "", Port: 5000, Connect: structs.ServiceConnect{Native: true}}))
+		require.NoError(t, s.EnsureConfigEntry(15, &structs.IngressGatewayConfigEntry{
 			Kind: structs.IngressGateway,
 			Name: "foo",
 		}))
-		require.NoError(t, s.EnsureConfigEntry(15, &structs.IngressGatewayConfigEntry{
+		require.NoError(t, s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
 			Kind: structs.IngressGateway,
 			Name: "bar",
 		}))
-		require.NoError(t, s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
+		require.NoError(t, s.EnsureConfigEntry(17, &structs.IngressGatewayConfigEntry{
 			Kind: structs.IngressGateway,
 			Name: "baz",
 		}))
@@ -1191,22 +1227,22 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.services;datacenter=dc1"] = metrics.GaugeValue{ // Legacy
 		Name:   "consul.usage.test.consul.state.services",
-		Value:  7,
+		Value:  8,
 		Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.state.services;datacenter=dc1"] = metrics.GaugeValue{
 		Name:   "consul.usage.test.state.services",
-		Value:  7,
+		Value:  8,
 		Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.service_instances;datacenter=dc1"] = metrics.GaugeValue{ // Legacy
 		Name:   "consul.usage.test.consul.state.service_instances",
-		Value:  9,
+		Value:  10,
 		Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.state.service_instances;datacenter=dc1"] = metrics.GaugeValue{
 		Name:   "consul.usage.test.state.service_instances",
-		Value:  9,
+		Value:  10,
 		Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-proxy"] = metrics.GaugeValue{ // Legacy
@@ -1255,6 +1291,22 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: "dc1"},
 			{Name: "kind", Value: "ingress-gateway"},
+		},
+	}
+	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=api-gateway"] = metrics.GaugeValue{ // Legacy
+		Name:  "consul.usage.test.consul.state.connect_instances",
+		Value: 1,
+		Labels: []metrics.Label{
+			{Name: "datacenter", Value: "dc1"},
+			{Name: "kind", Value: "api-gateway"},
+		},
+	}
+	nodesAndSvcsCase.expectedGauges["consul.usage.test.state.connect_instances;datacenter=dc1;kind=api-gateway"] = metrics.GaugeValue{
+		Name:  "consul.usage.test.state.connect_instances",
+		Value: 1,
+		Labels: []metrics.Label{
+			{Name: "datacenter", Value: "dc1"},
+			{Name: "kind", Value: "api-gateway"},
 		},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=mesh-gateway"] = metrics.GaugeValue{ // Legacy

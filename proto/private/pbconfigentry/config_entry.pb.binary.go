@@ -508,6 +508,46 @@ func (msg *APIGatewayTLSConfiguration) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *APIGatewayPolicy) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *APIGatewayPolicy) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *APIGatewayJWTRequirement) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *APIGatewayJWTRequirement) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *APIGatewayJWTProvider) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *APIGatewayJWTProvider) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *APIGatewayJWTClaimVerification) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *APIGatewayJWTClaimVerification) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *ResourceReference) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
@@ -628,6 +668,36 @@ func (msg *URLRewrite) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *RetryFilter) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *RetryFilter) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *TimeoutFilter) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *TimeoutFilter) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *JWTFilter) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *JWTFilter) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *HTTPHeaderFilter) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
@@ -724,6 +794,46 @@ func (msg *RemoteJWKS) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *RemoteJWKS) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *JWKSCluster) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *JWKSCluster) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *JWKSTLSCertificate) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *JWKSTLSCertificate) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *JWKSTLSCertProviderInstance) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *JWKSTLSCertProviderInstance) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *JWKSTLSCertTrustedCA) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *JWKSTLSCertTrustedCA) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

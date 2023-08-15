@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
@@ -183,6 +183,7 @@ type Config struct {
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
 	EncryptVerifyOutgoing            *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
+	Experiments                      []string            `mapstructure:"experiments" json:"experiments,omitempty"`
 	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config" json:"-"`

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -36,12 +36,29 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		return nil, err
 	}
 
-	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	// TODO(spatel): Refactor _ and entMeta in NET-4919
+	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
 	if err != nil {
 		return nil, err
 	}
 
-	err = reg.ACLs.Write(authz, req.Id)
+	// Retrieve resource since ACL hook requires it. Furthermore, we'll need the
+	// read to be strongly consistent if the passed in Version or Uid are empty.
+	consistency := storage.EventualConsistency
+	if req.Version == "" || req.Id.Uid == "" {
+		consistency = storage.StrongConsistency
+	}
+	existing, err := s.Backend.Read(ctx, consistency, req.Id)
+	switch {
+	case errors.Is(err, storage.ErrNotFound):
+		// Deletes are idempotent so no-op when not found
+		return &pbresource.DeleteResponse{}, nil
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
+	}
+
+	// Check ACLs
+	err = reg.ACLs.Write(authz, authzContext, existing)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -49,27 +66,11 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
 	}
 
-	// The storage backend requires a Version and Uid to delete a resource based
-	// on CAS semantics. When either are not provided, the resource must be read
-	// with a strongly consistent read to retrieve either or both.
-	//
-	// n.b.: There is a chance DeleteCAS may fail with a storage.ErrCASFailure
-	// if an update occurs between the Read and DeleteCAS. Consider refactoring
-	// to use retryCAS() similar to the Write endpoint to close this gap.
 	deleteVersion := req.Version
 	deleteId := req.Id
 	if deleteVersion == "" || deleteId.Uid == "" {
-		existing, err := s.Backend.Read(ctx, storage.StrongConsistency, req.Id)
-		switch {
-		case err == nil:
-			deleteVersion = existing.Version
-			deleteId = existing.Id
-		case errors.Is(err, storage.ErrNotFound):
-			// Deletes are idempotent so no-op when not found
-			return &pbresource.DeleteResponse{}, nil
-		default:
-			return nil, status.Errorf(codes.Internal, "failed read: %v", err)
-		}
+		deleteVersion = existing.Version
+		deleteId = existing.Id
 	}
 
 	if err := s.maybeCreateTombstone(ctx, deleteId); err != nil {

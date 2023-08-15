@@ -1,14 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 @keyframes icon-check-circle {
   100% {
-
     -webkit-mask-image: var(--icon-check-circle-16);
     mask-image: var(--icon-check-circle-16);
     background-color: var(--icon-color, var(--color-check-circle-500, currentColor));
-
   }
 }

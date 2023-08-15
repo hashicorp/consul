@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -212,7 +213,7 @@ type InternalServiceDump interface {
 // LeafCertificate is the interface used to consume updates about a service's
 // leaf certificate.
 type LeafCertificate interface {
-	Notify(ctx context.Context, req *cachetype.ConnectCALeafRequest, correlationID string, ch chan<- UpdateEvent) error
+	Notify(ctx context.Context, req *leafcert.ConnectCALeafRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
 // PeeredUpstreams is the interface used to consume updates about upstreams

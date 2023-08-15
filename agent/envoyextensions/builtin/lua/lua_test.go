@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package lua
 
@@ -53,6 +53,15 @@ func TestConstructor(t *testing.T) {
 		"invalid listener": {
 			arguments: makeArguments(map[string]interface{}{"Listener": "invalid"}),
 			ok:        false,
+		},
+		"default proxy type": {
+			arguments: makeArguments(map[string]interface{}{"ProxyType": ""}),
+			expected: lua{
+				ProxyType: "connect-proxy",
+				Listener:  "inbound",
+				Script:    "lua-script",
+			},
+			ok: true,
 		},
 		"valid everything": {
 			arguments: makeArguments(map[string]interface{}{}),

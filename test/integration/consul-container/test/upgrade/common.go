@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package upgrade
 
 import (
@@ -66,7 +69,7 @@ func CreateAndRegisterStaticClientSidecarWith2Upstreams(c *cluster.Cluster, dest
 		ServiceID: libservice.StaticClientServiceName,
 	}
 
-	clientConnectProxy, err := libservice.NewConnectService(context.Background(), sidecarCfg, []int{cluster.ServiceUpstreamLocalBindPort, cluster.ServiceUpstreamLocalBindPort2}, node)
+	clientConnectProxy, err := libservice.NewConnectService(context.Background(), sidecarCfg, []int{cluster.ServiceUpstreamLocalBindPort, cluster.ServiceUpstreamLocalBindPort2}, node, nil)
 	if err != nil {
 		return nil, err
 	}

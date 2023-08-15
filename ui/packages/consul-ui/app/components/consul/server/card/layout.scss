@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 %consul-server-card {
@@ -23,7 +23,3 @@
 %consul-server-card.voting-status-leader dd {
   margin-left: calc(var(--tile-size) + 1rem); /* 16px */
 }
-
-
-
-

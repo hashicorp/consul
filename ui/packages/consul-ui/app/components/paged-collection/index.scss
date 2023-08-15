@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 %paged-collection-scroll {
@@ -10,12 +10,11 @@
 .paged-collection-scroll {
   @extend %paged-collection-scroll;
 }
-[style*="--paged-row-height"] {
+[style*='--paged-row-height'] {
   @extend %paged-collection-scroll;
 }
-[style*="--paged-start"]::before {
+[style*='--paged-start']::before {
   content: '';
   display: block;
   height: var(--paged-start);
 }
-

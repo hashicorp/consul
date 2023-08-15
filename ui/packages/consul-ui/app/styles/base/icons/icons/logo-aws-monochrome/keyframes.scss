@@ -1,14 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 @keyframes icon-logo-aws-monochrome {
   100% {
-
     -webkit-mask-image: var(--icon-aws-color-16);
     mask-image: var(--icon-aws-color-16);
     background-color: var(--icon-color, var(--color-logo-aws-monochrome-500, currentColor));
-
   }
 }

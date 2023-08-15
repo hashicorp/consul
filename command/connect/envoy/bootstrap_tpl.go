@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package envoy
 
@@ -8,7 +8,7 @@ package envoy
 type BootstrapTplArgs struct {
 	GRPC
 
-	// ProxyCluster is the cluster name for the the Envoy `node` specification and
+	// ProxyCluster is the cluster name for the Envoy `node` specification and
 	// is typically the same as the ProxyID.
 	ProxyCluster string
 
@@ -281,10 +281,12 @@ const bootstrapTemplate = `{
   "dynamic_resources": {
     "lds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "cds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "ads_config": {

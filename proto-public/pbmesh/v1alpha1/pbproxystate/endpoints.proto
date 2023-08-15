@@ -1,0 +1,29 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1.pbproxystate;
+
+import "google/protobuf/wrappers.proto";
+import "pbmesh/v1alpha1/pbproxystate/address.proto";
+
+message Endpoints {
+  repeated Endpoint endpoints = 1;
+}
+
+message Endpoint {
+  oneof address {
+    HostPortAddress host_port = 1;
+    UnixSocketAddress unix_socket = 2;
+  }
+  HealthStatus health_status = 3;
+  google.protobuf.UInt32Value load_balancing_weight = 4;
+}
+
+enum HealthStatus {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  HEALTH_STATUS_UNKNOWN = 0;
+  HEALTH_STATUS_HEALTHY = 1;
+  HEALTH_STATUS_UNHEALTHY = 2;
+}

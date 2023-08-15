@@ -1,11 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
@@ -145,6 +146,12 @@ func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID, policyName string) (interface{}, error) {
+	// policy name needs to be unescaped in case there were `/` characters
+	policyName, err := url.QueryUnescape(policyName)
+	if err != nil {
+		return nil, err
+	}
+
 	args := structs.ACLPolicyGetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		PolicyID:   policyID,
@@ -441,8 +448,16 @@ func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenAccessorID st
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
-	if !create && args.ACLToken.AccessorID != tokenAccessorID {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Token Accessor ID in URL and payload do not match"}
+	if !create {
+		// NOTE: AccessorID in the request body is optional when not creating a new token.
+		// If not present in the body and only in the URL then it will be filled in by Consul.
+		if args.ACLToken.AccessorID == "" {
+			args.ACLToken.AccessorID = tokenAccessorID
+		}
+
+		if args.ACLToken.AccessorID != tokenAccessorID {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Token Accessor ID in URL and payload do not match"}
+		}
 	}
 
 	var out structs.ACLToken

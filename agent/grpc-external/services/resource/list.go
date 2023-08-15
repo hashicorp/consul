@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -25,7 +25,8 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		return nil, err
 	}
 
-	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	// TODO(spatel): Refactor _ and entMeta in NET-4915
+	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		}
 
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, resource.Id)
+		err = reg.ACLs.Read(authz, authzContext, resource.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue
