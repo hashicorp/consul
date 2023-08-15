@@ -924,6 +924,75 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	return s.agentCheckUpdate(resp, req, checkID, update.Status, update.Output)
 }
 
+// AgentCheckRun runs a check given a check id.
+func (s *HTTPHandlers) AgentCheckRun(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	queryCheckId := req.URL.Query().Get("check-id")
+	if queryCheckId == "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Please pass check-id in query")}
+	}
+
+	checkId := structs.CheckID{
+		ID:             types.CheckID(queryCheckId),
+		EnterpriseMeta: acl.EnterpriseMeta{},
+	}
+
+	checkTCP, ok := s.agent.checkTCPs[checkId]
+	if ok {
+		checkTCP.Stop()
+		checkTCP.Start()
+		return nil, nil
+	}
+	checkTTL, ok := s.agent.checkTTLs[checkId]
+	if ok {
+		checkTTL.Stop()
+		checkTTL.Start()
+		return nil, nil
+	}
+	checkUDP, ok := s.agent.checkUDPs[checkId]
+	if ok {
+		checkUDP.Stop()
+		checkUDP.Start()
+		return nil, nil
+	}
+	checkAlias, ok := s.agent.checkAliases[checkId]
+	if ok {
+		checkAlias.Stop()
+		checkAlias.Start()
+		return nil, nil
+	}
+	checkDocker, ok := s.agent.checkDockers[checkId]
+	if ok {
+		checkDocker.Stop()
+		checkDocker.Start()
+		return nil, nil
+	}
+	checkGRPC, ok := s.agent.checkGRPCs[checkId]
+	if ok {
+		checkGRPC.Stop()
+		checkGRPC.Start()
+		return nil, nil
+	}
+	checkH2PING, ok := s.agent.checkH2PINGs[checkId]
+	if ok {
+		checkH2PING.Stop()
+		checkH2PING.Start()
+		return nil, nil
+	}
+	checkMonitor, ok := s.agent.checkMonitors[checkId]
+	if ok {
+		checkMonitor.Stop()
+		checkMonitor.Start()
+		return nil, nil
+	}
+	checkOSService, ok := s.agent.checkOSServices[checkId]
+	if ok {
+		checkOSService.Stop()
+		checkOSService.Start()
+		return nil, nil
+	}
+	return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Check not found")}
+}
+
 func (s *HTTPHandlers) agentCheckUpdate(resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
 	entMeta := acl.NewEnterpriseMetaWithPartition(s.agent.config.PartitionOrDefault(), "")
 	cid := structs.NewCheckID(checkID, &entMeta)

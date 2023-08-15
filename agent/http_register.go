@@ -50,6 +50,7 @@ func init() {
 	registerEndpoint("/v1/agent/check/warn/", []string{"PUT"}, (*HTTPHandlers).AgentCheckWarn)
 	registerEndpoint("/v1/agent/check/fail/", []string{"PUT"}, (*HTTPHandlers).AgentCheckFail)
 	registerEndpoint("/v1/agent/check/update/", []string{"PUT"}, (*HTTPHandlers).AgentCheckUpdate)
+	registerEndpoint("/v1/agent/check/run", []string{"GET"}, (*HTTPHandlers).AgentCheckRun)
 	registerEndpoint("/v1/agent/connect/authorize", []string{"POST"}, (*HTTPHandlers).AgentConnectAuthorize)
 	registerEndpoint("/v1/agent/connect/ca/roots", []string{"GET"}, (*HTTPHandlers).AgentConnectCARoots)
 	registerEndpoint("/v1/agent/connect/ca/leaf/", []string{"GET"}, (*HTTPHandlers).AgentConnectCALeafCert)
