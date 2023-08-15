@@ -1,0 +1,3 @@
+```release-note:enhancement
+ui: Adds last timestamp the check was run. Also added a button the re-run check instantly.
+```
