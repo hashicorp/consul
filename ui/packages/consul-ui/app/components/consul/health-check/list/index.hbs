@@ -47,6 +47,11 @@
             <dt>Last Check Start Time</dt>
             {{#if item.Interval }}
                 <dd>{{ item.LastCheckStartTimeDisplay }}</dd>
+                <div class="hds-button__text">
+                    <button type="button" {{action 'reRunCheck' item.CheckID}}>
+                        Run Check Now
+                    </button>
+                </div>
             {{else}}
                 <dd>{{ '-' }}</dd>
             {{/if}}
