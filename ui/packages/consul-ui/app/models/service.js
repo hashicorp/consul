@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import Model, { attr, belongsTo, defaultValue } from '@ember-data/model';
+import Model, { attr, belongsTo } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { fragment } from 'ember-data-model-fragments/attributes';
