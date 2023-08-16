@@ -7,6 +7,7 @@ package hashicorp.consul.internal.service;
 
 import "google/protobuf/duration.proto";
 import "private/pbcommon/common.proto";
+import "google/protobuf/timestamp.proto";
 
 // HealthCheck represents a single check on a given node
 //
@@ -42,7 +43,7 @@ message HealthCheck {
   string Interval = 15;
   string Timeout = 16;
   string PeerName = 17;
-  string LastCheckStartTime = 18;
+  google.protobuf.Timestamp LastCheckStartTime = 18;
 }
 
 message HeaderValue {
