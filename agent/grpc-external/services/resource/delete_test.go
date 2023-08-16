@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -30,19 +30,22 @@ func TestDelete_InputValidation(t *testing.T) {
 		"no type":    func(req *pbresource.DeleteRequest) { req.Id.Type = nil },
 		"no tenancy": func(req *pbresource.DeleteRequest) { req.Id.Tenancy = nil },
 		"no name":    func(req *pbresource.DeleteRequest) { req.Id.Name = "" },
+
+		// TODO(spatel): Refactor tenancy as part of NET-4919
+		//
 		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition not default": func(req *pbresource.DeleteRequest) {
-			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Partition = ""
-		},
-		"tenancy namespace not default": func(req *pbresource.DeleteRequest) {
-			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Namespace = ""
-		},
-		"tenancy peername not local": func(req *pbresource.DeleteRequest) {
-			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.PeerName = ""
-		},
+		// "tenancy partition not default": func(req *pbresource.DeleteRequest) {
+		// 	req.Id.Tenancy = clone(req.Id.Tenancy)
+		// 	req.Id.Tenancy.Partition = ""
+		// },
+		// "tenancy namespace not default": func(req *pbresource.DeleteRequest) {
+		// 	req.Id.Tenancy = clone(req.Id.Tenancy)
+		// 	req.Id.Tenancy.Namespace = ""
+		// },
+		// "tenancy peername not local": func(req *pbresource.DeleteRequest) {
+		// 	req.Id.Tenancy = clone(req.Id.Tenancy)
+		// 	req.Id.Tenancy.PeerName = ""
+		// },
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {

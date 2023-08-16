@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 syntax = "proto3";
 
@@ -11,6 +11,7 @@ import "pbmesh/v1alpha1/connection.proto";
 import "pbmesh/v1alpha1/expose.proto";
 import "pbmesh/v1alpha1/routing.proto";
 
+// This is a Resource type.
 message ProxyConfiguration {
   // Selection of workloads this proxy configuration should apply to.
   // These can be prefixes or specific workload names.
@@ -35,28 +36,35 @@ message DynamicConfig {
 
   TransparentProxy transparent_proxy = 2;
 
+  MutualTLSMode mutual_tls_mode = 3;
+
   // local_connection is the configuration that should be used
   // to connect to the local application provided per-port.
   // The map keys should correspond to port names on the workload.
-  map<string, ConnectionConfig> local_connection = 3;
+  map<string, ConnectionConfig> local_connection = 4;
 
   // inbound_connections configures inbound connections to the proxy.
-  InboundConnectionsConfig inbound_connections = 4;
+  InboundConnectionsConfig inbound_connections = 5;
 
-  MeshGatewayMode mesh_gateway_mode = 5;
+  MeshGatewayMode mesh_gateway_mode = 6;
 
-  ExposeConfig expose_config = 6;
+  ExposeConfig expose_config = 7;
 
-  string public_listener_json = 7;
-  string listener_tracing_json = 8;
-  string local_cluster_json = 9;
+  // AccessLogs configures the output and format of Envoy access logs
+  AccessLogsConfig access_logs = 8;
+
+  repeated EnvoyExtension envoy_extensions = 9;
+
+  string public_listener_json = 10;
+  string listener_tracing_json = 11;
+  string local_cluster_json = 12;
 
   // deprecated:
   // local_workload_address, local_workload_port, and local_workload_socket_path
   // are deprecated and are only needed for migration of existing resources.
-  string local_workload_address = 10 [deprecated = true];
-  uint32 local_workload_port = 11 [deprecated = true];
-  string local_workload_socket_path = 12 [deprecated = true];
+  string local_workload_address = 13 [deprecated = true];
+  uint32 local_workload_port = 14 [deprecated = true];
+  string local_workload_socket_path = 15 [deprecated = true];
 }
 
 message TransparentProxy {
@@ -101,4 +109,50 @@ enum ProxyMode {
   // ProxyModeDirect represents that the proxy's listeners must be dialed directly
   // by the local application and other proxies.
   PROXY_MODE_DIRECT = 2;
+}
+
+// AccessLogsConfig contains the associated default settings for all Envoy
+// instances within the datacenter or partition
+message AccessLogsConfig {
+  // Enabled turns off all access logging
+  bool enabled = 1;
+
+  // DisableListenerLogs turns off just listener logs for connections rejected by Envoy because they don't
+  // have a matching listener filter.
+  bool disable_listener_logs = 2;
+
+  // Type selects the output for logs: "file", "stderr". "stdout"
+  LogSinkType type = 3;
+
+  // Path is the output file to write logs
+  string path = 4;
+
+  // The presence of one format string or the other implies the access log string encoding.
+  // Defining Both is invalid.
+  string json_format = 5;
+  string text_format = 6;
+}
+
+enum LogSinkType {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  LOG_SINK_TYPE_DEFAULT = 0;
+  LOG_SINK_TYPE_FILE = 1;
+  LOG_SINK_TYPE_STDERR = 2;
+  LOG_SINK_TYPE_STDOUT = 3;
+}
+
+// EnvoyExtension has configuration for an extension that patches Envoy resources.
+message EnvoyExtension {
+  string name = 1;
+  bool required = 2;
+  google.protobuf.Struct arguments = 3;
+  string consul_version = 4;
+  string envoy_version = 5;
+}
+
+enum MutualTLSMode {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  MUTUAL_TLS_MODE_DEFAULT = 0;
+  MUTUAL_TLS_MODE_STRICT = 1;
+  MUTUAL_TLS_MODE_PERMISSIVE = 2;
 }

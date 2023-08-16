@@ -1,0 +1,25 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+// ALTERNATIVE: not using policy attachment semantics
+message HTTPRouteRetries {
+  // NumRetries is the number of times to retry the request when a retryable
+  // result occurs.
+  int32 number = 1;
+
+  // RetryOnConnectFailure allows for connection failure errors to trigger a
+  // retry.
+  bool on_connect_failure = 2;
+
+  // RetryOn allows setting envoy specific conditions when a request should
+  // be automatically retried.
+  repeated string on_conditions = 3;
+
+  // RetryOnStatusCodes is a flat list of http response status codes that are
+  // eligible for retry. This again should be feasible in any reasonable proxy.
+  repeated uint32 on_status_codes = 4;
+}

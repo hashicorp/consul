@@ -29,8 +29,12 @@ Setting limits per source IP requires Consul Enterprise.
 
 ### Order of operations
 
-You can define request rate limits in the agent configuration and in the control plane request limit configuration entry. The configuration entry also supports rate limit configurations for Consul resources. Consul perfroms the following order of operations when determing request rate limits:
+You can define request rate limits in the agent configuration and in the control plane request limit configuration entry. The configuration entry also supports rate limit configurations for Consul resources. Consul performs the following order of operations when determining request rate limits:
 
+![Flowchart that describes the order of operations for determining request rate limits.](/img/agent-rate-limiting-ops-order.jpg#light-theme-only)
+![Flowchart that describes the order of operations for determining request rate limits.](/img/agent-rate-limiting-ops-order-dark.jpg#dark-theme-only)
+
+<!--
 1. Parse request.
 1. Does the request reach a global server limit?
    - No: Proceed to the next stage.
@@ -50,6 +54,7 @@ You can define request rate limits in the agent configuration and in the control
    - No: Proceed to the next stage.
    - Yes: Return an error that the requested resource has been exhausted.
 1. Handle the request.
+-->
 
 ## Kubernetes
 

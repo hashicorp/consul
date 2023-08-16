@@ -76,7 +76,7 @@ jobs:
           path: ${{ github.workspace }}
 
       - name: Restore mode+x
-        run: chmod +x ${{ github.workspace }}\consul.exe
+        run: icacls ${{ github.workspace }}\consul.exe /grant:rx Everyone:RX
 
       - name: Setup TcpDump Docker Image
         shell: bash
@@ -1184,7 +1184,7 @@ jobs:
         if: ${{ !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/download/v2.17.2/datadog-ci_win-x64.exe" --output "C:/datadog-ci"
-          chmod +x C:/datadog-ci
+          icacls C:/datadog-ci /grant:rx Everyone:RX
 
       - name: Upload coverage
         # do not run on forks

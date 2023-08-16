@@ -1,11 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"strconv"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -136,6 +137,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		endpoints, ok := cfgSnap.ConnectProxy.PreparedQueryEndpoints[uid]
 		if ok {
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -161,6 +163,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
 			if ok {
 				la := makeLoadAssignment(
+					s.Logger,
 					cfgSnap,
 					name,
 					nil,
@@ -229,6 +232,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
 
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -246,6 +250,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 
 			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -418,6 +423,7 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 		for subsetName, groups := range clusterEndpoints {
 			clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -455,6 +461,7 @@ func (s *ResourceGenerator) makeEndpointsForOutgoingPeeredServices(
 			groups := []loadAssignmentEndpointGroup{{Endpoints: serviceGroup.Nodes, OnlyPassing: false}}
 
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -619,6 +626,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 			return la, nil
 		}
 		la = makeLoadAssignment(
+			s.Logger,
 			cfgSnap,
 			clusterName,
 			nil,
@@ -641,6 +649,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 		return nil, nil
 	}
 	la = makeLoadAssignment(
+		s.Logger,
 		cfgSnap,
 		clusterName,
 		nil,
@@ -773,6 +782,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			}
 
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				ti.PrioritizeByLocality,
@@ -861,7 +871,7 @@ type loadAssignmentEndpointGroup struct {
 	OverrideHealth envoy_core_v3.HealthStatus
 }
 
-func makeLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, policy *structs.DiscoveryPrioritizeByLocality, endpointGroups []loadAssignmentEndpointGroup, localKey proxycfg.GatewayKey) *envoy_endpoint_v3.ClusterLoadAssignment {
+func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, clusterName string, policy *structs.DiscoveryPrioritizeByLocality, endpointGroups []loadAssignmentEndpointGroup, localKey proxycfg.GatewayKey) *envoy_endpoint_v3.ClusterLoadAssignment {
 	cla := &envoy_endpoint_v3.ClusterLoadAssignment{
 		ClusterName: clusterName,
 		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(endpointGroups)),
@@ -878,7 +888,7 @@ func makeLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, po
 	var priority uint32
 
 	for _, endpointGroup := range endpointGroups {
-		endpointsByLocality, err := groupedEndpoints(cfgSnap.ServiceLocality, policy, endpointGroup.Endpoints)
+		endpointsByLocality, err := groupedEndpoints(logger, cfgSnap.ServiceLocality, policy, endpointGroup.Endpoints)
 
 		if err != nil {
 			continue

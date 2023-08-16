@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -25,13 +25,14 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 		return err
 	}
 
-	authz, err := s.getAuthorizer(tokenFromContext(stream.Context()))
+	// TODO(spatel): Refactor _ and entMeta as part of NET-4914
+	authz, authzContext, err := s.getAuthorizer(tokenFromContext(stream.Context()), acl.DefaultEnterpriseMeta())
 	if err != nil {
 		return err
 	}
 
 	// check acls
-	err = reg.ACLs.List(authz, req.Tenancy)
+	err = reg.ACLs.List(authz, authzContext)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return status.Error(codes.PermissionDenied, err.Error())
@@ -66,7 +67,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 		}
 
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, event.Resource.Id)
+		err = reg.ACLs.Read(authz, authzContext, event.Resource.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -18,4 +18,9 @@ func Register(r resource.Registry) {
 	RegisterUpstreams(r)
 	RegisterUpstreamsConfiguration(r)
 	RegisterProxyStateTemplate(r)
+	RegisterHTTPRoute(r)
+	RegisterTCPRoute(r)
+	RegisterGRPCRoute(r)
+	RegisterDestinationPolicy(r)
+	RegisterComputedRoutes(r)
 }

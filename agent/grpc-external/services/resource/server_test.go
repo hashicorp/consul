@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -57,16 +57,38 @@ func testServer(t *testing.T) *Server {
 	require.NoError(t, err)
 	go backend.Run(testContext(t))
 
-	// Mock the ACL Resolver to allow everything for testing
+	// Mock the ACL Resolver to "allow all" for testing.
 	mockACLResolver := &MockACLResolver{}
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLsDisabled(t), nil)
+		Return(testutils.ACLsDisabled(t), nil).
+		Run(func(args mock.Arguments) {
+			// Caller expecting passed in tokenEntMeta and authorizerContext to be filled in.
+			tokenEntMeta := args.Get(1).(*acl.EnterpriseMeta)
+			if tokenEntMeta != nil {
+				fillEntMeta(tokenEntMeta)
+			}
+
+			authzContext := args.Get(2).(*acl.AuthorizerContext)
+			if authzContext != nil {
+				fillAuthorizerContext(authzContext)
+			}
+		})
+
+	// Mock the V1 tenancy bridge since we can't use the real thing.
+	mockTenancyBridge := &MockTenancyBridge{}
+	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
+	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
+	mockTenancyBridge.On("PartitionExists", mock.Anything).Return(false, nil)
+	mockTenancyBridge.On("NamespaceExists", mock.Anything, mock.Anything).Return(false, nil)
+	mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
+	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	return NewServer(Config{
-		Logger:      testutil.Logger(t),
-		Registry:    resource.NewRegistry(),
-		Backend:     backend,
-		ACLResolver: mockACLResolver,
+		Logger:          testutil.Logger(t),
+		Registry:        resource.NewRegistry(),
+		Backend:         backend,
+		ACLResolver:     mockACLResolver,
+		V1TenancyBridge: mockTenancyBridge,
 	})
 }
 

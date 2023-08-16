@@ -1,10 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build linux
 // +build linux
 
-package xds
+package platform
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ var (
 	ipv6SupportedErr error
 )
 
-func kernelSupportsIPv6() (bool, error) {
+func SupportsIPv6() (bool, error) {
 	ipv6SupportOnce.Do(func() {
 		ipv6Supported, ipv6SupportedErr = checkIfKernelSupportsIPv6()
 	})

@@ -1,0 +1,259 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+import "pbmesh/v1alpha1/common.proto";
+import "pbmesh/v1alpha1/http_route_retries.proto";
+import "pbmesh/v1alpha1/http_route_timeouts.proto";
+
+// NOTE: this should align to the GAMMA/gateway-api version, or at least be
+// easily translatable.
+//
+// https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute
+//
+// This is a Resource type.
+message HTTPRoute {
+  // ParentRefs references the resources (usually Gateways) that a Route wants
+  // to be attached to. Note that the referenced parent resource needs to allow
+  // this for the attachment to be complete. For Gateways, that means the
+  // Gateway needs to allow attachment from Routes of this kind and namespace.
+  //
+  // It is invalid to reference an identical parent more than once. It is valid
+  // to reference multiple distinct sections within the same parent resource,
+  // such as 2 Listeners within a Gateway.
+  repeated ParentReference parent_refs = 1;
+
+  // Hostnames are the hostnames for which this HTTPRoute should respond to requests.
+  repeated string hostnames = 2;
+
+  // Rules are a list of HTTP-based routing rules that this route should
+  // use for constructing a routing table.
+  repeated HTTPRouteRule rules = 3;
+}
+
+// HTTPRouteRule specifies the routing rules used to determine what upstream
+// service an HTTP request is routed to.
+message HTTPRouteRule {
+  // Matches specified the matching criteria used in the routing table. If a
+  // request matches the given HTTPMatch configuration, then traffic is routed
+  // to services specified in the Services field.
+  repeated HTTPRouteMatch matches = 1;
+
+  repeated HTTPRouteFilter filters = 2;
+
+  // BackendRefs defines the backend(s) where matching requests should be sent.
+  //
+  // Failure behavior here depends on how many BackendRefs are specified and
+  // how many are invalid.
+  //
+  // If all entries in BackendRefs are invalid, and there are also no filters
+  // specified in this route rule, all traffic which matches this rule MUST
+  // receive a 500 status code.
+  //
+  // See the HTTPBackendRef definition for the rules about what makes a single
+  // HTTPBackendRef invalid.
+  //
+  // When a HTTPBackendRef is invalid, 500 status codes MUST be returned for
+  // requests that would have otherwise been routed to an invalid backend. If
+  // multiple backends are specified, and some are invalid, the proportion of
+  // requests that would otherwise have been routed to an invalid backend MUST
+  // receive a 500 status code.
+  //
+  // For example, if two backends are specified with equal weights, and one is
+  // invalid, 50 percent of traffic must receive a 500. Implementations may
+  // choose how that 50 percent is determined.
+  repeated HTTPBackendRef backend_refs = 3;
+
+  // ALTERNATIVE: Timeouts defines the timeouts that can be configured for an HTTP request.
+  HTTPRouteTimeouts timeouts = 4;
+  // ALTERNATIVE:
+  HTTPRouteRetries retries = 5;
+}
+
+message HTTPRouteMatch {
+  // Path specifies a HTTP request path matcher. If this field is not
+  // specified, a default prefix match on the “/” path is provided.
+  HTTPPathMatch path = 1;
+
+  // Headers specifies HTTP request header matchers. Multiple match values are
+  // ANDed together, meaning, a request must match all the specified headers to
+  // select the route.
+  repeated HTTPHeaderMatch headers = 2;
+
+  // QueryParams specifies HTTP query parameter matchers. Multiple match values
+  // are ANDed together, meaning, a request must match all the specified query
+  // parameters to select the route.
+  repeated HTTPQueryParamMatch query_params = 3;
+
+  // Method specifies HTTP method matcher. When specified, this route will be
+  // matched only if the request has the specified method.
+  string method = 4;
+}
+
+message HTTPPathMatch {
+  // Type specifies how to match against the path Value.
+  PathMatchType type = 1;
+  // Value of the HTTP path to match against.
+  string value = 2;
+}
+
+// PathMatchType specifies the semantics of how HTTP paths should be compared.
+// Valid PathMatchType values, along with their support levels, are:
+//
+// PathPrefix and Exact paths must be syntactically valid:
+//
+// - Must begin with the / character
+// - Must not contain consecutive / characters (e.g. /foo///, //).
+// - Note that values may be added to this enum, implementations must ensure that unknown values will not cause a crash.
+//
+// Unknown values here must result in the implementation setting the Accepted
+// Condition for the Route to status: False, with a Reason of UnsupportedValue.
+enum PathMatchType {
+  PATH_MATCH_TYPE_UNSPECIFIED = 0;
+  PATH_MATCH_TYPE_EXACT = 1;
+  PATH_MATCH_TYPE_PREFIX = 2;
+  PATH_MATCH_TYPE_REGEX = 3;
+}
+
+message HTTPHeaderMatch {
+  // Type specifies how to match against the value of the header.
+  HeaderMatchType type = 1;
+
+  // Name is the name of the HTTP Header to be matched. Name matching MUST be
+  // case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+  //
+  // If multiple entries specify equivalent header names, only the first entry
+  // with an equivalent name MUST be considered for a match. Subsequent entries
+  // with an equivalent header name MUST be ignored. Due to the
+  // case-insensitivity of header names, “foo” and “Foo” are considered
+  // equivalent.
+  //
+  // When a header is repeated in an HTTP request, it is
+  // implementation-specific behavior as to how this is represented. Generally,
+  // proxies should follow the guidance from the RFC:
+  // https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2.2 regarding
+  // processing a repeated header, with special handling for “Set-Cookie”.
+  string name = 2;
+
+  // Value is the value of HTTP Header to be matched.
+  string value = 3;
+
+  // NOTE: not in gamma; service-router compat
+  bool invert = 4;
+}
+
+// HeaderMatchType specifies the semantics of how HTTP header values should be
+// compared. Valid HeaderMatchType values, along with their conformance levels,
+// are:
+//
+// Note that values may be added to this enum, implementations must ensure that
+// unknown values will not cause a crash.
+//
+// Unknown values here must result in the implementation setting the Accepted
+// Condition for the Route to status: False, with a Reason of UnsupportedValue.
+enum HeaderMatchType {
+  HEADER_MATCH_TYPE_UNSPECIFIED = 0;
+  HEADER_MATCH_TYPE_EXACT = 1;
+  HEADER_MATCH_TYPE_REGEX = 2;
+  // consul only after this point (service-router compat)
+  HEADER_MATCH_TYPE_PRESENT = 3;
+  HEADER_MATCH_TYPE_PREFIX = 4;
+  HEADER_MATCH_TYPE_SUFFIX = 5;
+}
+
+message HTTPQueryParamMatch {
+  // Type specifies how to match against the value of the query parameter.
+  QueryParamMatchType type = 1;
+
+  // Name is the name of the HTTP query param to be matched. This must be an
+  // exact string match. (See
+  // https://tools.ietf.org/html/rfc7230#section-2.7.3).
+  //
+  // If multiple entries specify equivalent query param names, only the first
+  // entry with an equivalent name MUST be considered for a match. Subsequent
+  // entries with an equivalent query param name MUST be ignored.
+  //
+  // If a query param is repeated in an HTTP request, the behavior is purposely
+  // left undefined, since different data planes have different capabilities.
+  // However, it is recommended that implementations should match against the
+  // first value of the param if the data plane supports it, as this behavior
+  // is expected in other load balancing contexts outside of the Gateway API.
+  //
+  // Users SHOULD NOT route traffic based on repeated query params to guard
+  // themselves against potential differences in the implementations.
+  string name = 2;
+
+  // Value is the value of HTTP query param to be matched.
+  string value = 3;
+}
+
+enum QueryParamMatchType {
+  QUERY_PARAM_MATCH_TYPE_UNSPECIFIED = 0;
+  QUERY_PARAM_MATCH_TYPE_EXACT = 1;
+  QUERY_PARAM_MATCH_TYPE_REGEX = 2;
+  // consul only after this point (service-router compat)
+  QUERY_PARAM_MATCH_TYPE_PRESENT = 3;
+}
+
+message HTTPRouteFilter {
+  // RequestHeaderModifier defines a schema for a filter that modifies request
+  // headers.
+  HTTPHeaderFilter request_header_modifier = 1;
+
+  // ResponseHeaderModifier defines a schema for a filter that modifies
+  // response headers.
+  HTTPHeaderFilter response_header_modifier = 2;
+
+  // URLRewrite defines a schema for a filter that modifies a request during
+  // forwarding.
+  HTTPURLRewriteFilter url_rewrite = 5;
+}
+
+message HTTPHeaderFilter {
+  // Set overwrites the request with the given header (name, value) before the
+  // action.
+  repeated HTTPHeader set = 1;
+
+  // Add adds the given header(s) (name, value) to the request before the
+  // action. It appends to any existing values associated with the header name.
+  repeated HTTPHeader add = 2;
+
+  // Remove the given header(s) from the HTTP request before the action. The
+  // value of Remove is a list of HTTP header names. Note that the header names
+  // are case-insensitive (see
+  // https://datatracker.ietf.org/doc/html/rfc2616#section-4.2).
+  repeated string remove = 3;
+}
+
+message HTTPHeader {
+  string name = 1;
+  string value = 2;
+}
+
+message HTTPURLRewriteFilter {
+  string path_prefix = 1;
+}
+
+message HTTPBackendRef {
+  BackendReference backend_ref = 1;
+
+  // Weight specifies the proportion of requests forwarded to the referenced
+  // backend. This is computed as weight/(sum of all weights in this
+  // BackendRefs list). For non-zero values, there may be some epsilon from the
+  // exact proportion defined here depending on the precision an implementation
+  // supports. Weight is not a percentage and the sum of weights does not need
+  // to equal 100.
+  //
+  //If only one backend is specified and it has a weight greater than 0, 100%
+  //of the traffic is forwarded to that backend. If weight is set to 0, no
+  //traffic should be forwarded for this entry. If unspecified, weight defaults
+  //to 1.
+  uint32 weight = 2;
+
+  // Filters defined at this level should be executed if and only if the
+  // request is being forwarded to the backend defined here.
+  repeated HTTPRouteFilter filters = 3;
+}
