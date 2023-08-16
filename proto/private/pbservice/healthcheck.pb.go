@@ -55,10 +55,11 @@ type HealthCheck struct {
 	// mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
 	EnterpriseMeta *pbcommon.EnterpriseMeta `protobuf:"bytes,13,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
 	// mog: func-to=int func-from=int32
-	ExposedPort        int32                  `protobuf:"varint,14,opt,name=ExposedPort,proto3" json:"ExposedPort,omitempty"`
-	Interval           string                 `protobuf:"bytes,15,opt,name=Interval,proto3" json:"Interval,omitempty"`
-	Timeout            string                 `protobuf:"bytes,16,opt,name=Timeout,proto3" json:"Timeout,omitempty"`
-	PeerName           string                 `protobuf:"bytes,17,opt,name=PeerName,proto3" json:"PeerName,omitempty"`
+	ExposedPort int32  `protobuf:"varint,14,opt,name=ExposedPort,proto3" json:"ExposedPort,omitempty"`
+	Interval    string `protobuf:"bytes,15,opt,name=Interval,proto3" json:"Interval,omitempty"`
+	Timeout     string `protobuf:"bytes,16,opt,name=Timeout,proto3" json:"Timeout,omitempty"`
+	PeerName    string `protobuf:"bytes,17,opt,name=PeerName,proto3" json:"PeerName,omitempty"`
+	// mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
 	LastCheckStartTime *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=LastCheckStartTime,proto3" json:"LastCheckStartTime,omitempty"`
 }
 

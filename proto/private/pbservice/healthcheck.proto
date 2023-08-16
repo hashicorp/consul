@@ -43,6 +43,7 @@ message HealthCheck {
   string Interval = 15;
   string Timeout = 16;
   string PeerName = 17;
+  // mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto
   google.protobuf.Timestamp LastCheckStartTime = 18;
 }
 

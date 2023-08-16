@@ -94,7 +94,7 @@ func HealthCheckToStructs(s *HealthCheck, t *structs.HealthCheck) {
 	t.ServiceName = s.ServiceName
 	t.ServiceTags = s.ServiceTags
 	t.Type = s.Type
-	t.LastCheckStartTime = *s.LastCheckStartTime
+	t.LastCheckStartTime = structs.TimeFromProto(s.LastCheckStartTime)
 	t.Interval = s.Interval
 	t.Timeout = s.Timeout
 	t.ExposedPort = int(s.ExposedPort)
@@ -119,7 +119,7 @@ func HealthCheckFromStructs(t *structs.HealthCheck, s *HealthCheck) {
 	s.ServiceName = t.ServiceName
 	s.ServiceTags = t.ServiceTags
 	s.Type = t.Type
-	s.LastCheckStartTime = &t.LastCheckStartTime
+	s.LastCheckStartTime = structs.TimeToProto(t.LastCheckStartTime)
 	s.Interval = t.Interval
 	s.Timeout = t.Timeout
 	s.ExposedPort = int32(t.ExposedPort)
