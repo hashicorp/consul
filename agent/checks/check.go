@@ -1052,7 +1052,6 @@ func (c *CheckGRPC) check() {
 
 	err := c.probe.Check(target)
 	if err != nil {
-		c.LastCheckStartTime = time.Now()
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error(), c.LastCheckStartTime)
 	} else {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", target), c.LastCheckStartTime)
