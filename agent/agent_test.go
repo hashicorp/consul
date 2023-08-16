@@ -1084,7 +1084,6 @@ func TestAgent_AddServiceWithTCPTLSCheck(t *testing.T) {
 		TCP:           testApp.Addr().String(),
 		TCPUseTLS:     true,
 		TLSServerName: "server.dc1.consul",
-		TLSSkipVerify: false,
 		Interval:      5 * time.Second,
 	}
 
