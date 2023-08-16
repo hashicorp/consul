@@ -696,29 +696,26 @@ func (c *CheckTCP) run() {
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
 	logAndUpdate := func(checkType string, err error) {
+		msg := fmt.Sprintf("%s connect %s: ", checkType, c.TCP)
 		if err != nil {
-			c.Logger.Warn(fmt.Sprintf("Check %s socket connection failed", checkType),
-				"check", c.CheckID.String(),
-				"error", err,
-			)
+			c.Logger.Warn(msg+"failed", "check", c.CheckID.String(), "error", err)
 			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 			return
 		}
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("%s connect %s: Success", checkType, c.TCP))
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, msg+"Success")
 	}
 
-	if c.TLSClientConfig != nil {
-		tlsConn, err := tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
-		logAndUpdate("TCP+TLS", err)
-		if err == nil {
-			defer tlsConn.Close()
+	if c.TLSClientConfig == nil {
+		if conn, err := c.dialer.Dial(`tcp`, c.TCP); err == nil {
+			defer conn.Close()
+			logAndUpdate("TCP", err)
 		}
 	} else {
-		conn, err := c.dialer.Dial(`tcp`, c.TCP)
-		logAndUpdate("TCP", err)
-		if err == nil {
-			defer conn.Close()
+		if tlsConn, err := tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig); err == nil {
+			defer tlsConn.Close()
+			logAndUpdate("TCP+TLS", err)
 		}
+	}
 	}
 }
 
