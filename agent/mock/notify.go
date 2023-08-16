@@ -77,7 +77,7 @@ func (m *Notify) UpdateCheck(id structs.CheckID, status, output string) {
 
 func (m *Notify) UpdateCheckLastRunTime(id structs.CheckID, lastCheckRunStartTime time.Time) {
 	m.Lock()
-	m.Unlock()
+	defer m.Unlock()
 }
 
 // State returns the state of the specified health-check.
