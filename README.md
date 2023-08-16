@@ -3,7 +3,8 @@
   <span>Consul</span>
 </h1>
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/_/consul.svg)](https://hub.docker.com/_/consul)
+[![Docker Pulls](https://img.shields.io/docker/pulls/hashicorp/consul.svg)](https://hub.docker.com/hashicorp/consul)
+[![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL--1.1-yellow.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hashicorp/consul)](https://goreportcard.com/report/github.com/hashicorp/consul)
 
 Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
@@ -31,9 +32,8 @@ Consul provides several key features:
   discovery prevents routing traffic to unhealthy hosts and enables service
   level circuit breakers.
 
-* **Key/Value Storage** - A flexible key/value store enables storing
-  dynamic configuration, feature flagging, coordination, leader election and
-  more. The simple HTTP API makes it easy to use anywhere.
+* **Dynamic App Configuration** - An HTTP API that allows users to store indexed objects within Consul,
+  for storing configuration parameters and application metadata.
 
 Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
 optional [browser based UI](https://demo.consul.io). A commercial version
