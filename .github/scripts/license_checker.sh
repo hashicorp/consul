@@ -7,7 +7,7 @@ busl_files=$(grep -r 'SPDX-License-Identifier: BUSL' --exclude=./.github/scripts
 
 # If we do not find a file in .changelog/, we fail the check
 if [ -n "$busl_files" ]; then
-    echo "Found BUSL occurrences in the PR branch!"
+    echo "Found BUSL occurrences in the PR branch! (See NET-5258 for details)"
     echo -n "$busl_files"
     exit 1
 else
