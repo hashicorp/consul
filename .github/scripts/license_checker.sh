@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 
-busl_files=$(grep -r 'SPDX-License-Identifier: BUSL' --exclude=./.github/scripts/license_checker.sh .)
+busl_files=$(grep -r 'SPDX-License-Identifier: BUSL' . --exclude-dir .github)
 
 # If we do not find a file in .changelog/, we fail the check
 if [ -n "$busl_files" ]; then
