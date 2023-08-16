@@ -988,7 +988,7 @@ func newTestTCPServer(t *testing.T) *testTCPServer {
 	keyFile := "../test/key/ourdomain_server.key"
 	caFile := "../test/ca/root.cer"
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	require.Equal(t, err, nil)
+	require.NoError(t, err)
 
 	rootCertPool := x509.NewCertPool()
 	if caFile != "" {
