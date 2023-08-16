@@ -907,10 +907,10 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	statusHandler := NewStatusHandler(notif, logger, 2, 2, 3)
 
 	// Set the initial status to passing after a single success
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	// Status should still be passing after 1 failed check only
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 1, notif.Updates(cid))
@@ -918,7 +918,7 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	})
 
 	// Status should become warning after 2 failed checks only
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 2, notif.Updates(cid))
@@ -926,7 +926,7 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	})
 
 	// Status should become critical after 4 failed checks only
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 3, notif.Updates(cid))
@@ -934,14 +934,14 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	})
 
 	// Status should be passing after 2 passing check
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 3, notif.Updates(cid))
 		require.Equal(r, api.HealthCritical, notif.State(cid))
 	})
 
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 4, notif.Updates(cid))
@@ -957,16 +957,16 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	statusHandler := NewStatusHandler(notif, logger, 2, 2, 3)
 
 	// Set the initial status to passing after a single success
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	// Status should remain passing after FAIL PASS FAIL PASS FAIL sequence
 	// Although we have 3 FAILS, they are not consecutive
 
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 1, notif.Updates(cid))
@@ -974,7 +974,7 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	})
 
 	// Warning after a 2rd consecutive FAIL
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 2, notif.Updates(cid))
@@ -982,7 +982,7 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	})
 
 	// Critical after a 3rd consecutive FAIL
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 3, notif.Updates(cid))
@@ -990,9 +990,9 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	})
 
 	// Status should remain critical after PASS FAIL PASS sequence
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 3, notif.Updates(cid))
@@ -1000,7 +1000,7 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	})
 
 	// Passing after a 2nd consecutive PASS
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 4, notif.Updates(cid))
@@ -1016,11 +1016,11 @@ func TestStatusHandlerWarningAndCriticalThresholdsTheSameSetsCritical(t *testing
 	statusHandler := NewStatusHandler(notif, logger, 2, 3, 3)
 
 	// Set the initial status to passing after a single success
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	// Status should remain passing after FAIL FAIL sequence
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 1, notif.Updates(cid))
@@ -1028,7 +1028,7 @@ func TestStatusHandlerWarningAndCriticalThresholdsTheSameSetsCritical(t *testing
 	})
 
 	// Critical and not Warning after a 3rd consecutive FAIL
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 2, notif.Updates(cid))
@@ -1036,8 +1036,8 @@ func TestStatusHandlerWarningAndCriticalThresholdsTheSameSetsCritical(t *testing
 	})
 
 	// Passing after consecutive PASS PASS sequence
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 3, notif.Updates(cid))
@@ -1053,11 +1053,11 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 	statusHandler := NewStatusHandler(notif, logger, 3, 3, 5)
 
 	// Set the initial status to passing after a single success.
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
 
 	// Status should remain passing after a FAIL FAIL sequence.
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 1, notif.Updates(cid))
@@ -1065,7 +1065,7 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 	})
 
 	// Warning after a 3rd consecutive FAIL.
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 2, notif.Updates(cid))
@@ -1074,10 +1074,10 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 
 	// Status should remain passing after PASS FAIL FAIL FAIL PASS FAIL FAIL FAIL PASS sequence.
 	// Although we have 6 FAILS, they are not consecutive.
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	// The status gets updated due to failuresCounter being reset
 	// but the status itself remains as Warning.
@@ -1086,10 +1086,10 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 		require.Equal(r, api.HealthWarning, notif.State(cid))
 	})
 
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	// Status doesn'tn change, but the state update is triggered.
 	retry.Run(t, func(r *retry.R) {
@@ -1098,10 +1098,10 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 	})
 
 	// Status should change only after 5 consecutive FAIL updates.
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	// The status doesn't change, but a status update is triggered.
 	retry.Run(t, func(r *retry.R) {
@@ -1109,7 +1109,7 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 		require.Equal(r, api.HealthWarning, notif.State(cid))
 	})
 
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	// The status doesn't change, but a status update is triggered.
 	retry.Run(t, func(r *retry.R) {
@@ -1117,7 +1117,7 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 		require.Equal(r, api.HealthWarning, notif.State(cid))
 	})
 
-	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
+	statusHandler.updateCheck(cid, api.HealthCritical, "bar", time.Now())
 
 	// The FailuresBeforeCritical threshold is finally breached.
 	retry.Run(t, func(r *retry.R) {
