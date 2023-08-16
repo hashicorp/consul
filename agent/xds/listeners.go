@@ -29,6 +29,9 @@ import (
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/consul/agent/xds/config"
+	"github.com/hashicorp/consul/agent/xds/naming"
+	"github.com/hashicorp/consul/agent/xds/platform"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -49,8 +52,6 @@ import (
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/types"
 )
-
-const virtualIPTag = "virtual"
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
 func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
@@ -118,7 +119,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 	}
 
-	proxyCfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	proxyCfg, err := config.ParseProxyConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -258,7 +259,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// We only match on this virtual IP if the upstream is in the proxy's partition.
 			// This is because the IP is not guaranteed to be unique across k8s clusters.
 			if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
-				if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
+				if vip := e.Service.TaggedAddresses[naming.VirtualIPTag]; vip.Address != "" {
 					uniqueAddrs[vip.Address] = struct{}{}
 				}
 			}
@@ -462,7 +463,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
 			// For services imported from a peer,the partition will be equal in all cases.
 			if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
-				if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
+				if vip := e.Service.TaggedAddresses[naming.VirtualIPTag]; vip.Address != "" {
 					uniqueAddrs[vip.Address] = struct{}{}
 				}
 			}
@@ -552,8 +553,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				accessLogs:  &cfgSnap.Proxy.AccessLogs,
-				clusterName: OriginalDestinationClusterName,
-				filterName:  OriginalDestinationClusterName,
+				clusterName: naming.OriginalDestinationClusterName,
+				filterName:  naming.OriginalDestinationClusterName,
 				protocol:    "tcp",
 			})
 			if err != nil {
@@ -787,7 +788,7 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 
 // listenersFromSnapshotGateway returns the "listener" for a terminating-gateway or mesh-gateway service
 func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
+	cfg, err := config.ParseGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -1171,7 +1172,7 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 
 	// Determine listener protocol type from configured service protocol. Don't hard fail on a config typo,
 	//The parse func returns default config if there is an error, so it's safe to continue.
-	cfg, _ := ParseProxyConfig(cfgSnap.Proxy.Config)
+	cfg, _ := config.ParseProxyConfig(cfgSnap.Proxy.Config)
 
 	// Create TLS validation context for mTLS with leaf certificate and root certs.
 	tlsContext := makeCommonTLSContext(
@@ -1263,7 +1264,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	var l *envoy_listener_v3.Listener
 	var err error
 
-	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	cfg, err := config.ParseProxyConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -1513,7 +1514,7 @@ func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v
 }
 
 func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, cluster string, path structs.ExposePath) (proto.Message, error) {
-	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	cfg, err := config.ParseProxyConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -1588,7 +1589,7 @@ func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSna
 			&envoy_core_v3.CidrRange{AddressPrefix: advertise, PrefixLen: &wrapperspb.UInt32Value{Value: uint32(advertiseLen)}},
 		)
 
-		if ok, err := kernelSupportsIPv6(); err != nil {
+		if ok, err := platform.SupportsIPv6(); err != nil {
 			return nil, err
 		} else if ok {
 			ranges = append(ranges,
@@ -1639,7 +1640,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
 
-		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		cfg, err := config.ParseProxyConfig(svcConfig.ProxyConfig)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -1683,7 +1684,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
 
-		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		cfg, err := config.ParseProxyConfig(svcConfig.ProxyConfig)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -1807,7 +1808,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		filterChain.Filters = append(filterChain.Filters, authFilter)
 	}
 
-	proxyCfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	proxyCfg, err := config.ParseProxyConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -2128,7 +2129,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 		if err != nil {
 			return nil, err
 		}
-		clusterName = meshGatewayExportedClusterNamePrefix + CustomizeClusterName(target.Name, chain)
+		clusterName = meshGatewayExportedClusterNamePrefix + naming.CustomizeClusterName(target.Name, chain)
 	}
 
 	uid := proxycfg.NewUpstreamIDFromServiceName(svc)
