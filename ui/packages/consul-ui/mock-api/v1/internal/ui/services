@@ -20,6 +20,9 @@ ${[0].map(
       {
         let kind;
         let peerName;
+        const instancesPassing = fake.helpers.randomize([fake.random.number({min: 0, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})]);
+        const instancesWarning = fake.helpers.randomize([fake.random.number({min: 0, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})]);
+        const instancesCritical = fake.helpers.randomize([fake.random.number({min: 0, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})]);
         switch(i) {
           case 0:
             kind = '';
@@ -83,11 +86,11 @@ ${fake.random.boolean() ? `
 ${kind !== '' ? `
             "Kind": "${kind}",
 ` : `` }
-            "InstanceCount": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
-            "InstancesPassing": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
-            "InstancesWarning": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
-            "InstancesCritical": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
-            "MarkServiceStatusThreshold":0.6,
+"InstanceCount": ${instancesPassing + instancesWarning + instancesCritical},
+"InstancesPassing": ${instancesPassing},
+"InstancesWarning": ${instancesWarning},
+"InstancesCritical": ${instancesCritical},
+"MarkServiceStatusThreshold":0.6,
 ${ fake.random.number({min: 1, max: 10}) > 2 ? `
             "ExternalSources": [
                 ${

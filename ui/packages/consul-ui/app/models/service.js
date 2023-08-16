@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import Model, { attr, belongsTo } from '@ember-data/model';
+import Model, { attr, belongsTo, defaultValue } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { fragment } from 'ember-data-model-fragments/attributes';
@@ -45,11 +45,11 @@ export default class Service extends Model {
   @attr('number') ChecksPassing;
   @attr('number') ChecksCritical;
   @attr('number') ChecksWarning;
-  @attr('number') InstancesPassing;
-  @attr('number') InstancesCritical;
-  @attr('number') InstancesWarning;
-  @attr('number') MarkServiceStatusThreshold;
-  @attr('number') InstanceCount;
+  @attr('number', { defaultValue: () => 0 }) InstancesPassing;
+  @attr('number', { defaultValue: () => 0 }) InstancesCritical;
+  @attr('number', { defaultValue: () => 0 }) InstancesWarning;
+  @attr('number', { defaultValue: () => 0 }) MarkServiceStatusThreshold;
+  @attr('number', { defaultValue: () => 0 }) InstanceCount;
   @attr('boolean') ConnectedWithGateway;
   @attr('boolean') ConnectedWithProxy;
   @attr({ defaultValue: () => [] }) Resources; // []
@@ -113,7 +113,9 @@ export default class Service extends Model {
         return 'unknown';
       case this.peerIsFailing:
         return 'unknown';
-      case this.MeshInstancesPassing / this.InstanceCount >= this.MarkServiceStatusThreshold:
+      case this.MeshInstancesPassing > 0 &&
+        this.InstanceCount > 0 &&
+        this.MeshInstancesPassing / this.InstanceCount >= this.MarkServiceStatusThreshold:
         return 'passing';
       case this.MeshInstancesCritical !== 0:
         return 'critical';
@@ -134,10 +136,22 @@ export default class Service extends Model {
       return 'This peer is out of sync, so the current health statuses of its services are unknown.';
     }
     if (MeshStatus === 'critical') {
-      return 'At least one health check on one instance is failing.';
+      if (this.MeshInstancesPassing === 0) {
+        return `No instance has all health checks passing. At least one health check on one instance is failing.`;
+      } else {
+        return `Less than ${
+          this.MarkServiceStatusThreshold * 100
+        }% of total instances have all health checks passing. At least one health check on one instance is failing.`;
+      }
     }
     if (MeshStatus === 'warning') {
-      return 'At least one health check on one instance has a warning.';
+      if (this.MeshInstancesPassing === 0) {
+        return `No instance has all health checks passing. At least one health check on one instance has a warning.`;
+      } else {
+        return `Less than ${
+          this.MarkServiceStatusThreshold * 100
+        }% of total instances have all health checks passing. At least one health check on one instance has a warning.`;
+      }
     }
     if (MeshStatus == 'passing') {
       if (this.MeshInstancesPassing === this.InstanceCount) {

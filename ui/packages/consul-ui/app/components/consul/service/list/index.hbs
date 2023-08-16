@@ -53,24 +53,29 @@
       </span>
       {{#if (gt item.MeshInstancesPassing 0)}}
         <dl class="passing">
-          <dt>
-            {{format-number item.MeshInstancesPassing}}/{{format-number item.InstanceCount}}
-            {{pluralize item.InstanceCount 'instance' without-count=true}} passing
-          </dt>
+          <dt {{tooltip "Each of these instances have all health checks passing."}}></dt>
+          <dd>
+            {{format-number item.MeshInstancesPassing}}
+            {{pluralize item.MeshInstancesPassing 'instance' without-count=true}} passing
+          </dd>
         </dl>
-      {{else if (gt item.MeshInstancesCritical 0)}}
+      {{/if}}
+      {{#if (gt item.MeshInstancesCritical 0)}}
         <dl class="critical">
-          <dt>
-            {{format-number item.MeshInstancesCritical}}/{{format-number item.InstanceCount}}
-            {{pluralize item.InstanceCount 'instance' without-count=true}} critical
-          </dt>
+          <dt {{tooltip "Each of these instances have atleast one health check failing."}}></dt>
+          <dd>
+            {{format-number item.MeshInstancesCritical}}
+            {{pluralize item.MeshInstancesCritical 'instance' without-count=true}} critical
+          </dd>
         </dl>
-      {{else if (gt item.MeshInstancesWarning 0)}}
+      {{/if}}
+      {{#if (gt item.MeshInstancesWarning 0)}}
         <dl class="warning">
-          <dt>
-            {{format-number item.MeshInstancesWarning}}/{{format-number item.InstanceCount}}
-            {{pluralize item.InstanceCount 'instance' without-count=true}} warning
-          </dt>
+          <dt {{tooltip "Each of these instances have atleast one warning health check."}}></dt>
+          <dd>
+            {{format-number item.MeshInstancesWarning}}
+            {{pluralize item.MeshInstancesWarning 'instance' without-count=true}} warning
+          </dd>
         </dl>
       {{/if}}
     {{/if}}
