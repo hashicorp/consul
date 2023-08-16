@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	mathrand "math/rand"
 	"net"
 	"net/http"
@@ -27,7 +26,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -970,88 +968,42 @@ func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
 	requireCheckExists(t, a, "test-h2cping-check")
 }
 
-// testTCPServer is a simple TCP echo server for use during tests.
-type testTCPServer struct {
-	l                        net.Listener
-	stopped                  int32
-	accepted, closed, active int32
-}
-
-// newTestTCPServer opens as a listening socket on the given address and returns
-// a TestTCPServer serving requests to it. The server is already started and can
-// be stopped by calling Close().
-func newTestTCPServer(t *testing.T) *testTCPServer {
-	// Yes I get it, we're passing the same cert from the Consul Agent as is
-	// configured in this toy application server. Don't ever do this except in
-	// testing. I see you, thinking about it, don't.
-	certFile := "../test/key/ourdomain_server.cer"
-	keyFile := "../test/key/ourdomain_server.key"
-	caFile := "../test/ca/root.cer"
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+func startMockTLSServer(t *testing.T) (addr string, closeFunc func()) {
+	// Load certificates
+	cert, err := tls.LoadX509KeyPair("../test/key/ourdomain_server.cer", "../test/key/ourdomain_server.key")
 	require.NoError(t, err)
-
+	// Create a certificate pool
 	rootCertPool := x509.NewCertPool()
-	if caFile != "" {
-		caCert, err := os.ReadFile(caFile)
-		require.Equal(t, err, nil)
-		rootCertPool.AppendCertsFromPEM(caCert)
-	}
-
-	// Configure TLS to require and verify the client's certificate
+	caCert, err := os.ReadFile("../test/ca/root.cer")
+	require.NoError(t, err)
+	rootCertPool.AppendCertsFromPEM(caCert)
+	// Configure TLS
 	config := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    rootCertPool,
 	}
-
-	l, err := tls.Listen("tcp", "127.0.0.1:0", config)
-	require.Equal(t, err, nil)
-	server := &testTCPServer{l: l}
-	go server.accept(t)
-
-	return server
-}
-
-// Close stops the server
-func (s *testTCPServer) close() {
-	atomic.StoreInt32(&s.stopped, 1)
-	if s.l != nil {
-		s.l.Close()
-	}
-}
-
-// Addr returns the address that this server is listening on.
-func (s *testTCPServer) Addr() net.Addr {
-	return s.l.Addr()
-}
-
-func (s *testTCPServer) accept(t *testing.T) error {
-	for {
-		conn, err := s.l.Accept()
-		if err != nil {
-			if atomic.LoadInt32(&s.stopped) == 1 {
-				t.Logf("test tcp echo server %s stopped", s.l.Addr())
-				return nil
+	// Start TLS server
+	ln, err := tls.Listen("tcp", "127.0.0.1:0", config)
+	require.NoError(t, err)
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
 			}
-			t.Logf("test tcp echo server %s failed: %s", s.l.Addr(), err)
-			return err
+			go func(c net.Conn) {
+				io.Copy(c, c)
+				c.Close()
+			}(conn)
 		}
-
-		t.Logf("test tcp echo server accepted connection from: %s\n", conn.RemoteAddr())
-		atomic.AddInt32(&s.accepted, 1)
-		atomic.AddInt32(&s.active, 1)
-
-		go func(c net.Conn) {
-			io.Copy(c, c)
-			atomic.AddInt32(&s.closed, 1)
-			atomic.AddInt32(&s.active, -1)
-		}(conn)
-	}
+	}()
+	return ln.Addr().String(), func() { ln.Close() }
 }
 
 func TestAgent_AddServiceWithTCPTLSCheck(t *testing.T) {
 	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	dataDir := testutil.TempDir(t, "agent")
 	a := NewTestAgent(t, `
 		data_dir = "`+dataDir+`"
 		enable_agent_tls_for_checks = true
@@ -1066,29 +1018,23 @@ func TestAgent_AddServiceWithTCPTLSCheck(t *testing.T) {
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-
-	// Create the temporary TCP socket server that the healthcheck will connect
-	// to.
-	testApp := newTestTCPServer(t)
-	defer testApp.close()
-
+	// Start mock TCP+TLS server
+	addr, closeServer := startMockTLSServer(t)
+	defer closeServer()
 	check := &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "arbitraryTCPServerTLSCheck",
 		Name:    "arbitraryTCPServerTLSCheck",
 		Status:  api.HealthCritical,
 	}
-
 	chkType := &structs.CheckType{
-		TCP:           testApp.Addr().String(),
+		TCP:           addr,
 		TCPUseTLS:     true,
 		TLSServerName: "server.dc1.consul",
 		Interval:      5 * time.Second,
 	}
-
 	err := a.AddCheck(check, chkType, false, "", ConfigSourceLocal)
-	require.Equal(t, err, nil)
-
+	require.NoError(t, err)
 	// Retry until the healthcheck is passing.
 	retry.Run(t, func(r *retry.R) {
 		status := getCheck(a, "arbitraryTCPServerTLSCheck")
