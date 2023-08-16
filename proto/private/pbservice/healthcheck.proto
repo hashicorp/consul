@@ -42,6 +42,7 @@ message HealthCheck {
   string Interval = 15;
   string Timeout = 16;
   string PeerName = 17;
+  string LastCheckStartTime = 18;
 }
 
 message HeaderValue {

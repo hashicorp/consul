@@ -59,7 +59,6 @@ type HealthCheck struct {
 	Interval    string `protobuf:"bytes,15,opt,name=Interval,proto3" json:"Interval,omitempty"`
 	Timeout     string `protobuf:"bytes,16,opt,name=Timeout,proto3" json:"Timeout,omitempty"`
 	PeerName    string `protobuf:"bytes,17,opt,name=PeerName,proto3" json:"PeerName,omitempty"`
-	LastCheckStartTime time.Time `protobuf:"bytes,18,opt,name=LastCheckStartTime,proto3" json:"LastCheckStartTime,omitempty"`
 }
 
 func (x *HealthCheck) Reset() {
