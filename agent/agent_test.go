@@ -1006,7 +1006,6 @@ func newTestTCPServer(t *testing.T) *testTCPServer {
 
 	l, err := tls.Listen("tcp", "127.0.0.1:0", config)
 	require.Equal(t, err, nil)
-	log.Printf("test tcp server listening on %s", l.Addr())
 	server := &testTCPServer{l: l}
 	go server.accept(t)
 
