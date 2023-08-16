@@ -7,7 +7,7 @@ name: License Checker
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, synchronize]
     branches:
       - release/1.14.*
       - release/1.15.*
