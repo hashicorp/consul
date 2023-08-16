@@ -14,6 +14,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	mathrand "math/rand"
 	"net"
 	"net/http"
@@ -25,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -960,6 +963,136 @@ func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
 		t.Fatalf("Error registering service: %v", err)
 	}
 	requireCheckExists(t, a, "test-h2cping-check")
+}
+
+// testTCPServer is a simple TCP echo server for use during tests.
+type testTCPServer struct {
+	l                        net.Listener
+	stopped                  int32
+	accepted, closed, active int32
+}
+
+// newTestTCPServer opens as a listening socket on the given address and returns
+// a TestTCPServer serving requests to it. The server is already started and can
+// be stopped by calling Close().
+func newTestTCPServer(t *testing.T) *testTCPServer {
+	// Yes I get it, we're passing the same cert from the Consul Agent as is
+	// configured in this toy application server. Don't ever do this except in
+	// testing. I see you, thinking about it, don't.
+	certFile := "../test/key/ourdomain_server.cer"
+	keyFile := "../test/key/ourdomain_server.key"
+	caFile := "../test/ca/root.cer"
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	require.Equal(t, err, nil)
+
+	rootCertPool := x509.NewCertPool()
+	if caFile != "" {
+		caCert, err := os.ReadFile(caFile)
+		require.Equal(t, err, nil)
+		rootCertPool.AppendCertsFromPEM(caCert)
+	}
+
+	// Configure TLS to require and verify the client's certificate
+	config := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    rootCertPool,
+	}
+
+	l, err := tls.Listen("tcp", "127.0.0.1:0", config)
+	require.Equal(t, err, nil)
+	log.Printf("test tcp server listening on %s", l.Addr())
+	server := &testTCPServer{l: l}
+	go server.accept(t)
+
+	return server
+}
+
+// Close stops the server
+func (s *testTCPServer) close() {
+	atomic.StoreInt32(&s.stopped, 1)
+	if s.l != nil {
+		s.l.Close()
+	}
+}
+
+// Addr returns the address that this server is listening on.
+func (s *testTCPServer) Addr() net.Addr {
+	return s.l.Addr()
+}
+
+func (s *testTCPServer) accept(t *testing.T) error {
+	for {
+		conn, err := s.l.Accept()
+		if err != nil {
+			if atomic.LoadInt32(&s.stopped) == 1 {
+				t.Logf("test tcp echo server %s stopped", s.l.Addr())
+				return nil
+			}
+			t.Logf("test tcp echo server %s failed: %s", s.l.Addr(), err)
+			return err
+		}
+
+		t.Logf("test tcp echo server accepted connection from: %s\n", conn.RemoteAddr())
+		atomic.AddInt32(&s.accepted, 1)
+		atomic.AddInt32(&s.active, 1)
+
+		go func(c net.Conn) {
+			io.Copy(c, c)
+			atomic.AddInt32(&s.closed, 1)
+			atomic.AddInt32(&s.active, -1)
+		}(conn)
+	}
+}
+
+func TestAgent_AddServiceWithTCPTLSCheck(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	a := NewTestAgent(t, `
+		data_dir = "`+dataDir+`"
+		enable_agent_tls_for_checks = true
+		datacenter = "dc1"
+		tls {
+			defaults {
+				ca_file   = "../test/ca/root.cer"
+				cert_file = "../test/key/ourdomain_server.cer"
+				key_file  = "../test/key/ourdomain_server.key"
+			}
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create the temporary TCP socket server that the healthcheck will connect
+	// to.
+	testApp := newTestTCPServer(t)
+	defer testApp.close()
+
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "arbitraryTCPServerTLSCheck",
+		Name:    "arbitraryTCPServerTLSCheck",
+		Status:  api.HealthCritical,
+	}
+
+	chkType := &structs.CheckType{
+		TCP:           testApp.Addr().String(),
+		TCPUseTLS:     true,
+		TLSServerName: "server.dc1.consul",
+		TLSSkipVerify: false,
+		Interval:      5 * time.Second,
+	}
+
+	err := a.AddCheck(check, chkType, false, "", ConfigSourceLocal)
+	require.Equal(t, err, nil)
+
+	// Retry until the healthcheck is passing.
+	retry.Run(t, func(r *retry.R) {
+		status := getCheck(a, "arbitraryTCPServerTLSCheck")
+		if status.Status != api.HealthPassing {
+			r.Fatalf("bad: %v", status.Status)
+		}
+	})
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {
@@ -4297,7 +4430,7 @@ func TestAgent_consulConfig_RequestLimits(t *testing.T) {
 
 	t.Parallel()
 	hcl := `
-		limits { 
+		limits {
 			request_limits {
 				mode = "enforcing"
 				read_rate = 8888
@@ -6255,7 +6388,7 @@ func TestAgent_scadaProvider(t *testing.T) {
 		},
 		Overrides: `
 cloud {
-  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100" 
+  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100"
   client_id = "test"
   client_secret = "test"
 }`,
