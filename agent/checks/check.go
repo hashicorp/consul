@@ -654,7 +654,6 @@ func (c *CheckTCP) Start() {
 
 	if c.dialer == nil {
 		// Create the socket dialer
-		fmt.Println("Had to make a dialer")
 		c.dialer = &net.Dialer{
 			Timeout: 10 * time.Second,
 		}
@@ -709,9 +708,7 @@ func (c *CheckTCP) check() {
 	}
 
 	if c.TLSClientConfig != nil {
-		fmt.Printf("Dialing %s\n", c.TCP)
 		tlsConn, err := tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
-		fmt.Printf("MADE A DIAL: %v\n", err)
 		logAndUpdate("TCP+TLS", err)
 		if err == nil {
 			defer tlsConn.Close()
