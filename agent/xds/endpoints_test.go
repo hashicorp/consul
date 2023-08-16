@@ -1,9 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
 import (
+	"github.com/hashicorp/go-hclog"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -213,6 +214,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeLoadAssignment(
+				hclog.NewNullLogger(),
 				&proxycfg.ConfigSnapshot{ServiceLocality: tt.locality},
 				tt.clusterName,
 				nil,
@@ -223,6 +225,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 
 			if tt.locality == nil {
 				got := makeLoadAssignment(
+					hclog.NewNullLogger(),
 					&proxycfg.ConfigSnapshot{ServiceLocality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"}},
 					tt.clusterName,
 					nil,

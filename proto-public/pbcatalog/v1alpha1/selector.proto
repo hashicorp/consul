@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 syntax = "proto3";
 
@@ -9,4 +9,5 @@ package hashicorp.consul.catalog.v1alpha1;
 message WorkloadSelector {
   repeated string prefixes = 1;
   repeated string names = 2;
+  string filter = 3;
 }
