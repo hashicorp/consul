@@ -39,22 +39,24 @@ terminatingGateways:
 
 ## Deploying the Helm chart
 
-Ensure you have the latest consul-helm chart and install Consul via helm using the following
-[guide](/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
-as previously discussed.
+The Helm chart may be deployed using the [Consul on Kubernetes CLI](/consul/docs/k8s/k8s-cli).
+
+```shell-session
+$ consul-k8s install --config-file values.yaml
+```
 
 ## Accessing the Consul agent
 
 You can access the Consul server directly from your host via `kubectl port-forward`. This is helpful for interacting with your Consul UI locally as well as to validate connectivity of the application.
 
 ```shell-session
-$ kubectl port-forward consul-server-0 8500 &
+$ kubectl port-forward service/consul-server 8500 &
 ```
 
 If TLS is enabled use port 8501:
 
 ```shell-session
-$ kubectl port-forward consul-server-0 8501 &
+$ kubectl port-forward service/consul-server 8501 &
 ```
 
 -> Be sure the latest consul binary is installed locally on your host.
@@ -95,8 +97,9 @@ There are two ways to register an external service with Consul:
 
 #### Register an external service as a destination
 
-The [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial the external service directly. It is valid only in [`TransparentProxy`](/docs/connect/transparent-proxy)) mode.
-The following table describes traffic behaviors when using `destination`s to route traffic through a terminating gateway:
+The [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial the external service directly. For this method to work, [`TransparentProxy`](/docs/connect/transparent-proxy) must be enabled.
+
+The following table describes traffic behaviors when using the `destination` field to route traffic through a terminating gateway:
 
 | External Services Layer | Client dials | Client uses TLS | Allowed | Notes |
 |---|---|---|---|---|
@@ -195,8 +198,8 @@ true
 
 ### Update terminating gateway ACL role if ACLs are enabled
 
-If ACLs are enabled, update the terminating gateway acl role to have `service: write` permissions on all of the services
-being represented by the gateway:
+If ACLs are enabled, update the terminating gateway ACL role to have `service:write` permissions on all of the services
+being represented by the gateway.
 
 - Create a new policy that includes these permissions
 - Update the existing role to include the new policy
@@ -223,15 +226,14 @@ service "example-https" {
 }
 ```
 
-Now fetch the ID of the terminating gateway token
+Obtain the ID of the terminating gateway role.
 
 ```shell-session
-consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-policy" | grep ID
-
-ID:       <role id>
+$ consul acl role list -format=json | jq --raw-output '[.[] | select(.Name | endswith("-terminating-gateway-acl-role"))] | if (. | length) == 1 then (. | first | .ID) else "Unable to determine the role ID because there are multiple roles matching this name.\n" | halt_error end'
+<role id>
 ```
 
-Update the terminating gateway acl token with the new policy
+Update the terminating gateway ACL role with the new policy.
 
 ```shell-session
 $ consul acl role update -id <role id> -policy-name example-https-write-policy
@@ -371,18 +373,18 @@ deployment "static-client" successfully rolled out
 
 You can verify connectivity of the static-client and terminating gateway via a curl command:
 
-<CodeBlockConfig heading="External services registered with the Consul catalog">
-
-```shell-session
-$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
-```
-
-</CodeBlockConfig>
-
-<CodeBlockConfig heading="External services registered with `ServiceDefaults` destinations">
+<Tabs>
+<Tab heading="Registered with ServiceDefaults destinations">
 
 ```shell-session
 $ kubectl exec deploy/static-client -- curl -vvvs https://example.com/
 ```
 
-</CodeBlockConfig>
+</Tab>
+<Tab heading="Registered with the Consul catalog">
+
+```shell-session
+$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
+```
+</Tab>
+</Tabs>
