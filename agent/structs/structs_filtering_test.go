@@ -670,6 +670,11 @@ var expectedFieldConfigHealthCheck bexpr.FieldConfigurations = bexpr.FieldConfig
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "PeerName",
 	},
+	"LastCheckStartTime": &bexpr.FieldConfiguration{
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+		StructFieldName:     "LastCheckStartTime",
+	},
 }
 
 var expectedFieldConfigCheckServiceNode bexpr.FieldConfigurations = bexpr.FieldConfigurations{
