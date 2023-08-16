@@ -277,7 +277,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									DeregisterCriticalServiceAfter: &durationpb.Duration{},
 									TTL:                            &durationpb.Duration{},
 								},
-								LastCheckStartTime: &timestamppb.Timestamp{},
+								LastCheckStartTime: &timestamppb.Timestamp{Seconds: -62135596800},
 							},
 						},
 					},
