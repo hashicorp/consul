@@ -6,6 +6,7 @@ package subscribe
 import (
 	"context"
 	"errors"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"net"
 	"testing"
@@ -276,6 +277,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									DeregisterCriticalServiceAfter: &durationpb.Duration{},
 									TTL:                            &durationpb.Duration{},
 								},
+								LastCheckStartTime: &timestamppb.Timestamp{},
 							},
 						},
 					},
