@@ -1,3 +1,4 @@
 ```release-note:enhancement
 ui: Adds last timestamp the check was run. Also added a button the re-run check instantly.
+server: Added API to re-run check and added field in HealthCheck to store the LastCheckStartTime. This gets updated on very check run.
 ```
