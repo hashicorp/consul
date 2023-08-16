@@ -716,7 +716,6 @@ func (c *CheckTCP) check() {
 			logAndUpdate("TCP+TLS", err)
 		}
 	}
-	}
 }
 
 // CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.
