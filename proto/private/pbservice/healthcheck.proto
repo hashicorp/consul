@@ -6,8 +6,8 @@ syntax = "proto3";
 package hashicorp.consul.internal.service;
 
 import "google/protobuf/duration.proto";
-import "private/pbcommon/common.proto";
 import "google/protobuf/timestamp.proto";
+import "private/pbcommon/common.proto";
 
 // HealthCheck represents a single check on a given node
 //
