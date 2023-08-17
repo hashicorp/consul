@@ -12,7 +12,7 @@ import (
 )
 
 func autopilotToAPIServerEnterprise(_ *autopilot.ServerState, _ *api.AutopilotServer) {
-	// noop in oss
+	// noop in ce
 }
 
 func autopilotToAPIStateEnterprise(state *autopilot.State, apiState *api.AutopilotState) {

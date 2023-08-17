@@ -39,7 +39,7 @@ func (s *HTTPHandlers) validateEnterpriseIntentionPartition(logName, partition s
 		return nil
 	}
 
-	// No special handling for wildcard namespaces as they are pointless in OSS.
+	// No special handling for wildcard namespaces as they are pointless in CE.
 
 	return HTTPError{
 		StatusCode: http.StatusBadRequest,
@@ -54,7 +54,7 @@ func (s *HTTPHandlers) validateEnterpriseIntentionNamespace(logName, ns string, 
 		return nil
 	}
 
-	// No special handling for wildcard namespaces as they are pointless in OSS.
+	// No special handling for wildcard namespaces as they are pointless in CE.
 
 	return HTTPError{
 		StatusCode: http.StatusBadRequest,

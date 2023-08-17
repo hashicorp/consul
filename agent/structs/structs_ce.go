@@ -84,13 +84,13 @@ func (_ *RegisterRequest) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return nil
 }
 
-// OSS Stub
+// CE Stub
 func (op *TxnNodeOp) FillAuthzContext(ctx *acl.AuthorizerContext) {}
 
-// OSS Stub
+// CE Stub
 func (_ *TxnServiceOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
-// OSS Stub
+// CE Stub
 func (_ *TxnCheckOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func NodeNameString(node string, _ *acl.EnterpriseMeta) string {

@@ -6,5 +6,5 @@
 
 package agent
 
-// enterpriseDelegate has no functions in OSS
+// enterpriseDelegate has no functions in CE
 type enterpriseDelegate interface{}

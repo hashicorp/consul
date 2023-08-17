@@ -13,7 +13,7 @@ import (
 // validateEnterpriseConfig is a function to validate the enterprise specific
 // configuration items after Parsing but before merging into the overall
 // configuration. The original intent is to use it to ensure that we warn
-// for enterprise configurations used in OSS.
+// for enterprise configurations used in CE.
 func validateEnterpriseConfigKeys(config *Config) []error {
 	var result []error
 	add := func(k string) {

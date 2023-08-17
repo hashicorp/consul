@@ -13,7 +13,7 @@ type EnterpriseConfig struct {
 type enterpriseTokens struct {
 }
 
-// enterpriseAgentToken OSS stub
+// enterpriseAgentToken CE stub
 func (t *Store) enterpriseAgentToken() string {
 	return ""
 }

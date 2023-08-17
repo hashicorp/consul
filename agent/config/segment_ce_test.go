@@ -18,7 +18,7 @@ func TestSegments(t *testing.T) {
 
 	tests := []testCase{
 		{
-			desc: "segment name not in OSS",
+			desc: "segment name not in CE",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
@@ -42,7 +42,7 @@ func TestSegments(t *testing.T) {
 			},
 		},
 		{
-			desc: "segments not in OSS",
+			desc: "segments not in CE",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},

@@ -77,7 +77,7 @@ func (s *Server) validateEnterpriseIntentionPartition(partition string) error {
 		return nil
 	}
 
-	// No special handling for wildcard partitions as they are pointless in OSS.
+	// No special handling for wildcard partitions as they are pointless in CE.
 
 	return errors.New("Partitions is a Consul Enterprise feature")
 }

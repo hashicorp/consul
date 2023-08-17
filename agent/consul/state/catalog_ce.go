@@ -115,7 +115,7 @@ func catalogUpdateNodeExtinctionIndex(tx WriteTxn, idx uint64, _ *acl.Enterprise
 }
 
 func catalogInsertNode(tx WriteTxn, node *structs.Node) error {
-	// ensure that the Partition is always clear within the state store in OSS
+	// ensure that the Partition is always clear within the state store in CE
 	node.Partition = ""
 
 	// Insert the node and update the index.

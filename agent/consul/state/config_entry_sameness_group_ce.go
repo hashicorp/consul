@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
-// SamenessGroupDefaultIndex is a placeholder for OSS. Sameness-groups are enterprise only.
+// SamenessGroupDefaultIndex is a placeholder for CE. Sameness-groups are enterprise only.
 type SamenessGroupDefaultIndex struct{}
 
 var _ memdb.Indexer = (*SamenessGroupDefaultIndex)(nil)
