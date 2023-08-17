@@ -13,7 +13,7 @@ import (
 )
 
 func migrateIntentionsToConfigEntries(ixns structs.Intentions) []*structs.ServiceIntentionsConfigEntry {
-	// Remove any intention in OSS that happened to have used a non-default
+	// Remove any intention in CE that happened to have used a non-default
 	// namespace.
 	//
 	// The one exception is that if we find wildcards namespaces we "upgrade"
@@ -56,7 +56,7 @@ func migrateIntentionsToConfigEntries(ixns structs.Intentions) []*structs.Servic
 			}
 			retained[name] = struct{}{}
 			output = append(output, ixn)
-			continue // a-ok for OSS
+			continue // a-ok for CE
 		}
 
 		// If anything is wildcarded, attempt to reify it as "default".

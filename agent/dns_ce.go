@@ -59,7 +59,7 @@ func (d *DNSServer) parseLocality(labels []string, cfg *dnsConfig) (queryLocalit
 
 type querySameness struct{}
 
-// parseSamenessGroupLocality wraps parseLocality in OSS
+// parseSamenessGroupLocality wraps parseLocality in CE
 func (d *DNSServer) parseSamenessGroupLocality(cfg *dnsConfig, labels []string, errfnc func() error) ([]queryLocality, error) {
 	locality, ok := d.parseLocality(labels, cfg)
 	if !ok {

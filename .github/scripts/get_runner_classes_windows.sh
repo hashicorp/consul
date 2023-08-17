@@ -13,7 +13,7 @@ case "$GITHUB_REPOSITORY" in
         echo "compute-small=['self-hosted', 'windows', 'small']" >> "$GITHUB_OUTPUT"
         echo "compute-medium=['self-hosted', 'windows', 'medium']" >> "$GITHUB_OUTPUT"
         echo "compute-large=['self-hosted', 'windows', 'large']" >> "$GITHUB_OUTPUT"
-        # m5d.8xlarge is equivalent to our xl custom runner in OSS
+        # m5d.8xlarge is equivalent to our xl custom runner in CE
         echo "compute-xl=['self-hosted', 'ondemand', 'windows', 'type=m5d.8xlarge']" >> "$GITHUB_OUTPUT"
         ;;
     *)

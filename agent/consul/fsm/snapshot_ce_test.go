@@ -34,7 +34,7 @@ func TestRestoreFromEnterprise(t *testing.T) {
 		StorageBackend: storageBackend,
 	})
 
-	// To verify if a proper message is displayed when Consul OSS tries to
+	// To verify if a proper message is displayed when Consul CE tries to
 	//  unsuccessfully restore entries from a Consul Ent snapshot.
 	buf := bytes.NewBuffer(nil)
 	sink := &MockSink{buf, false}
@@ -58,6 +58,6 @@ func TestRestoreFromEnterprise(t *testing.T) {
 	sink.Write([]byte{byte(structs.MessageType(entMockEntry.ID))})
 	encoder.Encode(entMockEntry)
 
-	require.EqualError(t, fsm.Restore(sink), "msg type <65> is a Consul Enterprise log entry. Consul OSS cannot restore it")
+	require.EqualError(t, fsm.Restore(sink), "msg type <65> is a Consul Enterprise log entry. Consul CE cannot restore it")
 	sink.Cancel()
 }

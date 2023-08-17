@@ -17,7 +17,7 @@ const (
 const DefaultNamespaceName = "default"
 
 type EnterpriseConfig struct {
-	// no fields in OSS
+	// no fields in CE
 }
 
 func (_ *EnterpriseConfig) Close() {

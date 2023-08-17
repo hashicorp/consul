@@ -12,7 +12,7 @@ import (
 
 func TestExportedServicesConfigEntry_OSS(t *testing.T) {
 	cases := map[string]configEntryTestcase{
-		"normalize: noop in oss": {
+		"normalize: noop in ce": {
 			entry: &ExportedServicesConfigEntry{
 				Name: "default",
 				Services: []ExportedService{

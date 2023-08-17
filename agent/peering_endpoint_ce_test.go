@@ -30,7 +30,7 @@ func TestHTTP_Peering_GenerateToken_OSS_Failure(t *testing.T) {
 	a := NewTestAgent(t, "")
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	t.Run("Doesn't allow partitions in OSS HTTP requests", func(t *testing.T) {
+	t.Run("Doesn't allow partitions in CE HTTP requests", func(t *testing.T) {
 		reqBody := &pbpeering.GenerateTokenRequest{
 			PeerName: "peering-a",
 		}
@@ -47,7 +47,7 @@ func TestHTTP_Peering_GenerateToken_OSS_Failure(t *testing.T) {
 	})
 }
 
-func TestHTTP_PeeringEndpoint_OSS_Failure(t *testing.T) {
+func TestHTTP_PeeringEndpoint_CE_Failure(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -57,7 +57,7 @@ func TestHTTP_PeeringEndpoint_OSS_Failure(t *testing.T) {
 	a := NewTestAgent(t, "")
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	t.Run("Doesn't allow partitions on PeeringEndpoint in OSS HTTP requests", func(t *testing.T) {
+	t.Run("Doesn't allow partitions on PeeringEndpoint in CE HTTP requests", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/peering/foo?partition=foo", nil)
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()

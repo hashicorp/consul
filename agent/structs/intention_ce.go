@@ -31,21 +31,21 @@ func (e *IntentionQueryExact) DestinationEnterpriseMeta() *acl.EnterpriseMeta {
 }
 
 // FillAuthzContext can fill in an acl.AuthorizerContext object to setup
-// extra parameters for ACL enforcement. In OSS there is currently nothing
+// extra parameters for ACL enforcement. In CE there is currently nothing
 // extra to be done.
 func (_ *Intention) FillAuthzContext(_ *acl.AuthorizerContext, _ bool) {
 	// do nothing
 }
 
 // FillAuthzContext can fill in an acl.AuthorizerContext object to setup
-// extra parameters for ACL enforcement. In OSS there is currently nothing
+// extra parameters for ACL enforcement. In CE there is currently nothing
 // extra to be done.
 func (_ *IntentionMatchEntry) FillAuthzContext(_ *acl.AuthorizerContext) {
 	// do nothing
 }
 
 // FillAuthzContext can fill in an acl.AuthorizerContext object to setup
-// extra parameters for ACL enforcement. In OSS there is currently nothing
+// extra parameters for ACL enforcement. In CE there is currently nothing
 // extra to be done.
 func (_ *IntentionQueryCheck) FillAuthzContext(_ *acl.AuthorizerContext) {
 	// do nothing

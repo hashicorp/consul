@@ -87,7 +87,7 @@ func (s *Server) removeFailedNode(
 }
 
 // lanPoolAllMembers only returns our own segment or partition's members, because
-// OSS servers can't be in multiple segments or partitions.
+// CE servers can't be in multiple segments or partitions.
 func (s *Server) lanPoolAllMembers() ([]serf.Member, error) {
 	return s.LANMembersInAgentPartition(), nil
 }

@@ -26,7 +26,7 @@ func (s *Server) LANSegmentAddr(name string) string {
 	return ""
 }
 
-// setupSegmentRPC returns an error if any segments are defined since the OSS
+// setupSegmentRPC returns an error if any segments are defined since the CE
 // version of Consul doesn't support them.
 func (s *Server) setupSegmentRPC() (map[string]net.Listener, error) {
 	if len(s.config.Segments) > 0 {
@@ -36,7 +36,7 @@ func (s *Server) setupSegmentRPC() (map[string]net.Listener, error) {
 	return nil, nil
 }
 
-// setupSegments returns an error if any segments are defined since the OSS
+// setupSegments returns an error if any segments are defined since the CE
 // version of Consul doesn't support them.
 func (s *Server) setupSegments(config *Config, rpcListeners map[string]net.Listener) error {
 	if len(config.Segments) > 0 {
@@ -46,6 +46,6 @@ func (s *Server) setupSegments(config *Config, rpcListeners map[string]net.Liste
 	return nil
 }
 
-// floodSegments is a NOP in the OSS version of Consul.
+// floodSegments is a NOP in the CE version of Consul.
 func (s *Server) floodSegments(config *Config) {
 }

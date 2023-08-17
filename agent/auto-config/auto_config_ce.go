@@ -6,7 +6,7 @@
 
 package autoconf
 
-// AutoConfigEnterprise has no fields in OSS
+// AutoConfigEnterprise has no fields in CE
 type AutoConfigEnterprise struct{}
 
 // newAutoConfigEnterprise initializes the enterprise AutoConfig struct

@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// mockedEnterpriseConfig is pretty much just a stub in OSS
+// mockedEnterpriseConfig is pretty much just a stub in CE.
 // It does contain an enterprise config for compatibility
 // purposes but that in and of itself is just a stub.
 type mockedEnterpriseConfig struct {

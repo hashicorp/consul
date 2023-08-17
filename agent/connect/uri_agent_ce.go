@@ -13,7 +13,7 @@ import (
 )
 
 // GetEnterpriseMeta will synthesize an EnterpriseMeta struct from the SpiffeIDAgent.
-// in OSS this just returns an empty (but never nil) struct pointer
+// in CE this just returns an empty (but never nil) struct pointer
 func (id SpiffeIDAgent) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return &acl.EnterpriseMeta{}
 }

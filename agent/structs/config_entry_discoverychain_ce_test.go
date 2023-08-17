@@ -25,7 +25,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 
 	cases := []testcase{
 		{
-			name: "failover with a sameness group on OSS",
+			name: "failover with a sameness group on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -38,7 +38,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Bad Failover["*"]: Setting SamenessGroup requires Consul Enterprise`,
 		},
 		{
-			name: "failover with a namespace on OSS",
+			name: "failover with a namespace on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -52,7 +52,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Bad Failover["*"]: Setting Namespace requires Consul Enterprise`,
 		},
 		{
-			name: "failover Targets cannot set Namespace on OSS",
+			name: "failover Targets cannot set Namespace on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -65,7 +65,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Bad Failover["*"].Targets[0]: Setting Namespace requires Consul Enterprise`,
 		},
 		{
-			name: "failover Targets cannot set Partition on OSS",
+			name: "failover Targets cannot set Partition on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -78,7 +78,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Bad Failover["*"].Targets[0]: Setting Partition requires Consul Enterprise`,
 		},
 		{
-			name: "setting failover Namespace on OSS",
+			name: "setting failover Namespace on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -89,7 +89,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Bad Failover["*"]: Setting Namespace requires Consul Enterprise`,
 		},
 		{
-			name: "setting failover Namespace on OSS",
+			name: "setting failover Namespace on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -100,7 +100,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Bad Failover["*"]: Setting failover policies requires Consul Enterprise`,
 		},
 		{
-			name: "setting redirect SamenessGroup on OSS",
+			name: "setting redirect SamenessGroup on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -111,7 +111,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Redirect: Setting SamenessGroup requires Consul Enterprise`,
 		},
 		{
-			name: "setting redirect Namespace on OSS",
+			name: "setting redirect Namespace on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",
@@ -122,7 +122,7 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Redirect: Setting Namespace requires Consul Enterprise`,
 		},
 		{
-			name: "setting redirect Partition on OSS",
+			name: "setting redirect Partition on CE",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
 				Name: "test",

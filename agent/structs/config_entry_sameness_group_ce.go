@@ -13,22 +13,22 @@ func (s *SamenessGroupConfigEntry) Validate() error {
 	return fmt.Errorf("sameness-groups are an enterprise-only feature")
 }
 
-// RelatedPeers is an OSS placeholder noop
+// RelatedPeers is an CE placeholder noop
 func (s *SamenessGroupConfigEntry) RelatedPeers() []string {
 	return nil
 }
 
-// AllMembers is an OSS placeholder noop
+// AllMembers is an CE placeholder noop
 func (s *SamenessGroupConfigEntry) AllMembers() []SamenessGroupMember {
 	return nil
 }
 
-// ToServiceResolverFailoverTargets is an OSS placeholder noop
+// ToServiceResolverFailoverTargets is an CE placeholder noop
 func (s *SamenessGroupConfigEntry) ToServiceResolverFailoverTargets() []ServiceResolverFailoverTarget {
 	return nil
 }
 
-// ToQueryFailoverTargets is an OSS placeholder noop
+// ToQueryFailoverTargets is an CE placeholder noop
 func (s *SamenessGroupConfigEntry) ToQueryFailoverTargets(namespace string) []QueryFailoverTarget {
 	return nil
 }

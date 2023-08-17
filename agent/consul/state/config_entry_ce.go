@@ -65,7 +65,7 @@ func configIntentionsConvertToList(iter memdb.ResultIterator, _ *acl.EnterpriseM
 }
 
 // getExportedServicesMatchServicesNames returns a list of service names that are considered matches when
-// found in a list of exported-services config entries. For OSS, namespace is not considered, so a match is one of:
+// found in a list of exported-services config entries. For CE, namespace is not considered, so a match is one of:
 //   - the service name matches
 //   - the service name is a wildcard
 //
