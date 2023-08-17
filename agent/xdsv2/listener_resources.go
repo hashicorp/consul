@@ -43,6 +43,20 @@ const (
 	envoyHttpConnectionManagerFilterName       = "envoy.filters.network.http_connection_manager"
 )
 
+func (pr *ProxyResources) makeXDSListeners() ([]proto.Message, error) {
+	listeners := make([]proto.Message, 0)
+
+	for _, l := range pr.proxyState.Listeners {
+		protoListener, err := pr.makeListener(l)
+		// TODO: aggregate errors for listeners and still return any properly formed listeners.
+		if err != nil {
+			return nil, err
+		}
+		listeners = append(listeners, protoListener)
+	}
+	return listeners, nil
+}
+
 func (pr *ProxyResources) makeListener(listener *pbproxystate.Listener) (*envoy_listener_v3.Listener, error) {
 	envoyListener := &envoy_listener_v3.Listener{}
 
@@ -399,7 +413,7 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 			},
 		}
 
-		routeConfig, err := pr.makeRoute(l7.Name)
+		routeConfig, err := pr.makeEnvoyRoute(l7.Name)
 		if err != nil {
 			return nil, err
 		}

@@ -66,10 +66,12 @@ func (g *Converter) resourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) erro
 	if err != nil {
 		return err
 	}
-	//err = g.routesFromSnapshot(cfgSnap)
-	//if err != nil {
-	//	return err
-	//}
+
+	err = g.routesFromSnapshot(cfgSnap)
+	if err != nil {
+		return err
+	}
+
 	//g.secretsFromSnapshot(cfgSnap)
 	return nil
 }

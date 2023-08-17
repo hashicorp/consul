@@ -45,17 +45,11 @@ func (g *ResourceGenerator) AllResourcesFromIR(proxyState *pbmesh.ProxyState) (m
 }
 
 func (pr *ProxyResources) generateXDSResources() error {
-	listeners := make([]proto.Message, 0)
-	routes := make([]proto.Message, 0)
-
-	for _, l := range pr.proxyState.Listeners {
-		protoListener, err := pr.makeListener(l)
-		// TODO: aggregate errors for listeners and still return any properly formed listeners.
-		if err != nil {
-			return err
-		}
-		listeners = append(listeners, protoListener)
+	listeners, err := pr.makeXDSListeners()
+	if err != nil {
+		return err
 	}
+	pr.envoyResources[xdscommon.ListenerType] = listeners
 
 	pr.envoyResources[xdscommon.ListenerType] = listeners
 
@@ -71,6 +65,10 @@ func (pr *ProxyResources) generateXDSResources() error {
 	}
 	pr.envoyResources[xdscommon.EndpointType] = endpoints
 
+	routes, err := pr.makeXDSRoutes()
+	if err != nil {
+		return err
+	}
 	pr.envoyResources[xdscommon.RouteType] = routes
 
 	return nil

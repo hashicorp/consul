@@ -105,7 +105,7 @@ type ProxyState struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// identity is a reference to the WorkloadIdentity associated with this proxy.
+	// identity is a reference to the identity of the workload this proxy is for.
 	Identity *pbresource.Reference `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
 	// listeners is a list of listeners for this proxy.
 	Listeners []*pbproxystate.Listener `protobuf:"bytes,2,rep,name=listeners,proto3" json:"listeners,omitempty"`

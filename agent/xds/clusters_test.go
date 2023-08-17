@@ -96,8 +96,7 @@ func makeClusterDiscoChainTests(enterprise bool) []clusterTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
 			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-and-failover",
@@ -176,16 +175,14 @@ func makeClusterDiscoChainTests(enterprise bool) []clusterTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
 			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-lb-in-resolver",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", enterprise, nil, nil)
 			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
+			alsoRunTestForV2: true,
 		},
 	}
 }

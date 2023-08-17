@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -1021,7 +1022,7 @@ func configureClusterWithHostnames(
 		dnsEndpointGroup.Config.DiscoveryType = pbproxystate.DiscoveryType_DISCOVERY_TYPE_STRICT
 	}
 
-	endpoints := make([]*pbproxystate.Endpoint, 0, 1)
+	endpoints := make([]*envoy_endpoint_v3.LbEndpoint, 0, 1)
 	uniqueHostnames := make(map[string]bool)
 
 	var (
