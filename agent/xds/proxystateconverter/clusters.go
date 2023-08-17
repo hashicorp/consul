@@ -454,7 +454,7 @@ func (s *Converter) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathP
 			},
 		},
 	}
-  
+
 	protocol := pathProtocol
 	if protocol == "" {
 		protocol = cfg.Protocol
