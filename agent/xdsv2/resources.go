@@ -5,7 +5,6 @@ package xdsv2
 
 import (
 	"fmt"
-
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
@@ -48,7 +47,6 @@ func (g *ResourceGenerator) AllResourcesFromIR(proxyState *pbmesh.ProxyState) (m
 func (pr *ProxyResources) generateXDSResources() error {
 	listeners := make([]proto.Message, 0)
 	routes := make([]proto.Message, 0)
-	endpoints := make([]proto.Message, 0)
 
 	for _, l := range pr.proxyState.Listeners {
 		protoListener, err := pr.makeListener(l)
@@ -58,16 +56,21 @@ func (pr *ProxyResources) generateXDSResources() error {
 		}
 		listeners = append(listeners, protoListener)
 	}
+	pr.envoyResources[xdscommon.ListenerType] = listeners
 
 	clusters, err := pr.makeXDSClusters()
 	if err != nil {
 		return err
 	}
-
-	pr.envoyResources[xdscommon.ListenerType] = listeners
 	pr.envoyResources[xdscommon.ClusterType] = clusters
-	pr.envoyResources[xdscommon.RouteType] = routes
+
+	endpoints, err := pr.makeXDSEndpoints()
+	if err != nil {
+		return err
+	}
 	pr.envoyResources[xdscommon.EndpointType] = endpoints
+
+	pr.envoyResources[xdscommon.RouteType] = routes
 
 	return nil
 }

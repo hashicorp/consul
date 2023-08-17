@@ -5,6 +5,7 @@ package xds
 
 import (
 	"bytes"
+	"github.com/hashicorp/consul/types"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -26,7 +27,6 @@ import (
 	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 )
 
 type mockCfgFetcher struct {
@@ -1138,6 +1138,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						require.NoError(t, err)
 
 						clusters = res[xdscommon.ClusterType]
+
 						// The order of clusters returned via CDS isn't relevant, so it's safe
 						// to sort these for the purposes of test comparisons.
 						sort.Slice(clusters, func(i, j int) bool {
