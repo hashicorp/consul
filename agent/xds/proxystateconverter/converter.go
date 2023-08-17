@@ -57,9 +57,19 @@ func (g *Converter) resourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) erro
 	if err != nil {
 		return err
 	}
-	//g.routesFromSnapshot(cfgSnap)
-	g.clustersFromSnapshot(cfgSnap)
-	//g.endpointsFromSnapshot(cfgSnap)
+
+	err = g.endpointsFromSnapshot(cfgSnap)
+	if err != nil {
+		return err
+	}
+	err = g.clustersFromSnapshot(cfgSnap)
+	if err != nil {
+		return err
+	}
+	//err = g.routesFromSnapshot(cfgSnap)
+	//if err != nil {
+	//	return err
+	//}
 	//g.secretsFromSnapshot(cfgSnap)
 	return nil
 }

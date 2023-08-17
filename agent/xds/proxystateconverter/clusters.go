@@ -6,7 +6,6 @@ package proxystateconverter
 import (
 	"errors"
 	"fmt"
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"strings"
@@ -455,6 +454,7 @@ func (s *Converter) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathP
 			},
 		},
 	}
+
 	protocol := pathProtocol
 	if protocol == "" {
 		protocol = cfg.Protocol
@@ -740,6 +740,7 @@ func (s *Converter) createOutboundMeshMTLS(cfgSnap *proxycfg.ConfigSnapshot, spi
 	if err != nil {
 		return nil, err
 	}
+
 	// Create the transport socket
 	ts := &pbproxystate.TransportSocket{}
 
@@ -1020,7 +1021,7 @@ func configureClusterWithHostnames(
 		dnsEndpointGroup.Config.DiscoveryType = pbproxystate.DiscoveryType_DISCOVERY_TYPE_STRICT
 	}
 
-	endpoints := make([]*envoy_endpoint_v3.LbEndpoint, 0, 1)
+	endpoints := make([]*pbproxystate.Endpoint, 0, 1)
 	uniqueHostnames := make(map[string]bool)
 
 	var (
