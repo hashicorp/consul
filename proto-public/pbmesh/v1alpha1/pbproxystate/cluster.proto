@@ -11,17 +11,19 @@ import "pbmesh/v1alpha1/pbproxystate/header_mutations.proto";
 import "pbmesh/v1alpha1/pbproxystate/transport_socket.proto";
 
 message Cluster {
+  // name is the name of the cluster.
+  string name = 1;
   // group is either a failover group or endpoint group. If this cluster needs to failover to other clusters, use the failover group. If this cluster routes directly to endpoints, use the endpoint group.
   oneof group {
-    FailoverGroup failover_group = 1;
-    EndpointGroup endpoint_group = 2;
+    FailoverGroup failover_group = 2;
+    EndpointGroup endpoint_group = 3;
   }
   // escape_hatch_cluster_json configures a user configured escape hatch cluster.
-  string escape_hatch_cluster_json = 3;
+  string escape_hatch_cluster_json = 4;
   // alt_stat_name is the name used for observability in place of cluster name if provided.
-  string alt_stat_name = 4;
+  string alt_stat_name = 5;
   // protocol is the local path protocol or the service protocol.
-  string protocol = 5;
+  string protocol = 6;
 }
 
 message FailoverGroup {

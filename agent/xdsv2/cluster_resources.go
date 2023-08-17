@@ -12,10 +12,21 @@ import (
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
+
+func (pr *ProxyResources) doesEnvoyClusterAlreadyExist(name string) bool {
+	// TODO(proxystate): consider using a map instead of [] for this kind of lookup
+	for _, envoyCluster := range pr.envoyResources[xdscommon.ClusterType] {
+		if envoyCluster.(*envoy_cluster_v3.Cluster).Name == name {
+			return true
+		}
+	}
+	return false
+}
 
 func (pr *ProxyResources) makeXDSClusters() ([]proto.Message, error) {
 	clusters := make([]proto.Message, 0)
@@ -37,6 +48,11 @@ func (pr *ProxyResources) makeClusters(name string) ([]proto.Message, error) {
 	proxyStateCluster, ok := pr.proxyState.Clusters[name]
 	if !ok {
 		return nil, fmt.Errorf("cluster %q not found", name)
+	}
+
+	if pr.doesEnvoyClusterAlreadyExist(name) {
+		// don't error
+		return []proto.Message{}, nil
 	}
 
 	switch proxyStateCluster.Group.(type) {
@@ -323,6 +339,19 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 		return fmt.Errorf("unsupported load balancer policy %q for cluster %q", d, c.Name)
 	}
 	return nil
+}
+
+func makeAddress(ip string, port uint32) *envoy_core_v3.Address {
+	return &envoy_core_v3.Address{
+		Address: &envoy_core_v3.Address_SocketAddress{
+			SocketAddress: &envoy_core_v3.SocketAddress{
+				Address: ip,
+				PortSpecifier: &envoy_core_v3.SocketAddress_PortValue{
+					PortValue: port,
+				},
+			},
+		},
+	}
 }
 
 // TODO(proxystate): In a future PR this will create clusters and add it to ProxyResources.proxyState
