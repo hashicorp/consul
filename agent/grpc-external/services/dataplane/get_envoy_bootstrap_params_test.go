@@ -178,7 +178,6 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		require.Equal(t, tc.registerReq.EnterpriseMeta.PartitionOrDefault(), resp.Partition)
 		require.Equal(t, tc.registerReq.EnterpriseMeta.NamespaceOrDefault(), resp.Namespace)
 		requireConfigField(t, resp, proxyConfigKey, structpb.NewStringValue(proxyConfigValue))
-		require.Equal(t, convertToResponseServiceKind(tc.registerReq.Service.Kind), resp.ServiceKind)
 		require.Equal(t, tc.registerReq.Node, resp.NodeName)
 		require.Equal(t, string(tc.registerReq.ID), resp.NodeId)
 

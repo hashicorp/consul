@@ -111,10 +111,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			}
 		}
 
-		var accessLogs []string
-		if dynamicCfg != nil {
-			accessLogs = makeAccessLogs(dynamicCfg.GetAccessLogs(), logger)
-		}
+		accessLogs := makeAccessLogs(dynamicCfg.GetAccessLogs(), logger)
 
 		return &pbdataplane.GetEnvoyBootstrapParamsResponse{
 			ClusterName:     workload.Identity,
@@ -190,29 +187,10 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		Namespace:   svc.EnterpriseMeta.NamespaceOrDefault(),
 		Config:      bootstrapConfig,
 		Datacenter:  s.Datacenter,
-		ServiceKind: convertToResponseServiceKind(svc.ServiceKind),
 		NodeName:    svc.Node,
 		NodeId:      string(svc.ID),
 		AccessLogs:  accessLogs,
 	}, nil
-}
-
-func convertToResponseServiceKind(serviceKind structs.ServiceKind) (respKind pbdataplane.ServiceKind) {
-	switch serviceKind {
-	case structs.ServiceKindConnectProxy:
-		respKind = pbdataplane.ServiceKind_SERVICE_KIND_CONNECT_PROXY
-	case structs.ServiceKindMeshGateway:
-		respKind = pbdataplane.ServiceKind_SERVICE_KIND_MESH_GATEWAY
-	case structs.ServiceKindTerminatingGateway:
-		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TERMINATING_GATEWAY
-	case structs.ServiceKindIngressGateway:
-		respKind = pbdataplane.ServiceKind_SERVICE_KIND_INGRESS_GATEWAY
-	case structs.ServiceKindAPIGateway:
-		respKind = pbdataplane.ServiceKind_SERVICE_KIND_API_GATEWAY
-	case structs.ServiceKindTypical:
-		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TYPICAL
-	}
-	return
 }
 
 func makeAccessLogs(logs structs.AccessLogs, logger hclog.Logger) []string {
