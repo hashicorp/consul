@@ -70,7 +70,6 @@ func (g *Converter) resourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) erro
 	//if err != nil {
 	//	return err
 	//}
-
 	//g.secretsFromSnapshot(cfgSnap)
 	return nil
 }

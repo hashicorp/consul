@@ -6,7 +6,6 @@ package proxystateconverter
 import (
 	"errors"
 	"fmt"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"strings"

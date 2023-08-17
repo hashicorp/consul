@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/go-bexpr"
+
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
