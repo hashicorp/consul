@@ -45,6 +45,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -936,7 +937,7 @@ func makeListenerWithDefault(opts makeListenerOpts) *envoy_listener_v3.Listener 
 	return &envoy_listener_v3.Listener{
 		Name:             fmt.Sprintf("%s:%s:%d", opts.name, opts.addr, opts.port),
 		AccessLog:        accessLog,
-		Address:          makeAddress(opts.addr, opts.port),
+		Address:          response.MakeAddress(opts.addr, opts.port),
 		TrafficDirection: opts.direction,
 	}
 }
@@ -955,7 +956,7 @@ func makePipeListener(opts makeListenerOpts) *envoy_listener_v3.Listener {
 	return &envoy_listener_v3.Listener{
 		Name:             fmt.Sprintf("%s:%s", opts.name, opts.path),
 		AccessLog:        accessLog,
-		Address:          makePipeAddress(opts.path, uint32(modeInt)),
+		Address:          response.MakePipeAddress(opts.path, uint32(modeInt)),
 		TrafficDirection: opts.direction,
 	}
 }
@@ -2592,7 +2593,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 			"envoy.filters.http.grpc_stats",
 			&envoy_grpc_stats_v3.FilterConfig{
 				PerMethodStatSpecifier: &envoy_grpc_stats_v3.FilterConfig_StatsForAllMethods{
-					StatsForAllMethods: makeBoolValue(true),
+					StatsForAllMethods: response.MakeBoolValue(true),
 				},
 			},
 		)

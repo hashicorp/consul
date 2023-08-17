@@ -18,6 +18,10 @@ message Cluster {
   }
   // escape_hatch_cluster_json configures a user configured escape hatch cluster.
   string escape_hatch_cluster_json = 3;
+  // alt_stat_name is the name used for observability in place of cluster name if provided.
+  string alt_stat_name = 4;
+  // protocol is the local path protocol or the service protocol.
+  string protocol = 5;
 }
 
 message FailoverGroup {

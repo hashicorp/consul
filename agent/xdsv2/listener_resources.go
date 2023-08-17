@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xdsv2
 
 import (
@@ -281,7 +284,7 @@ func (pr *ProxyResources) makeEnvoyResourcesForSNIDestination(sni *pbproxystate.
 }
 
 func (pr *ProxyResources) makeEnvoyResourcesForL4Destination(l4 *pbproxystate.Router_L4) ([]*envoy_listener_v3.Filter, error) {
-	err := pr.makeCluster(l4.L4.Name)
+	err := pr.makeEnvoyClusterFromL4Destination(l4.L4.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -632,7 +635,7 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 			// if tls is nil but connection tls is provided, then the proxy state is misconfigured
 			return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
 		}
-		om := ts.ConnectionTls.(*pbproxystate.TransportSocket_OutboundMesh).OutboundMesh
+		om := ts.GetOutboundMesh()
 		leaf, ok := pr.proxyState.LeafCertificates[om.IdentityKey]
 		if !ok {
 			return nil, fmt.Errorf("leaf %s not found in proxyState", om.IdentityKey)
