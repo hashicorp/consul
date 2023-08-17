@@ -8,9 +8,16 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/mesh"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/hashicorp/consul/acl"
@@ -23,7 +30,11 @@ import (
 )
 
 func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.GetEnvoyBootstrapParamsRequest) (*pbdataplane.GetEnvoyBootstrapParamsResponse, error) {
-	logger := s.Logger.Named("get-envoy-bootstrap-params").With("service_id", req.GetServiceId(), "request_id", external.TraceID())
+	proxyID := req.ProxyId
+	if req.GetServiceId() != "" {
+		proxyID = req.GetServiceId()
+	}
+	logger := s.Logger.Named("get-envoy-bootstrap-params").With("proxy_id", proxyID, "request_id", external.TraceID())
 
 	logger.Trace("Started processing request")
 	defer logger.Trace("Finished processing request")
@@ -40,9 +51,88 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
+	if s.EnableV2 {
+		// Get the workload.
+		workloadId := &pbresource.ID{
+			Name: proxyID,
+			Tenancy: &pbresource.Tenancy{
+				Namespace: req.Namespace,
+				Partition: req.Partition,
+				PeerName:  "local",
+			},
+			Type: catalog.WorkloadType,
+		}
+		workloadRsp, err := s.ResourceAPIClient.Read(ctx, &pbresource.ReadRequest{
+			Id: workloadId,
+		})
+		if err != nil {
+			// This error should already include the gRPC status code and so we don't need to wrap it
+			// in status.Error.
+			return nil, err
+		}
+		var workload pbcatalog.Workload
+		err = workloadRsp.Resource.Data.UnmarshalTo(&workload)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to parse workload data")
+		}
+
+		// Only workloads that have an associated identity can ask for proxy bootstrap parameters.
+		if workload.Identity == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "workload %q doesn't have identity associated with it", req.ProxyId)
+		}
+
+		// todo (ishustava): ACL enforcement ensuring there's identity:write permissions.
+
+		// Get all proxy configurations for this workload. Currently we're only looking
+		// for proxy configurations in the same tenancy as the workload.
+		// todo (ishustava): we need to support wildcard proxy configurations as well.
+
+		proxyCfgList, err := s.ResourceAPIClient.List(ctx, &pbresource.ListRequest{
+			Tenancy: workloadRsp.Resource.Id.GetTenancy(),
+			Type:    mesh.ProxyConfigurationType,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// Collect and merge proxy configs.
+		// todo (ishustava): sorting and conflict resolution.
+		bootstrapCfg := &pbmesh.BootstrapConfig{}
+		dynamicCfg := &pbmesh.DynamicConfig{}
+		for _, cfgResource := range proxyCfgList.Resources {
+			var proxyCfg pbmesh.ProxyConfiguration
+			err = cfgResource.Data.UnmarshalTo(&proxyCfg)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "failed to parse proxy configuration data: %q", cfgResource.Id.Name)
+			}
+			if isWorkloadSelected(req.ProxyId, proxyCfg.Workloads) {
+				proto.Merge(bootstrapCfg, proxyCfg.BootstrapConfig)
+				proto.Merge(dynamicCfg, proxyCfg.DynamicConfig)
+			}
+		}
+
+		var accessLogs []string
+		if dynamicCfg != nil {
+			accessLogs = makeAccessLogs(dynamicCfg.GetAccessLogs(), logger)
+		}
+
+		return &pbdataplane.GetEnvoyBootstrapParamsResponse{
+			ClusterName:     workload.Identity,
+			Partition:       workloadRsp.Resource.Id.Tenancy.Partition,
+			Namespace:       workloadRsp.Resource.Id.Tenancy.Namespace,
+			BootstrapConfig: bootstrapCfg,
+			Datacenter:      s.Datacenter,
+			NodeName:        workload.NodeName,
+			NodeId:          workloadRsp.Resource.Id.Name,
+			AccessLogs:      accessLogs,
+		}, nil
+	}
+
+	// The remainder of this file focuses on v1 implementation of this endpoint.
+
 	store := s.GetStore()
 
-	_, svc, err := store.ServiceNode(req.GetNodeId(), req.GetNodeName(), req.GetServiceId(), &entMeta, structs.DefaultPeerKeyword)
+	_, svc, err := store.ServiceNode(req.GetNodeId(), req.GetNodeName(), proxyID, &entMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		logger.Error("Error looking up service", "error", err)
 		if errors.Is(err, state.ErrNodeNotFound) {
@@ -81,21 +171,8 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	// Inspect access logging
 	// This is non-essential, and don't want to return an error unless there is a more serious issue
 	var accessLogs []string
-	if ns != nil && ns.Proxy.AccessLogs.Enabled {
-		envoyLoggers, err := accesslogs.MakeAccessLogs(&ns.Proxy.AccessLogs, false)
-		if err != nil {
-			logger.Warn("Error creating the envoy access log config", "error", err)
-		}
-
-		accessLogs = make([]string, 0, len(envoyLoggers))
-
-		for _, msg := range envoyLoggers {
-			logConfig, err := protojson.Marshal(msg)
-			if err != nil {
-				logger.Warn("Error marshaling the envoy access log config", "error", err)
-			}
-			accessLogs = append(accessLogs, string(logConfig))
-		}
+	if ns != nil {
+		accessLogs = makeAccessLogs(&ns.Proxy.AccessLogs, logger)
 	}
 
 	// Build out the response
@@ -107,6 +184,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	}
 
 	return &pbdataplane.GetEnvoyBootstrapParamsResponse{
+		ClusterName: serviceName,
 		Service:     serviceName,
 		Partition:   svc.EnterpriseMeta.PartitionOrDefault(),
 		Namespace:   svc.EnterpriseMeta.NamespaceOrDefault(),
@@ -135,4 +213,42 @@ func convertToResponseServiceKind(serviceKind structs.ServiceKind) (respKind pbd
 		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TYPICAL
 	}
 	return
+}
+
+func makeAccessLogs(logs structs.AccessLogs, logger hclog.Logger) []string {
+	var accessLogs []string
+	if logs.GetEnabled() {
+		envoyLoggers, err := accesslogs.MakeAccessLogs(logs, false)
+		if err != nil {
+			logger.Warn("Error creating the envoy access log config", "error", err)
+		}
+
+		accessLogs = make([]string, 0, len(envoyLoggers))
+
+		for _, msg := range envoyLoggers {
+			logConfig, err := protojson.Marshal(msg)
+			if err != nil {
+				logger.Warn("Error marshaling the envoy access log config", "error", err)
+			}
+			accessLogs = append(accessLogs, string(logConfig))
+		}
+	}
+
+	return accessLogs
+}
+
+func isWorkloadSelected(name string, selector *pbcatalog.WorkloadSelector) bool {
+	for _, prefix := range selector.Prefixes {
+		if strings.Contains(name, prefix) {
+			return true
+		}
+	}
+
+	for _, selectorName := range selector.Names {
+		if name == selectorName {
+			return true
+		}
+	}
+
+	return false
 }

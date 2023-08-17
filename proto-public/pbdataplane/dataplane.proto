@@ -9,6 +9,7 @@ package hashicorp.consul.dataplane;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/struct.proto";
+import "pbmesh/v1alpha1/proxy_configuration.proto";
 
 message GetSupportedDataplaneFeaturesRequest {}
 
@@ -35,7 +36,8 @@ message GetEnvoyBootstrapParamsRequest {
     string node_name = 2;
   }
   // The proxy service ID
-  string service_id = 3;
+  string service_id = 3 [deprecated = true];
+  string proxy_id = 6;
   string partition = 4;
   string namespace = 5;
 }
@@ -76,16 +78,27 @@ enum ServiceKind {
 }
 
 message GetEnvoyBootstrapParamsResponse {
-  ServiceKind service_kind = 1;
-  // service is be used to identify the service (as the local cluster name and
+  reserved 1;
+
+  // deprecated: use cluster_name instead.
+  // service is used to identify the service (as the local cluster name and
   // in metric tags). If the service is a connect proxy it will be the name of
   // the proxy's destination service, for gateways it will be the gateway
   // service's name.
-  string service = 2;
+  string service = 2 [deprecated = true];
+
+  // cluster_name is used to identify this proxy (as the local cluster name and
+  // in metric tags). For v1, this should be the service name.
+  // If the service is a connect proxy it will be the name of
+  // the proxy's destination service, for gateways it will be the gateway
+  // service's name.
+  // For v2, this should be the workload identity name.
+  string cluster_name = 10;
   string namespace = 3;
   string partition = 4;
   string datacenter = 5;
   google.protobuf.Struct config = 6;
+  hashicorp.consul.mesh.v1alpha1.BootstrapConfig bootstrap_config = 11;
   string node_id = 7;
   string node_name = 8;
   repeated string access_logs = 9;

@@ -10,6 +10,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_fileaccesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	envoy_streamaccesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -52,12 +53,12 @@ const (
 // on the proxy-defaults settings. Currently only one access logger is supported.
 // Listeners (as opposed to listener filters) can trigger an access log filter with the boolean.
 // Tests are located in agent/xds/listeners_test.go.
-func MakeAccessLogs(logs *structs.AccessLogsConfig, isListener bool) ([]*envoy_accesslog_v3.AccessLog, error) {
-	if logs == nil || !logs.Enabled {
+func MakeAccessLogs(logs structs.AccessLogs, isListener bool) ([]*envoy_accesslog_v3.AccessLog, error) {
+	if logs == nil || !logs.GetEnabled() {
 		return nil, nil
 	}
 
-	if isListener && logs.DisableListenerLogs {
+	if isListener && logs.GetDisableListenerLogs() {
 		return nil, nil
 	}
 
@@ -85,37 +86,37 @@ func MakeAccessLogs(logs *structs.AccessLogsConfig, isListener bool) ([]*envoy_a
 }
 
 // getLogger returns an individual instance of an Envoy logger based on proxy-defaults
-func getLogger(logs *structs.AccessLogsConfig) (*anypb.Any, error) {
+func getLogger(logs structs.AccessLogs) (*anypb.Any, error) {
 	logFormat, err := getLogFormat(logs)
 	if err != nil {
 		return nil, fmt.Errorf("could not get envoy log format: %w", err)
 	}
 
-	switch logs.Type {
-	case structs.DefaultLogSinkType, structs.StdOutLogSinkType:
+	switch logs.GetType() {
+	case pbmesh.LogSinkType_LOG_SINK_TYPE_DEFAULT, pbmesh.LogSinkType_LOG_SINK_TYPE_STDOUT:
 		return getStdoutLogger(logFormat)
-	case structs.StdErrLogSinkType:
+	case pbmesh.LogSinkType_LOG_SINK_TYPE_STDERR:
 		return getStderrLogger(logFormat)
-	case structs.FileLogSinkType:
-		return getFileLogger(logFormat, logs.Path)
+	case pbmesh.LogSinkType_LOG_SINK_TYPE_FILE:
+		return getFileLogger(logFormat, logs.GetPath())
 	default:
-		return nil, fmt.Errorf("unsupported log format: %s", logs.Type)
+		return nil, fmt.Errorf("unsupported log format: %s", logs.GetType())
 	}
 }
 
 // getLogFormat returns an Envoy log format object that is compatible with all log sinks.
 // If a format is not provided in the proxy-defaults, the default JSON format is used.
-func getLogFormat(logs *structs.AccessLogsConfig) (*envoy_core_v3.SubstitutionFormatString, error) {
+func getLogFormat(logs structs.AccessLogs) (*envoy_core_v3.SubstitutionFormatString, error) {
 
 	var format, formatType string
-	if logs.TextFormat == "" && logs.JSONFormat == "" {
+	if logs.GetTextFormat() == "" && logs.GetJsonFormat() == "" {
 		format = defaultJSONFormat
 		formatType = "json"
-	} else if logs.JSONFormat != "" {
-		format = logs.JSONFormat
+	} else if logs.GetJsonFormat() != "" {
+		format = logs.GetJsonFormat()
 		formatType = "json"
 	} else {
-		format = logs.TextFormat
+		format = logs.GetTextFormat()
 		formatType = "text"
 	}
 
