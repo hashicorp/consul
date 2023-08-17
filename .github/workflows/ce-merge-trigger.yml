@@ -12,7 +12,7 @@ on:
 
 jobs:
   trigger-ce-merge:
-    # run this only on merge events in OSS repo
+    # run this only on merge events in CE repo
     if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
     steps:

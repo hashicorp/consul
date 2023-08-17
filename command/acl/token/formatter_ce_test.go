@@ -11,5 +11,5 @@ import (
 )
 
 func TestFormatTokenExpanded(t *testing.T) {
-	testFormatTokenExpanded(t, "FormatTokenExpanded/oss")
+	testFormatTokenExpanded(t, "FormatTokenExpanded/ce")
 }

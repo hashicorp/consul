@@ -6,8 +6,8 @@
 
 package api
 
-// The following defaults return "default" in enterprise and "" in OSS.
+// The following defaults return "default" in enterprise and "" in CE.
 // This constant is useful when a default value is needed for an
-// operation that will reject non-empty values in OSS.
+// operation that will reject non-empty values in CE.
 const defaultNamespace = ""
 const defaultPartition = ""
