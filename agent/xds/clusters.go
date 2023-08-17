@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
@@ -1008,11 +1009,11 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 
 		switch limitType {
 		case "max_connections":
-			threshold.MaxConnections = makeUint32Value(limit)
+			threshold.MaxConnections = response.MakeUint32Value(limit)
 		case "max_pending_requests":
-			threshold.MaxPendingRequests = makeUint32Value(limit)
+			threshold.MaxPendingRequests = response.MakeUint32Value(limit)
 		case "max_requests":
-			threshold.MaxRequests = makeUint32Value(limit)
+			threshold.MaxRequests = response.MakeUint32Value(limit)
 		}
 	}
 
@@ -1103,7 +1104,7 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		c.CircuitBreakers = &envoy_cluster_v3.CircuitBreakers{
 			Thresholds: []*envoy_cluster_v3.CircuitBreakers_Thresholds{
 				{
-					MaxConnections: makeUint32Value(cfg.MaxInboundConnections),
+					MaxConnections: response.MakeUint32Value(cfg.MaxInboundConnections),
 				},
 			},
 		}
@@ -1708,13 +1709,13 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 			TcpKeepalive: &envoy_core_v3.TcpKeepalive{},
 		}
 		if cfg.TcpKeepaliveTime != 0 {
-			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveTime = makeUint32Value(cfg.TcpKeepaliveTime)
+			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveTime = response.MakeUint32Value(cfg.TcpKeepaliveTime)
 		}
 		if cfg.TcpKeepaliveInterval != 0 {
-			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveInterval = makeUint32Value(cfg.TcpKeepaliveInterval)
+			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveInterval = response.MakeUint32Value(cfg.TcpKeepaliveInterval)
 		}
 		if cfg.TcpKeepaliveProbes != 0 {
-			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveProbes = makeUint32Value(cfg.TcpKeepaliveProbes)
+			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveProbes = response.MakeUint32Value(cfg.TcpKeepaliveProbes)
 		}
 	}
 
@@ -1884,7 +1885,7 @@ func (s *ResourceGenerator) makeExternalHostnameCluster(snap *proxycfg.ConfigSna
 	endpoints := make([]*envoy_endpoint_v3.LbEndpoint, 0, len(opts.addresses))
 
 	for _, pair := range opts.addresses {
-		address := makeAddress(pair.Address, pair.Port)
+		address := response.MakeAddress(pair.Address, pair.Port)
 
 		endpoint := &envoy_endpoint_v3.LbEndpoint{
 			HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
@@ -1917,13 +1918,13 @@ func makeThresholdsIfNeeded(limits *structs.UpstreamLimits) []*envoy_cluster_v3.
 	// Likewise, make sure to not set any threshold values on the zero-value in
 	// order to rely on Envoy defaults
 	if limits.MaxConnections != nil {
-		threshold.MaxConnections = makeUint32Value(*limits.MaxConnections)
+		threshold.MaxConnections = response.MakeUint32Value(*limits.MaxConnections)
 	}
 	if limits.MaxPendingRequests != nil {
-		threshold.MaxPendingRequests = makeUint32Value(*limits.MaxPendingRequests)
+		threshold.MaxPendingRequests = response.MakeUint32Value(*limits.MaxPendingRequests)
 	}
 	if limits.MaxConcurrentRequests != nil {
-		threshold.MaxRequests = makeUint32Value(*limits.MaxConcurrentRequests)
+		threshold.MaxRequests = response.MakeUint32Value(*limits.MaxConcurrentRequests)
 	}
 
 	return []*envoy_cluster_v3.CircuitBreakers_Thresholds{threshold}
@@ -1946,7 +1947,7 @@ func makeLbEndpoint(addr string, port int, health envoy_core_v3.HealthStatus, we
 			},
 		},
 		HealthStatus:        health,
-		LoadBalancingWeight: makeUint32Value(weight),
+		LoadBalancingWeight: response.MakeUint32Value(weight),
 	}
 }
 

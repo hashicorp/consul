@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xdsv2
 
@@ -47,7 +47,6 @@ func (g *ResourceGenerator) AllResourcesFromIR(proxyState *pbmesh.ProxyState) (m
 
 func (pr *ProxyResources) generateXDSResources() error {
 	listeners := make([]proto.Message, 0)
-	clusters := make([]proto.Message, 0)
 	routes := make([]proto.Message, 0)
 	endpoints := make([]proto.Message, 0)
 
@@ -58,6 +57,11 @@ func (pr *ProxyResources) generateXDSResources() error {
 			return err
 		}
 		listeners = append(listeners, protoListener)
+	}
+
+	clusters, err := pr.makeXDSClusters()
+	if err != nil {
+		return err
 	}
 
 	pr.envoyResources[xdscommon.ListenerType] = listeners

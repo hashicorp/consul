@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxystateconverter
 
@@ -57,6 +57,10 @@ func (g *Converter) resourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) erro
 	if err != nil {
 		return err
 	}
+	//g.routesFromSnapshot(cfgSnap)
+	g.clustersFromSnapshot(cfgSnap)
+	//g.endpointsFromSnapshot(cfgSnap)
+	//g.secretsFromSnapshot(cfgSnap)
 	return nil
 }
 
