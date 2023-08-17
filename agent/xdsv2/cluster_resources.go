@@ -342,19 +342,6 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 	return nil
 }
 
-func makeAddress(ip string, port uint32) *envoy_core_v3.Address {
-	return &envoy_core_v3.Address{
-		Address: &envoy_core_v3.Address_SocketAddress{
-			SocketAddress: &envoy_core_v3.SocketAddress{
-				Address: ip,
-				PortSpecifier: &envoy_core_v3.SocketAddress_PortValue{
-					PortValue: port,
-				},
-			},
-		},
-	}
-}
-
 // TODO(proxystate): In a future PR this will create clusters and add it to ProxyResources.proxyState
 func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(name string) error {
 	return nil
