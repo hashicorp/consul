@@ -349,7 +349,7 @@ func setup(t *testing.T) (*libcluster.Cluster, libservice.Service, libservice.Se
 	require.NoError(t, err)
 
 	// Create a client proxy instance with the server as an upstream
-	staticClientProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, false)
+	staticClientProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, false, nil)
 	require.NoError(t, err)
 
 	require.NoError(t, err)

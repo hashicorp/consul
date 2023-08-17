@@ -1331,7 +1331,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						require.JSONEq(t, expectedJSON, gotJSON)
 					})
 
-					if tt.useV2 {
+					if tt.alsoRunTestForV2 {
 						generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
 						converter := proxystateconverter.NewConverter(testutil.Logger(t), nil)
 						proxyState, err := converter.ProxyStateFromSnapshot(snap)
