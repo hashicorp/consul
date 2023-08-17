@@ -37,7 +37,7 @@ type listenerTestCase struct {
 	// test input.
 	overrideGoldenName string
 	generatorSetup     func(*ResourceGenerator)
-	useV2              bool
+	alsoRunTestForV2   bool
 }
 
 func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
@@ -75,7 +75,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-http-chain",
@@ -124,7 +124,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-and-overrides",
@@ -137,14 +137,14 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", enterprise, nil, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-jwt-config-entry-with-local",
@@ -235,7 +235,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-incoming-min-version",
@@ -255,7 +255,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-incoming-max-version",
@@ -275,7 +275,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-incoming-cipher-suites",
@@ -298,7 +298,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "grpc-public-listener",
@@ -315,7 +315,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["bind_address"] = "127.0.0.2"
 				}, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-bind-port",
@@ -324,7 +324,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["bind_port"] = 8888
 				}, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-bind-address-port",
@@ -334,7 +334,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["bind_port"] = 8888
 				}, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-unix-domain-socket",
@@ -346,7 +346,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].LocalBindSocketMode = "0640"
 				}, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-max-inbound-connections",
@@ -355,7 +355,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["max_inbound_connections"] = 222
 				}, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "http2-public-listener",
@@ -372,7 +372,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["balance_inbound_connections"] = "exact_balance"
 				}, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-balance-outbound-connections-bind-port",
@@ -381,7 +381,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].Config["balance_outbound_connections"] = "exact_balance"
 				}, nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-public-listener",
@@ -1190,19 +1190,19 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
 		},
 		{
-			name:   "transparent-proxy-catalog-destinations-only",
-			create: proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
-			useV2:  true,
+			name:             "transparent-proxy-catalog-destinations-only",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
+			alsoRunTestForV2: true,
 		},
 		{
-			name:   "transparent-proxy-dial-instances-directly",
-			create: proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
-			useV2:  true,
+			name:             "transparent-proxy-dial-instances-directly",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
+			alsoRunTestForV2: true,
 		},
 		{
-			name:   "transparent-proxy-terminating-gateway",
-			create: proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
-			useV2:  true,
+			name:             "transparent-proxy-terminating-gateway",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "custom-trace-listener",
@@ -1265,7 +1265,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				},
 					nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-without-tproxy-and-permissive-mtls",
@@ -1275,7 +1275,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				},
 					nil)
 			},
-			useV2: true,
+			alsoRunTestForV2: true,
 		},
 	}
 
