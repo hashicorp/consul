@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Trigger OSS to Enterprise Merge
+name: Trigger Community Edition to Enterprise Merge
 on:
   pull_request_target:
     types:
@@ -11,7 +11,7 @@ on:
       - release/**
 
 jobs:
-  trigger-oss-merge:
+  trigger-ce-merge:
     # run this only on merge events in OSS repo
     if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
@@ -25,5 +25,5 @@ jobs:
         run: |
           curl -H "Authorization: token $GH_PAT" \
             -H 'Accept: application/json' \
-            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}" \
+            -d "{\"event_type\": \"ce-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}" \
             "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
