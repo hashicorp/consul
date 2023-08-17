@@ -136,8 +136,6 @@ func TestMapper(t *testing.T) {
 	m.TrackItem(fail2.Id, fail2Refs)
 
 	// Check links mapping for the new one
-	requireLinksForItem(t, m, fail2.Id, fail2Refs...)
-
 	requireLinksForItem(t, m, fail1.Id, fail1Refs...)
 	requireLinksForItem(t, m, fail2.Id, fail2Refs...)
 	requireItemsForLink(t, m, apiRef, fail1.Id)
