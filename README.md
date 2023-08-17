@@ -32,8 +32,7 @@ Consul provides several key features:
   discovery prevents routing traffic to unhealthy hosts and enables service
   level circuit breakers.
 
-* **Dynamic App Configuration** - An HTTP API that allows users to store indexed objects within Consul,
-   for storing configuration parameters and application metadata.
+* **Dynamic App Configuration** - An HTTP API that allows users to store indexed objects, like configuration parameters and application metadata, within Consul.
 
 Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
 optional [browser based UI](https://demo.consul.io). A commercial version
