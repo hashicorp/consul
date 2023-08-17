@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/hashicorp/consul/agent/xds/configfetcher"
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
@@ -70,13 +71,6 @@ const (
 	// services named "local_agent" in the future.
 	LocalAgentClusterName = "local_agent"
 
-	// OriginalDestinationClusterName is the name we give to the passthrough
-	// cluster which redirects transparently-proxied requests to their original
-	// destination outside the mesh. This cluster prevents Consul from blocking
-	// connections to destinations outside of the catalog when in transparent
-	// proxy mode.
-	OriginalDestinationClusterName = "original-destination"
-
 	// DefaultAuthCheckFrequency is the default value for
 	// Server.AuthCheckFrequency to use when the zero value is provided.
 	DefaultAuthCheckFrequency = 5 * time.Minute
@@ -87,12 +81,6 @@ const (
 // to be written in the agent package to allow resolving without tightly
 // coupling this to the agent.
 type ACLResolverFunc func(id string) (acl.Authorizer, error)
-
-// ConfigFetcher is the interface the agent needs to expose
-// for the xDS server to fetch agent config, currently only one field is fetched
-type ConfigFetcher interface {
-	AdvertiseAddrLAN() string
-}
 
 // ProxyConfigSource is the interface xds.Server requires to consume proxy
 // config updates.
@@ -110,7 +98,7 @@ type Server struct {
 	Logger       hclog.Logger
 	CfgSrc       ProxyConfigSource
 	ResolveToken ACLResolverFunc
-	CfgFetcher   ConfigFetcher
+	CfgFetcher   configfetcher.ConfigFetcher
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -161,7 +149,7 @@ func NewServer(
 	logger hclog.Logger,
 	cfgMgr ProxyConfigSource,
 	resolveTokenSecret ACLResolverFunc,
-	cfgFetcher ConfigFetcher,
+	cfgFetcher configfetcher.ConfigFetcher,
 ) *Server {
 	return &Server{
 		NodeName:           nodeName,

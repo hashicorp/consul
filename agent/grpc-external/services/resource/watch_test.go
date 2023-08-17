@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -66,7 +66,7 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 
 	err = mustGetError(t, rspCh)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestWatchList_GroupVersionMatches(t *testing.T) {
@@ -172,7 +172,7 @@ func TestWatchList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	// allow list, deny read
 	authz := AuthorizerFrom(t, `
 		key_prefix "resource/" { policy = "list" }
-		key_prefix "resource/demo.v2.artist/" { policy = "deny" }
+		key_prefix "resource/demo.v2.Artist/" { policy = "deny" }
 		`)
 	rspCh, _ := roundTripACL(t, authz)
 
@@ -187,7 +187,7 @@ func TestWatchList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 	// allow list, allow read
 	authz := AuthorizerFrom(t, `
 		key_prefix "resource/" { policy = "list" }
-		key_prefix "resource/demo.v2.artist/" { policy = "read" }
+		key_prefix "resource/demo.v2.Artist/" { policy = "read" }
 	`)
 	rspCh, artist := roundTripACL(t, authz)
 

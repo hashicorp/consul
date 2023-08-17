@@ -183,6 +183,10 @@
         "title": "Consul K8s",
         "routes": [
           {
+            "title": "v1.2.x",
+            "path": "release-notes/consul-k8s/v1_2_x"
+          },
+          {
             "title": "v1.1.x",
             "path": "release-notes/consul-k8s/v1_1_x"
           },
@@ -777,10 +781,6 @@
             "title": "Configuration",
             "routes": [
               {
-                "title": "Sameness groups",
-                "href": "/consul/docs/connect/config-entries/service-resolver"
-              },
-              {
                 "title": "Service resolver",
                 "href": "/consul/docs/connect/config-entries/service-resolver"
               },
@@ -926,6 +926,26 @@
                   {
                     "title": "Create a terminating gateway token",
                     "path": "security/acl/tokens/create/create-a-terminating-gateway-token"
+                  },
+                  {
+                    "title": "Create a DNS token",
+                    "path": "security/acl/tokens/create/create-a-dns-token"
+                  },
+                  {
+                    "title": "Create a replication token",
+                    "path": "security/acl/tokens/create/create-a-replication-token"
+                  },
+                  {
+                    "title": "Create a snapshot agent token",
+                    "path": "security/acl/tokens/create/create-a-snapshot-agent-token"
+                  },
+                  {
+                    "title": "Create a token for Vault's Consul storage backend",
+                    "path": "security/acl/tokens/create/create-a-token-for-vault-consul-storage"
+                  },
+                  {
+                    "title": "Create a Consul ESM token",
+                    "path": "security/acl/tokens/create/create-a-consul-esm-token"
                   }
                 ]
               }
@@ -1066,11 +1086,6 @@
       {
         "title": "Sentinel",
         "path": "agent/sentinel"
-      },
-      {
-        "title": "RPC",
-        "path": "agent/rpc",
-        "hidden": true
       },
       {
         "title": "Experimental WAL LogStore",
@@ -1682,10 +1697,6 @@
       {
         "title": "NIA with TFE",
         "href": "/docs/nia/enterprise"
-      },
-      {
-        "title": "Sentinel",
-        "path": "enterprise/sentinel"
       },
       {
         "title": "License",

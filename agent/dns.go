@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -1055,7 +1055,7 @@ func (d *DNSServer) trimDomain(query string) string {
 		longer, shorter = shorter, longer
 	}
 
-	if strings.HasSuffix(query, longer) {
+	if strings.HasSuffix(query, "."+strings.TrimLeft(longer, ".")) {
 		return strings.TrimSuffix(query, longer)
 	}
 	return strings.TrimSuffix(query, shorter)

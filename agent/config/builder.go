@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
@@ -984,7 +984,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
-		Cloud:                                  b.cloudConfigVal(c.Cloud),
+		Cloud:                                  b.cloudConfigVal(c),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -1473,7 +1473,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 				return err
 			}
 		case structs.VaultCAProvider:
-			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
+			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig, rt.PrimaryDatacenter == rt.Datacenter); err != nil {
 				return err
 			}
 		case structs.AWSCAProvider:
@@ -2548,21 +2548,26 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	return nil
 }
 
-func (b *builder) cloudConfigVal(v *CloudConfigRaw) hcpconfig.CloudConfig {
+func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
 		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
 	}
-	if v == nil {
+	// Node id might get overriden in setup.go:142
+	nodeID := stringVal(v.NodeID)
+	val.NodeID = types.NodeID(nodeID)
+	val.NodeName = b.nodeName(v.NodeName)
+
+	if v.Cloud == nil {
 		return val
 	}
 
-	val.ClientID = stringVal(v.ClientID)
-	val.ClientSecret = stringVal(v.ClientSecret)
-	val.AuthURL = stringVal(v.AuthURL)
-	val.Hostname = stringVal(v.Hostname)
-	val.ScadaAddress = stringVal(v.ScadaAddress)
+	val.ClientID = stringVal(v.Cloud.ClientID)
+	val.ClientSecret = stringVal(v.Cloud.ClientSecret)
+	val.AuthURL = stringVal(v.Cloud.AuthURL)
+	val.Hostname = stringVal(v.Cloud.Hostname)
+	val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
 
-	if resourceID := stringVal(v.ResourceID); resourceID != "" {
+	if resourceID := stringVal(v.Cloud.ResourceID); resourceID != "" {
 		val.ResourceID = resourceID
 	}
 	return val
@@ -2651,10 +2656,10 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		return c, errors.New("verify_outgoing is not valid in the tls.grpc stanza")
 	}
 
-	// Similarly, only the internal RPC configuration honors VerifyServerHostname
+	// Similarly, only the internal RPC and defaults configuration honor VerifyServerHostname
 	// so we call it out here too.
-	if t.Defaults.VerifyServerHostname != nil || t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
-		return c, errors.New("verify_server_hostname is only valid in the tls.internal_rpc stanza")
+	if t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
+		return c, errors.New("verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanzas")
 	}
 
 	// And UseAutoCert right now only applies to external gRPC interface.
@@ -2704,8 +2709,11 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	}
 
 	mapCommon("internal_rpc", t.InternalRPC, &c.InternalRPC)
-	c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
 
+	c.InternalRPC.VerifyServerHostname = boolVal(t.Defaults.VerifyServerHostname)
+	if t.InternalRPC.VerifyServerHostname != nil {
+		c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
+	}
 	// Setting only verify_server_hostname is documented to imply verify_outgoing.
 	// If it doesn't then we risk sending communication over plain TCP when we
 	// documented it as forcing TLS for RPCs. Enforce this here rather than in

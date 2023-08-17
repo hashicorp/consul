@@ -1,0 +1,3 @@
+```release-note:feature
+config-entry(api-gateway): (Enterprise only) Add JWTFilter to HTTPRoute Filters
+```

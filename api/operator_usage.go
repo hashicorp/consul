@@ -10,6 +10,7 @@ type Usage struct {
 
 // ServiceUsage contains information about the number of services and service instances for a datacenter.
 type ServiceUsage struct {
+	Nodes                   int
 	Services                int
 	ServiceInstances        int
 	ConnectServiceInstances map[string]int

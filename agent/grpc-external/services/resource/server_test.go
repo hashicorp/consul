@@ -1,11 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -57,16 +58,38 @@ func testServer(t *testing.T) *Server {
 	require.NoError(t, err)
 	go backend.Run(testContext(t))
 
-	// Mock the ACL Resolver to allow everything for testing
+	// Mock the ACL Resolver to "allow all" for testing.
 	mockACLResolver := &MockACLResolver{}
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLsDisabled(t), nil)
+		Return(testutils.ACLsDisabled(t), nil).
+		Run(func(args mock.Arguments) {
+			// Caller expecting passed in tokenEntMeta and authorizerContext to be filled in.
+			tokenEntMeta := args.Get(1).(*acl.EnterpriseMeta)
+			if tokenEntMeta != nil {
+				fillEntMeta(tokenEntMeta)
+			}
+
+			authzContext := args.Get(2).(*acl.AuthorizerContext)
+			if authzContext != nil {
+				fillAuthorizerContext(authzContext)
+			}
+		})
+
+	// Mock the V1 tenancy bridge since we can't use the real thing.
+	mockTenancyBridge := &MockTenancyBridge{}
+	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
+	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
+	mockTenancyBridge.On("PartitionExists", mock.Anything).Return(false, nil)
+	mockTenancyBridge.On("NamespaceExists", mock.Anything, mock.Anything).Return(false, nil)
+	mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
+	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	return NewServer(Config{
-		Logger:      testutil.Logger(t),
-		Registry:    resource.NewRegistry(),
-		Backend:     backend,
-		ACLResolver: mockACLResolver,
+		Logger:          testutil.Logger(t),
+		Registry:        resource.NewRegistry(),
+		Backend:         backend,
+		ACLResolver:     mockACLResolver,
+		V1TenancyBridge: mockTenancyBridge,
 	})
 }
 
@@ -106,4 +129,51 @@ func modifyArtist(t *testing.T, res *pbresource.Resource) *pbresource.Resource {
 	res = clone(res)
 	res.Data = data
 	return res
+}
+
+// tenancyCases returns permutations of valid tenancy structs in a resource id to use as inputs.
+// - the id is for a recordLabel when the resource is partition scoped
+// - the id is for an artist when the resource is namespace scoped
+func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID {
+	tenancyCases := map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID{
+		"namespaced resource provides nonempty partition and namespace": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
+			return artistId
+		},
+		"namespaced resource provides uppercase partition and namespace": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy.Partition = strings.ToUpper(artistId.Tenancy.Partition)
+			id.Tenancy.Namespace = strings.ToUpper(artistId.Tenancy.Namespace)
+			return id
+		},
+		"namespaced resource inherits tokens partition when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy.Partition = ""
+			return id
+		},
+		"namespaced resource inherits tokens namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy.Namespace = ""
+			return id
+		},
+		"namespaced resource inherits tokens partition and namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy.Partition = ""
+			id.Tenancy.Namespace = ""
+			return id
+		},
+		"partitioned resource provides nonempty partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			return recordLabelId
+		},
+		"partitioned resource provides uppercase partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			id := clone(recordLabelId)
+			id.Tenancy.Partition = strings.ToUpper(recordLabelId.Tenancy.Partition)
+			return id
+		},
+		"partitioned resource inherits tokens partition when empty": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			id := clone(recordLabelId)
+			id.Tenancy.Partition = ""
+			return id
+		},
+	}
+	return tenancyCases
 }

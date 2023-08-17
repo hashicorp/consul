@@ -46,11 +46,12 @@ on:
         required: true
 env:
   TEST_RESULTS: /tmp/test-results
-  GOTESTSUM_VERSION: 1.8.2
+  GOTESTSUM_VERSION: "1.10.1"
   GOARCH: ${{inputs.go-arch}}
   TOTAL_RUNNERS: ${{inputs.runner-count}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
   GOTAGS: ${{ inputs.go-tags}}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
   DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
 jobs:
@@ -59,7 +60,7 @@ jobs:
     outputs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version-file: 'go.mod'
@@ -82,7 +83,7 @@ jobs:
           ulimit -Sa
           echo "Hard limits"
           ulimit -Ha   
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}

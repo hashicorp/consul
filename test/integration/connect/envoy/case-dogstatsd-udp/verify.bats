@@ -24,14 +24,11 @@ load helpers
 }
 
 @test "s1 proxy should be sending metrics to statsd" {
-  run retry_default cat /workdir/primary/statsd/statsd.log
+  run retry_default must_match_in_statsd_logs '^envoy\.' primary  
 
-  echo "METRICS:"
-  echo "$output"
-  echo "COUNT: $(echo "$output" | grep -Ec '^envoy\.')"
+  echo "METRICS: $output"
 
-  [ "$status" == 0 ]
-  [ $(echo $output | grep -Ec '^envoy\.') -gt "0" ]
+  [ "$status" == 0 ]  
 }
 
 @test "s1 proxy should be sending dogstatsd tagged metrics" {

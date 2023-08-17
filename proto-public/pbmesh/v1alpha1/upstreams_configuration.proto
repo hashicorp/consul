@@ -1,0 +1,104 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/wrappers.proto";
+import "pbcatalog/v1alpha1/protocol.proto";
+import "pbcatalog/v1alpha1/selector.proto";
+import "pbmesh/v1alpha1/connection.proto";
+import "pbmesh/v1alpha1/routing.proto";
+import "pbresource/resource.proto";
+
+message UpstreamsConfiguration {
+  // Selection of workloads these upstreams should apply to.
+  // These can be prefixes or specific workload names.
+  hashicorp.consul.catalog.v1alpha1.WorkloadSelector workloads = 1;
+
+  // default_config applies to all upstreams for the workloads selected by this resource.
+  UpstreamConfig default_config = 2;
+
+  // config_overrides provides per-upstream or per-upstream-port config overrides.
+  repeated UpstreamConfigOverrides config_overrides = 3;
+}
+
+// UpstreamConfigOverrides allow to override upstream configuration per destination_ref/port/datacenter.
+// In that sense, those three fields (destination_ref, destination_port and datacenter) are treated
+// sort of like map keys and config is a like a map value for that key.
+message UpstreamConfigOverrides {
+  // destination_ref is the reference to an upstream service that this configuration applies to.
+  // This has to be pbcatalog.Service type.
+  hashicorp.consul.resource.Reference destination_ref = 1;
+
+  // destination_port is the port name of the upstream service. This should be the name
+  // of the service's target port. If not provided, this configuration will apply to all ports of an upstream.
+  string destination_port = 2;
+
+  // datacenter is the datacenter for where this upstream service lives.
+  string datacenter = 3;
+
+  // config is the configuration that should apply to this upstream.
+  UpstreamConfig config = 4;
+}
+
+message UpstreamConfig {
+  // protocol overrides upstream's port protocol. If no port for an upstream is specified
+  // or if used in the default configuration, this protocol will be used for all ports
+  // or for all ports of all upstreams respectively.
+  hashicorp.consul.catalog.v1alpha1.Protocol protocol = 1;
+
+  // connect_timeout is the timeout used when making a new
+  // connection to this upstream. Defaults to 5 seconds if not set.
+  google.protobuf.Duration connect_timeout = 2;
+
+  // limits are the set of limits that are applied to the proxy for a specific upstream.
+  UpstreamLimits limits = 3;
+
+  // passive_health_check configuration determines how upstream proxy instances will
+  // be monitored for removal from the load balancing pool.
+  PassiveHealthCheck passive_health_check = 4;
+
+  // balance_outbound_connections indicates how the proxy should attempt to distribute
+  // connections across worker threads.
+  BalanceConnections balance_outbound_connections = 5;
+
+  // MeshGatewayMode is the Mesh Gateway routing mode.
+  MeshGatewayMode mesh_gateway_mode = 6;
+}
+
+// UpstreamLimits describes the limits that are associated with a specific
+// upstream of a service instance.
+message UpstreamLimits {
+  // max_connections is the maximum number of connections the local proxy can
+  // make to the upstream service.
+  google.protobuf.UInt32Value max_connections = 1;
+
+  // max_pending_requests is the maximum number of requests that will be queued
+  // waiting for an available connection. This is mostly applicable to HTTP/1.1
+  // clusters since all HTTP/2 requests are streamed over a single
+  // connection.
+  google.protobuf.UInt32Value max_pending_requests = 2;
+
+  // max_concurrent_requests is the maximum number of in-flight requests that will be allowed
+  // to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
+  // clusters since all HTTP/1.1 requests are limited by MaxConnections.
+  google.protobuf.UInt32Value max_concurrent_requests = 3;
+}
+
+message PassiveHealthCheck {
+  // interval between health check analysis sweeps. Each sweep may remove
+  // hosts or return hosts to the pool.
+  google.protobuf.Duration interval = 1;
+
+  // max_failures is the count of consecutive failures that results in a host
+  // being removed from the pool.
+  uint32 max_failures = 2;
+
+  // enforcing_consecutive_5xx is the % chance that a host will be actually ejected
+  // when an outlier status is detected through consecutive 5xx.
+  // This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
+  uint32 enforcing_consecutive_5xx = 3;
+}

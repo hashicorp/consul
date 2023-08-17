@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -220,6 +220,9 @@ const (
 	// WildcardSpecifier is the string which should be used for specifying a wildcard
 	// The exact semantics of the wildcard is left up to the code where its used.
 	WildcardSpecifier = "*"
+
+	// MetaConsulVersion is the node metadata key used to store the node's consul version
+	MetaConsulVersion = "consul-version"
 )
 
 var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: {}}
@@ -2095,6 +2098,18 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 	return acl.Allow
 }
 
+func (csn *CheckServiceNode) Locality() *Locality {
+	if csn.Service != nil && csn.Service.Locality != nil {
+		return csn.Service.Locality
+	}
+
+	if csn.Node != nil && csn.Node.Locality != nil {
+		return csn.Node.Locality
+	}
+
+	return nil
+}
+
 type CheckServiceNodes []CheckServiceNode
 
 func (csns CheckServiceNodes) DeepCopy() CheckServiceNodes {
@@ -2312,6 +2327,7 @@ type ServiceUsage struct {
 	ServiceInstances         int
 	ConnectServiceInstances  map[string]int
 	BillableServiceInstances int
+	Nodes                    int
 	EnterpriseServiceUsage
 }
 

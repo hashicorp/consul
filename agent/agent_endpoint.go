@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -617,6 +617,21 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// filter the members by parsed filter expression
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+	if filterExpression != "" {
+		filter, err := bexpr.CreateFilter(filterExpression, nil, members)
+		if err != nil {
+			return nil, err
+		}
+		raw, err := filter.Execute(members)
+		if err != nil {
+			return nil, err
+		}
+		members = raw.([]serf.Member)
 	}
 
 	total := len(members)

@@ -13,6 +13,10 @@ import (
 // DeepCopy generates a deep copy of *ConfigSnapshot
 func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 	var cp ConfigSnapshot = *o
+	if o.ServiceLocality != nil {
+		cp.ServiceLocality = new(structs.Locality)
+		*cp.ServiceLocality = *o.ServiceLocality
+	}
 	if o.ServiceMeta != nil {
 		cp.ServiceMeta = make(map[string]string, len(o.ServiceMeta))
 		for k2, v2 := range o.ServiceMeta {
@@ -52,6 +56,26 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 							if v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff != nil {
 								cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = new(structs.RetryPolicyBackOff)
 								*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = *v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff
+							}
+						}
+						if v2.JSONWebKeySet.Remote.JWKSCluster != nil {
+							cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = new(structs.JWKSCluster)
+							*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = *v2.JSONWebKeySet.Remote.JWKSCluster
+							if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates != nil {
+								cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = new(structs.JWKSTLSCertificate)
+								*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = new(structs.JWKSTLSCertProviderInstance)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance
+								}
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = new(structs.JWKSTLSCertTrustedCA)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA
+									if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes != nil {
+										cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes = make([]byte, len(v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes))
+										copy(cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes, v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes)
+									}
+								}
 							}
 						}
 					}

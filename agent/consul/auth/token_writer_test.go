@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package auth
 
@@ -41,7 +41,7 @@ func TestTokenWriter_Create_Validation(t *testing.T) {
 			errorContains: "not a valid UUID",
 		},
 		"AccessorID is reserved": {
-			token:         structs.ACLToken{AccessorID: structs.ACLReservedPrefix + generateID(t)},
+			token:         structs.ACLToken{AccessorID: structs.ACLReservedIDPrefix + generateID(t)},
 			errorContains: "reserved",
 		},
 		"AccessorID already in use (as AccessorID)": {
@@ -57,7 +57,7 @@ func TestTokenWriter_Create_Validation(t *testing.T) {
 			errorContains: "not a valid UUID",
 		},
 		"SecretID is reserved": {
-			token:         structs.ACLToken{SecretID: structs.ACLReservedPrefix + generateID(t)},
+			token:         structs.ACLToken{SecretID: structs.ACLReservedIDPrefix + generateID(t)},
 			errorContains: "reserved",
 		},
 		"SecretID already in use (as AccessorID)": {

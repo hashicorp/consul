@@ -53,6 +53,16 @@ func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayLis
 	if s.TLS != nil {
 		APIGatewayTLSConfigurationToStructs(s.TLS, &t.TLS)
 	}
+	if s.Override != nil {
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Override, &x)
+		t.Override = &x
+	}
+	if s.Default != nil {
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Default, &x)
+		t.Default = &x
+	}
 }
 func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayListener) {
 	if s == nil {
@@ -67,6 +77,28 @@ func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayL
 		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
 		s.TLS = &x
 	}
+	if t.Override != nil {
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(t.Override, &x)
+		s.Override = &x
+	}
+	if t.Default != nil {
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(t.Default, &x)
+		s.Default = &x
+	}
+}
+func APIGatewayPolicyToStructs(s *APIGatewayPolicy, t *structs.APIGatewayPolicy) {
+	if s == nil {
+		return
+	}
+	t.JWT = gwJWTRequirementToStructs(s.JWT)
+}
+func APIGatewayPolicyFromStructs(t *structs.APIGatewayPolicy, s *APIGatewayPolicy) {
+	if s == nil {
+		return
+	}
+	s.JWT = gwJWTRequirementFromStructs(t.JWT)
 }
 func APIGatewayTLSConfigurationToStructs(s *APIGatewayTLSConfiguration, t *structs.APIGatewayTLSConfiguration) {
 	if s == nil {
@@ -369,6 +401,17 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 		URLRewriteToStructs(s.URLRewrite, &x)
 		t.URLRewrite = &x
 	}
+	if s.RetryFilter != nil {
+		var x structs.RetryFilter
+		RetryFilterToStructs(s.RetryFilter, &x)
+		t.RetryFilter = &x
+	}
+	if s.TimeoutFilter != nil {
+		var x structs.TimeoutFilter
+		TimeoutFilterToStructs(s.TimeoutFilter, &x)
+		t.TimeoutFilter = &x
+	}
+	t.JWT = routeJWTFilterToStructs(s.JWT)
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 	if s == nil {
@@ -389,6 +432,17 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 		URLRewriteFromStructs(t.URLRewrite, &x)
 		s.URLRewrite = &x
 	}
+	if t.RetryFilter != nil {
+		var x RetryFilter
+		RetryFilterFromStructs(t.RetryFilter, &x)
+		s.RetryFilter = &x
+	}
+	if t.TimeoutFilter != nil {
+		var x TimeoutFilter
+		TimeoutFilterFromStructs(t.TimeoutFilter, &x)
+		s.TimeoutFilter = &x
+	}
+	s.JWT = routeJWTFilterFromStructs(t.JWT)
 }
 func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {
 	if s == nil {
@@ -1082,6 +1136,30 @@ func JSONWebKeySetFromStructs(t *structs.JSONWebKeySet, s *JSONWebKeySet) {
 		s.Remote = &x
 	}
 }
+func JWKSClusterToStructs(s *JWKSCluster, t *structs.JWKSCluster) {
+	if s == nil {
+		return
+	}
+	t.DiscoveryType = structs.ClusterDiscoveryType(s.DiscoveryType)
+	if s.TLSCertificates != nil {
+		var x structs.JWKSTLSCertificate
+		JWKSTLSCertificateToStructs(s.TLSCertificates, &x)
+		t.TLSCertificates = &x
+	}
+	t.ConnectTimeout = structs.DurationFromProto(s.ConnectTimeout)
+}
+func JWKSClusterFromStructs(t *structs.JWKSCluster, s *JWKSCluster) {
+	if s == nil {
+		return
+	}
+	s.DiscoveryType = string(t.DiscoveryType)
+	if t.TLSCertificates != nil {
+		var x JWKSTLSCertificate
+		JWKSTLSCertificateFromStructs(t.TLSCertificates, &x)
+		s.TLSCertificates = &x
+	}
+	s.ConnectTimeout = structs.DurationToProto(t.ConnectTimeout)
+}
 func JWKSRetryPolicyToStructs(s *JWKSRetryPolicy, t *structs.JWKSRetryPolicy) {
 	if s == nil {
 		return
@@ -1102,6 +1180,68 @@ func JWKSRetryPolicyFromStructs(t *structs.JWKSRetryPolicy, s *JWKSRetryPolicy) 
 		var x RetryPolicyBackOff
 		RetryPolicyBackOffFromStructs(t.RetryPolicyBackOff, &x)
 		s.RetryPolicyBackOff = &x
+	}
+}
+func JWKSTLSCertProviderInstanceToStructs(s *JWKSTLSCertProviderInstance, t *structs.JWKSTLSCertProviderInstance) {
+	if s == nil {
+		return
+	}
+	t.InstanceName = s.InstanceName
+	t.CertificateName = s.CertificateName
+}
+func JWKSTLSCertProviderInstanceFromStructs(t *structs.JWKSTLSCertProviderInstance, s *JWKSTLSCertProviderInstance) {
+	if s == nil {
+		return
+	}
+	s.InstanceName = t.InstanceName
+	s.CertificateName = t.CertificateName
+}
+func JWKSTLSCertTrustedCAToStructs(s *JWKSTLSCertTrustedCA, t *structs.JWKSTLSCertTrustedCA) {
+	if s == nil {
+		return
+	}
+	t.Filename = s.Filename
+	t.EnvironmentVariable = s.EnvironmentVariable
+	t.InlineString = s.InlineString
+	t.InlineBytes = s.InlineBytes
+}
+func JWKSTLSCertTrustedCAFromStructs(t *structs.JWKSTLSCertTrustedCA, s *JWKSTLSCertTrustedCA) {
+	if s == nil {
+		return
+	}
+	s.Filename = t.Filename
+	s.EnvironmentVariable = t.EnvironmentVariable
+	s.InlineString = t.InlineString
+	s.InlineBytes = t.InlineBytes
+}
+func JWKSTLSCertificateToStructs(s *JWKSTLSCertificate, t *structs.JWKSTLSCertificate) {
+	if s == nil {
+		return
+	}
+	if s.CaCertificateProviderInstance != nil {
+		var x structs.JWKSTLSCertProviderInstance
+		JWKSTLSCertProviderInstanceToStructs(s.CaCertificateProviderInstance, &x)
+		t.CaCertificateProviderInstance = &x
+	}
+	if s.TrustedCA != nil {
+		var x structs.JWKSTLSCertTrustedCA
+		JWKSTLSCertTrustedCAToStructs(s.TrustedCA, &x)
+		t.TrustedCA = &x
+	}
+}
+func JWKSTLSCertificateFromStructs(t *structs.JWKSTLSCertificate, s *JWKSTLSCertificate) {
+	if s == nil {
+		return
+	}
+	if t.CaCertificateProviderInstance != nil {
+		var x JWKSTLSCertProviderInstance
+		JWKSTLSCertProviderInstanceFromStructs(t.CaCertificateProviderInstance, &x)
+		s.CaCertificateProviderInstance = &x
+	}
+	if t.TrustedCA != nil {
+		var x JWKSTLSCertTrustedCA
+		JWKSTLSCertTrustedCAFromStructs(t.TrustedCA, &x)
+		s.TrustedCA = &x
 	}
 }
 func JWTCacheConfigToStructs(s *JWTCacheConfig, t *structs.JWTCacheConfig) {
@@ -1521,6 +1661,11 @@ func RemoteJWKSToStructs(s *RemoteJWKS, t *structs.RemoteJWKS) {
 		JWKSRetryPolicyToStructs(s.RetryPolicy, &x)
 		t.RetryPolicy = &x
 	}
+	if s.JWKSCluster != nil {
+		var x structs.JWKSCluster
+		JWKSClusterToStructs(s.JWKSCluster, &x)
+		t.JWKSCluster = &x
+	}
 }
 func RemoteJWKSFromStructs(t *structs.RemoteJWKS, s *RemoteJWKS) {
 	if s == nil {
@@ -1534,6 +1679,11 @@ func RemoteJWKSFromStructs(t *structs.RemoteJWKS, s *RemoteJWKS) {
 		var x JWKSRetryPolicy
 		JWKSRetryPolicyFromStructs(t.RetryPolicy, &x)
 		s.RetryPolicy = &x
+	}
+	if t.JWKSCluster != nil {
+		var x JWKSCluster
+		JWKSClusterFromStructs(t.JWKSCluster, &x)
+		s.JWKSCluster = &x
 	}
 }
 func ResourceReferenceToStructs(s *ResourceReference, t *structs.ResourceReference) {
@@ -1553,6 +1703,24 @@ func ResourceReferenceFromStructs(t *structs.ResourceReference, s *ResourceRefer
 	s.Name = t.Name
 	s.SectionName = t.SectionName
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
+func RetryFilterToStructs(s *RetryFilter, t *structs.RetryFilter) {
+	if s == nil {
+		return
+	}
+	t.NumRetries = &s.NumRetries
+	t.RetryOn = s.RetryOn
+	t.RetryOnStatusCodes = s.RetryOnStatusCodes
+	t.RetryOnConnectFailure = &s.RetryOnConnectFailure
+}
+func RetryFilterFromStructs(t *structs.RetryFilter, s *RetryFilter) {
+	if s == nil {
+		return
+	}
+	s.NumRetries = *t.NumRetries
+	s.RetryOn = t.RetryOn
+	s.RetryOnStatusCodes = t.RetryOnStatusCodes
+	s.RetryOnConnectFailure = *t.RetryOnConnectFailure
 }
 func RetryPolicyBackOffToStructs(s *RetryPolicyBackOff, t *structs.RetryPolicyBackOff) {
 	if s == nil {
@@ -2127,6 +2295,20 @@ func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
 	}
 	s.Name = t.Name
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
+func TimeoutFilterToStructs(s *TimeoutFilter, t *structs.TimeoutFilter) {
+	if s == nil {
+		return
+	}
+	t.RequestTimeout = structs.DurationFromProto(s.RequestTimeout)
+	t.IdleTimeout = structs.DurationFromProto(s.IdleTimeout)
+}
+func TimeoutFilterFromStructs(t *structs.TimeoutFilter, s *TimeoutFilter) {
+	if s == nil {
+		return
+	}
+	s.RequestTimeout = structs.DurationToProto(t.RequestTimeout)
+	s.IdleTimeout = structs.DurationToProto(t.IdleTimeout)
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
 	if s == nil {

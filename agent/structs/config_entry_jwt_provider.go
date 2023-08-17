@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -15,6 +15,12 @@ import (
 
 const (
 	DefaultClockSkewSeconds = 30
+
+	DiscoveryTypeStrictDNS   ClusterDiscoveryType = "STRICT_DNS"
+	DiscoveryTypeStatic      ClusterDiscoveryType = "STATIC"
+	DiscoveryTypeLogicalDNS  ClusterDiscoveryType = "LOGICAL_DNS"
+	DiscoveryTypeEDS         ClusterDiscoveryType = "EDS"
+	DiscoveryTypeOriginalDST ClusterDiscoveryType = "ORIGINAL_DST"
 )
 
 type JWTProviderConfigEntry struct {
@@ -97,7 +103,7 @@ func (location *JWTLocation) Validate() error {
 	hasCookie := location.Cookie != nil
 
 	if countTrue(hasHeader, hasQueryParam, hasCookie) != 1 {
-		return fmt.Errorf("Must set exactly one of: JWT location header, query param or cookie")
+		return fmt.Errorf("must set exactly one of: JWT location header, query param or cookie")
 	}
 
 	if hasHeader {
@@ -205,7 +211,7 @@ func (ks *LocalJWKS) Validate() error {
 	hasJWKS := ks.JWKS != ""
 
 	if countTrue(hasFilename, hasJWKS) != 1 {
-		return fmt.Errorf("Must specify exactly one of String or filename for local keyset")
+		return fmt.Errorf("must specify exactly one of String or filename for local keyset")
 	}
 
 	if hasJWKS {
@@ -245,6 +251,9 @@ type RemoteJWKS struct {
 	//
 	// There is no retry by default.
 	RetryPolicy *JWKSRetryPolicy `json:",omitempty" alias:"retry_policy"`
+
+	// JWKSCluster defines how the specified Remote JWKS URI is to be fetched.
+	JWKSCluster *JWKSCluster `json:",omitempty" alias:"jwks_cluster"`
 }
 
 func (ks *RemoteJWKS) Validate() error {
@@ -257,9 +266,127 @@ func (ks *RemoteJWKS) Validate() error {
 	}
 
 	if ks.RetryPolicy != nil && ks.RetryPolicy.RetryPolicyBackOff != nil {
-		return ks.RetryPolicy.RetryPolicyBackOff.Validate()
+		err := ks.RetryPolicy.RetryPolicyBackOff.Validate()
+		if err != nil {
+			return err
+		}
 	}
 
+	if ks.JWKSCluster != nil {
+		return ks.JWKSCluster.Validate()
+	}
+
+	return nil
+}
+
+type JWKSCluster struct {
+	// DiscoveryType refers to the service discovery type to use for resolving the cluster.
+	//
+	// This defaults to STRICT_DNS.
+	// Other options include STATIC, LOGICAL_DNS, EDS or ORIGINAL_DST.
+	DiscoveryType ClusterDiscoveryType `json:",omitempty" alias:"discovery_type"`
+
+	// TLSCertificates refers to the data containing certificate authority certificates to use
+	// in verifying a presented peer certificate.
+	// If not specified and a peer certificate is presented it will not be verified.
+	//
+	// Must be either CaCertificateProviderInstance or TrustedCA.
+	TLSCertificates *JWKSTLSCertificate `json:",omitempty" alias:"tls_certificates"`
+
+	// The timeout for new network connections to hosts in the cluster.
+	// If not set, a default value of 5s will be used.
+	ConnectTimeout time.Duration `json:",omitempty" alias:"connect_timeout"`
+}
+
+type ClusterDiscoveryType string
+
+func (d ClusterDiscoveryType) Validate() error {
+	switch d {
+	case DiscoveryTypeStatic, DiscoveryTypeStrictDNS, DiscoveryTypeLogicalDNS, DiscoveryTypeEDS, DiscoveryTypeOriginalDST:
+		return nil
+	default:
+		return fmt.Errorf("unsupported jwks cluster discovery type: %q", d)
+	}
+}
+
+func (c *JWKSCluster) Validate() error {
+	if c.DiscoveryType != "" {
+		err := c.DiscoveryType.Validate()
+		if err != nil {
+			return err
+		}
+	}
+
+	if c.TLSCertificates != nil {
+		return c.TLSCertificates.Validate()
+	}
+	return nil
+}
+
+// JWKSTLSCertificate refers to the data containing certificate authority certificates to use
+// in verifying a presented peer certificate.
+// If not specified and a peer certificate is presented it will not be verified.
+//
+// Must be either CaCertificateProviderInstance or TrustedCA.
+type JWKSTLSCertificate struct {
+	// CaCertificateProviderInstance Certificate provider instance for fetching TLS certificates.
+	CaCertificateProviderInstance *JWKSTLSCertProviderInstance `json:",omitempty" alias:"ca_certificate_provider_instance"`
+
+	// TrustedCA defines TLS certificate data containing certificate authority certificates
+	// to use in verifying a presented peer certificate.
+	//
+	// Exactly one of Filename, EnvironmentVariable, InlineString or InlineBytes must be specified.
+	TrustedCA *JWKSTLSCertTrustedCA `json:",omitempty" alias:"trusted_ca"`
+}
+
+func (c *JWKSTLSCertificate) Validate() error {
+	hasProviderInstance := c.CaCertificateProviderInstance != nil
+	hasTrustedCA := c.TrustedCA != nil
+
+	if countTrue(hasProviderInstance, hasTrustedCA) != 1 {
+		return fmt.Errorf("must specify exactly one of: CaCertificateProviderInstance or TrustedCA for JKWS' TLSCertificates")
+	}
+
+	if c.TrustedCA != nil {
+		return c.TrustedCA.Validate()
+	}
+	return nil
+}
+
+type JWKSTLSCertProviderInstance struct {
+	// InstanceName refers to the certificate provider instance name
+	//
+	// The default value is "default".
+	InstanceName string `json:",omitempty" alias:"instance_name"`
+
+	// CertificateName is used to specify certificate instances or types. For example, "ROOTCA" to specify
+	// a root-certificate (validation context) or "example.com" to specify a certificate for a
+	// particular domain.
+	//
+	// The default value is the empty string.
+	CertificateName string `json:",omitempty" alias:"certificate_name"`
+}
+
+// JWKSTLSCertTrustedCA defines TLS certificate data containing certificate authority certificates
+// to use in verifying a presented peer certificate.
+//
+// Exactly one of Filename, EnvironmentVariable, InlineString or InlineBytes must be specified.
+type JWKSTLSCertTrustedCA struct {
+	Filename            string `json:",omitempty" alias:"filename"`
+	EnvironmentVariable string `json:",omitempty" alias:"environment_variable"`
+	InlineString        string `json:",omitempty" alias:"inline_string"`
+	InlineBytes         []byte `json:",omitempty" alias:"inline_bytes"`
+}
+
+func (c *JWKSTLSCertTrustedCA) Validate() error {
+	hasFilename := c.Filename != ""
+	hasEnv := c.EnvironmentVariable != ""
+	hasInlineBytes := len(c.InlineBytes) > 0
+	hasInlineString := c.InlineString != ""
+
+	if countTrue(hasFilename, hasEnv, hasInlineString, hasInlineBytes) != 1 {
+		return fmt.Errorf("must specify exactly one of: Filename, EnvironmentVariable, InlineString or InlineBytes for JWKS' TrustedCA")
+	}
 	return nil
 }
 
@@ -293,7 +420,7 @@ type RetryPolicyBackOff struct {
 func (r *RetryPolicyBackOff) Validate() error {
 
 	if (r.MaxInterval != 0) && (r.BaseInterval > r.MaxInterval) {
-		return fmt.Errorf("Retry policy backoff's MaxInterval should be greater or equal to BaseInterval")
+		return fmt.Errorf("retry policy backoff's MaxInterval should be greater or equal to BaseInterval")
 	}
 
 	return nil
@@ -316,6 +443,15 @@ func (e *JWTProviderConfigEntry) GetRaftIndex() *RaftIndex               { retur
 func (e *JWTProviderConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
+
+	// allow service-identity tokens the ability to read jwt-providers
+	// this is a workaround to allow sidecar proxies to read the jwt-providers
+	// see issue: https://github.com/hashicorp/consul/issues/17886 for more details
+	err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzContext)
+	if err == nil {
+		return err
+	}
+
 	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
@@ -330,7 +466,7 @@ func (jwks *JSONWebKeySet) Validate() error {
 	hasRemoteKeySet := jwks.Remote != nil
 
 	if countTrue(hasLocalKeySet, hasRemoteKeySet) != 1 {
-		return fmt.Errorf("Must specify exactly one of Local or Remote JSON Web key set")
+		return fmt.Errorf("must specify exactly one of Local or Remote JSON Web key set")
 	}
 
 	if hasRemoteKeySet {
@@ -373,7 +509,7 @@ func (e *JWTProviderConfigEntry) Validate() error {
 		return err
 	}
 
-	if err := e.validatePartition(); err != nil {
+	if err := e.validatePartitionAndNamespace(); err != nil {
 		return err
 	}
 

@@ -1,3 +1,306 @@
+## 1.16.1 (August 8, 2023)
+
+SECURITY:
+
+* Update `golang.org/x/net` to v0.13.0 to address [CVE-2023-3978](https://nvd.nist.gov/vuln/detail/CVE-2023-3978). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
+* Upgrade golang.org/x/net to address [CVE-2023-29406](https://nvd.nist.gov/vuln/detail/CVE-2023-29406) [[GH-18186](https://github.com/hashicorp/consul/issues/18186)]
+* Upgrade to use Go 1.20.6.
+This resolves [CVE-2023-29406](https://github.com/advisories/GHSA-f8f7-69v5-w4vx)(`net/http`) for uses of the standard library.
+A separate change updates dependencies on `golang.org/x/net` to use `0.12.0`. [[GH-18190](https://github.com/hashicorp/consul/issues/18190)]
+* Upgrade to use Go 1.20.7.
+This resolves vulnerability [CVE-2023-29409](https://nvd.nist.gov/vuln/detail/CVE-2023-29409)(`crypto/tls`). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
+
+FEATURES:
+
+* cli: `consul members` command uses `-filter` expression to filter members based on bexpr. [[GH-18223](https://github.com/hashicorp/consul/issues/18223)]
+* cli: `consul operator raft list-peers` command shows the number of commits each follower is trailing the leader by to aid in troubleshooting. [[GH-17582](https://github.com/hashicorp/consul/issues/17582)]
+* cli: `consul watch` command uses `-filter` expression to filter response from checks, services, nodes, and service. [[GH-17780](https://github.com/hashicorp/consul/issues/17780)]
+* reloadable config: Made enable_debug config reloadable and enable pprof command to work when config toggles to true [[GH-17565](https://github.com/hashicorp/consul/issues/17565)]
+* ui: consul version is displayed in nodes list with filtering and sorting based on versions [[GH-17754](https://github.com/hashicorp/consul/issues/17754)]
+
+IMPROVEMENTS:
+
+* Fix some typos in metrics docs [[GH-18080](https://github.com/hashicorp/consul/issues/18080)]
+* acl: added builtin ACL policy that provides global read-only access (builtin/global-read-only) [[GH-18319](https://github.com/hashicorp/consul/issues/18319)]
+* acl: allow for a single slash character in policy names [[GH-18319](https://github.com/hashicorp/consul/issues/18319)]
+* connect: Add capture group labels from Envoy cluster FQDNs to Envoy exported metric labels [[GH-17888](https://github.com/hashicorp/consul/issues/17888)]
+* connect: Improve transparent proxy support for virtual services and failovers. [[GH-17757](https://github.com/hashicorp/consul/issues/17757)]
+* connect: update supported envoy versions to 1.23.12, 1.24.10, 1.25.9, 1.26.4 [[GH-18303](https://github.com/hashicorp/consul/issues/18303)]
+* debug: change default setting of consul debug command. now default duration is 5ms and default log level is 'TRACE' [[GH-17596](https://github.com/hashicorp/consul/issues/17596)]
+* extensions: Improve validation and error feedback for `property-override` builtin Envoy extension [[GH-17759](https://github.com/hashicorp/consul/issues/17759)]
+* hcp: Add dynamic configuration support for the export of server metrics to HCP. [[GH-18168](https://github.com/hashicorp/consul/issues/18168)]
+* hcp: Removes requirement for HCP to provide a management token [[GH-18140](https://github.com/hashicorp/consul/issues/18140)]
+* http: GET API `operator/usage` endpoint now returns node count
+cli: `consul operator usage` command now returns node count [[GH-17939](https://github.com/hashicorp/consul/issues/17939)]
+* mesh: Expose remote jwks cluster configuration through jwt-provider config entry [[GH-17978](https://github.com/hashicorp/consul/issues/17978)]
+* mesh: Stop jwt providers referenced by intentions from being deleted. [[GH-17755](https://github.com/hashicorp/consul/issues/17755)]
+* ui: the topology view now properly displays services with mixed connect and non-connect instances. [[GH-13023](https://github.com/hashicorp/consul/issues/13023)]
+* xds: Explicitly enable WebSocket connection upgrades in HTTP connection manager [[GH-18150](https://github.com/hashicorp/consul/issues/18150)]
+
+BUG FIXES:
+
+* Fix a bug that wrongly trims domains when there is an overlap with DC name. [[GH-17160](https://github.com/hashicorp/consul/issues/17160)]
+* api-gateway: fix race condition in proxy config generation when Consul is notified of the bound-api-gateway config entry before it is notified of the api-gateway config entry. [[GH-18291](https://github.com/hashicorp/consul/issues/18291)]
+* api: Fix client deserialization errors by marking new Enterprise-only prepared query fields as omit empty [[GH-18184](https://github.com/hashicorp/consul/issues/18184)]
+* ca: Fixes a Vault CA provider bug where updating RootPKIPath but not IntermediatePKIPath would not renew leaf signing certificates [[GH-18112](https://github.com/hashicorp/consul/issues/18112)]
+* connect/ca: Fixes a bug preventing CA configuration updates in secondary datacenters [[GH-17846](https://github.com/hashicorp/consul/issues/17846)]
+* connect: **(Enterprise only)** Fix bug where intentions referencing sameness groups would not always apply to members properly.
+* connect: Fix incorrect protocol config merging for transparent proxy implicit upstreams. [[GH-17894](https://github.com/hashicorp/consul/issues/17894)]
+* connect: Removes the default health check from the `consul connect envoy` command when starting an API Gateway.
+This health check would always fail. [[GH-18011](https://github.com/hashicorp/consul/issues/18011)]
+* connect: fix a bug with Envoy potentially starting with incomplete configuration by not waiting enough for initial xDS configuration. [[GH-18024](https://github.com/hashicorp/consul/issues/18024)]
+* gateway: Fixes a bug where envoy would silently reject RSA keys that are smaller than 2048 bits,
+we now reject those earlier in the process when we validate the certificate. [[GH-17911](https://github.com/hashicorp/consul/issues/17911)]
+* http: fixed API endpoint `PUT /acl/token/:AccessorID` (update token), no longer requires `AccessorID` in the request body. Web UI can now update tokens. [[GH-17739](https://github.com/hashicorp/consul/issues/17739)]
+* mesh: **(Enterprise Only)** Require that `jwt-provider` config entries are created in the `default` namespace. [[GH-18325](https://github.com/hashicorp/consul/issues/18325)]
+* snapshot: fix access denied and handle is invalid when we call snapshot save on windows - skip sync() for folders in windows in
+https://github.com/rboyer/safeio/pull/3 [[GH-18302](https://github.com/hashicorp/consul/issues/18302)]
+* xds: Prevent partial application of non-Required Envoy extensions in the case of failure. [[GH-18068](https://github.com/hashicorp/consul/issues/18068)]
+
+## 1.15.5 (August 8, 2023)
+
+SECURITY:
+
+* Update `golang.org/x/net` to v0.13.0 to address [CVE-2023-3978](https://nvd.nist.gov/vuln/detail/CVE-2023-3978). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
+* Upgrade golang.org/x/net to address [CVE-2023-29406](https://nvd.nist.gov/vuln/detail/CVE-2023-29406) [[GH-18186](https://github.com/hashicorp/consul/issues/18186)]
+* Upgrade to use Go 1.20.6.
+This resolves [CVE-2023-29406](https://github.com/advisories/GHSA-f8f7-69v5-w4vx)(`net/http`) for uses of the standard library.
+A separate change updates dependencies on `golang.org/x/net` to use `0.12.0`. [[GH-18190](https://github.com/hashicorp/consul/issues/18190)]
+* Upgrade to use Go 1.20.7.
+This resolves vulnerability [CVE-2023-29409](https://nvd.nist.gov/vuln/detail/CVE-2023-29409)(`crypto/tls`). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
+
+FEATURES:
+
+* cli: `consul members` command uses `-filter` expression to filter members based on bexpr. [[GH-18223](https://github.com/hashicorp/consul/issues/18223)]
+* cli: `consul watch` command uses `-filter` expression to filter response from checks, services, nodes, and service. [[GH-17780](https://github.com/hashicorp/consul/issues/17780)]
+* reloadable config: Made enable_debug config reloadable and enable pprof command to work when config toggles to true [[GH-17565](https://github.com/hashicorp/consul/issues/17565)]
+
+IMPROVEMENTS:
+
+* Fix some typos in metrics docs [[GH-18080](https://github.com/hashicorp/consul/issues/18080)]
+* acl: added builtin ACL policy that provides global read-only access (builtin/global-read-only) [[GH-18319](https://github.com/hashicorp/consul/issues/18319)]
+* acl: allow for a single slash character in policy names [[GH-18319](https://github.com/hashicorp/consul/issues/18319)]
+* connect: Add capture group labels from Envoy cluster FQDNs to Envoy exported metric labels [[GH-17888](https://github.com/hashicorp/consul/issues/17888)]
+* connect: update supported envoy versions to 1.22.11, 1.23.12, 1.24.10, 1.25.9 [[GH-18304](https://github.com/hashicorp/consul/issues/18304)]
+* hcp: Add dynamic configuration support for the export of server metrics to HCP. [[GH-18168](https://github.com/hashicorp/consul/issues/18168)]
+* hcp: Removes requirement for HCP to provide a management token [[GH-18140](https://github.com/hashicorp/consul/issues/18140)]
+* xds: Explicitly enable WebSocket connection upgrades in HTTP connection manager [[GH-18150](https://github.com/hashicorp/consul/issues/18150)]
+
+BUG FIXES:
+
+* Fix a bug that wrongly trims domains when there is an overlap with DC name. [[GH-17160](https://github.com/hashicorp/consul/issues/17160)]
+* api-gateway: fix race condition in proxy config generation when Consul is notified of the bound-api-gateway config entry before it is notified of the api-gateway config entry. [[GH-18291](https://github.com/hashicorp/consul/issues/18291)]
+* connect/ca: Fixes a bug preventing CA configuration updates in secondary datacenters [[GH-17846](https://github.com/hashicorp/consul/issues/17846)]
+* connect: Fix incorrect protocol config merging for transparent proxy implicit upstreams. [[GH-17894](https://github.com/hashicorp/consul/issues/17894)]
+* connect: Removes the default health check from the `consul connect envoy` command when starting an API Gateway.
+This health check would always fail. [[GH-18011](https://github.com/hashicorp/consul/issues/18011)]
+* connect: fix a bug with Envoy potentially starting with incomplete configuration by not waiting enough for initial xDS configuration. [[GH-18024](https://github.com/hashicorp/consul/issues/18024)]
+* snapshot: fix access denied and handle is invalid when we call snapshot save on windows - skip sync() for folders in windows in
+https://github.com/rboyer/safeio/pull/3 [[GH-18302](https://github.com/hashicorp/consul/issues/18302)]
+
+## 1.14.9 (August 8, 2023)
+
+SECURITY:
+
+* Update `golang.org/x/net` to v0.13.0 to address [CVE-2023-3978](https://nvd.nist.gov/vuln/detail/CVE-2023-3978). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
+* Upgrade golang.org/x/net to address [CVE-2023-29406](https://nvd.nist.gov/vuln/detail/CVE-2023-29406) [[GH-18186](https://github.com/hashicorp/consul/issues/18186)]
+* Upgrade to use Go 1.20.6.
+This resolves [CVE-2023-29406](https://github.com/advisories/GHSA-f8f7-69v5-w4vx)(`net/http`) for uses of the standard library. 
+A separate change updates dependencies on `golang.org/x/net` to use `0.12.0`. [[GH-18190](https://github.com/hashicorp/consul/issues/18190)]
+* Upgrade to use Go 1.20.7.
+This resolves vulnerability [CVE-2023-29409](https://nvd.nist.gov/vuln/detail/CVE-2023-29409)(`crypto/tls`). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
+
+FEATURES:
+
+* cli: `consul members` command uses `-filter` expression to filter members based on bexpr. [[GH-18223](https://github.com/hashicorp/consul/issues/18223)]
+* cli: `consul watch` command uses `-filter` expression to filter response from checks, services, nodes, and service. [[GH-17780](https://github.com/hashicorp/consul/issues/17780)]
+* reloadable config: Made enable_debug config reloadable and enable pprof command to work when config toggles to true [[GH-17565](https://github.com/hashicorp/consul/issues/17565)]
+
+IMPROVEMENTS:
+
+* Fix some typos in metrics docs [[GH-18080](https://github.com/hashicorp/consul/issues/18080)]
+* acl: added builtin ACL policy that provides global read-only access (builtin/global-read-only) [[GH-18319](https://github.com/hashicorp/consul/issues/18319)]
+* acl: allow for a single slash character in policy names [[GH-18319](https://github.com/hashicorp/consul/issues/18319)]
+* connect: update supported envoy versions to 1.21.6, 1.22.11, 1.23.12, 1.24.10 [[GH-18305](https://github.com/hashicorp/consul/issues/18305)]
+* hcp: Removes requirement for HCP to provide a management token [[GH-18140](https://github.com/hashicorp/consul/issues/18140)]
+* xds: Explicitly enable WebSocket connection upgrades in HTTP connection manager [[GH-18150](https://github.com/hashicorp/consul/issues/18150)]
+
+BUG FIXES:
+
+* Fix a bug that wrongly trims domains when there is an overlap with DC name. [[GH-17160](https://github.com/hashicorp/consul/issues/17160)]
+* connect/ca: Fixes a bug preventing CA configuration updates in secondary datacenters [[GH-17846](https://github.com/hashicorp/consul/issues/17846)]
+* connect: Fix incorrect protocol config merging for transparent proxy implicit upstreams. [[GH-17894](https://github.com/hashicorp/consul/issues/17894)]
+* connect: fix a bug with Envoy potentially starting with incomplete configuration by not waiting enough for initial xDS configuration. [[GH-18024](https://github.com/hashicorp/consul/issues/18024)]
+* snapshot: fix access denied and handle is invalid when we call snapshot save on windows - skip sync() for folders in windows in
+https://github.com/rboyer/safeio/pull/3 [[GH-18302](https://github.com/hashicorp/consul/issues/18302)]
+
+## 1.16.0 (June 26, 2023)
+
+BREAKING CHANGES:
+
+* api: The `/v1/health/connect/` and `/v1/health/ingress/` endpoints now immediately return 403 "Permission Denied" errors whenever a token with insufficient `service:read` permissions is provided. Prior to this change, the endpoints returned a success code with an empty result list when a token with insufficient permissions was provided. [[GH-17424](https://github.com/hashicorp/consul/issues/17424)]
+* peering: Removed deprecated backward-compatibility behavior.
+  Upstream overrides in service-defaults will now only apply to peer upstreams when the `peer` field is provided.
+  Visit the 1.16.x [upgrade instructions](https://developer.hashicorp.com/consul/docs/upgrading/upgrade-specific) for more information. [[GH-16957](https://github.com/hashicorp/consul/issues/16957)]
+
+SECURITY:
+
+* Bump Dockerfile base image to `alpine:3.18`. [[GH-17719](https://github.com/hashicorp/consul/issues/17719)]
+* audit-logging: **(Enterprise only)** limit `v1/operator/audit-hash` endpoint to ACL token with `operator:read` privileges.
+
+FEATURES:
+
+* api: (Enterprise only) Add `POST /v1/operator/audit-hash` endpoint to calculate the hash of the data used by the audit log hash function and salt.
+* cli: (Enterprise only) Add a new `consul operator audit hash` command to retrieve and compare the hash of the data used by the audit log hash function and salt.
+* cli: Adds new command - `consul services export` - for exporting a service to a peer or partition [[GH-15654](https://github.com/hashicorp/consul/issues/15654)]
+* connect: **(Consul Enterprise only)** Implement order-by-locality failover.
+* mesh: Add new permissive mTLS mode that allows sidecar proxies to forward incoming traffic unmodified to the application. This adds `AllowEnablingPermissiveMutualTLS` setting to the mesh config entry and the `MutualTLSMode` setting to proxy-defaults and service-defaults. [[GH-17035](https://github.com/hashicorp/consul/issues/17035)]
+* mesh: Support configuring JWT authentication in Envoy. [[GH-17452](https://github.com/hashicorp/consul/issues/17452)]
+* server: **(Enterprise Only)** added server side RPC requests IP based read/write rate-limiter. [[GH-4633](https://github.com/hashicorp/consul/issues/4633)]
+* server: **(Enterprise Only)** allow automatic license utilization reporting. [[GH-5102](https://github.com/hashicorp/consul/issues/5102)]
+* server: added server side RPC requests global read/write rate-limiter. [[GH-16292](https://github.com/hashicorp/consul/issues/16292)]
+* xds: Add `property-override` built-in Envoy extension that directly patches Envoy resources. [[GH-17487](https://github.com/hashicorp/consul/issues/17487)]
+* xds: Add a built-in Envoy extension that inserts External Authorization (ext_authz) network and HTTP filters. [[GH-17495](https://github.com/hashicorp/consul/issues/17495)]
+* xds: Add a built-in Envoy extension that inserts Wasm HTTP filters. [[GH-16877](https://github.com/hashicorp/consul/issues/16877)]
+* xds: Add a built-in Envoy extension that inserts Wasm network filters. [[GH-17505](https://github.com/hashicorp/consul/issues/17505)]
+
+IMPROVEMENTS:
+
+* * api: Support filtering for config entries. [[GH-17183](https://github.com/hashicorp/consul/issues/17183)]
+* * cli: Add `-filter` option to `consul config list` for filtering config entries. [[GH-17183](https://github.com/hashicorp/consul/issues/17183)]
+* agent: remove agent cache dependency from service mesh leaf certificate management [[GH-17075](https://github.com/hashicorp/consul/issues/17075)]
+* api: Enable setting query options on agent force-leave endpoint. [[GH-15987](https://github.com/hashicorp/consul/issues/15987)]
+* audit-logging: **(Enterprise only)** enable error response and request body logging
+* ca: automatically set up Vault's auto-tidy setting for tidy_expired_issuers when using Vault as a CA provider. [[GH-17138](https://github.com/hashicorp/consul/issues/17138)]
+* ca: support Vault agent auto-auth config for Vault CA provider using AliCloud authentication. [[GH-16224](https://github.com/hashicorp/consul/issues/16224)]
+* ca: support Vault agent auto-auth config for Vault CA provider using AppRole authentication. [[GH-16259](https://github.com/hashicorp/consul/issues/16259)]
+* ca: support Vault agent auto-auth config for Vault CA provider using Azure MSI authentication. [[GH-16298](https://github.com/hashicorp/consul/issues/16298)]
+* ca: support Vault agent auto-auth config for Vault CA provider using JWT authentication. [[GH-16266](https://github.com/hashicorp/consul/issues/16266)]
+* ca: support Vault agent auto-auth config for Vault CA provider using Kubernetes authentication. [[GH-16262](https://github.com/hashicorp/consul/issues/16262)]
+* command: Adds ACL enabled to status output on agent startup. [[GH-17086](https://github.com/hashicorp/consul/issues/17086)]
+* command: Allow creating ACL Token TTL with greater than 24 hours with the -expires-ttl flag. [[GH-17066](https://github.com/hashicorp/consul/issues/17066)]
+* connect: **(Enterprise Only)** Add support for specifying "Partition" and "Namespace" in Prepared Queries failover rules.
+* connect: update supported envoy versions to 1.23.10, 1.24.8, 1.25.7, 1.26.2 [[GH-17546](https://github.com/hashicorp/consul/issues/17546)]
+* connect: update supported envoy versions to 1.23.8, 1.24.6, 1.25.4, 1.26.0 [[GH-5200](https://github.com/hashicorp/consul/issues/5200)]
+* fix metric names in /docs/agent/telemetry [[GH-17577](https://github.com/hashicorp/consul/issues/17577)]
+* gateway: Change status condition reason for invalid certificate on a listener from "Accepted" to "ResolvedRefs". [[GH-17115](https://github.com/hashicorp/consul/issues/17115)]
+* http: accept query parameters `datacenter`, `ap` (enterprise-only), and `namespace` (enterprise-only). Both short-hand and long-hand forms of these query params are now supported via the HTTP API (dc/datacenter, ap/partition, ns/namespace). [[GH-17525](https://github.com/hashicorp/consul/issues/17525)]
+* systemd: set service type to notify. [[GH-16845](https://github.com/hashicorp/consul/issues/16845)]
+* ui: Update alerts to Hds::Alert component [[GH-16412](https://github.com/hashicorp/consul/issues/16412)]
+* ui: Update to use Hds::Toast component to show notifications [[GH-16519](https://github.com/hashicorp/consul/issues/16519)]
+* ui: update from <button> and <a> to design-system-components button <Hds::Button> [[GH-16251](https://github.com/hashicorp/consul/issues/16251)]
+* ui: update typography to styles from hds [[GH-16577](https://github.com/hashicorp/consul/issues/16577)]
+
+BUG FIXES:
+
+* Fix a race condition where an event is published before the data associated is commited to memdb. [[GH-16871](https://github.com/hashicorp/consul/issues/16871)]
+* connect: Fix issue where changes to service exports were not reflected in proxies. [[GH-17775](https://github.com/hashicorp/consul/issues/17775)]
+* gateways: **(Enterprise only)** Fixed a bug in API gateways where gateway configuration objects in non-default partitions did not reconcile properly. [[GH-17581](https://github.com/hashicorp/consul/issues/17581)]
+* gateways: Fixed a bug in API gateways where binding a route that only targets a service imported from a peer results
+  in the programmed gateway having no routes. [[GH-17609](https://github.com/hashicorp/consul/issues/17609)]
+* gateways: Fixed a bug where API gateways were not being taken into account in determining xDS rate limits. [[GH-17631](https://github.com/hashicorp/consul/issues/17631)]
+* namespaces: **(Enterprise only)** fixes a bug where agent health checks stop syncing for all services on a node if the namespace of any service has been removed from the server.
+* namespaces: **(Enterprise only)** fixes a bug where namespaces are stuck in a deferred deletion state indefinitely under some conditions.
+  Also fixes the Consul query metadata present in the HTTP headers of the namespace read and list endpoints.
+* peering: Fix a bug that caused server agents to continue cleaning up peering resources even after loss of leadership. [[GH-17483](https://github.com/hashicorp/consul/issues/17483)]
+* peering: Fixes a bug where the importing partition was not added to peered failover targets, which causes issues when the importing partition is a non-default partition. [[GH-16673](https://github.com/hashicorp/consul/issues/16673)]
+* ui: fixes ui tests run on CI [[GH-16428](https://github.com/hashicorp/consul/issues/16428)]
+* xds: Fixed a bug where modifying ACLs on a token being actively used for an xDS connection caused all xDS updates to fail. [[GH-17566](https://github.com/hashicorp/consul/issues/17566)]
+
+## 1.15.4 (June 26, 2023)
+FEATURES:
+
+* cli: `consul operator raft list-peers` command shows the number of commits each follower is trailing the leader by to aid in troubleshooting. [[GH-17582](https://github.com/hashicorp/consul/issues/17582)]
+* server: **(Enterprise Only)** allow automatic license utilization reporting. [[GH-5102](https://github.com/hashicorp/consul/issues/5102)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy versions to 1.22.11, 1.23.9, 1.24.7, 1.25.6 [[GH-17545](https://github.com/hashicorp/consul/issues/17545)]
+* debug: change default setting of consul debug command. now default duration is 5ms and default log level is 'TRACE' [[GH-17596](https://github.com/hashicorp/consul/issues/17596)]
+* fix metric names in /docs/agent/telemetry [[GH-17577](https://github.com/hashicorp/consul/issues/17577)]
+* gateway: Change status condition reason for invalid certificate on a listener from "Accepted" to "ResolvedRefs". [[GH-17115](https://github.com/hashicorp/consul/issues/17115)]
+* systemd: set service type to notify. [[GH-16845](https://github.com/hashicorp/consul/issues/16845)]
+
+BUG FIXES:
+
+* cache: fix a few minor goroutine leaks in leaf certs and the agent cache [[GH-17636](https://github.com/hashicorp/consul/issues/17636)]
+* docs: fix list of telemetry metrics [[GH-17593](https://github.com/hashicorp/consul/issues/17593)]
+* gateways: **(Enterprise only)** Fixed a bug in API gateways where gateway configuration objects in non-default partitions did not reconcile properly. [[GH-17581](https://github.com/hashicorp/consul/issues/17581)]
+* gateways: Fixed a bug in API gateways where binding a route that only targets a service imported from a peer results
+  in the programmed gateway having no routes. [[GH-17609](https://github.com/hashicorp/consul/issues/17609)]
+* gateways: Fixed a bug where API gateways were not being taken into account in determining xDS rate limits. [[GH-17631](https://github.com/hashicorp/consul/issues/17631)]
+* http: fixed API endpoint `PUT /acl/token/:AccessorID` (update token), no longer requires `AccessorID` in the request body. Web UI can now update tokens. [[GH-17739](https://github.com/hashicorp/consul/issues/17739)]
+* namespaces: **(Enterprise only)** fixes a bug where agent health checks stop syncing for all services on a node if the namespace of any service has been removed from the server.
+* namespaces: **(Enterprise only)** fixes a bug where namespaces are stuck in a deferred deletion state indefinitely under some conditions.
+  Also fixes the Consul query metadata present in the HTTP headers of the namespace read and list endpoints.
+* peering: Fix a bug that caused server agents to continue cleaning up peering resources even after loss of leadership. [[GH-17483](https://github.com/hashicorp/consul/issues/17483)]
+* xds: Fixed a bug where modifying ACLs on a token being actively used for an xDS connection caused all xDS updates to fail. [[GH-17566](https://github.com/hashicorp/consul/issues/17566)]
+
+## 1.14.8 (June 26, 2023)
+
+SECURITY:
+
+* Update to UBI base image to 9.2. [[GH-17513](https://github.com/hashicorp/consul/issues/17513)]
+
+FEATURES:
+
+* cli: `consul operator raft list-peers` command shows the number of commits each follower is trailing the leader by to aid in troubleshooting. [[GH-17582](https://github.com/hashicorp/consul/issues/17582)]
+* server: **(Enterprise Only)** allow automatic license utilization reporting. [[GH-5102](https://github.com/hashicorp/consul/issues/5102)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy versions to 1.21.6, 1.22.11, 1.23.9, 1.24.7 [[GH-17547](https://github.com/hashicorp/consul/issues/17547)]
+* debug: change default setting of consul debug command. now default duration is 5ms and default log level is 'TRACE' [[GH-17596](https://github.com/hashicorp/consul/issues/17596)]
+* fix metric names in /docs/agent/telemetry [[GH-17577](https://github.com/hashicorp/consul/issues/17577)]
+* peering: gRPC queries for TrustBundleList, TrustBundleRead, PeeringList, and PeeringRead now support blocking semantics,
+  reducing network and CPU demand.
+  The HTTP APIs for Peering List and Read have been updated to support blocking. [[GH-17426](https://github.com/hashicorp/consul/issues/17426)]
+* raft: Remove expensive reflection from raft/mesh hot path [[GH-16552](https://github.com/hashicorp/consul/issues/16552)]
+* systemd: set service type to notify. [[GH-16845](https://github.com/hashicorp/consul/issues/16845)]
+
+BUG FIXES:
+
+* cache: fix a few minor goroutine leaks in leaf certs and the agent cache [[GH-17636](https://github.com/hashicorp/consul/issues/17636)]
+* connect: reverts #17317 fix that caused a downstream error for Ingress/Mesh/Terminating GWs when their respective config entry does not already exist. [[GH-17541](https://github.com/hashicorp/consul/issues/17541)]
+* namespaces: **(Enterprise only)** fixes a bug where agent health checks stop syncing for all services on a node if the namespace of any service has been removed from the server.
+* namespaces: **(Enterprise only)** fixes a bug where namespaces are stuck in a deferred deletion state indefinitely under some conditions.
+  Also fixes the Consul query metadata present in the HTTP headers of the namespace read and list endpoints.
+* namespaces: adjusts the return type from HTTP list API to return the `api` module representation of a namespace.
+  This fixes an error with the `consul namespace list` command when a namespace has a deferred deletion timestamp.
+* peering: Fix a bug that caused server agents to continue cleaning up peering resources even after loss of leadership. [[GH-17483](https://github.com/hashicorp/consul/issues/17483)]
+* peering: Fix issue where modifying the list of exported services did not correctly replicate changes for services that exist in a non-default namespace. [[GH-17456](https://github.com/hashicorp/consul/issues/17456)]
+
+## 1.13.9 (June 26, 2023)
+BREAKING CHANGES:
+
+* connect: Disable peering by default in connect proxies for Consul 1.13. This change was made to prevent inefficient polling
+  queries from having a negative impact on server performance. Peering in Consul 1.13 is an experimental feature and is not
+  recommended for use in production environments. If you still wish to use the experimental peering feature, ensure
+  [`peering.enabled = true`](https://developer.hashicorp.com/consul/docs/v1.13.x/agent/config/config-files#peering_enabled)
+  is set on all clients and servers. [[GH-17731](https://github.com/hashicorp/consul/issues/17731)]
+
+SECURITY:
+
+* Update to UBI base image to 9.2. [[GH-17513](https://github.com/hashicorp/consul/issues/17513)]
+
+FEATURES:
+
+* server: **(Enterprise Only)** allow automatic license utilization reporting. [[GH-5102](https://github.com/hashicorp/consul/issues/5102)]
+
+IMPROVEMENTS:
+
+* debug: change default setting of consul debug command. now default duration is 5ms and default log level is 'TRACE' [[GH-17596](https://github.com/hashicorp/consul/issues/17596)]
+* systemd: set service type to notify. [[GH-16845](https://github.com/hashicorp/consul/issues/16845)]
+
+BUG FIXES:
+
+* cache: fix a few minor goroutine leaks in leaf certs and the agent cache [[GH-17636](https://github.com/hashicorp/consul/issues/17636)]
+* namespaces: **(Enterprise only)** fixes a bug where namespaces are stuck in a deferred deletion state indefinitely under some conditions.
+  Also fixes the Consul query metadata present in the HTTP headers of the namespace read and list endpoints.
+* namespaces: adjusts the return type from HTTP list API to return the `api` module representation of a namespace.
+  This fixes an error with the `consul namespace list` command when a namespace has a deferred deletion timestamp.
+* peering: Fix a bug that caused server agents to continue cleaning up peering resources even after loss of leadership. [[GH-17483](https://github.com/hashicorp/consul/issues/17483)]
+
 ## 1.16.0-rc1 (June 12, 2023)
 
 BREAKING CHANGES:

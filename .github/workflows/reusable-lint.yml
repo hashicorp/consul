@@ -20,6 +20,7 @@ on:
 env:
   GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
   GOARCH: ${{inputs.go-arch}}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
   lint:
@@ -33,10 +34,11 @@ jobs:
         - "envoyextensions"
         - "troubleshoot"
         - "test/integration/consul-container"
+        - "testing/deployer"
       fail-fast: true
     name: lint ${{ matrix.directory }}
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
@@ -46,7 +48,7 @@ jobs:
           go-version-file: 'go.mod'
       - run: go env
       - name: lint-${{ matrix.directory }}
-        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
+        uses: golangci/golangci-lint-action@639cd343e1d3b897ff35927a75193d57cfcba299 # v3.6.0
         with:
           working-directory: ${{ matrix.directory }}
           version: v1.51.1

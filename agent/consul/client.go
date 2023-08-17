@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -32,15 +33,15 @@ import (
 var ClientCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"client", "rpc"},
-		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server.",
+		Help: "Increments whenever a Consul agent makes an RPC request to a Consul server.",
 	},
 	{
 		Name: []string{"client", "rpc", "exceeded"},
-		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
+		Help: "Increments whenever a Consul agent makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
 	},
 	{
 		Name: []string{"client", "rpc", "failed"},
-		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.",
+		Help: "Increments whenever a Consul agent makes an RPC request to a Consul server and fails.",
 	},
 }
 
@@ -93,6 +94,9 @@ type Client struct {
 	EnterpriseClient
 
 	tlsConfigurator *tlsutil.Configurator
+
+	// resourceServiceClient is a client for the gRPC Resource Service.
+	resourceServiceClient pbresource.ResourceServiceClient
 }
 
 // NewClient creates and returns a Client
@@ -150,6 +154,13 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		return nil, fmt.Errorf("Failed to add LAN area to the RPC router: %w", err)
 	}
 	c.router = deps.Router
+
+	conn, err := deps.GRPCConnPool.ClientConn(deps.ConnPool.Datacenter)
+	if err != nil {
+		c.Shutdown()
+		return nil, fmt.Errorf("Failed to get gRPC client connection: %w", err)
+	}
+	c.resourceServiceClient = pbresource.NewResourceServiceClient(conn)
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
@@ -450,4 +461,8 @@ func (c *Client) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 
 func (c *Client) agentSegmentName() string {
 	return c.config.Segment
+}
+
+func (c *Client) ResourceServiceClient() pbresource.ResourceServiceClient {
+	return c.resourceServiceClient
 }

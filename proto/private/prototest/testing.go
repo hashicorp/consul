@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package prototest
 
@@ -32,6 +32,7 @@ func AssertDeepEqual(t TestingT, x, y interface{}, opts ...cmp.Option) {
 func AssertElementsMatch[V any](
 	t TestingT, listX, listY []V, opts ...cmp.Option,
 ) {
+	t.Helper()
 	diff := diffElements(listX, listY, opts...)
 	if diff != "" {
 		t.Fatalf("assertion failed: slices do not have matching elements\n--- expected\n+++ actual\n%v", diff)
@@ -100,5 +101,5 @@ func AssertContainsElement[V any](t TestingT, list []V, element V, opts ...cmp.O
 		}
 	}
 
-	t.Fatalf("assertion failed: list does not contain element\n--- list\n%#v\n--- element: %#v", list, element)
+	t.Fatalf("assertion failed: list does not contain element\n--- list\n%+v\n--- element: %+v", list, element)
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package envoy
 
@@ -539,7 +539,8 @@ const (
 		"envoy_grpc": {
 		  "cluster_name": "consul_telemetry_collector_loopback"
 		}
-	  }
+	  },
+	  "emit_tags_as_labels": true
 	}
   }`
 
@@ -638,7 +639,8 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 						"envoy_grpc": {
 						  "cluster_name": "consul_telemetry_collector_loopback"
 						}
-					  }
+					  },
+					  "emit_tags_as_labels": true
 					}
 				  }`,
 				StaticClustersJSON: `{

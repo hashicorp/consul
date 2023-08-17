@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package client
 
 import (
@@ -18,6 +21,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
 	"github.com/hashicorp/consul/version"
 )
 
@@ -38,11 +42,6 @@ const (
 	defaultErrRespBodyLength = 100
 )
 
-// MetricsClient exports Consul metrics in OTLP format to the HCP Telemetry Gateway.
-type MetricsClient interface {
-	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error
-}
-
 // cloudConfig represents cloud config for TLS abstracted in an interface for easy testing.
 type CloudConfig interface {
 	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error)
@@ -58,7 +57,7 @@ type otlpClient struct {
 
 // NewMetricsClient returns a configured MetricsClient.
 // The current implementation uses otlpClient to provide retry functionality.
-func NewMetricsClient(cfg CloudConfig, ctx context.Context) (MetricsClient, error) {
+func NewMetricsClient(ctx context.Context, cfg CloudConfig) (telemetry.MetricsClient, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("failed to init telemetry client: provide valid cloudCfg (Cloud Configuration for TLS)")
 	}

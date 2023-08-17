@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -13,6 +13,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
@@ -576,6 +578,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
+		Registry:                 resource.NewRegistry(),
 	}
 }
 

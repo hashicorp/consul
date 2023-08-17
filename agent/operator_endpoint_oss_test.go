@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
 // +build !consulent
@@ -65,6 +65,7 @@ func TestOperator_Usage(t *testing.T) {
 			},
 			// 4 = 6 total service instances - 1 connect proxy - 1 consul service
 			BillableServiceInstances: 4,
+			Nodes:                    2,
 		},
 	}
 	require.Equal(t, expected, raw.(structs.Usage).Usage)

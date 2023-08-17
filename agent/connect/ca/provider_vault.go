@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package ca
 
@@ -101,7 +101,7 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 // Configure sets up the provider using the given configuration.
 // Configure supports being called multiple times to re-configure the provider.
 func (v *VaultProvider) Configure(cfg ProviderConfig) error {
-	config, err := ParseVaultCAConfig(cfg.RawConfig)
+	config, err := ParseVaultCAConfig(cfg.RawConfig, v.isPrimary)
 	if err != nil {
 		return err
 	}
@@ -192,11 +192,11 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 }
 
 func (v *VaultProvider) ValidateConfigUpdate(prevRaw, nextRaw map[string]interface{}) error {
-	prev, err := ParseVaultCAConfig(prevRaw)
+	prev, err := ParseVaultCAConfig(prevRaw, v.isPrimary)
 	if err != nil {
 		return fmt.Errorf("failed to parse existing CA config: %w", err)
 	}
-	next, err := ParseVaultCAConfig(nextRaw)
+	next, err := ParseVaultCAConfig(nextRaw, v.isPrimary)
 	if err != nil {
 		return fmt.Errorf("failed to parse new CA config: %w", err)
 	}
@@ -280,9 +280,9 @@ func (v *VaultProvider) State() (map[string]string, error) {
 }
 
 // GenerateCAChain mounts and initializes a new root PKI backend if needed.
-func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
+func (v *VaultProvider) GenerateCAChain() (string, error) {
 	if !v.isPrimary {
-		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return "", fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
@@ -302,7 +302,7 @@ func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 			},
 		})
 		if err != nil {
-			return CAChainResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
+			return "", fmt.Errorf("failed to mount root CA backend: %w", err)
 		}
 
 		// We want to initialize afterwards
@@ -310,7 +310,7 @@ func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
 		if err != nil {
-			return CAChainResult{}, err
+			return "", err
 		}
 		resp, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
@@ -319,23 +319,23 @@ func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return CAChainResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
+			return "", fmt.Errorf("failed to initialize root CA: %w", err)
 		}
 		var ok bool
 		rootPEM, ok = resp.Data["certificate"].(string)
 		if !ok {
-			return CAChainResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
+			return "", fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
 		}
 
 	default:
 		if err != nil {
-			return CAChainResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
+			return "", fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
 		}
 	}
 
 	rootChain, err := v.getCAChain(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
-		return CAChainResult{}, err
+		return "", err
 	}
 
 	// Workaround for a bug in the Vault PKI API.
@@ -344,18 +344,7 @@ func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 		rootChain = rootPEM
 	}
 
-	intermediate, err := v.ActiveLeafSigningCert()
-	if err != nil {
-		return CAChainResult{}, fmt.Errorf("error fetching active intermediate: %w", err)
-	}
-	if intermediate == "" {
-		intermediate, err = v.GenerateLeafSigningCert()
-		if err != nil {
-			return CAChainResult{}, fmt.Errorf("error generating intermediate: %w", err)
-		}
-	}
-
-	return CAChainResult{PEM: rootChain, IntermediatePEM: intermediate}, nil
+	return rootChain, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -582,7 +571,7 @@ func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 	return root, nil
 }
 
-// GenerateIntermediate mounts the configured intermediate PKI backend if
+// GenerateLeafSigningCert mounts the configured intermediate PKI backend if
 // necessary, then generates and signs a new CA CSR using the root PKI backend
 // and updates the intermediate backend to use that new certificate.
 func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
@@ -800,7 +789,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 	v.Stop()
 
 	if !providerTypeChange {
-		newConfig, err := ParseVaultCAConfig(otherConfig)
+		newConfig, err := ParseVaultCAConfig(otherConfig, v.isPrimary)
 		if err != nil {
 			return err
 		}
@@ -900,7 +889,7 @@ func (v *VaultProvider) autotidyIssuers(path string) (bool, string) {
 	return tidySet, errStr
 }
 
-func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
+func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.VaultCAProviderConfig, error) {
 	config := structs.VaultCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
 	}
@@ -931,10 +920,10 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 		return nil, fmt.Errorf("only one of Vault token or Vault auth method can be provided, but not both")
 	}
 
-	if config.RootPKIPath == "" {
+	if isPrimary && config.RootPKIPath == "" {
 		return nil, fmt.Errorf("must provide a valid path to a root PKI backend")
 	}
-	if !strings.HasSuffix(config.RootPKIPath, "/") {
+	if config.RootPKIPath != "" && !strings.HasSuffix(config.RootPKIPath, "/") {
 		config.RootPKIPath += "/"
 	}
 

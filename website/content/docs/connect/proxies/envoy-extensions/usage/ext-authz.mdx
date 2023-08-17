@@ -53,7 +53,7 @@ EnvoyExtensions = [
 ```
 </CodeBlockConfig>
 </Tab>
-<Tab heading="HCL" group="hcl">
+<Tab heading="JSON" group="json">
 <CodeBlockConfig filename="api-auth-service-defaults.json">
 
 ```json
@@ -83,9 +83,13 @@ EnvoyExtensions = [
 <CodeBlockConfig filename="api-auth-service-defaults">
 
 ```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
-name: api
-envoyExtensions:
+metadata:
+  name: api
+  namespace: default
+spec:
+  envoyExtensions:
   - name: builtin/ext-authz
     arguments:
       proxyType: connect-proxy
@@ -94,6 +98,7 @@ envoyExtensions:
           target:
             service:
               name: authz
+              namespace: authz
 ```
 </CodeBlockConfig>
 </Tab>
@@ -115,7 +120,7 @@ The following Envoy configurations are not supported:
 | `failure_mode_allow` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
 | `filter_enabled` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
 | `filter_enabled_metadata` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
-| `transport_api_version` | Consul only supports v3 of the transport API. As a result, there is no workaround for implement the behavior of this field. |
+| `transport_api_version` | Consul only supports v3 of the transport API. As a result, there is no workaround for implementing the behavior of this field. |
 
 ## Apply the configuration entry
 
@@ -140,7 +145,7 @@ $ consul config write api-auth-service-defaults.json
 <Tab heading="Kubernetes" group="kubernetes">
 
 ```shell-session
-$ kubectl apply api-auth-service-defaults.yaml
+$ kubectl apply -f api-auth-service-defaults.yaml
 ```
 
 </Tab>

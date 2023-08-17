@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -180,7 +180,7 @@ func TestWriteStatus_TypeNotFound(t *testing.T) {
 	_, err = client.WriteStatus(testContext(t), validWriteStatusRequest(t, res))
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestWriteStatus_ResourceNotFound(t *testing.T) {

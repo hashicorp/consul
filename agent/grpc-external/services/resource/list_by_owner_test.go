@@ -1,5 +1,5 @@
 // // Copyright (c) HashiCorp, Inc.
-// // SPDX-License-Identifier: MPL-2.0
+// // SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -74,7 +74,7 @@ func TestListByOwner_TypeNotRegistered(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestListByOwner_Empty(t *testing.T) {
@@ -126,7 +126,7 @@ func TestListByOwner_Many(t *testing.T) {
 }
 
 func TestListByOwner_ACL_PerTypeDenied(t *testing.T) {
-	authz := AuthorizerFrom(t, `key_prefix "resource/demo.v2.album/" { policy = "deny" }`)
+	authz := AuthorizerFrom(t, `key_prefix "resource/demo.v2.Album/" { policy = "deny" }`)
 	_, rsp, err := roundTripListByOwner(t, authz)
 
 	// verify resource filtered out, hence no results
@@ -135,7 +135,7 @@ func TestListByOwner_ACL_PerTypeDenied(t *testing.T) {
 }
 
 func TestListByOwner_ACL_PerTypeAllowed(t *testing.T) {
-	authz := AuthorizerFrom(t, `key_prefix "resource/demo.v2.album/" { policy = "read" }`)
+	authz := AuthorizerFrom(t, `key_prefix "resource/demo.v2.Album/" { policy = "read" }`)
 	album, rsp, err := roundTripListByOwner(t, authz)
 
 	// verify resource not filtered out

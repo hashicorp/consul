@@ -1,11 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
 import (
 	"crypto/tls"
 
+	"github.com/hashicorp/consul/types"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/resource"
 )
@@ -25,6 +26,9 @@ type CloudConfig struct {
 
 	// TlsConfig for testing.
 	TLSConfig *tls.Config
+
+	NodeID   types.NodeID
+	NodeName string
 }
 
 func (c *CloudConfig) WithTLSConfig(cfg *tls.Config) {

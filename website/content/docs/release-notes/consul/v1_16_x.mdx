@@ -9,11 +9,11 @@ description: >-
 
 We are pleased to announce the following Consul updates. 
 
-## Release Highlights
+## Release highlights
 
 - **Sameness groups (Enterprise):** Sameness groups are a user-defined set of partitions that Consul uses to identify services in different administrative partitions with the same name as being the same services. You can use sameness groups to create a blanket failover policy for deployments with cluster peering connections. Refer to the [Sameness groups overview](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for more information.
 
-   <Note> Sameness groups is currently a _beta_ feature in Consul Enterprise v1.16.0. </Note>
+   <Note> Sameness groups is currently a beta feature in Consul Enterprise v1.16.0. </Note>
 
 - **Permissive mTLS:** You can enable the `permissive` mTLS mode to enable sidecar proxies to accept both mTLS and non-mTLS traffic. Using this mode enables you to onboard services without downtime and without reconfiguring or redeploying your application. Refer to the [Onboard services while in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for more information on how to use permissive mTLS to onboard services to Consul.
 
@@ -43,7 +43,22 @@ We are pleased to announce the following Consul updates.
 
 - **JWT Authorization with service intentions:** Consul can now authorize connections based on claims present in JSON Web Token (JWT). You can configure Consul to use one or more JWT providers, which lets you control access to services and specific HTTP paths based on the validity of JWT claims embedded in the service traffic. This ensures a uniform and low latency mechanism to validate and authorize communication based on JWT claims across all services in a diverse service-oriented architecture. Refer to the [Use JWT authorization with service intentions](/consul/docs/connect/intentions/jwt-authorization) for more information.
 
-- **Automated license utilization reporting (Enterprise):** Consul Enteprise now provides automated license utilization reporting, which sends minimal product-license metering data to HashiCorp. You can use these reports to understand how much more you can deploy under your current contract, which can help you protect against overutilization and budget for predicted consumption. Refer to the [Automated license utilization reporting documentation](/consul/docs/enterprise/license/utilization-reporting) for more information. 
+- **Automated license utilization reporting (Enterprise):** Consul Enterprise now provides automated license utilization reporting, which sends minimal product-license metering data to HashiCorp. You can use these reports to understand how much more you can deploy under your current contract, which can help you protect against overutilization and budget for predicted consumption. Refer to the [Automated license utilization reporting documentation](/consul/docs/enterprise/license/utilization-reporting) for more information. 
+
+## What's deprecated
+
+- **Ingress gateway:** Starting with this release, ingress gateway is deprecated and will not be enhanced beyond its current capabilities. Ingress gateway is fully supported in this version but may be removed in a future release of Consul. 
+
+  Consul's API gateway is the recommended alternative to ingress gateway. For ingress gateway features not currently supported by API gateway, equivalent functionality will be added to API gateway over the next several releases of Consul.
+
+- **Connect Native Golang SDK:** The Connect Native [Golang SDK](https://github.com/hashicorp/consul/tree/main/connect) is deprecated and will be removed in a future release. No further enhancements or maintenance is expected in the future releases. We will remove the SDK when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
+
+- **Connect Native APIs:** The following APIs for Connect Native are deprecated: 
+  - `v1/agent/connect/authorize` - used by the SDK to perform intention based authorization checks
+  - `v1/agent/connect/ca/leaf` - used by the SDK to get a leaf cert for a locally registered service
+  - `v1/agent/connect/ca/roots` - use to retrieved cached CA roots form the local client agent
+  
+  The `v1/agent/connect/authorize` and `v1/agent/connect/ca/leaf` endpoints have corresponding gRPC APIs. We will remove these APIs when the gRPC API for `v1/agent/connect/ca/roots` and HTTP endpoints for all three APIs are available. 
 
 ## Upgrading
 
@@ -55,4 +70,4 @@ The changelogs for this major release version and any maintenance versions are l
 
 <Note> These links take you to the changelogs on the GitHub website. </Note>
 
-- [1.16.0-rc1](https://github.com/hashicorp/consul/releases/tag/v1.16.0-rc1)
+- [1.16.0](https://github.com/hashicorp/consul/releases/tag/v1.16.0)
