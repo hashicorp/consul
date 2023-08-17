@@ -104,6 +104,8 @@ func ValidateWorkload(res *pbresource.Resource) error {
 			Name:    "identity",
 			Wrapped: errNotDNSLabel,
 		})
+	} else {
+		// validate WorkloadIdentity ??
 	}
 
 	// Validate workload locality
