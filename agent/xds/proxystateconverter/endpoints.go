@@ -4,7 +4,6 @@
 package proxystateconverter
 
 import (
-
 	"errors"
 	"fmt"
 
