@@ -4,6 +4,7 @@
 package consul
 
 import (
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
@@ -23,6 +24,7 @@ func NewTypeRegistry() resource.Registry {
 	demo.RegisterTypes(registry)
 	mesh.RegisterTypes(registry)
 	catalog.RegisterTypes(registry)
+	auth.RegisterTypes(registry)
 
 	return registry
 }
