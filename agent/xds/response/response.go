@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package xds
+package response
 
 import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func createResponse(typeURL string, version, nonce string, resources []proto.Message) (*envoy_discovery_v3.DiscoveryResponse, error) {
+func CreateResponse(typeURL string, version, nonce string, resources []proto.Message) (*envoy_discovery_v3.DiscoveryResponse, error) {
 	anys := make([]*anypb.Any, 0, len(resources))
 	for _, r := range resources {
 		if r == nil {
@@ -41,7 +41,7 @@ func createResponse(typeURL string, version, nonce string, resources []proto.Mes
 	return resp, nil
 }
 
-func makePipeAddress(path string, mode uint32) *envoy_core_v3.Address {
+func MakePipeAddress(path string, mode uint32) *envoy_core_v3.Address {
 	return &envoy_core_v3.Address{
 		Address: &envoy_core_v3.Address_Pipe{
 			Pipe: &envoy_core_v3.Pipe{
@@ -52,7 +52,7 @@ func makePipeAddress(path string, mode uint32) *envoy_core_v3.Address {
 	}
 }
 
-func makeAddress(ip string, port int) *envoy_core_v3.Address {
+func MakeAddress(ip string, port int) *envoy_core_v3.Address {
 	return &envoy_core_v3.Address{
 		Address: &envoy_core_v3.Address_SocketAddress{
 			SocketAddress: &envoy_core_v3.SocketAddress{
@@ -65,15 +65,15 @@ func makeAddress(ip string, port int) *envoy_core_v3.Address {
 	}
 }
 
-func makeUint32Value(n int) *wrapperspb.UInt32Value {
+func MakeUint32Value(n int) *wrapperspb.UInt32Value {
 	return &wrapperspb.UInt32Value{Value: uint32(n)}
 }
 
-func makeBoolValue(n bool) *wrapperspb.BoolValue {
+func MakeBoolValue(n bool) *wrapperspb.BoolValue {
 	return &wrapperspb.BoolValue{Value: n}
 }
 
-func makeEnvoyRegexMatch(patt string) *envoy_matcher_v3.RegexMatcher {
+func MakeEnvoyRegexMatch(patt string) *envoy_matcher_v3.RegexMatcher {
 	return &envoy_matcher_v3.RegexMatcher{
 		EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
 			GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},

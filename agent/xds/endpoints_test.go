@@ -4,10 +4,11 @@
 package xds
 
 import (
-	"github.com/hashicorp/go-hclog"
 	"path/filepath"
 	"sort"
 	"testing"
+
+	"github.com/hashicorp/go-hclog"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -133,18 +135,18 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 								Endpoint: &envoy_endpoint_v3.Endpoint{
-									Address: makeAddress("10.10.10.10", 1234),
+									Address: response.MakeAddress("10.10.10.10", 1234),
 								}},
 							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
-							LoadBalancingWeight: makeUint32Value(1),
+							LoadBalancingWeight: response.MakeUint32Value(1),
 						},
 						{
 							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 								Endpoint: &envoy_endpoint_v3.Endpoint{
-									Address: makeAddress("10.10.10.20", 1234),
+									Address: response.MakeAddress("10.10.10.20", 1234),
 								}},
 							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
-							LoadBalancingWeight: makeUint32Value(1),
+							LoadBalancingWeight: response.MakeUint32Value(1),
 						},
 					},
 				}},
@@ -163,18 +165,18 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 								Endpoint: &envoy_endpoint_v3.Endpoint{
-									Address: makeAddress("10.10.10.10", 1234),
+									Address: response.MakeAddress("10.10.10.10", 1234),
 								}},
 							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
-							LoadBalancingWeight: makeUint32Value(10),
+							LoadBalancingWeight: response.MakeUint32Value(10),
 						},
 						{
 							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 								Endpoint: &envoy_endpoint_v3.Endpoint{
-									Address: makeAddress("10.10.10.20", 1234),
+									Address: response.MakeAddress("10.10.10.20", 1234),
 								}},
 							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
-							LoadBalancingWeight: makeUint32Value(5),
+							LoadBalancingWeight: response.MakeUint32Value(5),
 						},
 					},
 				}},
@@ -193,18 +195,18 @@ func Test_makeLoadAssignment(t *testing.T) {
 						{
 							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 								Endpoint: &envoy_endpoint_v3.Endpoint{
-									Address: makeAddress("10.10.10.10", 1234),
+									Address: response.MakeAddress("10.10.10.10", 1234),
 								}},
 							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
-							LoadBalancingWeight: makeUint32Value(1),
+							LoadBalancingWeight: response.MakeUint32Value(1),
 						},
 						{
 							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 								Endpoint: &envoy_endpoint_v3.Endpoint{
-									Address: makeAddress("10.10.10.20", 1234),
+									Address: response.MakeAddress("10.10.10.20", 1234),
 								}},
 							HealthStatus:        envoy_core_v3.HealthStatus_UNHEALTHY,
-							LoadBalancingWeight: makeUint32Value(1),
+							LoadBalancingWeight: response.MakeUint32Value(1),
 						},
 					},
 				}},
@@ -559,7 +561,7 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 					sort.Slice(endpoints, func(i, j int) bool {
 						return endpoints[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
 					})
-					r, err := createResponse(xdscommon.EndpointType, "00000001", "00000001", endpoints)
+					r, err := response.CreateResponse(xdscommon.EndpointType, "00000001", "00000001", endpoints)
 					require.NoError(t, err)
 
 					t.Run("current", func(t *testing.T) {
