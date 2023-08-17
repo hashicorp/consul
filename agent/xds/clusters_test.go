@@ -5,6 +5,7 @@ package xds
 
 import (
 	"bytes"
+	"github.com/hashicorp/consul/types"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -26,7 +27,6 @@ import (
 	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 )
 
 type mockCfgFetcher struct {

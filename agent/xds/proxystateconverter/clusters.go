@@ -1023,7 +1023,7 @@ func configureClusterWithHostnames(
 		dnsEndpointGroup.Config.DiscoveryType = pbproxystate.DiscoveryType_DISCOVERY_TYPE_STRICT
 	}
 
-	endpoints := make([]*envoy_endpoint_v3.LbEndpoint, 0, 1)
+	endpoints := make([]*pbproxystate.Endpoint, 0, 1)
 	uniqueHostnames := make(map[string]bool)
 
 	var (

@@ -51,6 +51,8 @@ func (pr *ProxyResources) generateXDSResources() error {
 	}
 	pr.envoyResources[xdscommon.ListenerType] = listeners
 
+	pr.envoyResources[xdscommon.ListenerType] = listeners
+
 	clusters, err := pr.makeXDSClusters()
 	if err != nil {
 		return err

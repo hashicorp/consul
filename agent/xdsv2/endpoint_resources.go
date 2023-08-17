@@ -30,6 +30,7 @@ func makeEnvoyEndpoint(endpoint *pbproxystate.Endpoint) *envoy_endpoint_v3.Endpo
 	} else {
 		address = response.MakeAddress(endpoint.GetHostPort().GetHost(), int(endpoint.GetHostPort().Port))
 	}
+
 	return &envoy_endpoint_v3.Endpoint{
 		Address: address,
 	}
