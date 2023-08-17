@@ -224,19 +224,40 @@ The following example demonstrates how to format three different `service-intent
 
 <CodeTabs tabs={[ "dc1-partition-1", "dc1-partition-2", "dc2-partition-1" ]}>
 
-<CodeBlockConfig hideClipboard lineNumbers highlight="3-4,6-9">
+<CodeBlockConfig hideClipboard lineNumbers highlight="3-4,6-11">
 
 
 ```hcl
-Kind = "service-intentions"
-Name = "api"
-Namespace= "store"
-Partition="partition-1"
-Sources = [
-  Name = "api"
-  Action = "allow"
-  Namespace = "store"
-  SamenessGroup = "sameness-group-a"
+Kind      = "service-intentions"
+Name      = "api"
+Namespace = "store"
+Partition = "partition-1"
+Sources   = [
+  {
+    Name          = "api"
+    Action        = "allow"
+    Namespace     = "store"
+    SamenessGroup = "sameness-group-a"
+  }
+]
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig hideClipboard lineNumbers highlight="3-4,6-11">
+
+```hcl
+Kind      = "service-intentions"
+Name      = "api"
+Namespace = "store"
+Partition = "partition-2"
+Sources   = [
+  {
+    Name          = "api"
+    Action        = "allow"
+    Namespace     = "store"
+    SamenessGroup = "sameness-group-a"
+  }
 ]
 ```
 
@@ -245,32 +266,17 @@ Sources = [
 <CodeBlockConfig hideClipboard lineNumbers highlight="3-4,6-9">
 
 ```hcl
-Kind = "service-intentions"
-Name = "api"
-Namespace= "store"
-Partition= "partition-2"
-Sources = [
-  Name = "api"
-  Action = "allow"
-  Namespace = "store"
-  SamenessGroup = "sameness-group-a"
-]
-```
-
-</CodeBlockConfig>
-
-<CodeBlockConfig hideClipboard lineNumbers highlight="3-4,6-9">
-
-```hcl
-Kind = "service-intentions"
-Name = "api"
-Namespace= "store"
-Partition= "partition-1"
-Sources = [
-  Name = "api"
-  Action = "allow"
-  Namespace = "store"
-  SamenessGroup = "sameness-group-a"
+Kind      = "service-intentions"
+Name      = "api"
+Namespace = "store"
+Partition = "partition-1"
+Sources   = [
+  {
+    Name          = "api"
+    Action        = "allow"
+    Namespace     = "store"
+    SamenessGroup = "sameness-group-a"
+  }
 ]
 ```
 
