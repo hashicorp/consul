@@ -32,7 +32,6 @@ func makeLbEndpoint(addr string, port int, health pbproxystate.HealthStatus, wei
 	return ep
 }
 
-
 // endpointsFromSnapshot returns the mesh API representation of the "routes" in the snapshot.
 func (s *Converter) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) error {
 
