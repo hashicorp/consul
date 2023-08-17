@@ -11,9 +11,9 @@ This topic provides an overview of Consul Dataplane, a lightweight process for m
 
 ## Supported environments
 
-- Dataplanes can connect to Consul servers v1.14.0 and newer. 
-- Dataplanes on Kubernetes requires Consul K8s v1.0.0 and newer.  
-- Dataplanes on AWS Elastic Container Services (ECS) requires Consul ECS v0.7.0 and newer. 
+- Dataplanes can connect to Consul servers v1.14.0 and newer.
+- Dataplanes on Kubernetes requires Consul K8s v1.0.0 and newer.
+- Dataplanes on AWS Elastic Container Services (ECS) requires Consul ECS v0.7.0 and newer.
 
 
 ## What is Consul Dataplane?
@@ -87,7 +87,7 @@ $ export VERSION=1.0.0 && \
 Refer to the following documentation for Consul on ECS workloads:
 
 - [Deploy Consul with the Terraform module](/consul/docs/ecs/deploy/terraform)
-- [Deploy Consul manually](/consul/ecs/install-manul) 
+- [Deploy Consul manually](/consul/ecs/install-manul)
 
 </Tab>
 
@@ -135,4 +135,4 @@ Consul Dataplane on ECS support the following features:
 ### Technical Constraints
 
 - Consul Dataplane is not supported on Windows.
-
+- Consul Dataplane requires the `NET_BIND_SERVICE` capability.
