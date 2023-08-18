@@ -142,7 +142,6 @@ jobs:
         vault-version: ["1.13.1", "1.12.5", "1.11.9", "1.10.11"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
-      CONSUL_VERSION_TEST: ${{ endsWith(github.repository, '-enterprise') && ${{ format('{0}{1}', matrix.vault-version, '-ent') }} || matrix.vault-version }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 

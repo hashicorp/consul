@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly test-integrations
+name: Nightly test-integrations 1.16.x
 
 on:
   schedule:
@@ -225,11 +225,13 @@ jobs:
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Build consul-envoy:latest-version image
         id: buildConsulEnvoyLatestImage
-        continue-on-error: true
-        run: docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }} --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-      - name: Retry Build consul-envoy:latest-version image
-        if: steps.buildConsulEnvoyLatestImage.outcome == 'failure'
-        run: docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }} --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+        run: |
+          if ${{ endsWith(github.repository, '-enterprise') }} == 'true'
+          then
+            docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }}-ent --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+          else
+            docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }}     --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+          fi
       - name: Build consul-envoy:target-version image
         id: buildConsulEnvoyTargetImage
         continue-on-error: true
