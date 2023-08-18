@@ -227,7 +227,7 @@ export default class ApplicationSerializer extends Serializer {
     // create a Set and add version with only major.minor : ex-1.24.6 as 1.24
     let versionSet = new Set();
     payload.forEach(function (item) {
-      if (item.Meta && item.Meta['consul-version'] && item.Meta['consul-version'] !== '') {
+      if (item.Meta && item.Meta['consul-version']) {
         const split = item.Meta['consul-version'].split('.');
         versionSet.add(split[0] + '.' + split[1]);
       }
@@ -235,30 +235,28 @@ export default class ApplicationSerializer extends Serializer {
 
     const versionArray = Array.from(versionSet);
 
-    if (versionArray.length > 0) {
-      // Sort the array in descending order using a custom comparison function
-      versionArray.sort((a, b) => {
-        // Split the versions into arrays of numbers
-        const versionA = a.split('.').map((part) => {
-          const number = Number(part);
-          return isNaN(number) ? 0 : number;
-        });
-        const versionB = b.split('.').map((part) => {
-          const number = Number(part);
-          return isNaN(number) ? 0 : number;
-        });
-
-        const minLength = Math.min(versionA.length, versionB.length);
-
-        // start with comparing major version num, if equal then compare minor
-        for (let i = 0; i < minLength; i++) {
-          if (versionA[i] !== versionB[i]) {
-            return versionB[i] - versionA[i];
-          }
-        }
-        return versionB.length - versionA.length;
+    // Sort the array in descending order using a custom comparison function
+    versionArray.sort((a, b) => {
+      // Split the versions into arrays of numbers
+      const versionA = a.split('.').map((part) => {
+        const number = Number(part);
+        return isNaN(number) ? 0 : number;
       });
-    }
+      const versionB = b.split('.').map((part) => {
+        const number = Number(part);
+        return isNaN(number) ? 0 : number;
+      });
+
+      const minLength = Math.min(versionA.length, versionB.length);
+
+      // start with comparing major version num, if equal then compare minor
+      for (let i = 0; i < minLength; i++) {
+        if (versionA[i] !== versionB[i]) {
+          return versionB[i] - versionA[i];
+        }
+      }
+      return versionB.length - versionA.length;
+    });
 
     return versionArray; //sorted array
   }
