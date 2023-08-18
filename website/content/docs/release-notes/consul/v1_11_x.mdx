@@ -23,7 +23,7 @@ description: >-
 
 - The legacy ACL system that was deprecated in Consul 1.4.0 has been removed. Before upgrading you should verify that all tokens and policies have been migrated to the newer ACL system. Complete the [Migrate Legacy ACL Tokens](/consul/tutorials/security-operations/access-control-token-migration) tutorial to learn more.
 
-- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. See [ACL Agent Recovery Token](/consul/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/consul/commands/acl/set-agent-token) for more information.
+- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. See [ACL Agent Recovery Token](/consul/docs/security/acl/tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/consul/commands/acl/set-agent-token) for more information.
 
 - Drops support for Envoy versions 1.15.x and 1.16.x
 
