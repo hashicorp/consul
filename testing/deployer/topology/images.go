@@ -9,7 +9,7 @@ import (
 
 type Images struct {
 	Consul           string `json:",omitempty"`
-	ConsulOSS        string `json:",omitempty"`
+	ConsulCE         string `json:",omitempty"`
 	ConsulEnterprise string `json:",omitempty"`
 	Envoy            string
 	Dataplane        string
@@ -85,10 +85,10 @@ func (i Images) ChooseConsul(enterprise bool) Images {
 	if enterprise {
 		i.Consul = i.ConsulEnterprise
 	} else {
-		i.Consul = i.ConsulOSS
+		i.Consul = i.ConsulCE
 	}
 	i.ConsulEnterprise = ""
-	i.ConsulOSS = ""
+	i.ConsulCE = ""
 	return i
 }
 
@@ -96,8 +96,8 @@ func (i Images) OverrideWith(i2 Images) Images {
 	if i2.Consul != "" {
 		i.Consul = i2.Consul
 	}
-	if i2.ConsulOSS != "" {
-		i.ConsulOSS = i2.ConsulOSS
+	if i2.ConsulCE != "" {
+		i.ConsulCE = i2.ConsulCE
 	}
 	if i2.ConsulEnterprise != "" {
 		i.ConsulEnterprise = i2.ConsulEnterprise
@@ -118,7 +118,7 @@ func (i Images) OverrideWith(i2 Images) Images {
 func DefaultImages() Images {
 	return Images{
 		Consul:           "",
-		ConsulOSS:        DefaultConsulImage,
+		ConsulCE:         DefaultConsulImage,
 		ConsulEnterprise: DefaultConsulEnterpriseImage,
 		Envoy:            DefaultEnvoyImage,
 		Dataplane:        DefaultDataplaneImage,

@@ -89,7 +89,7 @@ func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 		return nil
 	}
 
-	// No special handling for wildcard namespaces as they are pointless in OSS.
+	// No special handling for wildcard namespaces as they are pointless in CE.
 
 	return errors.New("Namespaces is a Consul Enterprise feature")
 }
