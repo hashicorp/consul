@@ -41,6 +41,8 @@ The following outline shows how to format the service defaults configuration ent
       - [`Interval`](#upstreamconfig-overrides-passivehealthcheck): string | `0s`
       - [`MaxFailures`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
       - [`EnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): integer | `100`
+      - [`MaxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
+      - [`BaseEjectionTime`](#upstreamconfig-overrides-passivehealthcheck): string | `30s`
   - [`Defaults`](#upstreamconfig-defaults): map | no default
     - [`Protocol`](#upstreamconfig-defaults-protocol): string | no default
     - [`ConnectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): int | default: `5000`
@@ -54,7 +56,9 @@ The following outline shows how to format the service defaults configuration ent
     - [`PassiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map | optional
       - [`Interval`](#upstreamconfig-defaults-passivehealthcheck): string | `0s`
       - [`MaxFailures`](#upstreamconfig-defaults-passivehealthcheck): integer | `0`
-      - [`EnforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): integer |
+      - [`EnforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): integer | `100`
+      - [`MaxEjectionPercent`](#upstreamconfig-defaults-passivehealthcheck): integer | `0`
+      - [`BaseEjectionTime`](#upstreamconfig-defaults-passivehealthcheck): string | `30s`
 - [`TransparentProxy`](#transparentproxy): map | no default
   - [`OutboundListenerPort`](#transparentproxy): integer | `15001`
   - [`DialedDirectly`](#transparentproxy  ): boolean | `false`
@@ -109,7 +113,9 @@ The following outline shows how to format the service defaults configuration ent
       - [`passiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map | optional
         - [`interval`](#upstreamconfig-overrides-passivehealthcheck): string | `0s`
         - [`maxFailures`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
-        - [`mnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): integer | `100`
+        - [`enforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): integer | `100`
+        - [`maxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): integer | `10`
+        - [`baseEjectionTime`](#upstreamconfig-overrides-passivehealthcheck): string | `30s`
     - [`defaults`](#upstreamconfig-defaults): map | no default
       - [`protocol`](#upstreamconfig-defaults-protocol): string | no default
       - [`connectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): int | default: `5000`
@@ -123,7 +129,9 @@ The following outline shows how to format the service defaults configuration ent
       - [`passiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map | optional
         - [`interval`](#upstreamconfig-defaults-passivehealthcheck): string | `0s`
         - [`maxFailures`](#upstreamconfig-defaults-passivehealthcheck): integer | `0`
-        - [`enforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): integer |
+        - [`enforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): integer | `100`
+        - [`maxEjectionPercent`](#upstreamconfig-defaults-passivehealthcheck): integer | `10`
+        - [`baseEjectionTime`](#upstreamconfig-defaults-passivehealthcheck): string | `30s`
   - [`transparentProxy`](#transparentproxy): map | no default
     - [`outboundListenerPort`](#transparentproxy): integer | `15001`
     - [`dialedDirectly`](#transparentproxy): boolean | `false`
@@ -190,6 +198,8 @@ UpstreamConfig = {
       Interval                = "5s"
       MaxFailures             = 5
       EnforcingConsecutive5xx = 99
+      MaxEjectionPercent      = 10
+      BaseEjectionTime        = "30s"
     }
   }
   Defaults = {
@@ -274,6 +284,8 @@ spec:
         interval: 0s
         maxFailures: 0
         enforcingConsecutive5xx: 100
+        maxEjectionPercent: 10
+        baseEjectionTime: "30s"
     defaults:
       protocol: <protocol for the upstream listener>
       connectTimeoutMs: 5000
@@ -347,8 +359,10 @@ spec:
           "passiveHealthCheck": {
             "interval": "0s",
             "maxFailures": 0,
-            "enforcingConsecutive5xx": 100
-          }
+            "enforcingConsecutive5xx": 100,
+            "maxEjectionPercent": 10,
+            "baseEjectionTime": "30s",
+          },
         }
       ],
       "defaults": {
@@ -366,7 +380,9 @@ spec:
         "passiveHealthCheck": {
           "interval": "0s",
           "maxFailures": 0,
-          "enforcingConsecutive5xx": 100
+          "enforcingConsecutive5xx": 100,
+          "maxEjectionPercent": 10,
+          "baseEjectionTime": "30s",
         }
       }
     },
@@ -625,7 +641,9 @@ The following table describes passive health check parameters you can configure:
 | ---   | ---         | ---       | ---     |
 | `Interval` | Specifies the time between checks. | string | `0s` |
 | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
-| `EnforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+| `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | The maximum % of an upstream cluster that can be ejected due to outlier detection. Defaults to 10% but will eject at least one host regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | The base time that a host is ejected for. The real time is equal to the base time multiplied by the number of times the host has been ejected and is capped by max_ejection_time (Default 300s). Defaults to 30000ms or 30s. | string | `30s` |
 
 ### `UpstreamConfig.Defaults`
 
@@ -690,6 +708,8 @@ Map that specifies a set of rules that enable Consul to remove hosts from the up
 | `Interval` | Specifies the time between checks. | string | `0s` |
 | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
 | `EnforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | The maximum % of an upstream cluster that can be ejected due to outlier detection. Defaults to 10% but will eject at least one host regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | The base time that a host is ejected for. The real time is equal to the base time multiplied by the number of times the host has been ejected and is capped by max_ejection_time (Default 300s). Defaults to 30000ms or 30s. | string | `30s` |
 
 ### `TransparentProxy`
 
@@ -1016,6 +1036,8 @@ The following table describes passive health check parameters you can configure:
 | `interval` | Specifies the time between checks. | string | `0s` |
 | `maxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
 | `enforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `maxEjectionPercent` | The maximum % of an upstream cluster that can be ejected due to outlier detection. Defaults to 10% but will eject at least one host regardless of the value. | integer | `10` |
+  | `baseEjectionTime` | The base time that a host is ejected for. The real time is equal to the base time multiplied by the number of times the host has been ejected and is capped by max_ejection_time (Default 300s). Defaults to 30000ms or 30s. | string | `30s` |
 
 ### `spec.upstreamConfig.defaults`
 
@@ -1093,6 +1115,8 @@ The following table describes the health check parameters you can configure:
 | `interval` | Specifies the time between checks. | string | `0s` |
 | `maxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
 | `enforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `maxEjectionPercent` | The maximum % of an upstream cluster that can be ejected due to outlier detection. Defaults to 10% but will eject at least one host regardless of the value. | integer | `10` |
+  | `baseEjectionTime` | The base time that a host is ejected for. The real time is equal to the base time multiplied by the number of times the host has been ejected and is capped by max_ejection_time (Default 300s). Defaults to 30000ms or 30s. | string | `30s` |
 
 ### `spec.transparentProxy`
 
