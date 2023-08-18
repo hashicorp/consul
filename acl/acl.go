@@ -2,6 +2,8 @@ package acl
 
 const (
 	WildcardName = "*"
+
+	ReservedBuiltinPrefix = "builtin/"
 )
 
 // Config encapsulates all of the generic configuration parameters used for

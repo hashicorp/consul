@@ -19,7 +19,7 @@ env:
   TEST_RESULTS_ARTIFACT_NAME: test-results
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
-  GOTESTSUM_VERSION: "1.9.0"
+  GOTESTSUM_VERSION: "1.10.1"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ github.repository }}
@@ -239,7 +239,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.21.6", "1.22.11", "1.23.9", "1.24.7"]
+          # envoy-version: ["1.21.6", "1.22.11", "1.23.12", "1.24.10"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -273,7 +273,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.21.6", "1.22.11", "1.23.9", "1.24.7"]
+        envoy-version: ["1.21.6", "1.22.11", "1.23.12", "1.24.10"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -365,7 +365,11 @@ jobs:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
-          go-version-file: 'go.mod'
+          # pinning this to 1.20.5 because this issue in go-testcontainers occurs
+          # in 1.20.6 with the error "http: invalid Host header, host port waiting failed"
+          # https://github.com/testcontainers/testcontainers-go/issues/1359
+          # go-version-file: 'go.mod'
+          go-version: '1.20.5'
       - run: go env
 
       # Build the consul:local image from the already built binary
@@ -466,7 +470,11 @@ jobs:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
-          go-version-file: 'go.mod'
+          # pinning this to 1.20.5 because this issue in go-testcontainers occurs
+          # in 1.20.6 with the error "http: invalid Host header, host port waiting failed"
+          # https://github.com/testcontainers/testcontainers-go/issues/1359
+          # go-version-file: 'go.mod'
+          go-version: '1.20.5'
       - run: go env
 
       # NOTE: ENT specific step as we store secrets in Vault.
