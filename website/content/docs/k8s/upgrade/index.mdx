@@ -120,7 +120,7 @@ to update to the new version. Before you upgrade to a new version:
 
    </CodeBlockConfig>
 
-2. Determine the version of your exisiting Helm installation. In this example, version `0.39.0` (from `consul-k8s:0.39.0`) is being used.
+2. Determine the version of your existing Helm installation. In this example, version `0.39.0` (from `consul-k8s:0.39.0`) is being used.
 
   ```shell-session
   $ helm list --filter consul --namespace consul
@@ -174,7 +174,7 @@ that can be used.
 1. Take specific note if `consul-server, StatefulSet` is listed, as it means your Consul server statefulset will be redeployed.
 
   If your Consul server statefulset needs to be redeployed, follow the same pattern for upgrades as
-  on other platforms by redploying servers one by one. Refer tp [Upgrading Consul](/consul/docs/upgrading) for more information.
+  on other platforms by redeploying servers one by one. Refer tp [Upgrading Consul](/consul/docs/upgrading) for more information.
 
   If neither the server statefulset is not being redeployed,
   then you can continue with the Helm upgrade without any specific sequence to follow.
@@ -258,7 +258,7 @@ If you upgrade Consul from a version that uses client agents to a version the us
 1. If ACLs are enabled, outdated ACL tokens will persist a result of the upgrade. You can manually delete the tokens to declutter your Consul environment.
 
    Outdated connect-injector tokens have the following description: `token created via login: {"component":"connect-injector"}`. Do not delete
-   the tokens that have a description where `pod` is a key, for example `token created via login: {"component":"connect-injector","pod":"default/consul-connect-injector-576b65747c-9547x"}`). The dataplane-enabled connect inject pods use these tokens.    
+   the tokens that have a description where `pod` is a key, for example `token created via login: {"component":"connect-injector","pod":"default/consul-connect-injector-576b65747c-9547x"}`). The dataplane-enabled connect inject pods use these tokens.
 
    You can also review the creation date for the tokens and only delete the injector tokens created before your upgrade, but do not delete all old tokens without considering if they are still in use. Some tokens, such as the server tokens, are still necessary.
 
