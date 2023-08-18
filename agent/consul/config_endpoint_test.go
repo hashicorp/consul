@@ -1317,16 +1317,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 					{
-						Upstream: structs.PeeredServiceName{
-							ServiceName: structs.NewServiceName(
-								structs.WildcardSpecifier,
-								acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
-						},
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
-					{
 						Upstream: cache,
 						Config: map[string]interface{}{
 							"protocol": "grpc",
@@ -1377,15 +1367,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					"protocol": "grpc",
 				},
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigsDeprecated{
-					{
-						Upstream: structs.NewServiceID(
-							structs.WildcardSpecifier,
-							acl.DefaultEnterpriseMeta().WithWildcardNamespace(),
-						),
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
 					{
 						Upstream: structs.NewServiceID("cache", nil),
 						Config: map[string]interface{}{
@@ -1442,12 +1423,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					"protocol": "grpc",
 				},
 				UpstreamConfigs: structs.OpaqueUpstreamConfigs{
-					{
-						Upstream: wildcard,
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
 					{
 						Upstream: cache,
 						Config: map[string]interface{}{
@@ -2203,17 +2178,6 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 
 	expected := structs.OpaqueUpstreamConfigs{
 		{
-			Upstream: structs.PeeredServiceName{
-				ServiceName: structs.NewServiceName(
-					structs.WildcardSpecifier,
-					acl.DefaultEnterpriseMeta().WithWildcardNamespace(),
-				),
-			},
-			Config: map[string]interface{}{
-				"protocol": "http",
-			},
-		},
-		{
 			Upstream: id("bar"),
 			Config: map[string]interface{}{
 				"protocol": "http",
@@ -2281,16 +2245,6 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 			"protocol": "http",
 		},
 		UpstreamConfigs: structs.OpaqueUpstreamConfigs{
-			{
-				Upstream: structs.PeeredServiceName{
-					ServiceName: structs.NewServiceName(
-						structs.WildcardSpecifier,
-						acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
-				},
-				Config: map[string]interface{}{
-					"protocol": "http",
-				},
-			},
 			{
 				Upstream: psn,
 				Config: map[string]interface{}{

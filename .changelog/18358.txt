@@ -1,0 +1,7 @@
+```release-note:security
+Upgrade to use Go 1.20.7.
+This resolves vulnerability [CVE-2023-29409](https://nvd.nist.gov/vuln/detail/CVE-2023-29409)(`crypto/tls`).
+```
+```release-note:security
+Update `golang.org/x/net` to v0.13.0 to address [CVE-2023-3978](https://nvd.nist.gov/vuln/detail/CVE-2023-3978).
+```

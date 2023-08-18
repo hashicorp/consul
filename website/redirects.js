@@ -55,4 +55,16 @@ module.exports = [
       '/consul/docs/connect/cluster-peering/usage/establish-cluster-peering',
     permanent: true,
   },
+  {
+    source: '/consul/docs/enterprise/sentinel',
+    destination:
+      '/consul/docs/dynamic-app-config/kv#using-sentinel-to-apply-policies-for-consul-kv',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
+    destination: '/consul/docs/k8s/deployment-configurations/multi-cluster',
+    permanent: true,
+  },
 ]

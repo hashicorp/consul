@@ -19,7 +19,7 @@ var (
 )
 
 const (
-	DefaultImageNameOSS   = "consul"
+	DefaultImageNameOSS   = "hashicorp/consul"
 	DefaultImageNameENT   = "hashicorp/consul-enterprise"
 	ImageVersionSuffixENT = "-ent"
 )

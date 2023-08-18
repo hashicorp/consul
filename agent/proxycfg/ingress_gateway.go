@@ -92,6 +92,11 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
+
+		// We set this even if the response is empty so that we know the watch is set,
+		// but we don't block if the ingress config entry is unset for this gateway
+		snap.IngressGateway.GatewayConfigLoaded = true
+
 		if resp.Entry == nil {
 			return nil
 		}
@@ -100,7 +105,6 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 		}
 
-		snap.IngressGateway.GatewayConfigLoaded = true
 		snap.IngressGateway.TLSConfig = gatewayConf.TLS
 		if gatewayConf.Defaults != nil {
 			snap.IngressGateway.Defaults = *gatewayConf.Defaults

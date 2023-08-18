@@ -58,6 +58,11 @@
                 "tracing":  {
                   "randomSampling":  {}
                 },
+                "upgradeConfigs":  [
+                  {
+                    "upgradeType":  "websocket"
+                  }
+                ],
                 "stripAnyHostPort":  true
               }
             }
@@ -239,7 +244,12 @@
                   "chain":  true,
                   "dns":  true,
                   "uri":  true
-                }
+                },
+                "upgradeConfigs":  [
+                  {
+                    "upgradeType":  "websocket"
+                  }
+                ]
               }
             }
           ],

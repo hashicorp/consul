@@ -184,7 +184,11 @@ type ClusterConfig struct {
 	BuildOpts                 *libcluster.BuildOptions
 	Cmd                       string
 	LogConsumer               *TestLogConsumer
-	Ports                     []int
+
+	// Exposed Ports are available on the cluster's pause container for the purposes
+	// of adding external communication to the cluster. An example would be a listener
+	// on a gateway.
+	ExposedPorts []int
 }
 
 // NewCluster creates a cluster with peering enabled. It also creates
@@ -231,8 +235,8 @@ func NewCluster(
 		serverConf.Cmd = append(serverConf.Cmd, config.Cmd)
 	}
 
-	if config.Ports != nil {
-		cluster, err = libcluster.New(t, []libcluster.Config{*serverConf}, config.Ports...)
+	if config.ExposedPorts != nil {
+		cluster, err = libcluster.New(t, []libcluster.Config{*serverConf}, config.ExposedPorts...)
 	} else {
 		cluster, err = libcluster.NewN(t, *serverConf, config.NumServers)
 	}

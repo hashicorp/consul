@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -36,7 +36,21 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.Que
 	})
 }
 
-// CatalogServiceExists verifies the node name exists in the Consul catalog
+// CatalogServiceHasInstanceCount verifies the service name exists in the Consul catalog and has the specified
+// number of instances.
+func CatalogServiceHasInstanceCount(t *testing.T, c *api.Client, svc string, count int, opts *api.QueryOptions) {
+	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Catalog().Service(svc, "", opts)
+		if err != nil {
+			r.Fatal("error reading service data")
+		}
+		if len(services) != count {
+			r.Fatalf("did not find %d catalog entries for %s", count, svc)
+		}
+	})
+}
+
+// CatalogNodeExists verifies the node name exists in the Consul catalog
 func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	retry.Run(t, func(r *retry.R) {
 		node, _, err := c.Catalog().Node(nodeName, nil)
@@ -49,24 +63,64 @@ func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	})
 }
 
+// CatalogServiceIsHealthy verifies the service name exists and all instances pass healthchecks
+func CatalogServiceIsHealthy(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
+	CatalogServiceExists(t, c, svc, opts)
+
+	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Health().Service(svc, "", false, opts)
+		if err != nil {
+			r.Fatal("error reading service health data")
+		}
+		if len(services) == 0 {
+			r.Fatal("did not find catalog entry for ", svc)
+		}
+
+		for _, svc := range services {
+			for _, check := range svc.Checks {
+				if check.Status != api.HealthPassing {
+					r.Fatal("at least one check is not PASSING for service", svc.Service.Service)
+				}
+			}
+		}
+
+	})
+}
+
 func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
-	doHTTPServiceEchoes(t, ip, port, path, nil)
+	doHTTPServiceEchoes(t, ip, port, path, nil, nil)
+}
+
+func HTTPServiceEchoesWithHeaders(t *testing.T, ip string, port int, path string, headers map[string]string) {
+	doHTTPServiceEchoes(t, ip, port, path, headers, nil)
 }
 
 func HTTPServiceEchoesResHeader(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
-	doHTTPServiceEchoes(t, ip, port, path, expectedResHeader)
+	doHTTPServiceEchoes(t, ip, port, path, nil, expectedResHeader)
 }
 
 // HTTPServiceEchoes verifies that a post to the given ip/port combination returns the data
 // in the response body. Optional path can be provided to differentiate requests.
-func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
+func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, requestHeaders map[string]string, expectedResHeader map[string]string) {
+	client := cleanhttp.DefaultClient()
+	doHTTPServiceEchoesWithClient(t, client, ip, port, path, requestHeaders, expectedResHeader)
+}
+
+func doHTTPServiceEchoesWithClient(
+	t *testing.T,
+	client *http.Client,
+	ip string,
+	port int,
+	path string,
+	requestHeaders map[string]string,
+	expectedResHeader map[string]string,
+) {
 	const phrase = "hello"
 
 	failer := func() *retry.Timer {
 		return &retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}
 	}
 
-	client := cleanhttp.DefaultClient()
 	url := fmt.Sprintf("http://%s:%d", ip, port)
 
 	if path != "" {
@@ -75,8 +129,20 @@ func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, expecte
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
 		t.Logf("making call to %s", url)
+
 		reader := strings.NewReader(phrase)
-		res, err := client.Post(url, "text/plain", reader)
+		req, err := http.NewRequest("POST", url, reader)
+		require.NoError(t, err, "could not construct request")
+
+		for k, v := range requestHeaders {
+			req.Header.Add(k, v)
+
+			if k == "Host" {
+				req.Host = v
+			}
+		}
+
+		res, err := client.Do(req)
 		if err != nil {
 			r.Fatal("could not make call to service ", url)
 		}

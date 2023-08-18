@@ -4181,6 +4181,42 @@ func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
 	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
 }
 
+func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
+
+	a := NewTestAgent(t, cfg)
+	defer a.Shutdown()
+
+	c := TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` enable_debug = true`,
+		},
+	)
+
+	require.NoError(t, a.reloadConfigInternal(c))
+
+	require.Equal(t, true, a.enableDebug.Load())
+
+	c = TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` enable_debug = false`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+
+	require.Equal(t, false, a.enableDebug.Load())
+}
+
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
