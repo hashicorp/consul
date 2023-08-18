@@ -15,4 +15,6 @@ const (
 
 func Register(r resource.Registry) {
 	RegisterWorkloadIdentity(r)
+	RegisterTrafficPermission(r)
+	RegisterComputedTrafficPermission(r)
 }
