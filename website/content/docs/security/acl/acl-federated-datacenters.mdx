@@ -180,8 +180,8 @@ $ consul join -token="ACL_MANAGEMENT_TOKEN" -wan [server 1, server 2, ...]
 
 ## Configure Clients in Secondary Datacenters
 
-When ACLs are enabled, client agents need a special token known as the [`agent token`](/docs/security/acl/acl-tokens#acl-agent-token) to perform internal operations. Agent tokens need to have the right policies for node related actions, including
-registering itself in the catalog, updating node level health checks, and performing [anti-entropy](/docs/architecture/anti-entropy) syncing.
+When ACLs are enabled, client agents need a special token known as the [`agent token`](/consul/docs/security/acl/tokens#acl-agent-token) to perform internal operations. Agent tokens need to have the right policies for node related actions, including
+registering itself in the catalog, updating node level health checks, and performing [anti-entropy](/consul/docs/architecture/anti-entropy) syncing.
 
 ### Generate Agent ACL Token
 
