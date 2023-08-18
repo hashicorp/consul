@@ -59,14 +59,32 @@ func (m *Mapper) IsEmpty() bool {
 
 // UntrackItem removes tracking for the provided item. The item type MUST match
 // the type configured for the item.
-func (m *Mapper) UntrackItem(item *pbresource.ID) {
-	if !resource.EqualType(item.Type, m.itemType) {
+func (m *Mapper) UntrackItem(item resource.ReferenceOrID) {
+	if !resource.EqualType(item.GetType(), m.itemType) {
 		panic(fmt.Sprintf("expected item type %q got %q",
 			resource.TypeToString(m.itemType),
-			resource.TypeToString(item.Type),
+			resource.TypeToString(item.GetType()),
 		))
 	}
 	m.untrackItem(resource.NewReferenceKey(item))
+}
+
+// UntrackLink removes tracking for the provided link. The link type MUST match
+// the type configured for the link.
+func (m *Mapper) UntrackLink(link resource.ReferenceOrID) {
+	if !resource.EqualType(link.GetType(), m.linkType) {
+		panic(fmt.Sprintf("expected link type %q got %q",
+			resource.TypeToString(m.linkType),
+			resource.TypeToString(link.GetType()),
+		))
+	}
+	m.untrackLink(resource.NewReferenceKey(link))
+}
+
+func (m *Mapper) untrackLink(link resource.ReferenceKey) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	m.removeLinkLocked(link)
 }
 
 func (m *Mapper) untrackItem(item resource.ReferenceKey) {
@@ -77,20 +95,20 @@ func (m *Mapper) untrackItem(item resource.ReferenceKey) {
 
 // TrackItem adds tracking for the provided item. The item and link types MUST
 // match the types configured for the items and links.
-func (m *Mapper) TrackItem(item *pbresource.ID, links []*pbresource.Reference) {
-	if !resource.EqualType(item.Type, m.itemType) {
+func (m *Mapper) TrackItem(item resource.ReferenceOrID, links []resource.ReferenceOrID) {
+	if !resource.EqualType(item.GetType(), m.itemType) {
 		panic(fmt.Sprintf("expected item type %q got %q",
 			resource.TypeToString(m.itemType),
-			resource.TypeToString(item.Type),
+			resource.TypeToString(item.GetType()),
 		))
 	}
 
 	linksAsKeys := make([]resource.ReferenceKey, 0, len(links))
 	for _, link := range links {
-		if !resource.EqualType(link.Type, m.linkType) {
+		if !resource.EqualType(link.GetType(), m.linkType) {
 			panic(fmt.Sprintf("expected link type %q got %q",
 				resource.TypeToString(m.linkType),
-				resource.TypeToString(link.Type),
+				resource.TypeToString(link.GetType()),
 			))
 		}
 		linksAsKeys = append(linksAsKeys, resource.NewReferenceKey(link))
@@ -118,6 +136,16 @@ func (m *Mapper) removeItemLocked(item resource.ReferenceKey) {
 	delete(m.itemToLink, item)
 }
 
+func (m *Mapper) removeLinkLocked(link resource.ReferenceKey) {
+	for item := range m.linkToItem[link] {
+		delete(m.itemToLink[item], link)
+		if len(m.itemToLink[item]) == 0 {
+			delete(m.itemToLink, item)
+		}
+	}
+	delete(m.linkToItem, link)
+}
+
 // you must hold the lock before calling this function
 func (m *Mapper) addItemLocked(item resource.ReferenceKey, links []resource.ReferenceKey) {
 	if m.itemToLink[item] == nil {
@@ -134,7 +162,13 @@ func (m *Mapper) addItemLocked(item resource.ReferenceKey, links []resource.Refe
 }
 
 // LinksForItem returns references to links related to the requested item.
+// Deprecated: use LinksRefs
 func (m *Mapper) LinksForItem(item *pbresource.ID) []*pbresource.Reference {
+	return m.LinkRefsForItem(item)
+}
+
+// LinkRefsForItem returns references to links related to the requested item.
+func (m *Mapper) LinkRefsForItem(item *pbresource.ID) []*pbresource.Reference {
 	if !resource.EqualType(item.Type, m.itemType) {
 		panic(fmt.Sprintf("expected item type %q got %q",
 			resource.TypeToString(m.itemType),
@@ -157,16 +191,58 @@ func (m *Mapper) LinksForItem(item *pbresource.ID) []*pbresource.Reference {
 	return out
 }
 
+// LinkIDsForItem returns IDs to links related to the requested item.
+func (m *Mapper) LinkIDsForItem(item *pbresource.ID) []*pbresource.ID {
+	if !resource.EqualType(item.Type, m.itemType) {
+		panic(fmt.Sprintf("expected item type %q got %q",
+			resource.TypeToString(m.itemType),
+			resource.TypeToString(item.Type),
+		))
+	}
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	links, ok := m.itemToLink[resource.NewReferenceKey(item)]
+	if !ok {
+		return nil
+	}
+
+	out := make([]*pbresource.ID, 0, len(links))
+	for l := range links {
+		out = append(out, l.ToID())
+	}
+	return out
+}
+
 // ItemsForLink returns item ids for items related to the provided link.
+// Deprecated: use ItemIDsForLink
 func (m *Mapper) ItemsForLink(link *pbresource.ID) []*pbresource.ID {
+	return m.ItemIDsForLink(link)
+}
+
+// ItemIDsForLink returns item ids for items related to the provided link.
+func (m *Mapper) ItemIDsForLink(link *pbresource.ID) []*pbresource.ID {
 	if !resource.EqualType(link.Type, m.linkType) {
-		panic(fmt.Sprintf("expected type %q got %q",
+		panic(fmt.Sprintf("expected link type %q got %q",
 			resource.TypeToString(m.linkType),
 			resource.TypeToString(link.Type),
 		))
 	}
 
-	return m.itemsByLink(resource.NewReferenceKey(link))
+	return m.itemIDsByLink(resource.NewReferenceKey(link))
+}
+
+// ItemRefsForLink returns item references for items related to the provided link.
+func (m *Mapper) ItemRefsForLink(link *pbresource.ID) []*pbresource.Reference {
+	if !resource.EqualType(link.Type, m.linkType) {
+		panic(fmt.Sprintf("expected link type %q got %q",
+			resource.TypeToString(m.linkType),
+			resource.TypeToString(link.Type),
+		))
+	}
+
+	return m.itemRefsByLink(resource.NewReferenceKey(link))
 }
 
 // MapLink is suitable as a DependencyMapper to map the provided link event to its item.
@@ -180,7 +256,7 @@ func (m *Mapper) MapLink(_ context.Context, _ controller.Runtime, res *pbresourc
 		)
 	}
 
-	itemIDs := m.itemsByLink(resource.NewReferenceKey(link))
+	itemIDs := m.itemIDsByLink(resource.NewReferenceKey(link))
 
 	out := make([]controller.Request, 0, len(itemIDs))
 	for _, item := range itemIDs {
@@ -195,11 +271,8 @@ func (m *Mapper) MapLink(_ context.Context, _ controller.Runtime, res *pbresourc
 	return out, nil
 }
 
-func (m *Mapper) itemsByLink(link resource.ReferenceKey) []*pbresource.ID {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	items, ok := m.linkToItem[link]
+func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
+	items, ok := m.getItemsByLink(link)
 	if !ok {
 		return nil
 	}
@@ -209,4 +282,25 @@ func (m *Mapper) itemsByLink(link resource.ReferenceKey) []*pbresource.ID {
 		out = append(out, item.ToID())
 	}
 	return out
+}
+
+func (m *Mapper) itemRefsByLink(link resource.ReferenceKey) []*pbresource.Reference {
+	items, ok := m.getItemsByLink(link)
+	if !ok {
+		return nil
+	}
+
+	out := make([]*pbresource.Reference, 0, len(items))
+	for item := range items {
+		out = append(out, item.ToReference())
+	}
+	return out
+}
+
+func (m *Mapper) getItemsByLink(link resource.ReferenceKey) (map[resource.ReferenceKey]struct{}, bool) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	items, ok := m.linkToItem[link]
+	return items, ok
 }
