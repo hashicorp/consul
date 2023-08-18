@@ -272,7 +272,10 @@ func (m *Mapper) MapLink(_ context.Context, _ controller.Runtime, res *pbresourc
 }
 
 func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
-	items, ok := m.getItemsByLink(link)
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	items, ok := m.linkToItem[link]
 	if !ok {
 		return nil
 	}
@@ -285,7 +288,10 @@ func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
 }
 
 func (m *Mapper) itemRefsByLink(link resource.ReferenceKey) []*pbresource.Reference {
-	items, ok := m.getItemsByLink(link)
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	items, ok := m.linkToItem[link]
 	if !ok {
 		return nil
 	}
@@ -295,12 +301,4 @@ func (m *Mapper) itemRefsByLink(link resource.ReferenceKey) []*pbresource.Refere
 		out = append(out, item.ToReference())
 	}
 	return out
-}
-
-func (m *Mapper) getItemsByLink(link resource.ReferenceKey) (map[resource.ReferenceKey]struct{}, bool) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	items, ok := m.linkToItem[link]
-	return items, ok
 }
