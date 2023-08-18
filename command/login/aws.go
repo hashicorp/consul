@@ -26,6 +26,7 @@ type AWSLogin struct {
 	accessKeyId         string
 	secretAccessKey     string
 	sessionToken        string
+	outputToken         bool
 }
 
 func (a *AWSLogin) flags() *flag.FlagSet {
@@ -61,6 +62,10 @@ func (a *AWSLogin) flags() *flag.FlagSet {
 	fs.StringVar(&a.sessionToken, "aws-session-token", "",
 		"AWS session token to use. Requires -aws-access-key-id and -aws-secret-access-key if "+
 			"specified. [aws-iam only]")
+
+	fs.BoolVar(&a.outputToken, "aws-output-bearer-token-only", false,
+		"If true, print the BearerToken and do not login.")
+
 	return fs
 }
 

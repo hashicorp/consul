@@ -109,6 +109,10 @@ func (c *cmd) bearerTokenLogin() int {
 			c.UI.Error(fmt.Sprintf("Error with aws-iam auth method: %s", err))
 			return 1
 		} else {
+			if c.aws.outputToken {
+				fmt.Print(token)
+				return 0
+			}
 			c.bearerToken = token
 		}
 	} else if c.bearerTokenFile == "" {
