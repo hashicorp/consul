@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package hashicorp.consul.auth.v1alpha1;
+
+message TrafficPermission {
+  string name = 1;
+  Data data = 2;
+}
+
+message Data {
+  Destination destination = 1;
+  string action = 2;
+  repeated Permission permissions = 3;
+}
+
+message Destination {
+  string identity_name = 1;
+}
+
+message Permission {
+  repeated Source sources = 1;
+  repeated DestinationRule destination_rules = 2;
+}
+
+message Source {
+  string name = 1;
+  string namespace = 2;
+}
+
+message DestinationRule {
+  oneof path {
+    string path_prefix = 1;
+    string path_regex = 2;
+    string path_exact = 3;
+  }
+  repeated string port_name = 4;
+  repeated Exclusion exclusions = 5;
+}
+
+message Exclusion {
+  oneof path {
+    string path_prefix = 1;
+    string path_regex = 2;
+    string path_exact = 3;
+  }
+}

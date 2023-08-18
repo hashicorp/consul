@@ -4,6 +4,7 @@
 package controllers
 
 import (
+	"github.com/hashicorp/consul/internal/auth/internal/controllers/trafficpermissions"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/endpoints"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/failover"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
@@ -15,6 +16,7 @@ type Dependencies struct {
 	WorkloadHealthNodeMapper workloadhealth.NodeMapper
 	EndpointsWorkloadMapper  endpoints.WorkloadMapper
 	FailoverMapper           failover.FailoverMapper
+	TrafficPermissionsMapper trafficpermissions.Mapper
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
@@ -22,4 +24,5 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(workloadhealth.WorkloadHealthController(deps.WorkloadHealthNodeMapper))
 	mgr.Register(endpoints.ServiceEndpointsController(deps.EndpointsWorkloadMapper))
 	mgr.Register(failover.FailoverPolicyController(deps.FailoverMapper))
+	mgr.Register(trafficpermissions.Controller(deps.TrafficPermissionsMapper))
 }
