@@ -79,7 +79,7 @@ jobs:
       matrix:
         partition: [1, 2, 3, 4]
     env:
-      EMBER_TEST_REPORT: test-results/report-oss.xml # outputs test report for CI test summary
+      EMBER_TEST_REPORT: test-results/report-ce.xml # outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
       CONSUL_NSPACES_ENABLED: ${{ endsWith(github.repository, '-enterprise') && 1 || 0 }} # NOTE: this should be 1 in ENT.
       JOBS: 2 # limit parallelism for broccoli-babel-transpiler

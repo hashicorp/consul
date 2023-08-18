@@ -24,8 +24,23 @@ env:
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
+  conditional-skip:
+    runs-on: ubuntu-latest 
+    name: Get files changed and conditionally skip CI
+    outputs:
+      trigger-ci: ${{ steps.read-files.outputs.trigger-ci }}
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          fetch-depth: 0  
+      - name: Get changed files
+        id: read-files
+        run: ./.github/scripts/filter_changed_files_go_test.sh
+
   setup:
+    needs: [conditional-skip]
     name: Setup
+    if: needs.conditional-skip.outputs.trigger-ci == 'true'
     runs-on: ubuntu-latest
     outputs:
       compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
@@ -198,7 +213,7 @@ jobs:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   # dev-build-arm64:
-  #   # only run on enterprise because GHA does not have arm64 runners in OSS
+  #   # only run on enterprise because GHA does not have arm64 runners in CE
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
@@ -212,7 +227,7 @@ jobs:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   # go-test-arm64:
-  #   # only run on enterprise because GHA does not have arm64 runners in OSS
+  #   # only run on enterprise because GHA does not have arm64 runners in CE
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
@@ -230,7 +245,7 @@ jobs:
   #     consul-license: ${{secrets.CONSUL_LICENSE}}
   #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-oss:
+  go-test-ce:
     needs:
     - setup
     - dev-build
@@ -463,6 +478,7 @@ jobs:
 
   go-tests-success:
     needs:
+    - conditional-skip
     - setup
     - check-generated-deep-copy
     - check-generated-protobuf
@@ -474,7 +490,7 @@ jobs:
     - lint-32bit
     # - go-test-arm64
     - go-test-enterprise
-    - go-test-oss
+    - go-test-ce
     - go-test-race
     - go-test-envoyextensions
     - go-test-troubleshoot
@@ -485,7 +501,7 @@ jobs:
     - go-test-32bit
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: ${{ always() }}
+    if: always() && needs.conditional-skip.outputs.trigger-ci == 'true'
     steps:
       - name: evaluate upstream job results
         run: |
