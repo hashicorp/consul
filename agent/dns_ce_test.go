@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDNS_OSS_PeeredServices(t *testing.T) {
+func TestDNS_CE_PeeredServices(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

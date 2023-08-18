@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestEventPayloadCheckServiceNode_Subject_OSS(t *testing.T) {
+func TestEventPayloadCheckServiceNode_Subject_CE(t *testing.T) {
 	for desc, tc := range map[string]struct {
 		evt EventPayloadCheckServiceNode
 		sub string

@@ -37,7 +37,7 @@ var enterpriseConfigKeyWarnings = []string{
 
 // CE-only equivalent of TestConfigFlagsAndEdgecases
 // used for flags validated in ent-only code
-func TestLoad_IntegrationWithFlags_OSS(t *testing.T) {
+func TestLoad_IntegrationWithFlags_CE(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dataDir)
 

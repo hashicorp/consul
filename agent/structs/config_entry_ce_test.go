@@ -7,12 +7,13 @@
 package structs
 
 import (
+	"testing"
+
 	"github.com/hashicorp/hcl"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
-func TestDecodeConfigEntry_OSS(t *testing.T) {
+func TestDecodeConfigEntry_CE(t *testing.T) {
 
 	for _, tc := range []struct {
 		name      string

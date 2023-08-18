@@ -999,7 +999,7 @@ var baseCases = map[string]testCase{
 	},
 }
 
-func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
+func TestUsageReporter_emitNodeUsage_CE(t *testing.T) {
 	cases := baseCases
 
 	for name, tcase := range cases {
@@ -1038,7 +1038,7 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 	}
 }
 
-func TestUsageReporter_emitPeeringUsage_OSS(t *testing.T) {
+func TestUsageReporter_emitPeeringUsage_CE(t *testing.T) {
 	cases := make(map[string]testCase)
 	for k, v := range baseCases {
 		eg := make(map[string]metrics.GaugeValue)
@@ -1142,7 +1142,7 @@ func TestUsageReporter_emitPeeringUsage_OSS(t *testing.T) {
 	}
 }
 
-func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
+func TestUsageReporter_emitServiceUsage_CE(t *testing.T) {
 	cases := make(map[string]testCase)
 	for k, v := range baseCases {
 		eg := make(map[string]metrics.GaugeValue)
@@ -1402,7 +1402,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 	}
 }
 
-func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
+func TestUsageReporter_emitKVUsage_CE(t *testing.T) {
 	cases := make(map[string]testCase)
 	for k, v := range baseCases {
 		eg := make(map[string]metrics.GaugeValue)

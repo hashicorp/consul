@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestHTTP_Peering_GenerateToken_OSS_Failure(t *testing.T) {
+func TestHTTP_Peering_GenerateToken_CE_Failure(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

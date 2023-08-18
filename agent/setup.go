@@ -506,7 +506,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		consul.LeaderSummaries,
 		consul.PreparedQuerySummaries,
 		consul.RPCSummaries,
-		consul.SegmentOSSSummaries,
+		consul.SegmentCESummaries,
 		consul.SessionSummaries,
 		consul.SessionEndpointSummaries,
 		consul.TxnSummaries,

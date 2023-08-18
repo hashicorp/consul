@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestExportedServicesConfigEntry_OSS(t *testing.T) {
+func TestExportedServicesConfigEntry_CE(t *testing.T) {
 	cases := map[string]configEntryTestcase{
 		"normalize: noop in ce": {
 			entry: &ExportedServicesConfigEntry{

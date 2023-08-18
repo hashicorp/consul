@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-var SegmentOSSSummaries = []prometheus.SummaryDefinition{
+var SegmentCESummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"leader", "reconcile"},
 		Help: "Measures the time spent updating the raft store from the serf member information.",

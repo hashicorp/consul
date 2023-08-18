@@ -7,7 +7,7 @@
 package utils
 
 const (
-	defaultImageName   = DefaultImageNameOSS
+	defaultImageName   = DefaultImageNameCE
 	ImageVersionSuffix = ""
 	isInEnterpriseRepo = false
 )

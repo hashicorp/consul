@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestServiceResolverConfigEntry_OSS(t *testing.T) {
+func TestServiceResolverConfigEntry_CE(t *testing.T) {
 	type testcase struct {
 		name         string
 		entry        *ServiceResolverConfigEntry

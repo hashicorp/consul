@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOSS_IntentionsCreate_failure(t *testing.T) {
+func TestCE_IntentionsCreate_failure(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
