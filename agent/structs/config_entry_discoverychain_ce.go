@@ -114,7 +114,7 @@ func (f *ServiceResolverFailoverPolicy) ValidateEnterprise() error {
 	return nil
 }
 
-// RelatedSamenessGroups doesn't return anything on open source.
+// RelatedSamenessGroups doesn't return anything in community edition.
 func (e *ServiceResolverConfigEntry) RelatedSamenessGroups() []string {
 	return nil
 }

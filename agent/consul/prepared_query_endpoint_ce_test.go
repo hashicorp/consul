@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPreparedQuery_OSS_Apply(t *testing.T) {
+func TestPreparedQuery_CE_Apply(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

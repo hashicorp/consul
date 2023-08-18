@@ -18,7 +18,7 @@ import (
 )
 
 func init() {
-	registerPersister(persistOSS)
+	registerPersister(persistCE)
 
 	registerRestorer(structs.RegisterRequestType, restoreRegistration)
 	registerRestorer(structs.KVSRequestType, restoreKV)
@@ -47,7 +47,7 @@ func init() {
 	registerRestorer(structs.PeeringSecretsWriteType, restorePeeringSecrets)
 }
 
-func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
+func persistCE(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
 	if err := s.persistVirtualIPs(sink, encoder); err != nil {
 		return err
 	}

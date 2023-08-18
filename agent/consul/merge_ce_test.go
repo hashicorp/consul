@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func TestMerge_OSS_LAN(t *testing.T) {
+func TestMerge_CE_LAN(t *testing.T) {
 	type testcase struct {
 		segment   string
 		server    bool

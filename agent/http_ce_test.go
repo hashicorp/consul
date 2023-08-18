@@ -62,7 +62,7 @@ func newHttpClient(timeout time.Duration) *http.Client {
 	}
 }
 
-func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
+func TestHTTPAPI_MethodNotAllowed_CE(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -130,7 +130,7 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 	}
 }
 
-func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
+func TestHTTPAPI_OptionMethod_CE(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -171,7 +171,7 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 	}
 }
 
-func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
+func TestHTTPAPI_AllowedNets_CE(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
