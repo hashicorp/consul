@@ -154,7 +154,7 @@ module('Unit | Serializer | application', function (hooks) {
         uid: '1235',
         SyncTime: 1234567891,
       },
-      // synthetic-node with consul-version meta
+      // synthetic-node without consul-version meta
       {
         Node: 'node-2',
         Meta: { 'synthetic-node': true },
