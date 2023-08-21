@@ -49,7 +49,7 @@ func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 	rt.Logger.Trace("reconciling computed routes")
 
 	loggerFor := func(id *pbresource.ID) hclog.Logger {
-		return rt.Logger.With("resource-id", resource.IDToString(id))
+		return rt.Logger.With("resource-id", id)
 	}
 	related, err := loader.LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, r.mapper, req.ID)
 	if err != nil {
@@ -71,7 +71,7 @@ func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 	for _, result := range generatedResults {
 		computedRoutesID := result.ID
 
-		logger := rt.Logger.With("resource-id", resource.IDToString(computedRoutesID))
+		logger := rt.Logger.With("resource-id", computedRoutesID)
 
 		prev, err := resource.GetDecodedResource[*pbmesh.ComputedRoutes](ctx, rt.Client, computedRoutesID)
 		if err != nil {

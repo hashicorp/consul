@@ -35,7 +35,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	client := rtest.NewClient(rclient)
 
 	loggerFor := func(id *pbresource.ID) hclog.Logger {
-		return rt.Logger.With("resource-id", resource.IDToString(id))
+		return rt.Logger.With("resource-id", id)
 	}
 
 	mapper := xroutemapper.New()
