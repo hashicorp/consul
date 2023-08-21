@@ -41,14 +41,14 @@ func computeNewRouteRefConditions(
 ) []*pbresource.Condition {
 	var conditions []*pbresource.Condition
 
-	// TODO: handle port numbers here too? the virtual port
+	// TODO(rb): handle port numbers here too if we are allowing those instead of the name?
 
 	for _, parentRef := range parentRefs {
 		if parentRef.Ref == nil || !resource.EqualType(parentRef.Ref.Type, catalog.ServiceType) {
-			continue
+			continue // not possible due to xRoute validation
 		}
 		if parentRef.Ref.Section != "" {
-			continue
+			continue // not possible due to xRoute validation
 		}
 		if svc := related.GetService(parentRef.Ref); svc != nil {
 			found := false
@@ -82,10 +82,10 @@ func computeNewRouteRefConditions(
 
 	for _, backendRef := range backendRefs {
 		if backendRef.Ref == nil || !resource.EqualType(backendRef.Ref.Type, catalog.ServiceType) {
-			continue
+			continue // not possible due to xRoute validation
 		}
 		if backendRef.Ref.Section != "" {
-			continue
+			continue // not possible due to xRoute validation
 		}
 		if svc := related.GetService(backendRef.Ref); svc != nil {
 			found := false

@@ -40,7 +40,6 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		require.NoError(t, err)
 		return dec
 	}
-	_ = newService
 
 	t.Run("no refs", func(t *testing.T) {
 		sg := newTestServiceGetter()
