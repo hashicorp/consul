@@ -1,12 +1,12 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly test-integrations
+name: Nightly test-integrations 1.16.x
 
 on:
   schedule:
-    # Run nightly at 12AM UTC/8PM EST/5PM PST
-    - cron: '* 0 * * *'
+    # Run nightly at 1AM UTC/9PM EST/6PM PST
+    - cron: '* 1 * * *'
   workflow_dispatch: {}
 
 env:
@@ -19,6 +19,8 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  BRANCH: "release/1.16.x"
+  BRANCH_NAME: "release-1.16.x"   # Used for naming artifacts
 
 jobs:
   setup:
@@ -34,7 +36,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.BRANCH }}
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
@@ -42,7 +44,7 @@ jobs:
     needs: [setup]
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
     secrets:
@@ -58,7 +60,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.BRANCH }}
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
@@ -99,7 +101,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
+        envoy-version: ["1.23.12", "1.24.10", "1.25.9", "1.26.4"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -110,7 +112,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.BRANCH }}
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version-file: 'go.mod'
@@ -193,7 +195,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.15", "1.16"]
+        consul-version: ["1.14", "1.15", "1.16"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       ENVOY_VERSION: "1.24.6"
@@ -201,7 +203,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.BRANCH }}
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
