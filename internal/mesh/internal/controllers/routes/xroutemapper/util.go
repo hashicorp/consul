@@ -34,11 +34,11 @@ type resID struct {
 	UID string
 }
 
-func parentRefSliceToRefSlice(parentRefs []*pbmesh.ParentReference) []*pbresource.Reference {
+func parentRefSliceToRefSlice(parentRefs []*pbmesh.ParentReference) []resource.ReferenceOrID {
 	if parentRefs == nil {
 		return nil
 	}
-	parents := make([]*pbresource.Reference, 0, len(parentRefs))
+	parents := make([]resource.ReferenceOrID, 0, len(parentRefs))
 	for _, parentRef := range parentRefs {
 		if parentRef.Ref != nil && types.IsServiceType(parentRef.Ref.Type) {
 			parents = append(parents, parentRef.Ref)
@@ -47,11 +47,11 @@ func parentRefSliceToRefSlice(parentRefs []*pbmesh.ParentReference) []*pbresourc
 	return parents
 }
 
-func backendRefSliceToRefSlice(backendRefs []*pbmesh.BackendReference) []*pbresource.Reference {
+func backendRefSliceToRefSlice(backendRefs []*pbmesh.BackendReference) []resource.ReferenceOrID {
 	if backendRefs == nil {
 		return nil
 	}
-	backends := make([]*pbresource.Reference, 0, len(backendRefs))
+	backends := make([]resource.ReferenceOrID, 0, len(backendRefs))
 	for _, backendRef := range backendRefs {
 		if backendRef.Ref != nil && types.IsServiceType(backendRef.Ref.Type) {
 			backends = append(backends, backendRef.Ref)

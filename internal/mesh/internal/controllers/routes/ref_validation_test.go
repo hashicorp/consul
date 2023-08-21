@@ -36,7 +36,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 			Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
 
-		dec, err := resource.Decode[pbcatalog.Service, *pbcatalog.Service](svc)
+		dec, err := resource.Decode[*pbcatalog.Service](svc)
 		require.NoError(t, err)
 		return dec
 	}

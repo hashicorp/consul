@@ -76,7 +76,7 @@ func (m *memoizingLoader) Get${message}(ctx context.Context, id *pbresource.ID) 
 		return cached, nil // cached value may be nil
 	}
 
-	dec, err := resource.GetDecodedResource[${pkg}.${message}, *${pkg}.${message}](ctx, m.client, id)
+	dec, err := resource.GetDecodedResource[*${pkg}.${message}](ctx, m.client, id)
 	if err != nil {
 		return nil, err
 	}

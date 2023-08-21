@@ -77,7 +77,7 @@ func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 
 		logger := rt.Logger.With("resource-id", resource.IDToString(computedRoutesID))
 
-		prev, err := resource.GetDecodedResource[pbmesh.ComputedRoutes, *pbmesh.ComputedRoutes](ctx, rt.Client, computedRoutesID)
+		prev, err := resource.GetDecodedResource[*pbmesh.ComputedRoutes](ctx, rt.Client, computedRoutesID)
 		if err != nil {
 			logger.Error("error loading previous computed routes", "error", err)
 			return err

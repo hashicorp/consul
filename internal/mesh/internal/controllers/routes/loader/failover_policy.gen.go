@@ -36,7 +36,7 @@ func (m *memoizingLoader) GetFailoverPolicy(ctx context.Context, id *pbresource.
 		return cached, nil // cached value may be nil
 	}
 
-	dec, err := resource.GetDecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](ctx, m.client, id)
+	dec, err := resource.GetDecodedResource[*pbcatalog.FailoverPolicy](ctx, m.client, id)
 	if err != nil {
 		return nil, err
 	}

@@ -57,7 +57,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 			WithData(t, data).
 			Write(t, client)
 		mapper.TrackXRoute(res.Id, data)
-		dec, err := resource.Decode[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](res)
+		dec, err := resource.Decode[*pbmesh.HTTPRoute](res)
 		require.NoError(t, err)
 		return dec
 	}
@@ -67,7 +67,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 			WithData(t, data).
 			Write(t, client)
 		mapper.TrackXRoute(res.Id, data)
-		dec, err := resource.Decode[pbmesh.GRPCRoute, *pbmesh.GRPCRoute](res)
+		dec, err := resource.Decode[*pbmesh.GRPCRoute](res)
 		require.NoError(t, err)
 		return dec
 	}
@@ -78,7 +78,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 			WithData(t, data).
 			Write(t, client)
 		mapper.TrackXRoute(res.Id, data)
-		dec, err := resource.Decode[pbmesh.TCPRoute, *pbmesh.TCPRoute](res)
+		dec, err := resource.Decode[*pbmesh.TCPRoute](res)
 		require.NoError(t, err)
 		return dec
 	}
@@ -88,7 +88,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 		res := rtest.Resource(types.DestinationPolicyType, name).
 			WithData(t, data).
 			Write(t, client)
-		dec, err := resource.Decode[pbmesh.DestinationPolicy, *pbmesh.DestinationPolicy](res)
+		dec, err := resource.Decode[*pbmesh.DestinationPolicy](res)
 		require.NoError(t, err)
 		return dec
 	}
@@ -97,7 +97,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 		res := rtest.Resource(catalog.FailoverPolicyType, name).
 			WithData(t, data).
 			Write(t, client)
-		dec, err := resource.Decode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](res)
+		dec, err := resource.Decode[*pbcatalog.FailoverPolicy](res)
 		require.NoError(t, err)
 		return dec
 	}
@@ -106,7 +106,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 		res := rtest.Resource(catalog.ServiceType, name).
 			WithData(t, data).
 			Write(t, client)
-		dec, err := resource.Decode[pbcatalog.Service, *pbcatalog.Service](res)
+		dec, err := resource.Decode[*pbcatalog.Service](res)
 		require.NoError(t, err)
 		return dec
 	}

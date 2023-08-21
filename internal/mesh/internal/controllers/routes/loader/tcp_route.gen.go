@@ -36,7 +36,7 @@ func (m *memoizingLoader) GetTCPRoute(ctx context.Context, id *pbresource.ID) (*
 		return cached, nil // cached value may be nil
 	}
 
-	dec, err := resource.GetDecodedResource[pbmesh.TCPRoute, *pbmesh.TCPRoute](ctx, m.client, id)
+	dec, err := resource.GetDecodedResource[*pbmesh.TCPRoute](ctx, m.client, id)
 	if err != nil {
 		return nil, err
 	}

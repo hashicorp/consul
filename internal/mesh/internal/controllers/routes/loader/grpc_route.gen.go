@@ -36,7 +36,7 @@ func (m *memoizingLoader) GetGRPCRoute(ctx context.Context, id *pbresource.ID) (
 		return cached, nil // cached value may be nil
 	}
 
-	dec, err := resource.GetDecodedResource[pbmesh.GRPCRoute, *pbmesh.GRPCRoute](ctx, m.client, id)
+	dec, err := resource.GetDecodedResource[*pbmesh.GRPCRoute](ctx, m.client, id)
 	if err != nil {
 		return nil, err
 	}

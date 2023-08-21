@@ -36,7 +36,7 @@ func (m *memoizingLoader) GetHTTPRoute(ctx context.Context, id *pbresource.ID) (
 		return cached, nil // cached value may be nil
 	}
 
-	dec, err := resource.GetDecodedResource[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](ctx, m.client, id)
+	dec, err := resource.GetDecodedResource[*pbmesh.HTTPRoute](ctx, m.client, id)
 	if err != nil {
 		return nil, err
 	}

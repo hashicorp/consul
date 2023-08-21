@@ -36,7 +36,7 @@ func (m *memoizingLoader) GetService(ctx context.Context, id *pbresource.ID) (*t
 		return cached, nil // cached value may be nil
 	}
 
-	dec, err := resource.GetDecodedResource[pbcatalog.Service, *pbcatalog.Service](ctx, m.client, id)
+	dec, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, m.client, id)
 	if err != nil {
 		return nil, err
 	}

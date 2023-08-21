@@ -158,26 +158,25 @@ func (m *Mapper) BackendServiceRefsByRouteID(item *pbresource.ID) []*pbresource.
 
 // MapHTTPRoute will map HTTPRoute changes to ComputedRoutes changes.
 func (m *Mapper) MapHTTPRoute(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	return mapXRouteToComputedRoutes[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](res, m)
+	return mapXRouteToComputedRoutes[*pbmesh.HTTPRoute](res, m)
 }
 
 // MapGRPCRoute will map GRPCRoute changes to ComputedRoutes changes.
 func (m *Mapper) MapGRPCRoute(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	return mapXRouteToComputedRoutes[pbmesh.GRPCRoute, *pbmesh.GRPCRoute](res, m)
+	return mapXRouteToComputedRoutes[*pbmesh.GRPCRoute](res, m)
 }
 
 // MapTCPRoute will map TCPRoute changes to ComputedRoutes changes.
 func (m *Mapper) MapTCPRoute(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	return mapXRouteToComputedRoutes[pbmesh.TCPRoute, *pbmesh.TCPRoute](res, m)
+	return mapXRouteToComputedRoutes[*pbmesh.TCPRoute](res, m)
 }
 
 // mapXRouteToComputedRoutes will map xRoute changes to ComputedRoutes changes.
-func mapXRouteToComputedRoutes[V any, PV interface {
+func mapXRouteToComputedRoutes[T interface {
 	proto.Message
-	*V
 	types.XRouteWithRefs
 }](res *pbresource.Resource, m *Mapper) ([]controller.Request, error) {
-	dec, err := resource.Decode[V, PV](res)
+	dec, err := resource.Decode[T](res)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling xRoute: %w", err)
 	}
@@ -201,7 +200,7 @@ func (m *Mapper) MapFailoverPolicy(
 		return nil, fmt.Errorf("type is not a failover policy type: %s", res.Id.Type)
 	}
 
-	dec, err := resource.Decode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](res)
+	dec, err := resource.Decode[*pbcatalog.FailoverPolicy](res)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling failover policy: %w", err)
 	}
