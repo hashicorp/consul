@@ -22,8 +22,9 @@ jobs:
           GIT_SHA: ${{ github.sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
+        # TODO(spatel): CE refactor
         run: |
           curl -H "Authorization: token $GH_PAT" \
             -H 'Accept: application/json' \
-            -d "{\"event_type\": \"ce-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}" \
+            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}" \
             "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
