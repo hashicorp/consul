@@ -17,20 +17,6 @@
           }
         }
       },
-      "okta_0": {
-        "issuer": "test-issuer",
-        "payloadInMetadata": "jwt_payload_okta_0",
-        "remoteJwks": {
-          "httpUri": {
-            "uri": "https://example-okta.com/.well-known/jwks.json",
-            "cluster": "jwks_cluster_okta",
-            "timeout": "1s"
-          },
-          "asyncFetch": {
-            "fastListener": true
-          }
-        }
-      },
       "auth0": {
         "issuer": "another-issuer",
         "payloadInMetadata": "jwt_payload_auth0",
@@ -49,26 +35,30 @@
     "rules": [
       {
         "match": {
-          "prefix": "some-special-path"
-        },
-        "requires": {
-          "providerName": "okta_0"
-        }
-      },
-      {
-        "match": {
           "prefix": "/"
         },
         "requires": {
-          "providerName": "okta"
-        }
-      },
-      {
-        "match": {
-          "prefix": "/"
-        },
-        "requires": {
-          "providerName": "auth0"
+          "requiresAll": {
+            "requirements": [
+              {
+                "requiresAny": {
+                  "requirements": [
+                    {"providerName": "okta"}, 
+                    {"allowMissingOrFailed": {}}
+                  ]
+                }
+              },
+              {
+                "requiresAny": {
+                  "requirements": [
+                    {"providerName": "auth0"}, 
+                    {"allowMissingOrFailed": {}}
+                  ]
+                }
+              }
+            ]
+          }
+          
         }
       }
     ]

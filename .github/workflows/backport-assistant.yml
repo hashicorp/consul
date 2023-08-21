@@ -40,4 +40,4 @@ jobs:
           curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
             -X POST \
             -d "{ \"body\": \"${github_message}\"}" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}/comments"
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"

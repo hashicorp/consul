@@ -7,6 +7,10 @@ description: >-
 
 # Key/Value (KV) Store Overview
 
+<Note>
+The Consul KV API, CLI, and UI are now considered feature complete and no new feature development is planned for future releases.
+</Note>
+
 Consul KV is a core feature of Consul and is installed with the Consul agent.
 Once installed with the agent, it will have reasonable defaults. Consul KV allows
 users to store indexed objects, though its main uses are storing configuration
@@ -60,6 +64,24 @@ similar to Amazon S3 buckets. However, `/` is still useful for organizing data
 and when recursively searching within the data store. We also recommend that
 you avoid the use of `*`, `?`, `'`, and `%` because they can cause issues when
 using the API and in shell scripts.
+
+## Using Sentinel to apply policies for Consul KV 
+
+<EnterpriseAlert>
+
+This feature requires
+HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
+
+</EnterpriseAlert>
+
+You can also use Sentinel as a Policy-as-code framework for defining advanced key-value storage access control policies. Sentinel policies extend the ACL system in Consul beyond static "read", "write",
+and "deny" policies to support full conditional logic and integration with
+external systems. Reference the [Sentinel documentation](https://docs.hashicorp.com/sentinel/concepts) for high-level Sentinel concepts.
+
+To get started with Sentinel in Consul,
+refer to the [Sentinel documentation](https://docs.hashicorp.com/sentinel/consul) or
+[Consul documentation](/consul/docs/agent/sentinel).
+
 
 ## Extending Consul KV
 

@@ -13,12 +13,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/assert"
-
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 )
 
@@ -40,7 +39,21 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.Que
 	})
 }
 
-// CatalogServiceExists verifies the node name exists in the Consul catalog
+// CatalogServiceHasInstanceCount verifies the service name exists in the Consul catalog and has the specified
+// number of instances.
+func CatalogServiceHasInstanceCount(t *testing.T, c *api.Client, svc string, count int, opts *api.QueryOptions) {
+	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Catalog().Service(svc, "", opts)
+		if err != nil {
+			r.Fatal("error reading service data")
+		}
+		if len(services) != count {
+			r.Fatalf("did not find %d catalog entries for %s", count, svc)
+		}
+	})
+}
+
+// CatalogNodeExists verifies the node name exists in the Consul catalog
 func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	retry.Run(t, func(r *retry.R) {
 		node, _, err := c.Catalog().Node(nodeName, nil)
@@ -53,26 +66,55 @@ func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	})
 }
 
-func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
-	doHTTPServiceEchoes(t, ip, port, path, nil)
+// CatalogServiceIsHealthy verifies the service name exists and all instances pass healthchecks
+func CatalogServiceIsHealthy(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
+	CatalogServiceExists(t, c, svc, opts)
+
+	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Health().Service(svc, "", false, opts)
+		if err != nil {
+			r.Fatal("error reading service health data")
+		}
+		if len(services) == 0 {
+			r.Fatal("did not find catalog entry for ", svc)
+		}
+
+		for _, svc := range services {
+			for _, check := range svc.Checks {
+				if check.Status != api.HealthPassing {
+					r.Fatal("at least one check is not PASSING for service", svc.Service.Service)
+				}
+			}
+		}
+
+	})
 }
+
+func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
+	doHTTPServiceEchoes(t, ip, port, path, nil, nil)
+}
+
+func HTTPServiceEchoesWithHeaders(t *testing.T, ip string, port int, path string, headers map[string]string) {
+	doHTTPServiceEchoes(t, ip, port, path, headers, nil)
+}
+
 func HTTPServiceEchoesWithClient(t *testing.T, client *http.Client, addr string, path string) {
-	doHTTPServiceEchoesWithClient(t, client, addr, path, nil)
+	doHTTPServiceEchoesWithClient(t, client, addr, path, nil, nil)
 }
 
 func HTTPServiceEchoesResHeader(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
-	doHTTPServiceEchoes(t, ip, port, path, expectedResHeader)
+	doHTTPServiceEchoes(t, ip, port, path, nil, expectedResHeader)
 }
 func HTTPServiceEchoesResHeaderWithClient(t *testing.T, client *http.Client, addr string, path string, expectedResHeader map[string]string) {
-	doHTTPServiceEchoesWithClient(t, client, addr, path, expectedResHeader)
+	doHTTPServiceEchoesWithClient(t, client, addr, path, nil, expectedResHeader)
 }
 
 // HTTPServiceEchoes verifies that a post to the given ip/port combination returns the data
 // in the response body. Optional path can be provided to differentiate requests.
-func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
+func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, requestHeaders map[string]string, expectedResHeader map[string]string) {
 	client := cleanhttp.DefaultClient()
 	addr := fmt.Sprintf("%s:%d", ip, port)
-	doHTTPServiceEchoesWithClient(t, client, addr, path, expectedResHeader)
+	doHTTPServiceEchoesWithClient(t, client, addr, path, requestHeaders, expectedResHeader)
 }
 
 func doHTTPServiceEchoesWithClient(
@@ -80,6 +122,7 @@ func doHTTPServiceEchoesWithClient(
 	client *http.Client,
 	addr string,
 	path string,
+	requestHeaders map[string]string,
 	expectedResHeader map[string]string,
 ) {
 	const phrase = "hello"
@@ -96,8 +139,20 @@ func doHTTPServiceEchoesWithClient(
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
 		t.Logf("making call to %s", url)
+
 		reader := strings.NewReader(phrase)
-		res, err := client.Post(url, "text/plain", reader)
+		req, err := http.NewRequest("POST", url, reader)
+		require.NoError(t, err, "could not construct request")
+
+		for k, v := range requestHeaders {
+			req.Header.Add(k, v)
+
+			if k == "Host" {
+				req.Host = v
+			}
+		}
+
+		res, err := client.Do(req)
 		if err != nil {
 			r.Fatal("could not make call to service ", url)
 		}
@@ -161,7 +216,54 @@ func AssertFortioName(t *testing.T, urlbase string, name string, reqHost string)
 // client must be a custom http.Client
 func AssertFortioNameWithClient(t *testing.T, urlbase string, name string, reqHost string, client *http.Client) {
 	t.Helper()
-	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
+	foundName, err := FortioNameWithClient(t, urlbase, name, reqHost, client)
+	require.NoError(t, err)
+	t.Logf("got response from server name %q expect %q", foundName, name)
+	assert.Equal(t, name, foundName)
+}
+
+// WaitForFortioName is a convenience function for [WaitForFortioNameWithClient], using a [cleanhttp.DefaultClient()]
+func WaitForFortioName(t *testing.T, r retry.Retryer, urlbase string, name string, reqHost string) {
+	t.Helper()
+	client := cleanhttp.DefaultClient()
+	WaitForFortioNameWithClient(t, r, urlbase, name, reqHost, client)
+}
+
+// WaitForFortioNameWithClient enables waiting for FortioNameWithClient to return a specific
+// value. It uses the provided Retryer to wait for the expected name and only fails when
+// retries are exhausted.
+//
+// This is useful when performing failovers in tests and in other eventual consistency
+// scenarios that may take multiple seconds to resolve.
+//
+// Note that the underlying FortioNameWithClient has its own retry for successfully making
+// an HTTP request, which will be counted against the timeout of the provided Retryer if it
+// is a Timer, or incorporated into each attempt if it is a Counter.
+func WaitForFortioNameWithClient(t *testing.T, r retry.Retryer, urlbase string, name string, reqHost string, client *http.Client) {
+	t.Helper()
+	retry.RunWith(r, t, func(r *retry.R) {
+		actual, err := FortioNameWithClient(r, urlbase, name, reqHost, client)
+		require.NoError(r, err)
+		if name != actual {
+			r.Errorf("name %s did not match expected %s", name, actual)
+		}
+	})
+}
+
+// FortioNameWithClient returns the `FORTIO_NAME` returned by the fortio service at
+// urlbase/debug. This can be used to validate that the client is sending traffic to
+// the right envoy proxy.
+//
+// If reqHost is set, the Host field of the HTTP request will be set to its value.
+//
+// It retries with timeout defaultHTTPTimeout and wait defaultHTTPWait.
+//
+// client must be a custom http.Client
+func FortioNameWithClient(t retry.Failer, urlbase string, name string, reqHost string, client *http.Client) (string, error) {
+	t.Helper()
+	var fortioNameRE = regexp.MustCompile("\nFORTIO_NAME=(.+)\n")
+	var body []byte
+
 	retry.RunWith(&retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}, t, func(r *retry.R) {
 		fullurl := fmt.Sprintf("%s/debug?env=dump", urlbase)
 		req, err := http.NewRequest("GET", fullurl, nil)
@@ -181,21 +283,22 @@ func AssertFortioNameWithClient(t *testing.T, urlbase string, name string, reqHo
 			r.Fatalf("could not make request to %q: status %d", fullurl, resp.StatusCode)
 		}
 
-		body, err := io.ReadAll(resp.Body)
+		body, err = io.ReadAll(resp.Body)
 		if err != nil {
 			r.Fatalf("failed to read response body from %q: %v", fullurl, err)
 		}
-
-		m := fortioNameRE.FindStringSubmatch(string(body))
-		require.GreaterOrEqual(r, len(m), 2)
-		t.Logf("got response from server name %q expect %q", m[1], name)
-		assert.Equal(r, name, m[1])
 	})
+
+	m := fortioNameRE.FindStringSubmatch(string(body))
+	if len(m) < 2 {
+		return "", fmt.Errorf("fortio name not found %s", name)
+	}
+	return m[1], nil
 }
 
 // AssertContainerState validates service container status
 func AssertContainerState(t *testing.T, service libservice.Service, state string) {
 	containerStatus, err := service.GetStatus()
 	require.NoError(t, err)
-	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", containerStatus, state))
+	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", state, containerStatus))
 }

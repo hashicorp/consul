@@ -9,23 +9,34 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
-
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
+
+// MetricsClient exports Consul metrics in OTLP format to the desired endpoint.
+type MetricsClient interface {
+	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error
+}
+
+// EndpointProvider provides the endpoint where metrics are exported to by the OTELExporter.
+// EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
+// This abstraction layer offers flexibility, in particular for dynamic configuration or changes to the endpoint.
+type EndpointProvider interface {
+	GetEndpoint() *url.URL
+}
 
 // OTELExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
 // The exporter is used by a OTEL Metrics SDK PeriodicReader to export aggregated metrics.
 // This allows us to use a custom client - HCP authenticated MetricsClient.
 type OTELExporter struct {
-	client   hcpclient.MetricsClient
-	endpoint *url.URL
+	client           MetricsClient
+	endpointProvider EndpointProvider
 }
 
-// NewOTELExporter returns a configured OTELExporter
-func NewOTELExporter(client hcpclient.MetricsClient, endpoint *url.URL) *OTELExporter {
+// NewOTELExporter returns a configured OTELExporter.
+func NewOTELExporter(client MetricsClient, endpointProvider EndpointProvider) *OTELExporter {
 	return &OTELExporter{
-		client:   client,
-		endpoint: endpoint,
+		client:           client,
+		endpointProvider: endpointProvider,
 	}
 }
 
@@ -54,11 +65,17 @@ func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 
 // Export serializes and transmits metric data to a receiver.
 func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
+	endpoint := e.endpointProvider.GetEndpoint()
+	if endpoint == nil {
+		return nil
+	}
+
 	otlpMetrics := transformOTLP(metrics)
 	if isEmpty(otlpMetrics) {
 		return nil
 	}
-	err := e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint.String())
+
+	err := e.client.ExportMetrics(ctx, otlpMetrics, endpoint.String())
 	if err != nil {
 		goMetrics.IncrCounter(internalMetricExportFailure, 1)
 		return fmt.Errorf("failed to export metrics: %w", err)

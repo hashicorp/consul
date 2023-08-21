@@ -70,7 +70,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerPort,
 			serviceOneHTTPPort,
 			serviceOneGRPCPort,
@@ -298,7 +298,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerPort,
 			fooHTTPPort,
 			fooGRPCPort,
@@ -525,7 +525,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerOnePort,
 			listenerTwoPort,
 			serviceHTTPPort,

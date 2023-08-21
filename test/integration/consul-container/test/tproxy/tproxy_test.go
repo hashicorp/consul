@@ -215,7 +215,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 		client := node.GetClient()
 
 		// Create a client proxy instance with the server as an upstream
-		clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, true)
+		clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, true, nil)
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
