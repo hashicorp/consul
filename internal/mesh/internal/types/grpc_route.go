@@ -39,8 +39,6 @@ func RegisterGRPCRoute(r resource.Registry) {
 func ValidateGRPCRoute(res *pbresource.Resource) error {
 	var route pbmesh.GRPCRoute
 
-	// TODO(rb):sync common stuff from HTTPRoute
-
 	if err := res.Data.UnmarshalTo(&route); err != nil {
 		return resource.NewErrDataParse(&route, err)
 	}
@@ -66,8 +64,6 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 			}
 		}
 
-		// TODO(rb): port a bunch of validation from ServiceRouterConfigEntry.Validate
-
 		for j, match := range rule.Matches {
 			wrapMatchErr := func(err error) error {
 				return wrapRuleErr(resource.ErrInvalidListElement{
@@ -77,13 +73,23 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 				})
 			}
 
-			if match.Method != nil && match.Method.Type == pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_UNSPECIFIED {
-				merr = multierror.Append(merr, wrapMatchErr(
-					resource.ErrInvalidField{
-						Name:    "method",
-						Wrapped: resource.ErrMissing,
-					},
-				))
+			if match.Method != nil {
+				if match.Method.Type == pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_UNSPECIFIED {
+					merr = multierror.Append(merr, wrapMatchErr(
+						resource.ErrInvalidField{
+							Name:    "type",
+							Wrapped: resource.ErrMissing,
+						},
+					))
+				}
+				if match.Method.Service == "" && match.Method.Method == "" {
+					merr = multierror.Append(merr, wrapMatchErr(
+						resource.ErrInvalidField{
+							Name:    "service",
+							Wrapped: errors.New("at least one of \"service\" or \"method\" must be set"),
+						},
+					))
+				}
 			}
 
 			for k, header := range match.Headers {
@@ -102,6 +108,14 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 							Wrapped: resource.ErrMissing,
 						},
 					))
+				}
+				if header.Name == "" {
+					merr = multierror.Append(merr, wrapMatchHeaderErr(
+						resource.ErrInvalidField{
+							Name:    "name",
+							Wrapped: resource.ErrMissing,
+						}),
+					)
 				}
 			}
 		}

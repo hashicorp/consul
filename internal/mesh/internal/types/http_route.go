@@ -228,7 +228,7 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 							Name: "url_rewrite",
 							Wrapped: resource.ErrInvalidField{
 								Name:    "path_prefix",
-								Wrapped: resource.ErrMissing,
+								Wrapped: errors.New("field should not be empty if enclosing section is set"),
 							},
 						},
 					))
