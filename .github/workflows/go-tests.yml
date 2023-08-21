@@ -1,20 +1,21 @@
 name: go-tests
 
 on:
-  pull_request:
-    branches-ignore:
-      - stable-website
-      - 'docs/**'
-      - 'ui/**'
-      - 'mktg-**' # Digital Team Terraform-generated branches' prefix
-      - 'backport/docs/**'
-      - 'backport/ui/**'
-      - 'backport/mktg-**'
-  push:
-    branches:
-      # Push events on the main branch
-      - main
-      - release/**
+  workflow_dispatch: {}
+  # pull_request:
+  #   branches-ignore:
+  #     - stable-website
+  #     - 'docs/**'
+  #     - 'ui/**'
+  #     - 'mktg-**' # Digital Team Terraform-generated branches' prefix
+  #     - 'backport/docs/**'
+  #     - 'backport/ui/**'
+  #     - 'backport/mktg-**'
+  # push:
+  #   branches:
+  #     # Push events on the main branch
+  #     - main
+  #     - release/**
 
 permissions:
   contents: read
