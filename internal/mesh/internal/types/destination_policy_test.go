@@ -122,7 +122,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid "config" field: LeastRequestConfig specified for incompatible load balancing policy "LOAD_BALANCER_POLICY_RING_HASH"`,
+			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid "config" field: least_request_config specified for incompatible load balancing policy "LOAD_BALANCER_POLICY_RING_HASH"`,
 		},
 		"lbpolicy: bad for ring hash config": {
 			policy: &pbmesh.DestinationPolicy{
@@ -140,7 +140,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid "config" field: RingHashConfig specified for incompatible load balancing policy "LOAD_BALANCER_POLICY_LEAST_REQUEST"`,
+			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid "config" field: ring_hash_config specified for incompatible load balancing policy "LOAD_BALANCER_POLICY_LEAST_REQUEST"`,
 		},
 		"lbpolicy: good for least request config": {
 			policy: &pbmesh.DestinationPolicy{
