@@ -10,28 +10,26 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.ResourceService_WatchListServer) error {
-	if err := validateWatchListRequest(req); err != nil {
-		return err
-	}
-
-	// check type exists
-	reg, err := s.resolveType(req.Type)
+	reg, err := s.validateWatchListRequest(req)
 	if err != nil {
 		return err
 	}
 
-	// TODO(spatel): Refactor _ and entMeta as part of NET-4914
-	authz, authzContext, err := s.getAuthorizer(tokenFromContext(stream.Context()), acl.DefaultEnterpriseMeta())
+	// v1 ACL subsystem is "wildcard" aware so just pass on through.
+	entMeta := v2TenancyToV1EntMeta(req.Tenancy)
+	token := tokenFromContext(stream.Context())
+	authz, authzContext, err := s.getAuthorizer(token, entMeta)
 	if err != nil {
 		return err
 	}
 
-	// check acls
+	// Check list ACL.
 	err = reg.ACLs.List(authz, authzContext)
 	switch {
 	case acl.IsErrPermissionDenied(err):
@@ -39,6 +37,9 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	case err != nil:
 		return status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
+
+	// Ensure we're defaulting correctly when request tenancy units are empty.
+	v1EntMetaToV2Tenancy(reg, entMeta, req.Tenancy)
 
 	unversionedType := storage.UnversionedTypeFrom(req.Type)
 	watch, err := s.Backend.WatchList(
@@ -66,6 +67,15 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			continue
 		}
 
+		// Need to rebuild authorizer per resource since wildcard inputs may
+		// result in different tenancies. Consider caching per tenancy if this
+		// is deemed expensive.
+		entMeta = v2TenancyToV1EntMeta(event.Resource.Id.Tenancy)
+		authz, authzContext, err = s.getAuthorizer(token, entMeta)
+		if err != nil {
+			return err
+		}
+
 		// filter out items that don't pass read ACLs
 		err = reg.ACLs.Read(authz, authzContext, event.Resource.Id)
 		switch {
@@ -81,15 +91,37 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	}
 }
 
-func validateWatchListRequest(req *pbresource.WatchListRequest) error {
+func (s *Server) validateWatchListRequest(req *pbresource.WatchListRequest) (*resource.Registration, error) {
 	var field string
 	switch {
 	case req.Type == nil:
 		field = "type"
 	case req.Tenancy == nil:
 		field = "tenancy"
-	default:
-		return nil
 	}
-	return status.Errorf(codes.InvalidArgument, "%s is required", field)
+
+	if field != "" {
+		return nil, status.Errorf(codes.InvalidArgument, "%s is required", field)
+	}
+
+	// Check type exists.
+	reg, err := s.resolveType(req.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	// Lowercase
+	resource.Normalize(req.Tenancy)
+
+	// Error when partition scoped and namespace not empty.
+	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped type %s cannot have a namespace. got: %s",
+			resource.ToGVK(req.Type),
+			req.Tenancy.Namespace,
+		)
+	}
+
+	return reg, nil
 }
