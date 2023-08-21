@@ -15,7 +15,7 @@ on:
         required: true
         type: string
       branch-name:
-          required: true
+          required: false
           type: string
           default: "main"
       go-arch:
