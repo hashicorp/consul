@@ -47,6 +47,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
+      branch-name: "main"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
