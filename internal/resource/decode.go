@@ -20,7 +20,7 @@ type DecodedResource[T proto.Message] struct {
 	Data     T
 }
 
-func (d *DecodedResource[V, PV]) GetResource() *pbresource.Resource {
+func (d *DecodedResource[T]) GetResource() *pbresource.Resource {
 	if d == nil {
 		return nil
 	}
@@ -28,9 +28,10 @@ func (d *DecodedResource[V, PV]) GetResource() *pbresource.Resource {
 	return d.Resource
 }
 
-func (d *DecodedResource[V, PV]) GetData() PV {
+func (d *DecodedResource[T]) GetData() T {
 	if d == nil {
-		return nil
+		var zero T
+		return zero
 	}
 
 	return d.Data
