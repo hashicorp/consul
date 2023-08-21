@@ -41,10 +41,10 @@ type routesReconciler struct {
 }
 
 func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
-	// Notably don't inject the resource-id here, since we have to do a fan-out
-	// to multiple resources due to xRoutes having multiple parent refs.
+	// Notably don't inject the resource-id here into the logger, since we have
+	// to do a fan-out to multiple resources due to xRoutes having multiple
+	// parent refs.
 	rt.Logger = rt.Logger.With("controller", StatusKey)
-	// rt.Logger = rt.Logger.With("event-resource-id", resource.IDToString(req.ID))
 
 	rt.Logger.Trace("reconciling computed routes")
 
