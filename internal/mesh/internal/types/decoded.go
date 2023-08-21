@@ -10,11 +10,11 @@ import (
 )
 
 type (
-	DecodedHTTPRoute         = resource.DecodedResource[pbmesh.HTTPRoute, *pbmesh.HTTPRoute]
-	DecodedGRPCRoute         = resource.DecodedResource[pbmesh.GRPCRoute, *pbmesh.GRPCRoute]
-	DecodedTCPRoute          = resource.DecodedResource[pbmesh.TCPRoute, *pbmesh.TCPRoute]
-	DecodedDestinationPolicy = resource.DecodedResource[pbmesh.DestinationPolicy, *pbmesh.DestinationPolicy]
-	DecodedComputedRoutes    = resource.DecodedResource[pbmesh.ComputedRoutes, *pbmesh.ComputedRoutes]
-	DecodedFailoverPolicy    = resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy]
-	DecodedService           = resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service]
+	DecodedHTTPRoute         = resource.DecodedResource[*pbmesh.HTTPRoute]
+	DecodedGRPCRoute         = resource.DecodedResource[*pbmesh.GRPCRoute]
+	DecodedTCPRoute          = resource.DecodedResource[*pbmesh.TCPRoute]
+	DecodedDestinationPolicy = resource.DecodedResource[*pbmesh.DestinationPolicy]
+	DecodedComputedRoutes    = resource.DecodedResource[*pbmesh.ComputedRoutes]
+	DecodedFailoverPolicy    = resource.DecodedResource[*pbcatalog.FailoverPolicy]
+	DecodedService           = resource.DecodedResource[*pbcatalog.Service]
 )
