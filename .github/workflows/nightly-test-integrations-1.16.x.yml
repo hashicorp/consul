@@ -4,11 +4,10 @@
 name: Nightly test-integrations 1.16.x
 
 on:
-  pull_request:
-  # schedule:
-  #   # Run nightly at 1AM UTC/9PM EST/6PM PST
-  #   - cron: '* 1 * * *'
-  # workflow_dispatch: {}
+  schedule:
+    # Run nightly at 1AM UTC/9PM EST/6PM PST
+    - cron: '* 1 * * *'
+  workflow_dispatch: {}
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
@@ -48,6 +47,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
+      branch-name: "release/1.16.x"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 

@@ -4,16 +4,15 @@
 name: test-integrations
 
 on:
-  # pull_request:
-  workflow_dispatch: {}
-    # branches-ignore:
-    #   - stable-website
-    #   - 'docs/**'
-    #   - 'ui/**'
-    #   - 'mktg-**' # Digital Team Terraform-generated branch prefix
-    #   - 'backport/docs/**'
-    #   - 'backport/ui/**'
-    #   - 'backport/mktg-**'
+  pull_request:
+    branches-ignore:
+      - stable-website
+      - 'docs/**'
+      - 'ui/**'
+      - 'mktg-**' # Digital Team Terraform-generated branch prefix
+      - 'backport/docs/**'
+      - 'backport/ui/**'
+      - 'backport/mktg-**'
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results

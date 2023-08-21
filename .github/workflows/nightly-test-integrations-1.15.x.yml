@@ -4,11 +4,10 @@
 name: Nightly test-integrations 1.15.x
 
 on:
-  pull_request:
-  # schedule:
-  #   # Run nightly at 1AM UTC/9PM EST/6PM PST
-  #   - cron: '* 1 * * *'
-  # workflow_dispatch: {}
+  schedule:
+    # Run nightly at 1AM UTC/9PM EST/6PM PST
+    - cron: '* 1 * * *'
+  workflow_dispatch: {}
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
@@ -48,6 +47,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
+      branch-name: "release/1.15.x"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -68,7 +68,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
+          # envoy-version: ["1.22.11", "1.23.12", "1.24.10", "1.25.9"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -125,13 +125,10 @@ jobs:
           path: ./bin
       - name: restore mode+x
         run: chmod +x ./bin/consul
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
-
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
-
       - name: Envoy Integration Tests
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
@@ -199,7 +196,7 @@ jobs:
         consul-version: ["1.14", "1.15"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
-      ENVOY_VERSION: "1.24.10"
+      ENVOY_VERSION: "1.24.6"
     steps:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -224,24 +221,6 @@ jobs:
         run: chmod +x consul
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
-      - name: Build consul-envoy:latest-version image
-        id: buildConsulEnvoyLatestImage
-        run: |
-          if ${{ endsWith(github.repository, '-enterprise') }} == 'true'
-          then
-            docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }}-ent --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-          else
-            docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }}     --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-          fi
-      - name: Build consul-envoy:target-version image
-        id: buildConsulEnvoyTargetImage
-        continue-on-error: true
-        run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-      - name: Retry Build consul-envoy:target-version image
-        if: steps.buildConsulEnvoyTargetImage.outcome == 'failure'
-        run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-      - name: Build sds image
-        run: docker build -t consul-sds-server ./test/integration/connect/envoy/test-sds-server/
       - name: Configure GH workaround for ipv6 loopback
         if: ${{ !endsWith(github.repository, '-enterprise') }}
         run: |
@@ -310,7 +289,6 @@ jobs:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-
 
   test-integrations-success:
     needs: 

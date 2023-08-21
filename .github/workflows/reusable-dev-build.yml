@@ -14,6 +14,10 @@ on:
       repository-name:
         required: true
         type: string
+      branch-name:
+          required: true
+          type: string
+          default: "main"
       go-arch:
         required: false
         type: string
@@ -25,7 +29,10 @@ jobs:
   build:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - name: Checkout code
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          ref: ${{ inputs.branch-name }}
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
