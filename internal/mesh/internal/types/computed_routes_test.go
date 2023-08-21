@@ -43,6 +43,19 @@ func TestValidateComputedRoutes(t *testing.T) {
 			routes:    &pbmesh.ComputedRoutes{},
 			expectErr: `invalid "ported_configs" field: cannot be empty`,
 		},
+		"empty config": {
+			routes: &pbmesh.ComputedRoutes{
+				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+					"http": {
+						Config: nil,
+						Targets: map[string]*pbmesh.BackendTargetDetails{
+							"foo": {},
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within ported_configs: invalid "config" field: cannot be empty`,
+		},
 		"empty targets": {
 			routes: &pbmesh.ComputedRoutes{
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
