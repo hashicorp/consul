@@ -695,27 +695,30 @@ func (c *CheckTCP) run() {
 
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
-	logAndUpdate := func(checkType string, err error) {
-		msg := fmt.Sprintf("%s connect %s: ", checkType, c.TCP)
-		if err != nil {
-			c.Logger.Warn(msg+"failed", "check", c.CheckID.String(), "error", err)
-			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
-			return
-		}
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, msg+"Success")
-	}
+	var conn io.Closer
+	var err error
+	var checkType string
 
 	if c.TLSClientConfig == nil {
-		if conn, err := c.dialer.Dial(`tcp`, c.TCP); err == nil {
-			defer conn.Close()
-			logAndUpdate("TCP", err)
-		}
+		conn, err = c.dialer.Dial(`tcp`, c.TCP)
+		checkType = "TCP"
 	} else {
-		if tlsConn, err := tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig); err == nil {
-			defer tlsConn.Close()
-			logAndUpdate("TCP+TLS", err)
-		}
+		conn, err = tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
+		checkType = "TCP+TLS"
 	}
+
+	if err != nil {
+		c.Logger.Warn(fmt.Sprintf("Check %s connection failed", checkType),
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+
+	conn.Close()
+	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("%s connect %s: Success", checkType, c.TCP))
+
 }
 
 // CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.

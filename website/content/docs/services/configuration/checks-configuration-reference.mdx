@@ -39,7 +39,7 @@ Specify health check options in the `check` block. To register two or more heath
 | `tls_skip_verify` | Boolean value that determines if the check verifies the chain and hostname of the certificate that the server presents. Set to `true` to disable verification. We recommend setting to `false` for production use. Default is `false`. | <li>HTTP </li> <li>H2Ping </li> <li>gRPC </li> <li>TCP </li> |
 | `method` | String value that specifies the request method to send during HTTP checks. Default is `GET`. | <li>HTTP</li> |
 | `header` | Object that specifies header fields to send in HTTP check requests. Each header specified in `header` object contains a list of string values. | <li>HTTP</li> |
-| `body` | String value that contains JSON attributes to send in HTTP check requests. You must escap the quotation marks around the keys and values for each attribute. | <li>HTTP</li> |
+| `body` | String value that contains JSON attributes to send in HTTP check requests. You must escape the quotation marks around the keys and values for each attribute. | <li>HTTP</li> |
 | `disable_redirects` | Boolean value that prevents HTTP checks from following redirects if set to `true`. Default is `false`. | <li>HTTP</li> |
 | `os_service` | String value that specifies the name of the name of a service to check during an OSService check. | <li>OSService</li> |
 | `service_id` | String value that specifies the ID of a service instance to associate with an OSService check. That service instance must be on the same node as the check. If not specified, the check verifies the health of the node. | <li>OSService</li> |

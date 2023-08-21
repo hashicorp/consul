@@ -968,7 +968,7 @@ func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
 	requireCheckExists(t, a, "test-h2cping-check")
 }
 
-func startMockTLSServer(t *testing.T) (addr string, closeFunc func()) {
+func startMockTLSServer(t *testing.T) (addr string, closeFunc func() error) {
 	// Load certificates
 	cert, err := tls.LoadX509KeyPair("../test/key/ourdomain_server.cer", "../test/key/ourdomain_server.key")
 	require.NoError(t, err)
@@ -992,13 +992,11 @@ func startMockTLSServer(t *testing.T) (addr string, closeFunc func()) {
 			if err != nil {
 				return
 			}
-			go func(c net.Conn) {
-				io.Copy(c, c)
-				c.Close()
-			}(conn)
+			io.Copy(io.Discard, conn)
+			conn.Close()
 		}
 	}()
-	return ln.Addr().String(), func() { ln.Close() }
+	return ln.Addr().String(), ln.Close
 }
 
 func TestAgent_AddServiceWithTCPTLSCheck(t *testing.T) {
