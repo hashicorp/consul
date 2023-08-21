@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -16,7 +17,130 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-// TODO(rb): add mutation tests
+func TestMutateHTTPRoute(t *testing.T) {
+	type testcase struct {
+		route     *pbmesh.HTTPRoute
+		expect    *pbmesh.HTTPRoute
+		expectErr string
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		res := resourcetest.Resource(HTTPRouteType, "api").
+			WithData(t, tc.route).
+			Build()
+
+		err := MutateHTTPRoute(res)
+
+		got := resourcetest.MustDecode[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](t, res)
+
+		if tc.expectErr == "" {
+			require.NoError(t, err)
+
+			if tc.expect == nil {
+				tc.expect = proto.Clone(tc.route).(*pbmesh.HTTPRoute)
+			}
+
+			prototest.AssertDeepEqual(t, tc.expect, got.Data)
+		} else {
+			testutil.RequireErrorContains(t, err, tc.expectErr)
+		}
+	}
+
+	cases := map[string]testcase{
+		"no-rules": {
+			route: &pbmesh.HTTPRoute{},
+		},
+		"rules-with-no-matches": {
+			route: &pbmesh.HTTPRoute{
+				Rules: []*pbmesh.HTTPRouteRule{{
+					// none
+				}},
+			},
+		},
+		"rules-with-matches-no-methods": {
+			route: &pbmesh.HTTPRoute{
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "/foo",
+						},
+					}},
+				}},
+			},
+		},
+		"rules-with-matches-methods-uppercase": {
+			route: &pbmesh.HTTPRoute{
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{
+						{
+							Path: &pbmesh.HTTPPathMatch{
+								Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+								Value: "/foo",
+							},
+							Method: "GET",
+						},
+						{
+							Path: &pbmesh.HTTPPathMatch{
+								Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+								Value: "/bar",
+							},
+							Method: "POST",
+						},
+					},
+				}},
+			},
+		},
+		"rules-with-matches-methods-lowercase": {
+			route: &pbmesh.HTTPRoute{
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{
+						{
+							Path: &pbmesh.HTTPPathMatch{
+								Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+								Value: "/foo",
+							},
+							Method: "get",
+						},
+						{
+							Path: &pbmesh.HTTPPathMatch{
+								Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+								Value: "/bar",
+							},
+							Method: "post",
+						},
+					},
+				}},
+			},
+			expect: &pbmesh.HTTPRoute{
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{
+						{
+							Path: &pbmesh.HTTPPathMatch{
+								Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+								Value: "/foo",
+							},
+							Method: "GET",
+						},
+						{
+							Path: &pbmesh.HTTPPathMatch{
+								Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+								Value: "/bar",
+							},
+							Method: "POST",
+						},
+					},
+				}},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
 
 func TestValidateHTTPRoute(t *testing.T) {
 	type testcase struct {
