@@ -31,7 +31,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 		err := ValidateDestinationPolicy(res)
 
 		// Verify that validate didn't actually change the object.
-		got := resourcetest.MustDecode[pbmesh.DestinationPolicy, *pbmesh.DestinationPolicy](t, res)
+		got := resourcetest.MustDecode[*pbmesh.DestinationPolicy](t, res)
 		prototest.AssertDeepEqual(t, tc.policy, got.Data)
 
 		if tc.expectErr != "" && len(tc.expectErrs) > 0 {

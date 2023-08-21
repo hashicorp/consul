@@ -29,7 +29,7 @@ func TestValidateTCPRoute(t *testing.T) {
 		err := ValidateTCPRoute(res)
 
 		// Verify that validate didn't actually change the object.
-		got := resourcetest.MustDecode[pbmesh.TCPRoute, *pbmesh.TCPRoute](t, res)
+		got := resourcetest.MustDecode[*pbmesh.TCPRoute](t, res)
 		prototest.AssertDeepEqual(t, tc.route, got.Data)
 
 		if tc.expectErr == "" {

@@ -29,7 +29,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		err := ValidateGRPCRoute(res)
 
 		// Verify that validate didn't actually change the object.
-		got := resourcetest.MustDecode[pbmesh.GRPCRoute, *pbmesh.GRPCRoute](t, res)
+		got := resourcetest.MustDecode[*pbmesh.GRPCRoute](t, res)
 		prototest.AssertDeepEqual(t, tc.route, got.Data)
 
 		if tc.expectErr == "" {

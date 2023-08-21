@@ -28,7 +28,7 @@ func TestValidateComputedRoutes(t *testing.T) {
 		err := ValidateComputedRoutes(res)
 
 		// Verify that validate didn't actually change the object.
-		got := resourcetest.MustDecode[pbmesh.ComputedRoutes, *pbmesh.ComputedRoutes](t, res)
+		got := resourcetest.MustDecode[*pbmesh.ComputedRoutes](t, res)
 		prototest.AssertDeepEqual(t, tc.routes, got.Data)
 
 		if tc.expectErr == "" {

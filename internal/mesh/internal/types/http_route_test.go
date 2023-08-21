@@ -33,7 +33,7 @@ func TestMutateHTTPRoute(t *testing.T) {
 
 		err := MutateHTTPRoute(res)
 
-		got := resourcetest.MustDecode[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](t, res)
+		got := resourcetest.MustDecode[*pbmesh.HTTPRoute](t, res)
 
 		if tc.expectErr == "" {
 			require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		err = ValidateHTTPRoute(res)
 
 		// Verify that validate didn't actually change the object.
-		got := resourcetest.MustDecode[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](t, res)
+		got := resourcetest.MustDecode[*pbmesh.HTTPRoute](t, res)
 		prototest.AssertDeepEqual(t, tc.route, got.Data)
 
 		if tc.expectErr == "" {
