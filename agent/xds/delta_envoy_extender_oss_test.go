@@ -21,12 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
+	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -803,7 +803,7 @@ end`,
 						}
 
 						sort.Slice(msgs, entity.sorter(msgs))
-						r, err := createResponse(entity.key, "00000001", "00000001", msgs)
+						r, err := response.CreateResponse(entity.key, "00000001", "00000001", msgs)
 						require.NoError(t, err)
 
 						t.Run(entity.name, func(t *testing.T) {

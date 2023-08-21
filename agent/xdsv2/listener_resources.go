@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xdsv2
 
 import (
@@ -39,6 +42,20 @@ const (
 	envoyHttpInspectorListenerFilterName       = "envoy.filters.listener.http_inspector"
 	envoyHttpConnectionManagerFilterName       = "envoy.filters.network.http_connection_manager"
 )
+
+func (pr *ProxyResources) makeXDSListeners() ([]proto.Message, error) {
+	listeners := make([]proto.Message, 0)
+
+	for _, l := range pr.proxyState.Listeners {
+		protoListener, err := pr.makeListener(l)
+		// TODO: aggregate errors for listeners and still return any properly formed listeners.
+		if err != nil {
+			return nil, err
+		}
+		listeners = append(listeners, protoListener)
+	}
+	return listeners, nil
+}
 
 func (pr *ProxyResources) makeListener(listener *pbproxystate.Listener) (*envoy_listener_v3.Listener, error) {
 	envoyListener := &envoy_listener_v3.Listener{}
@@ -281,7 +298,7 @@ func (pr *ProxyResources) makeEnvoyResourcesForSNIDestination(sni *pbproxystate.
 }
 
 func (pr *ProxyResources) makeEnvoyResourcesForL4Destination(l4 *pbproxystate.Router_L4) ([]*envoy_listener_v3.Filter, error) {
-	err := pr.makeCluster(l4.L4.Name)
+	err := pr.makeEnvoyClusterFromL4Destination(l4.L4.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +413,7 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 			},
 		}
 
-		routeConfig, err := pr.makeRoute(l7.Name)
+		routeConfig, err := pr.makeEnvoyRoute(l7.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -632,7 +649,7 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 			// if tls is nil but connection tls is provided, then the proxy state is misconfigured
 			return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
 		}
-		om := ts.ConnectionTls.(*pbproxystate.TransportSocket_OutboundMesh).OutboundMesh
+		om := ts.GetOutboundMesh()
 		leaf, ok := pr.proxyState.LeafCertificates[om.IdentityKey]
 		if !ok {
 			return nil, fmt.Errorf("leaf %s not found in proxyState", om.IdentityKey)

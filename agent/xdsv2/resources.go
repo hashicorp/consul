@@ -1,11 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xdsv2
 
 import (
 	"fmt"
-
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
@@ -46,24 +45,31 @@ func (g *ResourceGenerator) AllResourcesFromIR(proxyState *pbmesh.ProxyState) (m
 }
 
 func (pr *ProxyResources) generateXDSResources() error {
-	listeners := make([]proto.Message, 0)
-	clusters := make([]proto.Message, 0)
-	routes := make([]proto.Message, 0)
-	endpoints := make([]proto.Message, 0)
-
-	for _, l := range pr.proxyState.Listeners {
-		protoListener, err := pr.makeListener(l)
-		// TODO: aggregate errors for listeners and still return any properly formed listeners.
-		if err != nil {
-			return err
-		}
-		listeners = append(listeners, protoListener)
+	listeners, err := pr.makeXDSListeners()
+	if err != nil {
+		return err
 	}
+	pr.envoyResources[xdscommon.ListenerType] = listeners
 
 	pr.envoyResources[xdscommon.ListenerType] = listeners
+
+	clusters, err := pr.makeXDSClusters()
+	if err != nil {
+		return err
+	}
 	pr.envoyResources[xdscommon.ClusterType] = clusters
-	pr.envoyResources[xdscommon.RouteType] = routes
+
+	endpoints, err := pr.makeXDSEndpoints()
+	if err != nil {
+		return err
+	}
 	pr.envoyResources[xdscommon.EndpointType] = endpoints
+
+	routes, err := pr.makeXDSRoutes()
+	if err != nil {
+		return err
+	}
+	pr.envoyResources[xdscommon.RouteType] = routes
 
 	return nil
 }

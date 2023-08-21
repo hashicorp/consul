@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 syntax = "proto3";
 
@@ -30,7 +30,7 @@ message ProxyStateTemplate {
 }
 
 message ProxyState {
-  // identity is a reference to the WorkloadIdentity associated with this proxy.
+  // identity is a reference to the identity of the workload this proxy is for.
   hashicorp.consul.resource.Reference identity = 1;
   // listeners is a list of listeners for this proxy.
   repeated pbproxystate.Listener listeners = 2;
