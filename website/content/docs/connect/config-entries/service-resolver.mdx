@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Service Resolver Configuration Entry Reference
-description: >- 
+description: >-
   Service resolver configuration entries are L7 traffic management tools for defining sets of service instances that resolve upstream requests and Consul’s behavior when resolving them. Learn how to write `service-resolver` config entries in HCL or YAML with a specification reference, configuration model, a complete example, and example code by use case.
 ---
 
@@ -136,8 +136,8 @@ When every field is defined, a service resolver configuration entry has the foll
 ```hcl
 Kind      = "service-resolver"                                     ## required
 Name      = "<name-of-service-configuration-applies-to>"
-Namespace = "<namespace-configuration-applies-to>" 
-Partition = "<partition-configuration-applies-to>" 
+Namespace = "<namespace-configuration-applies-to>"
+Partition = "<partition-configuration-applies-to>"
 Meta = {
  <key> = "<value>"
 }
@@ -220,7 +220,7 @@ LoadBalancer = {
   "Kind":"service-resolver",                             // required
   "Name":"<name-of-service-configuration-applies-to>",
   "Namespace":"<namespace-configuration-applies-to>",
-  "Partition":"parition-configuration-applies-to>", 
+  "Partition":"partition-configuration-applies-to>",
   "Meta":{
    "<key>":"<value>"
   },
@@ -288,7 +288,7 @@ LoadBalancer = {
        },
        "SourceIP":false,                       // cannot specify with Field or FieldValue
        "Terminal":false
-    } 
+    }
    ]
   }
 }
@@ -300,7 +300,7 @@ LoadBalancer = {
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1         # required
-kind: ServiceResolver                             # required            
+kind: ServiceResolver                             # required
 metadata:
   name: <serviceName>
   namespace: <namespace>
@@ -315,7 +315,7 @@ spec:
       filter: <expression.to.match.on == value02>
       onlyPassing: false
   defaultSubset: <definedSubsetName>
-  redirect:                                 
+  redirect:
     service: <serviceName>
     servicesubset: <subsetName>
     namespace: <namespaceName>
@@ -323,7 +323,7 @@ spec:
     samenessGroup: <samenessGroupName>
     peer: <peerName>
   failover:                         # requires at least one of the following: service, serviceSubset, namespace, targets, datacenters, samenessGroup
-    <localSubsetName>: 
+    <localSubsetName>:
       targets:
       - service: <serviceName>
       - serviceSubset: <serviceSubset>
@@ -445,7 +445,7 @@ For additional guidance, refer to the [filter on service version configuration e
 - Data type: Map containing a key-value pair.
   - `<KEY>`: String that names the subset. The string must be valid as a DNS subdomain element.
   - `<VALUE>`: Map that can contain the following parameters:
-  
+
     | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
     | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
     | `Filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2). For more information about creating and using expressions to filter, refer to [filtering](/consul/api-docs/features/filtering).     | String    | None    |
@@ -557,7 +557,7 @@ This parameter is a map, and its key is the name of the local service subset tha
   - [`SamenessGroup`](#failover-samenessgroup)
   - [`Datacenters`](#failover-datacenters)
   - [`Targets`](#failover-targets)
-  
+
 ### `Failover{}.Service`
 
 Specifies the name of the service to resolve at the failover location during a failover scenario.
@@ -706,10 +706,10 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 - Data type: String containing one of the following values:
 
   - `random`
-  - `round_robin` 
+  - `round_robin`
   - `least_request`
-  - `ring_hash` 
-  - `maglev`  
+  - `ring_hash`
+  - `maglev`
 
 ### `LoadBalancer{}.LeastRequestConfig`
 
@@ -719,7 +719,7 @@ Specifies configuration for the `least_request` policy type.
 
 - Default: None
 - Data type: Map containing the following parameter:
-  
+
   | Parameter     | Description                                                                                        | Data type | Default |
   | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
   | `ChoiceCount` | Specifies the number of random healthy hosts from which to select the one with the least requests. | Integer   | `2`     |
@@ -732,7 +732,7 @@ Specifies configuration for the `ring_hash` policy type.
 
 - Default: None
 - Data type: List that can contain the following parameters:
-  
+
   | Parameter     | Description                                                    | Data type | Default |
   | :------------ | :------------------------------------------------------------- | --------- | ------- |
   | `MinimumRingSize` | Determines the minimum number of entries in the hash ring. | Integer   | `1024`  |
@@ -789,7 +789,7 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
 
 - Default: None
 - Data type: Map that can contain the following parameters:
-  
+
   | Parameter      | Description                                                                       | Data type | Default |
   | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
   | `Session`      | Directs Consul to generate a session cookie with no expiration.                   | Boolean   | `false` |
@@ -798,13 +798,13 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
 
 ### `LoadBalancer{}.HashPolicies[].SourceIP`
 
-Determines if the hash type should besource IP address. You cannot specify `SourceIP` if `Field` or `FieldValue` are configured.
+Determines if the hash type should be source IP address. You cannot specify `SourceIP` if `Field` or `FieldValue` are configured.
 
 #### Values
 
 - Default: `false`
 - Data type: Boolean
-  
+
 ### `LoadBalancer{}.HashPolicies[].Terminal`
 
  Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored.
@@ -813,14 +813,14 @@ Determines if the hash type should besource IP address. You cannot specify `Sour
 
 - Default: `false`
 - Data type: Boolean
-  
+
 </Tab>
 
 <Tab heading="YAML" group="yaml">
 
 ### `apiVersion`
 
-Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`. 
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
 
 #### Values
 
@@ -840,7 +840,7 @@ Specifies the type of configuration entry to implement. Must be set to `ServiceR
 
 ## `metadata`
 
-Map that contains an arbitrary name for the configuration entry and the namespace it applies to. 
+Map that contains an arbitrary name for the configuration entry and the namespace it applies to.
 
 #### Values
 
@@ -1019,7 +1019,7 @@ This parameter is a map, and its key is the name of the local service subset tha
   - [`samenessGroup`](#spec-failover-samenessgroup)
   - [`datacenters`](#spec-failover-datacenters)
   - [`targets`](#spec-failover-targets)
-  
+
 ### `spec.failover.service`
 
 Specifies the name of the service to resolve at the failover location during a failover scenario.
@@ -1167,9 +1167,9 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 - Data type: String containing one of the following values:
 
   - `random`
-  - `round_robin` 
+  - `round_robin`
   - `least_request`
-  - `ring_hash` 
+  - `ring_hash`
   - `maglev`
 
 ### `spec.loadBalancer.leastRequestConfig`
@@ -1180,7 +1180,7 @@ Specifies configuration for the `least_request` policy type.
 
 - Default: None
 - Data type: Map containing the following parameter:
-  
+
   | Parameter     | Description                                                                                        | Data type | Default |
   | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
   | `choiceCount` | Specifies the number of random healthy hosts from which to select the one with the least requests. | Integer   | `2`     |
@@ -1193,7 +1193,7 @@ Specifies configuration for the `ring_hash` policy type.
 
 - Default: None
 - Data type: List that can contain the following parameters:
-  
+
   | Parameter     | Description                                                    | Data type | Default |
   | :------------ | :------------------------------------------------------------- | --------- | ------- |
   | `minimumRingSize` | Determines the minimum number of entries in the hash ring. | Integer   | `1024`  |
@@ -1217,7 +1217,7 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
 
  Specifies the attribute type to hash on. You cannot specify the `field` parameter if `sourceIP` is also configured.
 
-Supported attribute types include the following: 
+Supported attribute types include the following:
 
 | Attribute | Description                                                     |
 | :--------- | :-------------------------------------------------------------- |
@@ -1250,7 +1250,7 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
 
 - Default: None
 - Data type: Map that can contain the following parameters:
-  
+
   | Parameter      | Description                                                                       | Data type | Default |
   | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
   | `session`      | Directs Consul to generate a session cookie with no expiration.                   | Boolean   | `false` |
@@ -1259,7 +1259,7 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
 
 ### `spec.loadBalancer.hashPolicies[].sourceIP`
 
-Determines if the hash type should besource IP address. You cannot specify `sourceIP` if `field` or `fieldValue` are configured.
+Determines if the hash type should be source IP address. You cannot specify `sourceIP` if `field` or `fieldValue` are configured.
 
 #### Values
 
@@ -1346,7 +1346,7 @@ spec:
 
 ### Resolve virtual upstreams
 
-The folowing example uses the [`Redirect` parameter](#redirect) to expose a set of services to another datacenter as a virtual service.
+The following example uses the [`Redirect` parameter](#redirect) to expose a set of services to another datacenter as a virtual service.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">

@@ -163,8 +163,9 @@ func (g ConnectContainer) GetStatus() (string, error) {
 type SidecarConfig struct {
 	Name         string
 	ServiceID    string
-	Namespace    string
 	EnableTProxy bool
+	Namespace    string
+	Partition    string
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by

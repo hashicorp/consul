@@ -18,6 +18,14 @@ type DependencyMapper func(
 	res *pbresource.Resource,
 ) ([]Request, error)
 
+// CustomDependencyMapper is called when an Event occurs to determine which of the
+// controller's managed resources need to be reconciled.
+type CustomDependencyMapper func(
+	ctx context.Context,
+	rt Runtime,
+	event Event,
+) ([]Request, error)
+
 // MapOwner implements a DependencyMapper that returns the updated resource's owner.
 func MapOwner(_ context.Context, _ Runtime, res *pbresource.Resource) ([]Request, error) {
 	var reqs []Request

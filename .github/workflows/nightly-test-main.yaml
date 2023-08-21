@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly Test Main
+name: Nightly Frontend Test Main
 on:
   schedule:
     - cron: '0 4 * * *'

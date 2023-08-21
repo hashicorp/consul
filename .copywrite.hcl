@@ -25,9 +25,11 @@ project {
     "agent/proxycfg/proxycfg.deepcopy.go",
     "agent/grpc-middleware/rate_limit_mappings.gen.go",
     "agent/uiserver/dist/**",
+
     # licensed under MPL - ignoring for now until the copywrite tool can support
     # multiple licenses per repo.
     "sdk/**",
     "api/**",
+    "proto-public/**",
   ]
 }
