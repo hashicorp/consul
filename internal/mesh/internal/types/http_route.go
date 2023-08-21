@@ -98,8 +98,6 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 			}
 		}
 
-		// TODO(rb): port a bunch of validation from ServiceRouterConfigEntry.Validate
-
 		for j, match := range rule.Matches {
 			wrapMatchErr := func(err error) error {
 				return wrapRuleErr(resource.ErrInvalidListElement{
