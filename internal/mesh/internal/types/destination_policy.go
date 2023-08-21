@@ -88,7 +88,7 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 				if _, ok := lb.Config.(*pbmesh.LoadBalancer_RingHashConfig); ok {
 					merr = multierror.Append(merr, wrapLBErr(resource.ErrInvalidField{
 						Name:    "config",
-						Wrapped: fmt.Errorf("RingHashConfig specified for incompatible load balancing policy %q", lb.Policy),
+						Wrapped: fmt.Errorf("ring_hash_config specified for incompatible load balancing policy %q", lb.Policy),
 					}))
 				}
 			}
@@ -97,7 +97,7 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 				if _, ok := lb.Config.(*pbmesh.LoadBalancer_LeastRequestConfig); ok {
 					merr = multierror.Append(merr, wrapLBErr(resource.ErrInvalidField{
 						Name:    "config",
-						Wrapped: fmt.Errorf("LeastRequestConfig specified for incompatible load balancing policy %q", lb.Policy),
+						Wrapped: fmt.Errorf("least_request_config specified for incompatible load balancing policy %q", lb.Policy),
 					}))
 				}
 			}
