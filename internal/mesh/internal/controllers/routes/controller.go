@@ -20,10 +20,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	metaManagedBy = "managed-by-controller"
-)
-
 func Controller() controller.Controller {
 	mapper := xroutemapper.New()
 
@@ -135,10 +131,7 @@ func upsertComputedRoutes(
 		Resource: &pbresource.Resource{
 			Id:    id,
 			Owner: ownerID,
-			Metadata: map[string]string{
-				metaManagedBy: StatusKey,
-			},
-			Data: mcData,
+			Data:  mcData,
 		},
 	})
 	if err != nil {
