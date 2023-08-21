@@ -56,18 +56,32 @@ func compile(
 	parentServiceRef := resource.Reference(parentServiceID, "")
 
 	parentServiceDec := related.GetService(parentServiceID)
+	if parentServiceDec == nil {
+		return &ComputedRoutesResult{
+			ID:      computedRoutesID,
+			OwnerID: parentServiceID,
+			Data:    nil, // returning nil signals a delete is requested
+		}
+	}
+	parentServiceID = parentServiceDec.Resource.Id // get ULID out of it
 
-	allowedPortProtocols := make(map[string]pbcatalog.Protocol)
-	inMesh := false
-	if parentServiceDec != nil {
-		parentServiceID = parentServiceDec.Resource.Id // get ULID out of it
+	var (
+		inMesh               = false
+		allowedPortProtocols = make(map[string]pbcatalog.Protocol)
+	)
+	for _, port := range parentServiceDec.Data.Ports {
+		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+			inMesh = true
+			continue // skip
+		}
+		allowedPortProtocols[port.TargetPort] = port.Protocol
+	}
 
-		for _, port := range parentServiceDec.Data.Ports {
-			if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-				inMesh = true
-				continue // skip
-			}
-			allowedPortProtocols[port.TargetPort] = port.Protocol
+	if !inMesh {
+		return &ComputedRoutesResult{
+			ID:      computedRoutesID,
+			OwnerID: parentServiceID,
+			Data:    nil, // returning nil signals a delete is requested
 		}
 	}
 
@@ -276,10 +290,6 @@ func compile(
 		}
 
 		computedRoutes.PortedConfigs[port] = mc
-	}
-
-	if !inMesh {
-		computedRoutes = nil
 	}
 
 	return &ComputedRoutesResult{
