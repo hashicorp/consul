@@ -153,7 +153,10 @@ func TestValidateHTTPRoute(t *testing.T) {
 			WithData(t, tc.route).
 			Build()
 
-		err := ValidateHTTPRoute(res)
+		err := MutateHTTPRoute(res)
+		require.NoError(t, err)
+
+		err = ValidateHTTPRoute(res)
 
 		// Verify that validate didn't actually change the object.
 		got := resourcetest.MustDecode[pbmesh.HTTPRoute, *pbmesh.HTTPRoute](t, res)
@@ -176,6 +179,248 @@ func TestValidateHTTPRoute(t *testing.T) {
 			},
 			expectErr: `invalid "hostnames" field: should not populate hostnames`,
 		},
+		"no rules": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+			},
+		},
+		"rules with no matches": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"rules with matches that are empty": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						// none
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"path match with no type is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Value: "/foo",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid "path" field: invalid "type" field: missing required field`,
+		},
+		"exact path match with no leading slash is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_EXACT,
+							Value: "foo",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid "path" field: invalid "value" field: exact patch value does not start with '/': "foo"`,
+		},
+		"prefix path match with no leading slash is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "foo",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid "path" field: invalid "value" field: prefix patch value does not start with '/': "foo"`,
+		},
+		"exact path match with leading slash is good": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_EXACT,
+							Value: "/foo",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"prefix path match with leading slash is good": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "/foo",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"header match with no type is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Headers: []*pbmesh.HTTPHeaderMatch{{
+							Name: "x-foo",
+						}},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid element at index 0 of list "headers": invalid "type" field: missing required field`,
+		},
+		"header match with no name is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Headers: []*pbmesh.HTTPHeaderMatch{{
+							Type: pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+						}},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid element at index 0 of list "headers": invalid "name" field: missing required field`,
+		},
+		"header match is good": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Headers: []*pbmesh.HTTPHeaderMatch{{
+							Type: pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+							Name: "x-foo",
+						}},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"queryparam match with no type is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						QueryParams: []*pbmesh.HTTPQueryParamMatch{{
+							Name: "x-foo",
+						}},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid element at index 0 of list "query_params": invalid "type" field: missing required field`,
+		},
+		"queryparam match with no name is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						QueryParams: []*pbmesh.HTTPQueryParamMatch{{
+							Type: pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_EXACT,
+						}},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid element at index 0 of list "query_params": invalid "name" field: missing required field`,
+		},
+		"queryparam match is good": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						QueryParams: []*pbmesh.HTTPQueryParamMatch{{
+							Type: pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_EXACT,
+							Name: "x-foo",
+						}},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+
+		// queryparam match with no type is bad
+		// queryparam match with no name is bad
+
+		// method match with bad name is bad
+
+		// TODO: filters
+
 	}
 
 	// TODO(rb): add rest of tests for the matching logic
@@ -337,6 +582,15 @@ func getXRouteBackendRefTestCases() map[string]xRouteBackendRefTestcase {
 				},
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid element at index 1 of list "backend_refs": invalid "backend_ref" field: invalid "datacenter" field: datacenter is not yet supported on backend refs`,
+		},
+		"good backend ref": {
+			refs: []*pbmesh.BackendReference{
+				newBackendRef(catalog.ServiceType, "api", ""),
+				{
+					Ref:  newRef(catalog.ServiceType, "db"),
+					Port: "http",
+				},
+			},
 		},
 	}
 }

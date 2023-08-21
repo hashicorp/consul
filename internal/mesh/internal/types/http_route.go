@@ -197,8 +197,6 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 				}
 			}
 
-			// This is just a simple placeholder validation stolen from the
-			// config entry version.
 			if match.Method != "" && !isValidHTTPMethod(match.Method) {
 				merr = multierror.Append(merr, wrapMatchErr(
 					resource.ErrInvalidField{
