@@ -713,10 +713,33 @@ func TestValidateHTTPRoute(t *testing.T) {
 				}},
 			},
 		},
-
-		// retries: bad on_conditions
-		// retries: good on_conditions
-
+		"backend ref with filters is unsupported": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						Filters: []*pbmesh.HTTPRouteFilter{{
+							RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{},
+						}},
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "backend_refs": invalid "filters" field: filters are not supported at this level yet`,
+		},
+		"nil backend ref": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					BackendRefs: []*pbmesh.HTTPBackendRef{nil},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "backend_refs": invalid "backend_ref" field: missing required field`,
+		},
 	}
 
 	// Add common parent refs test cases.
@@ -813,6 +836,13 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 				newParentRef(catalog.ServiceType, "api", ""),
 			},
 			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for ports [http] covered by wildcard port already`,
+		},
+		"duplicate parents via exact+wild overlap (reversed)": {
+			refs: []*pbmesh.ParentReference{
+				newParentRef(catalog.ServiceType, "api", ""),
+				newParentRef(catalog.ServiceType, "api", "http"),
+			},
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for port "http" covered by wildcard port already`,
 		},
 		"good single parent ref": {
 			refs: []*pbmesh.ParentReference{
