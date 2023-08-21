@@ -5,9 +5,11 @@ package types
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -413,18 +415,309 @@ func TestValidateHTTPRoute(t *testing.T) {
 				}},
 			},
 		},
+		"method match is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Method: "BOB",
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid "method" field: not a valid http method: "BOB"`,
+		},
+		"method match is good": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Method: "DELETE",
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"filter empty is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						// none
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "filters": exactly one of request_header_modifier, response_header_modifier, or url_rewrite`,
+		},
+		"filter req header mod is ok": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"filter resp header mod is ok": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"filter rewrite header mod missing path prefix": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						UrlRewrite: &pbmesh.HTTPURLRewriteFilter{},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "filters": invalid "url_rewrite" field: invalid "path_prefix" field: missing required field`,
+		},
+		"filter rewrite header mod is ok": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						UrlRewrite: &pbmesh.HTTPURLRewriteFilter{
+							PathPrefix: "/blah",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"filter req+resp header mod is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						RequestHeaderModifier:  &pbmesh.HTTPHeaderFilter{},
+						ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "filters": exactly one of request_header_modifier, response_header_modifier, or url_rewrite`,
+		},
+		"filter req+rewrite header mod is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{},
+						UrlRewrite: &pbmesh.HTTPURLRewriteFilter{
+							PathPrefix: "/blah",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "filters": exactly one of request_header_modifier, response_header_modifier, or url_rewrite`,
+		},
+		"filter resp+rewrite header mod is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{},
+						UrlRewrite: &pbmesh.HTTPURLRewriteFilter{
+							PathPrefix: "/blah",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "filters": exactly one of request_header_modifier, response_header_modifier, or url_rewrite`,
+		},
+		"filter req+resp+rewrite header mod is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{{
+						RequestHeaderModifier:  &pbmesh.HTTPHeaderFilter{},
+						ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{},
+						UrlRewrite: &pbmesh.HTTPURLRewriteFilter{
+							PathPrefix: "/blah",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "filters": exactly one of request_header_modifier, response_header_modifier, or url_rewrite`,
+		},
+		"timeout: bad request": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Timeouts: &pbmesh.HTTPRouteTimeouts{
+						Request: durationpb.New(-1 * time.Second),
+					},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid "timeouts" field: invalid "request" field: timeout cannot be negative: -1s`,
+		},
+		"timeout: bad backend request": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Timeouts: &pbmesh.HTTPRouteTimeouts{
+						BackendRequest: durationpb.New(-1 * time.Second),
+					},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid "timeouts" field: invalid "backend_request" field: timeout cannot be negative: -1s`,
+		},
+		"timeout: bad idle": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Timeouts: &pbmesh.HTTPRouteTimeouts{
+						Idle: durationpb.New(-1 * time.Second),
+					},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid "timeouts" field: invalid "idle" field: timeout cannot be negative: -1s`,
+		},
+		"timeout: good all": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Timeouts: &pbmesh.HTTPRouteTimeouts{
+						Request:        durationpb.New(1 * time.Second),
+						BackendRequest: durationpb.New(2 * time.Second),
+						Idle:           durationpb.New(3 * time.Second),
+					},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
+		"retries: bad number": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Retries: &pbmesh.HTTPRouteRetries{
+						Number: -5,
+					},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid "retries" field: invalid "number" field: cannot be negative: -5`,
+		},
+		"retries: bad conditions": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Retries: &pbmesh.HTTPRouteRetries{
+						OnConditions: []string{"garbage"},
+					},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid "retries" field: invalid element at index 0 of list "on_conditions": not a valid retry condition: "garbage"`,
+		},
+		"retries: good all": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Retries: &pbmesh.HTTPRouteRetries{
+						Number:       5,
+						OnConditions: []string{"internal"},
+					},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+		},
 
-		// queryparam match with no type is bad
-		// queryparam match with no name is bad
-
-		// method match with bad name is bad
-
-		// TODO: filters
+		// retries: bad on_conditions
+		// retries: good on_conditions
 
 	}
-
-	// TODO(rb): add rest of tests for the matching logic
-	// TODO(rb): add rest of tests for the retry and timeout logic
 
 	// Add common parent refs test cases.
 	for name, parentTC := range getXRouteParentRefTestCases() {

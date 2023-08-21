@@ -332,7 +332,7 @@ func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 		val := timeouts.BackendRequest.AsDuration()
 		if val < 0 {
 			errs = append(errs, resource.ErrInvalidField{
-				Name:    "request",
+				Name:    "backend_request",
 				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
 			})
 		}
@@ -356,6 +356,13 @@ func validateHTTPRetries(retries *pbmesh.HTTPRouteRetries) []error {
 	}
 
 	var errs []error
+
+	if retries.Number < 0 {
+		errs = append(errs, resource.ErrInvalidField{
+			Name:    "number",
+			Wrapped: fmt.Errorf("cannot be negative: %v", retries.Number),
+		})
+	}
 
 	for i, condition := range retries.OnConditions {
 		if !isValidRetryCondition(condition) {
