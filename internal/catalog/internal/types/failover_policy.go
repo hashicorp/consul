@@ -139,6 +139,18 @@ func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool) []err
 		}
 	}
 
+	switch config.Mode {
+	case pbcatalog.FailoverMode_FAILOVER_MODE_UNSPECIFIED:
+		// means pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL
+	case pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL:
+	case pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY:
+	default:
+		errs = append(errs, resource.ErrInvalidField{
+			Name:    "mode",
+			Wrapped: fmt.Errorf("not a supported enum value: %v", config.Mode),
+		})
+	}
+
 	// TODO: validate sameness group requirements
 
 	return errs

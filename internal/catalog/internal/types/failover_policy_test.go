@@ -200,6 +200,15 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				SamenessGroup: "blah",
 			},
 		},
+		"mode: invalid": {
+			config: &pbcatalog.FailoverConfig{
+				Mode: 99,
+				Destinations: []*pbcatalog.FailoverDestination{
+					{Ref: newRef(ServiceType, "api-backup")},
+				},
+			},
+			expectErr: `invalid "mode" field: not a supported enum value: 99`,
+		},
 		"dest: no ref": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
