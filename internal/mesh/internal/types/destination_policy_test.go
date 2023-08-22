@@ -94,6 +94,29 @@ func TestValidateDestinationPolicy(t *testing.T) {
 			expectErr: `invalid value of key "http" within port_configs: invalid "request_timeout" field: '-55s', must be >= 0`,
 		},
 		// load balancer
+		"lbpolicy: missing enum": {
+			policy: &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						ConnectTimeout: durationpb.New(55 * time.Second),
+						LoadBalancer:   &pbmesh.LoadBalancer{},
+					},
+				},
+			},
+		},
+		"lbpolicy: bad enum": {
+			policy: &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						ConnectTimeout: durationpb.New(55 * time.Second),
+						LoadBalancer: &pbmesh.LoadBalancer{
+							Policy: 99,
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid "policy" field: not a supported enum value: 99`,
+		},
 		"lbpolicy: supported": {
 			policy: &pbmesh.DestinationPolicy{
 				PortConfigs: map[string]*pbmesh.DestinationConfig{
@@ -122,7 +145,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid "config" field: least_request_config specified for incompatible load balancing policy "LOAD_BALANCER_POLICY_RING_HASH"`,
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid "config" field: least_request_config specified for incompatible load balancing policy "LOAD_BALANCER_POLICY_RING_HASH"`,
 		},
 		"lbpolicy: bad for ring hash config": {
 			policy: &pbmesh.DestinationPolicy{
@@ -140,7 +163,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid "config" field: ring_hash_config specified for incompatible load balancing policy "LOAD_BALANCER_POLICY_LEAST_REQUEST"`,
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid "config" field: ring_hash_config specified for incompatible load balancing policy "LOAD_BALANCER_POLICY_LEAST_REQUEST"`,
 		},
 		"lbpolicy: good for least request config": {
 			policy: &pbmesh.DestinationPolicy{
@@ -189,7 +212,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid "hash_policies" field: hash_policies specified for non-hash-based policy "LOAD_BALANCER_POLICY_UNSPECIFIED"`,
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid "hash_policies" field: hash_policies specified for non-hash-based policy "LOAD_BALANCER_POLICY_UNSPECIFIED"`,
 		},
 		"lbconfig: cookie config with header policy": {
 			policy: &pbmesh.DestinationPolicy{
@@ -212,7 +235,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid element at index 0 of list "hash_policies": invalid "cookie_config" field: incompatible with field "HASH_POLICY_FIELD_HEADER"`,
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "cookie_config" field: incompatible with field "HASH_POLICY_FIELD_HEADER"`,
 		},
 		"lbconfig: cannot generate session cookie with ttl": {
 			policy: &pbmesh.DestinationPolicy{
@@ -235,7 +258,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid element at index 0 of list "hash_policies": invalid "cookie_config" field: invalid "ttl" field: a session cookie cannot have an associated TTL`,
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "cookie_config" field: invalid "ttl" field: a session cookie cannot have an associated TTL`,
 		},
 		"lbconfig: valid cookie policy": {
 			policy: &pbmesh.DestinationPolicy{
@@ -259,6 +282,25 @@ func TestValidateDestinationPolicy(t *testing.T) {
 				},
 			},
 		},
+		"lbconfig: bad match field": {
+			policy: &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						ConnectTimeout: durationpb.New(55 * time.Second),
+						LoadBalancer: &pbmesh.LoadBalancer{
+							Policy: pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_MAGLEV,
+							HashPolicies: []*pbmesh.HashPolicy{
+								{
+									Field:      99,
+									FieldValue: "X-Consul-Token",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field" field: not a supported enum value: 99`,
+		},
 		"lbconfig: supported match field": {
 			policy: &pbmesh.DestinationPolicy{
 				PortConfigs: map[string]*pbmesh.DestinationConfig{
@@ -275,6 +317,27 @@ func TestValidateDestinationPolicy(t *testing.T) {
 						},
 					},
 				},
+			},
+		},
+		"lbconfig: missing match field": {
+			policy: &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						ConnectTimeout: durationpb.New(55 * time.Second),
+						LoadBalancer: &pbmesh.LoadBalancer{
+							Policy: pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_MAGLEV,
+							HashPolicies: []*pbmesh.HashPolicy{
+								{
+									FieldValue: "X-Consul-Token",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErrs: []string{
+				`invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field" field: missing required field`,
+				`invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field_value" field: requires a field to apply to`,
 			},
 		},
 		"lbconfig: cannot match on source address and custom field": {
@@ -295,8 +358,8 @@ func TestValidateDestinationPolicy(t *testing.T) {
 				},
 			},
 			expectErrs: []string{
-				`invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid element at index 0 of list "hash_policies": invalid "field" field: a single hash policy cannot hash both a source address and a "HASH_POLICY_FIELD_HEADER"`,
-				`invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid element at index 0 of list "hash_policies": invalid "field_value" field: field "HASH_POLICY_FIELD_HEADER" was specified without a field_value`,
+				`invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field" field: a single hash policy cannot hash both a source address and a "HASH_POLICY_FIELD_HEADER"`,
+				`invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field_value" field: field "HASH_POLICY_FIELD_HEADER" was specified without a field_value`,
 			},
 		},
 		"lbconfig: matchvalue not compatible with source address": {
@@ -317,8 +380,8 @@ func TestValidateDestinationPolicy(t *testing.T) {
 				},
 			},
 			expectErrs: []string{
-				`invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid element at index 0 of list "hash_policies": invalid "field_value" field: cannot be specified when hashing source_ip`,
-				`invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid element at index 0 of list "hash_policies": invalid "field_value" field: requires a field to apply to`,
+				`invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field_value" field: cannot be specified when hashing source_ip`,
+				`invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field_value" field: requires a field to apply to`,
 			},
 		},
 		"lbconfig: field without match value": {
@@ -337,7 +400,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid element at index 0 of list "hash_policies": invalid "field_value" field: field "HASH_POLICY_FIELD_HEADER" was specified without a field_value`,
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field_value" field: field "HASH_POLICY_FIELD_HEADER" was specified without a field_value`,
 		},
 		"lbconfig: matchvalue without field": {
 			policy: &pbmesh.DestinationPolicy{
@@ -355,7 +418,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid value of key "http" within load_balancer: invalid element at index 0 of list "hash_policies": invalid "field_value" field: requires a field to apply to`,
+			expectErr: `invalid value of key "http" within port_configs: invalid "load_balancer" field: invalid element at index 0 of list "hash_policies": invalid "field_value" field: requires a field to apply to`,
 		},
 		"lbconfig: ring hash kitchen sink": {
 			policy: &pbmesh.DestinationPolicy{
@@ -402,6 +465,40 @@ func TestValidateDestinationPolicy(t *testing.T) {
 					},
 				},
 			},
+		},
+		"locality: good mode": {
+			policy: &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						LocalityPrioritization: &pbmesh.LocalityPrioritization{
+							Mode: pbmesh.LocalityPrioritizationMode_LOCALITY_PRIORITIZATION_MODE_FAILOVER,
+						},
+					},
+				},
+			},
+		},
+		"locality: unset mode": {
+			policy: &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						LocalityPrioritization: &pbmesh.LocalityPrioritization{
+							Mode: pbmesh.LocalityPrioritizationMode_LOCALITY_PRIORITIZATION_MODE_UNSPECIFIED,
+						},
+					},
+				},
+			},
+		},
+		"locality: bad mode": {
+			policy: &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						LocalityPrioritization: &pbmesh.LocalityPrioritization{
+							Mode: 99,
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within port_configs: invalid "locality_prioritization" field: invalid "mode" field: not a supported enum value: 99`,
 		},
 	}
 

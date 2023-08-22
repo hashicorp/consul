@@ -77,11 +77,25 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 		if pc.LoadBalancer != nil {
 			lb := pc.LoadBalancer
 			wrapLBErr := func(err error) error {
-				return wrapErr(resource.ErrInvalidMapValue{
-					Map:     "load_balancer",
-					Key:     port,
+				return wrapErr(resource.ErrInvalidField{
+					Name:    "load_balancer",
 					Wrapped: err,
 				})
+			}
+
+			switch lb.Policy {
+			case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_UNSPECIFIED:
+				// means just do the default
+			case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_RANDOM:
+			case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_ROUND_ROBIN:
+			case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_LEAST_REQUEST:
+			case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_MAGLEV:
+			case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_RING_HASH:
+			default:
+				merr = multierror.Append(merr, wrapLBErr(resource.ErrInvalidField{
+					Name:    "policy",
+					Wrapped: fmt.Errorf("not a supported enum value: %v", lb.Policy),
+				}))
 			}
 
 			if lb.Policy != pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_RING_HASH && lb.Config != nil {
@@ -109,6 +123,7 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 				}))
 			}
 
+		LOOP:
 			for i, hp := range lb.HashPolicies {
 				wrapHPErr := func(err error) error {
 					return wrapLBErr(resource.ErrInvalidListElement{
@@ -118,7 +133,20 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 					})
 				}
 
-				hasField := (hp.Field != pbmesh.HashPolicyField_HASH_POLICY_FIELD_UNSPECIFIED)
+				var hasField bool
+				switch hp.Field {
+				case pbmesh.HashPolicyField_HASH_POLICY_FIELD_UNSPECIFIED:
+				case pbmesh.HashPolicyField_HASH_POLICY_FIELD_HEADER,
+					pbmesh.HashPolicyField_HASH_POLICY_FIELD_COOKIE,
+					pbmesh.HashPolicyField_HASH_POLICY_FIELD_QUERY_PARAMETER:
+					hasField = true
+				default:
+					merr = multierror.Append(merr, wrapHPErr(resource.ErrInvalidField{
+						Name:    "field",
+						Wrapped: fmt.Errorf("not a supported enum value: %v", hp.Field),
+					}))
+					continue LOOP // no need to keep validating
+				}
 
 				if hp.SourceIp {
 					if hasField {
@@ -143,6 +171,10 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 				}
 				if hp.FieldValue != "" && !hasField {
 					merr = multierror.Append(merr, wrapHPErr(resource.ErrInvalidField{
+						Name:    "field",
+						Wrapped: resource.ErrMissing,
+					}))
+					merr = multierror.Append(merr, wrapHPErr(resource.ErrInvalidField{
 						Name:    "field_value",
 						Wrapped: errors.New("requires a field to apply to"),
 					}))
@@ -164,6 +196,28 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 						}))
 					}
 				}
+			}
+		}
+
+		if pc.LocalityPrioritization != nil {
+			lp := pc.LocalityPrioritization
+			wrapLPErr := func(err error) error {
+				return wrapErr(resource.ErrInvalidField{
+					Name:    "locality_prioritization",
+					Wrapped: err,
+				})
+			}
+
+			switch lp.Mode {
+			case pbmesh.LocalityPrioritizationMode_LOCALITY_PRIORITIZATION_MODE_UNSPECIFIED:
+				// means pbmesh.LocalityPrioritizationMode_LOCALITY_PRIORITIZATION_MODE_NONE
+			case pbmesh.LocalityPrioritizationMode_LOCALITY_PRIORITIZATION_MODE_NONE:
+			case pbmesh.LocalityPrioritizationMode_LOCALITY_PRIORITIZATION_MODE_FAILOVER:
+			default:
+				merr = multierror.Append(merr, wrapLPErr(resource.ErrInvalidField{
+					Name:    "mode",
+					Wrapped: fmt.Errorf("not a supported enum value: %v", lp.Mode),
+				}))
 			}
 		}
 	}
