@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 syntax = "proto3";
 
@@ -14,19 +14,21 @@ message TLS {
 }
 
 message TransportSocket {
+  // name of the transport socket
+  string name = 1;
   oneof connection_tls {
     // inbound_mesh is for incoming connections FROM the mesh.
-    InboundMeshMTLS inbound_mesh = 1;
+    InboundMeshMTLS inbound_mesh = 2;
     // outbound_mesh is for outbound connections TO mesh destinations.
-    OutboundMeshMTLS outbound_mesh = 2;
+    OutboundMeshMTLS outbound_mesh = 3;
     // inbound_non_mesh is for incoming connections FROM non mesh.
-    InboundNonMeshTLS inbound_non_mesh = 3;
+    InboundNonMeshTLS inbound_non_mesh = 4;
     // outbound_non_mesh is for outbound connections TO non mesh destinations.
-    OutboundNonMeshTLS outbound_non_mesh = 4;
+    OutboundNonMeshTLS outbound_non_mesh = 5;
   }
   // tls_parameters can override any top level tls parameters that are configured.
-  TLSParameters tls_parameters = 5;
-  repeated string alpn_protocols = 6;
+  TLSParameters tls_parameters = 6;
+  repeated string alpn_protocols = 7;
 }
 
 message InboundMeshMTLS {

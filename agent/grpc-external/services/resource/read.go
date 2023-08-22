@@ -27,7 +27,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	// pbresource.Tenacy follows rules for V2 resources and the Resource service.
 	// Example:
 	//
-	//    An OSS namespace scoped resource:
+	//    A CE namespace scoped resource:
 	//      V1: EnterpriseMeta{}
 	//      V2: Tenancy {Partition: "default", Namespace: "default"}
 	//

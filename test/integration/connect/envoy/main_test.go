@@ -55,7 +55,6 @@ func TestEnvoy(t *testing.T) {
 	}
 }
 
-
 func runCmdLinux(t *testing.T, c string, env ...string) {
 	t.Helper()
 
@@ -96,7 +95,7 @@ func runCmd(t *testing.T, c string, env ...string) {
 	}
 }
 
-// Discover the cases so we pick up both oss and ent copies.
+// Discover the cases so we pick up both ce and ent copies.
 func discoverCases() ([]string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {

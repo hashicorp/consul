@@ -357,7 +357,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		if !c.Enterprise {
 			expect := []*Partition{{Name: "default", Namespaces: []string{"default"}}}
 			if !reflect.DeepEqual(c.Partitions, expect) {
-				return nil, fmt.Errorf("cluster %q references non-default partitions or namespaces but is OSS", c.Name)
+				return nil, fmt.Errorf("cluster %q references non-default partitions or namespaces but is CE", c.Name)
 			}
 		}
 	}
@@ -393,7 +393,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			}
 		} else {
 			if p.Dialing.Partition != "default" {
-				return nil, fmt.Errorf("dialing side of peering cannot reference a partition when OSS")
+				return nil, fmt.Errorf("dialing side of peering cannot reference a partition when CE")
 			}
 		}
 		if acceptingCluster.Enterprise {
@@ -402,7 +402,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			}
 		} else {
 			if p.Accepting.Partition != "default" {
-				return nil, fmt.Errorf("accepting side of peering cannot reference a partition when OSS")
+				return nil, fmt.Errorf("accepting side of peering cannot reference a partition when CE")
 			}
 		}
 
