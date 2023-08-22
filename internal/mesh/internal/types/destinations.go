@@ -26,16 +26,12 @@ func RegisterDestinations(r resource.Registry) {
 	})
 }
 
-func MutateDestinations(res *pbresource.Resource) error {
-	var destinations pbmesh.Destinations
+var MutateDestinations = resource.DecodeAndMutate(mutateDestinations)
 
-	if err := res.Data.UnmarshalTo(&destinations); err != nil {
-		return resource.NewErrDataParse(&destinations, err)
-	}
-
+func mutateDestinations(res *DecodedDestinations) (bool, error) {
 	changed := false
 
-	for _, dest := range destinations.Destinations {
+	for _, dest := range res.Data.Destinations {
 		if dest.DestinationRef == nil {
 			continue // skip; let the validation hook error out instead
 		}
@@ -56,41 +52,33 @@ func MutateDestinations(res *pbresource.Resource) error {
 		}
 	}
 
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&destinations)
+	return changed, nil
 }
 
 func isLocalPeer(p string) bool {
 	return p == "local" || p == ""
 }
 
-func ValidateDestinations(res *pbresource.Resource) error {
-	var destinations pbmesh.Destinations
+var ValidateDestinations = resource.DecodeAndValidate(validateDestinations)
 
-	if err := res.Data.UnmarshalTo(&destinations); err != nil {
-		return resource.NewErrDataParse(&destinations, err)
-	}
-
+func validateDestinations(res *DecodedDestinations) error {
 	var merr error
 
-	if selErr := catalog.ValidateSelector(destinations.Workloads, false); selErr != nil {
+	if selErr := catalog.ValidateSelector(res.Data.Workloads, false); selErr != nil {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
 		})
 	}
 
-	if destinations.GetPqDestinations() != nil {
+	if res.Data.GetPqDestinations() != nil {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "pq_destinations",
 			Wrapped: resource.ErrUnsupported,
 		})
 	}
 
-	for i, dest := range destinations.Destinations {
+	for i, dest := range res.Data.Destinations {
 		wrapDestErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "destinations",

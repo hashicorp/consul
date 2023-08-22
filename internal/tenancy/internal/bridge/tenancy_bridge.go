@@ -5,8 +5,9 @@ package bridge
 
 import (
 	"context"
-	"github.com/hashicorp/consul/internal/tenancy/internal/types"
+
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 // V2TenancyBridge is used by the resource service to access V2 implementations of
@@ -34,7 +35,7 @@ func (b *V2TenancyBridge) NamespaceExists(partition, namespace string) (bool, er
 			Tenancy: &pbresource.Tenancy{
 				Partition: partition,
 			},
-			Type: types.NamespaceType,
+			Type: pbtenancy.NamespaceType,
 		},
 	})
 	return read != nil && read.Resource != nil, err
@@ -47,7 +48,7 @@ func (b *V2TenancyBridge) IsNamespaceMarkedForDeletion(partition, namespace stri
 			Tenancy: &pbresource.Tenancy{
 				Partition: partition,
 			},
-			Type: types.NamespaceType,
+			Type: pbtenancy.NamespaceType,
 		},
 	})
 	return read.Resource != nil, err
