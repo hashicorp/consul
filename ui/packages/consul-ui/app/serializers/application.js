@@ -227,7 +227,7 @@ export default class ApplicationSerializer extends Serializer {
     // create a Set and add version with only major.minor : ex-1.24.6 as 1.24
     let versionSet = new Set();
     payload.forEach(function (item) {
-      if (item.Meta && item.Meta['consul-version'] !== '') {
+      if (item.Meta && item.Meta['consul-version']) {
         const split = item.Meta['consul-version'].split('.');
         versionSet.add(split[0] + '.' + split[1]);
       }
