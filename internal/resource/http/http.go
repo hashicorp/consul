@@ -180,9 +180,13 @@ func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[strin
 	if namespace == "" {
 		namespace = query.Get("ns")
 	}
+	peer := query.Get("peer")
+	if peer == "" {
+		peer = query.Get("peer_name")
+	}
 	tenancy = &pbresource.Tenancy{
 		Partition: query.Get("partition"),
-		PeerName:  query.Get("peer"),
+		PeerName:  peer,
 		Namespace: namespace,
 	}
 
