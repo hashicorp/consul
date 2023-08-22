@@ -198,7 +198,7 @@ jobs:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   # dev-build-arm64:
-  #   # only run on enterprise because GHA does not have arm64 runners in OSS
+  #   # only run on enterprise because GHA does not have arm64 runners in CE
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
@@ -212,7 +212,7 @@ jobs:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   # go-test-arm64:
-  #   # only run on enterprise because GHA does not have arm64 runners in OSS
+  #   # only run on enterprise because GHA does not have arm64 runners in CE
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
@@ -230,7 +230,7 @@ jobs:
   #     consul-license: ${{secrets.CONSUL_LICENSE}}
   #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-oss:
+  go-test-ce:
     needs:
     - setup
     - dev-build
@@ -474,7 +474,7 @@ jobs:
     - lint-32bit
     # - go-test-arm64
     - go-test-enterprise
-    - go-test-oss
+    - go-test-ce
     - go-test-race
     - go-test-envoyextensions
     - go-test-troubleshoot

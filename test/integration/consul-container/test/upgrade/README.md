@@ -67,9 +67,9 @@ disable following container logs, run the test with `-follow-log false`.
 Below are the supported CLI options
 | Flags      | Default value | Description |
 | -----------         | ----------- | ----------- |
-| --latest-image      | `consul` in OSS, `hashicorp/consulenterprise` in ENT    | Name of the Docker image to deploy initially.
+| --latest-image      | `consul` in CE, `hashicorp/consulenterprise` in ENT    | Name of the Docker image to deploy initially.
 | --latest-version    | latest      | Tag of the Docker image to deploy initially.
-| --target-image      | `consul` in OSS, `hashicorp/consulenterprise` in ENT    | Name of the Docker image to upgrade to.
+| --target-image      | `consul` in Ce, `hashicorp/consulenterprise` in ENT    | Name of the Docker image to upgrade to.
 | --target-version    | local     | Tag of the Docker image to upgrade to. `local` is the tag built by `make dev-docker` above.
 | -follow-log         |  true    | Emit all container logs. These can be noisy, so we recommend `--follow-log=false` for local development.
 

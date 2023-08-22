@@ -3390,7 +3390,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 			}
 
 			if tc.expectUnchanged {
-				// EnterpriseMeta.Normalize behaves differently in Ent and OSS which
+				// EnterpriseMeta.Normalize behaves differently in Ent and CE which
 				// causes an exact comparison to fail. It's still useful to assert that
 				// nothing else changes though during Normalize. So we ignore
 				// EnterpriseMeta Defaults.
