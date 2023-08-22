@@ -1177,6 +1177,26 @@ func aclRoleSetTxn(tx WriteTxn, idx uint64, role *structs.ACLRole, allowMissing 
 		}
 	}
 
+	for _, templatedPolicy := range role.TemplatedPolicies {
+		if templatedPolicy.TemplateName == "" {
+			return fmt.Errorf("encountered a Role %s (%s) with an empty templated policy name in the state store", role.Name, role.ID)
+		}
+
+		baseTemplate, ok := structs.GetACLTemplatedPolicyBase(templatedPolicy.TemplateName)
+		if !ok {
+			return fmt.Errorf("encountered a Role %s (%s) with an invalid templated policy name %q", role.Name, role.ID, templatedPolicy.TemplateName)
+		}
+
+		if templatedPolicy.TemplateID == "" {
+			templatedPolicy.TemplateID = baseTemplate.TemplateID
+		}
+
+		err := templatedPolicy.ValidateTemplatedPolicy(baseTemplate.Schema)
+		if err != nil {
+			return fmt.Errorf("encountered a Role %s (%s) with an invalid templated policy: %w", role.Name, role.ID, err)
+		}
+	}
+
 	if err := aclRoleUpsertValidateEnterprise(tx, role, existing); err != nil {
 		return err
 	}
