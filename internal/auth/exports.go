@@ -4,7 +4,10 @@
 package auth
 
 import (
+	"github.com/hashicorp/consul/internal/auth/internal/controllers"
+	"github.com/hashicorp/consul/internal/auth/internal/mappers/trafficpermissionsmapper"
 	"github.com/hashicorp/consul/internal/auth/internal/types"
+	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 )
 
@@ -37,4 +40,16 @@ func RegisterTypes(r resource.Registry) {
 	types.Register(r)
 }
 
-// All we need is a resource controller that is already registered?
+type ControllerDependencies = controllers.Dependencies
+
+func DefaultControllerDependencies() ControllerDependencies {
+	return ControllerDependencies{
+		ComputedTrafficPermissionsMapper: trafficpermissionsmapper.New(),
+	}
+}
+
+// RegisterControllers registers controllers for the auth types with
+// the given controller manager.
+func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
+	controllers.Register(mgr, deps)
+}

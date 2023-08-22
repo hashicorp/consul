@@ -4,9 +4,8 @@
 package types
 
 import (
-	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -16,8 +15,8 @@ const (
 
 var (
 	WorkloadIdentityV1Alpha1Type = &pbresource.Type{
-		Group:        types.GroupName,
-		GroupVersion: types.VersionV1Alpha1,
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
 		Kind:         WorkloadIdentityKind,
 	}
 
@@ -27,15 +26,17 @@ var (
 func RegisterWorkloadIdentity(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     WorkloadIdentityV1Alpha1Type,
-		Proto:    &pbcatalog.Workload{},
-		Validate: types.ValidateWorkload,
+		Proto:    &pbauth.WorkloadIdentity{},
+		Validate: ValidateWorkloadIdentity,
 	})
 }
 
 func ValidateWorkloadIdentity(res *pbresource.Resource) error {
-	var workloadIdentity pbcatalog.WorkloadIdentity
+	var workloadIdentity pbauth.WorkloadIdentity
 
-	// TODO: check some things?
+	if err := res.Data.UnmarshalTo(&workloadIdentity); err != nil {
+		return resource.NewErrDataParse(&workloadIdentity, err)
+	}
 
 	return nil
 }

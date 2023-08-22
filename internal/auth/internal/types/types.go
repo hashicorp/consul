@@ -11,6 +11,9 @@ const (
 	GroupName       = "auth"
 	VersionV1Alpha1 = "v1alpha1"
 	CurrentVersion  = VersionV1Alpha1
+
+	ActionAllow = "allow"
+	ActionDeny  = "deny"
 )
 
 func Register(r resource.Registry) {
