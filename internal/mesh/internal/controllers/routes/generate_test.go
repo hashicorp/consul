@@ -445,4 +445,97 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		}
 		run(t, related, expect, 0)
 	})
+
+	t.Run("all ports with a wildcard route only bypassing the protocol", func(t *testing.T) {
+		apiServiceData := &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"api-"},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "tcp", Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+				{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+				{TargetPort: "http2", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+				{TargetPort: "grpc", Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+			},
+		}
+
+		fooServiceData := &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"foo-"},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "tcp", Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+				{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+				{TargetPort: "http2", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+				{TargetPort: "grpc", Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+			},
+		}
+
+		httpRoute1 := &pbmesh.HTTPRoute{
+			ParentRefs: []*pbmesh.ParentReference{
+				newParentRef(newRef(catalog.ServiceType, "api"), ""),
+			},
+			Rules: []*pbmesh.HTTPRouteRule{{
+				BackendRefs: []*pbmesh.HTTPBackendRef{{
+					BackendRef: newBackendRef(fooServiceRef, "", ""),
+				}},
+			}},
+		}
+
+		related := loader.NewRelatedResources().
+			AddComputedRoutesIDs(apiComputedRoutesID).
+			AddResources(
+				newService("api", apiServiceData),
+				newService("foo", fooServiceData),
+				newHTTPRoute("api-http-route1", httpRoute1),
+			)
+
+		chunk := func(portName string) *pbmesh.ComputedPortRoutes {
+			return &pbmesh.ComputedPortRoutes{
+				Config: &pbmesh.ComputedPortRoutes_Http{
+					Http: &pbmesh.ComputedHTTPRoute{
+						ParentRef: newParentRef(apiServiceRef, portName),
+						Rules: []*pbmesh.ComputedHTTPRouteRule{
+							{
+								Matches: defaultHTTPRouteMatches(),
+								BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+									BackendTarget: backendName("foo", portName),
+								}},
+							},
+							{
+								Matches: defaultHTTPRouteMatches(),
+								BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+									BackendTarget: types.NullRouteBackend,
+								}},
+							},
+						},
+					},
+				},
+				Targets: map[string]*pbmesh.BackendTargetDetails{
+					backendName("foo", portName): {
+						BackendRef: newBackendRef(fooServiceRef, portName, ""),
+						Service:    fooServiceData,
+					},
+				},
+			}
+		}
+
+		expect := []*ComputedRoutesResult{
+			{
+				ID:      apiComputedRoutesID,
+				OwnerID: apiServiceID,
+				Data: &pbmesh.ComputedRoutes{
+					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+						"tcp":   chunk("tcp"),
+						"http":  chunk("http"),
+						"http2": chunk("http2"),
+						"grpc":  chunk("grpc"),
+					},
+				},
+			},
+		}
+		run(t, related, expect, 0)
+	})
 }
