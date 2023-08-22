@@ -106,10 +106,11 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		opts = &api.QueryOptions{
-			Namespace: c.http.Namespace(),
-			Partition: c.http.Partition(),
-			Peer:      c.http.PeerName(),
-			Token:     c.http.Token(),
+			Namespace:         c.http.Namespace(),
+			Partition:         c.http.Partition(),
+			Peer:              c.http.PeerName(),
+			Token:             c.http.Token(),
+			RequireConsistent: c.http.Stale(),
 		}
 	}
 
@@ -164,9 +165,9 @@ func (c *cmd) Help() string {
 
 const synopsis = "Read resource information"
 const help = `
-Usage: consul resource read [type] [name] -partition=<default> -namespace=<default> -peer=<local> -consistent=<false> -json
+Usage: consul resource read [type] [name] -partition=<default> -namespace=<default> -peer=<local>
 
-Reads the resource specified by the given type, name, partition, namespace, peer and reading mode
+Reads the resource specified by the given type, name, partition, namespace and peer
 and outputs its JSON representation.
 
 Example:

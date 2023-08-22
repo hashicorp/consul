@@ -199,6 +199,9 @@ func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[strin
 	params["resourceName"] = resourceName
 	params["version"] = query.Get("version")
 	params["namePrefix"] = query.Get("name_prefix")
+	// coming from command line
+	params["consistent"] = query.Get("RequireConsistent")
+	// coming from http client
 	if _, ok := query["consistent"]; ok {
 		params["consistent"] = "true"
 	}
