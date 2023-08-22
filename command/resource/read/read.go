@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package read
 
@@ -70,9 +70,9 @@ func (c *cmd) Run(args []string) int {
 			}
 
 			gvk = &api.GVK{
-				Group: parsedResource.Id.Type.GetGroup(),
+				Group:   parsedResource.Id.Type.GetGroup(),
 				Version: parsedResource.Id.Type.GetGroupVersion(),
-				Kind: parsedResource.Id.Type.GetKind(),
+				Kind:    parsedResource.Id.Type.GetKind(),
 			}
 			resourceName = parsedResource.Id.GetName()
 			opts = &api.QueryOptions{
