@@ -172,7 +172,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Value: []byte("foo"),
 	})
 	fsm.state.KVSDelete(12, "/remove", nil)
-	idx, _, err := fsm.state.KVSList(nil, "/remove", nil)
+	idx, _, err := fsm.state.KVSList(nil, "/remove", nil, 0)
 	require.NoError(t, err)
 	require.EqualValues(t, 12, idx, "bad index")
 

@@ -42,25 +42,25 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		if idx, err := g.GetMaxIndexTxn(tx, "foo", nil); idx != 8 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "foo", nil, 0); idx != 8 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/in/the/house", nil); idx != 2 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "foo/in/the/house", nil, 0); idx != 2 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/baz", nil); idx != 5 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "foo/bar/baz", nil, 0); idx != 5 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/zoo", nil); idx != 8 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "foo/bar/zoo", nil, 0); idx != 8 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "some/other/path", nil); idx != 9 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "some/other/path", nil, 0); idx != 9 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "", nil); idx != 9 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "", nil, 0); idx != 9 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "nope", nil); idx != 0 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "nope", nil, 0); idx != 0 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
 	}()
@@ -81,25 +81,25 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		if idx, err := g.GetMaxIndexTxn(tx, "foo", nil); idx != 8 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "foo", nil, 0); idx != 8 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/in/the/house", nil); idx != 0 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "foo/in/the/house", nil, 0); idx != 0 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/baz", nil); idx != 0 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "foo/bar/baz", nil, 0); idx != 0 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/zoo", nil); idx != 8 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "foo/bar/zoo", nil, 0); idx != 8 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "some/other/path", nil); idx != 9 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "some/other/path", nil, 0); idx != 9 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "", nil); idx != 9 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "", nil, 0); idx != 9 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "nope", nil); idx != 0 || err != nil {
+		if idx, _, err := g.GetMaxIndexTxn(tx, "nope", nil, 0); idx != 0 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
 	}()
