@@ -4,6 +4,8 @@
 package routes
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -102,10 +104,12 @@ func compile(
 		)
 		for _, ref := range xroute.GetParentRefs() {
 			if resource.ReferenceOrIDMatch(ref.Ref, parentServiceRef) {
-				ports = append(ports, ref.Port)
 				if ref.Port == "" {
 					wildcardedPort = true
 					break
+				}
+				if _, ok := allowedPortProtocols[ref.Port]; ok {
+					ports = append(ports, ref.Port)
 				}
 			}
 		}
@@ -127,37 +131,16 @@ func compile(
 				panic("impossible to have an empty port here")
 			}
 
-			// Check if the user provided port is actually valid.
-			nullRouteTraffic := (parentServiceDec == nil)
-			if _, ok := allowedPortProtocols[port]; !ok {
-				nullRouteTraffic = true
-			}
-
 			var node *inputRouteNode
 			switch route := xroute.(type) {
 			case *pbmesh.HTTPRoute:
-				if nullRouteTraffic {
-					node = newInputRouteNode(port)
-					setupDefaultHTTPRouteNode(node, types.NullRouteBackend)
-				} else {
-					node = compileHTTPRouteNode(port, res, route, related)
-				}
+				node = compileHTTPRouteNode(port, res, route, related)
 			case *pbmesh.GRPCRoute:
-				if nullRouteTraffic {
-					node = newInputRouteNode(port)
-					setupDefaultGRPCRouteNode(node, types.NullRouteBackend)
-				} else {
-					node = compileGRPCRouteNode(port, res, route, related)
-				}
+				node = compileGRPCRouteNode(port, res, route, related)
 			case *pbmesh.TCPRoute:
-				if nullRouteTraffic {
-					node = newInputRouteNode(port)
-					setupDefaultTCPRouteNode(node, types.NullRouteBackend)
-				} else {
-					node = compileTCPRouteNode(port, res, route, related)
-				}
+				node = compileTCPRouteNode(port, res, route, related)
 			default:
-				return // unknown xroute type (impossible)
+				panic(fmt.Sprintf("unexpected xroute type: %T", xroute))
 			}
 
 			routeNodesByPort[node.ParentPort] = append(routeNodesByPort[node.ParentPort], node)
@@ -168,6 +151,8 @@ func compile(
 	for port, protocol := range allowedPortProtocols {
 		if _, ok := routeNodesByPort[port]; !ok {
 			var typ *pbresource.Type
+
+			// enumcover:pbcatalog.Protocol
 			switch protocol {
 			case pbcatalog.Protocol_PROTOCOL_HTTP2:
 				typ = types.HTTPRouteType
@@ -177,8 +162,10 @@ func compile(
 				typ = types.GRPCRouteType
 			case pbcatalog.Protocol_PROTOCOL_TCP:
 				typ = types.TCPRouteType
+			case pbcatalog.Protocol_PROTOCOL_MESH:
+				fallthrough // to default
 			default:
-				continue // unknown protocol (impossible through validation)
+				continue // not possible
 			}
 
 			routeNode := createDefaultRouteNode(parentServiceRef, port, typ)
@@ -271,7 +258,7 @@ func compile(
 
 			svc := related.GetService(svcRef)
 			failoverPolicy := related.GetFailoverPolicyForService(svcRef)
-			destConfig := related.GetDestinationPolicy(svcRef)
+			destConfig := related.GetDestinationPolicyForService(svcRef)
 
 			if svc == nil {
 				panic("impossible at this point; should already have been handled before getting here")
@@ -535,13 +522,16 @@ func createDefaultRouteNode(
 	})
 	switch {
 	case resource.EqualType(types.HTTPRouteType, typ):
-		setupDefaultHTTPRouteNode(routeNode, defaultBackendTarget)
+		routeNode.RouteType = types.HTTPRouteType
+		appendDefaultHTTPRouteRule(routeNode, defaultBackendTarget)
 	case resource.EqualType(types.GRPCRouteType, typ):
-		setupDefaultGRPCRouteNode(routeNode, defaultBackendTarget)
+		routeNode.RouteType = types.GRPCRouteType
+		appendDefaultGRPCRouteRule(routeNode, defaultBackendTarget)
 	case resource.EqualType(types.TCPRouteType, typ):
 		fallthrough
 	default:
-		setupDefaultTCPRouteNode(routeNode, defaultBackendTarget)
+		routeNode.RouteType = types.TCPRouteType
+		appendDefaultTCPRouteRule(routeNode, defaultBackendTarget)
 	}
 
 	routeNode.Default = true
@@ -564,14 +554,6 @@ func appendDefaultRouteNode(
 	}
 }
 
-func setupDefaultHTTPRouteNode(
-	routeNode *inputRouteNode,
-	defaultBackendTarget string,
-) {
-	routeNode.RouteType = types.HTTPRouteType
-	appendDefaultHTTPRouteRule(routeNode, defaultBackendTarget)
-}
-
 func appendDefaultHTTPRouteRule(
 	routeNode *inputRouteNode,
 	backendTarget string,
@@ -584,14 +566,6 @@ func appendDefaultHTTPRouteRule(
 	})
 }
 
-func setupDefaultGRPCRouteNode(
-	routeNode *inputRouteNode,
-	defaultBackendTarget string,
-) {
-	routeNode.RouteType = types.GRPCRouteType
-	appendDefaultGRPCRouteRule(routeNode, defaultBackendTarget)
-}
-
 func appendDefaultGRPCRouteRule(
 	routeNode *inputRouteNode,
 	backendTarget string,
@@ -602,14 +576,6 @@ func appendDefaultGRPCRouteRule(
 			BackendTarget: backendTarget,
 		}},
 	})
-}
-
-func setupDefaultTCPRouteNode(
-	routeNode *inputRouteNode,
-	defaultBackendTarget string,
-) {
-	routeNode.RouteType = types.TCPRouteType
-	appendDefaultTCPRouteRule(routeNode, defaultBackendTarget)
 }
 
 func appendDefaultTCPRouteRule(
