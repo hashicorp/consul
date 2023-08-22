@@ -32,9 +32,11 @@ func GenerateComputedRoutes(
 }
 
 type ComputedRoutesResult struct {
-	ID      *pbresource.ID
+	// ID is always required.
+	ID *pbresource.ID
+	// OwnerID is only required on upserts.
 	OwnerID *pbresource.ID
-	// If Data is empty it means delete if exists.
+	// Data being empty means delete if exists.
 	Data *pbmesh.ComputedRoutes
 }
 
@@ -58,9 +60,8 @@ func compile(
 	parentServiceDec := related.GetService(parentServiceID)
 	if parentServiceDec == nil {
 		return &ComputedRoutesResult{
-			ID:      computedRoutesID,
-			OwnerID: parentServiceID,
-			Data:    nil, // returning nil signals a delete is requested
+			ID:   computedRoutesID,
+			Data: nil, // returning nil signals a delete is requested
 		}
 	}
 	parentServiceID = parentServiceDec.Resource.Id // get ULID out of it
@@ -79,9 +80,8 @@ func compile(
 
 	if !inMesh {
 		return &ComputedRoutesResult{
-			ID:      computedRoutesID,
-			OwnerID: parentServiceID,
-			Data:    nil, // returning nil signals a delete is requested
+			ID:   computedRoutesID,
+			Data: nil, // returning nil signals a delete is requested
 		}
 	}
 
@@ -178,7 +178,7 @@ func compile(
 			case pbcatalog.Protocol_PROTOCOL_TCP:
 				typ = types.TCPRouteType
 			default:
-				typ = types.TCPRouteType
+				continue // unknown protocol (impossible through validation)
 			}
 
 			routeNode := createDefaultRouteNode(parentServiceRef, port, typ)
