@@ -7,10 +7,11 @@ import (
 	"math"
 	"sort"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -72,6 +73,17 @@ func ValidateWorkload(res *pbresource.Resource) error {
 				Wrapped: resource.ErrInvalidField{
 					Name:    "port",
 					Wrapped: errInvalidPhysicalPort,
+				},
+			})
+		}
+
+		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
+			err = multierror.Append(err, resource.ErrInvalidMapValue{
+				Map: "ports",
+				Key: portName,
+				Wrapped: resource.ErrInvalidField{
+					Name:    "protocol",
+					Wrapped: protoErr,
 				},
 			})
 		}
