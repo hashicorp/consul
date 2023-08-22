@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // The protohcl package aims to define a canonical way to translate between
 // protobuf and HCL encodings of data.
 //
