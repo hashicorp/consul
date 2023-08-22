@@ -275,7 +275,7 @@ func (ct *commonTopo) APIClientForCluster(t *testing.T, clu *topology.Cluster) *
 func (ct *commonTopo) ExportService(clu *topology.Cluster, partition string, svcs ...api.ExportedService) {
 	var found bool
 	for _, ce := range clu.InitialConfigEntries {
-		// We check Name because it must be "default" in OSS whereas Partition will be "".
+		// We check Name because it must be "default" in CE whereas Partition will be "".
 		if ce.GetKind() == api.ExportedServices && ce.GetName() == partition {
 			found = true
 			e := ce.(*api.ExportedServicesConfigEntry)
@@ -285,7 +285,7 @@ func (ct *commonTopo) ExportService(clu *topology.Cluster, partition string, svc
 	if !found {
 		clu.InitialConfigEntries = append(clu.InitialConfigEntries,
 			&api.ExportedServicesConfigEntry{
-				Name:      partition, // this NEEDs to be "default" in OSS
+				Name:      partition, // this NEEDs to be "default" in CE
 				Partition: ConfigEntryPartition(partition),
 				Services:  svcs,
 			},
@@ -305,11 +305,11 @@ func (ct *commonTopo) ClusterByDatacenter(t *testing.T, name string) *topology.C
 	return nil
 }
 
-// Since OSS config entries do not contain the partition field,
+// Since CE config entries do not contain the partition field,
 // this func converts default partition to empty string.
 func ConfigEntryPartition(p string) string {
 	if p == "default" {
-		return "" // make this OSS friendly
+		return "" // make this CE friendly
 	}
 	return p
 }

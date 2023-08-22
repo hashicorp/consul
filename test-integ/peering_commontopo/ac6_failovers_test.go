@@ -49,12 +49,12 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 }
 
 // dc1 is peered with dc2 and dc3.
-// dc1 has an ac6-client in "default" and "part1" partitions (only default in OSS).
+// dc1 has an ac6-client in "default" and "part1" partitions (only default in CE).
 // ac6-client has a single upstream ac6-failover-svc in its respective partition^.
 //
 // ac6-failover-svc has the following failovers:
 //   - peer-dc2-default
-//   - peer-dc2-part1 (not in OSS)
+//   - peer-dc2-part1 (not in CE)
 //   - peer-dc3-default
 //
 // This setup is mirrored from dc2->dc1 as well
@@ -356,7 +356,7 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 			fmt.Println("### preconditions")
 			// TODO: deduce this number, instead of hard-coding
 			nFailoverTargets := 4
-			// in OSS, we don't have failover targets for non-default partitions
+			// in CE, we don't have failover targets for non-default partitions
 			if !utils.IsEnterprise() {
 				nFailoverTargets = 3
 			}
