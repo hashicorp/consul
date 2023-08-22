@@ -557,6 +557,7 @@ func requireTracking(
 	}
 
 	require.NoError(t, err)
+	reqs = testDeduplicateRequests(reqs)
 	require.Len(t, reqs, len(computedRoutesIDs))
 	for _, computedRoutesID := range computedRoutesIDs {
 		require.NotNil(t, computedRoutesID)
@@ -584,4 +585,27 @@ func defaultTenancy() *pbresource.Tenancy {
 		Namespace: "default",
 		PeerName:  "local",
 	}
+}
+
+func testDeduplicateRequests(reqs []controller.Request) []controller.Request {
+	type resID struct {
+		resource.ReferenceKey
+		UID string
+	}
+
+	out := make([]controller.Request, 0, len(reqs))
+	seen := make(map[resID]struct{})
+
+	for _, req := range reqs {
+		rid := resID{
+			ReferenceKey: resource.NewReferenceKey(req.ID),
+			UID:          req.ID.Uid,
+		}
+		if _, ok := seen[rid]; !ok {
+			out = append(out, req)
+			seen[rid] = struct{}{}
+		}
+	}
+
+	return out
 }

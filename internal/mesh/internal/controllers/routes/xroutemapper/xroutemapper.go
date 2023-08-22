@@ -185,10 +185,10 @@ func mapXRouteToComputedRoutes[T interface {
 
 	m.TrackXRoute(res.Id, route)
 
-	return DeduplicateRequests(makeControllerRequests(
+	return makeControllerRequests(
 		types.ComputedRoutesType,
 		parentRefSliceToRefSlice(route.GetParentRefs()),
-	)), nil
+	), nil
 }
 
 func (m *Mapper) MapFailoverPolicy(
@@ -267,7 +267,7 @@ func (m *Mapper) MapService(
 		reqs = append(reqs, got...)
 	}
 
-	return DeduplicateRequests(reqs), nil
+	return reqs, nil
 }
 
 // NOTE: this function does not interrogate down into failover policies
@@ -302,5 +302,5 @@ func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(svcID *pbresource
 		)...)
 	}
 
-	return DeduplicateRequests(out), nil
+	return out, nil
 }

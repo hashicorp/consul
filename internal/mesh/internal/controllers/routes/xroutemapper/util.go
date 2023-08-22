@@ -11,29 +11,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func DeduplicateRequests(reqs []controller.Request) []controller.Request {
-	out := make([]controller.Request, 0, len(reqs))
-	seen := make(map[resID]struct{})
-
-	for _, req := range reqs {
-		rid := resID{
-			ReferenceKey: resource.NewReferenceKey(req.ID),
-			UID:          req.ID.Uid,
-		}
-		if _, ok := seen[rid]; !ok {
-			out = append(out, req)
-			seen[rid] = struct{}{}
-		}
-	}
-
-	return out
-}
-
-type resID struct {
-	resource.ReferenceKey
-	UID string
-}
-
 func parentRefSliceToRefSlice(parentRefs []*pbmesh.ParentReference) []resource.ReferenceOrID {
 	if parentRefs == nil {
 		return nil
