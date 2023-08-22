@@ -4,11 +4,10 @@
 name: Nightly test-integrations 1.16.x
 
 on:
-  pull_request:
-  # schedule:
-  #   # Run nightly at 1AM UTC/9PM EST/6PM PST
-  #   - cron: '* 1 * * *'
-  # workflow_dispatch: {}
+  schedule:
+    # Run nightly at 1AM UTC/9PM EST/6PM PST
+    - cron: '* 1 * * *'
+  workflow_dispatch: {}
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
