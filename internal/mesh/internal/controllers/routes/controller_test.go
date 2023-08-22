@@ -43,12 +43,6 @@ func (suite *controllerSuite) SetupTest() {
 }
 
 func (suite *controllerSuite) TestController() {
-	// TODO: tidy comment
-	//
-	// This test's purpose is to exercise the controller in a halfway realistic
-	// way.
-
-	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	mgr.Register(Controller())
 	mgr.SetRaftLeader(true)

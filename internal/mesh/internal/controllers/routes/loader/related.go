@@ -44,11 +44,12 @@ func (r *RelatedResources) AddComputedRoutesIDs(list ...*pbresource.ID) *Related
 	return r
 }
 
-func (r *RelatedResources) AddComputedRoutesID(id *pbresource.ID) {
+func (r *RelatedResources) AddComputedRoutesID(id *pbresource.ID) *RelatedResources {
 	if !resource.EqualType(id.Type, types.ComputedRoutesType) {
 		panic(fmt.Sprintf("expected *mesh.ComputedRoutes, not %s", resource.TypeToString(id.Type)))
 	}
 	r.ComputedRoutesList = append(r.ComputedRoutesList, id)
+	return r
 }
 
 func (r *RelatedResources) AddResources(list ...decodedResource) *RelatedResources {
