@@ -22,7 +22,7 @@ func (c *Client) Resource() *Resource {
 	return &Resource{c}
 }
 
-func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) ([]byte, error) {
+func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) (map[string]interface{}, error) {
 	r := resource.c.newRequest("GET", fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
 	r.setQueryOptions(q)
 	_, resp, err := resource.c.doRequest(r)
@@ -34,7 +34,7 @@ func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) (
 		return nil, err
 	}
 
-	var out []byte
+	var out map[string]interface{}
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}
