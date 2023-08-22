@@ -106,7 +106,6 @@ func firstNonEmptyString(a, b, c string) (string, bool) {
 
 func ValidateTrafficPermissions(res *pbresource.Resource) error {
 	var tp pbauth.TrafficPermissions
-
 	if err := res.Data.UnmarshalTo(&tp); err != nil {
 		return resource.NewErrDataParse(&tp, err)
 	}

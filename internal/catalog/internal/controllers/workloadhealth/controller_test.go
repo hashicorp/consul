@@ -75,7 +75,7 @@ func workloadData(nodeName string) *pbcatalog.Workload {
 // controllerSuite is just the base information the three other test suites
 // in this file will use. It will be embedded into the others allowing
 // for the test helpers and default setup to be reused and to force consistent
-// anming of the various data bits this holds on to.
+// naming of the various data bits this holds on to.
 type controllerSuite struct {
 	suite.Suite
 	client  pbresource.ResourceServiceClient
