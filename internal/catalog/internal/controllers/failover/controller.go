@@ -20,7 +20,7 @@ type FailoverMapper interface {
 	// TrackFailover extracts all Service references from the provided
 	// FailoverPolicy and indexes them so that MapService can turn Service
 	// events into FailoverPolicy events properly.
-	TrackFailover(failover *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy])
+	TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy])
 
 	// UntrackFailover forgets the links inserted by TrackFailover for the
 	// provided FailoverPolicyID.
@@ -86,7 +86,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		rt.Logger.Error("error retrieving corresponding service", "error", err)
 		return err
 	}
-	destServices := make(map[resource.ReferenceKey]*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service])
+	destServices := make(map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service])
 	if service != nil {
 		destServices[resource.NewReferenceKey(serviceID)] = service
 	}
@@ -148,18 +148,18 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 	return nil
 }
 
-func getFailoverPolicy(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy], error) {
-	return resource.GetDecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](ctx, rt.Client, id)
+func getFailoverPolicy(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[*pbcatalog.FailoverPolicy], error) {
+	return resource.GetDecodedResource[*pbcatalog.FailoverPolicy](ctx, rt.Client, id)
 }
 
-func getService(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service], error) {
-	return resource.GetDecodedResource[pbcatalog.Service, *pbcatalog.Service](ctx, rt.Client, id)
+func getService(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[*pbcatalog.Service], error) {
+	return resource.GetDecodedResource[*pbcatalog.Service](ctx, rt.Client, id)
 }
 
 func computeNewStatus(
-	failoverPolicy *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy],
-	service *resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service],
-	destServices map[resource.ReferenceKey]*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service],
+	failoverPolicy *resource.DecodedResource[*pbcatalog.FailoverPolicy],
+	service *resource.DecodedResource[*pbcatalog.Service],
+	destServices map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service],
 ) *pbresource.Status {
 	if service == nil {
 		return &pbresource.Status{
@@ -238,7 +238,7 @@ func computeNewStatus(
 
 func serviceHasPort(
 	dest *pbcatalog.FailoverDestination,
-	destServices map[resource.ReferenceKey]*resource.DecodedResource[pbcatalog.Service, *pbcatalog.Service],
+	destServices map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service],
 ) *pbresource.Condition {
 	key := resource.NewReferenceKey(dest.Ref)
 	destService, ok := destServices[key]

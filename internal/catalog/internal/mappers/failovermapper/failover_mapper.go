@@ -31,7 +31,7 @@ func New() *Mapper {
 // TrackFailover extracts all Service references from the provided
 // FailoverPolicy and indexes them so that MapService can turn Service events
 // into FailoverPolicy events properly.
-func (m *Mapper) TrackFailover(failover *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy]) {
+func (m *Mapper) TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy]) {
 	destRefs := failover.Data.GetUnderlyingDestinationRefs()
 	destRefs = append(destRefs, &pbresource.Reference{
 		Type:    types.ServiceType,
