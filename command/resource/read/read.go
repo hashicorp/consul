@@ -139,6 +139,9 @@ func getTypeAndResourceName(args []string) (gvk *api.GVK, resourceName string, e
 	if len(args) < 2 {
 		return nil, "", fmt.Errorf("Must specify two arguments: resource type and resource name")
 	}
+	if strings.HasPrefix(args[1], "-") {
+		return nil, "", fmt.Errorf("Must provide resource name right after type")
+	}
 
 	s := strings.Split(args[0], ".")
 	gvk = &api.GVK{

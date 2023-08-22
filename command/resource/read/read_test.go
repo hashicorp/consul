@@ -39,6 +39,11 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 			expectedCode:   1,
 			expectedErrMsg: "You need to provide all information in the HCL file if provide its file path",
 		},
+		"does not provide resource name after type": {
+			args:           []string{"a.b.c", "-namespace", "default"},
+			expectedCode:   1,
+			expectedErrMsg: "Must provide resource name right after type",
+		},
 	}
 
 	for desc, tc := range cases {
