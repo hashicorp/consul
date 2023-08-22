@@ -79,6 +79,16 @@ func (p *mockUpdater) GetEndpoints(name string) map[string]*pbproxystate.Endpoin
 	return nil
 }
 
+func (p *mockUpdater) GetTrustBundle(name string) map[string]*pbproxystate.TrustBundle {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	ps, ok := p.latestPs[name]
+	if ok {
+		return ps.TrustBundles
+	}
+	return nil
+}
+
 func (p *mockUpdater) Set(name string, ps *pbmesh.ProxyState) {
 	p.lock.Lock()
 	defer p.lock.Unlock()

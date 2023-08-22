@@ -16,6 +16,7 @@ const (
 	StatusReasonEndpointNotRead                   = "ProxyStateEndpointReferenceReadError"
 	StatusReasonCreatingProxyStateEndpointsFailed = "ProxyStateEndpointsNotComputed"
 	StatusReasonPushChangeFailed                  = "ProxyStatePushChangeFailed"
+	StatusReasonTrustBundleFetchFailed            = "ProxyStateTrustBundleFetchFailed"
 )
 
 func KeyFromID(id *pbresource.ID) string {
@@ -63,6 +64,14 @@ func ConditionRejectedPushChangeFailed(pstRef string) *pbresource.Condition {
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  StatusReasonPushChangeFailed,
 		Message: fmt.Sprintf("failed to push change for proxy state template %q", pstRef),
+	}
+}
+func ConditionRejectedTrustBundleFetchFailed(pstRef string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionProxyStateAccepted,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  StatusReasonTrustBundleFetchFailed,
+		Message: fmt.Sprintf("failed to fetch trust bundle for proxy state template %q", pstRef),
 	}
 }
 
