@@ -101,6 +101,25 @@ func TestValidateGRPCRoute(t *testing.T) {
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid "type" field: missing required field`,
 		},
+		"method match with unknown type is bad": {
+			route: &pbmesh.GRPCRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.GRPCRouteRule{{
+					Matches: []*pbmesh.GRPCRouteMatch{{
+						Method: &pbmesh.GRPCMethodMatch{
+							Type:    99,
+							Service: "foo",
+						},
+					}},
+					BackendRefs: []*pbmesh.GRPCBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid "type" field: not a supported enum value: 99`,
+		},
 		"method match with no service nor method is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
@@ -191,6 +210,25 @@ func TestValidateGRPCRoute(t *testing.T) {
 				}},
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "headers": invalid "type" field: missing required field`,
+		},
+		"header match with unknown type is bad": {
+			route: &pbmesh.GRPCRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.GRPCRouteRule{{
+					Matches: []*pbmesh.GRPCRouteMatch{{
+						Headers: []*pbmesh.GRPCHeaderMatch{{
+							Type: 99,
+							Name: "x-foo",
+						}},
+					}},
+					BackendRefs: []*pbmesh.GRPCBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "headers": invalid "type" field: not a supported enum value: 99`,
 		},
 		"header match with no name is bad": {
 			route: &pbmesh.GRPCRoute{

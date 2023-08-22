@@ -233,6 +233,25 @@ func TestValidateHTTPRoute(t *testing.T) {
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid "path" field: invalid "type" field: missing required field`,
 		},
+		"path match with unknown type is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  99,
+							Value: "/foo",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid "path" field: invalid "type" field: not a supported enum value: 99`,
+		},
 		"exact path match with no leading slash is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
@@ -325,6 +344,25 @@ func TestValidateHTTPRoute(t *testing.T) {
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid element at index 0 of list "headers": invalid "type" field: missing required field`,
 		},
+		"header match with unknown type is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Headers: []*pbmesh.HTTPHeaderMatch{{
+							Type: 99,
+							Name: "x-foo",
+						}},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid element at index 0 of list "headers": invalid "type" field: not a supported enum value: 99`,
+		},
 		"header match with no name is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
@@ -378,6 +416,25 @@ func TestValidateHTTPRoute(t *testing.T) {
 				}},
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid element at index 0 of list "query_params": invalid "type" field: missing required field`,
+		},
+		"queryparam match with unknown type is bad": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						QueryParams: []*pbmesh.HTTPQueryParamMatch{{
+							Type: 99,
+							Name: "x-foo",
+						}},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "matches": invalid element at index 0 of list "query_params": invalid "type" field: not a supported enum value: 99`,
 		},
 		"queryparam match with no name is bad": {
 			route: &pbmesh.HTTPRoute{

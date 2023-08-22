@@ -5,6 +5,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/hashicorp/go-multierror"
 
@@ -74,11 +75,21 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 			}
 
 			if match.Method != nil {
-				if match.Method.Type == pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_UNSPECIFIED {
+				switch match.Method.Type {
+				case pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_UNSPECIFIED:
 					merr = multierror.Append(merr, wrapMatchErr(
 						resource.ErrInvalidField{
 							Name:    "type",
 							Wrapped: resource.ErrMissing,
+						},
+					))
+				case pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_EXACT:
+				case pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_REGEX:
+				default:
+					merr = multierror.Append(merr, wrapMatchErr(
+						resource.ErrInvalidField{
+							Name:    "type",
+							Wrapped: fmt.Errorf("not a supported enum value: %v", match.Method.Type),
 						},
 					))
 				}
@@ -101,14 +112,15 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 					})
 				}
 
-				if header.Type == pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_UNSPECIFIED {
+				if err := validateHeaderMatchType(header.Type); err != nil {
 					merr = multierror.Append(merr, wrapMatchHeaderErr(
 						resource.ErrInvalidField{
 							Name:    "type",
-							Wrapped: resource.ErrMissing,
-						},
-					))
+							Wrapped: err,
+						}),
+					)
 				}
+
 				if header.Name == "" {
 					merr = multierror.Append(merr, wrapMatchHeaderErr(
 						resource.ErrInvalidField{
