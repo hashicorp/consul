@@ -163,7 +163,7 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 			}
 			if set != 1 {
 				merr = multierror.Append(merr, wrapFilterErr(
-					errors.New("exactly one of request_header_modifier, response_header_modifier, or url_rewrite"),
+					errors.New("exactly one of request_header_modifier, response_header_modifier, or url_rewrite is required"),
 				))
 			}
 		}
