@@ -145,7 +145,6 @@ func (r *sortableHTTPRouteRules) Less(i, j int) bool {
 
 	// (5) Largest number of query param matches.
 	return a.numQueryParams > b.numQueryParams
-	//
 }
 
 // gammaInitialSortWrappedRoutes will sort the original inputs by the

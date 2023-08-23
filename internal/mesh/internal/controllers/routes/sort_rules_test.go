@@ -16,7 +16,6 @@ import (
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func TestGammaInitialSortWrappedRoutes(t *testing.T) {
@@ -72,10 +71,9 @@ func TestGammaInitialSortWrappedRoutes(t *testing.T) {
 	run := func(t *testing.T, tc testcase) {
 		expect := nodeIDSlice(tc.routes)
 
-		in := tc.routes
-
-		if len(in) > 1 {
+		if len(tc.routes) > 1 {
 			// Randomly permute it
+			in := tc.routes
 			for {
 				rand.Shuffle(len(in), func(i, j int) {
 					in[i], in[j] = in[j], in[i]
@@ -91,9 +89,11 @@ func TestGammaInitialSortWrappedRoutes(t *testing.T) {
 			}
 		}
 
-		gammaInitialSortWrappedRoutes(in)
+		gammaInitialSortWrappedRoutes(tc.routes)
 
-		prototest.AssertDeepEqual(t, tc.routes, in)
+		got := nodeIDSlice(tc.routes)
+
+		require.Equal(t, expect, got)
 	}
 
 	// Order:
@@ -178,16 +178,294 @@ func TestGammaSortHTTPRouteRules(t *testing.T) {
 		rules []*pbmesh.ComputedHTTPRouteRule
 	}
 
-	run := func(t *testing.T, tc testcase) {
-		dup := protoSliceClone(tc.rules)
+	// In this test we will use the 'backend target' field to track the rule
+	// identity to make assertions easy.
 
-		gammaSortHTTPRouteRules(dup)
-
-		prototest.AssertDeepEqual(t, tc.rules, dup)
+	targetSlice := func(rules []*pbmesh.ComputedHTTPRouteRule) []string {
+		var out []string
+		for _, rule := range rules {
+			out = append(out, rule.BackendRefs[0].BackendTarget)
+		}
+		return out
 	}
 
+	run := func(t *testing.T, tc testcase) {
+		expect := targetSlice(tc.rules)
+
+		if len(tc.rules) > 1 {
+			// Randomly permute it
+			in := tc.rules
+			for {
+				rand.Shuffle(len(in), func(i, j int) {
+					in[i], in[j] = in[j], in[i]
+				})
+				curr := targetSlice(tc.rules)
+
+				if slices.Equal(expect, curr) {
+					// Loop until the shuffle was actually different.
+				} else {
+					break
+				}
+
+			}
+		}
+
+		gammaSortHTTPRouteRules(tc.rules)
+
+		got := targetSlice(tc.rules)
+
+		require.Equal(t, expect, got)
+	}
+
+	newRule := func(target string, m ...*pbmesh.HTTPRouteMatch) *pbmesh.ComputedHTTPRouteRule {
+		return &pbmesh.ComputedHTTPRouteRule{
+			Matches: m,
+			BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+				BackendTarget: target,
+			}},
+		}
+	}
+
+	// Rules:
+	// 1. exact path match exists
+	// 2. prefix match exists
+	// 3. prefix match has lots of characters
+	// 4. has method match
+	// 5. has lots of header matches
+	// 6. has lots of query param matches
 	cases := map[string]testcase{
-		//
+		"empty": {},
+		"one": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1", &pbmesh.HTTPRouteMatch{
+					//
+				}),
+			},
+		},
+		"two: by exact path match exists": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1", &pbmesh.HTTPRouteMatch{
+					Path: &pbmesh.HTTPPathMatch{
+						Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_EXACT,
+						Value: "/",
+					},
+				}),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					Path: &pbmesh.HTTPPathMatch{
+						Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+						Value: "/",
+					},
+				}),
+			},
+		},
+		"two: by prefix path match exists": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1", &pbmesh.HTTPRouteMatch{
+					Path: &pbmesh.HTTPPathMatch{
+						Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+						Value: "/",
+					},
+				}),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					Path: &pbmesh.HTTPPathMatch{
+						Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_REGEX,
+						Value: "/[a]",
+					},
+				}),
+			},
+		},
+		"two: by prefix path match length": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1", &pbmesh.HTTPRouteMatch{
+					Path: &pbmesh.HTTPPathMatch{
+						Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+						Value: "/longer",
+					},
+				}),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					Path: &pbmesh.HTTPPathMatch{
+						Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+						Value: "/short",
+					},
+				}),
+			},
+		},
+		"two: by method match exists": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1", &pbmesh.HTTPRouteMatch{
+					Method: "GET",
+				}),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					Headers: []*pbmesh.HTTPHeaderMatch{{
+						Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+						Name:  "x-blah",
+						Value: "foo",
+					}},
+				}),
+			},
+		},
+		"two: by header match quantity": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1", &pbmesh.HTTPRouteMatch{
+					Headers: []*pbmesh.HTTPHeaderMatch{
+						{
+							Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+							Name:  "x-blah",
+							Value: "foo",
+						},
+						{
+							Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+							Name:  "x-other",
+							Value: "bar",
+						},
+					},
+				}),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					Headers: []*pbmesh.HTTPHeaderMatch{{
+						Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+						Name:  "x-blah",
+						Value: "foo",
+					}},
+				}),
+			},
+		},
+		"two: by query param match quantity": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1", &pbmesh.HTTPRouteMatch{
+					QueryParams: []*pbmesh.HTTPQueryParamMatch{
+						{
+							Type:  pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_EXACT,
+							Name:  "foo",
+							Value: "1",
+						},
+						{
+							Type:  pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_EXACT,
+							Name:  "bar",
+							Value: "1",
+						},
+					},
+				}),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					QueryParams: []*pbmesh.HTTPQueryParamMatch{{
+						Type:  pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_EXACT,
+						Name:  "foo",
+						Value: "1",
+					}},
+				}),
+			},
+		},
+		"mixed: has path exact beats has path prefix when both are present": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1",
+					&pbmesh.HTTPRouteMatch{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_EXACT,
+							Value: "/",
+						},
+					},
+					&pbmesh.HTTPRouteMatch{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "/short",
+						},
+					},
+				),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					Path: &pbmesh.HTTPPathMatch{
+						Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+						Value: "/longer",
+					},
+				}),
+			},
+		},
+		"mixed: longer path prefix beats shorter when both are present": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1",
+					&pbmesh.HTTPRouteMatch{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "/longer",
+						},
+					},
+					&pbmesh.HTTPRouteMatch{
+						Method: "GET",
+					},
+				),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					Path: &pbmesh.HTTPPathMatch{
+						Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+						Value: "/short",
+					},
+				}),
+			},
+		},
+		"mixed: has method match beats header match when both are present": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1",
+					&pbmesh.HTTPRouteMatch{
+						Method: "GET",
+					},
+					&pbmesh.HTTPRouteMatch{
+						Headers: []*pbmesh.HTTPHeaderMatch{{
+							Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+							Name:  "x-blah",
+							Value: "foo",
+						}},
+					},
+				),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					Headers: []*pbmesh.HTTPHeaderMatch{
+						{
+							Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+							Name:  "x-blah",
+							Value: "foo",
+						},
+						{
+							Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+							Name:  "x-other",
+							Value: "bar",
+						},
+					},
+				}),
+			},
+		},
+		"mixed: header match beats query param match when both are present": {
+			rules: []*pbmesh.ComputedHTTPRouteRule{
+				newRule("r1", &pbmesh.HTTPRouteMatch{
+					Headers: []*pbmesh.HTTPHeaderMatch{
+						{
+							Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+							Name:  "x-blah",
+							Value: "foo",
+						},
+						{
+							Type:  pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT,
+							Name:  "x-other",
+							Value: "bar",
+						},
+					},
+					QueryParams: []*pbmesh.HTTPQueryParamMatch{{
+						Type:  pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_EXACT,
+						Name:  "foo",
+						Value: "1",
+					}},
+				}),
+				newRule("r2", &pbmesh.HTTPRouteMatch{
+					QueryParams: []*pbmesh.HTTPQueryParamMatch{
+						{
+							Type:  pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_EXACT,
+							Name:  "foo",
+							Value: "1",
+						},
+						{
+							Type:  pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_EXACT,
+							Name:  "bar",
+							Value: "1",
+						},
+					},
+				}),
+			},
+		},
 	}
 
 	for name, tc := range cases {
