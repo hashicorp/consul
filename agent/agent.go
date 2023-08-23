@@ -3660,7 +3660,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		if acl.EqualPartitions("", p.Service.PartitionOrEmpty()) {
-			// NOTE: in case loading a service with empty partition (e.g., OSS -> ENT),
+			// NOTE: in case loading a service with empty partition (e.g., CE -> ENT),
 			// we always default the service partition to the agent's partition.
 			p.Service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
 		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
