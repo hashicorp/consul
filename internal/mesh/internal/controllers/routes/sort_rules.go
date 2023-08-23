@@ -164,14 +164,16 @@ func gammaInitialSortWrappedRoutes(routes []*inputRouteNode) {
 		var (
 			resA = routes[i].OriginalResource
 			resB = routes[j].OriginalResource
-
-			genA = resA.Generation
-			genB = resB.Generation
 		)
 
 		if resA == nil || resB == nil {
 			panic("some provided nodes lacked original resources")
 		}
+
+		var (
+			genA = resA.Generation
+			genB = resB.Generation
+		)
 
 		// (END-1) The oldest Route based on creation timestamp.
 		//
