@@ -5,6 +5,7 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 )
 
 type Resource struct {
@@ -40,4 +41,18 @@ func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) (
 	}
 
 	return out, nil
+}
+
+func (resource *Resource) Delete(gvk *GVK, resourceName string, q *QueryOptions) error {
+	r := resource.c.newRequest("DELETE", fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
+	r.setQueryOptions(q)
+	_, resp, err := resource.c.doRequest(r)
+	if err != nil {
+		return err
+	}
+	defer closeResponseBody(resp)
+	if err := requireHttpCodes(resp, http.StatusNoContent); err != nil {
+		return err
+	}
+	return nil
 }

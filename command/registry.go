@@ -109,6 +109,7 @@ import (
 	peerread "github.com/hashicorp/consul/command/peering/read"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/resource"
+	resourcedelete "github.com/hashicorp/consul/command/resource/delete"
 	resourceread "github.com/hashicorp/consul/command/resource/read"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
@@ -242,6 +243,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
 		entry{"resource", func(cli.Ui) (cli.Command, error) { return resource.New(), nil }},
 		entry{"resource read", func(ui cli.Ui) (cli.Command, error) { return resourceread.New(ui), nil }},
+		entry{"resource delete", func(ui cli.Ui) (cli.Command, error) { return resourcedelete.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
 		entry{"services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil }},
