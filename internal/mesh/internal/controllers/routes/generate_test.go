@@ -49,7 +49,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				require.True(t, ok, "missing expected pending status for %v", rk)
 				prototest.AssertDeepEqual(t, expectItem, gotItem)
 			}
-			for rk, _ := range pending {
+			for rk := range pending {
 				_, ok := expectPending[rk]
 				require.True(t, ok, "extra pending status for %v", rk)
 			}
@@ -1454,7 +1454,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		}
 		simplifiedFailoverPolicy := &pbcatalog.FailoverPolicy{
 			PortConfigs: map[string]*pbcatalog.FailoverConfig{
-				"http": &pbcatalog.FailoverConfig{
+				"http": {
 					Destinations: []*pbcatalog.FailoverDestination{{
 						Ref:  barServiceRef,
 						Port: "http",
