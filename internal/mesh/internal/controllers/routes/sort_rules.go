@@ -161,7 +161,7 @@ func gammaInitialSortWrappedRoutes(routes []*inputRouteNode) {
 
 	// First sort the input routes by the final criteria, so we can let the
 	// stable sort take care of the ultimate tiebreakers.
-	sort.SliceStable(routes, func(i, j int) bool {
+	sort.Slice(routes, func(i, j int) bool {
 		var (
 			resA = routes[i].OriginalResource
 			resB = routes[j].OriginalResource

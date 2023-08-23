@@ -15,13 +15,13 @@ import (
 type inputRouteNode struct {
 	ParentPort string // always set
 
+	RouteType *pbresource.Type
+	Default   bool
+
 	// only one of these can be set to non-empty
 	HTTPRules []*pbmesh.ComputedHTTPRouteRule
 	GRPCRules []*pbmesh.ComputedGRPCRouteRule
 	TCPRules  []*pbmesh.ComputedTCPRouteRule
-
-	RouteType *pbresource.Type
-	Default   bool
 
 	NewTargets map[string]*pbmesh.BackendTargetDetails
 
