@@ -218,6 +218,8 @@ UpstreamConfig = {
       Interval                = "1s"
       MaxFailures             = 1
       EnforcingConsecutive5xx = 89
+      MaxEjectionPercent      = 10
+      BaseEjectionTime        = "30s"
     }
   }
 }
@@ -300,6 +302,8 @@ spec:
         interval: 0s
         maxFailures: 0
         enforcingConsecutive5xx: 100
+        maxEjectionPercent: 10
+        baseEjectionTime: "30s"
   transparentProxy:
     outboundListenerPort: 15001
     dialedDirectly: false
