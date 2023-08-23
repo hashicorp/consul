@@ -23,6 +23,10 @@ env:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   setup:
     name: Setup
