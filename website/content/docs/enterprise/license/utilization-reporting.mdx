@@ -20,9 +20,6 @@ Automated license utilization reporting does not support _air-gapped installatio
 
 The following versions of Consul Enterprise support automated license utilization reporting:
 
-- Consul Enterprise v1.16.0 and newer.
-- Patch releases of Consul Enterprise v1.15.4 and newer.
-- Patch releases of Consul Enterprise v1.14.8 and newer.
 - Patch releases of Consul Enterprise v1.13.9 and newer.
 
 Download a supported release from the [Consul Versions](https://releases.hashicorp.com/consul/) page.
@@ -38,7 +35,7 @@ To enable automated reporting, complete the following steps:
 
 ### Allow outbound HTTPS traffic on port 443
 
-Make sure that your network allows HTTPS egress on port 443 from `https://reporting.hashicorp.services` by adding the following IP addresses to your allow-list:
+Make sure that your network allows HTTPS egress on port 443 from `https://reporting.hashicorp.services` by adding the following IP adddresses to your allow-list:
 
 - `100.20.70.12`
 - `35.166.5.222`
@@ -67,7 +64,7 @@ Automatic license utilization reporting starts sending data within roughly 24 ho
 
 </CodeBlockConfig>
 
-If your installation is air-gapped or your network does not allow the correct egress, the logs show an error.
+If your installation is air-gapped or your network does not allow the correct egress, the logs show an error. 
 
 <CodeBlockConfig hideClipboard>
 
@@ -88,13 +85,13 @@ In this case, reconfigure your network to allow egress and check the logs again 
 
 ## Opt out
 
-If your installation is air-gapped or you want to manually collect and report on the same license utilization metrics, you can opt out of automated reporting.
+If your installation is air-gapped or you want to manually collect and report on the same license utilization metrics, you can opt out of automated reporting. 
 
-Manually reporting these metrics can be time consuming. Opting out of automated reporting does not mean that you also opt out from sending license utilization metrics. Customers who opt out of automated reporting are still required to manually collect and send license utilization metrics to HashiCorp.
+Manually reporting these metrics can be time consuming. Opting out of automated reporting does not mean that you also opt out from sending license utilization metrics. Customers who opt out of automated reporting are still required to manually collect and send license utilization metrics to HashiCorp. 
 
-If you are considering opting out because you are worried about the data, we strongly recommend that you review the [example payloads](#example-payloads) before opting out. If you have concerns with any of the automatically reported data, raise these concerns with your account manager.
+If you are considering opting out because you are worried about the data, we strongly recommend that you review the [example payloads](#example-payloads) before opting out. If you have concerns with any of the automatically reported data, raise these concerns with your account manager. 
 
-There are two methods for opting out of automated reporting:
+There are two methods for opting out of automated reporting: 
 
 - HCL configuration (recommended)
 - Environment variable (requires restart)
@@ -130,7 +127,7 @@ Check your product logs roughly 24 hours after opting out to make sure that the 
 
 ## Example payloads
 
-HashiCorp collects the following utilization data as JSON payloads:
+HashiCorp collects the following utilization data as JSON payloads: 
 `exporter_version` - The version of the licensing exporter
 
 <CodeBlockConfig hideClipboard>

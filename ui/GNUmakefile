@@ -25,6 +25,7 @@ deps: clean
 	cd packages/consul-ui && \
 		$(MAKE) deps
 
+
 # Build a distribution of the UI for Vercel previews.
 # The distribution must be copied into the ui/ subfolder
 # in order to mirror the go binary
@@ -37,5 +38,6 @@ deps: clean
 dist-vercel: clean
 	mkdir -p dist/ui && \
 	cd packages/consul-ui && \
+		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE) build-staging && \
 		mv dist/* ../../dist/ui

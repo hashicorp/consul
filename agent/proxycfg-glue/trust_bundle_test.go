@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfgglue
 
 import (
@@ -16,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -27,14 +24,6 @@ func TestServerTrustBundle(t *testing.T) {
 	)
 
 	store := state.NewStateStore(nil)
-
-	// Peering must exist for ptb write to succeed
-	require.NoError(t, store.PeeringWrite(index-1, &pbpeering.PeeringWriteRequest{
-		Peering: &pbpeering.Peering{
-			Name: peerName,
-			ID:   "2ae8c79e-242e-4f4a-afd6-9aede8831c5f",
-		},
-	}))
 
 	require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
 		PeerName:    peerName,
@@ -78,14 +67,6 @@ func TestServerTrustBundle_ACLEnforcement(t *testing.T) {
 
 	store := state.NewStateStore(nil)
 
-	// Peering must exist for ptb write to succeed
-	require.NoError(t, store.PeeringWrite(index-1, &pbpeering.PeeringWriteRequest{
-		Peering: &pbpeering.Peering{
-			Name: peerName,
-			ID:   "2ae8c79e-242e-4f4a-afd6-9aede8831c5f",
-		},
-	}))
-
 	require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
 		PeerName:    peerName,
 		TrustDomain: "before.com",
@@ -127,7 +108,7 @@ func TestServerTrustBundle_ACLEnforcement(t *testing.T) {
 		require.NoError(t, err)
 
 		err = getEventError(t, eventCh)
-		require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write' on \"any service\"")
+		require.Contains(t, err.Error(), "provided token lacks permission 'service:write' on \"any service\"")
 	})
 }
 
@@ -163,7 +144,7 @@ func TestServerTrustBundleList(t *testing.T) {
 					{
 						Name: serviceName,
 						Consumers: []structs.ServiceConsumer{
-							{Peer: them},
+							{PeerName: them},
 						},
 					},
 				},
@@ -204,21 +185,6 @@ func TestServerTrustBundleList(t *testing.T) {
 	t.Run("list for mesh gateway", func(t *testing.T) {
 		store := state.NewStateStore(nil)
 		require.NoError(t, store.CASetConfig(index, &structs.CAConfiguration{ClusterID: "cluster-id"}))
-
-		// Peering must exist for ptb write to succeed
-		require.NoError(t, store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
-			Peering: &pbpeering.Peering{
-				Name: "peer1",
-				ID:   "2ae8c79e-242e-4f4a-afd6-9aede8831c5f",
-			},
-		}))
-
-		require.NoError(t, store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
-			Peering: &pbpeering.Peering{
-				Name: "peer2",
-				ID:   "e69f14e3-f253-43bc-bdbe-888994ca4f81",
-			},
-		}))
 
 		require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
 			PeerName: "peer1",
@@ -283,7 +249,7 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 					{
 						Name: serviceName,
 						Consumers: []structs.ServiceConsumer{
-							{Peer: them},
+							{PeerName: them},
 						},
 					},
 				},
@@ -327,28 +293,13 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 			require.NoError(t, err)
 
 			err = getEventError(t, eventCh)
-			require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write' on \"web\"")
+			require.Contains(t, err.Error(), "provided token lacks permission 'service:write' on \"web\"")
 		})
 	})
 
 	t.Run("ACL Enforcement: list for mesh gateway", func(t *testing.T) {
 		store := state.NewStateStore(nil)
 		require.NoError(t, store.CASetConfig(index, &structs.CAConfiguration{ClusterID: "cluster-id"}))
-
-		// Peering must exist for ptb write to succeed
-		require.NoError(t, store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
-			Peering: &pbpeering.Peering{
-				Name: "peer1",
-				ID:   "2ae8c79e-242e-4f4a-afd6-9aede8831c5f",
-			},
-		}))
-
-		require.NoError(t, store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
-			Peering: &pbpeering.Peering{
-				Name: "peer2",
-				ID:   "e69f14e3-f253-43bc-bdbe-888994ca4f81",
-			},
-		}))
 
 		require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
 			PeerName: "peer1",
@@ -394,7 +345,7 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 			require.NoError(t, err)
 
 			err = getEventError(t, eventCh)
-			require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write'")
+			require.Contains(t, err.Error(), "provided token lacks permission 'service:write'")
 		})
 	})
 }

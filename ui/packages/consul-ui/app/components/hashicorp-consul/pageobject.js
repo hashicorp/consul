@@ -1,4 +1,4 @@
-export default (collection, clickable, attribute, is, authForm, emptyState) => (scope) => {
+export default (collection, clickable, attribute, is, authForm, emptyState) => scope => {
   const page = {
     navigation: [
       'services',
@@ -12,7 +12,7 @@ export default (collection, clickable, attribute, is, authForm, emptyState) => (
       'settings',
       'auth',
     ].reduce(
-      function (prev, item, i, arr) {
+      function(prev, item, i, arr) {
         const key = item;
         return Object.assign({}, prev, {
           [key]: clickable(`[data-test-main-nav-${item}] > *`),
@@ -23,7 +23,7 @@ export default (collection, clickable, attribute, is, authForm, emptyState) => (
       }
     ),
     footer: ['copyright', 'docs'].reduce(
-      function (prev, item, i, arr) {
+      function(prev, item, i, arr) {
         const key = item;
         return Object.assign({}, prev, {
           [key]: clickable(`[data-test-main-nav-${item}`),

@@ -10,18 +10,18 @@ This topic describes how to configure Consul API Gateway to route traffic to ser
 ## Requirements
 
 1. Consul 1.14 or later
-1. Verify that the [requirements](/consul/docs/api-gateway/tech-specs) have been met.
-1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/consul/docs/api-gateway/install) for details.
-1. A peering connection must already be established between Consul clusters. Refer to [Cluster Peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/tech-specs) for instructions.
-1. The Consul service that you want to route traffic to must be exported to the cluster containing your `Gateway`. Refer to [Cluster Peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/tech-specs) for instructions.
-1. A `ServiceResolver` for the Consul service you want to route traffic to must be created in the cluster that contains your `Gateway`. Refer to [Service Resolver Configuration Entry](/consul/docs/connect/config-entries/service-resolver) for instructions.
+1. Verify that the [requirements](/docs/api-gateway/tech-specs) have been met.
+1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/docs/api-gateway/install) for details.
+1. A peering connection must already be established between Consul clusters. Refer to [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s) for instructions.
+1. The Consul service that you want to route traffic to must be exported to the cluster containing your `Gateway`. Refer to [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s) for instructions.
+1. A `ServiceResolver` for the Consul service you want to route traffic to must be created in the cluster that contains your `Gateway`. Refer to [Service Resolver Configuration Entry](/docs/connect/config-entries/service-resolver) for instructions.
 
 ## Configuration
 
-Specify the following fields in your `MeshService` configuration to use this feature. Refer to the [MeshService configuration reference](/consul/docs/api-gateway/configuration/meshservice) for details about the parameters.
+Specify the following fields in your `MeshService` configuration to use this feature. Refer to the [MeshService configuration reference](/docs/api-gateway/configuration/mesh) for details about the parameters.
 
-- [`name`](/consul/docs/api-gateway/configuration/meshservice#name)
-- [`peer`](/consul/docs/api-gateway/configuration/meshservice#peer)
+- [`name`](/docs/api-gateway/configuration/meshservice#name)
+- [`peer`](/docs/api-gateway/configuration/meshservice#peer)
 
 ## Example
 

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
@@ -16,10 +11,10 @@ export default Component.extend({
   dom: service('dom'),
   logger: service('logger'),
 
-  onchange: function (e) {},
-  onerror: function (e) {},
+  onchange: function(e) {},
+  onerror: function(e) {},
 
-  state: computed('instance', 'instance.{dirtyType,isSaving}', function () {
+  state: computed('instance', 'instance.{dirtyType,isSaving}', function() {
     let id;
     const isSaving = get(this, 'instance.isSaving');
     const dirtyType = get(this, 'instance.dirtyType');
@@ -41,21 +36,21 @@ export default Component.extend({
       id = `active.${id}`;
     }
     return {
-      matches: (name) => id.indexOf(name) !== -1,
+      matches: name => id.indexOf(name) !== -1,
     };
   }),
 
-  init: function () {
+  init: function() {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
   },
-  willDestroyElement: function () {
+  willDestroyElement: function() {
     this._super(...arguments);
     this._listeners.remove();
   },
-  source: function (cb) {
+  source: function(cb) {
     const source = once(cb);
-    const error = (err) => {
+    const error = err => {
       set(this, 'instance', undefined);
       try {
         this.onerror(err);
@@ -65,7 +60,7 @@ export default Component.extend({
       }
     };
     this._listeners.add(source, {
-      message: (e) => {
+      message: e => {
         try {
           set(this, 'instance', undefined);
           this.onchange(e);
@@ -73,17 +68,17 @@ export default Component.extend({
           error(err);
         }
       },
-      error: (e) => error(e),
+      error: e => error(e),
     });
     return source;
   },
-  didInsertElement: function () {
+  didInsertElement: function() {
     this._super(...arguments);
     if (typeof this.data !== 'undefined' || typeof this.item !== 'undefined') {
       this.actions.open.apply(this, [this.data, this.item]);
     }
   },
-  persist: function (data, instance) {
+  persist: function(data, instance) {
     if (typeof data !== 'undefined') {
       set(this, 'instance', this.service.prepare(this.sink, data, instance));
     } else {
@@ -91,12 +86,12 @@ export default Component.extend({
     }
     this.source(() => this.service.persist(this.sink, this.instance));
   },
-  remove: function (instance) {
+  remove: function(instance) {
     set(this, 'instance', instance);
     this.source(() => this.service.remove(this.sink, instance));
   },
   actions: {
-    open: function (data, item) {
+    open: function(data, item) {
       if (item instanceof Event) {
         item = undefined;
       }

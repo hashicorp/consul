@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import RepositoryService from 'consul-ui/services/repository';
 import { set } from '@ember/object';
 import { ACCESS_READ } from 'consul-ui/abilities/base';
@@ -25,7 +20,7 @@ export default class ServiceInstanceService extends RepositoryService {
       params.uri = configuration.uri;
     }
     return this.authorizeBySlug(
-      async (resources) => {
+      async resources => {
         const instances = await this.query(params);
         set(instances, 'firstObject.Service.Resources', resources);
         return instances;

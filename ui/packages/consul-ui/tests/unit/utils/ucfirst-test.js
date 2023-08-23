@@ -1,15 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-import { module, test } from 'qunit';
+import { module } from 'qunit';
+import test from 'ember-sinon-qunit/test-support/test';
 import ucfirst from 'consul-ui/utils/ucfirst';
 
-module('Unit | Utils | ucfirst', function () {
-  test('it returns the first letter in uppercase', function (assert) {
-    assert.expect(4);
-
+module('Unit | Utils | ucfirst', function() {
+  test('it returns the first letter in uppercase', function(assert) {
     [
       {
         test: 'hello world',
@@ -27,7 +21,7 @@ module('Unit | Utils | ucfirst', function () {
         test: 'hELLO WORLD',
         expected: 'HELLO WORLD',
       },
-    ].forEach(function (item) {
+    ].forEach(function(item) {
       const actual = ucfirst(item.test);
       assert.equal(actual, item.expected);
     });

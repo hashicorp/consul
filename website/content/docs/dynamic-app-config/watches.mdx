@@ -1,26 +1,30 @@
 ---
 layout: docs
-page_title: Watches Overview and Reference
+page_title: Watches
 description: >-
-  Watches monitor the key/value (KV) store, services, nodes, health checks, and events for updates. When a watch detects a change, it invokes a handler that can call an HTTP endpoint or run an executable. Learn how to configure watches to dynamically respond to changes in Consul.
+  Watches are a way of specifying a view of data (e.g. list of nodes, KV pairs,
+  health checks) which is monitored for updates. When an update is detected, an
+  external handler is invoked. A handler can be any executable. As an example,
+  you could watch the status of health checks and notify an external system when
+  a check is critical.
 ---
 
-# Watches Overview and Reference
+# Watches
 
 Watches are a way of specifying a view of data (e.g. list of nodes, KV pairs, health
 checks) which is monitored for updates. When an update is detected, an external handler
 is invoked. A handler can be any executable or HTTP endpoint. As an example, you could watch the status
 of health checks and notify an external system when a check is critical.
 
-Watches are implemented using blocking queries in the [HTTP API](/consul/api-docs).
+Watches are implemented using blocking queries in the [HTTP API](/api-docs).
 Agents automatically make the proper API calls to watch for changes
 and inform a handler when the data view has updated.
 
-Watches can be configured as part of the [agent's configuration](/consul/docs/agent/config/config-files#watches),
+Watches can be configured as part of the [agent's configuration](/docs/agent/config/config-files#watches),
 causing them to run once the agent is initialized. Reloading the agent configuration
 allows for adding or removing watches dynamically.
 
-Alternatively, the [watch command](/consul/commands/watch) enables a watch to be
+Alternatively, the [watch command](/commands/watch) enables a watch to be
 started outside of the agent. This can be used by an operator to inspect data in Consul
 or to easily pipe data into processes without being tied to the agent lifecycle.
 
@@ -37,7 +41,7 @@ with invocation info, following a format that depends on the type of the watch.
 Each watch type documents the format type. Because they map directly to an HTTP
 API, handlers should expect the input to match the format of the API. A Consul
 index is also given, corresponding to the responses from the
-[HTTP API](/consul/api-docs).
+[HTTP API](/api-docs).
 
 ### Executable
 
@@ -634,7 +638,7 @@ An example of the output of this command:
 ### Type: event ((#event))
 
 The "event" watch type is used to monitor for custom user
-events. These are fired using the [consul event](/consul/commands/event) command.
+events. These are fired using the [consul event](/commands/event) command.
 It takes only a single optional `name` parameter which restricts
 the watch to only events with the given name.
 

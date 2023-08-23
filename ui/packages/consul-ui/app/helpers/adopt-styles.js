@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Helper from '@ember/component/helper';
 import { assert } from '@ember/debug';
 import { adoptStyles } from '@lit/reactive-element';
@@ -18,7 +13,7 @@ export default class AdoptStylesHelper extends Helper {
       'adopt-styles can only be used to apply styles to ShadowDOM elements',
       $shadow instanceof ShadowRoot
     );
-    if (!Array.isArray(styles)) {
+    if(!Array.isArray(styles)) {
       styles = [styles];
     }
     adoptStyles($shadow, styles);

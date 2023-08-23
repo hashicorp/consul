@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package create
 
 import (
@@ -12,11 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateCommand_noTabs(t *testing.T) {

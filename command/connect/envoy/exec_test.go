@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build linux || darwin
 // +build linux darwin
 
@@ -17,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -135,79 +131,6 @@ func TestExecEnvoy(t *testing.T) {
 			require.Regexp(t, `-bootstrap.json$`, got.ConfigPath)
 		})
 	}
-}
-
-func TestExecEnvoyVersion(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	tests := []struct {
-		name           string
-		cmdOutput      string
-		expectedOutput string
-	}{
-		{
-			name:           "actual-version-output-1-24-1",
-			cmdOutput:      `envoy  version: 69958e4fe32da561376d8b1d367b5e6942dfba24/1.24.1/Distribution/RELEASE/BoringSSL`,
-			expectedOutput: "1.24.1",
-		},
-		{
-			name:           "format-change",
-			cmdOutput:      `envoy  version: (69958e4fe32da561376d8b1d367b5e6942dfba24)__(1.24.1)/Distribution/RELEASE/BoringSSL`,
-			expectedOutput: "1.24.1",
-		},
-		{
-			name:           "zeroes",
-			cmdOutput:      `envoy  version: 69958e4fe32da561376d8b1d367b5e6942dfba24/0.0.0/Distribution/RELEASE/BoringSSL`,
-			expectedOutput: "0.0.0",
-		},
-		{
-			name:           "test-multi-digit",
-			cmdOutput:      `envoy  version: 69958e4fe32da561376d8b1d367b5e6942dfba24/1246390.9401081.1238495/Distribution/RELEASE/BoringSSL`,
-			expectedOutput: "1246390.9401081.1238495",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			fe := fakeEnvoy{
-				desiredOutput: tc.cmdOutput,
-			}
-			execCommand = fe.ExecCommand
-			// Reset back to base exec.Command
-			defer func() { execCommand = exec.Command }()
-			version, err := execEnvoyVersion("fake-envoy")
-
-			require.NoError(t, err)
-
-			assert.Equal(t, tc.expectedOutput, version)
-		})
-	}
-}
-
-type fakeEnvoy struct {
-	desiredOutput string
-}
-
-func (fe fakeEnvoy) ExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestEnvoyExecHelperProcess", "--", command}
-	cs = append(cs, args...)
-	// last argument will be the output
-	cs = append(cs, fe.desiredOutput)
-	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
-	return cmd
-}
-
-func TestEnvoyExecHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
-		return
-	}
-
-	output := os.Args[len(os.Args)-1]
-	fmt.Fprint(os.Stdout, output)
-	os.Exit(0)
 }
 
 type FakeEnvoyExecData struct {

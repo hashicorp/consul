@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { helper } from '@ember/component/helper';
 
 /**
@@ -12,11 +7,11 @@ import { helper } from '@ember/component/helper';
  * @typedef {([string, boolean] | [string])} classInfo
  * @param {(classInfo | string)[]} entries - An array of 'entry-like' arrays of `classInfo`s to map
  */
-const classMap = (entries) => {
+const classMap = entries => {
   const str = entries
     .filter(Boolean)
-    .filter((entry) => (typeof entry === 'string' ? true : entry[entry.length - 1]))
-    .map((entry) => (typeof entry === 'string' ? entry : entry[0]))
+    .filter(entry => (typeof entry === 'string' ? true : entry[entry.length - 1]))
+    .map(entry => (typeof entry === 'string' ? entry : entry[0]))
     .join(' ');
   return str.length > 0 ? str : undefined;
 };

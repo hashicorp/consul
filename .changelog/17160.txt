@@ -1,3 +1,0 @@
-```release-note:bug
-Fix a bug that wrongly trims domains when there is an overlap with DC name.
-```

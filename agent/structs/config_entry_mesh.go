@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
@@ -16,15 +13,9 @@ type MeshConfigEntry struct {
 	// when enabled.
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
 
-	// AllowEnablingPermissiveMutualTLS must be true in order to allow setting
-	// MutualTLSMode=permissive in either service-defaults or proxy-defaults.
-	AllowEnablingPermissiveMutualTLS bool `json:",omitempty" alias:"allow_enabling_permissive_mutual_tls"`
-
 	TLS *MeshTLSConfig `json:",omitempty"`
 
 	HTTP *MeshHTTPConfig `json:",omitempty"`
-
-	Peering *PeeringMeshConfig `json:",omitempty"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -55,16 +46,6 @@ type MeshDirectionalTLSConfig struct {
 
 type MeshHTTPConfig struct {
 	SanitizeXForwardedClientCert bool `alias:"sanitize_x_forwarded_client_cert"`
-}
-
-// PeeringMeshConfig contains cluster-wide options pertaining to peering.
-type PeeringMeshConfig struct {
-	// PeerThroughMeshGateways determines whether peering traffic between
-	// control planes should flow through mesh gateways. If enabled,
-	// Consul servers will advertise mesh gateway addresses as their own.
-	// Additionally, mesh gateways will configure themselves to expose
-	// the local servers using a peering-specific SNI.
-	PeerThroughMeshGateways bool `alias:"peer_through_mesh_gateways"`
 }
 
 func (e *MeshConfigEntry) GetKind() string {
@@ -160,13 +141,6 @@ func (e *MeshConfigEntry) MarshalJSON() ([]byte, error) {
 		Alias: (*Alias)(e),
 	}
 	return json.Marshal(source)
-}
-
-func (e *MeshConfigEntry) PeerThroughMeshGateways() bool {
-	if e == nil || e.Peering == nil {
-		return false
-	}
-	return e.Peering.PeerThroughMeshGateways
 }
 
 func validateMeshDirectionalTLSConfig(cfg *MeshDirectionalTLSConfig) error {

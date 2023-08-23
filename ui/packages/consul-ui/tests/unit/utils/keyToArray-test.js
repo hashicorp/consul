@@ -1,15 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-import { module, test } from 'qunit';
+import { module } from 'qunit';
+import test from 'ember-sinon-qunit/test-support/test';
 import keyToArray from 'consul-ui/utils/keyToArray';
 
-module('Unit | Utils | keyToArray', function () {
-  test('it splits a string by a separator, unless the string is the separator', function (assert) {
-    assert.expect(4);
-
+module('Unit | Utils | keyToArray', function() {
+  test('it splits a string by a separator, unless the string is the separator', function(assert) {
     [
       {
         test: '/',
@@ -27,7 +21,7 @@ module('Unit | Utils | keyToArray', function () {
         test: '//',
         expected: ['', '', ''],
       },
-    ].forEach(function (item) {
+    ].forEach(function(item) {
       const actual = keyToArray(item.test);
       assert.deepEqual(actual, item.expected);
     });

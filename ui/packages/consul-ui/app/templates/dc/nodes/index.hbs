@@ -1,135 +1,118 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
+<Route
+  @name={{routeName}}
+as |route|>
 
-<Route @name={{routeName}} as |route|>
-
-  <DataSource
-    @src={{uri
-      '/${partition}/${nspace}/${dc}/leader'
-      (hash partition=route.params.partition nspace=route.params.nspace dc=route.params.dc)
-    }}
-    as |leader|
-  >
+  <DataSource @src={{
+    uri '/${partition}/${nspace}/${dc}/leader'
+    (hash
+      partition=route.params.partition
+      nspace=route.params.nspace
+      dc=route.params.dc
+    )
+  }} as |leader|>
 
     <DataLoader
-      @src={{uri
-        '/${partition}/${nspace}/${dc}/nodes'
-        (hash partition=route.params.partition nspace=route.params.nspace dc=route.params.dc)
-      }}
-      as |api|
-    >
-
-      <BlockSlot @name='error'>
-        <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
-      </BlockSlot>
-
-      <BlockSlot @name='loaded'>
-        {{#let
-          (hash value=(or sortBy 'Status:asc') change=(action (mut sortBy) value='target.selected'))
+      @src={{uri '/${partition}/${nspace}/${dc}/nodes'
           (hash
-            status=(hash
-              value=(if status (split status ',') undefined)
-              change=(action (mut status) value='target.selectedItems')
-            )
-            searchproperty=(hash
-              value=(if
-                (not-eq searchproperty undefined) (split searchproperty ',') this._searchProperties
-              )
-              change=(action (mut searchproperty) value='target.selectedItems')
-              default=this._searchProperties
-            )
-            version=(hash 
-              value=(if this.version (split this.version ',') undefined)
-              change=(action (mut this.version) value='target.selectedItems')
-            )
+            partition=route.params.partition
+            nspace=route.params.nspace
+            dc=route.params.dc
           )
-          api.data
-          leader.data
-          api.data.meta.versions
-          as |sort filters items leader versions|
-        }}
-          {{#let (reject-by 'Meta.synthetic-node' items) as |filtered|}}
-            <AppView>
-              <BlockSlot @name='header'>
-                <h1>
-                  <route.Title @title='Nodes' />
-                  <em>{{format-number items.length}} total</em>
-                </h1>
-                <label for='toolbar-toggle'></label>
-              </BlockSlot>
-              <BlockSlot @name='toolbar'>
-                {{#if (gt filtered.length 0)}}
-                  <Consul::Node::SearchBar
-                    @search={{search}}
-                    @onsearch={{action (mut search) value='target.value'}}
-                    @sort={{sort}}
-                    @filter={{filters}}
-                    @versions={{versions}}
-                  />
-                {{/if}}
-              </BlockSlot>
-              <BlockSlot @name='content'>
-                <Consul::Node::AgentlessNotice @items={{items}} @filteredItems={{filtered}} @postfix={{concat route.params.partition route.params.dc}} />
-                <DataCollection
-                  @type='node'
-                  @sort={{sort.value}}
-                  @filters={{filters}}
-                  @search={{search}}
-                  @items={{filtered}}
-                  as |collection|
-                >
-                  <collection.Collection>
-                    <Consul::Node::List @items={{collection.items}} @leader={{leader}} />
-                  </collection.Collection>
-                  <collection.Empty>
-                    <EmptyState @login={{route.model.app.login.open}}>
-                      <BlockSlot @name='header'>
-                        <h2>
-                          {{t 'routes.dc.nodes.index.empty.header' items=items.length}}
-                        </h2>
-                      </BlockSlot>
-                      <BlockSlot @name='body'>
-                        {{t
-                          'routes.dc.nodes.index.empty.body'
-                          items=items.length
-                          canUseACLs=(can 'use acls')
-                          htmlSafe=true
-                        }}
-                      </BlockSlot>
-                      <BlockSlot @name='actions'>
-                        <li>
-                          <Hds::Button
-                            @text={{t 'routes.dc.nodes.index.empty.documentation'}}
-                            @href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/agent'
-                            @color='tertiary'
-                            @icon='docs-link'
-                            @iconPosition='trailing'
-                            @size='small'
-                          />
-                        </li>
-                        <li>
-                          <Hds::Button
-                            @text={{t 'routes.dc.nodes.index.empty.learn'}}
-                            @href='{{env
-                              "CONSUL_DOCS_LEARN_URL"
-                            }}/tutorials/consul/deployment-guide?in=consul/production-deploy#configure-consul-agents'
-                            @color='tertiary'
-                            @icon='learn-link'
-                            @iconPosition='trailing'
-                            @size='small'
-                          />
-                        </li>
-                      </BlockSlot>
-                    </EmptyState>
-                  </collection.Empty>
-                </DataCollection>
-              </BlockSlot>
-            </AppView>
-          {{/let}}
-        {{/let}}
+      }}
+    as |api|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{api.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+  {{#let
+
+    (hash
+      value=(or sortBy "Status:asc")
+      change=(action (mut sortBy) value="target.selected")
+    )
+
+    (hash
+      status=(hash
+        value=(if status (split status ',') undefined)
+        change=(action (mut status) value="target.selectedItems")
+      )
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          this._searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=this._searchProperties
+      )
+    )
+
+    api.data
+
+    leader.data
+
+  as |sort filters items leader|}}
+    <AppView>
+      <BlockSlot @name="header">
+        <h1>
+          <route.Title @title="Nodes" /> <em>{{format-number items.length}} total</em>
+        </h1>
+        <label for="toolbar-toggle"></label>
       </BlockSlot>
+      <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0) }}
+          <Consul::Node::SearchBar
+            @search={{search}}
+            @onsearch={{action (mut search) value="target.value"}}
+
+            @sort={{sort}}
+
+            @filter={{filters}}
+          />
+      {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <DataCollection
+          @type="node"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Node::List
+              @items={{collection.items}}
+              @leader={{leader}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{t 'routes.dc.nodes.index.empty.header'
+                    items=items.length
+                  }}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                {{t 'routes.dc.nodes.index.empty.body'
+                  items=items.length
+                  htmlSafe=true
+                }}
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      </BlockSlot>
+    </AppView>
+  {{/let}}
+    </BlockSlot>
     </DataLoader>
   </DataSource>
-</Route>
+  </Route>

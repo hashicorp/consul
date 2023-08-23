@@ -1,8 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-//go:build !fips
-// +build !fips
-
 package tlsutil
 
 import (
@@ -229,67 +224,6 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 	}
 }
 
-func TestConfigurator_IncomingGRPCConfig_Peering(t *testing.T) {
-	// Manually configure Alice's certificates
-	cfg := Config{
-		GRPC: ProtocolConfig{
-			CertFile: "../test/hostname/Alice.crt",
-			KeyFile:  "../test/hostname/Alice.key",
-		},
-	}
-	c := makeConfigurator(t, cfg)
-
-	// Set Bob's certificate via auto TLS.
-	bobCert := loadFile(t, "../test/hostname/Bob.crt")
-	bobKey := loadFile(t, "../test/hostname/Bob.key")
-	require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
-
-	peeringServerName := "server.dc1.peering.1234"
-	c.UpdateAutoTLSPeeringServerName(peeringServerName)
-
-	testutil.RunStep(t, "with peering name", func(t *testing.T) {
-		client, errc, _ := startTLSServer(c.IncomingGRPCConfig())
-		if client == nil {
-			t.Fatalf("startTLSServer err: %v", <-errc)
-		}
-		tlsClient := tls.Client(client, &tls.Config{
-			// When the peering server name is provided the server should present
-			// the certificates configured via AutoTLS (Bob).
-			ServerName:         peeringServerName,
-			InsecureSkipVerify: true,
-		})
-		require.NoError(t, tlsClient.Handshake())
-
-		certificates := tlsClient.ConnectionState().PeerCertificates
-		require.NotEmpty(t, certificates)
-		require.Equal(t, "Bob", certificates[0].Subject.CommonName)
-
-		// Check the server side of the handshake succeded.
-		require.NoError(t, <-errc)
-	})
-
-	testutil.RunStep(t, "without name", func(t *testing.T) {
-		client, errc, _ := startTLSServer(c.IncomingGRPCConfig())
-		if client == nil {
-			t.Fatalf("startTLSServer err: %v", <-errc)
-		}
-
-		tlsClient := tls.Client(client, &tls.Config{
-			// ServerName:         peeringServerName,
-			InsecureSkipVerify: true,
-		})
-		require.NoError(t, tlsClient.Handshake())
-
-		certificates := tlsClient.ConnectionState().PeerCertificates
-		require.NotEmpty(t, certificates)
-
-		// Should default to presenting the manually configured certificates.
-		require.Equal(t, "Alice", certificates[0].Subject.CommonName)
-
-		// Check the server side of the handshake succeded.
-		require.NoError(t, <-errc)
-	})
-}
 func TestConfigurator_IncomingInsecureRPCConfig(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
@@ -469,98 +403,6 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 		require.Error(t, err)
 		require.Error(t, <-errc)
 	})
-}
-
-func TestConfigurator_OutgoingRPC_ServerMode(t *testing.T) {
-	type testCase struct {
-		clientConfig Config
-		expectName   string
-	}
-
-	run := func(t *testing.T, tc testCase) {
-		serverCfg := makeConfigurator(t, Config{
-			InternalRPC: ProtocolConfig{
-				CAFile:         "../test/hostname/CertAuth.crt",
-				CertFile:       "../test/hostname/Alice.crt",
-				KeyFile:        "../test/hostname/Alice.key",
-				VerifyIncoming: true,
-			},
-			ServerMode: true,
-		})
-
-		serverConn, errc, certc := startTLSServer(serverCfg.IncomingRPCConfig())
-		if serverConn == nil {
-			t.Fatalf("startTLSServer err: %v", <-errc)
-		}
-
-		clientCfg := makeConfigurator(t, tc.clientConfig)
-
-		bettyCert := loadFile(t, "../test/hostname/Betty.crt")
-		bettyKey := loadFile(t, "../test/hostname/Betty.key")
-		require.NoError(t, clientCfg.UpdateAutoTLSCert(bettyCert, bettyKey))
-
-		wrap := clientCfg.OutgoingRPCWrapper()
-		require.NotNil(t, wrap)
-
-		tlsClient, err := wrap("dc1", serverConn)
-		require.NoError(t, err)
-		defer tlsClient.Close()
-
-		err = tlsClient.(*tls.Conn).Handshake()
-		require.NoError(t, err)
-
-		err = <-errc
-		require.NoError(t, err)
-
-		clientCerts := <-certc
-		require.NotEmpty(t, clientCerts)
-
-		require.Equal(t, tc.expectName, clientCerts[0].Subject.CommonName)
-
-		// Check the server side of the handshake succeeded.
-		require.NoError(t, <-errc)
-	}
-
-	tt := map[string]testCase{
-		"server with manual cert": {
-			clientConfig: Config{
-				InternalRPC: ProtocolConfig{
-					VerifyOutgoing: true,
-					CAFile:         "../test/hostname/CertAuth.crt",
-					CertFile:       "../test/hostname/Bob.crt",
-					KeyFile:        "../test/hostname/Bob.key",
-				},
-				ServerMode: true,
-			},
-			// Even though an AutoTLS cert is configured, the server will prefer the manually configured cert.
-			expectName: "Bob",
-		},
-		"client with manual cert": {
-			clientConfig: Config{
-				InternalRPC: ProtocolConfig{
-					VerifyOutgoing: true,
-					CAFile:         "../test/hostname/CertAuth.crt",
-					CertFile:       "../test/hostname/Bob.crt",
-					KeyFile:        "../test/hostname/Bob.key",
-				},
-				ServerMode: false,
-			},
-			expectName: "Betty",
-		},
-		"client with auto-TLS": {
-			clientConfig: Config{
-				ServerMode: false,
-				AutoTLS:    true,
-			},
-			expectName: "Betty",
-		},
-	}
-
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
 }
 
 func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
@@ -1376,7 +1218,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			},
 		},
 		{
-			name: "agent tls, default consul server name, no override",
+			name: "agent tls, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
@@ -1389,11 +1231,11 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			},
 			expected: &tls.Config{
 				MinVersion: tls.VersionTLS12,
-				ServerName: "",
+				ServerName: "servername",
 			},
 		},
 		{
-			name: "agent tls, skip verify, consul node name for server name, no override",
+			name: "agent tls, skip verify, node name for server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
@@ -1407,7 +1249,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			expected: &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS12,
-				ServerName:         "",
+				ServerName:         "nodename",
 			},
 		},
 		{
@@ -1623,55 +1465,93 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 }
 
 func TestConfigurator_GRPCServerUseTLS(t *testing.T) {
-	t.Run("certificate manually configured", func(t *testing.T) {
-		c := makeConfigurator(t, Config{
-			GRPC: ProtocolConfig{
-				CertFile: "../test/hostname/Alice.crt",
-				KeyFile:  "../test/hostname/Alice.key",
+	type testCase struct {
+		config       Config
+		useAutoTLS   bool
+		httpsEnabled bool
+		expectTLS    bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		c := makeConfigurator(t, tc.config)
+		if tc.useAutoTLS {
+			cert := loadFile(t, "../test/hostname/Bob.crt")
+			key := loadFile(t, "../test/hostname/Bob.key")
+			require.NoError(t, c.UpdateAutoTLSCert(cert, key))
+		}
+
+		require.Equal(t, tc.expectTLS, c.GRPCServerUseTLS(tc.httpsEnabled))
+	}
+
+	tt := map[string]testCase{
+		"no certificate": {
+			config:    Config{},
+			expectTLS: false,
+		},
+		"certificate manually configured": {
+			config: Config{
+				GRPC: ProtocolConfig{
+					CertFile: "../test/hostname/Alice.crt",
+					KeyFile:  "../test/hostname/Alice.key",
+				},
 			},
-		})
-		require.True(t, c.GRPCServerUseTLS())
-	})
-
-	t.Run("no certificate", func(t *testing.T) {
-		c := makeConfigurator(t, Config{})
-		require.False(t, c.GRPCServerUseTLS())
-	})
-
-	t.Run("AutoTLS (default)", func(t *testing.T) {
-		c := makeConfigurator(t, Config{})
-
-		bobCert := loadFile(t, "../test/hostname/Bob.crt")
-		bobKey := loadFile(t, "../test/hostname/Bob.key")
-		require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
-		require.False(t, c.GRPCServerUseTLS())
-	})
-
-	t.Run("AutoTLS w/ UseAutoCert Disabled", func(t *testing.T) {
-		c := makeConfigurator(t, Config{
-			GRPC: ProtocolConfig{
-				UseAutoCert: false,
+			expectTLS: true,
+		},
+		"AutoTLS (default)": {
+			config:     Config{},
+			useAutoTLS: true,
+			expectTLS:  false,
+		},
+		"AutoTLS w/ UseAutoCert disabled": {
+			config: Config{
+				GRPC: ProtocolConfig{
+					UseAutoCert: false,
+				},
 			},
-		})
-
-		bobCert := loadFile(t, "../test/hostname/Bob.crt")
-		bobKey := loadFile(t, "../test/hostname/Bob.key")
-		require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
-		require.False(t, c.GRPCServerUseTLS())
-	})
-
-	t.Run("AutoTLS w/ UseAutoCert Enabled", func(t *testing.T) {
-		c := makeConfigurator(t, Config{
-			GRPC: ProtocolConfig{
-				UseAutoCert: true,
+			useAutoTLS: true,
+			expectTLS:  false,
+		},
+		"AutoTLS w/ UseAutoCert enabled": {
+			config: Config{
+				GRPC: ProtocolConfig{
+					UseAutoCert: true,
+				},
 			},
-		})
+			useAutoTLS: true,
+			expectTLS:  true,
+		},
+		"pre 1.12 compat - legacy config and https enabled enables grpc tls": {
+			config: Config{
+				SpecifiedTLSStanza: false,
+			},
+			httpsEnabled: true,
+			expectTLS:    true,
+		},
+		"pre 1.12 compat - new listener config with https enabled does not enable grpc tls": {
+			config: Config{
+				HTTPS: ProtocolConfig{
+					CertFile: "../test/hostname/Alice.crt",
+					KeyFile:  "../test/hostname/Alice.key",
+				},
+				SpecifiedTLSStanza: true,
+			},
+			httpsEnabled: true,
+			expectTLS:    false,
+		},
+		"pre 1.12 compat - legacy config and https disabled does not enable grpc tls": {
+			config: Config{
+				SpecifiedTLSStanza: false,
+			},
+			httpsEnabled: false,
+			expectTLS:    false,
+		},
+	}
 
-		bobCert := loadFile(t, "../test/hostname/Bob.crt")
-		bobKey := loadFile(t, "../test/hostname/Bob.key")
-		require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
-		require.True(t, c.GRPCServerUseTLS())
-	})
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 type fakeTLSConn struct {

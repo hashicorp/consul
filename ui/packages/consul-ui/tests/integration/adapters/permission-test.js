@@ -1,21 +1,16 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { env } from '../../../env';
-const shouldHaveNspace = function (nspace) {
+const shouldHaveNspace = function(nspace) {
   return typeof nspace !== 'undefined' && env('CONSUL_NSPACES_ENABLED');
 };
 
-module('Integration | Adapter | permission', function (hooks) {
+module('Integration | Adapter | permission', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const undefinedNspace = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
-    test('requestForAuthorize returns the correct url/method', function (assert) {
+  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
+    test('requestForAuthorize returns the correct url/method', function(assert) {
       const adapter = this.owner.lookup('adapter:permission');
       const client = this.owner.lookup('service:client/http');
       const request = client.requestParams.bind(client);

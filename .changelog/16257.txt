@@ -1,3 +1,0 @@
-```release-note:bug
-peering: Fix issue where mesh gateways would use the wrong address when contacting a remote peer with the same datacenter name.
-```

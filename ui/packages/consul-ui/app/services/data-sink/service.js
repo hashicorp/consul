@@ -1,11 +1,6 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 
-const parts = function (uri) {
+const parts = function(uri) {
   uri = uri.toString();
   if (uri.indexOf('://') === -1) {
     uri = `consul://${uri}`;

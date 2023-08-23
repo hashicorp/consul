@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -43,7 +40,6 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	// Watch for service check updates
 	err := a.cache.Notify(ctx, cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecksRequest{
 		ServiceID: service.ID,
-		NodeName:  a.Config.NodeName,
 	}, "service-checks:"+service.ID, ch)
 	if err != nil {
 		t.Fatalf("failed to set cache notification: %v", err)

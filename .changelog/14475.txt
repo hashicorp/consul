@@ -1,3 +1,0 @@
-```release-note:bug
-metrics: Add duplicate metrics that have only a single "consul_" prefix for all existing metrics with double ("consul_consul_") prefix, with the intent to standardize on single prefixes.
-```

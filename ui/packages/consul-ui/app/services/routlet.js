@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 import { schedule } from '@ember/runloop';
 import { get } from '@ember/object';
@@ -70,7 +65,7 @@ export default class RoutletService extends Service {
   }
 
   exists(routeName) {
-    if (get(routes, routeName)) {
+    if(get(routes, routeName)) {
       return this.allowed(routeName);
     }
     return false;
@@ -79,7 +74,7 @@ export default class RoutletService extends Service {
   allowed(routeName) {
     const abilities = get(routes, `${routeName}._options.abilities`) || [];
     if (abilities.length > 0) {
-      if (!abilities.every((ability) => this.permissions.can(ability))) {
+      if (!abilities.every(ability => this.permissions.can(ability))) {
         return false;
       }
     }
@@ -88,7 +83,7 @@ export default class RoutletService extends Service {
 
   transition() {
     let endTransition;
-    this._transition = new Promise((resolve) => {
+    this._transition = new Promise(resolve => {
       endTransition = resolve;
     });
     return endTransition;
@@ -96,7 +91,7 @@ export default class RoutletService extends Service {
 
   findOutlet(name) {
     const keys = [...outlets.keys()];
-    const key = keys.find((item) => name.indexOf(item) !== -1);
+    const key = keys.find(item => name.indexOf(item) !== -1);
     return key;
   }
 
@@ -112,7 +107,7 @@ export default class RoutletService extends Service {
    */
   normalizeParamsFor(name, params = {}) {
     if (isWildcard(name)) {
-      return Object.keys(params).reduce(function (prev, item) {
+      return Object.keys(params).reduce(function(prev, item) {
         if (typeof params[item] !== 'undefined') {
           prev[item] = decodeURIComponent(params[item]);
         } else {
@@ -163,6 +158,7 @@ export default class RoutletService extends Service {
       ...outletParams,
     };
   }
+
 
   // modelFor gets the model for Outlet specified by `name`, not the Route
   modelFor(name) {

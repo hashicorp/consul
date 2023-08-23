@@ -1,82 +1,88 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-<div class={{class-map "consul-peer-form-generate"}} ...attributes>
+<div
+  class={{class-map
+    'consul-peer-form-generate'
+  }}
+  ...attributes
+>
   <StateMachine
-    @src={{require
-      "./chart.xstate"
-      from="/components/consul/peer/form/generate"
-    }}
-    @initial={{if @regenerate "loading" "idle"}}
-    as |fsm|
-  >
+    @src={{require './chart.xstate' from="/components/consul/peer/form/generate"}}
+    @initial={{if @regenerate 'loading' 'idle'}}
+  as |fsm|>
 
-    {{#let (unique-id) as |id reset|}}
-      <form {{on "submit" (fn fsm.dispatch "LOAD")}} id={{id}}>
+  {{#let
+    (unique-id)
+  as |id reset|}}
+    <form
+      {{on 'submit' (fn fsm.dispatch 'LOAD')}}
+      id={{id}}
+    >
 
-        <fsm.State @matches={{array "idle" "error"}}>
-          <fsm.State @matches={{"error"}}>
-            <Hds::Alert @color='critical' class='mb-3 mt-2' as |A|>
-              <A.Title>Error</A.Title>
-              <A.Description>{{fsm.state.context.error.message}}</A.Description>
-            </Hds::Alert>
-          </fsm.State>
-          {{yield
+      <fsm.State @matches={{array 'idle' 'error'}}>
+        <fsm.State @matches={{'error'}}>
+          <Notice
+            @type="error"
+            role="alert"
+          as |notice|>
+            <notice.Body>
+              <p>
+                <strong>Error</strong><br />
+                {{fsm.state.context.error.message}}
+              </p>
+            </notice.Body>
+          </Notice>
+        </fsm.State>
+        {{yield (hash
+          Fieldsets=(component "consul/peer/form/generate/fieldsets"
+            item=@item
+          )
+          Actions=(component "consul/peer/form/generate/actions"
+            item=@item
+            id=id
+          )
+        )}}
+      </fsm.State>
+
+      <fsm.State @matches={{'loading'}}>
+        <DataSource
+          @src={{uri '/${partition}/${nspace}/${dc}/peering/token-for/${name}'
             (hash
-              Fieldsets=(component
-                "consul/peer/form/generate/fieldsets" item=@item
-              )
-              Actions=(component
-                "consul/peer/form/generate/actions" item=@item id=id
-              )
+              partition=@item.Partition
+              nspace=''
+              dc=@item.Datacenter
+              name=@item.Name
             )
           }}
-        </fsm.State>
-
-        <fsm.State @matches={{"loading"}}>
-          <DataSource
-            @src={{uri
-              "/${partition}/${nspace}/${dc}/peering/token-for/${name}/${externalAddresses}"
-              (hash
-                partition=@item.Partition
-                nspace=""
-                dc=@item.Datacenter
-                name=@item.Name
-                externalAddresses=@item.ServerExternalAddresses
-              )
-            }}
-            @onchange={{queue
-              @onchange
-              (pick "data" (fn fsm.dispatch "SUCCESS"))
-            }}
-            @onerror={{queue (fn fsm.dispatch "ERROR")}}
-          />
-        </fsm.State>
-
-        <fsm.State @matches={{"success"}}>
-          {{yield
-            (hash
-              Fieldsets=(component
-                "consul/peer/form/token/fieldsets"
-                item=@item
-                token=fsm.state.context.PeeringToken
-                regenerate=@regenerate
-                onclick=(queue (set @item "Name" "") (fn fsm.dispatch "RESET"))
-              )
-              Actions=(component
-                "consul/peer/form/token/actions"
-                token=fsm.state.context.PeeringToken
-                item=@item
-                id=id
-              )
-            )
+          @onchange={{queue
+            @onchange
+            (pick 'data' (fn fsm.dispatch 'SUCCESS'))
           }}
-        </fsm.State>
+          @onerror={{queue
+            (fn fsm.dispatch 'ERROR')
+          }}
+        />
+      </fsm.State>
 
-      </form>
-    {{/let}}
+      <fsm.State @matches={{'success'}}>
+        {{yield (hash
+          Fieldsets=(component "consul/peer/form/token/fieldsets"
+            item=@item
+            token=fsm.state.context.PeeringToken
+            regenerate=@regenerate
+            onclick=(queue
+              (set @item 'Name' '')
+              (fn fsm.dispatch 'RESET')
+            )
+          )
+          Actions=(component "consul/peer/form/token/actions"
+            token=fsm.state.context.PeeringToken
+            item=@item
+            id=id
+          )
+        )}}
+      </fsm.State>
+
+    </form>
+  {{/let}}
 
   </StateMachine>
 </div>

@@ -1,3 +1,0 @@
-```release-note:feature
-connect: Add Envoy connection balancing configuration fields.
-```

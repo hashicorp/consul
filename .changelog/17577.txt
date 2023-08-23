@@ -1,3 +1,0 @@
-```release-note:improvement
-fix metric names in /docs/agent/telemetry
-```

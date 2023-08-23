@@ -1,3 +1,0 @@
-```release-note:bug
-connect: Fix peering failovers ignoring local mesh gateway configuration.
-```

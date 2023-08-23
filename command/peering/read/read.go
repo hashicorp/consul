@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package read
 
 import (
@@ -133,12 +130,9 @@ func formatPeering(peering *api.Peering) string {
 	}
 
 	buffer.WriteString("\n")
-	buffer.WriteString(fmt.Sprintf("Imported Services: %d\n", len(peering.StreamStatus.ImportedServices)))
-	buffer.WriteString(fmt.Sprintf("Exported Services: %d\n", len(peering.StreamStatus.ExportedServices)))
-	buffer.WriteString("\n")
-	buffer.WriteString(fmt.Sprintf("Last Heartbeat:    %v\n", peering.StreamStatus.LastHeartbeat))
-	buffer.WriteString(fmt.Sprintf("Last Send:         %v\n", peering.StreamStatus.LastSend))
-	buffer.WriteString(fmt.Sprintf("Last Receive:      %v\n", peering.StreamStatus.LastReceive))
+	buffer.WriteString(fmt.Sprintf("Imported Services: %d\n", peering.ImportedServiceCount))
+	buffer.WriteString(fmt.Sprintf("Exported Services: %d\n", peering.ExportedServiceCount))
+
 	buffer.WriteString("\n")
 	buffer.WriteString(fmt.Sprintf("Create Index: %d\n", peering.CreateIndex))
 	buffer.WriteString(fmt.Sprintf("Modify Index: %d\n", peering.ModifyIndex))

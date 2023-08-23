@@ -8,10 +8,10 @@ import YieldSlot from './yield-slot';
 const BlockSlot = Component.extend({
   layout,
   tagName: '',
-  _name: computed('name', function () {
+  _name: computed('name', function() {
     return this.name;
   }),
-  didInsertElement: function () {
+  didInsertElement: function() {
     const slottedComponent = this.nearestOfType(Slots);
     if (!slottedComponent._isRegistered(this._name)) {
       slottedComponent._activateSlot(this._name);
@@ -42,7 +42,7 @@ const BlockSlot = Component.extend({
       }
     }
   },
-  willDestroyElement: function () {
+  willDestroyElement: function() {
     if (this.slottedComponent) {
       // Deactivate the yield slot using the slots interface when the block
       // is destroyed to allow the yield slot default {{else}} to take effect

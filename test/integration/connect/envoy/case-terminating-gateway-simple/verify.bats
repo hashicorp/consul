@@ -15,7 +15,7 @@ load helpers
 }
 
 @test "terminating-gateway should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s2 HEALTHY 1
+   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s2 HEALTHY 1
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
@@ -25,7 +25,7 @@ load helpers
 @test "s1 upstream should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 @test "terminating-gateway is used for the upstream connection" {

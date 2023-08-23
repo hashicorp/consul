@@ -1,65 +1,81 @@
 ---
 layout: docs
-page_title: Join External Services to Consul on Kubernetes
+page_title: Consul Clients Outside of Kubernetes - Kubernetes
 description: >-
-  Services running on a virtual machine (VM) can join a Consul datacenter running on Kubernetes. Learn how to configure the Kubernetes installation to accept communication from external services.
+  Consul clients running on non-Kubernetes nodes can join a Consul cluster
+  running within Kubernetes.
 ---
 
-# Join External Services to Consul on Kubernetes
+# Consul Clients Outside Kubernetes
 
-Services running on non-Kubernetes nodes can join a Consul cluster running within Kubernetes.
+Consul clients running on non-Kubernetes nodes can join a Consul cluster running within Kubernetes.
+
+## Networking
+
+Within one datacenter, Consul typically requires a fully connected
+[network](/docs/architecture). This means the IPs of every client and server
+agent should be routable by every other client and server agent in the
+datacenter. Clients need to be able to [gossip](/docs/architecture/gossip) with
+every other agent and make RPC calls to servers. Servers need to be able to
+gossip with every other agent. See [Architecture](/docs/architecture) for more details.
+
+-> **Consul Enterprise customers** may use [network
+segments](/docs/enterprise/network-segments) to enable non-fully-connected
+topologies. However, out-of-cluster nodes must still be able to communicate
+with the server pod or host IP addresses.
 
 ## Auto-join
-
 The recommended way to join a cluster running within Kubernetes is to
-use the ["k8s" cloud auto-join provider](/consul/docs/install/cloud-auto-join#kubernetes-k8s).
+use the ["k8s" cloud auto-join provider](/docs/install/cloud-auto-join#kubernetes-k8s).
 
 The auto-join provider dynamically discovers IP addresses to join using
 the Kubernetes API. It authenticates with Kubernetes using a standard
-`kubeconfig` file. Auto-join works with all major hosted Kubernetes offerings
+`kubeconfig` file. This works with all major hosted Kubernetes offerings
 as well as self-hosted installations. The token in the `kubeconfig` file
 needs to have permissions to list pods in the namespace where Consul servers
 are deployed.
 
-The auto-join string below joins a Consul server agent to a cluster using the [official Helm chart](/consul/docs/k8s/helm):
+The auto-join string below will join a Consul server cluster that is
+started using the [official Helm chart](/docs/k8s/helm):
 
 ```shell-session
 $ consul agent -retry-join 'provider=k8s label_selector="app=consul,component=server"'
 ```
-
 -> **Note:** This auto-join command only connects on the default gossip port
-8301, whether you are joining on the pod network or via host ports.  A
-Consul server that is already a member of the datacenter should be
-listening on this port for the external service to connect through
+8301, whether you are joining on the pod network or via host ports.  Either a
+consul server or client that is already a member of the datacenter should be
+listening on this port for the external client agent to be able to use
 auto-join.
 
 ### Auto-join on the Pod network
+In the default Consul Helm chart installation, Consul clients and servers are
+routable only via their pod IPs for server RPCs and gossip (HTTP
+API calls to Consul clients can also be made through host IPs). This means any
+external client agents joining the Consul cluster running on Kubernetes would
+need to be able to have connectivity to those pod IPs.
 
-In the default Consul Helm chart installation, Consul servers are
-routable through their pod IPs for server RPCs. As a result, any
-external agents joining the Consul cluster running on Kubernetes
-need to be able to connect to those pod IPs.
-
-In many hosted Kubernetes environments, you need to explicitly configure
+In many hosted Kubernetes environments, you will need to explicitly configure
 your hosting provider to ensure that pod IPs are routable from external VMs.
-For more information, refer to [Azure AKS CNI](https://docs.microsoft.com/en-us/azure/aks/concepts-network#azure-cni-advanced-networking),
-[AWS EKS CNI](https://docs.aws.amazon.com/eks/latest/userguide/pod-networking.html) and
-[GKE VPC-native clusters](https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips).
+See [Azure AKS
+CNI](https://docs.microsoft.com/en-us/azure/aks/concepts-network#azure-cni-advanced-networking),
+[AWS EKS
+CNI](https://docs.aws.amazon.com/eks/latest/userguide/pod-networking.html) and
+[GKE VPC-native
+clusters](https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips).
 
-To join external agents with Consul on Kubernetes deployments installed with default values through the [official Helm chart](/consul/docs/k8s/helm):
+Given you have the [official Helm chart](/docs/k8s/helm) installed with the default values, do the following to join an external client agent.
 
-  1. Make sure the pod IPs of the servers in Kubernetes are
+  1. Make sure the pod IPs of the clients and servers in Kubernetes are
   routable from the VM and that the VM can access port 8301 (for gossip) and
   port 8300 (for server RPC) on those pod IPs.
 
-  1. Make sure that the server pods running in Kubernetes can route
+  1. Make sure that the client and server pods running in Kubernetes can route
   to the VM's advertise IP on its gossip port (default 8301).
 
-  1. Make sure you have the `kubeconfig` file for the Kubernetes cluster in `$HOME/.kube/config` on the external VM.
+  2. Make sure you have the `kubeconfig` file for the Kubernetes cluster in `$HOME/.kube/config` on the external VM.
 
-  1. On the external VM, run:
-
-  ```shell-session
+  2.  On the external VM, run:
+  ```bash
   consul agent \
     -advertise="$ADVERTISE_IP" \
     -retry-join='provider=k8s label_selector="app=consul,component=server"' \
@@ -71,8 +87,7 @@ To join external agents with Consul on Kubernetes deployments installed with def
     -data-dir=$DATA_DIR \
   ```
 
-  1. Run `consul members` to check if the join was successful.
-
+  3. Check if the join was successful by running `consul members`. Sample output:
   ```shell-session
   / $ consul members
   Node                                           Address           Status  Type    Build  Protocol  DC   Segment
@@ -83,12 +98,12 @@ To join external agents with Consul on Kubernetes deployments installed with def
   gke-external-agent-default-pool-32d15192-vo7k  10.138.0.42:8301  alive    client  1.9.1  2         dc1  <default>
   ```
 
-### Auto-join through host ports
+### Auto-join via host ports
+If your external VMs can't connect to Kubernetes pod IPs, but they can connect
+to the internal host IPs of the nodes in the Kubernetes cluster, you have the
+option to expose the clients and server ports on the host IP instead.
 
-If your external VMs cannot connect to Kubernetes pod IPs but they can connect
-to the internal host IPs of the nodes in the Kubernetes cluster, you can join the two by exposing ports on the host IP instead.
-
-  1. Install the [official Helm chart](/consul/docs/k8s/helm) with the following values:
+  1. Install the [official Helm chart](/docs/k8s/helm) with the following values:
   ```yaml
   client:
     exposeGossipPorts: true # exposes client gossip ports as hostPorts
@@ -100,20 +115,19 @@ to the internal host IPs of the nodes in the Kubernetes cluster, you can join th
         # Note that this needs to be different than 8301, to avoid conflicting with the client gossip hostPort
         port: 9301
   ```
-   This installation exposes the client gossip ports, the server gossip ports and the server RPC port at `hostIP:hostPort`. Note that `hostIP` is the **internal** IP of the VM that the client/server pods are deployed on.
+   This will expose the client gossip ports, the server gossip ports and the server RPC port at `hostIP:hostPort`. Note that `hostIP` is the **internal** IP of the VM that the client/server pods are deployed on.
 
   1. Make sure the IPs of the Kubernetes nodes are routable from the VM and
   that the VM can access ports 8301 and 9301 (for gossip) and port 8300 (for
   server RPC) on those node IPs.
 
-  1. Make sure the server pods running in Kubernetes can route to
+  1. Make sure the client and server pods running in Kubernetes can route to
   the VM's advertise IP on its gossip port (default 8301).
 
-  1. Make sure you have the `kubeconfig` file for the Kubernetes cluster in `$HOME/.kube/config` on the external VM.
+  3. Make sure you have the `kubeconfig` file for the Kubernetes cluster in `$HOME/.kube/config` on the external VM.
 
-  1. On the external VM, run:
-   
-  ```shell-session
+  4. On the external VM, run (note the addition of `host_network=true` in the retry-join argument):
+  ```bash
   consul agent \
     -advertise="$ADVERTISE_IP" \
     -retry-join='provider=k8s host_network=true label_selector="app=consul,component=server"'
@@ -124,11 +138,7 @@ to the internal host IPs of the nodes in the Kubernetes cluster, you can join th
     -datacenter=$DATACENTER \
     -data-dir=$DATA_DIR \
   ```
-
-  Note the addition of `host_network=true` in the retry-join argument.
-
-  1. Run `consul members` to check if the join was successful.
-   
+  3. Check if the join was successful by running `consul members`. Sample output:
   ```shell-session
   / $ consul members
   Node                                           Address           Status  Type    Build  Protocol  DC   Segment
@@ -140,12 +150,13 @@ to the internal host IPs of the nodes in the Kubernetes cluster, you can join th
   ```
 
 ## Manual join
+If you are unable to use auto-join, you can also follow the instructions in
+either of the auto-join sections but instead of using a `provider` key in the
+`-retry-join` flag, you would need to pass the address of at least one
+consul server, e.g: `-retry-join=$CONSUL_SERVER_IP:$SERVER_SERFLAN_PORT`. A
+`kubeconfig` file is not required when using manual join.
 
-If you are unable to use auto-join, try following the instructions in
-either of the auto-join sections, but instead of using a `provider` key in the
-`-retry-join` flag, pass the address of at least one Consul server. Example: `-retry-join=$CONSUL_SERVER_IP:$SERVER_SERFLAN_PORT`.
+However, rather than hardcoding the IP, it's recommended to set up a DNS entry
+that would resolve to the consul servers' pod IPs (if using the pod network) or
+host IPs that the server pods are running on (if using host ports).
 
-A `kubeconfig` file is not required when using manual join.
-
-Instead of hardcoding an IP address, we recommend you set up a DNS entry
-that resolves to the pod IPs or host IPs that the Consul server pods are running on.

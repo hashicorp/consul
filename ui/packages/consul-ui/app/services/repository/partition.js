@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
 import RepositoryService, { softDelete } from 'consul-ui/services/repository';
@@ -11,16 +6,16 @@ import dataSource from 'consul-ui/decorators/data-source';
 
 import { defaultChangeset as changeset } from 'consul-ui/utils/form/builder';
 
-const findActive = function (items, item) {
-  let found = items.find(function (i) {
+const findActive = function(items, item) {
+  let found = items.find(function(i) {
     return i.Name === item.Name;
   });
   if (typeof found === 'undefined') {
-    runInDebug((_) =>
-      console.info(`${item.Name} not found in [${items.map((item) => item.Name).join(', ')}]`)
+    runInDebug(_ =>
+      console.info(`${item.Name} not found in [${items.map(item => item.Name).join(', ')}]`)
     );
     // if we can't find the nspace that was specified try default
-    found = items.find(function (item) {
+    found = items.find(function(item) {
       return item.Name === 'default';
     });
     // if there is no default just choose the first

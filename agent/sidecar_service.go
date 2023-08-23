@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -13,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const sidecarIDSuffix = structs.SidecarProxySuffix
+const sidecarIDSuffix = "-sidecar-proxy"
 
 func sidecarIDFromServiceID(serviceID string) string {
 	return serviceID + sidecarIDSuffix
@@ -81,12 +78,6 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 		sidecar.Tags = append(sidecar.Tags, ns.Tags...)
 	}
 
-	// Copy the locality from the original service if locality was not provided
-	if sidecar.Locality == nil && ns.Locality != nil {
-		tmp := *ns.Locality
-		sidecar.Locality = &tmp
-	}
-
 	// Flag this as a sidecar - this is not persisted in catalog but only needed
 	// in local agent state to disambiguate lineage when deregistering the parent
 	// service later.
@@ -102,7 +93,7 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 		sidecar.Kind = structs.ServiceKindConnectProxy
 	}
 	if sidecar.Service == "" {
-		sidecar.Service = ns.Service + structs.SidecarProxySuffix
+		sidecar.Service = ns.Service + "-sidecar-proxy"
 	}
 	if sidecar.Address == "" {
 		// Inherit address from the service if it's provided

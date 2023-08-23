@@ -33,7 +33,7 @@ Feature: dc / services / instances / Upstreams
       id: service-0-with-id
     ---
     Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/health-checks
-    And I see upstreamsIsVisible on the tabs
+    And I see upstreams on the tabs
 
     When I click upstreams on the tabs
 

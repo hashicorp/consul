@@ -1,11 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 .consul-intention-action-warn-modal {
   .modal-dialog-window {
     max-width: 450px;
+  }
+  .modal-dialog-body p {
+    font-size: var(--typo-size-600);
   }
   button.dangerous {
     @extend %dangerous-button;

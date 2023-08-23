@@ -1,3 +1,0 @@
-```release-note:bug
-ui: fix PUT token request with adding missed AccessorID property to requestBody
-```

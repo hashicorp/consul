@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
@@ -26,12 +21,15 @@ export default class Element extends Component {
     }
   }
   get prop() {
-    return `${this.args.name.toLowerCase().split('.').join('-')}`;
+    return `${this.args.name
+      .toLowerCase()
+      .split('.')
+      .join('-')}`;
   }
   get state() {
     const error = this.touched && this.args.error;
     return {
-      matches: (name) => name === 'error' && error,
+      matches: name => name === 'error' && error,
     };
   }
 

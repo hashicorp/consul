@@ -2,7 +2,7 @@
 Feature: dc / services / instances / show: Show Service Instance
   Background:
     Given 1 datacenter model with the value "dc1"
-    And 3 instance models from yaml
+    And 2 instance models from yaml
     ---
     - Service:
         ID: service-0-with-id
@@ -45,15 +45,6 @@ Feature: dc / services / instances / show: Show Service Instance
           ServiceID: ""
           Output: Output of check
           Status: critical
-    - Service:
-        ID: service-2-with-id
-        Meta:
-          external-source: kubernetes
-          synthetic-node: true
-      Node:
-        Node: node-2
-        Meta:
-          synthetic-node: true
     ---
   Scenario: A Service instance has no Proxy
     Given 1 proxy model from yaml
@@ -71,11 +62,10 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
     Then the url should be /dc1/services/service-0/instances/another-node/service-1-with-id/health-checks
     Then I see externalSource like "nomad"
-    And I see the text "another-node" in "[data-test-service-instance-node-name]"
 
     And I don't see upstreams on the tabs
     And I see healthChecksIsSelected on the tabs
-    And I see 6 healthCheck models
+    And I see 6 of the checks object
 
     When I click tags&Meta on the tabs
     And I see tags&MetaIsSelected on the tabs
@@ -125,14 +115,3 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
     Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/health-checks
     And I don't see proxy on the tabs
-  Scenario: A Service instance with a synthetic node does not display the node name
-    When I visit the instance page for yaml
-    ---
-      dc: dc1
-      service: service-2
-      node: node-2
-      id: service-2-with-id
-    ---
-    Then the url should be /dc1/services/service-2/instances/node-2/service-2-with-id/health-checks
-    Then I see externalSource like "kubernetes"
-    And I don't see the text "node-2" in "[data-test-service-instance-node-name]"

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { MANAGEMENT_ID } from 'consul-ui/models/policy';
@@ -42,7 +37,7 @@ export default class Token extends Model {
 
   @computed('Policies.[]')
   get isGlobalManagement() {
-    return (this.Policies || []).find((item) => item.ID === MANAGEMENT_ID);
+    return (this.Policies || []).find(item => item.ID === MANAGEMENT_ID);
   }
 
   @computed('SecretID')

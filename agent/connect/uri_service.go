@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -43,10 +40,10 @@ func (id SpiffeIDService) uriPath() string {
 		id.Service,
 	)
 
-	// Although CE has no support for partitions, it still needs to be able to
+	// Although OSS has no support for partitions, it still needs to be able to
 	// handle exportedPartition from peered Consul Enterprise clusters in order
 	// to generate the correct SpiffeID.
-	// We intentionally avoid using pbpartition.DefaultName here to be CE friendly.
+	// We intentionally avoid using pbpartition.DefaultName here to be OSS friendly.
 	if ap := id.PartitionOrDefault(); ap != "" && ap != "default" {
 		return "/ap/" + ap + path
 	}

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { helper } from '@ember/component/helper';
 import { get } from '@ember/object';
 
@@ -14,16 +9,9 @@ export function serviceExternalSource(params, hash) {
   const prefix = typeof hash.prefix === 'undefined' ? '' : hash.prefix;
   if (
     source &&
-    [
-      'consul-api-gateway',
-      'vault',
-      'kubernetes',
-      'terraform',
-      'nomad',
-      'consul',
-      'aws',
-      'lambda',
-    ].includes(source)
+    ['consul-api-gateway', 'vault', 'kubernetes', 'terraform', 'nomad', 'consul', 'aws'].includes(
+      source
+    )
   ) {
     return `${prefix}${source}`;
   }

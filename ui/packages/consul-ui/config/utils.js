@@ -1,26 +1,26 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 const read = require('fs').readFileSync;
 const exec = require('child_process').execSync;
 
 // See tests ../node-tests/config/utils.js
-const repositoryYear = function (date = exec('git show -s --format=%ci HEAD')) {
-  return date.toString().trim().split('-').shift();
+const repositoryYear = function(date = exec('git show -s --format=%ci HEAD')) {
+  return date
+    .toString()
+    .trim()
+    .split('-')
+    .shift();
 };
-const repositorySHA = function (sha = exec('git rev-parse --short HEAD')) {
+const repositorySHA = function(sha = exec('git rev-parse --short HEAD')) {
   return sha.toString().trim();
 };
-const binaryVersion = function (repositoryRoot) {
-  return function (versionFileContents = read(`${repositoryRoot}/version/VERSION`)) {
+const binaryVersion = function(repositoryRoot) {
+  return function(versionFileContents = read(`${repositoryRoot}/version/VERSION`)) {
     // see /scripts/dist.sh:8
-    return versionFileContents.toString();
+    return versionFileContents
+      .toString()
   };
 };
-const env = function ($) {
-  return function (flag, fallback) {
+const env = function($) {
+  return function(flag, fallback) {
     // a fallback value MUST be set
     if (typeof fallback === 'undefined') {
       throw new Error(`Please provide a fallback value for $${flag}`);

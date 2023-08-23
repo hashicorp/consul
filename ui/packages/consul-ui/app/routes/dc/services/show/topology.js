@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { set, action } from '@ember/object';
@@ -20,7 +15,7 @@ export default class TopologyRoute extends Route {
     try {
       // intentions will be a proxy object
       let intentions = await this.intentions;
-      let intention = intentions.find((item) => {
+      let intention = intentions.find(item => {
         return (
           item.Datacenter === source.Datacenter &&
           item.SourceName === source.Name &&
@@ -61,7 +56,7 @@ export default class TopologyRoute extends Route {
       ...this.paramsFor('dc.services.show'),
     };
     this.intentions = this.data.source(
-      (uri) =>
+      uri =>
         uri`/${params.partition}/${params.nspace}/${params.dc}/intentions/for-service/${params.name}`
     );
   }

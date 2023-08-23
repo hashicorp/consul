@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/role';
@@ -41,6 +36,9 @@ export default class RoleService extends RepositoryService {
     } else {
       item = await super.findBySlug(...arguments);
     }
-    return this.form.form(this.getModelName()).setData(item).getData();
+    return this.form
+      .form(this.getModelName())
+      .setData(item)
+      .getData();
   }
 }

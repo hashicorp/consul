@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package envoy
 
 // BootstrapTplArgs is the set of arguments that may be interpolated into the
@@ -8,7 +5,7 @@ package envoy
 type BootstrapTplArgs struct {
 	GRPC
 
-	// ProxyCluster is the cluster name for the Envoy `node` specification and
+	// ProxyCluster is the cluster name for the the Envoy `node` specification and
 	// is typically the same as the ProxyID.
 	ProxyCluster string
 
@@ -30,15 +27,9 @@ type BootstrapTplArgs struct {
 	// TLS is enabled.
 	AgentCAPEM string
 
-	// AdminAccessLogConfig string representations of Envoy access log
-	// configurations for the admin interface.
-	AdminAccessLogConfig []string
-
 	// AdminAccessLogPath The path to write the access log for the
 	// administration server. If no access log is desired specify
-	// "/dev/null". By default it will use "/dev/null". Will be overriden by
-	// AdminAccessLogConfig.
-	// DEPRECATED: use AdminAccessLogConfig
+	// "/dev/null". By default it will use "/dev/null".
 	AdminAccessLogPath string
 
 	// AdminBindAddress is the address the Envoy admin server should bind to.
@@ -120,21 +111,10 @@ type BootstrapTplArgs struct {
 	// the envoy_prometheus_bind_addr listener.
 	PrometheusScrapePath string
 
-	// PrometheusCAFile is the path to a CA file for Envoy to use when serving TLS on the Prometheius metrics
-	// endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
-	PrometheusCAFile string
-
-	// PrometheusCAPath is the path to a directory of CA certificates for Envoy to use when serving the Prometheus
-	// metrics endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
-	PrometheusCAPath string
-
-	// PrometheusCertFile is the path to a certificate file for Envoy to use when serving TLS on the Prometheus
-	// metrics endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
+	PrometheusCAFile   string
+	PrometheusCAPath   string
 	PrometheusCertFile string
-
-	// PrometheusKeyFile is the path to a private key file Envoy to use when serving TLS on the Prometheus metrics
-	// endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
-	PrometheusKeyFile string
+	PrometheusKeyFile  string
 }
 
 // GRPC settings used in the bootstrap template.
@@ -160,16 +140,7 @@ type GRPC struct {
 // config.
 const bootstrapTemplate = `{
   "admin": {
-	{{- if (not .AdminAccessLogConfig) }}
     "access_log_path": "{{ .AdminAccessLogPath }}",
-	{{- end}}
-	{{- if .AdminAccessLogConfig }}
-    "access_log": [
-	{{- range $index, $element := .AdminAccessLogConfig}}
-        {{if $index}},{{end}}
-        {{$element}}
-    {{end}}],
-	{{- end}}
     "address": {
       "socket_address": {
         "address": "{{ .AdminBindAddress }}",
@@ -265,9 +236,7 @@ const bootstrapTemplate = `{
     {{- end }}
   },
   {{- if .StatsSinksJSON }}
-  "stats_sinks": [
-    {{ .StatsSinksJSON }}
-  ],
+  "stats_sinks": {{ .StatsSinksJSON }},
   {{- end }}
   {{- if .StatsConfigJSON }}
   "stats_config": {{ .StatsConfigJSON }},
@@ -281,12 +250,10 @@ const bootstrapTemplate = `{
   "dynamic_resources": {
     "lds_config": {
       "ads": {},
-      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "cds_config": {
       "ads": {},
-      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "ads_config": {

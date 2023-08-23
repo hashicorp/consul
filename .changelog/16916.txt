@@ -1,3 +1,0 @@
-```release-note:improvement
-hcp: Add support for linking existing Consul clusters to HCP management plane.
-```

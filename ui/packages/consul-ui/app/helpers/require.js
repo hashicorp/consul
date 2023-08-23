@@ -1,13 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { helper } from '@ember/component/helper';
 import require from 'require';
 
 import { css } from '@lit/reactive-element';
 import resolve from 'consul-ui/utils/path/resolve';
+
 
 const appName = 'consul-ui';
 
@@ -18,24 +14,24 @@ const container = new Map();
 // need to
 export default helper(([path = ''], options) => {
   let fullPath = resolve(`${appName}${options.from}`, path);
-  if (path.charAt(0) === '/') {
+  if(path.charAt(0) === '/') {
     fullPath = `${appName}${fullPath}`;
   }
 
   let module;
-  if (require.has(fullPath)) {
+  if(require.has(fullPath)) {
     module = require(fullPath)[options.export || 'default'];
   } else {
-    throw new Error(`Unable to resolve '${fullPath}' does the file exist?`);
+    throw new Error(`Unable to resolve '${fullPath}' does the file exist?`)
   }
 
-  switch (true) {
+  switch(true) {
     case fullPath.endsWith('.css'):
       return module(css);
     case fullPath.endsWith('.xstate'):
       return module;
     case fullPath.endsWith('.element'): {
-      if (container.has(fullPath)) {
+      if(container.has(fullPath)) {
         return container.get(fullPath);
       }
       const component = module(HTMLElement);

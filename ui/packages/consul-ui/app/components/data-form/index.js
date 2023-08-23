@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get } from '@ember/object';
@@ -14,17 +9,17 @@ export default Component.extend(Slotted, {
   dom: service('dom'),
   builder: service('form'),
   create: false,
-  ondelete: function () {
+  ondelete: function() {
     return this.onsubmit(...arguments);
   },
-  oncancel: function () {
+  oncancel: function() {
     return this.onsubmit(...arguments);
   },
-  onsubmit: function () {},
-  onchange: function (e, form) {
+  onsubmit: function() {},
+  onchange: function(e, form) {
     return form.handleEvent(e);
   },
-  didReceiveAttrs: function () {
+  didReceiveAttrs: function() {
     this._super(...arguments);
     try {
       this.form = this.builder.form(this.type);
@@ -33,12 +28,18 @@ export default Component.extend(Slotted, {
       // this lets us load view only data that doesn't have a form
     }
   },
-  willRender: function () {
+  willRender: function() {
     this._super(...arguments);
     set(this, 'hasError', this._isRegistered('error'));
   },
+  willDestroyElement: function() {
+    this._super(...arguments);
+    if (get(this, 'data.isNew')) {
+      this.data.rollbackAttributes();
+    }
+  },
   actions: {
-    setData: function (data) {
+    setData: function(data) {
       let changeset = data;
       // convert to a real changeset
       if (!isChangeset(data) && typeof this.form !== 'undefined') {
@@ -48,7 +49,7 @@ export default Component.extend(Slotted, {
       // and autofill the new record if required
       if (get(data, 'isNew')) {
         set(this, 'create', true);
-        changeset = Object.entries(this.autofill || {}).reduce(function (prev, [key, value]) {
+        changeset = Object.entries(this.autofill || {}).reduce(function(prev, [key, value]) {
           set(prev, key, value);
           return prev;
         }, changeset);
@@ -56,7 +57,7 @@ export default Component.extend(Slotted, {
       set(this, 'data', changeset);
       return this.data;
     },
-    change: function (e, value, item) {
+    change: function(e, value, item) {
       this.onchange(this.dom.normalizeEvent(e, value), this.form, this.form.getData());
     },
   },

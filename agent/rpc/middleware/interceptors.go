@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package middleware
 
 import (
-	"net"
 	"reflect"
 	"strconv"
 	"strings"
@@ -13,7 +9,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -54,8 +49,7 @@ func NewRequestRecorder(logger hclog.Logger, isLeader func() bool, localDC strin
 }
 
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
-	elapsed := time.Since(start).Microseconds()
-	elapsedMs := float32(elapsed) / 1000
+	elapsed := time.Since(start).Milliseconds()
 	reqType := requestType(request)
 	isLeader := r.getServerLeadership()
 
@@ -70,7 +64,7 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 	labels = r.addOptionalLabels(request, labels)
 
 	// math.MaxInt64 < math.MaxFloat32 is true so we should be good!
-	r.RecorderFunc(metricRPCRequest, elapsedMs, labels)
+	r.RecorderFunc(metricRPCRequest, float32(elapsed), labels)
 
 	labelsArr := flattenLabels(labels)
 	r.Logger.Trace(requestLogName, labelsArr...)
@@ -160,29 +154,5 @@ func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterc
 		err := handler()
 
 		recorder.Record(reqServiceMethod, RPCTypeNetRPC, reqStart, argv.Interface(), err != nil)
-	}
-}
-
-func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimitsHandler, panicHandler RecoveryHandlerFunc) rpc.PreBodyInterceptor {
-
-	return func(reqServiceMethod string, sourceAddr net.Addr) (retErr error) {
-
-		defer func() {
-			if r := recover(); r != nil {
-				retErr = panicHandler(r)
-			}
-		}()
-
-		op := rpcRate.Operation{
-			Name:       reqServiceMethod,
-			SourceAddr: sourceAddr,
-			Type:       rpcRateLimitSpecs[reqServiceMethod].Type,
-			Category:   rpcRateLimitSpecs[reqServiceMethod].Category,
-		}
-
-		// net/rpc does not provide a way to encode the nuances of the
-		// error response (retry or retry elsewhere) so the error string
-		// from the rate limiter is all that we have.
-		return requestLimitsHandler.Allow(op)
 	}
 }

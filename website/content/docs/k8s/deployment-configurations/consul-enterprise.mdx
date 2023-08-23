@@ -1,17 +1,16 @@
 ---
 layout: docs
-page_title: Deploy Consul Enterprise on Kubernetes
-description: >-
-  Consul Enterprise features are available when running Consul on Kubernetes. Learn how to apply your license in the Helm chart and return the license information with the `consul license get` command.
+page_title: Consul Enterprise
+description: Configuration for running Consul Enterprise
 ---
 
-# Deploy Consul Enterprise on Kubernetes
+# Consul Enterprise
 
 You can use this Helm chart to deploy Consul Enterprise by following a few extra steps.
 
 Find the license file that you received in your welcome email. It should have a `.hclic` extension. You will use the contents of this file to create a Kubernetes secret before installing the Helm chart.
 
--> **Note:** This guide assumes you are storing your license as a Kubernetes Secret. If you would like to store the enterprise license in Vault, please reference [Storing the Enterprise License in Vault](/consul/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license).
+-> **Note:** This guide assumes you are storing your license as a Kubernetes Secret. If you would like to store the enterprise license in Vault, please reference [Storing the Enterprise License in Vault](/docs/k8s/installation/vault/enterprise-license).
 
 You can use the following commands to create the secret with name `consul-ent-license` and key `key`:
 
@@ -22,9 +21,9 @@ kubectl create secret generic consul-ent-license --from-literal="key=${secret}"
 
 -> **Note:** If you cannot find your `.hclic` file, please contact your sales team or Technical Account Manager.
 
-In your `values.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
+In your `config.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
 
-<CodeBlockConfig filename="values.yaml" highlight="2">
+<CodeBlockConfig filename="config.yaml" highlight="2">
 
 ```yaml
 global:
@@ -35,7 +34,7 @@ global:
 
 Add the name and key of the secret you just created to `server.enterpriseLicense`, if using Consul version 1.10+.
 
-<CodeBlockConfig filename="values.yaml" highlight="4-6">
+<CodeBlockConfig filename="config.yaml" highlight="4-6">
 
 ```yaml
 global:
@@ -52,7 +51,7 @@ If the version of Consul is < 1.10, use the following config with the name and k
 
 -> **Note:** The value of `server.enterpriseLicense.enableLicenseAutoload` must be set to `false`.
 
-<CodeBlockConfig filename="values.yaml" highlight="7">
+<CodeBlockConfig filename="config.yaml" highlight="7">
 
 ```yaml
 global:
@@ -68,7 +67,7 @@ global:
 Now run `helm install`:
 
 ```shell-session
-$ helm install --wait hashicorp hashicorp/consul --values values.yaml
+$ helm install --wait hashicorp hashicorp/consul --values config.yaml
 ```
 
 Once the cluster is up, you can verify the nodes are running Consul Enterprise by

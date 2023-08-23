@@ -7,29 +7,29 @@ description: >-
 
 # Install Consul on Kubernetes with Helm
 
-This topic describes how to install Consul on Kubernetes using the official Consul Helm chart. For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Installing the Consul K8s CLI](/consul/docs/k8s/installation/install-cli).
+This topic describes how to install Consul on Kubernetes using the official Consul Helm chart. For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Installing the Consul K8s CLI](/docs/k8s/installation/install-cli).
 
 ## Introduction
 
-We recommend using the Consul Helm chart to install Consul on Kubernetes for multi-cluster installations that involve cross-partition or cross datacenter communication. The Helm chart installs and configures all necessary components to run Consul. 
+We recommend using the Consul Helm chart to install Consul on Kubernetes for multi-cluster installations that involve cross-partition or cross datacenter communication. The Helm chart installs and configures all necessary components to run Consul. The configuration enables you to run a server cluster, a client cluster, or both.
 
-Consul can run directly on Kubernetes so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [Consul on Kubernetes architecture](/consul/docs/k8s/architecture) to learn more about its general architecture.
+Consul can run directly on Kubernetes in server or client mode so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [architecture section](/docs/k8s/architecture) to learn more about the general architecture of Consul on Kubernetes.
 
 The Helm chart exposes several useful configurations and automatically sets up complex resources, but it does not automatically operate Consul. You must still become familiar with how to monitor, backup, and upgrade the Consul cluster.
 
-The Helm chart has no required configuration, so it installs a Consul cluster with default configurations. We strongly recommend that you [learn about the configuration options](/consul/docs/k8s/helm#configuration-values) before going to production.
+The Helm chart has no required configuration, so it installs a Consul cluster with default configurations. We strongly recommend that you [learn about the configuration options](/docs/k8s/helm#configuration-values) prior to going to production.
 
--> **Security warning**: By default, Helm installs Consul with security configurations disabled so that the out-of-box experience is optimized for new users. We strongly recommend using a properly-secured Kubernetes cluster or making sure that you understand and enable [Consul’s security features](/consul/docs/security) before going into production. Some security features are not supported in the Helm chart and require additional manual configuration.
+-> **Security warning**: By default, Helm installs Consul with security configurations disabled so that the out-of-box experience is optimized for new users. We strongly recommend using a properly-secured Kubernetes cluster or making sure that you understand and enable [Consul’s security features](/docs/security) before going into production. Some security features are not supported in the Helm chart and require additional manual configuration.
 
-Refer to the [architecture](/consul/docs/k8s/installation/install#architecture) section to learn more about the general architecture of Consul on Kubernetes.
+Refer to the [architecture](/docs/k8s/installation/install#architecture) section to learn more about the general architecture of Consul on Kubernetes.
 
 For a hands-on experience with Consul as a service mesh
 for Kubernetes, follow the [Getting Started with Consul service
-mesh](/consul/tutorials/get-started-kubernetes) tutorial.
+mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?in=consul/gs-consul-service-mesh?utm_source=docs) tutorial.
 
 ## Requirements
 
-Using the Helm Chart requires Helm version 3.6+. Visit the [Helm website](https://helm.sh/docs/intro/install/) to download the latest version.
+- Helm version 3.2+. Visit the [Helm website](https://helm.sh/docs/intro/install/) to download the latest version.
 
 ## Install Consul
 
@@ -45,10 +45,11 @@ Using the Helm Chart requires Helm version 3.6+. Visit the [Helm website](https:
    ```shell-session
    $ helm search repo hashicorp/consul
    NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-   hashicorp/consul	1.0.1       	1.14.1      Official HashiCorp Consul Chart
+   hashicorp/consul	0.39.0       	1.11.1      Official HashiCorp Consul Chart
    ```
 
-1. Before you install Consul on Kubernetes with Helm, ensure that the `consul` Kubernetes namespace does not exist. We recommend installing Consul on a dedicated namespace.
+1. Prior to installing via Helm, ensure that the `consul` Kubernetes namespace does not exist, as installing on a dedicated namespace
+   is recommended.
 
     ```shell-session
     $ kubectl get namespace
@@ -59,54 +60,56 @@ Using the Helm Chart requires Helm version 3.6+. Visit the [Helm website](https:
     kube-system       Active   18h
     ```
 
-1. Install Consul on Kubernetes using Helm. The Helm chart does everything to set up your deployment: after installation, agents automatically form clusters, elect leaders, and run the necessary agents.
-   
-  - Run the following command to install the latest version of Consul on Kubernetes with its default configuration.
+1. Install Consul on Kubernetes using Helm. The Helm chart does everything to set up a recommended Consul-on-Kubernetes deployment. After installation, a Consul cluster will be formed, a leader will be elected, and every node will have a running Consul agent.
+    1. To install the latest version of Consul on Kubernetes, issue the following command to install Consul with the default configuration using Helm. You could also install Consul on a dedicated namespace of your choosing by modifying the value of the `-n` flag for the Helm install.
 
-    ```shell-session
-    $ helm install consul hashicorp/consul --set global.name=consul --create-namespace --namespace consul
-    ```
+       ```shell-session
+       $ helm install consul hashicorp/consul --set global.name=consul --create-namespace --namespace consul
+       ```
 
-    You can also install Consul on a dedicated namespace of your choosing by modifying the value of the `-n` flag for the Helm install.
+    1. To install a specific version of Consul on Kubernetes, issue the following command with `--version` flag to install the specified version with the default configuration using Helm.
 
-  - To install a specific version of Consul on Kubernetes, issue the following command with `--version` flag:
+       ```shell-session
+       $ export VERSION=0.43.0
+       $ helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
+       ```
 
-    ```shell-session
-    $ export VERSION=1.0.1
-    $ helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
-    ```
 
 ## Custom installation
 
 If you want to customize your installation,
-create a `values.yaml` file to override the default settings.
-To learn what settings are available, run `helm inspect values hashicorp/consul`
-or read the [Helm Chart Reference](/consul/docs/k8s/helm).
+create a `config.yaml` file to override the default settings.
+You can learn what settings are available by running `helm inspect values hashicorp/consul`
+or by reading the [Helm Chart Reference](/docs/k8s/helm).
 
-### Minimal `values.yaml` for Consul service mesh
+### Minimal `config.yaml` for Consul service mesh
 
-The following `values.yaml` config file contains the minimum required settings to enable [Consul Service Mesh](/consul/docs/k8s/connect):
+The minimal settings to enable [Consul Service Mesh]((/docs/k8s/connect)) would be captured in the following `config.yaml` config file:
 
-<CodeBlockConfig filename="values.yaml">
+<CodeBlockConfig filename="config.yaml">
 
 ```yaml
 global:
   name: consul
+connectInject:
+  enabled: true
+controller:
+  enabled: true
 ```
 
 </CodeBlockConfig>
 
-After you create your `values.yaml` file, run `helm install` with the `--values` flag:
+Once you've created your `config.yaml` file, run `helm install` with the `--values` flag:
 
 ```shell-session
-$ helm install consul hashicorp/consul --create-namespace --namespace consul --values values.yaml
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --values config.yaml
 NAME: consul
 ...
 ```
 
 ### Enable the Consul CNI plugin
 
-By default, Consul injects a `connect-inject-init` init container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/consul/docs/connect/transparent-proxy).
+By default, Consul injects a `connect-inject-init` init container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/docs/connect/transparent-proxy).
 The container configures traffic redirection in the service mesh through the sidecar proxy.
 To configure redirection, the container requires elevated `CAP_NET_ADMIN` privileges, which may not be compatible with security policies in your organization.
 
@@ -114,121 +117,111 @@ Instead, you can enable the Consul container network interface (CNI) plugin to p
 Because the plugin is executed by the local Kubernetes kubelet, the plugin already has the elevated privileges necessary to configure the network.
 
 The Consul Helm Chart is responsible for installing the Consul CNI plugin.
-To configure the plugin to be installed, add the following configuration to your `values.yaml` file:
+To configure the plugin to be installed, add the following configuration to your `config.yaml` file:
 
-<Tabs>
-  
-<Tab heading="Reference configuration">
+<CodeTabs tabs={[ "Reference configuration","GKE configuration","OpenShift configuration" ]}>
+
+<CodeBlockConfig filename="config.yaml">
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+  cni:
+    enabled: true
+    logLevel: info
+    cniBinDir: "/opt/cni/bin"
+    cniNetDir: "/etc/cni/net.d"
+```
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="config.yaml">
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+  cni:
+    enabled: true
+    logLevel: info
+    cniBinDir: "/home/kubernetes/bin"
+    cniNetDir: "/etc/cni/net.d"
+```
+</CodeBlockConfig>
 
 <CodeBlockConfig filename="values.yaml">
 
-  ```yaml
-  global:
-    name: consul
-  connectInject:
+```yaml
+global:
+  name: consul
+  openshift:
     enabled: true
-    cni:
-      enabled: true
-      logLevel: info
-      cniBinDir: "/opt/cni/bin"
-      cniNetDir: "/etc/cni/net.d"
-```
-
-</CodeBlockConfig>
-</Tab>
-
-<Tab heading="GKE configuration">
-
-<CodeBlockConfig filename="values.yaml">
-
-  ```yaml
-  global:
-    name: consul
-  connectInject:
+connectInject:
+  enabled: true
+  cni:
     enabled: true
-    cni:
-      enabled: true
-      logLevel: info
-      cniBinDir: "/home/kubernetes/bin"
-      cniNetDir: "/etc/cni/net.d"
-```
-
-</CodeBlockConfig>
-</Tab>
-
-<Tab heading="OpenShift configuration">
-
-<CodeBlockConfig filename="values.yaml">
-
-  ```yaml
-  global:
-    name: consul
-    openshift:
-      enabled: true
-  connectInject:
-    enabled: true
-    cni:
-      enabled: true
-      logLevel: info
-      multus: true
-      cniBinDir: "/var/lib/cni/bin"
-      cniNetDir: "/etc/kubernetes/cni/net.d"
+    logLevel: info
+    multus: true
+    cniBinDir: "/var/lib/cni/bin"
+    cniNetDir: "/etc/kubernetes/cni/net.d"
 ```
 </CodeBlockConfig>
-</Tab>
 
-</Tabs>
+</CodeTabs>
+
 
 The following table describes the available CNI plugin options:
 
-| Option     | Description | Default       |
-| ---------- | ----------- | ------------- |
+| Option | Description | Default |
+| ---    | ---         | ---     |
 | `cni.enabled` | Boolean value that enables or disables the CNI plugin. If `true`, the plugin is responsible for redirecting traffic in the service mesh. If `false`, redirection is handled by the `connect-inject init` container. | `false` |
 | `cni.logLevel` | String value that specifies the log level for the installer and plugin. You can specify the following values: `info`, `debug`, `error`. | `info` |
-| `cni.namespace` | Set the namespace to install the CNI plugin into. Overrides global namespace settings for CNI resources, for example `kube-system` | namespace used for `consul-k8s` install, for example `consul` |
 | `cni.multus` | Boolean value that enables multus CNI plugin support. If `true`, multus will be enabled. If `false`, Consul CNI will operate as a chained plugin. | `false` |
 | `cni.cniBinDir` | String value that specifies the location on the Kubernetes node where the CNI plugin is installed. | `/opt/cni/bin` |
 | `cni.cniNetDir` | String value that specifies the location on the Kubernetes node for storing the CNI configuration. | `/etc/cni/net.d` |
 
 ### Enable Consul service mesh on select namespaces
 
-By default, Consul Service Mesh is enabled on almost all namespaces within a Kubernetes cluster, with the exception of `kube-system` and `local-path-storage`. To restrict the service mesh to a subset of namespaces:
+By default, Consul Service Mesh is enabled on almost all namespaces (with the exception of `kube-system` and `local-path-storage`) within a Kubernetes cluster. You can restrict this to a subset of namespaces by specifying a `namespaceSelector` that matches a label attached to each namespace denoting whether to enable Consul service mesh. In order to default to enabling service mesh on select namespaces by label, the `connectInject.default` value must be set to `true`.
 
-1. specify a `namespaceSelector` that matches a label attached to each namespace where you want to deploy the service mesh. In order to default to enabling service mesh on select namespaces by label, the `connectInject.default` value must be set to `true`.
+<CodeBlockConfig filename="config.yaml">
 
-<CodeBlockConfig filename="values.yaml">
-
-  ```yaml
-  global:
-    name: consul
-  connectInject:
-    enabled: true
-    default: true
-    namespaceSelector: |
-      matchLabels:
-        connect-inject : enabled
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+  default: true
+  namespaceSelector: |
+    matchLabels:
+      connect-inject : enabled
+controller:
+  enabled: true
 ```
 
 </CodeBlockConfig>
 
-1. Label the namespaces where you would like to enable Consul Service Mesh.
+Label the namespace(s), where you would like to enable Consul Service Mesh.
 
-  ```shell-session
-  $ kubectl create ns foo
-  $ kubectl label namespace foo connect-inject=enabled
-  ```
+```shell-session
+$ kubectl create ns foo
+$ kubectl label namespace foo connect-inject=enabled
+```
 
-1. Run `helm install` with the `--values` flag:
+Next, run `helm install` with the `--values` flag:
 
-  ```shell-session
-  $ helm install consul hashicorp/consul --create-namespace --namespace consul --values values.yaml
-  NAME: consul
-  ```
+```shell-session
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --values config.yaml
+NAME: consul
+...
+```
 
 ### Update your Consul on Kubernetes configuration
 
-If you already installed Consul and want to make changes, you need to run
-`helm upgrade`. Refer to [Upgrading](/consul/docs/k8s/upgrade) for more details.
+If you've already installed Consul and want to make changes, you'll need to run
+`helm upgrade`. See [Upgrading](/docs/k8s/upgrade) for more details.
 
 ## Usage
 
@@ -237,38 +230,38 @@ You can view the Consul UI and access the Consul HTTP API after installation.
 ### Viewing the Consul UI
 
 The Consul UI is enabled by default when using the Helm chart.
+For security reasons, it isn't exposed via a `LoadBalancer` Service by default so you must
+use `kubectl port-forward` to visit the UI.
 
-For security reasons, it is not exposed through a `LoadBalancer` service by default. To visit the UI, you must
-use `kubectl port-forward`.
+#### TLS Disabled
 
-#### Port forward with TLS disabled
-
-If running with TLS disabled, the Consul UI is accessible through http on port 8500:
+If running with TLS disabled, the Consul UI will be accessible via http on port 8500:
 
 ```shell-session
 $ kubectl port-forward service/consul-server --namespace consul 8500:8500
 ...
 ```
 
-After you set up the port forward, navigate to [http://localhost:8500](http://localhost:8500).
+Once the port is forwarded navigate to [http://localhost:8500](http://localhost:8500).
 
-#### Port forward with TLS enabled
+#### TLS Enabled
 
-If running with TLS enabled, the Consul UI is accessible through https on port 8501:
+If running with TLS enabled, the Consul UI will be accessible via https on port 8501:
 
 ```shell-session
 $ kubectl port-forward service/consul-server --namespace consul 8501:8501
 ...
 ```
 
-After you set up the port forward, navigate to [https://localhost:8501](https://localhost:8501).
+Once the port is forwarded navigate to [https://localhost:8501](https://localhost:8501).
 
-~> You need to click through an SSL warning from your browser because the
+~> You'll need to click through an SSL warning from your browser because the
 Consul certificate authority is self-signed and not in the browser's trust store.
 
 #### ACLs Enabled
 
-If ACLs are enabled, you need to input an ACL token to display all resources and make modifications in the UI.
+If ACLs are enabled, you will need to input an ACL token into the UI in order
+to see all resources and make modifications.
 
 To retrieve the bootstrap token that has full permissions, run:
 
@@ -283,18 +276,25 @@ Then paste the token into the UI under the ACLs tab (without the `%`).
 to retrieve the bootstrap token since secondary datacenters use a separate token
 with less permissions.
 
-#### Exposing the UI through a service
+#### Exposing the UI via a service
 
 If you want to expose the UI via a Kubernetes Service, configure
-the [`ui.service` chart values](/consul/docs/k8s/helm#v-ui-service).
-Because this service allows requests to the Consul servers, it should
+the [`ui.service` chart values](/docs/k8s/helm#v-ui-service).
+This service will allow requests to the Consul servers so it should
 not be open to the world.
 
 ### Accessing the Consul HTTP API
 
-While technically any listening agent can respond to the HTTP API, communicating with the local Consul node has important caching behavior and allows you to use the simpler [`/agent` endpoints for services and checks](/consul/api-docs/agent).
+The Consul HTTP API should be accessed by communicating to the local agent
+running on the same node. While technically any listening agent (client or
+server) can respond to the HTTP API, communicating with the local agent
+has important caching behavior, and allows you to use the simpler
+[`/agent` endpoints for services and checks](/api-docs/agent).
 
-To find information about a node, you can use the [downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
+For Consul installed via the Helm chart, a client agent is installed on
+each Kubernetes node. This is explained in the [architecture](/docs/k8s/installation/install#client-agents)
+section. To access the agent, you may use the
+[downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
 
 An example pod specification is shown below. In addition to pods, anything
 with a pod template can also access the downward API and can therefore also
@@ -363,7 +363,7 @@ spec:
 
 ## Next Steps
 
-If you are still considering a move to Kubernetes, or to Consul on Kubernetes specifically, our [Migrate to Microservices with Consul Service Mesh on Kubernetes](/consul/tutorials/microservices?utm_source=docs)
+If you are still considering a move to Kubernetes, or to Consul on Kubernetes specifically, our [Migrate to Microservices with Consul Service Mesh on Kubernetes](https://learn.hashicorp.com/collections/consul/microservices?utm_source=docs)
 collection uses an example application written by a fictional company to illustrate why and how organizations can
 migrate from monolith to microservices using Consul service mesh on Kubernetes. The case study in this collection
 should provide information valuable for understanding how to develop services that leverage Consul during any stage

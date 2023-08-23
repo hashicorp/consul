@@ -1,15 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -422,11 +417,9 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
-				{
-					Upstream: structs.PeeredServiceName{
-						ServiceName: structs.NewServiceName("redis", nil),
-					},
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -435,7 +428,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	expectJSONFile(t, configFile, pcfg, fixPersistedServiceConfigForTest)
+	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
 	{
@@ -472,11 +465,9 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
-				{
-					Upstream: structs.PeeredServiceName{
-						ServiceName: structs.NewServiceName("redis", nil),
-					},
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -485,7 +476,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	expectJSONFile(t, configFile, pcfg, fixPersistedServiceConfigForTest)
+	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
 	expectState.Proxy.LocalServicePort = 8001
@@ -653,11 +644,9 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
-				{
-					Upstream: structs.PeeredServiceName{
-						ServiceName: structs.NewServiceName("redis", nil),
-					},
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -665,7 +654,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			},
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	}, fixPersistedServiceConfigForTest)
+	}, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
 	{
@@ -788,7 +777,7 @@ func testApplyConfigEntries(t *testing.T, a *TestAgent, entries ...structs.Confi
 			Entry:      entry,
 		}
 		var out bool
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", args, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Apply", args, &out))
 	}
 }
 
@@ -821,23 +810,6 @@ func expectJSONFile(t *testing.T, file string, expect interface{}, fixupContentB
 	}
 
 	require.JSONEq(t, string(expected), string(content))
-}
-
-func fixPersistedServiceConfigForTest(content []byte) ([]byte, error) {
-	var parsed persistedServiceConfig
-	if err := json.Unmarshal(content, &parsed); err != nil {
-		return nil, err
-	}
-	// Sort the output, since it's randomized and causes flaky tests otherwise.
-	sort.Slice(parsed.Defaults.UpstreamConfigs, func(i, j int) bool {
-		return parsed.Defaults.UpstreamConfigs[i].Upstream.String() < parsed.Defaults.UpstreamConfigs[j].Upstream.String()
-	})
-	out, err := json.Marshal(parsed)
-	if err != nil {
-		return nil, err
-	}
-	// Clean the query meta
-	return resetDefaultsQueryMeta(out)
 }
 
 // resetDefaultsQueryMeta will reset the embedded fields from structs.QueryMeta

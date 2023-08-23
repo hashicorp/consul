@@ -1,17 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package dataplane
 
 import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 )
 
 func testClient(t *testing.T, server *Server) pbdataplane.DataplaneServiceClient {
@@ -19,7 +15,6 @@ func testClient(t *testing.T, server *Server) pbdataplane.DataplaneServiceClient
 
 	addr := testutils.RunTestServer(t, server)
 
-	//nolint:staticcheck
 	conn, err := grpc.DialContext(context.Background(), addr.String(), grpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(func() {

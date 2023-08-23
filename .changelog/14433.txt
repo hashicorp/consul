@@ -1,3 +1,0 @@
-```release-note:bug
-checks: If set, use proxy address for automatically added sidecar check instead of service address.
-```

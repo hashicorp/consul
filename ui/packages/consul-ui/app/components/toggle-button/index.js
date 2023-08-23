@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 
@@ -10,19 +5,19 @@ export default Component.extend({
   dom: service('dom'),
   tagName: '',
   checked: false,
-  onchange: function () {},
+  onchange: function() {},
   // TODO: reserved for the moment but we don't need it yet
-  onblur: function () {},
-  init: function () {
+  onblur: function() {},
+  init: function() {
     this._super(...arguments);
     this.guid = this.dom.guid(this);
     this._listeners = this.dom.listeners();
   },
-  willDestroyElement: function () {
+  willDestroyElement: function() {
     this._super(...arguments);
     this._listeners.remove();
   },
-  didReceiveAttrs: function () {
+  didReceiveAttrs: function() {
     this._super(...arguments);
     if (this.checked) {
       this.addClickOutsideListener();
@@ -30,10 +25,10 @@ export default Component.extend({
       this._listeners.remove();
     }
   },
-  addClickOutsideListener: function () {
+  addClickOutsideListener: function() {
     // default onblur event
     this._listeners.remove();
-    this._listeners.add(this.dom.document(), 'click', (e) => {
+    this._listeners.add(this.dom.document(), 'click', e => {
       if (this.dom.isOutside(this.label, e.target)) {
         if (this.dom.isOutside(this.label.nextElementSibling, e.target)) {
           if (this.input.checked) {
@@ -47,7 +42,7 @@ export default Component.extend({
     });
   },
   actions: {
-    click: function (e) {
+    click: function(e) {
       // only preventDefault if the target isn't an external link
       // TODO: this should be changed for an explicit close
       if ((e.target.rel || '').indexOf('noopener') === -1) {
@@ -61,7 +56,7 @@ export default Component.extend({
       }
       this.actions.change.apply(this, [e]);
     },
-    change: function (e) {
+    change: function(e) {
       if (this.input.checked) {
         this.addClickOutsideListener();
       }

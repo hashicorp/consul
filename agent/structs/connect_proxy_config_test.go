@@ -1,15 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConnectProxyConfig_ToAPI(t *testing.T) {
@@ -129,9 +126,6 @@ func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
 				// No transparent proxy config, since proxy is set to "direct" mode.
 				// Field should be omitted from json output.
 				// TransparentProxy: TransparentProxyConfig{},
-
-				// No access logs config provided, so this should be omitted.
-				// AccessLogs: AccessLogsConfig{},
 			},
 			want: `{
 				"DestinationServiceName": "api",
@@ -177,12 +171,6 @@ func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
 					DialedDirectly:       true,
 					OutboundListenerPort: 16001,
 				},
-				AccessLogs: AccessLogsConfig{
-					Enabled:             true,
-					DisableListenerLogs: true,
-					Type:                FileLogSinkType,
-					Path:                "/var/log/access.log",
-				},
 			},
 			want: `{
 				"DestinationServiceName": "billing",
@@ -202,12 +190,6 @@ func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
 				},
 				"Expose": {
 					"Checks": true
-				},
-				"AccessLogs": {
-					"Enabled": true,
-					"DisableListenerLogs": true,
-  					"Type": "file",
-					"Path": "/var/log/access.log"
 				}
 			}`,
 			wantErr: false,
@@ -633,6 +615,47 @@ func TestConnectProxyConfig_UnmarshalJSON(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestMeshGatewayConfig_OverlayWith(t *testing.T) {
+	var (
+		D = MeshGatewayConfig{Mode: MeshGatewayModeDefault}
+		N = MeshGatewayConfig{Mode: MeshGatewayModeNone}
+		R = MeshGatewayConfig{Mode: MeshGatewayModeRemote}
+		L = MeshGatewayConfig{Mode: MeshGatewayModeLocal}
+	)
+
+	type testCase struct {
+		base, overlay, expect MeshGatewayConfig
+	}
+	cases := []testCase{
+		{D, D, D},
+		{D, N, N},
+		{D, R, R},
+		{D, L, L},
+		{N, D, N},
+		{N, N, N},
+		{N, R, R},
+		{N, L, L},
+		{R, D, R},
+		{R, N, N},
+		{R, R, R},
+		{R, L, L},
+		{L, D, L},
+		{L, N, N},
+		{L, R, R},
+		{L, L, L},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(fmt.Sprintf("%s overlaid with %s", tc.base.Mode, tc.overlay.Mode),
+			func(t *testing.T) {
+				got := tc.base.OverlayWith(tc.overlay)
+				require.Equal(t, tc.expect, got)
+			})
 	}
 }
 

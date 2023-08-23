@@ -1,3 +1,0 @@
-```release-note:bug
-server: fix goroutine/memory leaks in the xDS subsystem (these were present regardless of whether or not xDS was in-use)
-```

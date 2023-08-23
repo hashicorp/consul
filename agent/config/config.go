@@ -1,12 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
+
+	"github.com/hashicorp/consul/agent/consul"
 
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
@@ -31,6 +31,10 @@ type FileSource struct {
 	Name   string
 	Format string
 	Data   string
+
+	// FromUser indicates whether the the file source was provided by the user.
+	// This distinguishes from synthetic file sources that Consul will generate.
+	FromUser bool
 }
 
 func (f FileSource) Source() string {
@@ -80,7 +84,7 @@ func (f FileSource) Parse() (Config, Metadata, error) {
 		return Config{}, m, err
 	}
 
-	c, warns := applyDeprecatedConfig(&target)
+	c, warns := applyDeprecatedConfig(&target, f.FromUser)
 	m.Unused = md.Unused
 	m.Keys = md.Keys
 	m.Warnings = warns
@@ -134,172 +138,169 @@ type Cache struct {
 // configuration it should be treated as an external API which cannot be
 // changed and refactored at will since this will break existing setups.
 type Config struct {
-	ACL                              ACL                 `mapstructure:"acl" json:"-"`
-	Addresses                        Addresses           `mapstructure:"addresses" json:"-"`
-	AdvertiseAddrLAN                 *string             `mapstructure:"advertise_addr" json:"advertise_addr,omitempty"`
-	AdvertiseAddrLANIPv4             *string             `mapstructure:"advertise_addr_ipv4" json:"advertise_addr_ipv4,omitempty"`
-	AdvertiseAddrLANIPv6             *string             `mapstructure:"advertise_addr_ipv6" json:"advertise_addr_ipv6,omitempty"`
-	AdvertiseAddrWAN                 *string             `mapstructure:"advertise_addr_wan" json:"advertise_addr_wan,omitempty"`
-	AdvertiseAddrWANIPv4             *string             `mapstructure:"advertise_addr_wan_ipv4" json:"advertise_addr_wan_ipv4,omitempty"`
-	AdvertiseAddrWANIPv6             *string             `mapstructure:"advertise_addr_wan_ipv6" json:"advertise_addr_wan_ipv6,omitempty"`
-	AdvertiseReconnectTimeout        *string             `mapstructure:"advertise_reconnect_timeout" json:"-"`
-	AutoConfig                       AutoConfigRaw       `mapstructure:"auto_config" json:"-"`
-	Autopilot                        Autopilot           `mapstructure:"autopilot" json:"-"`
-	BindAddr                         *string             `mapstructure:"bind_addr" json:"bind_addr,omitempty"`
-	Bootstrap                        *bool               `mapstructure:"bootstrap" json:"bootstrap,omitempty"`
-	BootstrapExpect                  *int                `mapstructure:"bootstrap_expect" json:"bootstrap_expect,omitempty"`
-	Cache                            Cache               `mapstructure:"cache" json:"-"`
-	Check                            *CheckDefinition    `mapstructure:"check" json:"-"` // needs to be a pointer to avoid partial merges
-	CheckOutputMaxSize               *int                `mapstructure:"check_output_max_size" json:"check_output_max_size,omitempty"`
-	CheckUpdateInterval              *string             `mapstructure:"check_update_interval" json:"check_update_interval,omitempty"`
-	Checks                           []CheckDefinition   `mapstructure:"checks" json:"-"`
-	ClientAddr                       *string             `mapstructure:"client_addr" json:"client_addr,omitempty"`
-	Cloud                            *CloudConfigRaw     `mapstructure:"cloud" json:"-"`
-	ConfigEntries                    ConfigEntries       `mapstructure:"config_entries" json:"-"`
-	AutoEncrypt                      AutoEncrypt         `mapstructure:"auto_encrypt" json:"auto_encrypt,omitempty"`
-	Connect                          Connect             `mapstructure:"connect" json:"connect,omitempty"`
-	DNS                              DNS                 `mapstructure:"dns_config" json:"-"`
-	DNSDomain                        *string             `mapstructure:"domain" json:"domain,omitempty"`
-	DNSAltDomain                     *string             `mapstructure:"alt_domain" json:"alt_domain,omitempty"`
-	DNSRecursors                     []string            `mapstructure:"recursors" json:"recursors,omitempty"`
-	DataDir                          *string             `mapstructure:"data_dir" json:"data_dir,omitempty"`
-	Datacenter                       *string             `mapstructure:"datacenter" json:"datacenter,omitempty"`
-	DefaultQueryTime                 *string             `mapstructure:"default_query_time" json:"default_query_time,omitempty"`
-	DisableAnonymousSignature        *bool               `mapstructure:"disable_anonymous_signature" json:"disable_anonymous_signature,omitempty"`
-	DisableCoordinates               *bool               `mapstructure:"disable_coordinates" json:"disable_coordinates,omitempty"`
-	DisableHostNodeID                *bool               `mapstructure:"disable_host_node_id" json:"disable_host_node_id,omitempty"`
-	DisableHTTPUnprintableCharFilter *bool               `mapstructure:"disable_http_unprintable_char_filter" json:"disable_http_unprintable_char_filter,omitempty"`
-	DisableKeyringFile               *bool               `mapstructure:"disable_keyring_file" json:"disable_keyring_file,omitempty"`
-	DisableRemoteExec                *bool               `mapstructure:"disable_remote_exec" json:"disable_remote_exec,omitempty"`
-	DisableUpdateCheck               *bool               `mapstructure:"disable_update_check" json:"disable_update_check,omitempty"`
-	DiscardCheckOutput               *bool               `mapstructure:"discard_check_output" json:"discard_check_output,omitempty"`
-	DiscoveryMaxStale                *string             `mapstructure:"discovery_max_stale" json:"discovery_max_stale,omitempty"`
-	EnableAgentTLSForChecks          *bool               `mapstructure:"enable_agent_tls_for_checks" json:"enable_agent_tls_for_checks,omitempty"`
-	EnableCentralServiceConfig       *bool               `mapstructure:"enable_central_service_config" json:"enable_central_service_config,omitempty"`
-	EnableDebug                      *bool               `mapstructure:"enable_debug" json:"enable_debug,omitempty"`
-	EnableScriptChecks               *bool               `mapstructure:"enable_script_checks" json:"enable_script_checks,omitempty"`
-	EnableLocalScriptChecks          *bool               `mapstructure:"enable_local_script_checks" json:"enable_local_script_checks,omitempty"`
-	EnableSyslog                     *bool               `mapstructure:"enable_syslog" json:"enable_syslog,omitempty"`
-	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
-	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
-	EncryptVerifyOutgoing            *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
-	Experiments                      []string            `mapstructure:"experiments" json:"experiments,omitempty"`
-	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
-	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
-	HTTPConfig                       HTTPConfig          `mapstructure:"http_config" json:"-"`
-	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate" json:"leave_on_terminate,omitempty"`
-	LicensePath                      *string             `mapstructure:"license_path" json:"license_path,omitempty"`
-	Limits                           Limits              `mapstructure:"limits" json:"-"`
-	Locality                         *Locality           `mapstructure:"locality" json:"-"`
-	LogLevel                         *string             `mapstructure:"log_level" json:"log_level,omitempty"`
-	LogJSON                          *bool               `mapstructure:"log_json" json:"log_json,omitempty"`
-	LogFile                          *string             `mapstructure:"log_file" json:"log_file,omitempty"`
-	LogRotateDuration                *string             `mapstructure:"log_rotate_duration" json:"log_rotate_duration,omitempty"`
-	LogRotateBytes                   *int                `mapstructure:"log_rotate_bytes" json:"log_rotate_bytes,omitempty"`
-	LogRotateMaxFiles                *int                `mapstructure:"log_rotate_max_files" json:"log_rotate_max_files,omitempty"`
-	MaxQueryTime                     *string             `mapstructure:"max_query_time" json:"max_query_time,omitempty"`
-	NodeID                           *string             `mapstructure:"node_id" json:"node_id,omitempty"`
-	NodeMeta                         map[string]string   `mapstructure:"node_meta" json:"node_meta,omitempty"`
-	NodeName                         *string             `mapstructure:"node_name" json:"node_name,omitempty"`
-	Peering                          Peering             `mapstructure:"peering" json:"-"`
-	Performance                      Performance         `mapstructure:"performance" json:"-"`
-	PidFile                          *string             `mapstructure:"pid_file" json:"pid_file,omitempty"`
-	Ports                            Ports               `mapstructure:"ports" json:"ports,omitempty"`
-	PrimaryDatacenter                *string             `mapstructure:"primary_datacenter" json:"primary_datacenter,omitempty"`
-	PrimaryGateways                  []string            `mapstructure:"primary_gateways" json:"primary_gateways,omitempty"`
-	PrimaryGatewaysInterval          *string             `mapstructure:"primary_gateways_interval" json:"primary_gateways_interval,omitempty"`
-	RPCProtocol                      *int                `mapstructure:"protocol" json:"protocol,omitempty"`
-	RaftProtocol                     *int                `mapstructure:"raft_protocol" json:"raft_protocol,omitempty"`
-	RaftSnapshotThreshold            *int                `mapstructure:"raft_snapshot_threshold" json:"raft_snapshot_threshold,omitempty"`
-	RaftSnapshotInterval             *string             `mapstructure:"raft_snapshot_interval" json:"raft_snapshot_interval,omitempty"`
-	RaftTrailingLogs                 *int                `mapstructure:"raft_trailing_logs" json:"raft_trailing_logs,omitempty"`
-	ReconnectTimeoutLAN              *string             `mapstructure:"reconnect_timeout" json:"reconnect_timeout,omitempty"`
-	ReconnectTimeoutWAN              *string             `mapstructure:"reconnect_timeout_wan" json:"reconnect_timeout_wan,omitempty"`
-	RejoinAfterLeave                 *bool               `mapstructure:"rejoin_after_leave" json:"rejoin_after_leave,omitempty"`
-	AutoReloadConfig                 *bool               `mapstructure:"auto_reload_config" json:"auto_reload_config,omitempty"`
-	RetryJoinIntervalLAN             *string             `mapstructure:"retry_interval" json:"retry_interval,omitempty"`
-	RetryJoinIntervalWAN             *string             `mapstructure:"retry_interval_wan" json:"retry_interval_wan,omitempty"`
-	RetryJoinLAN                     []string            `mapstructure:"retry_join" json:"retry_join,omitempty"`
-	RetryJoinMaxAttemptsLAN          *int                `mapstructure:"retry_max" json:"retry_max,omitempty"`
-	RetryJoinMaxAttemptsWAN          *int                `mapstructure:"retry_max_wan" json:"retry_max_wan,omitempty"`
-	RetryJoinWAN                     []string            `mapstructure:"retry_join_wan" json:"retry_join_wan,omitempty"`
-	SerfAllowedCIDRsLAN              []string            `mapstructure:"serf_lan_allowed_cidrs" json:"serf_lan_allowed_cidrs,omitempty"`
-	SerfAllowedCIDRsWAN              []string            `mapstructure:"serf_wan_allowed_cidrs" json:"serf_wan_allowed_cidrs,omitempty"`
-	SerfBindAddrLAN                  *string             `mapstructure:"serf_lan" json:"serf_lan,omitempty"`
-	SerfBindAddrWAN                  *string             `mapstructure:"serf_wan" json:"serf_wan,omitempty"`
-	ServerMode                       *bool               `mapstructure:"server" json:"server,omitempty"`
-	ServerName                       *string             `mapstructure:"server_name" json:"server_name,omitempty"`
-	ServerRejoinAgeMax               *string             `mapstructure:"server_rejoin_age_max" json:"server_rejoin_age_max,omitempty"`
-	Service                          *ServiceDefinition  `mapstructure:"service" json:"-"`
-	Services                         []ServiceDefinition `mapstructure:"services" json:"-"`
-	SessionTTLMin                    *string             `mapstructure:"session_ttl_min" json:"session_ttl_min,omitempty"`
-	SkipLeaveOnInt                   *bool               `mapstructure:"skip_leave_on_interrupt" json:"skip_leave_on_interrupt,omitempty"`
-	SyslogFacility                   *string             `mapstructure:"syslog_facility" json:"syslog_facility,omitempty"`
-	TLS                              TLS                 `mapstructure:"tls" json:"tls,omitempty"`
-	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses" json:"tagged_addresses,omitempty"`
-	Telemetry                        Telemetry           `mapstructure:"telemetry" json:"telemetry,omitempty"`
-	TranslateWANAddrs                *bool               `mapstructure:"translate_wan_addrs" json:"translate_wan_addrs,omitempty"`
-	XDS                              XDS                 `mapstructure:"xds" json:"-"`
+	ACL                              ACL                 `mapstructure:"acl"`
+	Addresses                        Addresses           `mapstructure:"addresses"`
+	AdvertiseAddrLAN                 *string             `mapstructure:"advertise_addr"`
+	AdvertiseAddrLANIPv4             *string             `mapstructure:"advertise_addr_ipv4"`
+	AdvertiseAddrLANIPv6             *string             `mapstructure:"advertise_addr_ipv6"`
+	AdvertiseAddrWAN                 *string             `mapstructure:"advertise_addr_wan"`
+	AdvertiseAddrWANIPv4             *string             `mapstructure:"advertise_addr_wan_ipv4"`
+	AdvertiseAddrWANIPv6             *string             `mapstructure:"advertise_addr_wan_ipv6"`
+	AdvertiseReconnectTimeout        *string             `mapstructure:"advertise_reconnect_timeout"`
+	AutoConfig                       AutoConfigRaw       `mapstructure:"auto_config"`
+	Autopilot                        Autopilot           `mapstructure:"autopilot"`
+	BindAddr                         *string             `mapstructure:"bind_addr"`
+	Bootstrap                        *bool               `mapstructure:"bootstrap"`
+	BootstrapExpect                  *int                `mapstructure:"bootstrap_expect"`
+	Cache                            Cache               `mapstructure:"cache"`
+	Check                            *CheckDefinition    `mapstructure:"check"` // needs to be a pointer to avoid partial merges
+	CheckOutputMaxSize               *int                `mapstructure:"check_output_max_size"`
+	CheckUpdateInterval              *string             `mapstructure:"check_update_interval"`
+	Checks                           []CheckDefinition   `mapstructure:"checks"`
+	ClientAddr                       *string             `mapstructure:"client_addr"`
+	ConfigEntries                    ConfigEntries       `mapstructure:"config_entries"`
+	AutoEncrypt                      AutoEncrypt         `mapstructure:"auto_encrypt"`
+	Connect                          Connect             `mapstructure:"connect"`
+	DNS                              DNS                 `mapstructure:"dns_config"`
+	DNSDomain                        *string             `mapstructure:"domain"`
+	DNSAltDomain                     *string             `mapstructure:"alt_domain"`
+	DNSRecursors                     []string            `mapstructure:"recursors"`
+	DataDir                          *string             `mapstructure:"data_dir"`
+	Datacenter                       *string             `mapstructure:"datacenter"`
+	DefaultQueryTime                 *string             `mapstructure:"default_query_time"`
+	DisableAnonymousSignature        *bool               `mapstructure:"disable_anonymous_signature"`
+	DisableCoordinates               *bool               `mapstructure:"disable_coordinates"`
+	DisableHostNodeID                *bool               `mapstructure:"disable_host_node_id"`
+	DisableHTTPUnprintableCharFilter *bool               `mapstructure:"disable_http_unprintable_char_filter"`
+	DisableKeyringFile               *bool               `mapstructure:"disable_keyring_file"`
+	DisableRemoteExec                *bool               `mapstructure:"disable_remote_exec"`
+	DisableUpdateCheck               *bool               `mapstructure:"disable_update_check"`
+	DiscardCheckOutput               *bool               `mapstructure:"discard_check_output"`
+	DiscoveryMaxStale                *string             `mapstructure:"discovery_max_stale"`
+	EnableAgentTLSForChecks          *bool               `mapstructure:"enable_agent_tls_for_checks"`
+	EnableCentralServiceConfig       *bool               `mapstructure:"enable_central_service_config"`
+	EnableDebug                      *bool               `mapstructure:"enable_debug"`
+	EnableScriptChecks               *bool               `mapstructure:"enable_script_checks"`
+	EnableLocalScriptChecks          *bool               `mapstructure:"enable_local_script_checks"`
+	EnableSyslog                     *bool               `mapstructure:"enable_syslog"`
+	EncryptKey                       *string             `mapstructure:"encrypt"`
+	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming"`
+	EncryptVerifyOutgoing            *bool               `mapstructure:"encrypt_verify_outgoing"`
+	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan"`
+	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan"`
+	HTTPConfig                       HTTPConfig          `mapstructure:"http_config"`
+	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate"`
+	LicensePath                      *string             `mapstructure:"license_path"`
+	Limits                           Limits              `mapstructure:"limits"`
+	LogLevel                         *string             `mapstructure:"log_level"`
+	LogJSON                          *bool               `mapstructure:"log_json"`
+	LogFile                          *string             `mapstructure:"log_file"`
+	LogRotateDuration                *string             `mapstructure:"log_rotate_duration"`
+	LogRotateBytes                   *int                `mapstructure:"log_rotate_bytes"`
+	LogRotateMaxFiles                *int                `mapstructure:"log_rotate_max_files"`
+	MaxQueryTime                     *string             `mapstructure:"max_query_time"`
+	NodeID                           *string             `mapstructure:"node_id"`
+	NodeMeta                         map[string]string   `mapstructure:"node_meta"`
+	NodeName                         *string             `mapstructure:"node_name"`
+	Peering                          Peering             `mapstructure:"peering"`
+	Performance                      Performance         `mapstructure:"performance"`
+	PidFile                          *string             `mapstructure:"pid_file"`
+	Ports                            Ports               `mapstructure:"ports"`
+	PrimaryDatacenter                *string             `mapstructure:"primary_datacenter"`
+	PrimaryGateways                  []string            `mapstructure:"primary_gateways"`
+	PrimaryGatewaysInterval          *string             `mapstructure:"primary_gateways_interval"`
+	RPCProtocol                      *int                `mapstructure:"protocol"`
+	RaftProtocol                     *int                `mapstructure:"raft_protocol"`
+	RaftSnapshotThreshold            *int                `mapstructure:"raft_snapshot_threshold"`
+	RaftSnapshotInterval             *string             `mapstructure:"raft_snapshot_interval"`
+	RaftTrailingLogs                 *int                `mapstructure:"raft_trailing_logs"`
+	ReconnectTimeoutLAN              *string             `mapstructure:"reconnect_timeout"`
+	ReconnectTimeoutWAN              *string             `mapstructure:"reconnect_timeout_wan"`
+	RejoinAfterLeave                 *bool               `mapstructure:"rejoin_after_leave"`
+	AutoReloadConfig                 *bool               `mapstructure:"auto_reload_config"`
+	RetryJoinIntervalLAN             *string             `mapstructure:"retry_interval"`
+	RetryJoinIntervalWAN             *string             `mapstructure:"retry_interval_wan"`
+	RetryJoinLAN                     []string            `mapstructure:"retry_join"`
+	RetryJoinMaxAttemptsLAN          *int                `mapstructure:"retry_max"`
+	RetryJoinMaxAttemptsWAN          *int                `mapstructure:"retry_max_wan"`
+	RetryJoinWAN                     []string            `mapstructure:"retry_join_wan"`
+	SerfAllowedCIDRsLAN              []string            `mapstructure:"serf_lan_allowed_cidrs"`
+	SerfAllowedCIDRsWAN              []string            `mapstructure:"serf_wan_allowed_cidrs"`
+	SerfBindAddrLAN                  *string             `mapstructure:"serf_lan"`
+	SerfBindAddrWAN                  *string             `mapstructure:"serf_wan"`
+	ServerMode                       *bool               `mapstructure:"server"`
+	ServerName                       *string             `mapstructure:"server_name"`
+	Service                          *ServiceDefinition  `mapstructure:"service"`
+	Services                         []ServiceDefinition `mapstructure:"services"`
+	SessionTTLMin                    *string             `mapstructure:"session_ttl_min"`
+	SkipLeaveOnInt                   *bool               `mapstructure:"skip_leave_on_interrupt"`
+	StartJoinAddrsLAN                []string            `mapstructure:"start_join"`
+	StartJoinAddrsWAN                []string            `mapstructure:"start_join_wan"`
+	SyslogFacility                   *string             `mapstructure:"syslog_facility"`
+	TLS                              TLS                 `mapstructure:"tls"`
+	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses"`
+	Telemetry                        Telemetry           `mapstructure:"telemetry"`
+	TranslateWANAddrs                *bool               `mapstructure:"translate_wan_addrs"`
 
 	// DEPRECATED (ui-config) - moved to the ui_config stanza
-	UI *bool `mapstructure:"ui" json:"-"`
+	UI *bool `mapstructure:"ui"`
 	// DEPRECATED (ui-config) - moved to the ui_config stanza
-	UIContentPath *string `mapstructure:"ui_content_path" json:"-"`
+	UIContentPath *string `mapstructure:"ui_content_path"`
 	// DEPRECATED (ui-config) - moved to the ui_config stanza
-	UIDir    *string     `mapstructure:"ui_dir" json:"-"`
-	UIConfig RawUIConfig `mapstructure:"ui_config" json:"-"`
+	UIDir    *string     `mapstructure:"ui_dir"`
+	UIConfig RawUIConfig `mapstructure:"ui_config"`
 
-	UnixSocket UnixSocket               `mapstructure:"unix_sockets" json:"-"`
-	Watches    []map[string]interface{} `mapstructure:"watches" json:"-"`
+	UnixSocket UnixSocket               `mapstructure:"unix_sockets"`
+	Watches    []map[string]interface{} `mapstructure:"watches"`
 
-	RPC RPC `mapstructure:"rpc" json:"-"`
+	RPC RPC `mapstructure:"rpc"`
 
-	RaftLogStore RaftLogStoreRaw `mapstructure:"raft_logstore" json:"raft_logstore,omitempty"`
+	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb"`
 
 	// UseStreamingBackend instead of blocking queries for service health and
 	// any other endpoints which support streaming.
-	UseStreamingBackend *bool `mapstructure:"use_streaming_backend" json:"-"`
+	UseStreamingBackend *bool `mapstructure:"use_streaming_backend"`
 
 	// This isn't used by Consul but we've documented a feature where users
 	// can deploy their snapshot agent configs alongside their Consul configs
 	// so we have a placeholder here so it can be parsed but this doesn't
 	// manifest itself in any way inside the runtime config.
-	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent" json:"-"`
+	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
-	AEInterval                 *string    `mapstructure:"ae_interval" json:"-"`
-	CheckDeregisterIntervalMin *string    `mapstructure:"check_deregister_interval_min" json:"-"`
-	CheckReapInterval          *string    `mapstructure:"check_reap_interval" json:"-"`
-	Consul                     Consul     `mapstructure:"consul" json:"-"`
-	Revision                   *string    `mapstructure:"revision" json:"-"`
-	SegmentLimit               *int       `mapstructure:"segment_limit" json:"-"`
-	SegmentNameLimit           *int       `mapstructure:"segment_name_limit" json:"-"`
-	SyncCoordinateIntervalMin  *string    `mapstructure:"sync_coordinate_interval_min" json:"-"`
-	SyncCoordinateRateTarget   *float64   `mapstructure:"sync_coordinate_rate_target" json:"-"`
-	Version                    *string    `mapstructure:"version" json:"-"`
-	VersionPrerelease          *string    `mapstructure:"version_prerelease" json:"-"`
-	VersionMetadata            *string    `mapstructure:"version_metadata" json:"-"`
-	BuildDate                  *time.Time `mapstructure:"build_date" json:"-"`
+	AEInterval                 *string    `mapstructure:"ae_interval"`
+	CheckDeregisterIntervalMin *string    `mapstructure:"check_deregister_interval_min"`
+	CheckReapInterval          *string    `mapstructure:"check_reap_interval"`
+	Consul                     Consul     `mapstructure:"consul"`
+	Revision                   *string    `mapstructure:"revision"`
+	SegmentLimit               *int       `mapstructure:"segment_limit"`
+	SegmentNameLimit           *int       `mapstructure:"segment_name_limit"`
+	SyncCoordinateIntervalMin  *string    `mapstructure:"sync_coordinate_interval_min"`
+	SyncCoordinateRateTarget   *float64   `mapstructure:"sync_coordinate_rate_target"`
+	Version                    *string    `mapstructure:"version"`
+	VersionPrerelease          *string    `mapstructure:"version_prerelease"`
+	VersionMetadata            *string    `mapstructure:"version_metadata"`
+	BuildDate                  *time.Time `mapstructure:"build_date"`
 
 	// Enterprise Only
-	Audit Audit `mapstructure:"audit" json:"-"`
+	Audit Audit `mapstructure:"audit"`
 	// Enterprise Only
-	ReadReplica *bool `mapstructure:"read_replica" alias:"non_voting_server" json:"-"`
+	ReadReplica *bool `mapstructure:"read_replica" alias:"non_voting_server"`
 	// Enterprise Only
-	SegmentName *string `mapstructure:"segment" json:"-"`
+	SegmentName *string `mapstructure:"segment"`
 	// Enterprise Only
-	Segments []Segment `mapstructure:"segments" json:"-"`
+	Segments []Segment `mapstructure:"segments"`
 	// Enterprise Only
-	Partition *string `mapstructure:"partition" json:"-"`
+	Partition *string `mapstructure:"partition"`
 
 	// Enterprise Only - not user configurable
-	LicensePollBaseTime   *string `mapstructure:"license_poll_base_time" json:"-"`
-	LicensePollMaxTime    *string `mapstructure:"license_poll_max_time" json:"-"`
-	LicenseUpdateBaseTime *string `mapstructure:"license_update_base_time" json:"-"`
-	LicenseUpdateMaxTime  *string `mapstructure:"license_update_max_time" json:"-"`
+	LicensePollBaseTime   *string `mapstructure:"license_poll_base_time"`
+	LicensePollMaxTime    *string `mapstructure:"license_poll_max_time"`
+	LicenseUpdateBaseTime *string `mapstructure:"license_update_base_time"`
+	LicenseUpdateMaxTime  *string `mapstructure:"license_update_max_time"`
 
 	// license reporting
-	Reporting Reporting `mapstructure:"reporting" json:"-"`
+	Reporting Reporting `mapstructure:"reporting"`
 }
 
 type GossipLANConfig struct {
@@ -318,15 +319,6 @@ type GossipWANConfig struct {
 	ProbeTimeout   *string `mapstructure:"probe_timeout"`
 	SuspicionMult  *int    `mapstructure:"suspicion_mult"`
 	RetransmitMult *int    `mapstructure:"retransmit_mult"`
-}
-
-// Locality identifies where a given entity is running.
-type Locality struct {
-	// Region is region the zone belongs to.
-	Region *string `mapstructure:"region"`
-
-	// Zone is the zone the entity is running in.
-	Zone *string `mapstructure:"zone"`
 }
 
 type Consul struct {
@@ -348,11 +340,10 @@ type Consul struct {
 }
 
 type Addresses struct {
-	DNS     *string `mapstructure:"dns"`
-	HTTP    *string `mapstructure:"http"`
-	HTTPS   *string `mapstructure:"https"`
-	GRPC    *string `mapstructure:"grpc"`
-	GRPCTLS *string `mapstructure:"grpc_tls"`
+	DNS   *string `mapstructure:"dns"`
+	HTTP  *string `mapstructure:"http"`
+	HTTPS *string `mapstructure:"https"`
+	GRPC  *string `mapstructure:"grpc"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -437,7 +428,6 @@ type CheckDefinition struct {
 	TTL                            *string             `mapstructure:"ttl"`
 	H2PING                         *string             `mapstructure:"h2ping"`
 	H2PingUseTLS                   *bool               `mapstructure:"h2ping_use_tls"`
-	OSService                      *string             `mapstructure:"os_service"`
 	SuccessBeforePassing           *int                `mapstructure:"success_before_passing"`
 	FailuresBeforeWarning          *int                `mapstructure:"failures_before_warning"`
 	FailuresBeforeCritical         *int                `mapstructure:"failures_before_critical"`
@@ -606,32 +596,33 @@ type ExposePath struct {
 // AutoEncrypt is the agent-global auto_encrypt configuration.
 type AutoEncrypt struct {
 	// TLS enables receiving certificates for clients from servers
-	TLS *bool `mapstructure:"tls" json:"tls,omitempty"`
+	TLS *bool `mapstructure:"tls"`
 
 	// Additional DNS SAN entries that clients request for their certificates.
-	DNSSAN []string `mapstructure:"dns_san" json:"dns_san,omitempty"`
+	DNSSAN []string `mapstructure:"dns_san"`
 
 	// Additional IP SAN entries that clients request for their certificates.
-	IPSAN []string `mapstructure:"ip_san" json:"ip_san,omitempty"`
+	IPSAN []string `mapstructure:"ip_san"`
 
 	// AllowTLS enables the RPC endpoint on the server to answer
 	// AutoEncrypt.Sign requests.
-	AllowTLS *bool `mapstructure:"allow_tls" json:"allow_tls,omitempty"`
+	AllowTLS *bool `mapstructure:"allow_tls"`
 }
 
 // Connect is the agent-global connect configuration.
 type Connect struct {
 	// Enabled opts the agent into connect. It should be set on all clients and
 	// servers in a cluster for correct connect operation.
-	Enabled                         *bool                  `mapstructure:"enabled" json:"enabled,omitempty"`
-	CAProvider                      *string                `mapstructure:"ca_provider" json:"ca_provider,omitempty"`
-	CAConfig                        map[string]interface{} `mapstructure:"ca_config" json:"ca_config,omitempty"`
-	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation" json:"enable_mesh_gateway_wan_federation,omitempty"`
+	Enabled                         *bool                  `mapstructure:"enabled"`
+	CAProvider                      *string                `mapstructure:"ca_provider"`
+	CAConfig                        map[string]interface{} `mapstructure:"ca_config"`
+	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation"`
+	EnableServerlessPlugin          *bool                  `mapstructure:"enable_serverless_plugin"`
 
 	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaf certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf
 	// certs by. This configuration is not exposed to users (not documented, and agent/config/default.go will override it)
-	TestCALeafRootChangeSpread *string `mapstructure:"test_ca_leaf_root_change_spread" json:"test_ca_leaf_root_change_spread,omitempty"`
+	TestCALeafRootChangeSpread *string `mapstructure:"test_ca_leaf_root_change_spread"`
 }
 
 // SOA is the configuration of SOA for DNS
@@ -678,47 +669,45 @@ type Performance struct {
 }
 
 type Telemetry struct {
-	CirconusAPIApp                     *string  `mapstructure:"circonus_api_app" json:"circonus_api_app,omitempty"`
-	CirconusAPIToken                   *string  `mapstructure:"circonus_api_token" json:"circonus_api_token,omitempty"`
-	CirconusAPIURL                     *string  `mapstructure:"circonus_api_url" json:"circonus_api_url,omitempty"`
-	CirconusBrokerID                   *string  `mapstructure:"circonus_broker_id" json:"circonus_broker_id,omitempty"`
-	CirconusBrokerSelectTag            *string  `mapstructure:"circonus_broker_select_tag" json:"circonus_broker_select_tag,omitempty"`
-	CirconusCheckDisplayName           *string  `mapstructure:"circonus_check_display_name" json:"circonus_check_display_name,omitempty"`
-	CirconusCheckForceMetricActivation *string  `mapstructure:"circonus_check_force_metric_activation" json:"circonus_check_force_metric_activation,omitempty"`
-	CirconusCheckID                    *string  `mapstructure:"circonus_check_id" json:"circonus_check_id,omitempty"`
-	CirconusCheckInstanceID            *string  `mapstructure:"circonus_check_instance_id" json:"circonus_check_instance_id,omitempty"`
-	CirconusCheckSearchTag             *string  `mapstructure:"circonus_check_search_tag" json:"circonus_check_search_tag,omitempty"`
-	CirconusCheckTags                  *string  `mapstructure:"circonus_check_tags" json:"circonus_check_tags,omitempty"`
-	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval" json:"circonus_submission_interval,omitempty"`
-	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url" json:"circonus_submission_url,omitempty"`
-	DisableHostname                    *bool    `mapstructure:"disable_hostname" json:"disable_hostname,omitempty"`
-	EnableHostMetrics                  *bool    `mapstructure:"enable_host_metrics" json:"enable_host_metrics,omitempty"`
-	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr" json:"dogstatsd_addr,omitempty"`
-	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags" json:"dogstatsd_tags,omitempty"`
-	RetryFailedConfiguration           *bool    `mapstructure:"retry_failed_connection" json:"retry_failed_connection,omitempty"`
-	FilterDefault                      *bool    `mapstructure:"filter_default" json:"filter_default,omitempty"`
-	PrefixFilter                       []string `mapstructure:"prefix_filter" json:"prefix_filter,omitempty"`
-	MetricsPrefix                      *string  `mapstructure:"metrics_prefix" json:"metrics_prefix,omitempty"`
-	PrometheusRetentionTime            *string  `mapstructure:"prometheus_retention_time" json:"prometheus_retention_time,omitempty"`
-	StatsdAddr                         *string  `mapstructure:"statsd_address" json:"statsd_address,omitempty"`
-	StatsiteAddr                       *string  `mapstructure:"statsite_address" json:"statsite_address,omitempty"`
+	CirconusAPIApp                     *string  `mapstructure:"circonus_api_app"`
+	CirconusAPIToken                   *string  `mapstructure:"circonus_api_token"`
+	CirconusAPIURL                     *string  `mapstructure:"circonus_api_url"`
+	CirconusBrokerID                   *string  `mapstructure:"circonus_broker_id"`
+	CirconusBrokerSelectTag            *string  `mapstructure:"circonus_broker_select_tag"`
+	CirconusCheckDisplayName           *string  `mapstructure:"circonus_check_display_name"`
+	CirconusCheckForceMetricActivation *string  `mapstructure:"circonus_check_force_metric_activation"`
+	CirconusCheckID                    *string  `mapstructure:"circonus_check_id"`
+	CirconusCheckInstanceID            *string  `mapstructure:"circonus_check_instance_id"`
+	CirconusCheckSearchTag             *string  `mapstructure:"circonus_check_search_tag"`
+	CirconusCheckTags                  *string  `mapstructure:"circonus_check_tags"`
+	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval"`
+	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url"`
+	DisableHostname                    *bool    `mapstructure:"disable_hostname"`
+	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr"`
+	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags"`
+	RetryFailedConfiguration           *bool    `mapstructure:"retry_failed_connection"`
+	FilterDefault                      *bool    `mapstructure:"filter_default"`
+	PrefixFilter                       []string `mapstructure:"prefix_filter"`
+	MetricsPrefix                      *string  `mapstructure:"metrics_prefix"`
+	PrometheusRetentionTime            *string  `mapstructure:"prometheus_retention_time"`
+	StatsdAddr                         *string  `mapstructure:"statsd_address"`
+	StatsiteAddr                       *string  `mapstructure:"statsite_address"`
 }
 
 type Ports struct {
-	DNS            *int `mapstructure:"dns" json:"dns,omitempty"`
-	HTTP           *int `mapstructure:"http" json:"http,omitempty"`
-	HTTPS          *int `mapstructure:"https" json:"https,omitempty"`
-	SerfLAN        *int `mapstructure:"serf_lan" json:"serf_lan,omitempty"`
-	SerfWAN        *int `mapstructure:"serf_wan" json:"serf_wan,omitempty"`
-	Server         *int `mapstructure:"server" json:"server,omitempty"`
-	GRPC           *int `mapstructure:"grpc" json:"grpc,omitempty"`
-	GRPCTLS        *int `mapstructure:"grpc_tls" json:"grpc_tls,omitempty"`
-	ProxyMinPort   *int `mapstructure:"proxy_min_port" json:"proxy_min_port,omitempty"`
-	ProxyMaxPort   *int `mapstructure:"proxy_max_port" json:"proxy_max_port,omitempty"`
-	SidecarMinPort *int `mapstructure:"sidecar_min_port" json:"sidecar_min_port,omitempty"`
-	SidecarMaxPort *int `mapstructure:"sidecar_max_port" json:"sidecar_max_port,omitempty"`
-	ExposeMinPort  *int `mapstructure:"expose_min_port" json:"expose_min_port,omitempty" `
-	ExposeMaxPort  *int `mapstructure:"expose_max_port" json:"expose_max_port,omitempty"`
+	DNS            *int `mapstructure:"dns"`
+	HTTP           *int `mapstructure:"http"`
+	HTTPS          *int `mapstructure:"https"`
+	SerfLAN        *int `mapstructure:"serf_lan"`
+	SerfWAN        *int `mapstructure:"serf_wan"`
+	Server         *int `mapstructure:"server"`
+	GRPC           *int `mapstructure:"grpc"`
+	ProxyMinPort   *int `mapstructure:"proxy_min_port"`
+	ProxyMaxPort   *int `mapstructure:"proxy_max_port"`
+	SidecarMinPort *int `mapstructure:"sidecar_min_port"`
+	SidecarMaxPort *int `mapstructure:"sidecar_max_port"`
+	ExposeMinPort  *int `mapstructure:"expose_min_port"`
+	ExposeMaxPort  *int `mapstructure:"expose_max_port"`
 }
 
 type UnixSocket struct {
@@ -727,23 +716,16 @@ type UnixSocket struct {
 	User  *string `mapstructure:"user"`
 }
 
-type RequestLimits struct {
-	Mode      *string  `mapstructure:"mode"`
-	ReadRate  *float64 `mapstructure:"read_rate"`
-	WriteRate *float64 `mapstructure:"write_rate"`
-}
-
 type Limits struct {
-	HTTPMaxConnsPerClient *int          `mapstructure:"http_max_conns_per_client"`
-	HTTPSHandshakeTimeout *string       `mapstructure:"https_handshake_timeout"`
-	RequestLimits         RequestLimits `mapstructure:"request_limits"`
-	RPCClientTimeout      *string       `mapstructure:"rpc_client_timeout"`
-	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`
-	RPCMaxBurst           *int          `mapstructure:"rpc_max_burst"`
-	RPCMaxConnsPerClient  *int          `mapstructure:"rpc_max_conns_per_client"`
-	RPCRate               *float64      `mapstructure:"rpc_rate"`
-	KVMaxValueSize        *uint64       `mapstructure:"kv_max_value_size"`
-	TxnMaxReqLen          *uint64       `mapstructure:"txn_max_req_len"`
+	HTTPMaxConnsPerClient *int     `mapstructure:"http_max_conns_per_client"`
+	HTTPSHandshakeTimeout *string  `mapstructure:"https_handshake_timeout"`
+	RPCClientTimeout      *string  `mapstructure:"rpc_client_timeout"`
+	RPCHandshakeTimeout   *string  `mapstructure:"rpc_handshake_timeout"`
+	RPCMaxBurst           *int     `mapstructure:"rpc_max_burst"`
+	RPCMaxConnsPerClient  *int     `mapstructure:"rpc_max_conns_per_client"`
+	RPCRate               *float64 `mapstructure:"rpc_rate"`
+	KVMaxValueSize        *uint64  `mapstructure:"kv_max_value_size"`
+	TxnMaxReqLen          *uint64  `mapstructure:"txn_max_req_len"`
 }
 
 type Segment struct {
@@ -771,12 +753,11 @@ type ACL struct {
 }
 
 type Tokens struct {
-	InitialManagement      *string `mapstructure:"initial_management"`
-	Replication            *string `mapstructure:"replication"`
-	AgentRecovery          *string `mapstructure:"agent_recovery"`
-	Default                *string `mapstructure:"default"`
-	Agent                  *string `mapstructure:"agent"`
-	ConfigFileRegistration *string `mapstructure:"config_file_service_registration"`
+	InitialManagement *string `mapstructure:"initial_management"`
+	Replication       *string `mapstructure:"replication"`
+	AgentRecovery     *string `mapstructure:"agent_recovery"`
+	Default           *string `mapstructure:"default"`
+	Agent             *string `mapstructure:"agent"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`
@@ -808,9 +789,8 @@ type ConfigEntries struct {
 
 // Audit allows us to enable and define destinations for auditing
 type Audit struct {
-	Enabled    *bool                `mapstructure:"enabled"`
-	Sinks      map[string]AuditSink `mapstructure:"sink"`
-	RPCEnabled *bool                `mapstructure:"rpc_enabled"`
+	Enabled *bool                `mapstructure:"enabled"`
+	Sinks   map[string]AuditSink `mapstructure:"sink"`
 }
 
 // AuditSink can be provided multiple times to define pipelines for auditing
@@ -886,33 +866,40 @@ type RPC struct {
 	EnableStreaming *bool `mapstructure:"enable_streaming"`
 }
 
-type CloudConfigRaw struct {
-	ResourceID   *string `mapstructure:"resource_id"`
-	ClientID     *string `mapstructure:"client_id"`
-	ClientSecret *string `mapstructure:"client_secret"`
-	Hostname     *string `mapstructure:"hostname"`
-	AuthURL      *string `mapstructure:"auth_url"`
-	ScadaAddress *string `mapstructure:"scada_address"`
+type TLSProtocolConfig struct {
+	CAFile               *string `mapstructure:"ca_file"`
+	CAPath               *string `mapstructure:"ca_path"`
+	CertFile             *string `mapstructure:"cert_file"`
+	KeyFile              *string `mapstructure:"key_file"`
+	TLSMinVersion        *string `mapstructure:"tls_min_version"`
+	TLSCipherSuites      *string `mapstructure:"tls_cipher_suites"`
+	VerifyIncoming       *bool   `mapstructure:"verify_incoming"`
+	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing"`
+	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname"`
+	UseAutoCert          *bool   `mapstructure:"use_auto_cert"`
 }
 
-type TLSProtocolConfig struct {
-	CAFile               *string `mapstructure:"ca_file" json:"ca_file,omitempty"`
-	CAPath               *string `mapstructure:"ca_path" json:"ca_path,omitempty"`
-	CertFile             *string `mapstructure:"cert_file" json:"cert_file,omitempty"`
-	KeyFile              *string `mapstructure:"key_file" json:"key_file,omitempty"`
-	TLSMinVersion        *string `mapstructure:"tls_min_version" json:"tls_min_version,omitempty"`
-	TLSCipherSuites      *string `mapstructure:"tls_cipher_suites" json:"tls_cipher_suites,omitempty"`
-	VerifyIncoming       *bool   `mapstructure:"verify_incoming" json:"verify_incoming,omitempty"`
-	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing" json:"verify_outgoing,omitempty"`
-	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname" json:"verify_server_hostname,omitempty"`
-	UseAutoCert          *bool   `mapstructure:"use_auto_cert" json:"use_auto_cert,omitempty"`
+func (c TLSProtocolConfig) IsZero() bool {
+	v := reflect.ValueOf(c)
+
+	for i := 0; i < v.NumField(); i++ {
+		if !v.Field(i).IsNil() {
+			return false
+		}
+	}
+	return true
 }
 
 type TLS struct {
-	Defaults    TLSProtocolConfig `mapstructure:"defaults" json:"defaults,omitempty"`
-	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc" json:"internal_rpc,omitempty"`
-	HTTPS       TLSProtocolConfig `mapstructure:"https" json:"https,omitempty"`
-	GRPC        TLSProtocolConfig `mapstructure:"grpc" json:"grpc,omitempty"`
+	Defaults    TLSProtocolConfig `mapstructure:"defaults"`
+	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
+	HTTPS       TLSProtocolConfig `mapstructure:"https"`
+	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
+
+	// SpecifiedTLSStanza indicates whether the per-protocol tls stanza from configuration was used.
+	// If unspecified, and TLS is configured, that implies that the deprecated flags were used.
+	// The flag was added exclusively for the 1.13 patch series for backwards compatibility purposes.
+	SpecifiedTLSStanza *bool `mapstructure:"-"`
 
 	// GRPCModifiedByDeprecatedConfig is a flag used to indicate that GRPC was
 	// modified by the deprecated field mapping (as apposed to a user-provided
@@ -925,43 +912,20 @@ type TLS struct {
 	//
 	// Note: we use a *struct{} here because a simple bool isn't supported by our
 	// config merging logic.
-	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-" json:"-"`
+	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
+}
+
+// ContainsDefaults indicates whether the user-settable values in this type are the defaults.
+func (t *TLS) ContainsDefaults() bool {
+	return t.Defaults.IsZero() && t.InternalRPC.IsZero() && t.HTTPS.IsZero() && t.GRPC.IsZero()
 }
 
 type Peering struct {
-	Enabled *bool `mapstructure:"enabled" json:"enabled,omitempty"`
+	Enabled *bool `mapstructure:"enabled"`
 
 	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow registrations for objects with `PeerName`
 	// This always gets overridden in NonUserSource()
-	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations" json:"test_allow_peer_registrations,omitempty"`
-}
-
-type XDS struct {
-	UpdateMaxPerSecond *float64 `mapstructure:"update_max_per_second"`
-}
-
-type RaftLogStoreRaw struct {
-	Backend         *string `mapstructure:"backend" json:"backend,omitempty"`
-	DisableLogCache *bool   `mapstructure:"disable_log_cache" json:"disable_log_cache,omitempty"`
-
-	Verification RaftLogStoreVerificationRaw `mapstructure:"verification" json:"verification,omitempty"`
-
-	BoltDBConfig RaftBoltDBConfigRaw `mapstructure:"boltdb" json:"boltdb,omitempty"`
-
-	WALConfig RaftWALConfigRaw `mapstructure:"wal" json:"wal,omitempty"`
-}
-
-type RaftLogStoreVerificationRaw struct {
-	Enabled  *bool   `mapstructure:"enabled" json:"enabled,omitempty"`
-	Interval *string `mapstructure:"interval" json:"interval,omitempty"`
-}
-
-type RaftBoltDBConfigRaw struct {
-	NoFreelistSync *bool `mapstructure:"no_freelist_sync" json:"no_freelist_sync,omitempty"`
-}
-
-type RaftWALConfigRaw struct {
-	SegmentSizeMB *int `mapstructure:"segment_size_mb" json:"segment_size_mb,omitempty"`
+	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations"`
 }
 
 type License struct {

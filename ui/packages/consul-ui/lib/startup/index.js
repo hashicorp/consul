@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 /* eslint-env node */
 /*eslint node/no-extraneous-require: "off"*/
 'use strict';
@@ -24,7 +19,7 @@ const bodyParser = require('body-parser');
 //
 module.exports = {
   name: 'startup',
-  serverMiddleware: function (server) {
+  serverMiddleware: function(server) {
     // TODO: see if we can move these into the project specific `/server` directory
     // instead of inside an addon
 
@@ -40,11 +35,11 @@ module.exports = {
       cookieParser(),
       bodyParser.text({ type: '*/*' }),
       controller().serve,
-    ].reduce(function (app, item) {
+    ].reduce(function(app, item) {
       return app.use(item);
     }, server.app);
   },
-  treeFor: function (name) {
+  treeFor: function(name) {
     const tree = this._super.treeFor.apply(this, arguments);
     if (name === 'app') {
       if (['production', 'test'].includes(process.env.EMBER_ENV)) {
@@ -53,13 +48,13 @@ module.exports = {
     }
     return tree;
   },
-  contentFor: function (type, config) {
+  contentFor: function(type, config) {
     const vars = {
       appName: config.modulePrefix,
       environment: config.environment,
       rootURL: config.environment === 'production' ? '{{.ContentPath}}' : config.rootURL,
       config: config,
-      env: function (key) {
+      env: function(key) {
         if (process.env[key]) {
           return process.env[key];
         }

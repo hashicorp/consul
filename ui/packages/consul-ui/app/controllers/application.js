@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { inject as service } from '@ember/service';
 import Controller from '@ember/controller';
 import { getOwner } from '@ember/application';
@@ -51,13 +46,13 @@ export default class ApplicationController extends Controller {
         return container
           .lookup('route:application')
           .refresh()
-          .promise.catch(function (e) {
+          .promise.catch(function(e) {
             // passthrough
             // if you are on an error page a refresh of the application route will reject
             // thats ok as we then transition to the actual route you were trying
             // to get to originally anyway
           })
-          .then((res) => {
+          .then(res => {
             // Use transitionable if we need to change a section of the URL
             // or routeName and currentRouteName aren't equal (i.e. error page)
             if (
@@ -73,7 +68,7 @@ export default class ApplicationController extends Controller {
           });
       },
       e.type,
-      function (type, e) {
+      function(type, e) {
         return type;
       },
       {}

@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 linters:
   disable-all: true
   enable:
@@ -11,8 +8,6 @@ linters:
     - ineffassign
     - unparam
     - forbidigo
-    - gomodguard
-    - depguard
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
@@ -23,14 +18,29 @@ issues:
     # Temp Ignore SA9004: only the first constant in this group has an explicit type
     # https://staticcheck.io/docs/checks#SA9004
     - linters: [staticcheck]
-      text: "SA9004:"
+      text: 'SA9004:'
+
+    - linters: [staticcheck]
+      text: 'SA1019: "github.com/golang/protobuf/jsonpb" is deprecated'
+
+    - linters: [staticcheck]
+      text: 'SA1019: "github.com/golang/protobuf/proto" is deprecated'
+
+    - linters: [staticcheck]
+      text: 'SA1019: ptypes.MarshalAny is deprecated'
+
+    - linters: [staticcheck]
+      text: 'SA1019: ptypes.UnmarshalAny is deprecated'
+
+    - linters: [staticcheck]
+      text: 'SA1019: "github.com/golang/protobuf/ptypes" is deprecated'
 
     - linters: [staticcheck]
       text: 'SA1019: "io/ioutil" has been deprecated since Go 1.16'
 
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]
-      text: "always receives"
+      text: 'always receives'
 
     # Often functions will implement an interface that returns an error without
     # needing to return an error. Sometimes the error return value is unnecessary
@@ -44,28 +54,20 @@ issues:
     # self-documentation than a single underscore by itself.  Underscore arguments
     # should generally only be used when a function is implementing an interface.
     - linters: [unparam]
-      text: "`_[^`]*` is unused"
+      text: '`_[^`]*` is unused'
 
     # Temp ignore some common unused parameters so that unparam can be added
     # incrementally.
     - linters: [unparam]
-      text: "`(t|resp|req|entMeta)` is unused"
+      text: '`(t|resp|req|entMeta)` is unused'
 
-    # Temp ignore everything in _ce(_test).go and _ent(_test).go. Many of these
+    # Temp ignore everything in _oss(_test).go and _ent(_test).go. Many of these
     # could use underscore to ignore the unused arguments, but the "always returns"
-    # issue will likely remain in CE, and will need to be excluded.
+    # issue will likely remain in oss, and will need to be excluded.
     - linters: [unparam]
-      path: "(_ce.go|_ce_test.go|_ent.go|_ent_test.go)"
+      path: '(_oss.go|_oss_test.go|_ent.go|_ent_test.go)'
 
 linters-settings:
-  govet:
-    check-shadowing: true
-    enable-all: true
-    disable:
-      - fieldalignment
-      - nilness
-      - shadow
-      - unusedwrite
   gofmt:
     simplify: true
   forbidigo:
@@ -77,36 +79,7 @@ linters-settings:
     # Exclude godoc examples from forbidigo checks.
     # Default: true
     exclude_godoc_examples: false
-  gomodguard:
-    blocked:
-      # List of blocked modules.
-      modules:
-        # Blocked module.
-        - github.com/hashicorp/net-rpc-msgpackrpc:
-            recommendations:
-              - github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc
-        - github.com/hashicorp/go-msgpack:
-            recommendations:
-              - github.com/hashicorp/consul-net-rpc/go-msgpack
-        - github.com/golang/protobuf:
-            recommendations:
-              - google.golang.org/protobuf
-
-  depguard:
-    list-type: denylist
-    include-go-root: true
-    # A list of packages for the list type specified.
-    # Default: []
-    packages:
-      - net/rpc
-    # A list of packages for the list type specified.
-    # Specify an error message to output when a denied package is used.
-    # Default: []
-    packages-with-error-message:
-      - net/rpc: "only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc"
-      - github.com/golang/protobuf: "only use google.golang.org/protobuf"
 
 run:
   timeout: 10m
   concurrency: 4
-  skip-dirs-use-default: false

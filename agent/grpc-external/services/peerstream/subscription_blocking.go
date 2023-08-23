@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peerstream
 
 import (
@@ -14,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/retry"
-	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/pbservice"
 )
 
 // This file contains direct state store functions that need additional
@@ -96,27 +93,30 @@ func (m *subscriptionManager) syncViaBlockingQuery(
 
 	store := m.getStore()
 
-	for ctx.Err() == nil {
+	for {
 		ws := memdb.NewWatchSet()
 		ws.Add(store.AbandonCh())
 		ws.Add(ctx.Done())
 
 		if result, err := queryFn(ctx, store, ws); err != nil {
-			// Return immediately if the context was cancelled.
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return
-			}
 			logger.Error("failed to sync from query", "error", err)
-			waiter.Wait(ctx)
 		} else {
-			select {
-			case <-ctx.Done():
-				return
-			case updateCh <- cache.UpdateEvent{CorrelationID: correlationID, Result: result}:
-				waiter.Reset()
-			}
 			// Block for any changes to the state store.
+			updateCh <- cache.UpdateEvent{
+				CorrelationID: correlationID,
+				Result:        result,
+			}
 			ws.WatchCtx(ctx)
+		}
+
+		if err := waiter.Wait(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+			logger.Error("failed to wait before re-trying sync", "error", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 	}
 }

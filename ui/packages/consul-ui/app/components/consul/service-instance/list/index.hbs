@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 {{#let
 
   (to-hash @proxies "Service.Proxy.DestinationServiceID")
@@ -50,24 +45,18 @@ as |proxy|}}
       @items={{filter-by 'ServiceID' '' checks}}
     />
   {{else}}
-    {{#unless this.areAllExternalSourcesMatching}}
-      <Consul::ExternalSource
-        @item={{item.Service}}
-      />
-    {{/unless}}
+    <Consul::ExternalSource
+      @item={{item.Service}}
+    />
 
     <Consul::InstanceChecks
       @type="service"
       @items={{filter-by 'ServiceID' '' checks}}
     />
-
-    {{#unless item.Node.Meta.synthetic-node}}
-      <Consul::InstanceChecks
-        @type="node"
-        @items={{reject-by 'ServiceID' '' checks}}
-        data-test-node-health-checks
-      />
-    {{/unless}}
+    <Consul::InstanceChecks
+      @type="node"
+      @items={{reject-by 'ServiceID' '' checks}}
+    />
   {{/if}}
 {{#if proxy}}
     <dl class="mesh">
@@ -81,7 +70,7 @@ as |proxy|}}
       </dd>
     </dl>
 {{/if}}
-{{#if (and (not @node) (not item.Node.Meta.synthetic-node))}}
+{{#if (not @node)}}
     <dl class="node">
       <dt>
         <Tooltip>
@@ -89,7 +78,7 @@ as |proxy|}}
         </Tooltip>
       </dt>
       <dd>
-        <a data-test-node-name href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
+        <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
       </dd>
     </dl>
 {{/if}}

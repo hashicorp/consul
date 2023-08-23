@@ -53,11 +53,11 @@ Feature: dc / nodes / show: Show node
       dc: dc1
       node: node-0
     ---
-    And I see serviceInstancesIsSelected on the tabs
-    And I see healthChecksIsVisible on the tabs
-    And I see serviceInstancesIsVisible on the tabs
+    And I see healthChecks on the tabs
+    And I see serviceInstances on the tabs
     And I don't see roundTripTime on the tabs
-    And I see lockSessionsIsVisible on the tabs
+    And I see lockSessions on the tabs
+    And I see serviceInstancesIsSelected on the tabs
   Scenario: A node warns when deregistered whilst blocking
     Given 1 node model from yaml
     ---

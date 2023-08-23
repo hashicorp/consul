@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -800,55 +797,4 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expected, txnResp)
-}
-
-func TestTxnEndpoint_OperationsSize(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Run("too-many-operations", func(t *testing.T) {
-		var ops []api.TxnOp
-		agent := NewTestAgent(t, "limits = { txn_max_req_len = 700000 }")
-
-		for i := 0; i < 130; i++ {
-			ops = append(ops, api.TxnOp{
-				KV: &api.KVTxnOp{
-					Verb:  api.KVSet,
-					Key:   "key",
-					Value: []byte("test"),
-				},
-			})
-		}
-
-		req, _ := http.NewRequest("PUT", "/v1/txn", jsonBody(ops))
-		resp := httptest.NewRecorder()
-		raw, err := agent.srv.Txn(resp, req)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "Transaction contains too many operations")
-		require.Nil(t, raw)
-		agent.Shutdown()
-	})
-
-	t.Run("allowed", func(t *testing.T) {
-		var ops []api.TxnOp
-		agent := NewTestAgent(t, "limits = { txn_max_req_len = 700000 }")
-
-		for i := 0; i < 128; i++ {
-			ops = append(ops, api.TxnOp{
-				KV: &api.KVTxnOp{
-					Verb:  api.KVSet,
-					Key:   "key",
-					Value: []byte("test"),
-				},
-			})
-		}
-
-		req, _ := http.NewRequest("PUT", "/v1/txn", jsonBody(ops))
-		resp := httptest.NewRecorder()
-		raw, err := agent.srv.Txn(resp, req)
-		require.NoError(t, err)
-		require.NotNil(t, raw)
-		agent.Shutdown()
-	})
 }

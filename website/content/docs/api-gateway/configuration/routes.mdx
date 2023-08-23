@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Route Resource Configuration
-description: >-
-  The `HTTPRoute` and `TCPRoute` resources define Consul API Gateway routing behavior for traffic into the service mesh according to rules. Learn about its configuration model and reference specifications, and review an example configuration.
+page_title: Consul API Gateway Routes
+description:  >-
+  Consul API Gateway Routes
 ---
 
-# Route Resource Configuration
+# Route
 
 This topic describes how to create and configure `Route` resources. Routes are independent configuration objects that are associated with specific listeners.
 
@@ -22,7 +22,7 @@ The following example creates a route named `example-route` associated with a li
 <CodeBlockConfig filename="routes.yaml">
 
   ```yaml
-  apiVersion: gateway.networking.k8s.io/v1beta1
+  apiVersion: gateway.networking.k8s.io/v1alpha2
   kind: HTTPRoute
   metadata:
     name: example-route
@@ -119,7 +119,7 @@ This field specifies backend services that the `Route` references. The following
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---  | ---      |
 | `group` | Specifies the Kubernetes API Group of the referenced backend. You can specify the following values: <ul><li>`""`: Specifies the core Kubernetes API group. This value must be used when `kind` is set to `Service`. This is the default value if unspecified.</li><li>`api-gateway.consul.hashicorp.com`: This value must be used when `kind` is set to `MeshService`.</li></ul> | String | Optional |
-| `kind` |  Specifies the Kubernetes Kind of the referenced backend. You can specify the following values: <ul><li>`Service` (default): Indicates that the `backendRef` references a Service in the Kubernetes cluster. </li><li>`MeshService`: Indicates that the `backendRef` references a service in the Consul mesh. Refer to the `MeshService` [documentation](/consul/docs/api-gateway/configuration/meshservice) for additional information.</li></ul> | String | Optional |
+| `kind` |  Specifies the Kubernetes Kind of the referenced backend. You can specify the following values: <ul><li>`Service` (default): Indicates that the `backendRef` references a Service in the Kubernetes cluster. </li><li>`MeshService`: Indicates that the `backendRef` references a service in the Consul mesh. Refer to the `MeshService` [documentation](/docs/api-gateway/configuration/meshservice) for additional information.</li></ul> | String | Optional |
 | `name` | Specifies the name of the Kubernetes Service or Consul mesh service resource. | String | Required |
 | `namespace` | Specifies the Kubernetes namespace containing the Kubernetes Service or Consul mesh service resource. You must specify a value if the Service or Consul mesh service is defined in a different namespace from the `Route`. Defaults to the namespace of the `Route`. <br/>To create a route for a `backendRef` in a different namespace, you must also create a [ReferenceGrant](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant). Refer to the [example route](#example-cross-namespace-backendref) configured to reference across namespaces. | String | Optional |
 | `port` | Specifies the port number for accessing the Kubernetes or Consul service. | Integer | Required |
@@ -132,7 +132,7 @@ The following example creates a route named `example-route` in namespace `gatewa
 <CodeBlockConfig filename="route_with_referencegrant.yaml">
 
   ```yaml
-  apiVersion: gateway.networking.k8s.io/v1beta1
+  apiVersion: gateway.networking.k8s.io/v1alpha2
   kind: HTTPRoute
   metadata:
     name: example-route
@@ -168,7 +168,7 @@ The following example creates a route named `example-route` in namespace `gatewa
 
 ### rules.filters
 
-The `filters` block defines steps for processing requests. You can configure filters to modify the properties of matching incoming requests and enable Consul API Gateway features, such as rewriting path prefixes (refer to [Reroute HTTP requests](/consul/docs/api-gateway/usage/reroute-http-requests) for additional information).
+The `filters` block defines steps for processing requests. You can configure filters to modify the properties of matching incoming requests and enable Consul API Gateway features, such as rewriting path prefixes (refer to [Reroute HTTP requests](/docs/api-gateway/usage#reroute-http-requests) for additional information).
 
 * Type: Array of objects
 * Required: Optional
@@ -203,14 +203,14 @@ Specifies rules for rewriting the URL of incoming requests when `rules.filters.t
 
 ### rules.filters.urlRewrite.path
 
-Specifies a list of objects that determine how Consul API Gateway rewrites URL paths (refer to [Reroute HTTP requests](/consul/docs/api-gateway/usage/reroute-http-requests) for additional information).
+Specifies a list of objects that determine how Consul API Gateway rewrites URL paths (refer to [Reroute HTTP requests](/docs/api-gateway/usage#reroute-http-requests) for additional information).
 
 The following table describes the parameters for `path`:
 
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---  | ---      |
 | `replacePrefixMatch` | Specifies a value that replaces the path prefix for incoming HTTP requests. The operation only affects the path prefix. The rest of the path is unchanged. | String | Required |
-| `type` | Specifies the type of replacement to use for the URL path. You can specify the following values: <ul><li>`ReplacePrefixMatch`: Replaces the matched prefix of the URL path (default). </li></ul> | String | Optional |
+| `type` | Specifies the type of replacement to use for the URL path. You can specify the following values: <ul><li>`ReplacePrefixMatch`: Replaces the the matched prefix of the URL path (default). </li></ul> | String | Optional |
 
 ### rules.matches
 

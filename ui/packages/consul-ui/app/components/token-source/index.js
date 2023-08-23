@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
@@ -25,7 +20,7 @@ export default class TokenSource extends Component {
 
   @action
   change(e) {
-    e.data.toJSON = function () {
+    e.data.toJSON = function() {
       return {
         AccessorID: this.AccessorID,
         // TODO: In the past we've always ignored the SecretID returned
@@ -44,8 +39,9 @@ export default class TokenSource extends Component {
       };
     };
     // TODO: We should probably put the component into idle state
-    if (typeof this.args.onchange === 'function') {
+    if(typeof this.args.onchange === 'function') {
       this.args.onchange(e);
     }
   }
+
 }

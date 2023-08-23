@@ -16,7 +16,7 @@ Feature: dc / services / show / upstreams
       service: ingress-gateway-1
     ---
     And the title should be "ingress-gateway-1 - Consul"
-    And I see upstreamsIsVisible on the tabs
+    And I see upstreams on the tabs
     When I click upstreams on the tabs
     And I see upstreamsIsSelected on the tabs
   Scenario: Seeing the list of Upstreams

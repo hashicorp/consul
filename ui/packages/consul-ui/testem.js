@@ -1,17 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 module.exports = {
   test_page: 'tests/index.html?hidepassed',
   disable_watching: true,
   launch_in_ci: ['Chrome'],
-  launch_in_dev: ['Chrome', 'Firefox', 'Safari'].includes(process.env.TESTEM_AUTOLAUNCH)
-    ? [process.env.TESTEM_AUTOLAUNCH]
-    : typeof process.env.TESTEM_AUTOLAUNCH === 'undefined'
-    ? ['Chrome']
-    : [],
+  launch_in_dev: ['Chrome', 'Firefox', 'Safari'].includes(process.env.TESTEM_AUTOLAUNCH) ?
+    [process.env.TESTEM_AUTOLAUNCH] : typeof process.env.TESTEM_AUTOLAUNCH === 'undefined' ? ['Chrome'] : [],
   browser_start_timeout: 120,
   browser_args: {
     Chrome: {

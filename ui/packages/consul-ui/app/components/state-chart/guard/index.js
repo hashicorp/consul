@@ -1,16 +1,11 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 
 export default Component.extend({
   tagName: '',
-  didInsertElement: function () {
+  didInsertElement: function() {
     this._super(...arguments);
     const component = this;
-    this.chart.addGuard(this.name, function () {
+    this.chart.addGuard(this.name, function() {
       if (typeof component.cond === 'function') {
         return component.cond(...arguments);
       } else {
@@ -18,7 +13,7 @@ export default Component.extend({
       }
     });
   },
-  willDestroyElement: function () {
+  willDestroyElement: function() {
     this._super(...arguments);
     this.chart.removeGuard(this.name);
   },

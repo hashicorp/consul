@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -40,11 +37,11 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	serfLogger := c.logger.
 		NamedIntercept(logging.Serf).
 		NamedIntercept(logging.LAN).
-		StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
+		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 	memberlistLogger := c.logger.
 		NamedIntercept(logging.Memberlist).
 		NamedIntercept(logging.LAN).
-		StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
+		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 
 	conf.MemberlistConfig.Logger = memberlistLogger
 	conf.Logger = serfLogger

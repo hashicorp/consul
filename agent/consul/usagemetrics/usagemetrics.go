@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package usagemetrics
 
 import (
@@ -21,78 +18,42 @@ import (
 var Gauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"consul", "state", "nodes"},
-		Help: "Deprecated - please use state_nodes instead.",
-	},
-	{
-		Name: []string{"state", "nodes"},
 		Help: "Measures the current number of nodes registered with Consul. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
 		Name: []string{"consul", "state", "peerings"},
-		Help: "Deprecated - please use state_peerings instead.",
-	},
-	{
-		Name: []string{"state", "peerings"},
 		Help: "Measures the current number of peerings registered with Consul. It is only emitted by Consul servers. Added in v1.13.0.",
 	},
 	{
 		Name: []string{"consul", "state", "services"},
-		Help: "Deprecated - please use state_services instead.",
-	},
-	{
-		Name: []string{"state", "services"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
 		Name: []string{"consul", "state", "service_instances"},
-		Help: "Deprecated - please use state_service_instances instead.",
-	},
-	{
-		Name: []string{"state", "service_instances"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
 		Name: []string{"consul", "members", "clients"},
-		Help: "Deprecated - please use members_clients instead.",
-	},
-	{
-		Name: []string{"members", "clients"},
 		Help: "Measures the current number of client agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
 	{
 		Name: []string{"consul", "members", "servers"},
-		Help: "Deprecated - please use members_servers instead.",
-	},
-	{
-		Name: []string{"members", "servers"},
 		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
 	{
 		Name: []string{"consul", "state", "kv_entries"},
-		Help: "Deprecated - please use kv_entries instead.",
-	},
-	{
-		Name: []string{"state", "kv_entries"},
 		Help: "Measures the current number of entries in the Consul KV store. It is only emitted by Consul servers. Added in v1.10.3.",
 	},
 	{
 		Name: []string{"consul", "state", "connect_instances"},
-		Help: "Deprecated - please use state_connect_instances instead.",
-	},
-	{
-		Name: []string{"state", "connect_instances"},
 		Help: "Measures the current number of unique connect service instances registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
 	},
 	{
 		Name: []string{"consul", "state", "config_entries"},
-		Help: "Deprecated - please use state_config_entries instead.",
-	},
-	{
-		Name: []string{"state", "config_entries"},
 		Help: "Measures the current number of unique configuration entries registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
 	},
 	{
-		Name: []string{"state", "billable_service_instances"},
+		Name: []string{"consul", "state", "billable_service_instances"},
 		Help: "Total number of billable service instances in the local datacenter.",
 	},
 }
@@ -221,7 +182,7 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	u.emitPeeringUsage(peeringUsage)
 
-	_, serviceUsage, err := state.ServiceUsage(nil)
+	_, serviceUsage, err := state.ServiceUsage()
 	if err != nil {
 		u.logger.Warn("failed to retrieve services from state store", "error", err)
 	}

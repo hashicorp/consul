@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@glimmer/component';
 
 const BADGE_LOOKUP = {
@@ -25,11 +20,9 @@ const BADGE_LOOKUP = {
   TERMINATED: {
     tooltip: 'Someone in the other peer may have deleted this peering connection.',
   },
-  UNDEFINED: {
-    tooltip: '',
-  },
+  UNDEFINED: {},
 };
-export default class PeeringsBadge extends Component {
+export default class PeeingsBadge extends Component {
   get styles() {
     const {
       peering: { State },

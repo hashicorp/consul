@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
@@ -88,8 +83,8 @@ export default class PermissionService extends RepositoryService {
 
   has(permission) {
     const keys = Object.keys(permission);
-    return this.permissions.some((item) => {
-      return keys.every((key) => item[key] === permission[key]) && item.Allow === true;
+    return this.permissions.some(item => {
+      return keys.every(key => item[key] === permission[key]) && item.Allow === true;
     });
   }
 
@@ -119,7 +114,7 @@ export default class PermissionService extends RepositoryService {
    */
   async authorize(params) {
     if (!this.env.var('CONSUL_ACLS_ENABLED')) {
-      return params.resources.map((item) => {
+      return params.resources.map(item => {
         return {
           ...item,
           Allow: true,
@@ -169,7 +164,7 @@ export default class PermissionService extends RepositoryService {
     // still enforced on the backend.
     // This temporary measure should be removed again once https://github.com/hashicorp/consul/issues/11098
     // has been resolved
-    this.permissions.forEach((item) => {
+    this.permissions.forEach(item => {
       if (['key', 'node', 'service', 'intention', 'session'].includes(item.Resource)) {
         item.Allow = true;
       }

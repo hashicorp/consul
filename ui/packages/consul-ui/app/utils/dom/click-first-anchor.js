@@ -1,29 +1,24 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-const clickEvent = function ($el) {
+const clickEvent = function($el) {
   ['mousedown', 'mouseup', 'click']
-    .map(function (type) {
+    .map(function(type) {
       return new MouseEvent(type, {
         bubbles: true,
         cancelable: true,
         view: window,
       });
     })
-    .forEach(function (event) {
+    .forEach(function(event) {
       $el.dispatchEvent(event);
     });
 };
-export default function (closest, click = clickEvent) {
+export default function(closest, click = clickEvent) {
   // TODO: Decide whether we should use `e` for ease
   // or `target`/`el`
   // TODO: currently, using a string stopElement to tell the func
   // where to stop looking and currenlty default is 'tr' because
   // it's backwards compatible.
   // Long-term this func shouldn't default to 'tr'
-  return function (e, stopElement = 'tr') {
+  return function(e, stopElement = 'tr') {
     // click on row functionality
     // so if you click the actual row but not a link
     // find the first link and fire that instead

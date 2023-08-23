@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -81,9 +78,6 @@ type ConsulResolver struct {
 
 	// Datacenter to resolve in, empty indicates agent's local DC.
 	Datacenter string
-
-	// Specifies the expression used to filter the queries results prior to returning the data.
-	Filter string
 }
 
 // Resolve performs service discovery against the local Consul agent and returns
@@ -179,7 +173,6 @@ func (cr *ConsulResolver) queryOptions(ctx context.Context) *api.QueryOptions {
 
 		// For prepared queries
 		Connect: true,
-		Filter:  cr.Filter,
 	}
 	return q.WithContext(ctx)
 }

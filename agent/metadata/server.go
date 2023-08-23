@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package metadata
 
 import (
@@ -26,27 +23,26 @@ func (k *Key) Equal(x *Key) bool {
 
 // Server is used to return details of a consul server
 type Server struct {
-	Name                string // <node>.<dc>
-	ShortName           string // <node>
-	ID                  string
-	Datacenter          string
-	Segment             string
-	Port                int
-	SegmentAddrs        map[string]string
-	SegmentPorts        map[string]int
-	WanJoinPort         int
-	LanJoinPort         int
-	ExternalGRPCPort    int
-	ExternalGRPCTLSPort int
-	Bootstrap           bool
-	Expect              int
-	Build               version.Version
-	Version             int
-	RaftVersion         int
-	Addr                net.Addr
-	Status              serf.MemberStatus
-	ReadReplica         bool
-	FeatureFlags        map[string]int
+	Name             string // <node>.<dc>
+	ShortName        string // <node>
+	ID               string
+	Datacenter       string
+	Segment          string
+	Port             int
+	SegmentAddrs     map[string]string
+	SegmentPorts     map[string]int
+	WanJoinPort      int
+	LanJoinPort      int
+	ExternalGRPCPort int
+	Bootstrap        bool
+	Expect           int
+	Build            version.Version
+	Version          int
+	RaftVersion      int
+	Addr             net.Addr
+	Status           serf.MemberStatus
+	ReadReplica      bool
+	FeatureFlags     map[string]int
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool
@@ -141,18 +137,14 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		}
 	}
 
-	var externalGRPCPort, externalGRPCTLSPort int
-	externalGRPCPortStr, foundGRPC := m.Tags["grpc_port"]
-	externalGRPCTLSPortStr, foundGRPCTLS := m.Tags["grpc_tls_port"]
-	if foundGRPC {
-		externalGRPCPort, _ = strconv.Atoi(externalGRPCPortStr)
-	}
-	if foundGRPCTLS {
-		externalGRPCTLSPort, _ = strconv.Atoi(externalGRPCTLSPortStr)
-	}
-	// If either port tag was found, check to ensure that at least one port was valid.
-	if foundGRPC || foundGRPCTLS {
-		if externalGRPCPort < 1 && externalGRPCTLSPort < 1 {
+	externalGRPCPort := 0
+	externalGRPCPortStr, ok := m.Tags["grpc_port"]
+	if ok {
+		externalGRPCPort, err = strconv.Atoi(externalGRPCPortStr)
+		if err != nil {
+			return false, nil
+		}
+		if externalGRPCPort < 1 {
 			return false, nil
 		}
 	}
@@ -181,26 +173,25 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
-		Name:                m.Name,
-		ShortName:           strings.TrimSuffix(m.Name, "."+datacenter),
-		ID:                  m.Tags["id"],
-		Datacenter:          datacenter,
-		Segment:             segment,
-		Port:                port,
-		SegmentAddrs:        segmentAddrs,
-		SegmentPorts:        segmentPorts,
-		WanJoinPort:         wanJoinPort,
-		LanJoinPort:         int(m.Port),
-		ExternalGRPCPort:    externalGRPCPort,
-		ExternalGRPCTLSPort: externalGRPCTLSPort,
-		Bootstrap:           bootstrap,
-		Expect:              expect,
-		Addr:                addr,
-		Build:               *buildVersion,
-		Version:             vsn,
-		RaftVersion:         raftVsn,
-		Status:              m.Status,
-		UseTLS:              useTLS,
+		Name:             m.Name,
+		ShortName:        strings.TrimSuffix(m.Name, "."+datacenter),
+		ID:               m.Tags["id"],
+		Datacenter:       datacenter,
+		Segment:          segment,
+		Port:             port,
+		SegmentAddrs:     segmentAddrs,
+		SegmentPorts:     segmentPorts,
+		WanJoinPort:      wanJoinPort,
+		LanJoinPort:      int(m.Port),
+		ExternalGRPCPort: externalGRPCPort,
+		Bootstrap:        bootstrap,
+		Expect:           expect,
+		Addr:             addr,
+		Build:            *buildVersion,
+		Version:          vsn,
+		RaftVersion:      raftVsn,
+		Status:           m.Status,
+		UseTLS:           useTLS,
 		// DEPRECATED - remove nonVoter check once support for that tag is removed
 		ReadReplica:  nonVoter || readReplica,
 		FeatureFlags: featureFlags,
@@ -220,14 +211,4 @@ func AddFeatureFlags(tags map[string]string, flags ...string) {
 	for _, flag := range flags {
 		tags[featureFlagPrefix+flag] = "1"
 	}
-}
-
-func GetIP(addr net.Addr) []byte {
-	switch a := addr.(type) {
-	case *net.UDPAddr:
-		return []byte(a.IP.String())
-	case *net.TCPAddr:
-		return []byte(a.IP.String())
-	}
-	return []byte{}
 }

@@ -23,8 +23,8 @@ Feature: dc / kvs / update: KV Update
     ---
     And I submit
     Then a PUT request was made to "/v1/kv/[EncodedName]?dc=datacenter&ns=@!namespace&flags=12" with the body "[Value]"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Where:
       ---------------------------------------------------------
       | Name            | EncodedName          | Value        |
@@ -56,8 +56,8 @@ Feature: dc / kvs / update: KV Update
     Then a PUT request was made to "/v1/kv/key?dc=datacenter&ns=@!namespace&flags=12" with the body "   "
     Then the url should be /datacenter/kv
     And the title should be "Key / Value - Consul"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Scenario: Update to a key change value to ''
     And 1 kv model from yaml
     ---
@@ -79,8 +79,8 @@ Feature: dc / kvs / update: KV Update
     And I submit
     Then a PUT request was made to "/v1/kv/key?dc=datacenter&ns=@!namespace&flags=12" with no body
     Then the url should be /datacenter/kv
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Scenario: Update to a key when the value is empty
     And 1 kv model from yaml
     ---
@@ -97,8 +97,8 @@ Feature: dc / kvs / update: KV Update
     And I submit
     Then a PUT request was made to "/v1/kv/key?dc=datacenter&ns=@!namespace&flags=12" with no body
     Then the url should be /datacenter/kv
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Scenario: There was an error saving the key
     When I visit the kv page for yaml
     ---
@@ -110,8 +110,8 @@ Feature: dc / kvs / update: KV Update
     Given the url "/v1/kv/key" responds with a 500 status
     And I submit
     Then the url should be /datacenter/kv/key/edit
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    Then "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "error" class
 @ignore
   Scenario: KV's with spaces are saved correctly
     Then ok

@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package rtt
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -77,7 +73,7 @@ func TestRTTCommand_LAN(t *testing.T) {
 			Coord:      c1,
 		}
 		var reply struct{}
-		if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
+		if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -88,7 +84,7 @@ func TestRTTCommand_LAN(t *testing.T) {
 			Address:    "127.0.0.2",
 		}
 		var reply struct{}
-		if err := a.RPC(context.Background(), "Catalog.Register", &req, &reply); err != nil {
+		if err := a.RPC("Catalog.Register", &req, &reply); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -99,7 +95,7 @@ func TestRTTCommand_LAN(t *testing.T) {
 			Node:       "dogs",
 			Coord:      c2,
 		}
-		if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
+		if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package submatview
 
 import (
@@ -50,9 +47,6 @@ type entry struct {
 	// requests is the count of active requests using this entry. This entry will
 	// remain in the store as long as this count remains > 0.
 	requests int
-	// evicting is used to mark an entry that will be evicted when the current in-
-	// flight requests finish.
-	evicting bool
 }
 
 // NewStore creates and returns a Store that is ready for use. The caller must
@@ -95,7 +89,6 @@ func (s *Store) Run(ctx context.Context) {
 
 			// Only stop the materializer if there are no active requests.
 			if e.requests == 0 {
-				s.logger.Trace("evicting item from store", "key", he.Key())
 				e.stop()
 				delete(s.byKey, he.Key())
 			}
@@ -110,7 +103,7 @@ func (s *Store) Run(ctx context.Context) {
 // fields are ignored (ex: MaxAge, and MustRevalidate).
 type Request interface {
 	cache.Request
-	// NewMaterializer will be called if there is no active materializer to fulfill
+	// NewMaterializer will be called if there is no active materializer to fulfil
 	// the request. It should return a Materializer appropriate for streaming
 	// data to fulfil this request.
 	NewMaterializer() (Materializer, error)
@@ -194,13 +187,13 @@ func (s *Store) NotifyCallback(
 					"error", err,
 					"request-type", req.Type(),
 					"index", index)
+				continue
 			}
 
 			index = result.Index
 			cb(ctx, cache.UpdateEvent{
 				CorrelationID: correlationID,
 				Result:        result.Value,
-				Err:           err,
 				Meta:          cache.ResultMeta{Index: result.Index, Hit: result.Cached},
 			})
 		}
@@ -218,9 +211,6 @@ func (s *Store) readEntry(req Request) (string, Materializer, error) {
 	defer s.lock.Unlock()
 	e, ok := s.byKey[key]
 	if ok {
-		if e.evicting {
-			return "", nil, errors.New("item is marked for eviction")
-		}
 		e.requests++
 		s.byKey[key] = e
 		return key, e.materializer, nil
@@ -232,18 +222,7 @@ func (s *Store) readEntry(req Request) (string, Materializer, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		mat.Run(ctx)
-
-		// Materializers run until they either reach their TTL and are evicted (which
-		// cancels the given context) or encounter an irrecoverable error.
-		//
-		// If the context hasn't been canceled, we know it's the error case so we
-		// trigger an immediate eviction.
-		if ctx.Err() == nil {
-			s.evictNow(key)
-		}
-	}()
+	go mat.Run(ctx)
 
 	e = entry{
 		materializer: mat,
@@ -252,28 +231,6 @@ func (s *Store) readEntry(req Request) (string, Materializer, error) {
 	}
 	s.byKey[key] = e
 	return key, e.materializer, nil
-}
-
-// evictNow causes the item with the given key to be evicted immediately.
-//
-// If there are requests in-flight, the item is marked for eviction such that
-// once the requests have been served releaseEntry will move it to the top of
-// the expiry heap. If there are no requests in-flight, evictNow will move the
-// item to the top of the expiry heap itself.
-//
-// In either case, the entry's evicting flag prevents it from being served by
-// readEntry (and thereby gaining new in-flight requests).
-func (s *Store) evictNow(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	e := s.byKey[key]
-	e.evicting = true
-	s.byKey[key] = e
-
-	if e.requests == 0 {
-		s.expireNowLocked(key)
-	}
 }
 
 // releaseEntry decrements the request count and starts an expiry timer if the
@@ -289,11 +246,6 @@ func (s *Store) releaseEntry(key string) {
 		return
 	}
 
-	if e.evicting {
-		s.expireNowLocked(key)
-		return
-	}
-
 	if e.expiry.Index() == ttlcache.NotIndexed {
 		e.expiry = s.expiryHeap.Add(key, s.idleTTL)
 		s.byKey[key] = e
@@ -301,17 +253,6 @@ func (s *Store) releaseEntry(key string) {
 	}
 
 	s.expiryHeap.Update(e.expiry.Index(), s.idleTTL)
-}
-
-// expireNowLocked moves the item with the given key to the top of the expiry
-// heap, causing it to be picked up by the expiry loop and evicted immediately.
-func (s *Store) expireNowLocked(key string) {
-	e := s.byKey[key]
-	if idx := e.expiry.Index(); idx != ttlcache.NotIndexed {
-		s.expiryHeap.Remove(idx)
-	}
-	e.expiry = s.expiryHeap.Add(key, time.Duration(0))
-	s.byKey[key] = e
 }
 
 // makeEntryKey matches agent/cache.makeEntryKey, but may change in the future.

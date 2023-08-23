@@ -1,19 +1,19 @@
 ---
 layout: docs
-page_title: ACL Controller Manual Installation - Consul on AWS Elastic Container Service (ECS)
+page_title: ACL Controller - AWS ECS
 description: >-
-  An ACL Controller is required to configure the AWS IAM auth method on Amazon Web Services ECS. Learn how to manually install ACL controllers by defining a task and a service and then configuring role policies.
+  Manual Deployment of the ACL Controller for Consul Service Mesh on AWS ECS (Elastic Container Service).
 ---
 
-# Manual Installation of ACL Controller for Consul on AWS Elastic Container Service (ECS)
+# Install the ACL Controller
 
-This topic describes how to manually deploy the ACL controller, which will automatically configure the [AWS IAM Auth Method](/consul/docs/security/acl/auth-methods/aws-iam). If you are using Terraform, refer to the [Terraform Secure Configuration](/consul/docs/ecs/terraform/secure-configuration) page to deploy the ACL controller.
+This topic describes how to manually deploy the ACL controller, which will automatically configure the [AWS IAM Auth Method](/docs/security/acl/auth-methods/aws-iam). If you are using Terraform, refer to the [Terraform Secure Configuration](/docs/ecs/terraform/secure-configuration) page to deploy the ACL controller.
 
 ## Prerequisites
 
 * Your application tasks must include certain tags to be compatible with the ACL controller.
-Refer to the [Task Tags](/consul/docs/ecs/manual/install#task-tags) section of the installation page.
-* You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the [Consul Security tutorials](/consul/tutorials/security) for an introduction and the [ACL system](/consul/docs/security/acl) documentation for more information.
+Refer to the [Task Tags](/docs/ecs/manual/install#task-tags) section of the installation page.
+* You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the [Consul Security tutorials](https://learn.hashicorp.com/collections/consul/security) for an introduction and the [ACL system](/docs/security/acl) documentation for more information.
 * If you are using Consul with multiple ECS clusters, each cluster requires its own instance of the ACL controller.
 
 ## Set Up Secrets
@@ -121,7 +121,7 @@ to complete the remaining details for your use case.
 | `desiredCount`   | integer | Must be `1`. Only one instance of the ACL controller should run per ECS cluster.                                   |
 | `launchType`     | string  | Consul on ECS supports both the `FARGATE` and `EC2` launch types.                                                |
 | `serviceName`    | string  | The service name of your choice.                                                                                 |
-| `taskDefinition` | string  | Must be set to the ACL controller [task definition](/consul/docs/ecs/manual/acl-controller#task-definition).            |
+| `taskDefinition` | string  | Must be set to the ACL controller [task definition](/docs/ecs/manual/acl-controller#task-definition).            |
 
 ## AWS IAM Roles
 

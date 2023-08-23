@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 import { setProperties } from '@ember/object';
 
@@ -32,12 +27,16 @@ export default class HttpService extends Service {
   persist(sink, instance) {
     const [, , , , model] = sink.split('/');
     const repo = this[model];
-    return this.client.request((request) => repo.persist(instance, request));
+    return this.client.request(
+      request => repo.persist(instance, request)
+    );
   }
 
   remove(sink, instance) {
     const [, , , , model] = sink.split('/');
     const repo = this[model];
-    return this.client.request((request) => repo.remove(instance, request));
+    return this.client.request(
+      request => repo.remove(instance, request)
+    );
   }
 }

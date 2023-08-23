@@ -1,15 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // const METHOD_PARSING = 0;
 const PATH_PARSING = 1;
 const QUERY_PARSING = 2;
 const HEADER_PARSING = 3;
 const BODY_PARSING = 4;
-export default function (encode, queryParams) {
-  return function (strs, ...values) {
+export default function(encode, queryParams) {
+  return function(strs, ...values) {
     // TODO: Potentially url should check if any of the params
     // passed to it are undefined (null is fine). We could then get rid of the
     // multitude of checks we do throughout the adapters
@@ -17,7 +12,7 @@ export default function (encode, queryParams) {
     // anywhere
     let state = PATH_PARSING;
     return strs
-      .map(function (item, i, arr) {
+      .map(function(item, i, arr) {
         if (i === 0) {
           item = item.trimStart();
         }
@@ -44,7 +39,7 @@ export default function (encode, queryParams) {
               // split encode and join arrays by `/`
               case Array.isArray(val):
                 val = val
-                  .map(function (item) {
+                  .map(function(item) {
                     return `${encode(item)}`;
                   }, '')
                   .join('/');

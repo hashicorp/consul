@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import Helper from 'consul-ui/helpers/document-attrs';
 
@@ -12,8 +7,8 @@ const root = {
     remove: () => {},
   },
 };
-module('Unit | Helper | document-attrs', function () {
-  test('synchronize adds and removes values correctly', function (assert) {
+module('Unit | Helper | document-attrs', function() {
+  test('synchronize adds and removes values correctly', function(assert) {
     let attrs, actual;
     // add first helper
     const a = new Helper();
@@ -35,9 +30,8 @@ module('Unit | Helper | document-attrs', function () {
     assert.deepEqual(actual, ['a', 'b'], 'keys are removed, leaving keys that need to remain');
     // remove first helper
     a.synchronize(root);
-    assert.strictEqual(
-      typeof attrs.get('class'),
-      'undefined',
+    assert.ok(
+      typeof attrs.get('class') === 'undefined',
       'property is completely removed once its empty'
     );
     assert.throws(() => {

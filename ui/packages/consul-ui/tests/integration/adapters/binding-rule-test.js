@@ -1,17 +1,12 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import getNspaceRunner from 'consul-ui/tests/helpers/get-nspace-runner';
 
 const nspaceRunner = getNspaceRunner('binding-rule');
-module('Integration | Adapter | binding-rule', function (hooks) {
+module('Integration | Adapter | binding-rule', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
-  test('requestForQuery returns the correct url/method', function (assert) {
+  test('requestForQuery returns the correct url/method', function(assert) {
     const adapter = this.owner.lookup('adapter:binding-rule');
     const client = this.owner.lookup('service:client/http');
     const request = client.requestParams.bind(client);
@@ -21,8 +16,7 @@ module('Integration | Adapter | binding-rule', function (hooks) {
     });
     assert.equal(`${actual.method} ${actual.url}`, expected);
   });
-  test('requestForQuery returns the correct body', function (assert) {
-    assert.expect(2);
+  test('requestForQuery returns the correct body', function(assert) {
     return nspaceRunner(
       (adapter, serializer, client) => {
         const request = client.body.bind(client);

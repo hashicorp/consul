@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package subscribe
 
 import (
@@ -11,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
@@ -19,19 +17,17 @@ import (
 	gogrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -44,7 +40,6 @@ func TestServer_Subscribe_SubjectIsRequired(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -114,7 +109,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -167,7 +161,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
-									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
@@ -201,7 +194,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
-									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
@@ -254,7 +246,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								MeshGateway:      &pbservice.MeshGatewayConfig{},
 								Expose:           &pbservice.ExposeConfig{},
 								TransparentProxy: &pbservice.TransparentProxyConfig{},
-								AccessLogs:       &pbservice.AccessLogsConfig{},
 							},
 							Connect:        &pbservice.ServiceConnect{},
 							RaftIndex:      raftIndex(ids, "reg3", "reg3"),
@@ -271,10 +262,10 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								RaftIndex:      raftIndex(ids, "update", "update"),
 								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								Definition: &pbservice.HealthCheckDefinition{
-									Interval:                       &durationpb.Duration{},
-									Timeout:                        &durationpb.Duration{},
-									DeregisterCriticalServiceAfter: &durationpb.Duration{},
-									TTL:                            &durationpb.Duration{},
+									Interval:                       &duration.Duration{},
+									Timeout:                        &duration.Duration{},
+									DeregisterCriticalServiceAfter: &duration.Duration{},
+									TTL:                            &duration.Duration{},
 								},
 							},
 						},
@@ -379,16 +370,10 @@ var _ Backend = (*testBackend)(nil)
 func runTestServer(t *testing.T, server *Server) net.Addr {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
 	var grpcServer *gogrpc.Server
-	handler := grpc.NewHandler(
-		hclog.New(nil),
-		addr,
-		func(srv *gogrpc.Server) {
-			grpcServer = srv
-			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
-		},
-		nil,
-		rate.NullRequestLimitsHandler(),
-	)
+	handler := grpc.NewHandler(hclog.New(nil), addr, func(srv *gogrpc.Server) {
+		grpcServer = srv
+		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
+	})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -451,7 +436,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	//nolint:staticcheck
 	connRemoteDC, err := gogrpc.DialContext(ctx, addrRemoteDC.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connRemoteDC.Close))
@@ -499,7 +483,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 		require.NoError(t, backendRemoteDC.store.EnsureRegistration(ids.Next("reg3"), req))
 	})
 
-	//nolint:staticcheck
 	connLocal, err := gogrpc.DialContext(ctx, addrLocal.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connLocal.Close))
@@ -553,7 +536,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
-									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
@@ -587,7 +569,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
-									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
@@ -641,7 +622,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								MeshGateway:      &pbservice.MeshGatewayConfig{},
 								Expose:           &pbservice.ExposeConfig{},
 								TransparentProxy: &pbservice.TransparentProxyConfig{},
-								AccessLogs:       &pbservice.AccessLogsConfig{},
 							},
 							Connect:        &pbservice.ServiceConnect{},
 							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
@@ -657,10 +637,10 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								RaftIndex:      raftIndex(ids, "update", "update"),
 								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								Definition: &pbservice.HealthCheckDefinition{
-									Interval:                       &durationpb.Duration{},
-									Timeout:                        &durationpb.Duration{},
-									DeregisterCriticalServiceAfter: &durationpb.Duration{},
-									TTL:                            &durationpb.Duration{},
+									Interval:                       &duration.Duration{},
+									Timeout:                        &duration.Duration{},
+									DeregisterCriticalServiceAfter: &duration.Duration{},
+									TTL:                            &duration.Duration{},
 								},
 							},
 						},
@@ -695,7 +675,7 @@ node "node1" {
 }
 `
 		cfg := &acl.Config{WildcardName: structs.WildcardSpecifier}
-		authorizer, err := acl.NewAuthorizerFromRules(rules, cfg, nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, cfg, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
@@ -764,7 +744,6 @@ node "node1" {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -899,7 +878,7 @@ node "node1" {
 	policy = "write"
 }
 `
-		authorizer, err := acl.NewAuthorizerFromRules(rules, &acl.Config{WildcardName: structs.WildcardSpecifier}, nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, &acl.Config{WildcardName: structs.WildcardSpecifier}, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
@@ -917,7 +896,6 @@ node "node1" {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -948,6 +926,7 @@ node "node1" {
 		aclToken := &structs.ACLToken{
 			AccessorID: tokenID,
 			SecretID:   token,
+			Rules:      "",
 		}
 		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken))
 
@@ -1054,7 +1033,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 													MeshGateway:      &pbservice.MeshGatewayConfig{},
 													Expose:           &pbservice.ExposeConfig{},
 													TransparentProxy: &pbservice.TransparentProxyConfig{},
-													AccessLogs:       &pbservice.AccessLogsConfig{},
 												},
 												Connect:        &pbservice.ServiceConnect{},
 												EnterpriseMeta: &pbcommon.EnterpriseMeta{},
@@ -1077,7 +1055,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 													MeshGateway:      &pbservice.MeshGatewayConfig{},
 													Expose:           &pbservice.ExposeConfig{},
 													TransparentProxy: &pbservice.TransparentProxyConfig{},
-													AccessLogs:       &pbservice.AccessLogsConfig{},
 												},
 												Connect:        &pbservice.ServiceConnect{},
 												EnterpriseMeta: &pbcommon.EnterpriseMeta{},
@@ -1117,7 +1094,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
-									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								EnterpriseMeta: &pbcommon.EnterpriseMeta{},

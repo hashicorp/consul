@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -12,9 +9,9 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // EventSubjectService is a stream.Subject used to route and receive events for
@@ -47,6 +44,7 @@ type EventPayloadCheckServiceNode struct {
 }
 
 func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bool {
+	// TODO(peering): figure out how authz works for peered data
 	return e.Value.CanRead(authz) == acl.Allow
 }
 
@@ -645,7 +643,7 @@ func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNod
 }
 
 // newServiceHealthEventsForNode returns health events for all services on the
-// given node. This mirrors some of the logic in the oddly-named
+// given node. This mirrors some of the the logic in the oddly-named
 // parseCheckServiceNodes but is more efficient since we know they are all on
 // the same node.
 func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta *acl.EnterpriseMeta, peerName string) ([]stream.Event, error) {

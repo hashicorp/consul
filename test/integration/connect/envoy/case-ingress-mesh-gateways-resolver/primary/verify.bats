@@ -19,21 +19,21 @@ load helpers
 }
 
 @test "gateway-primary should have healthy endpoints for secondary" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19002 secondary HEALTHY 1
+   assert_upstream_has_endpoints_in_status 127.0.0.1:19002 secondary HEALTHY 1
 }
 
 @test "gateway-secondary should have healthy endpoints for s1" {
-  assert_upstream_has_endpoints_in_status consul-secondary-client:19003 s1 HEALTHY 1
+   assert_upstream_has_endpoints_in_status consul-secondary-client:19003 s1 HEALTHY 1
 }
 
 @test "gateway-secondary should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status consul-secondary-client:19003 s2 HEALTHY 1
+   assert_upstream_has_endpoints_in_status consul-secondary-client:19003 s2 HEALTHY 1
 }
 
 @test "ingress should be able to connect to s1" {
   run retry_default curl -s -f -d hello localhost:10000
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 @test "ingress made 1 connection to s1" {
@@ -47,7 +47,7 @@ load helpers
 @test "ingress should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:9999
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 @test "ingress made 1 connection to s2" {

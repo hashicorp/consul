@@ -1,4 +1,4 @@
-```release-note:bug
+```release-note:bugfix
 rpc: Adds a deadline to client RPC calls, so that streams will no longer hang
 indefinitely in unstable network conditions. [[GH-8504](https://github.com/hashicorp/consul/issues/8504)]
 ```

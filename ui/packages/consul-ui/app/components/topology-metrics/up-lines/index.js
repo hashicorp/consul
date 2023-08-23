@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
@@ -22,7 +17,7 @@ export default class TopologyMetricsUpLines extends Component {
     const view = this.args.view;
     const lines = [...document.querySelectorAll('#upstream-lines path')];
 
-    this.iconPositions = lines.map((item) => {
+    this.iconPositions = lines.map(item => {
       const pathLen = parseFloat(item.getTotalLength());
       const partLen = item.getPointAtLength(Math.ceil(pathLen * 0.666));
       return {

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 /* globals CodeMirror */
 export function initialize(application) {
   const appName = application.application.name;
@@ -13,7 +8,7 @@ export function initialize(application) {
   );
   // configure syntax highlighting for CodeMirror
   CodeMirror.modeURL = {
-    replace: function (n, mode) {
+    replace: function(n, mode) {
       switch (mode.trim()) {
         case 'javascript':
           return fs.get(['codemirror', 'mode', 'javascript', 'javascript.js'].join('/'));

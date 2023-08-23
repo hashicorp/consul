@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { get, set } from '@ember/object';
 import { Changeset as createChangeset } from 'ember-changeset';
 import Changeset from 'consul-ui/utils/form/changeset';
@@ -11,7 +6,7 @@ import lookupValidator from 'ember-changeset-validations';
 // Keep these here for now so forms are easy to make
 // TODO: Probably move this to utils/form/parse-element-name
 import parseElementName from 'consul-ui/utils/get-form-name-property';
-export const defaultChangeset = function (data, validators) {
+export const defaultChangeset = function(data, validators) {
   return createChangeset(data, lookupValidator(validators), validators, { changeset: Changeset });
 };
 /**
@@ -31,18 +26,18 @@ export const defaultChangeset = function (data, validators) {
  *   currently the only supported property of these configuration objects is `type` which currently allows you to
  *   set a property as 'array-like'
  */
-export default function (changeset = defaultChangeset, getFormNameProperty = parseElementName) {
-  return function (name = '', obj = {}) {
+export default function(changeset = defaultChangeset, getFormNameProperty = parseElementName) {
+  return function(name = '', obj = {}) {
     const _children = {};
     let _validators = null;
     // TODO make this into a class to reuse prototype
     const form = {
       data: null,
       name: name,
-      getName: function () {
+      getName: function() {
         return this.name;
       },
-      setData: function (data) {
+      setData: function(data) {
         // Array check temporarily for when we get an empty array from repo.status
         if (_validators && !Array.isArray(data)) {
           data = changeset(data, _validators);
@@ -50,14 +45,14 @@ export default function (changeset = defaultChangeset, getFormNameProperty = par
         set(this, 'data', data);
         return this;
       },
-      getData: function () {
+      getData: function() {
         return this.data;
       },
-      add: function (child) {
+      add: function(child) {
         _children[child.getName()] = child;
         return this;
       },
-      handleEvent: function (e, targetName) {
+      handleEvent: function(e, targetName) {
         const target = e.target;
         // currently we only use targetName in {{form-component}} for handling deeply
         // nested forms, once {{form-component}} handles deeply nested forms targetName can go
@@ -123,32 +118,32 @@ export default function (changeset = defaultChangeset, getFormNameProperty = par
         // validate everything
         return this.validate();
       },
-      reset: function () {
+      reset: function() {
         const data = this.getData();
         if (typeof data.rollbackAttributes === 'function') {
           this.getData().rollbackAttributes();
         }
         return this;
       },
-      clear: function (cb = {}) {
+      clear: function(cb = {}) {
         if (typeof cb === 'function') {
           return (this.clearer = cb);
         } else {
           return this.setData(this.clearer(cb)).getData();
         }
       },
-      submit: function (cb = {}) {
+      submit: function(cb = {}) {
         if (typeof cb === 'function') {
           return (this.submitter = cb);
         } else {
           this.submitter(this.getData());
         }
       },
-      setValidators: function (validators) {
+      setValidators: function(validators) {
         _validators = validators;
         return this;
       },
-      validate: function () {
+      validate: function() {
         const data = this.getData();
         // just pass along to the Changeset for now
         if (typeof data.validate === 'function') {
@@ -156,19 +151,19 @@ export default function (changeset = defaultChangeset, getFormNameProperty = par
         }
         return this;
       },
-      addError: function (name, message) {
+      addError: function(name, message) {
         const data = this.getData();
         if (typeof data.addError === 'function') {
           data.addError(...arguments);
         }
       },
-      form: function (name) {
+      form: function(name) {
         if (name == null) {
           return this;
         }
         return _children[name];
       },
-      has: function (name) {
+      has: function(name) {
         return typeof _children[name] !== 'undefined';
       },
     };

@@ -1,12 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -72,18 +68,9 @@ type DeprecatedConfig struct {
 
 	// DEPRECATED(TLS) - this isn't honored by crypto/tls anymore.
 	TLSPreferServerCipherSuites *bool `mapstructure:"tls_prefer_server_cipher_suites"`
-
-	// DEPRECATED(JOIN) - replaced by retry_join
-	StartJoinAddrsLAN []string `mapstructure:"start_join"`
-
-	// DEPRECATED(JOIN) - replaced by retry_join_wan
-	StartJoinAddrsWAN []string `mapstructure:"start_join_wan"`
-
-	// DEPRECATED see RaftLogStore
-	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb" json:"-"`
 }
 
-func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
+func applyDeprecatedConfig(d *decodeTarget, fromUser bool) (Config, []string) {
 	dep := d.DeprecatedConfig
 	var warns []string
 
@@ -185,32 +172,27 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 		warns = append(warns, deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"))
 	}
 
-	if len(dep.StartJoinAddrsLAN) > 0 {
-		d.Config.RetryJoinLAN = append(d.Config.RetryJoinLAN, dep.StartJoinAddrsLAN...)
-		warns = append(warns, deprecationWarning("start_join", "retry_join"))
-	}
-
-	if len(dep.StartJoinAddrsWAN) > 0 {
-		d.Config.RetryJoinWAN = append(d.Config.RetryJoinWAN, dep.StartJoinAddrsWAN...)
-		warns = append(warns, deprecationWarning("start_join_wan", "retry_join_wan"))
-	}
-
-	if dep.RaftBoltDBConfig != nil {
-		if d.Config.RaftLogStore.BoltDBConfig.NoFreelistSync == nil {
-			d.Config.RaftLogStore.BoltDBConfig.NoFreelistSync = &dep.RaftBoltDBConfig.NoFreelistSync
-		}
-		warns = append(warns, deprecationWarning("raft_boltdb", "raft_logstore.boltdb"))
-	}
-
-	warns = append(warns, applyDeprecatedTLSConfig(dep, &d.Config)...)
+	warns = append(warns, applyDeprecatedTLSConfig(dep, &d.Config, fromUser)...)
 
 	return d.Config, warns
 }
 
-func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
+func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config, fromUser bool) []string {
 	var warns []string
 
 	tls := &cfg.TLS
+
+	// If the TLS stanza was specified by the user then we set a flag to indicate that.
+	// This check MUST happen before applying the deprecated options below, or else
+	// the tls struct will never be empty.
+	//
+	// This check was added exclusively to the 1.13 patch series for compatibility with
+	// Consul 1.11 style TLS configuration. Consul 1.14 does not require it since 1.12
+	// is the earliest major version supported once 1.14 is released.
+	if fromUser && !tls.ContainsDefaults() {
+		tls.SpecifiedTLSStanza = pBool(true)
+	}
+
 	defaults := &tls.Defaults
 	internalRPC := &tls.InternalRPC
 	https := &tls.HTTPS

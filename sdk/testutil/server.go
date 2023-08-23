@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package testutil
 
 // TestServer is a test helper. It uses a fork/exec model to create
@@ -15,7 +12,6 @@ package testutil
 // otherwise cause an import cycle.
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -34,7 +30,6 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -56,7 +51,6 @@ type TestPortConfig struct {
 	SerfWan      int `json:"serf_wan,omitempty"`
 	Server       int `json:"server,omitempty"`
 	GRPC         int `json:"grpc,omitempty"`
-	GRPCTLS      int `json:"grpc_tls,omitempty"`
 	ProxyMinPort int `json:"proxy_min_port,omitempty"`
 	ProxyMaxPort int `json:"proxy_max_port,omitempty"`
 }
@@ -75,23 +69,11 @@ type TestNetworkSegment struct {
 	Advertise string `json:"advertise"`
 }
 
-// TestAudigConfig contains the configuration for Audit
-type TestAuditConfig struct {
-	Enabled bool `json:"enabled,omitempty"`
-}
-
-// Locality is used as the TestServerConfig's Locality.
-type Locality struct {
-	Region string `json:"region"`
-	Zone   string `json:"zone"`
-}
-
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName            string                 `json:"node_name"`
 	NodeID              string                 `json:"node_id"`
 	NodeMeta            map[string]string      `json:"node_meta,omitempty"`
-	NodeLocality        *Locality              `json:"locality,omitempty"`
 	Performance         *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap           bool                   `json:"bootstrap,omitempty"`
 	Server              bool                   `json:"server,omitempty"`
@@ -129,9 +111,6 @@ type TestServerConfig struct {
 	Stderr              io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
 	ReturnPorts         func()                 `json:"-"`
-	Audit               *TestAuditConfig       `json:"audit,omitempty"`
-	Version             string                 `json:"version,omitempty"`
-	Experiments         []string               `json:"experiments,omitempty"`
 }
 
 type TestACLs struct {
@@ -170,7 +149,7 @@ type ServerConfigCallback func(c *TestServerConfig)
 
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
-func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServerConfig {
+func defaultServerConfig(t TestingTB) *TestServerConfig {
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		panic(err)
@@ -180,7 +159,7 @@ func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServe
 
 	logBuffer := NewLogBuffer(t)
 
-	conf := &TestServerConfig{
+	return &TestServerConfig{
 		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
 		DisableCheckpoint: true,
@@ -214,19 +193,7 @@ func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServe
 		Stdout:  logBuffer,
 		Stderr:  logBuffer,
 		Peering: &TestPeeringConfig{Enabled: true},
-		Version: consulVersion.String(),
 	}
-
-	// Add version-specific tweaks
-	if consulVersion != nil {
-		// The GRPC TLS port did not exist prior to Consul 1.14
-		// Including it will cause issues in older installations.
-		if consulVersion.GreaterThanOrEqual(version.Must(version.NewVersion("1.14"))) {
-			conf.Ports.GRPCTLS = freeport.GetOne(t)
-		}
-	}
-
-	return conf
 }
 
 // TestService is used to serialize a service definition.
@@ -256,12 +223,11 @@ type TestServer struct {
 	cmd    *exec.Cmd
 	Config *TestServerConfig
 
-	HTTPAddr    string
-	HTTPSAddr   string
-	LANAddr     string
-	WANAddr     string
-	GRPCAddr    string
-	GRPCTLSAddr string
+	HTTPAddr  string
+	HTTPSAddr string
+	LANAddr   string
+	WANAddr   string
+	GRPCAddr  string
 
 	HTTPClient *http.Client
 
@@ -290,12 +256,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		return nil, errors.Wrap(err, "failed to create tempdir")
 	}
 
-	consulVersion, err := findConsulVersion()
-	if err != nil {
-		return nil, err
-	}
-
-	cfg := defaultServerConfig(t, consulVersion)
+	cfg := defaultServerConfig(t)
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
 		cb(cfg)
@@ -340,12 +301,11 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		Config: cfg,
 		cmd:    cmd,
 
-		HTTPAddr:    httpAddr,
-		HTTPSAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
-		LANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
-		WANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
-		GRPCAddr:    fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
-		GRPCTLSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPCTLS),
+		HTTPAddr:  httpAddr,
+		HTTPSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
+		LANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
+		WANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
+		GRPCAddr:  fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
 
 		HTTPClient: client,
 
@@ -366,13 +326,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
-	defer func() {
-		if noCleanup {
-			fmt.Println("skipping cleanup because TEST_NOCLEANUP was enabled")
-		} else {
-			os.RemoveAll(s.tmpdir)
-		}
-	}()
+	defer os.RemoveAll(s.tmpdir)
 
 	// There was no process
 	if s.cmd == nil {
@@ -605,27 +559,4 @@ func (s *TestServer) privilegedDelete(url string) (*http.Response, error) {
 		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.InitialManagement)
 	}
 	return s.HTTPClient.Do(req)
-}
-
-func findConsulVersion() (*version.Version, error) {
-	cmd := exec.Command("consul", "version", "-format=json")
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Start(); err != nil {
-		return nil, errors.Wrap(err, "failed to get consul version")
-	}
-	cmd.Wait()
-	type consulVersion struct {
-		Version string
-	}
-	v := consulVersion{}
-	if err := json.Unmarshal(stdout.Bytes(), &v); err != nil {
-		return nil, errors.Wrap(err, "error parsing consul version json")
-	}
-	parsed, err := version.NewVersion(v.Version)
-	if err != nil {
-		return nil, errors.Wrap(err, "error parsing consul version")
-	}
-	return parsed, nil
 }

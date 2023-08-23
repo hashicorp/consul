@@ -1,15 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 
 import ExactSearch from 'consul-ui/utils/search/exact';
 import predicates from 'consul-ui/search/predicates/kv';
 
-module('Unit | Search | Predicate | kv', function () {
-  test('items are found by properties', function (assert) {
+module('Unit | Search | Predicate | kv', function() {
+  test('items are found by properties', function(assert) {
     const actual = new ExactSearch(
       [
         {
@@ -31,7 +26,7 @@ module('Unit | Search | Predicate | kv', function () {
     ).search('hit');
     assert.equal(actual.length, 3);
   });
-  test('items are not found', function (assert) {
+  test('items are not found', function(assert) {
     const actual = new ExactSearch(
       [
         {

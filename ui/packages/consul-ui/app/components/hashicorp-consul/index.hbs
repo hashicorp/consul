@@ -1,200 +1,244 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-<App class='hashicorp-consul' ...attributes>
+<App
+  class="hashicorp-consul"
+  ...attributes
+>
 
   <:notifications as |app|>
-    {{#each flashMessages.queue as |flash|}}
-      <app.Notification @delay={{sub flash.timeout flash.extendedTimeout}} @sticky={{flash.sticky}}>
-        {{#if flash.dom}}
-          {{{flash.dom}}}
+{{#each flashMessages.queue as |flash|}}
+  <app.Notification
+    @delay={{sub flash.timeout flash.extendedTimeout}}
+    @sticky={{flash.sticky}}
+  >
+  {{#if flash.dom}}
+      {{{flash.dom}}}
+  {{else}}
+{{#let (lowercase flash.type) (lowercase flash.action) as |status type|}}
+  <Notice
+    role="alert"
+    class={{concat status ' notification-' type}}
+    data-notification
+    @type={{status}}
+  as |notice|>
+    <notice.Header>
+      <strong>
+        {{capitalize status}}!
+      </strong>
+    </notice.Header>
+    <notice.Body>
+      <p>
+        {{#if (eq type 'logout')}}
+          {{#if (eq status 'success') }}
+            You are now logged out.
+          {{else}}
+            There was an error logging out.
+          {{/if}}
+        {{else if (eq type 'authorize')}}
+          {{#if (eq status 'success') }}
+            You are now logged in.
+          {{else}}
+            There was an error, please check your SecretID/Token
+          {{/if}}
         {{else}}
-          {{#let (lowercase flash.type) (lowercase flash.action) as |status type|}}
-            <Hds::Toast
-              @color={{if (eq status 'error') 'critical' status}}
-              data-notification
-              as |T|>
-              <T.Title>{{capitalize status}}!</T.Title>
-              <T.Description>
-                {{#if (eq type 'logout')}}
-                  {{#if (eq status 'success')}}
-                    You are now logged out.
-                  {{else}}
-                    There was an error logging out.
-                  {{/if}}
-                {{else if (eq type 'authorize')}}
-                  {{#if (eq status 'success')}}
-                    You are now logged in.
-                  {{else}}
-                    There was an error, please check your SecretID/Token
-                  {{/if}}
-                {{else}}
-                  {{#if (or (eq type 'use') (eq flash.model 'token'))}}
-                    <Consul::Token::Notifications
-                      @type={{type}}
-                      @status={{status}}
-                      @item={{flash.item}}
-                      @error={{flash.error}}
-                    />
-                  {{else if (eq flash.model 'intention')}}
-                    <Consul::Intention::Notifications
-                      @type={{type}}
-                      @status={{status}}
-                      @item={{flash.item}}
-                      @error={{flash.error}}
-                    />
-                  {{else if (eq flash.model 'role')}}
-                    <Consul::Role::Notifications
-                      @type={{type}}
-                      @status={{status}}
-                      @item={{flash.item}}
-                      @error={{flash.error}}
-                    />
-                  {{else if (eq flash.model 'policy')}}
-                    <Consul::Policy::Notifications
-                      @type={{type}}
-                      @status={{status}}
-                      @item={{flash.item}}
-                      @error={{flash.error}}
-                    />
-                  {{/if}}
-                {{/if}}
-              </T.Description>
-            </Hds::Toast>
-
-          {{/let}}
+          {{#if (or (eq type 'use') (eq flash.model 'token'))}}
+            <Consul::Token::Notifications
+              @type={{type}}
+              @status={{status}}
+              @item={{flash.item}}
+              @error={{flash.error}}
+            />
+          {{else if (eq flash.model 'intention')}}
+            <Consul::Intention::Notifications
+              @type={{type}}
+              @status={{status}}
+              @item={{flash.item}}
+              @error={{flash.error}}
+            />
+          {{else if (eq flash.model 'role')}}
+            <Consul::Role::Notifications
+              @type={{type}}
+              @status={{status}}
+              @item={{flash.item}}
+              @error={{flash.error}}
+            />
+          {{else if (eq flash.model 'policy')}}
+            <Consul::Policy::Notifications
+              @type={{type}}
+              @status={{status}}
+              @item={{flash.item}}
+              @error={{flash.error}}
+            />
+          {{/if}}
         {{/if}}
-      </app.Notification>
-    {{/each}}
+      </p>
+    </notice.Body>
+  </Notice>
+{{/let}}
+  {{/if}}
+  </app.Notification>
+{{/each}}
 
   </:notifications>
 
   <:home-nav>
-    <a class='w-8 h-8' href={{href-to 'index' params=(hash peer=undefined)}}>
-      <FlightIcon @size='24' @name='consul-color' @stretched={{true}} />
-    </a>
+    <a
+      href={{href-to 'index' params=(hash peer=undefined)}}
+    ><Consul::Logo /></a>
   </:home-nav>
 
   <:main-nav>
-    <Consul::Hcp::Home />
     <ul>
-      <Consul::Datacenter::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @dcs={{@dcs}}
-      />
+        <Consul::Datacenter::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @dcs={{@dcs}}
+        />
       <Consul::Partition::Selector
         @dc={{@dc}}
         @partition={{@partition}}
         @nspace={{@nspace}}
         @partitions={{this.partitions}}
-        @onchange={{action (mut this.partitions) value='data'}}
+        @onchange={{action (mut this.partitions) value="data"}}
       />
       <Consul::Nspace::Selector
         @dc={{@dc}}
         @partition={{@partition}}
         @nspace={{@nspace}}
         @nspaces={{this.nspaces}}
-        @onchange={{action (mut this.nspaces) value='data'}}
+        @onchange={{action (mut this.nspaces) value="data"}}
       />
-      {{#if (can 'access overview')}}
+{{#if (can 'access overview')}}
         <li
           data-test-main-nav-overview
-          class={{class-map (array 'is-active' (is-href 'dc.show' @dc.Name))}}
+          class={{class-map
+            (array 'is-active' (is-href 'dc.show' @dc.Name))
+          }}
         >
-          <Action @href={{href-to 'dc.show' @dc.Name params=(hash peer=undefined)}}>
+          <Action
+            @href={{href-to 'dc.show' @dc.Name params=(hash peer=undefined)}}
+          >
             Overview
           </Action>
         </li>
-      {{/if}}
-      {{#if (can 'read services')}}
+{{/if}}
+{{#if (can "read services")}}
         <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.services' @dc.Name params=(hash peer=undefined)}}>Services</a>
+            <a href={{href-to 'dc.services' @dc.Name params=(hash peer=undefined)}}>Services</a>
         </li>
-      {{/if}}
-      {{#if (can 'read nodes')}}
+{{/if}}
+{{#if (can "read nodes")}}
         <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.nodes' @dc.Name params=(hash peer=undefined)}}>Nodes</a>
+            <a href={{href-to 'dc.nodes' @dc.Name params=(hash peer=undefined)}}>Nodes</a>
         </li>
-      {{/if}}
-      {{#if (can 'read kv')}}
+{{/if}}
+{{#if (can "read kv")}}
         <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.kv' @dc.Name params=(hash peer=undefined)}}>Key/Value</a>
+            <a href={{href-to 'dc.kv' @dc.Name params=(hash peer=undefined)}}>Key/Value</a>
         </li>
-      {{/if}}
-      {{#if (can 'read intentions')}}
-        <li
-          data-test-main-nav-intentions
-          class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}
-        >
-          <a href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}>Intentions</a>
+{{/if}}
+{{#if (can "read intentions")}}
+        <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}>Intentions</a>
         </li>
-      {{/if}}
-      <Consul::Acl::Selector @dc={{@dc}} @partition={{@partition}} @nspace={{@nspace}} />
-      <Consul::Peer::Selector @dc={{@dc}} @partition={{@partition}} @nspace={{@nspace}} />
+{{/if}}
+        <Consul::Acl::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+        />
+        <Consul::Peer::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+        />
     </ul>
   </:main-nav>
 
   <:complementary-nav>
     <ul>
-      <Debug::Navigation />
-      <li data-test-main-nav-help>
-        <DisclosureMenu as |disclosure|>
-          <disclosure.Action {{on 'click' disclosure.toggle}}>
-            Help
-          </disclosure.Action>
-          <disclosure.Menu as |panel|>
-            <panel.Menu as |menu|>
-              <menu.Separator>
-                Consul v{{env 'CONSUL_VERSION'}}
-              </menu.Separator>
-              <menu.Item class='docs-link'>
-                <menu.Action @href={{env 'CONSUL_DOCS_URL'}} @external={{true}}>
-                  Documentation
-                </menu.Action>
-              </menu.Item>
-              <menu.Item class='learn-link'>
-                <menu.Action
-                  @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
-                  @external={{true}}
+        <Debug::Navigation />
+        <li
+          data-test-main-nav-help
+        >
+          <DisclosureMenu
+          as |disclosure|>
+            <disclosure.Action
+              {{on 'click' disclosure.toggle}}
+            >
+              Help
+            </disclosure.Action>
+            <disclosure.Menu as |panel|>
+              <panel.Menu as |menu|>
+                <menu.Separator>
+                  Consul v{{env 'CONSUL_VERSION'}}
+                </menu.Separator>
+                <menu.Item
+                  class="docs-link"
                 >
-                  HashiCorp Learn
-                </menu.Action>
-              </menu.Item>
-              <menu.Separator />
-              <menu.Item class='feedback-link'>
-                <menu.Action @href={{env 'CONSUL_REPO_ISSUES_URL'}} @external={{true}}>
-                  Provide Feedback
-                </menu.Action>
-              </menu.Item>
-            </panel.Menu>
-          </disclosure.Menu>
-        </DisclosureMenu>
-      </li>
-      <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
-        <a href={{href-to 'settings' params=(hash nspace=undefined partition=undefined)}}>
-          Settings
-        </a>
-      </li>
-      <Consul::Token::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @onchange={{@onchange}}
-        as |selector|
-      >
-        <Ref @target={{this}} @name='tokenSelector' @value={{selector}} />
-      </Consul::Token::Selector>
+                  <menu.Action
+                    @href={{env 'CONSUL_DOCS_URL'}}
+                    @external={{true}}
+                  >
+                    Documentation
+                  </menu.Action>
+                </menu.Item>
+                <menu.Item
+                  class="learn-link"
+                >
+                  <menu.Action
+                    @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
+                    @external={{true}}
+                  >
+                    HashiCorp Learn
+                  </menu.Action>
+                </menu.Item>
+                <menu.Separator />
+                <menu.Item
+                  class="feedback-link"
+                >
+                  <menu.Action
+                    @href={{env 'CONSUL_REPO_ISSUES_URL'}}
+                    @external={{true}}
+                  >
+                    Provide Feedback
+                  </menu.Action>
+                </menu.Item>
+              </panel.Menu>
+            </disclosure.Menu>
+          </DisclosureMenu>
+        </li>
+        <li
+          data-test-main-nav-settings
+          class={{if (is-href 'settings') 'is-active'}}
+        >
+            <a
+              href={{href-to 'settings' params=(hash
+                nspace=undefined
+                partition=undefined
+              )}}
+            >
+              Settings
+            </a>
+        </li>
+        <Consul::Token::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @onchange={{@onchange}}
+        as |selector|>
+          <Ref
+            @target={{this}}
+            @name="tokenSelector"
+            @value={{selector}}
+          />
+        </Consul::Token::Selector>
     </ul>
   </:complementary-nav>
 
   <:main>
-    {{yield
-      (hash login=(if this.tokenSelector this.tokenSelector (hash open=undefined close=undefined)))
-    }}
+    {{yield (hash
+      login=(if this.tokenSelector this.tokenSelector (hash open=undefined close=undefined))
+    )}}
   </:main>
 
   <:content-info>

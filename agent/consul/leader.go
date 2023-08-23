@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -337,10 +334,6 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.setConsistentReadReady()
 
-	if s.config.LogStoreConfig.Verification.Enabled {
-		s.startLogVerification(ctx)
-	}
-
 	if s.config.Reporting.License.Enabled && s.reportingManager != nil {
 		s.reportingManager.StartReportingAgent()
 	}
@@ -352,9 +345,6 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 // revokeLeadership is invoked once we step down as leader.
 // This is used to cleanup any state that may be specific to a leader.
 func (s *Server) revokeLeadership() {
-
-	s.stopLogVerification()
-
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)
 
@@ -379,6 +369,8 @@ func (s *Server) revokeLeadership() {
 	s.stopConnectLeader()
 
 	s.stopACLTokenReaping()
+
+	s.stopACLUpgrade()
 
 	s.resetConsistentReadReady()
 
@@ -420,48 +412,133 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	if s.InPrimaryDatacenter() {
 		s.logger.Info("initializing acls")
 
-		// Create/Upgrade the builtin policies
-		for _, policy := range structs.ACLBuiltinPolicies {
-			if err := s.writeBuiltinACLPolicy(policy); err != nil {
-				return err
+		// Create/Upgrade the builtin global-management policy
+		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
+		if err != nil {
+			return fmt.Errorf("failed to get the builtin global-management policy")
+		}
+		if policy == nil || policy.Rules != structs.ACLPolicyGlobalManagement {
+			newPolicy := structs.ACLPolicy{
+				ID:             structs.ACLPolicyGlobalManagementID,
+				Name:           "global-management",
+				Description:    "Builtin Policy that grants unlimited access",
+				Rules:          structs.ACLPolicyGlobalManagement,
+				Syntax:         acl.SyntaxCurrent,
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
+			if policy != nil {
+				newPolicy.Name = policy.Name
+				newPolicy.Description = policy.Description
+			}
+
+			newPolicy.SetHash(true)
+
+			req := structs.ACLPolicyBatchSetRequest{
+				Policies: structs.ACLPolicies{&newPolicy},
+			}
+			_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
+			if err != nil {
+				return fmt.Errorf("failed to create global-management policy: %v", err)
+			}
+			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
 		// Check for configured initial management token.
 		if initialManagement := s.config.ACLInitialManagementToken; len(initialManagement) > 0 {
-			err := s.initializeManagementToken("Initial Management Token", initialManagement)
+			state := s.fsm.State()
+			if _, err := uuid.ParseUUID(initialManagement); err != nil {
+				s.logger.Warn("Configuring a non-UUID initial management token is deprecated")
+			}
+
+			_, token, err := state.ACLTokenGetBySecret(nil, initialManagement, nil)
 			if err != nil {
-				return fmt.Errorf("failed to initialize initial management token: %w", err)
+				return fmt.Errorf("failed to get initial management token: %v", err)
+			}
+			// Ignoring expiration times to avoid an insertion collision.
+			if token == nil {
+				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+				if err != nil {
+					return fmt.Errorf("failed to generate the accessor ID for the initial management token: %v", err)
+				}
+
+				token := structs.ACLToken{
+					AccessorID:  accessor,
+					SecretID:    initialManagement,
+					Description: "Initial Management Token",
+					Policies: []structs.ACLTokenPolicyLink{
+						{
+							ID: structs.ACLPolicyGlobalManagementID,
+						},
+					},
+					CreateTime:     time.Now(),
+					Local:          false,
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				}
+
+				token.SetHash(true)
+
+				done := false
+				if canBootstrap, _, err := state.CanBootstrapACLToken(); err == nil && canBootstrap {
+					req := structs.ACLTokenBootstrapRequest{
+						Token:      token,
+						ResetIndex: 0,
+					}
+					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
+						s.logger.Info("Bootstrapped ACL initial management token from configuration")
+						done = true
+					} else {
+						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
+							err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
+							return fmt.Errorf("failed to bootstrap initial management token: %v", err)
+						}
+					}
+				}
+
+				if !done {
+					// either we didn't attempt to or setting the token with a bootstrap request failed.
+					req := structs.ACLTokenBatchSetRequest{
+						Tokens: structs.ACLTokens{&token},
+						CAS:    false,
+					}
+					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
+						return fmt.Errorf("failed to create initial management token: %v", err)
+					}
+
+					s.logger.Info("Created ACL initial management token from configuration")
+				}
 			}
 		}
 
-		// Check for configured management token from HCP. It MUST NOT override the user-provided initial management token.
-		if hcpManagement := s.config.Cloud.ManagementToken; len(hcpManagement) > 0 {
-			err := s.initializeManagementToken("HCP Management Token", hcpManagement)
-			if err != nil {
-				return fmt.Errorf("failed to initialize HCP management token: %w", err)
+		state := s.fsm.State()
+		_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
+		if err != nil {
+			return fmt.Errorf("failed to get anonymous token: %v", err)
+		}
+		// Ignoring expiration times to avoid an insertion collision.
+		if token == nil {
+			token = &structs.ACLToken{
+				AccessorID:     structs.ACLTokenAnonymousID,
+				SecretID:       anonymousToken,
+				Description:    "Anonymous Token",
+				CreateTime:     time.Now(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-		}
+			token.SetHash(true)
 
-		// Insert the anonymous token if it does not exist.
-		if err := s.insertAnonymousToken(); err != nil {
-			return err
+			req := structs.ACLTokenBatchSetRequest{
+				Tokens: structs.ACLTokens{token},
+				CAS:    false,
+			}
+			_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
+			if err != nil {
+				return fmt.Errorf("failed to create anonymous token: %v", err)
+			}
+			s.logger.Info("Created ACL anonymous token from configuration")
 		}
+		// launch the upgrade go routine to generate accessors for everything
+		s.startACLUpgrade(ctx)
 	} else {
 		s.startACLReplication(ctx)
-	}
-
-	// Generate or rotate the server management token on leadership transitions.
-	// This token is used by Consul servers for authn/authz when making
-	// requests to themselves through public APIs such as the agent cache.
-	// It is stored as system metadata because it is internally
-	// managed and users are not meant to see it or interact with it.
-	secretID, err := lib.GenerateUUID(nil)
-	if err != nil {
-		return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
-	}
-	if err := s.SetSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
-		return fmt.Errorf("failed to persist server management token: %w", err)
 	}
 
 	s.startACLTokenReaping(ctx)
@@ -469,131 +546,98 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	return nil
 }
 
-// writeBuiltinACLPolicy writes the given built-in policy to Raft if the policy
-// is not found or if the policy rules have been changed. The name and
-// description of a built-in policy are user-editable and must be preserved
-// during updates. This function must only be called in a primary datacenter.
-func (s *Server) writeBuiltinACLPolicy(newPolicy structs.ACLPolicy) error {
-	_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, newPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
-	if err != nil {
-		return fmt.Errorf("failed to get the builtin %s policy", newPolicy.Name)
-	}
-	if policy == nil || policy.Rules != newPolicy.Rules {
-		if policy != nil {
-			newPolicy.Name = policy.Name
-			newPolicy.Description = policy.Description
+// legacyACLTokenUpgrade runs a single time to upgrade any tokens that may
+// have been created immediately before the Consul upgrade, or any legacy tokens
+// from a restored snapshot.
+// TODO(ACL-Legacy-Compat): remove in phase 2
+func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
+	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
+	const aclUpgradeRateLimit rate.Limit = 1.0
+
+	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
+	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
+	// with all tokens in it.
+	const aclUpgradeBatchSize = 128
+
+	limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
+	for {
+		if err := limiter.Wait(ctx); err != nil {
+			return err
 		}
 
-		newPolicy.EnterpriseMeta = *structs.DefaultEnterpriseMetaInDefaultPartition()
-		newPolicy.SetHash(true)
-
-		req := structs.ACLPolicyBatchSetRequest{
-			Policies: structs.ACLPolicies{&newPolicy},
-		}
-		_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
+		// actually run the upgrade here
+		state := s.fsm.State()
+		tokens, _, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
 		if err != nil {
-			return fmt.Errorf("failed to create %s policy: %v", newPolicy.Name, err)
+			s.logger.Warn("encountered an error while searching for tokens without accessor ids", "error", err)
 		}
-		s.logger.Info(fmt.Sprintf("Created ACL '%s' policy", newPolicy.Name))
-	}
-	return nil
-}
+		// No need to check expiration time here, as that only exists for v2 tokens.
 
-func (s *Server) initializeManagementToken(name, secretID string) error {
-	state := s.fsm.State()
-	if _, err := uuid.ParseUUID(secretID); err != nil {
-		s.logger.Warn("Configuring a non-UUID management token is deprecated")
-	}
-
-	_, token, err := state.ACLTokenGetBySecret(nil, secretID, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get %s: %v", name, err)
-	}
-	// Ignoring expiration times to avoid an insertion collision.
-	if token == nil {
-		accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-		if err != nil {
-			return fmt.Errorf("failed to generate the accessor ID for %s: %v", name, err)
+		if len(tokens) == 0 {
+			// No new legacy tokens can be created, so we can exit
+			s.stopACLUpgrade() // required to prevent goroutine leak, according to TestAgentLeaks_Server
+			return nil
 		}
 
-		token := structs.ACLToken{
-			AccessorID:  accessor,
-			SecretID:    secretID,
-			Description: name,
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-			CreateTime:     time.Now(),
-			Local:          false,
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-		}
-
-		token.SetHash(true)
-
-		done := false
-		if canBootstrap, _, err := state.CanBootstrapACLToken(); err == nil && canBootstrap {
-			req := structs.ACLTokenBootstrapRequest{
-				Token:      token,
-				ResetIndex: 0,
+		var newTokens structs.ACLTokens
+		for _, token := range tokens {
+			// This should be entirely unnecessary but is just a small safeguard against changing accessor IDs
+			if token.AccessorID != "" {
+				continue
 			}
-			if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
-				s.logger.Info("Bootstrapped ACL token from configuration", "description", name)
-				done = true
+
+			newToken := *token
+			if token.SecretID == anonymousToken {
+				newToken.AccessorID = structs.ACLTokenAnonymousID
 			} else {
-				if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
-					err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
-					return fmt.Errorf("failed to bootstrap with %s: %v", name, err)
+				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+				if err != nil {
+					s.logger.Warn("failed to generate accessor during token auto-upgrade", "error", err)
+					continue
 				}
+				newToken.AccessorID = accessor
 			}
+
+			// Assign the global-management policy to legacy management tokens
+			if len(newToken.Policies) == 0 &&
+				len(newToken.ServiceIdentities) == 0 &&
+				len(newToken.NodeIdentities) == 0 &&
+				len(newToken.Roles) == 0 &&
+				newToken.Type == "management" {
+				newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
+			}
+
+			// need to copy these as we are going to do a CAS operation.
+			newToken.CreateIndex = token.CreateIndex
+			newToken.ModifyIndex = token.ModifyIndex
+
+			newToken.SetHash(true)
+
+			newTokens = append(newTokens, &newToken)
 		}
 
-		if !done {
-			// either we didn't attempt to or setting the token with a bootstrap request failed.
-			req := structs.ACLTokenBatchSetRequest{
-				Tokens: structs.ACLTokens{&token},
-				CAS:    false,
-			}
-			if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
-				return fmt.Errorf("failed to create %s: %v", name, err)
-			}
+		req := &structs.ACLTokenBatchSetRequest{Tokens: newTokens, CAS: true}
 
-			s.logger.Info("Created ACL token from configuration", "description", name)
+		_, err = s.raftApply(structs.ACLTokenSetRequestType, req)
+		if err != nil {
+			s.logger.Error("failed to apply acl token upgrade batch", "error", err)
 		}
 	}
-
-	return nil
 }
 
-func (s *Server) insertAnonymousToken() error {
-	state := s.fsm.State()
-	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get anonymous token: %v", err)
+// TODO(ACL-Legacy-Compat): remove in phase 2. Keeping it for now so that we
+// can upgrade any tokens created immediately before the upgrade happens.
+func (s *Server) startACLUpgrade(ctx context.Context) {
+	if s.config.PrimaryDatacenter != s.config.Datacenter {
+		// token upgrades should only run in the primary
+		return
 	}
-	// Ignoring expiration times to avoid an insertion collision.
-	if token == nil {
-		token = &structs.ACLToken{
-			AccessorID:     acl.AnonymousTokenID,
-			SecretID:       anonymousToken,
-			Description:    "Anonymous Token",
-			CreateTime:     time.Now(),
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-		}
-		token.SetHash(true)
 
-		req := structs.ACLTokenBatchSetRequest{
-			Tokens: structs.ACLTokens{token},
-			CAS:    false,
-		}
-		_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
-		if err != nil {
-			return fmt.Errorf("failed to create anonymous token: %v", err)
-		}
-		s.logger.Info("Created ACL anonymous token from configuration")
-	}
-	return nil
+	s.leaderRoutineManager.Start(ctx, aclUpgradeRoutineName, s.legacyACLTokenUpgrade)
+}
+
+func (s *Server) stopACLUpgrade() {
+	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {
@@ -1037,11 +1081,9 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.Enterpri
 			},
 		}
 
-		if parts.ExternalGRPCPort > 0 {
-			service.Meta["grpc_port"] = strconv.Itoa(parts.ExternalGRPCPort)
-		}
-		if parts.ExternalGRPCTLSPort > 0 {
-			service.Meta["grpc_tls_port"] = strconv.Itoa(parts.ExternalGRPCTLSPort)
+		grpcPortStr := member.Tags["grpc_port"]
+		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
+			service.Meta["grpc_port"] = grpcPortStr
 		}
 
 		// Attempt to join the consul server
@@ -1094,13 +1136,6 @@ AFTER_CHECK:
 		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
 	)
 
-	// Get consul version from serf member
-	// add this as node meta in catalog register request
-	buildVersion, err := metadata.Build(&member)
-	if err != nil {
-		return err
-	}
-
 	// Register with the catalog.
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
@@ -1116,9 +1151,6 @@ AFTER_CHECK:
 			Output:  structs.SerfCheckAliveOutput,
 		},
 		EnterpriseMeta: *nodeEntMeta,
-		NodeMeta: map[string]string{
-			structs.MetaConsulVersion: buildVersion.String(),
-		},
 	}
 	if node != nil {
 		req.TaggedAddresses = node.TaggedAddresses

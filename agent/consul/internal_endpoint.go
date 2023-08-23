@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
@@ -17,8 +13,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
-
-const MaximumManualVIPsPerService = 8
 
 // Internal endpoint is used to query the miscellaneous info that
 // does not necessarily fit into the other systems. It is also
@@ -625,7 +619,8 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		return err
 	}
 
-	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
 	if err != nil {
 		return err
 	}
@@ -637,7 +632,7 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.Datacenter, args.EnterpriseMeta)
+			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -683,7 +678,7 @@ func (m *Internal) ExportedServicesForPeer(args *structs.ServiceDumpRequest, rep
 				reply.Services = nil
 				return errNotFound
 			}
-			idx, exportedSvcs, err := store.ExportedServicesForPeer(ws, p.ID, args.Datacenter)
+			idx, exportedSvcs, err := store.ExportedServicesForPeer(ws, p.ID, "")
 			if err != nil {
 				return fmt.Errorf("error while listing exported services for peer %q: %w", args.PeerName, err)
 			}
@@ -744,55 +739,6 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 		})
 }
 
-// AssignManualServiceVIPs allows for assigning virtual IPs to a service manually, so that they can
-// be returned along with discovery chain information for use by transparent proxies.
-func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPsRequest, reply *structs.AssignServiceManualVIPsResponse) error {
-	if done, err := m.srv.ForwardRPC("Internal.AssignManualServiceVIPs", args, reply); done {
-		return err
-	}
-
-	var authzCtx acl.AuthorizerContext
-	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
-	if err != nil {
-		return err
-	}
-	if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzCtx); err != nil {
-		return err
-	}
-
-	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
-		return err
-	}
-
-	if len(args.ManualVIPs) > MaximumManualVIPsPerService {
-		return fmt.Errorf("cannot associate more than %d manual virtual IPs with the same service", MaximumManualVIPsPerService)
-	}
-
-	for _, ip := range args.ManualVIPs {
-		parsedIP := net.ParseIP(ip)
-		if parsedIP == nil || parsedIP.To4() == nil {
-			return fmt.Errorf("%q is not a valid IPv4 address", parsedIP.String())
-		}
-	}
-
-	req := state.ServiceVirtualIP{
-		Service: structs.PeeredServiceName{
-			ServiceName: structs.NewServiceName(args.Service, &args.EnterpriseMeta),
-		},
-		ManualIPs: args.ManualVIPs,
-	}
-	resp, err := m.srv.raftApplyMsgpack(structs.UpdateVirtualIPRequestType, req)
-	if err != nil {
-		return err
-	}
-	typedResp, ok := resp.(structs.AssignServiceManualVIPsResponse)
-	if !ok {
-		return fmt.Errorf("unexpected type %T for AssignManualServiceVIPs", resp)
-	}
-	*reply = typedResp
-	return nil
-}
-
 // EventFire is a bit of an odd endpoint, but it allows for a cross-DC RPC
 // call to fire an event. The primary use case is to enable user events being
 // triggered in a remote DC.
@@ -810,12 +756,12 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 
 	if err := authz.ToAllowAuthorizer().EventWriteAllowed(args.Name, nil); err != nil {
 		accessorID := authz.AccessorID()
-		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", acl.AliasIfAnonymousToken(accessorID))
+		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return err
 	}
 
 	// Set the query meta data
-	m.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
+	m.srv.setQueryMeta(&reply.QueryMeta, args.Token)
 
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)

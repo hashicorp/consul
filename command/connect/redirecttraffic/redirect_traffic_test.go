@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package redirecttraffic
 
 import (
@@ -131,14 +128,13 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			name: "proxyID with Consul DNS IP and port provided",
+			name: "proxyID with Consul DNS IP provided",
 			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				c.consulDNSIP = "10.0.34.16"
-				c.consulDNSPort = 8600
 				return c
 			},
 			consulServices: []api.AgentServiceRegistration{
@@ -155,7 +151,6 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			},
 			expCfg: iptables.Config{
 				ConsulDNSIP:       "10.0.34.16",
-				ConsulDNSPort:     8600,
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
 				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
@@ -577,109 +572,6 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				ExcludeInboundPorts: []string{"21500", "21501"},
 			},
 		},
-		{
-			name: "skips agent checks when node name is provided",
-			command: func() cmd {
-				var c cmd
-				c.init()
-				c.proxyUID = "1234"
-				c.proxyID = "test-proxy-id"
-				c.nodeName = "test-node"
-				return c
-			},
-			consulServices: []api.AgentServiceRegistration{
-				{
-					ID:      "foo-id",
-					Name:    "foo",
-					Port:    8080,
-					Address: "1.1.1.1",
-					Checks: []*api.AgentServiceCheck{
-						{
-							Name:     "http",
-							HTTP:     "1.1.1.1:8080/health",
-							Interval: "10s",
-						},
-						{
-							Name:     "grpc",
-							GRPC:     "1.1.1.1:8081",
-							Interval: "10s",
-						},
-					},
-				},
-				{
-					Kind:    api.ServiceKindConnectProxy,
-					ID:      "test-proxy-id",
-					Name:    "test-proxy",
-					Port:    20000,
-					Address: "1.1.1.1",
-					Proxy: &api.AgentServiceConnectProxyConfig{
-						DestinationServiceName: "foo",
-						DestinationServiceID:   "foo-id",
-						Expose: api.ExposeConfig{
-							Checks: true,
-						},
-					},
-				},
-			},
-			expCfg: iptables.Config{
-				ProxyUserID:       "1234",
-				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
-				//ExcludeInboundPorts: []string{"21500", "21501"},
-			},
-		},
-		{
-			name: "proxyID with node name provided",
-			command: func() cmd {
-				var c cmd
-				c.init()
-				c.proxyUID = "1234"
-				c.proxyID = "test-proxy-id"
-				c.nodeName = "test-node"
-				return c
-			},
-			consulServices: []api.AgentServiceRegistration{
-				{
-					Kind:    api.ServiceKindConnectProxy,
-					ID:      "test-proxy-id",
-					Name:    "test-proxy",
-					Port:    20000,
-					Address: "1.1.1.1",
-					Proxy: &api.AgentServiceConnectProxyConfig{
-						DestinationServiceName: "foo",
-					},
-				},
-			},
-			expCfg: iptables.Config{
-				ProxyUserID:       "1234",
-				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
-			},
-		},
-		{
-			name: "errors if no proxy services are found when proxy ID and node name are provided",
-			command: func() cmd {
-				var c cmd
-				c.init()
-				c.proxyUID = "1234"
-				c.proxyID = "test-proxy-id"
-				c.nodeName = "test-node"
-				return c
-			},
-			consulServices: []api.AgentServiceRegistration{
-				{
-					Kind:    api.ServiceKindConnectProxy,
-					ID:      "some-other-id",
-					Name:    "test-proxy",
-					Port:    20000,
-					Address: "1.1.1.1",
-					Proxy: &api.AgentServiceConnectProxyConfig{
-						DestinationServiceName: "foo",
-					},
-				},
-			},
-			expError: "proxy service with ID \"test-proxy-id\" not found",
-		},
 	}
 
 	for _, c := range cases {
@@ -688,7 +580,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			if c.consulServices != nil {
 				testServer, err := testutil.NewTestServerConfigT(t, nil)
 				require.NoError(t, err)
-				testServer.WaitForSerfCheck(t)
+				testServer.WaitForLeader(t)
 				defer testServer.Stop()
 
 				client, err := api.NewClient(&api.Config{Address: testServer.HTTPAddr})
@@ -696,27 +588,6 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				cmd.client = client
 
 				for _, service := range c.consulServices {
-					if cmd.nodeName != "" {
-						catalogRegistration := &api.CatalogRegistration{
-							Node:    cmd.nodeName,
-							Address: "127.0.0.1",
-							Service: &api.AgentService{
-								Kind:    service.Kind,
-								ID:      service.ID,
-								Service: service.Name,
-								Port:    service.Port,
-								Address: service.Address,
-								Proxy:   service.Proxy,
-							},
-						}
-
-						_, err := client.Catalog().Register(catalogRegistration, nil)
-						require.NoError(t, err)
-					}
-					// We are always registering services with the agent just so we can check that we're not
-					// trying to fetch agent checks in the case when Proxy.Expose.Checks and -node-name flag is provided.
-					// This is not a scenario that will happen realistically when running without client agents,
-					// but this test setup allows us to check the negative case.
 					err = client.Agent().ServiceRegister(&service)
 					require.NoError(t, err)
 				}

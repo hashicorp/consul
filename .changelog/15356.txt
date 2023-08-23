@@ -1,3 +1,0 @@
-```release-note:security
-Ensure that data imported from peers is filtered by ACLs at the UI Nodes/Services endpoints [CVE-2022-3920](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-3920)
-```

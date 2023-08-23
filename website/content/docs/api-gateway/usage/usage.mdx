@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Deploy API Gateway for Kubernetes
-description: >-
-  Learn how to apply a configured Consul API Gateway to your Kubernetes cluster, review the required fields for rerouting HTTP requests, and troubleshoot an error message.
+page_title: Consul API Gateway Basic Usage
+description:  >-
+  This topic describes how to use Consul API Gateway.
 ---
 
-# Deploy API Gateway for Kubernetes
+# Basic Consul API Gateway Usage
 
 This topic describes how to use Consul API Gateway.
 
@@ -13,25 +13,30 @@ This topic describes how to use Consul API Gateway.
 
 Complete the following steps to use Consul API Gateway in your network.
 
-1. Verify that the [requirements](/consul/docs/api-gateway/tech-specs) have been met.
-1. Verify that the Consul API Gateway CRDs were applied. Refer to [Installation](/consul/docs/api-gateway/install) for details.
+1. Verify that the [requirements](/docs/api-gateway/tech-specs) have been met.
+1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/docs/api-gateway/install) for details.
 
 ## Configuration
 
-Configure the following resources for your environment as described in [Consul API Gateway Configuration](/consul/docs/api-gateway/configuration).
+Configure your [`Gateway`](/docs/api-gateway/configuration/gateway) and [`Routes`](/docs/api-gateway/configuration/routes) as described in [Consul API Gateway Configuration](/docs/api-gateway/configuration).
 
-1. [`Gateway`](/consul/docs/api-gateway/configuration/gateway) 
-1. [`Routes`](/consul/docs/api-gateway/configuration/routes)
-1. [`Intentions`](/consul/docs/connect/config-entries/service-intentions)
+  <CodeBlockConfig hideClipboard filename="values.yaml">
 
+    ```yaml
+      apiGateway:
+        enabled: true
+        managedGatewayClass:
+    ```
+
+  </CodeBlockConfig>
 
 ## Apply configurations
 
 Issue the `kubectl apply` command to implement the configurations:
 
-```shell-session
-$ kubectl apply -f gateway.yaml routes.yaml intentions.yaml
-```
+  ```shell-session
+    $ kubectl apply -f gateway.yaml routes.yaml
+  ```
 
 
 <!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596

@@ -1,9 +1,4 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-export const defaultRunner = function (target, configuration, isClosed) {
+export const defaultRunner = function(target, configuration, isClosed) {
   if (isClosed(target)) {
     target.dispatchEvent({ type: 'close' });
     return;
@@ -11,17 +6,17 @@ export const defaultRunner = function (target, configuration, isClosed) {
   // TODO Consider wrapping this is a promise for none thenable returns
   return target.source
     .bind(target)(configuration, target)
-    .then(function (res) {
+    .then(function(res) {
       return defaultRunner(target, configuration, isClosed);
     });
 };
-const errorEvent = function (e) {
+const errorEvent = function(e) {
   return new ErrorEvent('error', {
     error: e,
     message: e.message,
   });
 };
-const isClosed = function (target) {
+const isClosed = function(target) {
   switch (target.readyState) {
     case 2: // CLOSED
     case 3: // CLOSING
@@ -29,18 +24,18 @@ const isClosed = function (target) {
   }
   return false;
 };
-export default function (
+export default function(
   EventTarget,
   P = Promise,
   run = defaultRunner,
   createErrorEvent = errorEvent
 ) {
-  const CallableEventSource = function (source, configuration = {}) {
+  const CallableEventSource = function(source, configuration = {}) {
     EventTarget.call(this);
     this.readyState = 2;
     this.source =
       typeof source !== 'function'
-        ? function (configuration, target) {
+        ? function(configuration, target) {
             this.close();
             return P.resolve();
           }
@@ -57,7 +52,7 @@ export default function (
         this.dispatchEvent({ type: 'open' });
         return run(this, configuration, isClosed);
       })
-      .catch((e) => {
+      .catch(e => {
         this.dispatchEvent(createErrorEvent(e));
         // close after the dispatch so we can tell if it was an error whilst closed or not
         // but make sure its before the promise tick
@@ -79,7 +74,7 @@ export default function (
       },
     }),
     {
-      close: function () {
+      close: function() {
         // additional readyState 3 = CLOSING
         switch (this.readyState) {
           case 0: // CONNECTING

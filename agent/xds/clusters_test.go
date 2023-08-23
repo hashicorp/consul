@@ -1,191 +1,25 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package xds
 
 import (
 	"bytes"
-	"github.com/hashicorp/consul/types"
 	"path/filepath"
 	"sort"
 	"testing"
 	"text/template"
-	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
-	"github.com/hashicorp/consul/agent/xds/response"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/agent/xdsv2"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
-
-type mockCfgFetcher struct {
-	addressLan string
-}
-
-func (s *mockCfgFetcher) AdvertiseAddrLAN() string {
-	return s.addressLan
-}
-
-type clusterTestCase struct {
-	name               string
-	create             func(t testinf.T) *proxycfg.ConfigSnapshot
-	overrideGoldenName string
-	alsoRunTestForV2   bool
-}
-
-func uint32ptr(i uint32) *uint32 {
-	return &i
-}
-
-func durationPtr(d time.Duration) *time.Duration {
-	return &d
-}
-
-func makeClusterDiscoChainTests(enterprise bool) []clusterTestCase {
-	return []clusterTestCase{
-		{
-			name: "custom-upstream-default-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "myservice",
-						})
-				}, nil)
-			},
-			// TODO(proxystate): requires custom cluster work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-http2",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["protocol"] = "http2"
-				}, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-			//TODO(proxystate): this requires terminating gateway work
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-and-overrides",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-and-failover",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered", enterprise, nil, nil)
-			},
-			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "splitter-with-resolver-redirect",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-lb-in-resolver",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-	}
-}
 
 func TestClustersFromSnapshot(t *testing.T) {
 	// TODO: we should move all of these to TestAllResourcesFromSnapshot
@@ -195,7 +29,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	tests := []clusterTestCase{
+	tests := []struct {
+		name               string
+		create             func(t testinf.T) *proxycfg.ConfigSnapshot
+		overrideGoldenName string
+	}{
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -212,9 +50,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				})
+				}, false)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version",
@@ -232,9 +69,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				})
+				}, false)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-outgoing-max-version",
@@ -252,9 +88,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				})
+				}, false)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-outgoing-cipher-suites",
@@ -275,70 +110,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				})
+				}, false)
 			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-jwt-config-entry-with-local",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "jwt-provider",
-						Result: &structs.IndexedConfigEntries{
-							Kind: "jwt-provider",
-							Entries: []structs.ConfigEntry{
-								&structs.JWTProviderConfigEntry{
-									Name: "okta",
-									JSONWebKeySet: &structs.JSONWebKeySet{
-										Local: &structs.LocalJWKS{
-											JWKS: "xxx",
-										},
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			// TODO(proxystate): jwt work will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "connect-proxy-with-jwt-config-entry-with-remote-jwks",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "jwt-provider",
-						Result: &structs.IndexedConfigEntries{
-							Kind: "jwt-provider",
-							Entries: []structs.ConfigEntry{
-								&structs.JWTProviderConfigEntry{
-									Name: "okta",
-									JSONWebKeySet: &structs.JSONWebKeySet{
-										Remote: &structs.RemoteJWKS{
-											RequestTimeoutMs:    1000,
-											FetchAsynchronously: true,
-											URI:                 "https://test.test.com",
-											JWKSCluster: &structs.JWKSCluster{
-												DiscoveryType:  structs.DiscoveryTypeStatic,
-												ConnectTimeout: time.Duration(5) * time.Second,
-												TLSCertificates: &structs.JWKSTLSCertificate{
-													TrustedCA: &structs.JWKSTLSCertTrustedCA{
-														Filename: "mycert.crt",
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			// TODO(proxystate): jwt work will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "custom-local-app",
@@ -348,10 +121,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 						customAppClusterJSON(t, customClusterJSONOptions{
 							Name: "mylocal",
 						})
-				}, nil)
+				}, nil, false)
 			},
-			// TODO(proxystate): requires custom cluster work
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "custom-upstream",
@@ -361,10 +132,19 @@ func TestClustersFromSnapshot(t *testing.T) {
 						customAppClusterJSON(t, customClusterJSONOptions{
 							Name: "myservice",
 						})
+				}, nil, false)
+			},
+		},
+		{
+			name: "custom-upstream-default-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
 				}, nil)
 			},
-			// TODO(proxystate): requires custom cluster work
-			alsoRunTestForV2: false,
 		},
 		{
 			name:               "custom-upstream-ignores-tls",
@@ -377,48 +157,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 							// Attempt to override the TLS context should be ignored
 							TLSContext: `"allowRenegotiation": false`,
 						})
-				}, nil)
+				}, nil, false)
 			},
-			// TODO(proxystate): requires custom cluster work
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "custom-upstream-with-prepared-query",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					for i := range ns.Proxy.Upstreams {
-
-						switch ns.Proxy.Upstreams[i].DestinationName {
-						case "db":
-							if ns.Proxy.Upstreams[i].Config == nil {
-								ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
-							}
-
-							uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
-
-							// Triggers an override with the presence of the escape hatch listener
-							ns.Proxy.Upstreams[i].DestinationType = structs.UpstreamDestTypePreparedQuery
-
-							ns.Proxy.Upstreams[i].Config["envoy_cluster_json"] =
-								customClusterJSON(t, customClusterJSONOptions{
-									Name: uid.EnvoyID() + ":custom-upstream",
-								})
-
-						// Also test that http2 options are triggered.
-						// A separate upstream without an override is required to test
-						case "geo-cache":
-							if ns.Proxy.Upstreams[i].Config == nil {
-								ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
-							}
-							ns.Proxy.Upstreams[i].Config["protocol"] = "http2"
-						default:
-							continue
-						}
-					}
-				}, nil)
-			},
-			// TODO(proxystate): requires custom cluster work
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "custom-timeouts",
@@ -426,9 +166,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
-				}, nil)
+				}, nil, false)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "custom-passive-healthcheck",
@@ -437,37 +176,18 @@ func TestClustersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
 						"enforcing_consecutive_5xx": float64(80),
 						"max_failures":              float64(5),
-						"interval":                  float64(10 * time.Second),
-						"max_ejection_percent":      float64(100),
-						"base_ejection_time":        float64(10 * time.Second),
+						"interval":                  float64(10),
 					}
-				}, nil)
+				}, nil, false)
 			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "custom-passive-healthcheck-zero-consecutive_5xx",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
-						"enforcing_consecutive_5xx": float64(0),
-						"max_failures":              float64(5),
-						"interval":                  float64(10 * time.Second),
-						"max_ejection_percent":      float64(100),
-						"base_ejection_time":        float64(10 * time.Second),
-					}
-				}, nil)
-			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "custom-max-inbound-connections",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["max_inbound_connections"] = 3456
-				}, nil)
+				}, nil, false)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "custom-limits-max-connections-only",
@@ -486,9 +206,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_connections": 500,
 						}
 					}
-				}, nil)
+				}, nil, false)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "custom-limits-set-to-zero",
@@ -505,9 +224,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_concurrent_requests": 0,
 						}
 					}
-				}, nil)
+				}, nil, false)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "custom-limits",
@@ -524,16 +242,98 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_concurrent_requests": 700,
 						}
 					}
-				}, nil)
+				}, nil, false)
 			},
-			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-external-sni",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-and-overrides",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered", nil, nil)
+			},
+		},
+		{
+			name: "splitter-with-resolver-redirect",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-lb-in-resolver",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", nil, nil)
+			},
 		},
 		{
 			name: "expose-paths-local-app-paths",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotExposeConfig(t, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "downstream-service-with-unix-sockets",
@@ -544,9 +344,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 					ns.Proxy.LocalServiceAddress = ""
 					ns.Proxy.LocalServicePort = 0
 					ns.Proxy.LocalServiceSocketPath = "/tmp/downstream_proxy.sock"
-				}, nil)
+				}, nil, false)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "expose-paths-new-cluster-http2",
@@ -560,89 +359,58 @@ func TestClustersFromSnapshot(t *testing.T) {
 					}
 				})
 			},
-			alsoRunTestForV2: true,
 		},
 		{
-			name:             "expose-checks",
-			create:           proxycfg.TestConfigSnapshotExposeChecks,
-			alsoRunTestForV2: true,
-		},
-		{
-			name:             "expose-paths-grpc-new-cluster-http1",
-			create:           proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
-			alsoRunTestForV2: true,
+			name:   "expose-paths-grpc-new-cluster-http1",
+			create: proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
 		},
 		{
 			name: "mesh-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", nil, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-using-federation-states",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "federation-states", nil, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "mesh-gateway-using-federation-control-plane",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "mesh-gateway-federation", nil, nil)
-			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-no-services",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "no-services", nil, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-service-subsets",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "service-subsets", nil, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-ignore-extra-resolvers",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "ignore-extra-resolvers", nil, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-service-timeouts",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "service-timeouts", nil, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-non-hash-lb-injected",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "non-hash-lb-injected", nil, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-hash-lb-ignored",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "hash-lb-ignored", nil, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-tcp-keepalives",
@@ -654,8 +422,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 7
 				}, nil)
 			},
-			// TODO(proxystate): mesh gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-gateway",
@@ -663,16 +429,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"default", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "ingress-gateway-nil-config-entry",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-gateway-with-tls-outgoing-min-version",
@@ -692,8 +448,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-gateway-with-tls-outgoing-max-version",
@@ -713,8 +467,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-gateway-with-tls-outgoing-cipher-suites",
@@ -737,8 +489,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-gateway-no-services",
@@ -746,8 +496,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, false, "tcp",
 					"default", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-chain",
@@ -755,8 +503,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"simple", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-service-max-connections",
@@ -767,8 +513,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 						entry.Listeners[0].Services[0].MaxConnections = 4096
 					}, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-defaults-service-max-connections",
@@ -783,8 +527,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 						}
 					}, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-overwrite-defaults-service-max-connections",
@@ -800,78 +542,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 						entry.Listeners[0].Services[0].MaxPendingRequests = 2048
 					}, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "ingress-with-service-passive-health-check",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"simple", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.Listeners[0].Services[0].MaxConnections = 4096
-						entry.Listeners[0].Services[0].PassiveHealthCheck = &structs.PassiveHealthCheck{
-							Interval:           5000000000,
-							MaxFailures:        10,
-							MaxEjectionPercent: uint32ptr(90),
-						}
-					}, nil)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "ingress-with-defaults-passive-health-check",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"simple", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						enforcingConsecutive5xx := uint32(80)
-						entry.Defaults = &structs.IngressServiceConfig{
-							MaxConnections:        2048,
-							MaxPendingRequests:    512,
-							MaxConcurrentRequests: 4096,
-							PassiveHealthCheck: &structs.PassiveHealthCheck{
-								Interval:                5000000000,
-								MaxFailures:             10,
-								EnforcingConsecutive5xx: &enforcingConsecutive5xx,
-								MaxEjectionPercent:      uint32ptr(90),
-							},
-						}
-					}, nil)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "ingress-with-overwrite-defaults-passive-health-check",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"simple", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						defaultEnforcingConsecutive5xx := uint32(80)
-						entry.Defaults = &structs.IngressServiceConfig{
-							MaxConnections:     2048,
-							MaxPendingRequests: 512,
-							PassiveHealthCheck: &structs.PassiveHealthCheck{
-								Interval:                5000000000,
-								EnforcingConsecutive5xx: &defaultEnforcingConsecutive5xx,
-								MaxEjectionPercent:      uint32ptr(80),
-							},
-						}
-						enforcingConsecutive5xx := uint32(50)
-						entry.Listeners[0].Services[0].MaxConnections = 4096
-						entry.Listeners[0].Services[0].MaxPendingRequests = 2048
-						entry.Listeners[0].Services[0].PassiveHealthCheck = &structs.PassiveHealthCheck{
-							Interval:                8000000000,
-							EnforcingConsecutive5xx: &enforcingConsecutive5xx,
-							MaxEjectionPercent:      uint32ptr(90),
-							BaseEjectionTime:        durationPtr(12 * time.Second),
-						}
-					}, nil)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-chain-external-sni",
@@ -879,8 +549,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"external-sni", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-chain-and-failover",
@@ -888,17 +556,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "ingress-with-chain-and-failover-to-cluster-peer",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"failover-to-cluster-peer", nil, nil, nil)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-tcp-chain-failover-through-remote-gateway",
@@ -906,8 +563,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover-through-remote-gateway", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-tcp-chain-failover-through-remote-gateway-triggered",
@@ -915,8 +570,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover-through-remote-gateway-triggered", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-tcp-chain-double-failover-through-remote-gateway",
@@ -924,8 +577,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover-through-double-remote-gateway", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-tcp-chain-double-failover-through-remote-gateway-triggered",
@@ -933,8 +584,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover-through-double-remote-gateway-triggered", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-tcp-chain-failover-through-local-gateway",
@@ -942,8 +591,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover-through-local-gateway", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-tcp-chain-failover-through-local-gateway-triggered",
@@ -951,8 +598,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover-through-local-gateway-triggered", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-tcp-chain-double-failover-through-local-gateway",
@@ -960,8 +605,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover-through-double-local-gateway", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-tcp-chain-double-failover-through-local-gateway-triggered",
@@ -969,8 +612,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover-through-double-local-gateway-triggered", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-splitter-with-resolver-redirect",
@@ -978,8 +619,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
 					"splitter-with-resolver-redirect-multidc", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-lb-in-resolver",
@@ -987,66 +626,46 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
 					"lb-resolver", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "terminating-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
 			},
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "terminating-gateway-no-services",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTerminatingGateway(t, false, nil, nil)
 			},
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name:   "terminating-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name:   "terminating-gateway-hostname-service-subsets",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayHostnameSubsets,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name:   "terminating-gateway-sni",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewaySNI,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name:   "terminating-gateway-http2-upstream",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayHTTP2,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name:   "terminating-gateway-http2-upstream-subsets",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewaySubsetsHTTP2,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name:   "terminating-gateway-lb-config",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfigNoHashPolicies,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name: "terminating-gateway-tcp-keepalives",
@@ -1061,32 +680,24 @@ func TestClustersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 5
 				}, nil)
 			},
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
 			name:   "ingress-multiple-listeners-duplicate-service",
 			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
 		},
 		{
-			name:             "transparent-proxy-catalog-destinations-only",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
-			alsoRunTestForV2: true,
+			name:   "transparent-proxy-catalog-destinations-only",
+			create: proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
 		},
 		{
-			name:             "transparent-proxy-dial-instances-directly",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
-			alsoRunTestForV2: true,
+			name:   "transparent-proxy-dial-instances-directly",
+			create: proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
 		},
 	}
 
-	tests = append(tests, makeClusterDiscoChainTests(false)...)
-
-	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
-	for _, envoyVersion := range xdscommon.EnvoyVersions {
-		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
+	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
+		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
@@ -1097,10 +708,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change
 					// golder files for every test case and so not be any use!
-					testcommon.SetupTLSRootsAndLeaf(t, snap)
+					setupTLSRootsAndLeaf(t, snap)
 
 					// Need server just for logger dependency
-					g := NewResourceGenerator(testutil.Logger(t), nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					clusters, err := g.clustersFromSnapshot(snap)
@@ -1110,10 +721,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 						return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
 					})
 
-					r, err := response.CreateResponse(xdscommon.ClusterType, "00000001", "00000001", clusters)
+					r, err := createResponse(xdscommon.ClusterType, "00000001", "00000001", clusters)
 					require.NoError(t, err)
 
-					t.Run("current-xdsv1", func(t *testing.T) {
+					t.Run("current", func(t *testing.T) {
 						gotJSON := protoToJSON(t, r)
 
 						gName := tt.name
@@ -1123,40 +734,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 
 						require.JSONEq(t, goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
 					})
-
-					if tt.alsoRunTestForV2 {
-						generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
-
-						converter := proxystateconverter.NewConverter(testutil.Logger(t), &mockCfgFetcher{addressLan: "10.10.10.10"})
-						proxyState, err := converter.ProxyStateFromSnapshot(snap)
-						require.NoError(t, err)
-
-						res, err := generator.AllResourcesFromIR(proxyState)
-						require.NoError(t, err)
-
-						clusters = res[xdscommon.ClusterType]
-
-						// The order of clusters returned via CDS isn't relevant, so it's safe
-						// to sort these for the purposes of test comparisons.
-						sort.Slice(clusters, func(i, j int) bool {
-							return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
-						})
-
-						r, err := response.CreateResponse(xdscommon.ClusterType, "00000001", "00000001", clusters)
-						require.NoError(t, err)
-
-						t.Run("current-xdsv2", func(t *testing.T) {
-							gotJSON := protoToJSON(t, r)
-
-							gName := tt.name
-							if tt.overrideGoldenName != "" {
-								gName = tt.overrideGoldenName
-							}
-
-							expectedJSON := goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, latestEnvoyVersion, gotJSON)
-							require.JSONEq(t, expectedJSON, gotJSON)
-						})
-					}
 				})
 			}
 		})
@@ -1212,39 +789,23 @@ func customAppClusterJSON(t testinf.T, opts customClusterJSONOptions) string {
 	return buf.String()
 }
 
-var customClusterJSONTpl = `{
-	"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-	"name": "{{ .Name }}",
-	"connectTimeout": "15s",
-	"loadAssignment": {
-		"clusterName": "{{ .Name }}",
-		"endpoints": [
-			{
-				"lbEndpoints": [
-					{
-						"endpoint": {
-							"address": {
-								"socketAddress": {
-									"address": "1.2.3.4",
-									"portValue": 8443
-								}
-							}
-						}
-					}
-				]
-			}
-		]
+func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
+	if snap.Leaf() != nil {
+		switch snap.Kind {
+		case structs.ServiceKindConnectProxy:
+			snap.ConnectProxy.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.ConnectProxy.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
+		case structs.ServiceKindIngressGateway:
+			snap.IngressGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.IngressGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
+		case structs.ServiceKindMeshGateway:
+			snap.MeshGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.MeshGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
+		}
 	}
-}`
-
-var customClusterJSONTemplate = template.Must(template.New("").Parse(customClusterJSONTpl))
-
-func customClusterJSON(t testinf.T, opts customClusterJSONOptions) string {
-	t.Helper()
-	var buf bytes.Buffer
-	err := customClusterJSONTemplate.Execute(&buf, opts)
-	require.NoError(t, err)
-	return buf.String()
+	if snap.Roots != nil {
+		snap.Roots.Roots[0].RootCert = loadTestResource(t, "test-root-cert")
+	}
 }
 
 func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
@@ -1294,8 +855,8 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 				LbPolicy: envoy_cluster_v3.Cluster_RING_HASH,
 				LbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig_{
 					RingHashLbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig{
-						MinimumRingSize: &wrapperspb.UInt64Value{Value: 3},
-						MaximumRingSize: &wrapperspb.UInt64Value{Value: 7},
+						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
+						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
 					},
 				},
 			},
@@ -1312,7 +873,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 				LbPolicy: envoy_cluster_v3.Cluster_LEAST_REQUEST,
 				LbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig_{
 					LeastRequestLbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig{
-						ChoiceCount: &wrapperspb.UInt32Value{Value: 3},
+						ChoiceCount: &wrappers.UInt32Value{Value: 3},
 					},
 				},
 			},
@@ -1330,379 +891,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 	}
 }
 
-func TestMakeJWTProviderCluster(t *testing.T) {
-	// All tests here depend on golden files located under: agent/xds/testdata/jwt_authn_cluster/*
-	tests := map[string]struct {
-		provider      *structs.JWTProviderConfigEntry
-		expectedError string
-	}{
-		"remote-jwks-not-configured": {
-			provider: &structs.JWTProviderConfigEntry{
-				Kind:          "jwt-provider",
-				Name:          "okta",
-				JSONWebKeySet: &structs.JSONWebKeySet{},
-			},
-			expectedError: "cannot create JWKS cluster for non remote JWKS. Provider Name: okta",
-		},
-		"local-jwks-configured": {
-			provider: &structs.JWTProviderConfigEntry{
-				Kind: "jwt-provider",
-				Name: "okta",
-				JSONWebKeySet: &structs.JSONWebKeySet{
-					Local: &structs.LocalJWKS{
-						Filename: "filename",
-					},
-				},
-			},
-			expectedError: "cannot create JWKS cluster for non remote JWKS. Provider Name: okta",
-		},
-		"https-provider-with-hostname-no-port": {
-			provider: makeTestProviderWithJWKS("https://example-okta.com/.well-known/jwks.json"),
-		},
-		"http-provider-with-hostname-no-port": {
-			provider: makeTestProviderWithJWKS("http://example-okta.com/.well-known/jwks.json"),
-		},
-		"https-provider-with-hostname-and-port": {
-			provider: makeTestProviderWithJWKS("https://example-okta.com:90/.well-known/jwks.json"),
-		},
-		"http-provider-with-hostname-and-port": {
-			provider: makeTestProviderWithJWKS("http://example-okta.com:90/.well-known/jwks.json"),
-		},
-		"https-provider-with-ip-no-port": {
-			provider: makeTestProviderWithJWKS("https://127.0.0.1"),
-		},
-		"http-provider-with-ip-no-port": {
-			provider: makeTestProviderWithJWKS("http://127.0.0.1"),
-		},
-		"https-provider-with-ip-and-port": {
-			provider: makeTestProviderWithJWKS("https://127.0.0.1:9091"),
-		},
-		"http-provider-with-ip-and-port": {
-			provider: makeTestProviderWithJWKS("http://127.0.0.1:9091"),
-		},
-	}
-
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			cluster, err := makeJWTProviderCluster(tt.provider)
-			if tt.expectedError != "" {
-				require.Error(t, err, tt.expectedError)
-			} else {
-				require.NoError(t, err)
-				gotJSON := protoToJSON(t, cluster)
-				require.JSONEq(t, goldenSimple(t, filepath.Join("jwt_authn_clusters", name), gotJSON), gotJSON)
-			}
-
-		})
-	}
-}
-
-func makeTestProviderWithJWKS(uri string) *structs.JWTProviderConfigEntry {
-	return &structs.JWTProviderConfigEntry{
-		Kind:   "jwt-provider",
-		Name:   "okta",
-		Issuer: "test-issuer",
-		JSONWebKeySet: &structs.JSONWebKeySet{
-			Remote: &structs.RemoteJWKS{
-				RequestTimeoutMs:    1000,
-				FetchAsynchronously: true,
-				URI:                 uri,
-				JWKSCluster: &structs.JWKSCluster{
-					DiscoveryType:  structs.DiscoveryTypeStatic,
-					ConnectTimeout: time.Duration(5) * time.Second,
-					TLSCertificates: &structs.JWKSTLSCertificate{
-						TrustedCA: &structs.JWKSTLSCertTrustedCA{
-							Filename: "mycert.crt",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func TestMakeJWKSDiscoveryClusterType(t *testing.T) {
-	tests := map[string]struct {
-		remoteJWKS          *structs.RemoteJWKS
-		expectedClusterType *envoy_cluster_v3.Cluster_Type
-	}{
-		"nil remote jwks": {
-			remoteJWKS:          nil,
-			expectedClusterType: &envoy_cluster_v3.Cluster_Type{},
-		},
-		"nil jwks cluster": {
-			remoteJWKS:          &structs.RemoteJWKS{},
-			expectedClusterType: &envoy_cluster_v3.Cluster_Type{},
-		},
-		"jwks cluster defaults to Strict DNS": {
-			remoteJWKS: &structs.RemoteJWKS{
-				JWKSCluster: &structs.JWKSCluster{},
-			},
-			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_STRICT_DNS,
-			},
-		},
-		"jwks with cluster EDS": {
-			remoteJWKS: &structs.RemoteJWKS{
-				JWKSCluster: &structs.JWKSCluster{
-					DiscoveryType: "EDS",
-				},
-			},
-			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_EDS,
-			},
-		},
-		"jwks with static dns": {
-			remoteJWKS: &structs.RemoteJWKS{
-				JWKSCluster: &structs.JWKSCluster{
-					DiscoveryType: "STATIC",
-				},
-			},
-			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_STATIC,
-			},
-		},
-
-		"jwks with original dst": {
-			remoteJWKS: &structs.RemoteJWKS{
-				JWKSCluster: &structs.JWKSCluster{
-					DiscoveryType: "ORIGINAL_DST",
-				},
-			},
-			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
-			},
-		},
-		"jwks with strict dns": {
-			remoteJWKS: &structs.RemoteJWKS{
-				JWKSCluster: &structs.JWKSCluster{
-					DiscoveryType: "STRICT_DNS",
-				},
-			},
-			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_STRICT_DNS,
-			},
-		},
-		"jwks with logical dns": {
-			remoteJWKS: &structs.RemoteJWKS{
-				JWKSCluster: &structs.JWKSCluster{
-					DiscoveryType: "LOGICAL_DNS",
-				},
-			},
-			expectedClusterType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_LOGICAL_DNS,
-			},
-		},
-	}
-
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			clusterType := makeJWKSDiscoveryClusterType(tt.remoteJWKS)
-
-			require.Equal(t, tt.expectedClusterType, clusterType)
-		})
-	}
-}
-
-func TestParseJWTRemoteURL(t *testing.T) {
-	tests := map[string]struct {
-		uri            string
-		expectedHost   string
-		expectedPort   int
-		expectedScheme string
-		expectError    bool
-	}{
-		"invalid-url": {
-			uri:         ".com",
-			expectError: true,
-		},
-		"https-hostname-no-port": {
-			uri:            "https://test.test.com",
-			expectedHost:   "test.test.com",
-			expectedPort:   443,
-			expectedScheme: "https",
-		},
-		"https-hostname-with-port": {
-			uri:            "https://test.test.com:4545",
-			expectedHost:   "test.test.com",
-			expectedPort:   4545,
-			expectedScheme: "https",
-		},
-		"https-hostname-with-port-and-path": {
-			uri:            "https://test.test.com:4545/test",
-			expectedHost:   "test.test.com",
-			expectedPort:   4545,
-			expectedScheme: "https",
-		},
-		"http-hostname-no-port": {
-			uri:            "http://test.test.com",
-			expectedHost:   "test.test.com",
-			expectedPort:   80,
-			expectedScheme: "http",
-		},
-		"http-hostname-with-port": {
-			uri:            "http://test.test.com:4636",
-			expectedHost:   "test.test.com",
-			expectedPort:   4636,
-			expectedScheme: "http",
-		},
-		"https-ip-no-port": {
-			uri:            "https://127.0.0.1",
-			expectedHost:   "127.0.0.1",
-			expectedPort:   443,
-			expectedScheme: "https",
-		},
-		"https-ip-with-port": {
-			uri:            "https://127.0.0.1:3434",
-			expectedHost:   "127.0.0.1",
-			expectedPort:   3434,
-			expectedScheme: "https",
-		},
-		"http-ip-no-port": {
-			uri:            "http://127.0.0.1",
-			expectedHost:   "127.0.0.1",
-			expectedPort:   80,
-			expectedScheme: "http",
-		},
-		"http-ip-with-port": {
-			uri:            "http://127.0.0.1:9190",
-			expectedHost:   "127.0.0.1",
-			expectedPort:   9190,
-			expectedScheme: "http",
-		},
-		"http-ip-with-port-and-path": {
-			uri:            "http://127.0.0.1:9190/some/where",
-			expectedHost:   "127.0.0.1",
-			expectedPort:   9190,
-			expectedScheme: "http",
-		},
-		"http-ip-no-port-with-path": {
-			uri:            "http://127.0.0.1/test/path",
-			expectedHost:   "127.0.0.1",
-			expectedPort:   80,
-			expectedScheme: "http",
-		},
-	}
-
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			host, scheme, port, err := parseJWTRemoteURL(tt.uri)
-			if tt.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, host, tt.expectedHost)
-				require.Equal(t, scheme, tt.expectedScheme)
-				require.Equal(t, port, tt.expectedPort)
-			}
-		})
-	}
-}
-
 // UID is just a convenience function to aid in writing tests less verbosely.
 func UID(input string) proxycfg.UpstreamID {
 	return proxycfg.UpstreamIDFromString(input)
-}
-
-func TestMakeJWTCertValidationContext(t *testing.T) {
-	tests := map[string]struct {
-		jwksCluster *structs.JWKSCluster
-		expected    *envoy_tls_v3.CertificateValidationContext
-	}{
-		"when nil": {
-			jwksCluster: nil,
-			expected:    &envoy_tls_v3.CertificateValidationContext{},
-		},
-		"when trustedCA with filename": {
-			jwksCluster: &structs.JWKSCluster{
-				TLSCertificates: &structs.JWKSTLSCertificate{
-					TrustedCA: &structs.JWKSTLSCertTrustedCA{
-						Filename: "file.crt",
-					},
-				},
-			},
-			expected: &envoy_tls_v3.CertificateValidationContext{
-				TrustedCa: &envoy_core_v3.DataSource{
-					Specifier: &envoy_core_v3.DataSource_Filename{
-						Filename: "file.crt",
-					},
-				},
-			},
-		},
-		"when trustedCA with environment variable": {
-			jwksCluster: &structs.JWKSCluster{
-				TLSCertificates: &structs.JWKSTLSCertificate{
-					TrustedCA: &structs.JWKSTLSCertTrustedCA{
-						EnvironmentVariable: "MY_ENV",
-					},
-				},
-			},
-			expected: &envoy_tls_v3.CertificateValidationContext{
-				TrustedCa: &envoy_core_v3.DataSource{
-					Specifier: &envoy_core_v3.DataSource_EnvironmentVariable{
-						EnvironmentVariable: "MY_ENV",
-					},
-				},
-			},
-		},
-		"when trustedCA with inline string": {
-			jwksCluster: &structs.JWKSCluster{
-				TLSCertificates: &structs.JWKSTLSCertificate{
-					TrustedCA: &structs.JWKSTLSCertTrustedCA{
-						InlineString: "<my ca cert>",
-					},
-				},
-			},
-			expected: &envoy_tls_v3.CertificateValidationContext{
-				TrustedCa: &envoy_core_v3.DataSource{
-					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: "<my ca cert>",
-					},
-				},
-			},
-		},
-		"when trustedCA with inline bytes": {
-			jwksCluster: &structs.JWKSCluster{
-				TLSCertificates: &structs.JWKSTLSCertificate{
-					TrustedCA: &structs.JWKSTLSCertTrustedCA{
-						InlineBytes: []byte{1, 2, 3},
-					},
-				},
-			},
-			expected: &envoy_tls_v3.CertificateValidationContext{
-				TrustedCa: &envoy_core_v3.DataSource{
-					Specifier: &envoy_core_v3.DataSource_InlineBytes{
-						InlineBytes: []byte{1, 2, 3},
-					},
-				},
-			},
-		},
-		"when caCertificateProviderInstance": {
-			jwksCluster: &structs.JWKSCluster{
-				TLSCertificates: &structs.JWKSTLSCertificate{
-					CaCertificateProviderInstance: &structs.JWKSTLSCertProviderInstance{
-						InstanceName:    "<my-instance-name>",
-						CertificateName: "<my-cert>.crt",
-					},
-				},
-			},
-			expected: &envoy_tls_v3.CertificateValidationContext{
-				CaCertificateProviderInstance: &envoy_tls_v3.CertificateProviderPluginInstance{
-					InstanceName:    "<my-instance-name>",
-					CertificateName: "<my-cert>.crt",
-				},
-			},
-		},
-	}
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			vc := makeJWTCertValidationContext(tt.jwksCluster)
-
-			require.Equal(t, tt.expected, vc)
-		})
-	}
 }

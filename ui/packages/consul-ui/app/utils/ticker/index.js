@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import EventTarget from 'consul-ui/utils/dom/event-target/rsvp';
 import { set } from '@ember/object';
 const IntervalTickerGroup = class extends EventTarget {
@@ -133,7 +128,7 @@ const TimelineAbstract = class {
   }
 };
 const Cubic = {
-  easeOut: function (t, b, c, d) {
+  easeOut: function(t, b, c, d) {
     t /= d;
     t--;
     return c * (t * t * t + 1) + b;
@@ -145,7 +140,7 @@ export const Tween = class extends TimelineAbstract {
     Ticker.destroy();
   }
   static to(start, finish, frames, method) {
-    Object.keys(finish).forEach(function (key) {
+    Object.keys(finish).forEach(function(key) {
       finish[key] -= start[key];
     });
     return new Tween(start, finish, frames, method).play();
@@ -159,7 +154,7 @@ export const Tween = class extends TimelineAbstract {
     this.tick = this.forwards;
   }
   _process() {
-    Object.keys(this._props).forEach((key) => {
+    Object.keys(this._props).forEach(key => {
       const num = this._method(
         this._currentframe,
         this._initialstate[key],
@@ -192,7 +187,7 @@ export const Tween = class extends TimelineAbstract {
   gotoAndPlay() {
     if (typeof this._initialstate === 'undefined') {
       this._initialstate = {};
-      Object.keys(this._props).forEach((key) => {
+      Object.keys(this._props).forEach(key => {
         this._initialstate[key] = this._target[key];
       });
     }

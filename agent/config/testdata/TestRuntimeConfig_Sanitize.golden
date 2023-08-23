@@ -16,7 +16,6 @@
     "ACLTokens": {
         "ACLAgentRecoveryToken": "hidden",
         "ACLAgentToken": "hidden",
-        "ACLConfigFileRegistrationToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",
         "DataDir": "",
@@ -109,7 +108,6 @@
             "Method": "",
             "Name": "zoo",
             "Notes": "",
-            "OSService": "",
             "OutputMaxSize": 4096,
             "ScriptArgs": [],
             "ServiceID": "",
@@ -126,23 +124,12 @@
         }
     ],
     "ClientAddrs": [],
-    "Cloud": {
-        "AuthURL": "",
-        "ClientID": "id",
-        "ClientSecret": "hidden",
-        "Hostname": "",
-        "ManagementToken": "hidden",
-        "ResourceID": "cluster1",
-        "ScadaAddress": "",
-        "TLSConfig": null,
-        "NodeID": "",
-        "NodeName": ""
-    },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
     "ConnectMeshGatewayWANFederationEnabled": false,
+    "ConnectServerlessPluginEnabled": false,
     "ConnectSidecarMaxPort": 0,
     "ConnectSidecarMinPort": 0,
     "ConnectTestCALeafRootChangeSpread": "0s",
@@ -201,13 +188,10 @@
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
     "EnterpriseRuntimeConfig": {},
-    "Experiments": [],
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
     "GRPCAddrs": [],
     "GRPCPort": 0,
-    "GRPCTLSAddrs": [],
-    "GRPCTLSPort": 0,
     "GossipLANGossipInterval": "0s",
     "GossipLANGossipNodes": 0,
     "GossipLANProbeInterval": "0s",
@@ -236,11 +220,6 @@
     "KVMaxValueSize": 1234567800000000,
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
-    "LocalProxyConfigResyncInterval": "0s",
-    "Locality": {
-        "Region": "us-west-1",
-        "Zone": "us-west-1a"
-    },
     "Logging": {
         "EnableSyslog": false,
         "LogFilePath": "",
@@ -266,7 +245,6 @@
     "PrimaryGatewaysInterval": "0s",
     "RPCAdvertiseAddr": "",
     "RPCBindAddr": "",
-    "RPCClientTimeout": "0s",
     "RPCConfig": {
         "EnableStreaming": false
     },
@@ -276,19 +254,9 @@
     "RPCMaxConnsPerClient": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
-    "RaftLogStoreConfig": {
-        "Backend": "",
-        "BoltDB": {
-            "NoFreelistSync": false
-        },
-        "DisableLogCache": false,
-        "Verification": {
-            "Enabled": false,
-            "Interval": "0s"
-        },
-        "WAL": {
-            "SegmentSize": 0
-        }
+    "RPCClientTimeout": "0s",
+    "RaftBoltDBConfig": {
+        "NoFreelistSync": false
     },
     "RaftProtocol": 3,
     "RaftSnapshotInterval": "0s",
@@ -303,9 +271,6 @@
             "Enabled": false
         }
     },
-    "RequestLimitsMode": 0,
-    "RequestLimitsReadRate": 0,
-    "RequestLimitsWriteRate": 0,
     "RetryJoinIntervalLAN": "0s",
     "RetryJoinIntervalWAN": "0s",
     "RetryJoinLAN": [
@@ -335,7 +300,6 @@
     "ServerMode": false,
     "ServerName": "",
     "ServerPort": 0,
-    "ServerRejoinAgeMax": "168h0m0s",
     "Services": [
         {
             "Address": "",
@@ -359,7 +323,6 @@
                 "Method": "",
                 "Name": "blurb",
                 "Notes": "",
-                "OSService": "",
                 "OutputMaxSize": 4096,
                 "ProxyGRPC": "",
                 "ProxyHTTP": "",
@@ -380,7 +343,6 @@
             "EnterpriseMeta": {},
             "ID": "",
             "Kind": "",
-            "Locality": null,
             "Meta": {},
             "Name": "foo",
             "Port": 0,
@@ -397,6 +359,8 @@
     ],
     "SessionTTLMin": "0s",
     "SkipLeaveOnInt": false,
+    "StartJoinAddrsLAN": [],
+    "StartJoinAddrsWAN": [],
     "StaticRuntimeConfig": {
         "EncryptVerifyIncoming": false,
         "EncryptVerifyOutgoing": false
@@ -444,8 +408,8 @@
             "VerifyServerHostname": false
         },
         "NodeName": "",
-        "ServerMode": false,
-        "ServerName": ""
+        "ServerName": "",
+        "SpecifiedTLSStanza": false
     },
     "TaggedAddresses": {},
     "Telemetry": {
@@ -468,7 +432,6 @@
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
-        "EnableHostMetrics": false,
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusOpts": {
@@ -512,6 +475,5 @@
     "Version": "",
     "VersionMetadata": "",
     "VersionPrerelease": "",
-    "Watches": [],
-    "XDSUpdateRateLimit": 0
+    "Watches": []
 }

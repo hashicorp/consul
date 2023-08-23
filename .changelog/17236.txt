@@ -1,3 +1,0 @@
-```release-note:improvement
-logging: change snapshot log header from `agent.server.snapshot` to `agent.server.raft.snapshot`
-```

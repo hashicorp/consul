@@ -1,3 +1,0 @@
-```release-note:improvement
-xds: Explicitly enable WebSocket connection upgrades in HTTP connection manager
-```

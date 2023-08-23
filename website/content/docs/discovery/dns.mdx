@@ -1,0 +1,563 @@
+---
+layout: docs
+page_title: Find services with DNS
+description: >-
+  For service discovery use cases, Domain Name Service (DNS) is the main interface to look up, query, and address Consul nodes and services. Learn how a Consul DNS lookup can help you find services by tag, name, namespace, partition, datacenter, or domain.
+---
+
+# Query services with DNS
+
+One of the primary query interfaces for Consul is DNS.
+The DNS interface allows applications to make use of service
+discovery without any high-touch integration with Consul.
+
+For example, instead of making HTTP API requests to Consul,
+a host can use the DNS server directly via name lookups
+like `redis.service.us-east-1.consul`. This query automatically
+translates to a lookup of nodes that provide the `redis` service,
+are located in the `us-east-1` datacenter, and have no failing health checks.
+It's that simple!
+
+There are a number of configuration options that are important for the DNS interface,
+specifically [`client_addr`](/docs/agent/config/config-files#client_addr),[`ports.dns`](/docs/agent/config/config-files#dns_port),
+[`recursors`](/docs/agent/config/config-files#recursors),[`domain`](/docs/agent/config/config-files#domain),
+[`alt_domain`](/docs/agent/config/config-files#alt_domain), and [`dns_config`](/docs/agent/config/config-files#dns_config).
+By default, Consul will listen on 127.0.0.1:8600 for DNS queries in the `consul.`
+domain, without support for further DNS recursion. Please consult the
+[documentation on configuration options](/docs/agent/config),
+specifically the configuration items linked above, for more details.
+
+There are a few ways to use the DNS interface. One option is to use a custom
+DNS resolver library and point it at Consul. Another option is to set Consul
+as the DNS server for a node and provide a
+[`recursors`](/docs/agent/config/config-files#recursors) configuration so that non-Consul queries
+can also be resolved. The last method is to forward all queries for the "consul."
+domain to a Consul agent from the existing DNS server. Review the
+[DNS Forwarding tutorial](https://learn.hashicorp.com/tutorials/consul/dns-forwarding?utm_source=docs) for examples.
+
+You can experiment with Consul's DNS server on the command line using tools such as `dig`:
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 redis.service.dc1.consul. ANY
+```
+
+-> **Note:** In DNS, all queries are case-insensitive. A lookup of `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`.
+
+## Node Lookups
+
+To resolve names, Consul relies on a very specific format for queries.
+There are fundamentally two types of queries: node lookups and service lookups.
+A node lookup, a simple query for the address of a named node, looks like this:
+
+```text
+<node>.node[.<datacenter>].<domain>
+```
+
+For example, if we have a `foo` node with default settings, we could
+look for `foo.node.dc1.consul.` The datacenter is an optional part of
+the FQDN: if not provided, it defaults to the datacenter of the agent.
+If we know `foo` is running in the same datacenter as our local agent,
+we can instead use `foo.node.consul.` This convention allows for terse
+syntax where appropriate while supporting queries of nodes in remote
+datacenters as necessary.
+
+For a node lookup, the only records returned are A and AAAA records
+containing the IP address, and TXT records containing the
+`node_meta` values of the node.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 foo.node.consul ANY
+
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 foo.node.consul ANY
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 24355
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;foo.node.consul.   IN  ANY
+
+;; ANSWER SECTION:
+foo.node.consul.  0 IN  A 10.1.10.12
+foo.node.consul.  0 IN  TXT "meta_key=meta_value"
+foo.node.consul.  0 IN  TXT "value only"
+
+
+;; AUTHORITY SECTION:
+consul.     0 IN  SOA ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
+```
+
+By default the TXT records value will match the node's metadata key-value
+pairs according to [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
+Alternatively, the TXT record will only include the node's metadata value when the
+node's metadata key starts with `rfc1035-`.
+
+
+### Node Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+Consul nodes exist at the admin partition level within a datacenter.
+By default, the partition and datacenter used in a [node lookup](#node-lookups) are
+the partition and datacenter of the Consul agent that received the DNS query.
+
+Use the following query format to specify a partition for a node lookup:
+```text
+<node>.node.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+node lookups to non-`default` partitions must explicitly specify
+the partition of the target node.
+
+## Service Lookups
+
+A service lookup is used to query for service providers. Service queries support
+two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/rfc2782).
+
+By default, SRV weights are all set at 1, but changing weights is supported using the
+`Weights` attribute of the [service definition](/docs/discovery/services).
+
+Note that DNS is limited in size per request, even when performing DNS TCP
+queries.
+
+For services having many instances (more than 500), it might not be possible to
+retrieve the complete list of instances for the service.
+
+When DNS SRV response are sent, order is randomized, but weights are not
+taken into account. In the case of truncation different clients using weighted SRV
+responses will have partial and inconsistent views of instances weights so the
+request distribution could be skewed from the intended weights. In that case,
+it is recommended to use the HTTP API to retrieve the list of nodes.
+
+### Standard Lookup
+
+The format of a standard service lookup is:
+
+```text
+[<tag>.]<service>.service[.<datacenter>].<domain>
+```
+
+The `tag` is optional, and, as with node lookups, the `datacenter` is as
+well. If no tag is provided, no filtering is done on tag. If no
+datacenter is provided, the datacenter of this Consul agent is assumed.
+
+If we want to find any redis service providers in our local datacenter,
+we could query `redis.service.consul.` If we want to find the PostgreSQL
+primary in a particular datacenter, we could query
+`primary.postgresql.service.dc2.consul.`
+
+The DNS query system makes use of health check information to prevent routing
+to unhealthy nodes. When a service query is made, any services failing their health
+check or failing a node system check will be omitted from the results. To allow
+for simple load balancing, the set of nodes returned is also randomized each time.
+These mechanisms make it easy to use DNS along with application-level retries
+as the foundation for an auto-healing service oriented architecture.
+
+For standard services queries, both A and SRV records are supported. SRV records
+provide the port that a service is registered on, enabling clients to avoid relying
+on well-known ports. SRV records are only served if the client specifically requests
+them, like so:
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 consul.service.consul SRV
+
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.consul ANY
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 50483
+;; flags: qr aa rd; QUERY: 1, ANSWER: 3, AUTHORITY: 1, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;consul.service.consul.   IN  SRV
+
+;; ANSWER SECTION:
+consul.service.consul.  0 IN  SRV 1 1 8300 foobar.node.dc1.consul.
+
+;; ADDITIONAL SECTION:
+foobar.node.dc1.consul. 0 IN  A 10.1.10.12
+```
+
+### RFC 2782 Lookup
+
+Valid formats for RFC 2782 SRV lookups depend on
+whether you want to filter results based on a service tag:
+
+- No filtering on service tag
+
+   ```text
+  _<service>._tcp[.service][.<datacenter>].<domain>
+  ```
+
+- Filtering on service tag specified in the RFC 2782 protocol field
+
+   ```text
+  _<service>._<tag>[.service][.<datacenter>].<domain>
+  ```
+
+Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries must
+prepend an underscore (`_`) to the `service` and `protocol` values in a query to
+prevent DNS collisions.
+To perform no tag-based filtering, specify `tcp` in the RFC 2782 protocol field.
+To filter results on a service tag, specify the tag in the RFC 2782 protocol field.
+
+Other than the query format and default `tcp` protocol/tag value, the behavior
+of the RFC style lookup is the same as the standard style of lookup.
+
+If you registered the service `rabbitmq` on port 5672 and tagged it with `amqp`,
+you could make an RFC 2782 query for its SRV record as `_rabbitmq._amqp.service.consul`:
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul SRV
+
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul ANY
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 52838
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;_rabbitmq._amqp.service.consul.  IN  SRV
+
+;; ANSWER SECTION:
+_rabbitmq._amqp.service.consul. 0 IN  SRV 1 1 5672 rabbitmq.node1.dc1.consul.
+
+;; ADDITIONAL SECTION:
+rabbitmq.node1.dc1.consul.  0 IN  A 10.1.11.20
+```
+
+Again, note that the SRV record returns the port of the service as well as its IP.
+
+#### SRV response for hosts in the .addr subdomain
+
+If a service registered to Consul has an explicit IP [`address`](/api-docs/agent/service#address)
+or tagged address(es) defined on the service registration, the hostname returned
+in the target field of the answer section for the DNS SRV query for the service
+will be in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+<Tabs>
+
+<Tab heading="IPv4">
+
+In the example below, the `rabbitmq` service has been registered with an explicit
+IPv4 address of `192.0.2.10`.
+
+<CodeTabs heading="Service defined with explicit IPv4 address in agent config" filename="agent-config.hcl">
+
+```hcl
+node_name = "node1"
+
+services {
+  name = "rabbitmq"
+  address = "192.0.2.10"
+  port = 5672
+}
+```
+
+```json
+{
+  "node_name": "node1",
+  "services": [
+    {
+      "name": "rabbitmq",
+      "address": "192.0.2.10",
+      "port": 5672
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+When performing an SRV query for this service, the SRV response contains a single
+record with a hostname in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 -t srv _rabbitmq._tcp.service.consul +short
+1 1 5672 c000020a.addr.dc1.consul.
+```
+
+In this example, the hex-encoded IP from the returned hostname is `c000020a`.
+Converting each hex octet to decimal reveals the IP address that was specified
+in the service registration.
+
+```shell-session
+$ echo -n "c000020a" | perl -ne 'printf("%vd\n", pack("H*", $_))'
+192.0.2.10
+```
+
+</Tab>
+
+<Tab heading="IPv6">
+
+In the example below, the `rabbitmq` service has been registered with an explicit
+IPv6 address of `2001:db8:1:2:cafe::1337`.
+
+<CodeTabs heading="Service defined with explicit IPv6 address in agent config" filename="agent-config.hcl">
+
+```hcl
+node_name = "node1"
+
+services {
+  name = "rabbitmq"
+  address = "2001:db8:1:2:cafe::1337"
+  port = 5672
+}
+```
+
+```json
+{
+  "node_name": "node1",
+  "services": [
+    {
+      "name": "rabbitmq",
+      "address": "2001:db8:1:2:cafe::1337",
+      "port": 5672
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+When performing an SRV query for this service, the SRV response contains a single
+record with a hostname in the format of `<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 -t srv _rabbitmq._tcp.service.consul +short
+1 1 5672 20010db800010002cafe000000001337.addr.dc1.consul.
+```
+
+In this example, the hex-encoded IP from the returned hostname is
+`20010db800010002cafe000000001337`. This is the fully expanded IPv6 address with
+colon separators removed.
+
+The following command re-adds the colon separators to display the fully expanded
+IPv6 address that was specified in the service registration.
+
+```shell-session
+$ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack("(A4)*", $_))."\n"'
+2001:0db8:0001:0002:cafe:0000:0000:1337
+```
+
+</Tab>
+
+</Tabs>
+
+### Service Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+By default, all service lookups use the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+
+Use the following query format to specify a namespace, partition, and/or datacenter
+for all service lookup types except `.query`,
+including `.service`, `.connect`, `.virtual`, and `.ingress`.
+At least two of those three fields (`namespace`, `partition`, `datacenter`)
+must be specified.
+```text
+[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+service lookups to non-`default` partitions must explicitly specify
+the partition of the target service.
+
+To lookup services imported from a cluster peer,
+use a [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+
+### Prepared Query Lookups
+
+The format of a prepared query lookup is:
+
+```text
+<query or name>.query[.<datacenter>].<domain>
+```
+
+The `datacenter` is optional, and if not provided, the datacenter of this Consul
+agent is assumed.
+
+The `query or name` is the ID or given name of an existing
+[Prepared Query](/api-docs/query). These behave like standard service
+queries but provide a much richer set of features, such as filtering by multiple
+tags and automatically failing over to look for services in remote datacenters if
+no healthy nodes are available in the local datacenter. Consul 0.6.4 and later also
+added support for [prepared query templates](/api-docs/query#prepared-query-templates)
+which can match names using a prefix match, allowing one template to apply to
+potentially many services.
+
+To allow for simple load balancing, the set of nodes returned is randomized each time.
+Both A and SRV records are supported. SRV records provide the port that a service is
+registered on, enabling clients to avoid relying on well-known ports. SRV records are
+only served if the client specifically requests them.
+
+### Connect-Capable Service Lookups
+
+To find Connect-capable services:
+
+```text
+<service>.connect.<domain>
+```
+
+This will find all [Connect-capable](/docs/connect)
+endpoints for the given `service`. A Connect-capable endpoint may be
+both a proxy for a service or a natively integrated Connect application.
+The DNS interface does not differentiate the two.
+
+Most services will use a [proxy](/docs/connect/proxies) that handles
+service discovery automatically and therefore won't use this DNS format.
+This DNS format is primarily useful for [Connect-native](/docs/connect/native)
+applications.
+
+This endpoint currently only finds services within the same datacenter
+and doesn't support tags. This DNS interface will be expanded over time.
+If you need more complex behavior, please use the
+[catalog API](/api-docs/catalog).
+
+### Service Virtual IP Lookups
+
+To find the unique virtual IP allocated for a service:
+
+```text
+<service>.virtual[.<peer>].<domain>
+```
+
+This will return the unique virtual IP for any [Connect-capable](/docs/connect)
+service. Each Connect service has a virtual IP assigned to it by Consul - this is used
+by sidecar proxies for the [Transparent Proxy](/docs/connect/transparent-proxy) feature.
+The peer name is an optional part of the FQDN, and it is used to query for the virtual IP
+of a service imported from that peer.
+
+The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
+under the `consul-virtual` tag.
+ 
+#### Service Virtual IP Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+By default, a service virtual IP lookup uses the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+
+To lookup services imported from a cluster peered partition or open-source datacenter,
+specify the namespace and peer name in the lookup:
+```text
+<service>.virtual[.<namespace>].<peer>.<domain>
+```
+
+To lookup services not imported from a cluster peer,
+refer to [service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) instead.
+ 
+### Ingress Service Lookups
+
+To find ingress-enabled services:
+
+```text
+<service>.ingress.<domain>
+```
+
+This will find all [ingress gateway](/docs/connect/gateways/ingress-gateway)
+endpoints for the given `service`.
+
+This endpoint currently only finds services within the same datacenter
+and doesn't support tags. This DNS interface will be expanded over time.
+If you need more complex behavior, please use the
+[catalog API](/api-docs/catalog).
+
+### UDP Based DNS Queries
+
+When the DNS query is performed using UDP, Consul will truncate the results
+without setting the truncate bit. This is to prevent a redundant lookup over
+TCP that generates additional load. If the lookup is done over TCP, the results
+are not truncated.
+
+## Alternative Domain
+
+By default, Consul responds to DNS queries in the `consul` domain,
+but you can set a specific domain for responding to DNS queries by configuring the [`domain`](/docs/agent/config/config-files#domain) parameter.
+
+In some instances, Consul may need to respond to queries in more than one domain,
+such as during a DNS migration or to distinguish between internal and external queries.
+
+Consul versions 1.5.2+ can be configured to respond to DNS queries on an alternative domain
+through the [`alt_domain`](/docs/agent/config/config-files#alt_domain) agent configuration
+option. As of Consul versions 1.11.0+, Consul's DNS response will use the same domain as was used in the query;
+in prior versions, the response may use the primary [`domain`](/docs/agent/config/config-files#domain) no matter which
+domain was used in the query.
+
+In the following example, the `alt_domain` parameter is set to `test-domain`:
+
+```hcl
+ alt_domain = "test-domain"
+```
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 consul.service.test-domain SRV
+```
+
+The following responses are returned:
+
+```
+;; QUESTION SECTION:
+;consul.service.test-domain.  IN  SRV
+
+;; ANSWER SECTION:
+consul.service.test-domain. 0 IN  SRV 1 1 8300 machine.node.dc1.test-domain.
+
+;; ADDITIONAL SECTION:
+machine.node.dc1.test-domain. 0 IN  A 127.0.0.1
+machine.node.dc1.test-domain. 0 IN  TXT "consul-network-segment="
+```
+
+-> **PTR queries:** Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
+[primary domain](/docs/agent/config/config-files#domain) (not the alternative domain),
+as there is no way for the query to specify a domain.
+
+## Caching
+
+By default, all DNS results served by Consul set a 0 TTL value. This disables
+caching of DNS results. However, there are many situations in which caching is
+desirable for performance and scalability. This is discussed more in the tutorial
+for [DNS caching](https://learn.hashicorp.com/tutorials/consul/dns-caching).
+
+## WAN Address Translation
+
+By default, Consul DNS queries will return a node's local address, even when
+being queried from a remote datacenter. If you need to use a different address
+to reach a node from outside its datacenter, you can configure this behavior
+using the [`advertise-wan`](/docs/agent/config/cli-flags#_advertise-wan) and
+[`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs) configuration
+options.
+
+## DNS with ACLs
+
+In order to use the DNS interface when
+[Access Control Lists (ACLs)](/docs/security/acl)
+are enabled, you must first create ACL tokens with the necessary policies.
+
+Consul agents resolve DNS requests using one of the preconfigured tokens below,
+listed in order of precedence:
+
+1. The agent's [`default` token](/docs/agent/config/config-files#acl_tokens_default).
+2. The built-in [`anonymous` token](/docs/security/acl/acl-tokens#built-in-tokens).
+   Because the anonymous token is used when any request is made to Consul without
+   explicitly specifying a token, production deployments should not apply policies
+   needed for DNS to this token.
+
+Consul will either accept or deny the request depending on whether the token
+has the appropriate authorization. The following table describes the available
+DNS lookups and required policies when ACLs are enabled:
+
+| Lookup                                                                         | Type                                               | Description                                                                                                                                                                       | ACLs Required                                                                                                                                                                           |
+| ------------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `*.node.consul`                                                                | [Node](#node-lookups)                              | Allow resolving DNS requests for the target node (i.e., `<target>.node.consul`)                                                                                                   | [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                                                                                  |
+| `*.service.consul`, `*.connect.consul`, `*.ingress.consul`, `*.virtual.consul` | [Service: standard](#service-lookups)              | Allow resolving DNS requests for target service (e.g., `<target>.service.consul`) instances running on ACL-authorized nodes                                                       | [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                    |
+| `*.query.consul`                                                               | [Service: prepared query](#prepared-query-lookups) | Allow resolving DNS requests for [service instances specified](/api-docs/query#service-1) by the target prepared query (i.e., `<target>.query.consul`) running on ACL-authorized nodes | [`query:read`](/docs/security/acl/acl-rules#prepared-query-rules), [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules) |
+
+For guidance on how to configure an appropriate token for DNS, refer to the
+securing Consul with ACLs guides for:
+
+- [Production Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#token-for-dns)
+- [Development Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup?utm_source=docs#enable-acls-on-consul-clients)

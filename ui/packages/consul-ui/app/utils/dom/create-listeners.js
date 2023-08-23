@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 class Listeners {
   constructor(listeners = []) {
     this.listeners = listeners;
@@ -26,10 +21,10 @@ class Listeners {
           [event]: handler,
         };
       }
-      const removers = Object.keys(obj).map(function (key) {
-        return (function (event, handler) {
+      const removers = Object.keys(obj).map(function(key) {
+        return (function(event, handler) {
           target[addEventListener](event, handler);
-          return function () {
+          return function() {
             target[removeEventListener](event, handler);
             return handler;
           };
@@ -38,22 +33,22 @@ class Listeners {
       // TODO: if event was a string only return the first
       // although the problem remains that it could sometimes return
       // a function, sometimes an array, so this needs some more thought
-      remove = () => removers.map((item) => item());
+      remove = () => removers.map(item => item());
     }
     this.listeners.push(remove);
     return () => {
-      const pos = this.listeners.findIndex(function (item) {
+      const pos = this.listeners.findIndex(function(item) {
         return item === remove;
       });
       return this.listeners.splice(pos, 1)[0]();
     };
   }
   remove() {
-    const handlers = this.listeners.map((item) => item());
+    const handlers = this.listeners.map(item => item());
     this.listeners.splice(0, this.listeners.length);
     return handlers;
   }
 }
-export default function (listeners = []) {
+export default function(listeners = []) {
   return new Listeners(listeners);
 }

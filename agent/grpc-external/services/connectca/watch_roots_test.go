@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connectca
 
 import (
@@ -57,11 +54,9 @@ func TestWatchRoots_Success(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.ACLNoPermissions(t), nil)
+		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
 
-	options := structs.QueryOptions{Token: testACLToken}
-	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
-	require.NoError(t, err)
+	ctx := external.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
 		Publisher:      publisher,
@@ -109,9 +104,7 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(resolver.Result{}, acl.ErrNotFound)
 
-	options := structs.QueryOptions{Token: testACLToken}
-	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
-	require.NoError(t, err)
+	ctx := external.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
 		Publisher:      publisher,
@@ -147,11 +140,9 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	// first two times it is called (initial connect and first re-auth).
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.ACLNoPermissions(t), nil).Twice()
+		Return(testutils.TestAuthorizerServiceWriteAny(t), nil).Twice()
 
-	options := structs.QueryOptions{Token: testACLToken}
-	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
-	require.NoError(t, err)
+	ctx := external.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
 		Publisher:      publisher,
@@ -187,9 +178,9 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	// Expect the stream to remain open and to receive the new roots.
 	mustGetRoots(t, rspCh)
 
-	// Simulate deleting the ACL token.
+	// Simulate removing the `service:write` permission.
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(resolver.Result{}, acl.ErrNotFound)
+		Return(testutils.TestAuthorizerDenyAll(t), nil)
 
 	// Update the ACL token to cause the subscription to be force-closed.
 	err = fsm.GetStore().ACLTokenSet(1, &structs.ACLToken{
@@ -200,7 +191,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 
 	// Expect the stream to be terminated.
 	err = mustGetError(t, rspCh)
-	require.Equal(t, codes.Unauthenticated.String(), status.Code(err).String())
+	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
 }
 
 func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
@@ -217,11 +208,9 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.ACLNoPermissions(t), nil)
+		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
 
-	options := structs.QueryOptions{Token: testACLToken}
-	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
-	require.NoError(t, err)
+	ctx := external.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
 		Publisher:      publisher,

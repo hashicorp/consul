@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Fuse from 'fuse.js';
 
 export default class FuzzySearch {
@@ -20,6 +15,6 @@ export default class FuzzySearch {
   }
 
   search(s) {
-    return this.fuse.search(s).map((item) => item.item);
+    return this.fuse.search(s).map(item => item.item);
   }
 }

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package resolver
 
 import (
@@ -22,11 +19,9 @@ type registry struct {
 func (r *registry) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
-	//nolint:staticcheck
-	res, ok := r.byAuthority[target.URL.Host]
+	res, ok := r.byAuthority[target.Authority]
 	if !ok {
-		//nolint:staticcheck
-		return nil, fmt.Errorf("no resolver registered for %v", target.URL.Host)
+		return nil, fmt.Errorf("no resolver registered for %v", target.Authority)
 	}
 	return res.Build(target, cc, opts)
 }

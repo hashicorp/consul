@@ -1,30 +1,25 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { isPresent as present, fillable, clickable, property } from 'ember-cli-page-object';
 
-export const input = function () {
+export const input = function() {
   return {
     present: present(),
     fillIn: fillable(),
   };
 };
-export const button = function () {
+export const button = function() {
   return {
     disabled: property('disabled'),
     present: present(),
     click: clickable(),
   };
 };
-export const click = function () {
+export const click = function() {
   return {
     present: present(),
     click: clickable(),
   };
 };
-export const options = function (options, selector = `input`) {
+export const options = function(options, selector = `input`) {
   return {
     option: options.reduce((prev, item, i) => {
       prev[item] = {

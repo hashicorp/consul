@@ -1,22 +1,21 @@
 ---
 layout: commands
 page_title: 'Commands: Peering Establish'
-description: |
-  The `consul peering establish` command starts a cluster peering connection with another cluster after they exchange a peering token.
+description: Learn how to use the consul peering establish command to establish a peering connection between Consul clusters.
 ---
 
 # Consul Peering Establish
 
 Command: `consul peering establish`
 
-Corresponding HTTP API Endpoint: [\[POST\] /v1/peering/establish](/consul/api-docs/peering#establish-a-peering-connection)
+Corresponding HTTP API Endpoint: [\[POST\] /v1/peering/establish](/api-docs/peering#establish-a-peering-connection)
 
 The `peering establish` starts a peering connection with the cluster that generated the peering token.
-You can generate cluster peering tokens using the [`consul peering generate-token`](/consul/commands/peering/generate-token) command or the [HTTP API](/consul/api-docs/peering#generate-a-peering-token).
+You can generate cluster peering tokens using the [`consul peering generate-token`](/commands/operator/generate-token) command or the [HTTP API](https://www.consul.io/api-docs/peering#generate-a-peering-token).
 
 You can only use a peering token to establish the connection once. If you need to reestablish a peering connection, you must generate a new token.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication).
 
 | ACL Required |
 | ------------ |

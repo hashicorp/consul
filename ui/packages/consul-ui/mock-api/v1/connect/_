@@ -97,7 +97,7 @@ ${fake.helpers.randomize([
             "Precedence": ${i + 1},
 ${ fake.random.number({min: 1, max: 10}) > 2 ? `
             "Meta": {
-              "external-source": "${fake.helpers.randomize(['kubernetes', ''])}"
+              "external-source": "${fake.helpers.randomize(['kubernetes', 'consul-api-gateway'])}"
             },
 ` : `` }
             "CreatedAt": "2018-05-21T16:41:27.977155457Z",

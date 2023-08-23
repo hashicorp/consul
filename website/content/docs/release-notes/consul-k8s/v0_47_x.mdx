@@ -9,7 +9,7 @@ description: >-
 
 ## Release Highlights
 
-- **Cluster Peering (Beta)**: This release introduces support for cluster peering, which allows service connectivity between two independent clusters. When you enable cluster peering, Consul deploys the peering controllers and `PeeringAcceptor` and `PeeringDialer` CRDs. The new CRDs are used to establish a peering connection between two clusters. Refer to [Cluster Peering Overview](/consul/docs/connect/cluster-peering) for full instructions on using Cluster Peering on Kubernetes.
+- **Cluster Peering (Beta)**: This release introduces support for Cluster Peering, which allows service connectivity between two independent clusters. Enabling peering will deploy the peering controllers and PeeringAcceptor and PeeringDialer CRDs. The new CRDs are used to establish a peering connection between two clusters. Refer to [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s) for full instructions on using Cluster Peering on Kubernetes.
   
 - **Envoy Proxy Debugging CLI Commands**: This release introduces new commands to quickly identify proxies and troubleshoot Envoy proxies for sidecars and gateways. 
   * Add `consul-k8s proxy list` command for displaying pods running Envoy managed by Consul. 
@@ -23,11 +23,11 @@ description: >-
 - Kubernetes 1.19-1.23
 - Kubectl 1.19+
 - Envoy proxy support is determined by the Consul version deployed. Refer to
-  [Envoy Integration](/consul/docs/connect/proxies/envoy) for details.
+  [Envoy Integration](/docs/connect/proxies/envoy) for details.
 
 ## Upgrading
 
-For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/k8s/upgrade)
+For detailed information on upgrading, please refer to the [Upgrades page](/docs/k8s/upgrade)
 
 ## Known Issues
 

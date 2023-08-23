@@ -1,3 +1,0 @@
-```release-note:enhancement
-xds: Removed a bottleneck in Envoy config generation, enabling a higher number of dataplanes per server
-```

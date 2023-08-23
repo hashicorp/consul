@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peerstream
 
 import (
@@ -9,14 +6,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"google.golang.org/protobuf/proto"
-
-	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib/retry"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -27,10 +19,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
-	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbservice"
 )
 
 type MaterializedViewStore interface {
@@ -132,6 +124,8 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		return fmt.Errorf("received error event: %w", u.Err)
 	}
 
+	// TODO(peering): on initial stream setup, transmit the list of exported
+	// services for use in differential DELETE/UPSERT. Akin to streaming's snapshot start/end.
 	switch {
 	case u.CorrelationID == subExportedServiceList:
 		// Everything starts with the exported service list coming from
@@ -144,20 +138,10 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		state.exportList = evt
 
 		pending := &pendingPayload{}
-		m.syncNormalServices(ctx, state, evt.Services)
+		m.syncNormalServices(ctx, state, pending, evt.Services)
 		if m.config.ConnectEnabled {
-			m.syncDiscoveryChains(state, pending, evt.DiscoChains)
+			m.syncDiscoveryChains(state, pending, evt.ListAllDiscoveryChains())
 		}
-
-		err := pending.Add(
-			exportedServiceListID,
-			subExportedServiceList,
-			pbpeerstream.ExportedServiceListFromStruct(evt),
-		)
-		if err != nil {
-			return err
-		}
-
 		state.sendPendingEvents(ctx, m.logger, pending)
 
 		// cleanup event versions too
@@ -255,10 +239,16 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		pending := &pendingPayload{}
 
+		// Directly replicate information about our mesh gateways to the consuming side.
+		// TODO(peering): should we scrub anything before replicating this?
+		if err := pending.Add(meshGatewayPayloadID, u.CorrelationID, csn); err != nil {
+			return err
+		}
+
 		if state.exportList != nil {
 			// Trigger public events for all synthetic discovery chain replies.
 			for chainName, info := range state.connectServices {
-				m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
+				m.emitEventForDiscoveryChain(state, pending, chainName, info)
 			}
 		}
 
@@ -445,6 +435,7 @@ func (m *subscriptionManager) subscribeCARoots(
 func (m *subscriptionManager) syncNormalServices(
 	ctx context.Context,
 	state *subscriptionState,
+	pending *pendingPayload,
 	services []structs.ServiceName,
 ) {
 	// seen contains the set of exported service names and is used to reconcile the list of watched services.
@@ -473,16 +464,25 @@ func (m *subscriptionManager) syncNormalServices(
 	for svc, cancel := range state.watchedServices {
 		if _, ok := seen[svc]; !ok {
 			cancel()
+
 			delete(state.watchedServices, svc)
+
+			// Send an empty event to the stream handler to trigger sending a DELETE message.
+			// Cancelling the subscription context above is necessary, but does not yield a useful signal on its own.
+			err := pending.Add(
+				servicePayloadIDPrefix+svc.String(),
+				subExportedService+svc.String(),
+				&pbservice.IndexedCheckServiceNodes{},
+			)
+			if err != nil {
+				m.logger.Error("failed to send event for service", "service", svc.String(), "error", err)
+				continue
+			}
 		}
 	}
 }
 
-func (m *subscriptionManager) syncDiscoveryChains(
-	state *subscriptionState,
-	pending *pendingPayload,
-	chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo,
-) {
+func (m *subscriptionManager) syncDiscoveryChains(state *subscriptionState, pending *pendingPayload, chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo) {
 	// if it was newly added, then try to emit an UPDATE event
 	for chainName, info := range chainsByName {
 		if oldInfo, ok := state.connectServices[chainName]; ok && info.Equal(oldInfo) {
@@ -491,7 +491,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 
 		state.connectServices[chainName] = info
 
-		m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
+		m.emitEventForDiscoveryChain(state, pending, chainName, info)
 	}
 
 	// if it was dropped, try to emit an DELETE event
@@ -518,12 +518,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 	}
 }
 
-func (m *subscriptionManager) collectPendingEventForDiscoveryChain(
-	state *subscriptionState,
-	pending *pendingPayload,
-	chainName structs.ServiceName,
-	info structs.ExportedDiscoveryChainInfo,
-) {
+func (m *subscriptionManager) emitEventForDiscoveryChain(state *subscriptionState, pending *pendingPayload, chainName structs.ServiceName, info structs.ExportedDiscoveryChainInfo) {
 	if _, ok := state.connectServices[chainName]; !ok {
 		return // not found
 	}
@@ -747,7 +742,7 @@ func (m *subscriptionManager) NotifyStandardService(
 //
 // This name was chosen to match existing "sidecar service" generation logic
 // and similar logic in the Service Identity synthetic ACL policies.
-const syntheticProxyNameSuffix = structs.SidecarProxySuffix
+const syntheticProxyNameSuffix = "-sidecar-proxy"
 
 func generateProxyNameForDiscoveryChain(sn structs.ServiceName) structs.ServiceName {
 	return structs.NewServiceName(sn.Name+syntheticProxyNameSuffix, &sn.EnterpriseMeta)
@@ -759,120 +754,32 @@ func (m *subscriptionManager) notifyServerAddrUpdates(
 	ctx context.Context,
 	updateCh chan<- cache.UpdateEvent,
 ) {
-	// Wait until server address updates are subscribed-to.
+	// Wait until this is subscribed-to.
 	select {
 	case <-m.serverAddrsSubReady:
 	case <-ctx.Done():
 		return
 	}
 
-	configNotifyCh := m.notifyMeshConfigUpdates(ctx)
-
-	// Intentionally initialized to empty values.
-	// These are set after the first mesh config entry update arrives.
-	var queryCtx context.Context
-	cancel := func() {}
-
-	useGateways := false
-	for {
-		select {
-		case <-ctx.Done():
-			cancel()
-			return
-
-		case event := <-configNotifyCh:
-			entry, ok := event.Result.(*structs.MeshConfigEntry)
-			if event.Result != nil && !ok {
-				m.logger.Error(fmt.Sprintf("saw unexpected type %T for mesh config entry: falling back to pushing direct server addresses", event.Result))
-			}
-			if entry != nil && entry.Peering != nil && entry.Peering.PeerThroughMeshGateways {
-				useGateways = true
-			} else {
-				useGateways = false
-			}
-
-			// Cancel and re-set watches based on the updated config entry.
-			cancel()
-
-			queryCtx, cancel = context.WithCancel(ctx)
-
-			if useGateways {
-				go m.notifyServerMeshGatewayAddresses(queryCtx, updateCh)
-			} else {
-				go m.ensureServerAddrSubscription(queryCtx, updateCh)
-			}
-		}
-	}
-}
-
-func (m *subscriptionManager) notifyMeshConfigUpdates(ctx context.Context) <-chan cache.UpdateEvent {
-	const meshConfigWatch = "mesh-config-entry"
-
-	notifyCh := make(chan cache.UpdateEvent, 1)
-	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
-		_, rawEntry, err := store.ConfigEntry(ws, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
-		if err != nil {
-			return nil, fmt.Errorf("failed to get mesh config entry: %w", err)
-
-		}
-		return rawEntry, nil
-	}, meshConfigWatch, notifyCh)
-
-	return notifyCh
-}
-
-func (m *subscriptionManager) notifyServerMeshGatewayAddresses(ctx context.Context, updateCh chan<- cache.UpdateEvent) {
-	m.syncViaBlockingQuery(ctx, "mesh-gateways", func(ctx context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
-		_, nodes, err := store.ServiceDump(ws, structs.ServiceKindMeshGateway, true, acl.DefaultEnterpriseMeta(), structs.DefaultPeerKeyword)
-		if err != nil {
-			return nil, fmt.Errorf("failed to watch mesh gateways services for servers: %w", err)
-		}
-
-		var gatewayAddrs []string
-		for _, csn := range nodes {
-			_, addr, port := csn.BestAddress(true)
-			gatewayAddrs = append(gatewayAddrs, ipaddr.FormatAddressPort(addr, port))
-		}
-		if len(gatewayAddrs) == 0 {
-			return nil, errors.New("configured to peer through mesh gateways but no mesh gateways are registered")
-		}
-
-		// We may return an empty list if there are no gateway addresses.
-		return &pbpeering.PeeringServerAddresses{
-			Addresses: gatewayAddrs,
-		}, nil
-	}, subServerAddrs, updateCh)
-}
-
-func (m *subscriptionManager) ensureServerAddrSubscription(ctx context.Context, updateCh chan<- cache.UpdateEvent) {
-	waiter := &retry.Waiter{
-		MinFailures: 1,
-		Factor:      500 * time.Millisecond,
-		MaxWait:     60 * time.Second,
-		Jitter:      retry.NewJitter(100),
-	}
-
-	logger := m.logger.With("queryType", "server-addresses")
-
 	var idx uint64
+	// TODO(peering): retry logic; fail past a threshold
 	for {
 		var err error
-
+		// Typically, this function will block inside `m.subscribeServerAddrs` and only return on error.
+		// Errors are logged and the watch is retried.
 		idx, err = m.subscribeServerAddrs(ctx, idx, updateCh)
-		if err == nil {
-			waiter.Reset()
-		} else if errors.Is(err, stream.ErrSubForceClosed) {
-			logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt resume")
-
+		if errors.Is(err, stream.ErrSubForceClosed) {
+			m.logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt resume")
 		} else if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-			logger.Warn("failed to subscribe to server addresses, will attempt resume", "error", err.Error())
-
-		} else if err != nil {
-			logger.Trace(err.Error())
-			return
+			m.logger.Warn("failed to subscribe to server addresses, will attempt resume", "error", err.Error())
+		} else {
+			m.logger.Trace(err.Error())
 		}
-		if err := waiter.Wait(ctx); err != nil {
+
+		select {
+		case <-ctx.Done():
 			return
+		default:
 		}
 	}
 }
@@ -941,22 +848,17 @@ func (m *subscriptionManager) subscribeServerAddrs(
 			grpcAddr := addr + ":" + strconv.Itoa(srv.ExtGRPCPort)
 			serverAddrs = append(serverAddrs, grpcAddr)
 		}
+
 		if len(serverAddrs) == 0 {
 			m.logger.Warn("did not find any server addresses with external gRPC ports to publish")
 			continue
 		}
 
-		u := cache.UpdateEvent{
+		updateCh <- cache.UpdateEvent{
 			CorrelationID: subServerAddrs,
 			Result: &pbpeering.PeeringServerAddresses{
 				Addresses: serverAddrs,
 			},
-		}
-
-		select {
-		case <-ctx.Done():
-			return 0, ctx.Err()
-		case updateCh <- u:
 		}
 	}
 }

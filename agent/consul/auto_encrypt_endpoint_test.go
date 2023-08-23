@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -141,59 +138,4 @@ func TestAutoEncryptSign(t *testing.T) {
 			require.Len(t, reply.ConnectCARoots.Roots, 1, info)
 		})
 	}
-}
-
-func TestAutoEncryptSign_MismatchedDC(t *testing.T) {
-	t.Parallel()
-
-	cert := "../../test/key/ourdomain.cer"
-	key := "../../test/key/ourdomain.key"
-	root := "../../test/ca/root.cer"
-	dir, s := testServerWithConfig(t, func(c *Config) {
-		c.AutoEncryptAllowTLS = true
-		c.PrimaryDatacenter = "dc1"
-		c.Bootstrap = true
-		c.TLSConfig.InternalRPC.CAFile = root
-		c.TLSConfig.InternalRPC.VerifyOutgoing = true
-		c.TLSConfig.InternalRPC.CertFile = cert
-		c.TLSConfig.InternalRPC.KeyFile = key
-	})
-	defer os.RemoveAll(dir)
-	defer s.Shutdown()
-	testrpc.WaitForLeader(t, s.RPC, "dc1")
-
-	// Generate a CSR and request signing
-	id := &connect.SpiffeIDAgent{
-		Host:       strings.TrimSuffix("domain", "."),
-		Datacenter: "different",
-		Agent:      "uuid",
-	}
-
-	// Create a new private key
-	pk, _, err := connect.GeneratePrivateKey()
-	require.NoError(t, err)
-
-	// Create a CSR.
-	dnsNames := []string{"localhost"}
-	ipAddresses := []net.IP{net.ParseIP("127.0.0.1")}
-	csr, err := connect.CreateCSR(id, pk, dnsNames, ipAddresses)
-	require.NoError(t, err)
-	require.NotEmpty(t, csr)
-	args := &structs.CASignRequest{
-		Datacenter: "different",
-		CSR:        csr,
-	}
-
-	cfg := tlsutil.Config{
-		AutoTLS: true,
-		Domain:  "consul",
-	}
-	codec, err := insecureRPCClient(s, cfg)
-	require.NoError(t, err)
-
-	var reply structs.SignedResponse
-	err = msgpackrpc.CallWithCodec(codec, "AutoEncrypt.Sign", args, &reply)
-	codec.Close()
-	require.EqualError(t, err, "mismatched datacenter (client_dc='different' server_dc='dc1'); check client has same datacenter set as servers")
-	return
 }

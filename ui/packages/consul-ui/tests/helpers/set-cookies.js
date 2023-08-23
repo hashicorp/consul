@@ -1,9 +1,4 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-export default function (type, value, doc = document) {
+export default function(type, value, doc = document) {
   const obj = {};
   if (type !== '*') {
     let key = '';
@@ -56,9 +51,6 @@ export default function (type, value, doc = document) {
         break;
       case 'nspace':
         key = 'CONSUL_NSPACE_COUNT';
-        break;
-      case 'peer':
-        key = 'CONSUL_PEER_COUNT';
         break;
     }
     if (key) {

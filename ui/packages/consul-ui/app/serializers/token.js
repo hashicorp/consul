@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Serializer from './application';
 import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
@@ -43,7 +38,7 @@ export default class TokenSerializer extends Serializer.extend(WithPolicies, Wit
 
   respondForUpdateRecord(respond, serialized, data) {
     return super.respondForUpdateRecord(
-      (cb) =>
+      cb =>
         respond((headers, body) => {
           // Sometimes we get `Policies: null`, make null equal an empty array
           if (typeof body.Policies === 'undefined' || body.Policies === null) {

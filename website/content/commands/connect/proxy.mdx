@@ -3,7 +3,7 @@ layout: commands
 page_title: 'Commands: Connect Proxy'
 description: >
   The connect proxy subcommand is used to run the built-in mTLS proxy for
-  Consul service mesh.
+  Connect.
 ---
 
 # Consul Connect Proxy
@@ -11,9 +11,9 @@ description: >
 Command: `consul connect proxy`
 
 The connect proxy command is used to run Consul's built-in mTLS proxy for
-use with Consul service mesh. This can be used in production to enable a mesh-unaware
-application to accept and establish mesh-based connections. This proxy
-can also be used in development to connect to mesh-enabled services.
+use with Connect. This can be used in production to enable a Connect-unaware
+application to accept and establish Connect-based connections. This proxy
+can also be used in development to connect to Connect-enabled services.
 
 ## Usage
 
@@ -24,14 +24,14 @@ Usage: `consul connect proxy [options]`
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
   local agent yet but a [sidecar proxy
-  registration](/consul/docs/connect/registration/service-registration) with
+  registration](/docs/connect/registration/service-registration) with
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
   This can also be specified via the `CONNECT_SIDECAR_FOR` environment variable.
 
 - `-proxy-id` - The [proxy
-  service](/consul/docs/connect/registration/service-registration) ID on the
+  service](/docs/connect/registration/service-registration) ID on the
   local agent. This must already be present on the local agent. This option
   can also be specified via the `CONNECT_PROXY_ID` environment variable.
 
@@ -44,12 +44,12 @@ Usage: `consul connect proxy [options]`
   doesn't need to actually exist in the Consul catalog, but proper ACL
   permissions (`service:write`) are required. This and the remaining options can
   be used to setup a proxy that is not registered already with local config
-  [useful for development](/consul/docs/connect/dev).
+  [useful for development](/docs/connect/dev).
 
 - `-upstream` - Upstream service to support connecting to. The format should be
   'name:addr', such as 'db:8181'. This will make 'db' available on port 8181.
   When a regular TCP connection is made to port 8181, the proxy will service
-  discover "db" and establish a Consul service mesh mTLS connection identifying as
+  discover "db" and establish a Connect mTLS connection identifying as
   the `-service` value. This flag can be repeated multiple times.
 
 - `-listen` - Address to listen for inbound connections to the proxied service.
@@ -60,13 +60,13 @@ Usage: `consul connect proxy [options]`
   `-listen`.
 
 - `-register` - Self-register with the local Consul agent, making this
-  proxy available as mesh-capable service in the catalog. This is only
+  proxy available as Connect-capable service in the catalog. This is only
   useful with `-listen`.
 
 - `-register-id` - Optional ID suffix for the service when `-register` is set to
   disambiguate the service ID. By default the service ID is `<service>-proxy`
   where `<service>` is the `-service` value. In most cases it is now preferable
-  to use [`consul services register`](/consul/commands/services/register) to
+  to use [`consul services register`](/commands/services/register) to
   register a fully configured proxy instance rather than specify config and
   registration via this command.
 

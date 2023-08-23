@@ -1,3 +1,0 @@
-```release-note:bug
-connect: Fix incorrect protocol config merging for transparent proxy implicit upstreams.
-```

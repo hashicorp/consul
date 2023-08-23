@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -14,7 +11,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -274,7 +270,7 @@ func getRandomItem(items []string) string {
 }
 
 type serverDelegate interface {
-	blockingQuery(requestOpts blockingquery.RequestOptions, responseMeta blockingquery.ResponseMeta, query blockingquery.QueryFn) error
+	blockingQuery(queryOpts blockingQueryOptions, queryMeta blockingQueryResponseMeta, fn queryFn) error
 	IsLeader() bool
 	LeaderLastContact() time.Time
 	setDatacenterSupportsFederationStates()

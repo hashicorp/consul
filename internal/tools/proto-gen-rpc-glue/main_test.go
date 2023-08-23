@@ -1,10 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"

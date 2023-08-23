@@ -1,15 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-import { module, test } from 'qunit';
+import { module } from 'qunit';
+import test from 'ember-sinon-qunit/test-support/test';
 import isFolder from 'consul-ui/utils/isFolder';
 
-module('Unit | Utils | isFolder', function () {
-  test('it detects if a string ends in a slash', function (assert) {
-    assert.expect(5);
-
+module('Unit | Utils | isFolder', function() {
+  test('it detects if a string ends in a slash', function(assert) {
     [
       {
         test: 'hello/world',
@@ -31,7 +25,7 @@ module('Unit | Utils | isFolder', function () {
         test: undefined,
         expected: false,
       },
-    ].forEach(function (item) {
+    ].forEach(function(item) {
       const actual = isFolder(item.test);
       assert.equal(actual, item.expected);
     });

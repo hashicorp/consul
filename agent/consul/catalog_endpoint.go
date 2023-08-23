@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -20,7 +16,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -450,7 +445,7 @@ func vetDeregisterWithACL(
 	}
 
 	// This order must match the code in applyDeregister() in
-	// fsm/commands_ce.go since it also evaluates things in this order,
+	// fsm/commands_oss.go since it also evaluates things in this order,
 	// and will ignore fields based on this precedence. This lets us also
 	// ignore them from an ACL perspective.
 	if subj.ServiceID != "" {
@@ -561,25 +556,12 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
-	// Supporting querying by PeerName in this API would require modifying the return type or the ACL
-	// filtering logic so that it can be made aware that the data queried is coming from a peer.
-	// Currently the ACL filter will receive plain name strings with no awareness of the peer name,
-	// which means that authz will be done as if these were local service names.
-	if args.PeerName != structs.DefaultPeerKeyword {
-		return errors.New("listing service names imported from a peer is not supported")
-	}
-
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return err
 	}
 
 	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
-	filter, err := bexpr.CreateFilter(args.Filter, nil, []*structs.ServiceNode{})
-	if err != nil {
 		return err
 	}
 
@@ -592,11 +574,10 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
-			var serviceNodes structs.ServiceNodes
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, serviceNodes, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
+				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
+				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -607,41 +588,9 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				return nil
 			}
 
-			raw, err := filter.Execute(serviceNodes)
-			if err != nil {
-				return err
-			}
-
-			reply.Services = servicesTagsByName(raw.(structs.ServiceNodes))
-
 			c.srv.filterACLWithAuthorizer(authz, reply)
-
 			return nil
 		})
-}
-
-func servicesTagsByName(services []*structs.ServiceNode) structs.Services {
-	unique := make(map[string]map[string]struct{})
-	for _, svc := range services {
-		tags, ok := unique[svc.ServiceName]
-		if !ok {
-			unique[svc.ServiceName] = make(map[string]struct{})
-			tags = unique[svc.ServiceName]
-		}
-		for _, tag := range svc.ServiceTags {
-			tags[tag] = struct{}{}
-		}
-	}
-
-	// Generate the output structure.
-	var results = make(structs.Services)
-	for service, tags := range unique {
-		results[service] = make([]string, 0, len(tags))
-		for tag := range tags {
-			results[service] = append(results[service], tag)
-		}
-	}
-	return results
 }
 
 // ServiceList is used to query the services in a DC.
@@ -717,9 +666,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		}
 	}
 
-	authzContext := acl.AuthorizerContext{
-		Peer: args.PeerName,
-	}
+	var authzContext acl.AuthorizerContext
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
@@ -767,7 +714,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 					mergedsn := sn
 					ns := sn.ToNodeService()
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, ns, c.logger)
+						cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
 						if err != nil {
 							return err
 						}
@@ -971,7 +918,11 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				for _, ns := range services.Services {
 					mergedns := ns
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err = configentry.MergeNodeServiceWithCentralConfig(ws, state, ns, c.logger)
+						serviceSpecificReq := structs.ServiceSpecificRequest{
+							Datacenter:   args.Datacenter,
+							QueryOptions: args.QueryOptions,
+						}
+						cfgIndex, mergedns, err = mergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
 						if err != nil {
 							return err
 						}
@@ -1097,9 +1048,7 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 		return err
 	}
 
-	authzContext := acl.AuthorizerContext{
-		Peer: args.PeerName,
-	}
+	var authzContext acl.AuthorizerContext
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err

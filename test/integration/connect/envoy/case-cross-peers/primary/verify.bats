@@ -49,13 +49,9 @@ load helpers
 @test "s1 upstream should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 @test "s1 upstream made 1 connection to s2" {
   assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary-to-alpha.external.*cx_total" 1
-}
-
-@test "s1 upstream made 1 connection to s2 through the primary mesh gateway" {
-  assert_envoy_metric_at_least 127.0.0.1:19001 "cluster.s2.default.default.alpha-to-primary.external.*cx_total" 1
 }

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package token
 
 import (
@@ -12,9 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
+	"github.com/stretchr/testify/require"
 )
 
 // update allows golden files to be updated based on the current output.
@@ -58,6 +54,14 @@ func TestFormatToken(t *testing.T) {
 				Hash:        []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'},
 				CreateIndex: 42,
 				ModifyIndex: 100,
+			},
+		},
+		"legacy": {
+			token: api.ACLToken{
+				AccessorID:  "8acc7486-ca54-4d3c-9aed-5cd85651b0ee",
+				SecretID:    "legacy-secret",
+				Description: "legacy",
+				Rules:       `operator = "read"`,
 			},
 		},
 		"complex": {
@@ -159,6 +163,16 @@ func TestFormatTokenList(t *testing.T) {
 					Hash:        []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'},
 					CreateIndex: 42,
 					ModifyIndex: 100,
+				},
+			},
+		},
+		"legacy": {
+			tokens: []*api.ACLTokenListEntry{
+				{
+					AccessorID:  "8acc7486-ca54-4d3c-9aed-5cd85651b0ee",
+					SecretID:    "257ade69-748c-4022-bafd-76d27d9143f8",
+					Description: "legacy",
+					Legacy:      true,
 				},
 			},
 		},

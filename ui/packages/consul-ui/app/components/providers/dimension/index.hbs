@@ -1,9 +1,0 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-<div {{create-ref 'element'}} {{did-insert this.measureDimensions}}>
-  {{on-window 'resize' this.handleWindowResize}}
-  {{yield (hash data=this.data)}}
-</div>

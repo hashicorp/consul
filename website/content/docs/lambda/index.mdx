@@ -1,36 +1,33 @@
 ---
 layout: docs
-page_title: Consul and AWS Lambda Overview
+page_title: AWS Lambda
 description: >-
-  Consul supports Amazon Web Services Lambda functions, which are event-driven programs and scripts. Learn about Consul's requirements for registering and invoking AWS Lambda functions in your service mesh.
+  Consul supports registering AWS Lambda functions as Consul services. This
+  section documents the process of integrating AWS Lambda with Consul services.
 ---
 
-# Consul and AWS Lambda Overview
+# AWS Lambda
 
-You can configure Consul to allow services in your mesh to invoke Lambda functions, as well as allow Lambda functions to invoke services in your mesh. Lambda functions are programs or scripts that run in AWS Lambda. Refer to the [AWS Lambda website](https://aws.amazon.com/lambda/) for additional information.
+Lambda functions are programs or scripts that run in AWS Lambda. The functions process events and return responses. Refer to the [AWS Lambda website](https://aws.amazon.com/lambda/) for additional information.
 
-## Register Lambda functions into Consul 
+## How AWS Lambda Functions on Consul Work
 
-The first step is to register your Lambda functions into Consul. We recommend using the [Lambda registrator module](https://github.com/hashicorp/terraform-aws-consul-lambda/tree/main/modules/lambda-registrator) to automatically synchronize Lambda functions into Consul. You can also manually register Lambda functions into Consul if you are unable to use the Lambda registrator.
+You can register AWS Lambda functions in Consul and invoke them from mesh services.
+### Registering Lambda Functions
 
-Refer to [Lambda Function Registration Requirements](/consul/docs/lambda/registration) for additional information about registering Lambda functions into Consul.
+Registering AWS Lambda functions into Consul requires [registering a service](/docs/discovery/services)
+and storing a [service defaults configuration entry](/docs/connect/config-entries/service-defaults)
+into Consul.
 
-## Invoke Lambda functions from Consul service mesh
+We recommend using [Lambda registrator](https://github.com/hashicorp/terraform-aws-consul-lambda-registrator)
+to automatically synchronize Lambda functions into Consul. Lambda functions can
+also be manually registered into Consul when using Lambda registrator is not possible.
 
-After registering AWS Lambda functions, you can invoke Lambda functions from the Consul service mesh through terminating gateways (recommended) or directly from connected proxies.
+See the [Registration page](/docs/lambda/registration) for more information
+about registering Lambda functions into Consul.
 
-Refer to [Invoke Lambda Functions from Services](/consul/docs/lambda/invocation) for details.
+### Invoking Lambda Functions from Consul Service Mesh
 
-## Invoke mesh services from Lambda function 
-
-~> **Lambda-to-mesh functionality is currently in beta**: Functionality associated with beta features are subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support. 
-
-You can also add the `consul-lambda-extension` plugin as a layer in your Lambda functions, which enables them to send requests to services in the mesh. The plugin starts a lightweight sidecar proxy that directs requests from Lambda functions to [mesh gateways](/consul/docs/connect/gateways#mesh-gateways). The gateways route traffic to the destination service to complete the request.  
-
-![Invoke mesh service from Lambda function](/img/invoke-service-from-lambda-flow.svg)
-
-Refer to [Invoke Services from Lambda Functions](/consul/docs/lambda/invoke-from-lambda) for additional information about registering Lambda functions into Consul.
-
-Consul mesh gateways are required to send requests from Lambda functions to mesh services. Refer to [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway) for additional information.
-
-Note that L7 traffic management features are not supported. As a result, requests from Lambda functions ignore service routes and splitters.
+Lambda functions can be invoked by any mesh service directly from connect proxies or
+through terminating gateways. The [Invocation page](/docs/lambda/invocation)
+explains how to invoke Lambda functions from Consul service mesh services.

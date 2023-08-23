@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package token
 
 import (
@@ -19,13 +16,12 @@ type Logger interface {
 
 // Config used by Store.Load, which includes tokens and settings for persistence.
 type Config struct {
-	EnablePersistence              bool
-	DataDir                        string
-	ACLDefaultToken                string
-	ACLAgentToken                  string
-	ACLAgentRecoveryToken          string
-	ACLReplicationToken            string
-	ACLConfigFileRegistrationToken string
+	EnablePersistence     bool
+	DataDir               string
+	ACLDefaultToken       string
+	ACLAgentToken         string
+	ACLAgentRecoveryToken string
+	ACLReplicationToken   string
 
 	EnterpriseConfig
 }
@@ -72,11 +68,10 @@ func (t *Store) WithPersistenceLock(f func() error) error {
 }
 
 type persistedTokens struct {
-	Replication            string `json:"replication,omitempty"`
-	AgentRecovery          string `json:"agent_recovery,omitempty"`
-	Default                string `json:"default,omitempty"`
-	Agent                  string `json:"agent,omitempty"`
-	ConfigFileRegistration string `json:"config_file_service_registration,omitempty"`
+	Replication   string `json:"replication,omitempty"`
+	AgentRecovery string `json:"agent_recovery,omitempty"`
+	Default       string `json:"default,omitempty"`
+	Agent         string `json:"agent,omitempty"`
 }
 
 type fileStore struct {
@@ -132,16 +127,6 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 		}
 	} else {
 		s.UpdateReplicationToken(cfg.ACLReplicationToken, TokenSourceConfig)
-	}
-
-	if tokens.ConfigFileRegistration != "" {
-		s.UpdateConfigFileRegistrationToken(tokens.ConfigFileRegistration, TokenSourceAPI)
-
-		if cfg.ACLConfigFileRegistrationToken != "" {
-			logger.Warn("\"config_file_service_registration\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		s.UpdateConfigFileRegistrationToken(cfg.ACLConfigFileRegistrationToken, TokenSourceConfig)
 	}
 
 	loadEnterpriseTokens(s, cfg)
@@ -200,10 +185,6 @@ func (p *fileStore) saveToFile(s *Store) error {
 
 	if tok, source := s.ReplicationTokenAndSource(); tok != "" && source == TokenSourceAPI {
 		tokens.Replication = tok
-	}
-
-	if tok, source := s.ConfigFileRegistrationTokenAndSource(); tok != "" && source == TokenSourceAPI {
-		tokens.ConfigFileRegistration = tok
 	}
 
 	data, err := json.Marshal(tokens)

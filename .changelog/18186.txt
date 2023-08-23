@@ -1,3 +1,0 @@
-```release-note:security
-Upgrade golang.org/x/net to address [CVE-2023-29406](https://nvd.nist.gov/vuln/detail/CVE-2023-29406)
-```

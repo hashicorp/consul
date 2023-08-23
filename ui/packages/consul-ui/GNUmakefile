@@ -34,7 +34,6 @@ start-api: deps
 # things with 'view' will open your browser for you
 # otherwise its headless
 
-# TODO(spatel): CE refactor
 # oss is currently with namespace support disabled
 test: deps test-node
 	yarn run test

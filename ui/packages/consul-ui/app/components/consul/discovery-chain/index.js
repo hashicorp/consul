@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
@@ -16,13 +11,13 @@ export default Component.extend({
   classNames: ['discovery-chain'],
   classNameBindings: ['active'],
   selectedId: '',
-  init: function () {
+  init: function() {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
   },
-  didInsertElement: function () {
+  didInsertElement: function() {
     this._listeners.add(this.dom.document(), {
-      click: (e) => {
+      click: e => {
         // all route/splitter/resolver components currently
         // have classes that end in '-card'
         if (!this.dom.closest('[class$="-card"]', e.target)) {
@@ -32,21 +27,21 @@ export default Component.extend({
       },
     });
   },
-  willDestroyElement: function () {
+  willDestroyElement: function() {
     this._super(...arguments);
     this._listeners.remove();
     this.ticker.destroy(this);
   },
-  splitters: computed('chain.Nodes', function () {
+  splitters: computed('chain.Nodes', function() {
     return getSplitters(get(this, 'chain.Nodes'));
   }),
-  routes: computed('chain.Nodes', function () {
+  routes: computed('chain.Nodes', function() {
     const routes = getRoutes(get(this, 'chain.Nodes'), this.dom.guid);
     // if we have no routes with a PathPrefix of '/' or one with no definition at all
     // then add our own 'default catch all'
     if (
-      !routes.find((item) => get(item, 'Definition.Match.HTTP.PathPrefix') === '/') &&
-      !routes.find((item) => typeof item.Definition === 'undefined')
+      !routes.find(item => get(item, 'Definition.Match.HTTP.PathPrefix') === '/') &&
+      !routes.find(item => typeof item.Definition === 'undefined')
     ) {
       let nextNode;
       const resolverID = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Partition}.${this.chain.Datacenter}`;
@@ -77,7 +72,7 @@ export default Component.extend({
     }
     return routes;
   }),
-  nodes: computed('routes', 'splitters', 'resolvers', function () {
+  nodes: computed('routes', 'splitters', 'resolvers', function() {
     let nodes = this.resolvers.reduce((prev, item) => {
       prev[`resolver:${item.ID}`] = item;
       item.Children.reduce((prev, item) => {
@@ -99,7 +94,7 @@ export default Component.extend({
         value.NextItem = nodes[value.NextNode];
       }
       if (typeof value.Splits !== 'undefined') {
-        value.Splits.forEach((item) => {
+        value.Splits.forEach(item => {
           if (typeof item.NextNode !== 'undefined') {
             item.NextItem = nodes[item.NextNode];
           }
@@ -108,7 +103,7 @@ export default Component.extend({
     });
     return '';
   }),
-  resolvers: computed('chain.{Nodes,Targets}', function () {
+  resolvers: computed('chain.{Nodes,Targets}', function() {
     return getResolvers(
       this.chain.Datacenter,
       this.chain.Partition,
@@ -117,10 +112,10 @@ export default Component.extend({
       get(this, 'chain.Nodes')
     );
   }),
-  graph: computed('splitters', 'routes.[]', function () {
+  graph: computed('splitters', 'routes.[]', function() {
     const graph = this.dataStructs.graph();
-    this.splitters.forEach((item) => {
-      item.Splits.forEach((splitter) => {
+    this.splitters.forEach(item => {
+      item.Splits.forEach(splitter => {
         graph.addLink(item.ID, splitter.NextNode);
       });
     });
@@ -129,7 +124,7 @@ export default Component.extend({
     });
     return graph;
   }),
-  selected: computed('selectedId', 'graph', function () {
+  selected: computed('selectedId', 'graph', function() {
     if (this.selectedId === '' || !this.dom.element(`#${this.selectedId}`)) {
       return {};
     }
@@ -149,12 +144,12 @@ export default Component.extend({
       });
     });
     return {
-      nodes: nodes.map((item) => `#${CSS.escape(item)}`),
-      edges: edges.map((item) => `#${CSS.escape(item)}`),
+      nodes: nodes.map(item => `#${CSS.escape(item)}`),
+      edges: edges.map(item => `#${CSS.escape(item)}`),
     };
   }),
   actions: {
-    click: function (e) {
+    click: function(e) {
       const id = e.currentTarget.getAttribute('id');
       if (id === this.selectedId) {
         set(this, 'active', false);

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import RepositoryService from 'consul-ui/services/repository';
 import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
@@ -42,7 +37,10 @@ export default class TokenService extends RepositoryService {
     } else {
       item = await super.findBySlug(...arguments);
     }
-    return this.form.form(this.getModelName()).setData(item).getData();
+    return this.form
+      .form(this.getModelName())
+      .setData(item)
+      .getData();
   }
 
   @dataSource('/:partition/:ns/:dc/token/self/:secret')
@@ -54,7 +52,7 @@ export default class TokenService extends RepositoryService {
         secret: params.secret,
         dc: params.dc,
       })
-      .catch((e) => {
+      .catch(e => {
         return Promise.reject(e);
       });
   }

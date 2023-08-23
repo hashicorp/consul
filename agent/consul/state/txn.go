@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -63,13 +60,6 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 			err = fmt.Errorf("key %q doesn't exist", op.DirEnt.Key)
 		}
 
-	case api.KVGetOrEmpty:
-		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
-		if entry == nil && err == nil {
-			entry = &op.DirEnt
-			entry.Value = nil
-		}
-
 	case api.KVGetTree:
 		var entries structs.DirEntries
 		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
@@ -105,7 +95,7 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 	// value (we have to clone so we don't modify the entry being used by
 	// the state store).
 	if entry != nil {
-		if op.Verb == api.KVGet || op.Verb == api.KVGetOrEmpty {
+		if op.Verb == api.KVGet {
 			result := structs.TxnResult{KV: entry}
 			return structs.TxnResults{&result}, nil
 		}

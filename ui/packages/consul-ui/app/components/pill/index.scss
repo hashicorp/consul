@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 @import './skin';
 @import './layout';
 span.policy-service-identity,
@@ -23,9 +18,6 @@ span.policy-node-identity::before {
 span.policy-service-identity::before {
   content: 'Service Identity: ';
 }
-%pill::before {
-  --icon-size: icon-300;
-}
 %pill.leader::before {
   @extend %with-star-outline-mask, %as-pseudo;
 }
@@ -34,4 +26,11 @@ span.policy-service-identity::before {
 }
 %pill.oidc::before {
   @extend %with-logo-oidc-color-icon, %as-pseudo;
+}
+%pill.kubernetes::before {
+  @extend %with-logo-kubernetes-color-icon, %as-pseudo;
+}
+%pill.aws-iam::before {
+  --icon-name: icon-aws-color;
+  content: '';
 }

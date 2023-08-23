@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { getContext } from '@ember/test-helpers';
 import { getExecutionContext } from 'ember-cli-page-object/-private/execution_context';
 import createQueryParams from 'consul-ui/utils/http/create-query-params';
@@ -15,7 +10,7 @@ const QueryParams = {
 function fillInDynamicSegments(path, params, encoder) {
   return path
     .split('/')
-    .map(function (segment) {
+    .map(function(segment) {
       let match = segment.match(/^:(.+)$/);
 
       if (match) {
@@ -65,7 +60,7 @@ export function visitable(path, encoder = encodeURIComponent) {
     value(dynamicSegmentsAndQueryParams = {}) {
       let executionContext = getExecutionContext(this);
 
-      return executionContext.runAsync((context) => {
+      return executionContext.runAsync(context => {
         let params;
         let fullPath = (function _try(paths) {
           let path = paths.shift();

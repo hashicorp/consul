@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peerstream
 
 import (
@@ -21,13 +18,12 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
-	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 )
 
 func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
@@ -38,7 +34,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 	defer cancel()
 
 	// Create a peering
-	_, id := backend.ensurePeering(t, "my-peering")
+	id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	// Only configure a tracker for catalog events.
@@ -54,15 +50,17 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	var (
-		mysqlCorrID      = subExportedService + structs.NewServiceName("mysql", nil).String()
+		gatewayCorrID = subMeshGateway + partition
+
+		mysqlCorrID = subExportedService + structs.NewServiceName("mysql", nil).String()
+
 		mysqlProxyCorrID = subExportedService + structs.NewServiceName("mysql-sidecar-proxy", nil).String()
 	)
 
 	// Expect just the empty mesh gateway event to replicate.
-	expectEvents(t, subCh,
-		func(t *testing.T, got cache.UpdateEvent) {
-			checkExportedServices(t, got, []string{})
-		})
+	expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
+		checkEvent(t, got, gatewayCorrID, 0)
+	})
 
 	// Initially add in L4 failover so that later we can test removing it. We
 	// cannot do the other way around because it would fail validation to
@@ -84,22 +82,19 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
-						{Peer: "my-peering"},
+						{PeerName: "my-peering"},
 					},
 				},
 				{
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{Peer: "my-other-peering"},
+						{PeerName: "my-other-peering"},
 					},
 				},
 			},
 		})
 
 		expectEvents(t, subCh,
-			func(t *testing.T, got cache.UpdateEvent) {
-				checkExportedServices(t, got, []string{"mysql"})
-			},
 			func(t *testing.T, got cache.UpdateEvent) {
 				checkEvent(t, got, mysqlCorrID, 0)
 			},
@@ -298,6 +293,17 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 					},
 				}, res.Nodes[0])
 			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, gatewayCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 1)
+				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+					Node:    pbNode("mgw", "10.1.1.1", partition),
+					Service: pbService("mesh-gateway", "gateway-1", "gateway", 8443, nil),
+				}, res.Nodes[0])
+			},
 		)
 	})
 
@@ -423,25 +429,12 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 
 				require.Len(t, res.Nodes, 0)
 			},
-		)
-	})
-
-	testutil.RunStep(t, "unexporting a service emits sends an event", func(t *testing.T) {
-		backend.ensureConfigEntry(t, &structs.ExportedServicesConfigEntry{
-			Name: "default",
-			Services: []structs.ExportedService{
-				{
-					Name: "mongo",
-					Consumers: []structs.ServiceConsumer{
-						{Peer: "my-other-peering"},
-					},
-				},
-			},
-		})
-
-		expectEvents(t, subCh,
 			func(t *testing.T, got cache.UpdateEvent) {
-				checkExportedServices(t, got, []string{})
+				require.Equal(t, gatewayCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 0)
 			},
 		)
 	})
@@ -455,7 +448,7 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	defer cancel()
 
 	// Create a peering
-	_, id := backend.ensurePeering(t, "my-peering")
+	id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	// Only configure a tracker for catalog events.
@@ -475,42 +468,19 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 		Node:    &structs.Node{Node: "foo", Address: "10.0.0.1"},
 		Service: &structs.NodeService{ID: "mysql-1", Service: "mysql", Port: 5000},
 	}
-	mysqlSidecar := structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		Service: "mysql-sidecar-proxy",
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "mysql",
-		},
-	}
 	backend.ensureNode(t, mysql.Node)
 	backend.ensureService(t, "foo", mysql.Service)
-	backend.ensureService(t, "foo", &mysqlSidecar)
 
 	mongo := &structs.CheckServiceNode{
-		Node: &structs.Node{Node: "zip", Address: "10.0.0.3"},
-		Service: &structs.NodeService{
-			ID:      "mongo-1",
-			Service: "mongo",
-			Port:    5000,
-		},
-	}
-	mongoSidecar := structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		Service: "mongo-sidecar-proxy",
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "mongo",
-		},
+		Node:    &structs.Node{Node: "zip", Address: "10.0.0.3"},
+		Service: &structs.NodeService{ID: "mongo-1", Service: "mongo", Port: 5000},
 	}
 	backend.ensureNode(t, mongo.Node)
 	backend.ensureService(t, "zip", mongo.Service)
-	backend.ensureService(t, "zip", &mongoSidecar)
-
-	backend.ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
-		Kind: structs.ServiceResolver,
-		Name: "chain",
-	})
 
 	var (
+		gatewayCorrID = subMeshGateway + partition
+
 		mysqlCorrID = subExportedService + structs.NewServiceName("mysql", nil).String()
 		mongoCorrID = subExportedService + structs.NewServiceName("mongo", nil).String()
 		chainCorrID = subExportedService + structs.NewServiceName("chain", nil).String()
@@ -521,10 +491,9 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	)
 
 	// Expect just the empty mesh gateway event to replicate.
-	expectEvents(t, subCh,
-		func(t *testing.T, got cache.UpdateEvent) {
-			checkExportedServices(t, got, []string{})
-		})
+	expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
+		checkEvent(t, got, gatewayCorrID, 0)
+	})
 
 	// At this point in time we'll have a mesh-gateway notification with no
 	// content stored and handled.
@@ -535,28 +504,25 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
-						{Peer: "my-peering"},
+						{PeerName: "my-peering"},
 					},
 				},
 				{
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{Peer: "my-peering"},
+						{PeerName: "my-peering"},
 					},
 				},
 				{
 					Name: "chain",
 					Consumers: []structs.ServiceConsumer{
-						{Peer: "my-peering"},
+						{PeerName: "my-peering"},
 					},
 				},
 			},
 		})
 
 		expectEvents(t, subCh,
-			func(t *testing.T, got cache.UpdateEvent) {
-				checkExportedServices(t, got, []string{"mysql", "chain", "mongo"})
-			},
 			func(t *testing.T, got cache.UpdateEvent) {
 				checkEvent(t, got, chainCorrID, 0)
 			},
@@ -597,6 +563,9 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 			func(t *testing.T, got cache.UpdateEvent) {
 				checkEvent(t, got, mysqlProxyCorrID, 1, "mysql-sidecar-proxy", string(structs.ServiceKindConnectProxy))
 			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, gatewayCorrID, 1, "gateway", string(structs.ServiceKindMeshGateway))
+			},
 		)
 	})
 }
@@ -612,7 +581,7 @@ func TestSubscriptionManager_CARoots(t *testing.T) {
 	defer cancel()
 
 	// Create a peering
-	_, id := backend.ensurePeering(t, "my-peering")
+	id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	// Only configure a tracker for CA roots events.
@@ -669,7 +638,7 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 	t.Cleanup(cancel)
 
 	// Create a peering
-	_, id := backend.ensurePeering(t, "my-peering")
+	id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	payload := autopilotevents.EventPayloadReadyServers{
@@ -735,131 +704,6 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 				require.True(t, ok)
 
 				require.Equal(t, []string{"198.18.0.1:8502", "198.18.0.2:9502"}, addrs.GetAddresses())
-			},
-		)
-	})
-
-	testutil.RunStep(t, "added server with WAN address", func(t *testing.T) {
-		payload = append(payload, autopilotevents.ReadyServerInfo{
-			ID:          "eec8721f-c42b-48da-a5a5-07565158015e",
-			Address:     "198.18.0.3",
-			Version:     "1.13.1",
-			ExtGRPCPort: 9502,
-			TaggedAddresses: map[string]string{
-				structs.TaggedAddressWAN: "198.18.0.103",
-			},
-		})
-		backend.Publish([]stream.Event{
-			{
-				Topic:   autopilotevents.EventTopicReadyServers,
-				Index:   3,
-				Payload: payload,
-			},
-		})
-
-		expectEvents(t, subCh,
-			func(t *testing.T, got cache.UpdateEvent) {
-				require.Equal(t, subServerAddrs, got.CorrelationID)
-				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
-				require.True(t, ok)
-
-				require.Equal(t, []string{"198.18.0.1:8502", "198.18.0.2:9502", "198.18.0.103:9502"}, addrs.GetAddresses())
-			},
-		)
-	})
-
-	testutil.RunStep(t, "flipped to peering through mesh gateways", func(t *testing.T) {
-		require.NoError(t, backend.store.EnsureConfigEntry(1, &structs.MeshConfigEntry{
-			Peering: &structs.PeeringMeshConfig{
-				PeerThroughMeshGateways: true,
-			},
-		}))
-
-		select {
-		case <-time.After(100 * time.Millisecond):
-		case <-subCh:
-			t.Fatal("expected to time out: no mesh gateways are registered")
-		}
-	})
-
-	testutil.RunStep(t, "registered and received a mesh gateway", func(t *testing.T) {
-		reg := structs.RegisterRequest{
-			ID:      types.NodeID("b5489ca9-f5e9-4dba-a779-61fec4e8e364"),
-			Node:    "gw-node",
-			Address: "1.2.3.4",
-			TaggedAddresses: map[string]string{
-				structs.TaggedAddressWAN: "172.217.22.14",
-			},
-			Service: &structs.NodeService{
-				ID:      "mesh-gateway",
-				Service: "mesh-gateway",
-				Kind:    structs.ServiceKindMeshGateway,
-				Port:    443,
-				TaggedAddresses: map[string]structs.ServiceAddress{
-					structs.TaggedAddressWAN: {Address: "154.238.12.252", Port: 8443},
-				},
-			},
-		}
-		require.NoError(t, backend.store.EnsureRegistration(2, &reg))
-
-		expectEvents(t, subCh,
-			func(t *testing.T, got cache.UpdateEvent) {
-				require.Equal(t, subServerAddrs, got.CorrelationID)
-
-				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
-				require.True(t, ok)
-
-				require.Equal(t, []string{"154.238.12.252:8443"}, addrs.GetAddresses())
-			},
-		)
-	})
-
-	testutil.RunStep(t, "registered and received a second mesh gateway", func(t *testing.T) {
-		reg := structs.RegisterRequest{
-			ID:      types.NodeID("e4cc0af3-5c09-4ddf-94a9-5840e427bc45"),
-			Node:    "gw-node-2",
-			Address: "1.2.3.5",
-			TaggedAddresses: map[string]string{
-				structs.TaggedAddressWAN: "172.217.22.15",
-			},
-			Service: &structs.NodeService{
-				ID:      "mesh-gateway",
-				Service: "mesh-gateway",
-				Kind:    structs.ServiceKindMeshGateway,
-				Port:    443,
-			},
-		}
-		require.NoError(t, backend.store.EnsureRegistration(3, &reg))
-
-		expectEvents(t, subCh,
-			func(t *testing.T, got cache.UpdateEvent) {
-				require.Equal(t, subServerAddrs, got.CorrelationID)
-
-				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
-				require.True(t, ok)
-
-				require.Equal(t, []string{"154.238.12.252:8443", "172.217.22.15:443"}, addrs.GetAddresses())
-			},
-		)
-	})
-
-	testutil.RunStep(t, "disabled peering through gateways and received server addresses", func(t *testing.T) {
-		require.NoError(t, backend.store.EnsureConfigEntry(4, &structs.MeshConfigEntry{
-			Peering: &structs.PeeringMeshConfig{
-				PeerThroughMeshGateways: false,
-			},
-		}))
-
-		expectEvents(t, subCh,
-			func(t *testing.T, got cache.UpdateEvent) {
-				require.Equal(t, subServerAddrs, got.CorrelationID)
-
-				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
-				require.True(t, ok)
-
-				// New subscriptions receive a snapshot from the event publisher.
-				// At the start of the test the handler registered a mock that only returns a single address.
-				require.Equal(t, []string{"198.18.0.1:8502"}, addrs.GetAddresses())
 			},
 		)
 	})
@@ -1049,20 +893,18 @@ func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 	return backend
 }
 
-//nolint:unparam
-func (b *testSubscriptionBackend) ensurePeering(t *testing.T, name string) (uint64, string) {
+func (b *testSubscriptionBackend) ensurePeering(t *testing.T, name string) string {
 	b.lastIdx++
-	return b.lastIdx, setupTestPeering(t, b.store, name, b.lastIdx)
+	return setupTestPeering(t, b.store, name, b.lastIdx)
 }
 
-//nolint:unparam
-func (b *testSubscriptionBackend) ensureConfigEntry(t *testing.T, entry structs.ConfigEntry) uint64 {
+func (b *testSubscriptionBackend) ensureConfigEntry(t *testing.T, entry structs.ConfigEntry) {
 	require.NoError(t, entry.Normalize())
 	require.NoError(t, entry.Validate())
 
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureConfigEntry(b.lastIdx, entry))
-	return b.lastIdx
+	return
 }
 
 func (b *testSubscriptionBackend) deleteConfigEntry(t *testing.T, kind, name string) uint64 {
@@ -1071,32 +913,28 @@ func (b *testSubscriptionBackend) deleteConfigEntry(t *testing.T, kind, name str
 	return b.lastIdx
 }
 
-//nolint:unparam
-func (b *testSubscriptionBackend) ensureNode(t *testing.T, node *structs.Node) uint64 {
+func (b *testSubscriptionBackend) ensureNode(t *testing.T, node *structs.Node) {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureNode(b.lastIdx, node))
-	return b.lastIdx
+	return
 }
 
-//nolint:unparam
-func (b *testSubscriptionBackend) ensureService(t *testing.T, node string, svc *structs.NodeService) uint64 {
+func (b *testSubscriptionBackend) ensureService(t *testing.T, node string, svc *structs.NodeService) {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureService(b.lastIdx, node, svc))
-	return b.lastIdx
+	return
 }
 
-//nolint:unparam
-func (b *testSubscriptionBackend) ensureCheck(t *testing.T, hc *structs.HealthCheck) uint64 {
+func (b *testSubscriptionBackend) ensureCheck(t *testing.T, hc *structs.HealthCheck) {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureCheck(b.lastIdx, hc))
-	return b.lastIdx
+	return
 }
 
-//nolint:unparam
-func (b *testSubscriptionBackend) deleteService(t *testing.T, nodeName, serviceID string) uint64 {
+func (b *testSubscriptionBackend) deleteService(t *testing.T, nodeName, serviceID string) {
 	b.lastIdx++
 	require.NoError(t, b.store.DeleteService(b.lastIdx, nodeName, serviceID, nil, ""))
-	return b.lastIdx
+	return
 }
 
 func (b *testSubscriptionBackend) ensureCAConfig(t *testing.T, config *structs.CAConfiguration) uint64 {
@@ -1242,23 +1080,6 @@ func checkEvent(
 			require.Equal(t, expectKind, evt.Nodes[i].Service.Kind)
 		}
 	}
-}
-
-func checkExportedServices(
-	t *testing.T,
-	got cache.UpdateEvent,
-	expectedServices []string,
-) {
-	t.Helper()
-
-	var qualifiedServices []string
-	for _, s := range expectedServices {
-		qualifiedServices = append(qualifiedServices, structs.ServiceName{Name: s}.String())
-	}
-
-	require.Equal(t, subExportedServiceList, got.CorrelationID)
-	evt := got.Result.(*pbpeerstream.ExportedServiceList)
-	require.ElementsMatch(t, qualifiedServices, evt.Services)
 }
 
 func pbNode(node, addr, partition string) *pbservice.Node {

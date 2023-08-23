@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -40,11 +37,6 @@ const (
 	// This service will ingress connections based of configuration defined in
 	// the ingress-gateway config entry.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
-
-	// ServiceKindAPIGateway is an API Gateway for the Connect feature.
-	// This service will ingress connections based of configuration defined in
-	// the api-gateway config entry.
-	ServiceKindAPIGateway ServiceKind = "api-gateway"
 )
 
 // UpstreamDestType is the type of upstream discovery mechanism.
@@ -107,8 +99,7 @@ type AgentService struct {
 	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	// Datacenter is only ever returned and is ignored if presented.
-	Datacenter string    `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Locality   *Locality `json:",omitempty" bexpr:"-" hash:"ignore"`
+	Datacenter string `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
@@ -127,7 +118,6 @@ type AgentServiceConnect struct {
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
 // ServiceDefinition or response.
 type AgentServiceConnectProxyConfig struct {
-	EnvoyExtensions        []EnvoyExtension        `json:",omitempty"`
 	DestinationServiceName string                  `json:",omitempty"`
 	DestinationServiceID   string                  `json:",omitempty"`
 	LocalServiceAddress    string                  `json:",omitempty"`
@@ -139,7 +129,6 @@ type AgentServiceConnectProxyConfig struct {
 	Upstreams              []Upstream              `json:",omitempty"`
 	MeshGateway            MeshGatewayConfig       `json:",omitempty"`
 	Expose                 ExposeConfig            `json:",omitempty"`
-	AccessLogs             *AccessLogsConfig       `json:",omitempty"`
 }
 
 const (
@@ -210,11 +199,11 @@ const (
 	// ACLModeEnabled indicates that ACLs are enabled and operating in new ACL
 	// mode (v1.4.0+ ACLs)
 	ACLModeEnabled MemberACLMode = "1"
-	// ACLModeLegacy has been deprecated, and will be treated as ACLModeUnknown.
-	ACLModeLegacy MemberACLMode = "2" // DEPRECATED
+	// ACLModeLegacy indicates that ACLs are enabled and operating in legacy mode.
+	ACLModeLegacy MemberACLMode = "2"
 	// ACLModeUnkown is used to indicate that the AgentMember.Tags didn't advertise
 	// an ACL mode at all. This is the case for Consul versions before v1.4.0 and
-	// should be treated the same as ACLModeLegacy.
+	// should be treated similarly to ACLModeLegacy.
 	ACLModeUnknown MemberACLMode = "3"
 )
 
@@ -253,6 +242,8 @@ func (m *AgentMember) ACLMode() MemberACLMode {
 		return ACLModeDisabled
 	case ACLModeEnabled:
 		return ACLModeEnabled
+	case ACLModeLegacy:
+		return ACLModeLegacy
 	default:
 		return ACLModeUnknown
 	}
@@ -274,8 +265,6 @@ type MembersOpts struct {
 	// Segment is the LAN segment to show members for. Setting this to the
 	// AllSegments value above will show members in all segments.
 	Segment string
-
-	Filter string
 }
 
 // AgentServiceRegistration is used to register a new service
@@ -297,7 +286,6 @@ type AgentServiceRegistration struct {
 	Connect           *AgentServiceConnect            `json:",omitempty"`
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Locality          *Locality                       `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // ServiceRegisterOpts is used to pass extra options to the service register.
@@ -490,24 +478,6 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 // a operator:read ACL token.
 func (a *Agent) Host() (map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/host")
-	_, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return nil, err
-	}
-	var out map[string]interface{}
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Version is used to retrieve information about the running Consul version and build.
-func (a *Agent) Version() (map[string]interface{}, error) {
-	r := a.c.newRequest("GET", "/v1/agent/version")
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
@@ -790,10 +760,6 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 	r.params.Set("segment", opts.Segment)
 	if opts.WAN {
 		r.params.Set("wan", "1")
-	}
-
-	if opts.Filter != "" {
-		r.params.Set("filter", opts.Filter)
 	}
 
 	_, resp, err := a.c.doRequest(r)
@@ -1079,17 +1045,8 @@ func (a *Agent) ForceLeavePrune(node string) error {
 
 // ForceLeaveOpts is used to have the agent eject a failed node or remove it
 // completely from the list of members.
-//
-// DEPRECATED - Use ForceLeaveOptions instead.
 func (a *Agent) ForceLeaveOpts(node string, opts ForceLeaveOpts) error {
-	return a.ForceLeaveOptions(node, opts, nil)
-}
-
-// ForceLeaveOptions is used to have the agent eject a failed node or remove it
-// completely from the list of members. Allows usage of QueryOptions on-top of ForceLeaveOpts
-func (a *Agent) ForceLeaveOptions(node string, opts ForceLeaveOpts, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	r.setQueryOptions(q)
 	if opts.Prune {
 		r.params.Set("prune", "1")
 	}
@@ -1309,35 +1266,35 @@ func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q
 }
 
 // UpdateACLToken updates the agent's "acl_token". See updateToken for more
-// details. Deprecated in Consul 1.4.
+// details.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateDefaultACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
+	return a.updateToken("acl_token", token, q)
 }
 
 // UpdateACLAgentToken updates the agent's "acl_agent_token". See updateToken
-// for more details. Deprecated in Consul 1.4.
+// for more details.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateAgentACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLAgentToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
+	return a.updateToken("acl_agent_token", token, q)
 }
 
 // UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token". See
-// updateToken for more details. Deprecated in Consul 1.4.
+// updateToken for more details.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateAgentMasterACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLAgentMasterToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
+	return a.updateToken("acl_agent_master_token", token, q)
 }
 
 // UpdateACLReplicationToken updates the agent's "acl_replication_token". See
-// updateToken for more details. Deprecated in Consul 1.4.
+// updateToken for more details.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateReplicationACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
+	return a.updateToken("acl_replication_token", token, q)
 }
 
 // UpdateDefaultACLToken updates the agent's "default" token. See updateToken
@@ -1370,12 +1327,6 @@ func (a *Agent) UpdateAgentMasterACLToken(token string, q *WriteOptions) (*Write
 // for more details
 func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateTokenFallback(token, q, "replication", "acl_replication_token")
-}
-
-// UpdateConfigFileRegistrationToken updates the agent's "replication" token. See updateToken
-// for more details
-func (a *Agent) UpdateConfigFileRegistrationToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("config_file_service_registration", token, q)
 }
 
 // updateToken can be used to update one of an agent's ACL tokens after the agent has

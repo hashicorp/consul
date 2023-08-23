@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
@@ -20,7 +17,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 	// This test tests both of these because they are related functions.
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(src, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -37,7 +34,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			buf.WriteString(fmt.Sprintf("service %q { policy = %q }\n", s, "write"))
 		}
 
-		policy, err := acl.NewPolicyFromSource(buf.String(), nil, nil)
+		policy, err := acl.NewPolicyFromSource(buf.String(), acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -163,34 +160,6 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 				{
 					name:       "can write test (with other1:read and other2:read)",
 					authorizer: newServiceACL(t, []string{"other1", "other2"}, []string{"test"}),
-					canRead:    true,
-					canWrite:   true,
-				},
-			},
-		},
-		{
-			name: "resolver: failover with targets",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						Targets: []ServiceResolverFailoverTarget{
-							{Service: "other1"},
-							{Datacenter: "dc2"},
-							{Peer: "cluster-01"},
-						},
-					},
-				},
-			},
-			expectServices: []ServiceID{NewServiceID("other1", nil)},
-			expectACLs: []testACL{
-				defaultDenyCase,
-				readTestCase,
-				writeTestCaseDenied,
-				{
-					name:       "can write test (with other1:read)",
-					authorizer: newServiceACL(t, []string{"other1"}, []string{"test"}),
 					canRead:    true,
 					canWrite:   true,
 				},
@@ -413,645 +382,6 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			},
 		},
 		{
-			name: "api-gateway",
-			entry: &APIGatewayConfigEntry{
-				Name: "test",
-				Listeners: []APIGatewayListener{
-					{
-						Name:     "test",
-						Port:     100,
-						Protocol: "http",
-					},
-				},
-			},
-			expectACLs: []testACL{
-				{
-					name:       "no-authz",
-					authorizer: newAuthz(t, ``),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "read", "deny"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "write", "deny"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator read",
-					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator read",
-					authorizer: newServiceAndOperatorACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator read",
-					authorizer: newServiceAndOperatorACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator write",
-					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
-					canRead:    false,
-					canWrite:   true,
-				},
-				{
-					name:       "service read and operator write",
-					authorizer: newServiceAndOperatorACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service write and operator write",
-					authorizer: newServiceAndOperatorACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-
-				{
-					name:       "service deny and mesh read",
-					authorizer: newServiceAndMeshACL(t, "deny", "read"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh read",
-					authorizer: newServiceAndMeshACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh read",
-					authorizer: newServiceAndMeshACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh write",
-					authorizer: newServiceAndMeshACL(t, "deny", "write"),
-					canRead:    false,
-					canWrite:   true,
-				},
-				{
-					name:       "service read and mesh write",
-					authorizer: newServiceAndMeshACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service write and mesh write",
-					authorizer: newServiceAndMeshACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-			},
-		},
-		{
-			name:  "inline-certificate",
-			entry: &InlineCertificateConfigEntry{Name: "test", Certificate: validCertificate, PrivateKey: validPrivateKey},
-			expectACLs: []testACL{
-				{
-					name:       "no-authz",
-					authorizer: newAuthz(t, ``),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "read", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "write", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator read",
-					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator read",
-					authorizer: newServiceAndOperatorACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator read",
-					authorizer: newServiceAndOperatorACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator write",
-					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service read and operator write",
-					authorizer: newServiceAndOperatorACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service write and operator write",
-					authorizer: newServiceAndOperatorACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-
-				{
-					name:       "service deny and mesh read",
-					authorizer: newServiceAndMeshACL(t, "deny", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh read",
-					authorizer: newServiceAndMeshACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh read",
-					authorizer: newServiceAndMeshACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh write",
-					authorizer: newServiceAndMeshACL(t, "deny", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service read and mesh write",
-					authorizer: newServiceAndMeshACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service write and mesh write",
-					authorizer: newServiceAndMeshACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-			},
-		},
-		{
-			name:  "http-route",
-			entry: &HTTPRouteConfigEntry{Name: "test"},
-			expectACLs: []testACL{
-				{
-					name:       "no-authz",
-					authorizer: newAuthz(t, ``),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "read", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "write", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator read",
-					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator read",
-					authorizer: newServiceAndOperatorACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator read",
-					authorizer: newServiceAndOperatorACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator write",
-					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service read and operator write",
-					authorizer: newServiceAndOperatorACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service write and operator write",
-					authorizer: newServiceAndOperatorACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-
-				{
-					name:       "service deny and mesh read",
-					authorizer: newServiceAndMeshACL(t, "deny", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh read",
-					authorizer: newServiceAndMeshACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh read",
-					authorizer: newServiceAndMeshACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh write",
-					authorizer: newServiceAndMeshACL(t, "deny", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service read and mesh write",
-					authorizer: newServiceAndMeshACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service write and mesh write",
-					authorizer: newServiceAndMeshACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-			},
-		},
-		{
-			name:  "tcp-route",
-			entry: &TCPRouteConfigEntry{Name: "test"},
-			expectACLs: []testACL{
-				{
-					name:       "no-authz",
-					authorizer: newAuthz(t, ``),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "read", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "write", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator read",
-					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator read",
-					authorizer: newServiceAndOperatorACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator read",
-					authorizer: newServiceAndOperatorACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator write",
-					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service read and operator write",
-					authorizer: newServiceAndOperatorACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service write and operator write",
-					authorizer: newServiceAndOperatorACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-
-				{
-					name:       "service deny and mesh read",
-					authorizer: newServiceAndMeshACL(t, "deny", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh read",
-					authorizer: newServiceAndMeshACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh read",
-					authorizer: newServiceAndMeshACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh write",
-					authorizer: newServiceAndMeshACL(t, "deny", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service read and mesh write",
-					authorizer: newServiceAndMeshACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-				{
-					name:       "service write and mesh write",
-					authorizer: newServiceAndMeshACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   true,
-				},
-			},
-		},
-		{
-			name:  "bound-api-gateway",
-			entry: &BoundAPIGatewayConfigEntry{Name: "test"},
-			expectACLs: []testACL{
-				{
-					name:       "no-authz",
-					authorizer: newAuthz(t, ``),
-					canRead:    false,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator deny",
-					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "read", "deny"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh deny",
-					authorizer: newServiceAndMeshACL(t, "write", "deny"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator read",
-					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator read",
-					authorizer: newServiceAndOperatorACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator read",
-					authorizer: newServiceAndOperatorACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and operator write",
-					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and operator write",
-					authorizer: newServiceAndOperatorACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and operator write",
-					authorizer: newServiceAndOperatorACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh read",
-					authorizer: newServiceAndMeshACL(t, "deny", "read"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh read",
-					authorizer: newServiceAndMeshACL(t, "read", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh read",
-					authorizer: newServiceAndMeshACL(t, "write", "read"),
-					canRead:    true,
-					canWrite:   false,
-				},
-
-				{
-					name:       "service deny and mesh write",
-					authorizer: newServiceAndMeshACL(t, "deny", "write"),
-					canRead:    false,
-					canWrite:   false,
-				},
-				{
-					name:       "service read and mesh write",
-					authorizer: newServiceAndMeshACL(t, "read", "write"),
-					canRead:    true,
-					canWrite:   false,
-				},
-				{
-					name:       "service write and mesh write",
-					authorizer: newServiceAndMeshACL(t, "write", "write"),
-					canRead:    true,
-					canWrite:   false,
-				},
-			},
-		},
-		{
 			name:  "terminating-gateway",
 			entry: &TerminatingGatewayConfigEntry{Name: "test"},
 			expectACLs: []testACL{
@@ -1266,15 +596,6 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 			validateErr: "Redirect is empty",
 		},
 		{
-			name: "empty redirect",
-			entry: &ServiceResolverConfigEntry{
-				Kind:     ServiceResolver,
-				Name:     "test",
-				Redirect: &ServiceResolverRedirect{},
-			},
-			validateErr: "Redirect is empty",
-		},
-		{
 			name: "redirect subset with no service",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
@@ -1284,6 +605,17 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				},
 			},
 			validateErr: "Redirect.ServiceSubset defined without Redirect.Service",
+		},
+		{
+			name: "redirect namespace with no service",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Namespace: "alternate",
+				},
+			},
+			validateErr: "Redirect.Namespace defined without Redirect.Service",
 		},
 		{
 			name: "self redirect with invalid subset",
@@ -1298,41 +630,6 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 			validateErr: `Redirect.ServiceSubset "gone" is not a valid subset of "test"`,
 		},
 		{
-			name: "redirect with peer and subset",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Redirect: &ServiceResolverRedirect{
-					Peer:          "cluster-01",
-					ServiceSubset: "gone",
-				},
-			},
-			validateErr: `Redirect.Peer cannot be set with Redirect.ServiceSubset`,
-		},
-		{
-			name: "redirect with peer and datacenter",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Redirect: &ServiceResolverRedirect{
-					Peer:       "cluster-01",
-					Datacenter: "dc2",
-				},
-			},
-			validateErr: `Redirect.Peer cannot be set with Redirect.Datacenter`,
-		},
-		{
-			name: "redirect with peer and datacenter",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Redirect: &ServiceResolverRedirect{
-					Peer: "cluster-01",
-				},
-			},
-			validateErr: `Redirect.Peer defined without Redirect.Service`,
-		},
-		{
 			name: "self redirect with valid subset",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
@@ -1343,17 +640,6 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				},
 				Subsets: map[string]ServiceResolverSubset{
 					"v1": {Filter: "Service.Meta.version == v1"},
-				},
-			},
-		},
-		{
-			name: "redirect to peer",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Redirect: &ServiceResolverRedirect{
-					Service: "other",
-					Peer:    "cluster-01",
 				},
 			},
 		},
@@ -1409,7 +695,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {},
 				},
 			},
-			validateErr: `Bad Failover["v1"]: one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required`,
+			validateErr: `Bad Failover["v1"] one of Service, ServiceSubset, Namespace, or Datacenters is required`,
 		},
 		{
 			name: "failover to self using invalid subset",
@@ -1426,7 +712,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Bad Failover["v1"]: ServiceSubset "gone" is not a valid subset of "test"`,
+			validateErr: `Bad Failover["v1"].ServiceSubset "gone" is not a valid subset of "test"`,
 		},
 		{
 			name: "failover to self using valid subset",
@@ -1458,109 +744,6 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				},
 			},
 			validateErr: `Bad Failover["*"].Datacenters: found empty datacenter`,
-		},
-		{
-			name: "failover target with an invalid subset",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						Targets: []ServiceResolverFailoverTarget{{ServiceSubset: "subset"}},
-					},
-				},
-			},
-			validateErr: `Bad Failover["*"].Targets[0]: ServiceSubset "subset" is not a valid subset of "test"`,
-		},
-		{
-			name: "failover targets can't have Peer and ServiceSubset",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						Targets: []ServiceResolverFailoverTarget{{Peer: "cluster-01", ServiceSubset: "subset"}},
-					},
-				},
-			},
-			validateErr: `Bad Failover["*"].Targets[0]: Peer cannot be set with ServiceSubset`,
-		},
-		{
-			name: "failover targets can't have Peer and Datacenter",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						Targets: []ServiceResolverFailoverTarget{{Peer: "cluster-01", Datacenter: "dc1"}},
-					},
-				},
-			},
-			validateErr: `Bad Failover["*"].Targets[0]: Peer cannot be set with Datacenter`,
-		},
-		{
-			name: "failover Targets cannot be set with Datacenters",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						Datacenters: []string{"a"},
-						Targets:     []ServiceResolverFailoverTarget{{Peer: "cluster-01"}},
-					},
-				},
-			},
-			validateErr: `Bad Failover["*"]: Targets cannot be set with Datacenters`,
-		},
-		{
-			name: "failover Targets cannot be set with ServiceSubset",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						ServiceSubset: "v2",
-						Targets:       []ServiceResolverFailoverTarget{{Peer: "cluster-01"}},
-					},
-				},
-				Subsets: map[string]ServiceResolverSubset{
-					"v2": {Filter: "Service.Meta.version == v2"},
-				},
-			},
-			validateErr: `Bad Failover["*"]: Targets cannot be set with ServiceSubset`,
-		},
-		{
-			name: "failover Targets cannot be set with Service",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						Service: "another-service",
-						Targets: []ServiceResolverFailoverTarget{{Peer: "cluster-01"}},
-					},
-				},
-				Subsets: map[string]ServiceResolverSubset{
-					"v2": {Filter: "Service.Meta.version == v2"},
-				},
-			},
-			validateErr: `Bad Failover["*"]: Targets cannot be set with Service`,
-		},
-		{
-			name: "complicated failover targets",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						Targets: []ServiceResolverFailoverTarget{
-							{Peer: "cluster-01", Service: "test-v2"},
-							{Service: "test-v2", ServiceSubset: "test"},
-							{Datacenter: "dc2"},
-						},
-					},
-				},
-			},
 		},
 		{
 			name: "bad connect timeout",
@@ -2696,43 +1879,6 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 			}))),
 			validateErr: "Methods contains \"GET\" more than once",
 		},
-		////////////////
-		{
-			name: "route with no match with retry condition",
-			entry: makerouter(ServiceRoute{
-				Match: nil,
-				Destination: &ServiceRouteDestination{
-					Service: "other",
-					RetryOn: []string{
-						"5xx",
-						"gateway-error",
-						"reset",
-						"connect-failure",
-						"envoy-ratelimited",
-						"retriable-4xx",
-						"refused-stream",
-						"cancelled",
-						"deadline-exceeded",
-						"internal",
-						"resource-exhausted",
-						"unavailable",
-					},
-				},
-			}),
-		},
-		{
-			name: "route with no match with invalid retry condition",
-			entry: makerouter(ServiceRoute{
-				Match: nil,
-				Destination: &ServiceRouteDestination{
-					Service: "other",
-					RetryOn: []string{
-						"invalid-retry-condition",
-					},
-				},
-			}),
-			validateErr: "contains an invalid retry condition: \"invalid-retry-condition\"",
-		},
 	}
 
 	for _, tc := range cases {
@@ -2800,23 +1946,4 @@ func TestIsProtocolHTTPLike(t *testing.T) {
 	assert.True(t, IsProtocolHTTPLike("http"))
 	assert.True(t, IsProtocolHTTPLike("http2"))
 	assert.True(t, IsProtocolHTTPLike("grpc"))
-}
-
-func TestIsValidRetryCondition(t *testing.T) {
-	assert.False(t, isValidRetryCondition(""))
-	assert.False(t, isValidRetryCondition("retriable-headers"))
-	assert.False(t, isValidRetryCondition("retriable-status-codes"))
-
-	assert.True(t, isValidRetryCondition("5xx"))
-	assert.True(t, isValidRetryCondition("gateway-error"))
-	assert.True(t, isValidRetryCondition("reset"))
-	assert.True(t, isValidRetryCondition("connect-failure"))
-	assert.True(t, isValidRetryCondition("envoy-ratelimited"))
-	assert.True(t, isValidRetryCondition("retriable-4xx"))
-	assert.True(t, isValidRetryCondition("refused-stream"))
-	assert.True(t, isValidRetryCondition("cancelled"))
-	assert.True(t, isValidRetryCondition("deadline-exceeded"))
-	assert.True(t, isValidRetryCondition("internal"))
-	assert.True(t, isValidRetryCondition("resource-exhausted"))
-	assert.True(t, isValidRetryCondition("unavailable"))
 }

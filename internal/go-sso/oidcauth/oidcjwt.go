@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package oidcauth
 
 import (
@@ -14,12 +11,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/internal/strutil"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/pointerstructure"
 	"golang.org/x/oauth2"
-
-	"github.com/hashicorp/consul/internal/go-sso/oidcauth/internal/strutil"
 )
 
 func contextWithHttpClient(ctx context.Context, client *http.Client) context.Context {

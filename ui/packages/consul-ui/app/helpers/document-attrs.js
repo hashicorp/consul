@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Helper from '@ember/component/helper';
 import { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
@@ -35,7 +30,7 @@ export default class DocumentAttrsHelper extends Helper {
         let map = attrs.get(key);
 
         if (typeof map !== 'undefined') {
-          [...new Set(value.split(' '))].map((val) => map.remove(val, this));
+          [...new Set(value.split(' '))].map(val => map.remove(val, this));
         }
       });
     }
@@ -48,7 +43,7 @@ export default class DocumentAttrsHelper extends Helper {
           values = new MultiMap(Set);
           attrs.set(key, values);
         }
-        [...new Set(value.split(' '))].map((val) => {
+        [...new Set(value.split(' '))].map(val => {
           if (values.count(val) === 0) {
             values.set(val, null);
           }
@@ -65,7 +60,7 @@ export default class DocumentAttrsHelper extends Helper {
       }
       // go through our list of properties and synchronize the DOM
       // properties with our properties
-      [...values.keys()].forEach((value) => {
+      [...values.keys()].forEach(value => {
         if (values.count(value) === 1) {
           switch (type) {
             case 'class':

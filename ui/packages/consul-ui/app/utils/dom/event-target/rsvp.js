@@ -4,7 +4,7 @@ import RSVP from 'rsvp';
 // The MIT License (MIT) - Copyright (c) 2015 Toru Nagashima
 import { setCurrentTarget, wrapEvent } from './event-target-shim/event';
 
-const EventTarget = function () {};
+const EventTarget = function() {};
 function callbacksFor(object) {
   let callbacks = object._promiseCallbacks;
 
@@ -23,7 +23,7 @@ EventTarget.prototype = Object.assign(
     },
   }),
   {
-    dispatchEvent: function (obj) {
+    dispatchEvent: function(obj) {
       // borrow just what I need from event-target-shim
       // to make true events even ErrorEvents with targets
       const wrappedEvent = wrapEvent(this, obj);
@@ -47,10 +47,10 @@ EventTarget.prototype = Object.assign(
         }
       }
     },
-    addEventListener: function (event, cb) {
+    addEventListener: function(event, cb) {
       this.on(event, cb);
     },
-    removeEventListener: function (event, cb) {
+    removeEventListener: function(event, cb) {
       try {
         this.off(event, cb);
       } catch (e) {

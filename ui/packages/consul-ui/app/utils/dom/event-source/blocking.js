@@ -1,17 +1,12 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { get } from '@ember/object';
 
 const pause = 2000;
 // native EventSource retry is ~3s wait
 // any specified errors here will mean that the blocking query will attempt
 // a reconnection every 3s until it reconnects to Consul
-export const createErrorBackoff = function (ms = 3000, P = Promise, wait = setTimeout) {
+export const createErrorBackoff = function(ms = 3000, P = Promise, wait = setTimeout) {
   // This expects an ember-data like error
-  return function (err) {
+  return function(err) {
     // expect and ember-data error or a http-like error (e.statusCode)
     let status = get(err, 'errors.firstObject.status') || get(err, 'statusCode');
     if (typeof status !== 'undefined') {
@@ -25,8 +20,8 @@ export const createErrorBackoff = function (ms = 3000, P = Promise, wait = setTi
           // TODO: Move this to the view layer so we can show a connection error
           // and reconnection success to the user
           // Any 0 aborted connections should back off and try again
-          return new P(function (resolve) {
-            wait(function () {
+          return new P(function(resolve) {
+            wait(function() {
               resolve(err);
             }, ms);
           });
@@ -36,7 +31,7 @@ export const createErrorBackoff = function (ms = 3000, P = Promise, wait = setTi
     throw err;
   };
 };
-export const validateCursor = function (current, prev = null) {
+export const validateCursor = function(current, prev = null) {
   let cursor = parseInt(current);
   if (!isNaN(cursor)) {
     // if cursor is less than the current cursor, reset to zero
@@ -47,16 +42,16 @@ export const validateCursor = function (current, prev = null) {
     return Math.max(cursor, 1);
   }
 };
-const throttle = function (configuration, prev, current) {
-  return function (obj) {
-    return new Promise(function (resolve, reject) {
-      setTimeout(function () {
+const throttle = function(configuration, prev, current) {
+  return function(obj) {
+    return new Promise(function(resolve, reject) {
+      setTimeout(function() {
         resolve(obj);
       }, configuration.interval || pause);
     });
   };
 };
-const defaultCreateEvent = function (result, configuration) {
+const defaultCreateEvent = function(result, configuration) {
   return {
     type: 'message',
     data: result,
@@ -68,7 +63,7 @@ const defaultCreateEvent = function (result, configuration) {
  * @param {Class} [CallableEventSource] - CallableEventSource Class
  * @param {Function} [backoff] - Default backoff function for all instances, defaults to createErrorBackoff
  */
-export default function (EventSource, backoff = createErrorBackoff()) {
+export default function(EventSource, backoff = createErrorBackoff()) {
   /**
    * An EventSource implementation to add native EventSource-like functionality with just callbacks (`cursor` and 5xx backoff)
    *
@@ -82,15 +77,15 @@ export default function (EventSource, backoff = createErrorBackoff()) {
    *   `cursor` - Cursor position of the EventSource
    *   `createEvent` - A data filter, giving you the opportunity to filter or replace the event data, such as removing/replacing records
    */
-  const BlockingEventSource = function (source, configuration = {}) {
+  const BlockingEventSource = function(source, configuration = {}) {
     const { currentEvent, ...config } = configuration;
     EventSource.apply(this, [
-      (configuration) => {
+      configuration => {
         const { createEvent, ...superConfiguration } = configuration;
         return source
           .apply(this, [superConfiguration, this])
           .catch(backoff)
-          .then((result) => {
+          .then(result => {
             if (result instanceof Error) {
               return result;
             }
@@ -131,7 +126,7 @@ export default function (EventSource, backoff = createErrorBackoff()) {
     // only on initialization
     // if we already have an currentEvent set via configuration
     // dispatch the event so things are populated immediately
-    this.addEventListener('open', (e) => {
+    this.addEventListener('open', e => {
       const currentEvent = e.target.getCurrentEvent();
       if (typeof currentEvent !== 'undefined') {
         this.dispatchEvent(currentEvent);
@@ -148,10 +143,10 @@ export default function (EventSource, backoff = createErrorBackoff()) {
     }),
     {
       // if we are having these props, at least make getters
-      getCurrentEvent: function () {
+      getCurrentEvent: function() {
         return this.currentEvent;
       },
-      getPreviousEvent: function () {
+      getPreviousEvent: function() {
         return this.previousEvent;
       },
     }

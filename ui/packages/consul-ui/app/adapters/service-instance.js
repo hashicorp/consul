@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Adapter from './application';
 
 // TODO: Update to use this.formatDatacenter()
@@ -26,7 +21,7 @@ export default class ServiceInstanceAdapter extends Adapter {
     }
 
     return request`
-      GET /v1/health/service/${id}?${{ dc, ['merge-central-config']: null }}
+      GET /v1/health/service/${id}?${{ dc }}
       X-Request-ID: ${uri}
       X-Range: ${id}
 

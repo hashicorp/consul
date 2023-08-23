@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import ChildSelectorComponent from '../child-selector/index';
 import { set } from '@ember/object';
 import { inject as service } from '@ember/service';
@@ -17,26 +12,26 @@ export default ChildSelectorComponent.extend({
   type: 'policy',
   allowIdentity: true,
   classNames: ['policy-selector'],
-  init: function () {
+  init: function() {
     this._super(...arguments);
     const source = this.source;
     if (source) {
       this._listeners.add(source, {
-        save: (e) => {
+        save: e => {
           this.save.perform(...e.data);
         },
       });
     }
   },
-  reset: function (e) {
+  reset: function(e) {
     this._super(...arguments);
     set(this, 'isScoped', false);
   },
-  refreshCodeEditor: function (e, target) {
+  refreshCodeEditor: function(e, target) {
     const selector = '.code-editor';
     this.dom.component(selector, target).didAppear();
   },
-  error: function (e) {
+  error: function(e) {
     const item = this.item;
     const err = e.error;
     if (typeof err.errors !== 'undefined') {
@@ -62,15 +57,8 @@ export default ChildSelectorComponent.extend({
       throw err;
     }
   },
-  openModal: function () {
-    const { modal } = this;
-
-    if (modal) {
-      modal.open();
-    }
-  },
   actions: {
-    open: function (e) {
+    open: function(e) {
       this.refreshCodeEditor(e, e.target.parentElement);
     },
   },

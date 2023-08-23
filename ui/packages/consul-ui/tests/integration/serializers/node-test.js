@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
@@ -12,12 +7,11 @@ import {
   HEADERS_NAMESPACE as NSPACE,
   HEADERS_PARTITION as PARTITION,
 } from 'consul-ui/utils/http/consul';
-module('Integration | Serializer | node', function (hooks) {
+module('Integration | Serializer | node', function(hooks) {
   setupTest(hooks);
   const nspace = 'default';
   const partition = 'default';
-  test('respondForQuery returns the correct data for list endpoint', function (assert) {
-    assert.expect(4);
+  test('respondForQuery returns the correct data for list endpoint', function(assert) {
     const store = this.owner.lookup('service:store');
     const serializer = this.owner.lookup('serializer:node');
     serializer.store = store;
@@ -26,9 +20,9 @@ module('Integration | Serializer | node', function (hooks) {
     const request = {
       url: `/v1/internal/ui/nodes?dc=${dc}`,
     };
-    return get(request.url).then(function (payload) {
+    return get(request.url).then(function(payload) {
       const actual = serializer.respondForQuery(
-        function (cb) {
+        function(cb) {
           const headers = {
             [DC]: dc,
             [NSPACE]: nspace,
@@ -51,8 +45,7 @@ module('Integration | Serializer | node', function (hooks) {
       assert.equal(actual[0].uid, `["${partition}","${nspace}","${dc}","${actual[0].ID}"]`);
     });
   });
-  test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
-    assert.expect(4);
+  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
     const store = this.owner.lookup('service:store');
     const serializer = this.owner.lookup('serializer:node');
     serializer.store = store;
@@ -62,9 +55,9 @@ module('Integration | Serializer | node', function (hooks) {
     const request = {
       url: `/v1/internal/ui/node/${id}?dc=${dc}`,
     };
-    return get(request.url).then(function (payload) {
+    return get(request.url).then(function(payload) {
       const actual = serializer.respondForQueryRecord(
-        function (cb) {
+        function(cb) {
           const headers = {
             [DC]: dc,
             [NSPACE]: nspace,
@@ -87,15 +80,13 @@ module('Integration | Serializer | node', function (hooks) {
       assert.equal(actual.uid, `["${partition}","${nspace}","${dc}","${actual.ID}"]`);
     });
   });
-  test('respondForQueryLeader returns the correct data', function (assert) {
-    assert.expect(1);
-
+  test('respondForQueryLeader returns the correct data', function(assert) {
     const serializer = this.owner.lookup('serializer:node');
     const dc = 'dc-1';
     const request = {
       url: `/v1/status/leader?dc=${dc}`,
     };
-    return get(request.url).then(function (payload) {
+    return get(request.url).then(function(payload) {
       const expected = {
         Address: '211.245.86.75',
         Port: '8500',
@@ -105,7 +96,7 @@ module('Integration | Serializer | node', function (hooks) {
         },
       };
       const actual = serializer.respondForQueryLeader(
-        function (cb) {
+        function(cb) {
           const headers = {
             [DC]: dc,
             [NSPACE]: nspace,

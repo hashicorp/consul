@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action, get } from '@ember/object';
@@ -29,7 +24,7 @@ export default class TopologyMetrics extends Component {
     };
 
     return items
-      .map((item) => {
+      .map(item => {
         const dimensions = item.getBoundingClientRect();
         const src = {
           x: dimensions.x + dimensions.width,
@@ -56,7 +51,7 @@ export default class TopologyMetrics extends Component {
     };
 
     return items
-      .map((item) => {
+      .map(item => {
         const dimensions = item.getBoundingClientRect();
         const dest = {
           x: dimensions.x - dimensions.width - 25,
@@ -109,7 +104,7 @@ export default class TopologyMetrics extends Component {
 
   get upstreams() {
     const upstreams = get(this.args.topology, 'Upstreams') || [];
-    upstreams.forEach((u) => {
+    upstreams.forEach(u => {
       u.PeerOrDatacenter = u.PeerName || u.Datacenter;
     });
     const items = [...upstreams];

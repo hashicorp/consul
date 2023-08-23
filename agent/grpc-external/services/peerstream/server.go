@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peerstream
 
 import (
@@ -15,8 +12,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 // TODO(peering): fix up these interfaces to be more testable now that they are
@@ -29,12 +26,11 @@ const (
 
 type Server struct {
 	Config
-
-	Tracker *Tracker
 }
 
 type Config struct {
 	Backend     Backend
+	Tracker     *Tracker
 	GetStore    func() StateStore
 	Logger      hclog.Logger
 	ForwardRPC  func(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error)
@@ -57,6 +53,7 @@ type ACLResolver interface {
 
 func NewServer(cfg Config) *Server {
 	requireNotNil(cfg.Backend, "Backend")
+	requireNotNil(cfg.Tracker, "Tracker")
 	requireNotNil(cfg.GetStore, "GetStore")
 	requireNotNil(cfg.Logger, "Logger")
 	// requireNotNil(cfg.ACLResolver, "ACLResolver") // TODO(peering): reenable check when ACLs are required
@@ -70,8 +67,7 @@ func NewServer(cfg Config) *Server {
 		cfg.incomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
 	}
 	return &Server{
-		Config:  cfg,
-		Tracker: NewTracker(cfg.incomingHeartbeatTimeout),
+		Config: cfg,
 	}
 }
 
@@ -122,10 +118,8 @@ type StateStore interface {
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID, dc string) (uint64, *structs.ExportedServiceList, error)
 	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
 	CheckServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
-	NodeServiceList(ws memdb.WatchSet, nodeNameOrID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeServiceList, error)
+	NodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeServices, error)
 	CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
 	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
-	ServiceList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceList, error)
-	ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *acl.EnterpriseMeta) (uint64, structs.ConfigEntry, error)
 	AbandonCh() <-chan struct{}
 }

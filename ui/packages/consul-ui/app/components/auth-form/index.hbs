@@ -1,161 +1,164 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-<StateChart @src={{this.chart}} as |State Guard ChartAction dispatch state|>
-  {{#let
-    (hash State=State Guard=Guard Action=ChartAction dispatch=dispatch state=state)
-    as |chart|
-  }}
-    {{#let
-      (hash
-        reset=(action dispatch 'RESET')
-        focus=this.focus
-        disabled=(state-matches state 'loading')
-        error=(queue
-          (action dispatch 'ERROR') (action (mut this.error) value='error.errors.firstObject')
+<StateChart
+  @src={{this.chart}}
+as |State Guard ChartAction dispatch state|>
+{{#let
+  (hash
+    State=State
+    Guard=Guard
+    Action=ChartAction
+    dispatch=dispatch
+    state=state
+  )
+as |chart|}}
+{{#let
+  (hash
+    reset=(action dispatch "RESET")
+    focus=this.focus
+    disabled=(state-matches state "loading")
+    error=(queue
+      (action dispatch "ERROR")
+      (action (mut this.error) value="error.errors.firstObject")
+    )
+    submit=(queue
+      (action (mut this.value))
+      (action dispatch "SUBMIT")
+    )
+  )
+as |exported|}}
+  <Guard
+    @name="hasValue"
+    @cond={{this.hasValue}}
+  />
+  {{!TODO: Call this reset or similar }}
+  <chart.Action
+    @name="clearError"
+    @exec={{queue (action (mut this.error) undefined) (action (mut this.secret) undefined)}}
+  />
+  <div
+    class="auth-form"
+    ...attributes
+  >
+<StateChart
+  @src={{this.tabsChart}}
+as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|>
+{{#if (can 'use SSO')}}
+    <TabNav
+      @items={{array
+        (hash
+          label='Token'
+          selected=(state-matches tabState 'token')
         )
-        submit=(queue (action (mut this.value)) (action dispatch 'SUBMIT'))
-      )
-      as |exported|
-    }}
-      <Guard @name='hasValue' @cond={{this.hasValue}} />
-      {{!TODO: Call this reset or similar }}
-      <chart.Action
-        @name='clearError'
-        @exec={{queue (action (mut this.error) undefined) (action (mut this.secret) undefined)}}
-      />
-      <div class='auth-form' ...attributes>
-        <StateChart
-          @src={{this.tabsChart}}
-          as |TabState IgnoredGuard IgnoredAction tabDispatch tabState|
+        (hash
+          label='SSO'
+          selected=(state-matches tabState 'sso')
+        )
+      }}
+      @onclick={{queue (action tabDispatch) (action dispatch "RESET")}}
+    />
+{{/if}}
+    <State @matches="error">
+      {{#if this.error.status}}
+        <Notice
+          @type="error"
+          role="alert"
+        as |notice|>
+          <notice.Body>
+            <p>
+              {{#if this.value.Name}}
+                {{#if (eq this.error.status '403')}}
+                  <strong>Consul login failed</strong><br />
+                  We received a token from your OIDC provider but could not log in to Consul with it.
+                {{else if (eq this.error.status '401')}}
+                  <strong>Could not log in to provider</strong><br />
+                  The OIDC provider has rejected this access token. Please have an administrator check your auth method configuration.
+                {{else if (eq this.error.status '499')}}
+                  <strong>SSO log in window closed</strong><br />
+                  The OIDC provider window was closed. Please try again.
+                {{else}}
+                  <strong>Error</strong><br />
+                  {{this.error.detail}}
+                {{/if}}
+              {{else}}
+                {{#if (eq this.error.status '403')}}
+                  <strong>Invalid token</strong><br />
+                  The token entered does not exist. Please enter a valid token to log in.
+                {{else if (eq this.error.status '404')}}
+                  <strong>No providers</strong><br />
+                  No SSO providers are configured for that Partition.
+                {{else}}
+                  <strong>Error</strong><br />
+                  {{this.error.detail}}
+                {{/if}}
+              {{/if}}
+            </p>
+          </notice.Body>
+        </Notice>
+      {{/if}}
+    </State>
+<TabState @matches="token">
+    <form
+      onsubmit={{action dispatch "SUBMIT"}}
+    >
+      <fieldset>
+        <label
+          class={{concat "type-password" (if (and (state-matches state 'error') (not this.error.status)) ' has-error')}}
         >
-          {{#if (can 'use SSO')}}
-            <TabNav
-              @items={{array
-                (hash label='Token' selected=(state-matches tabState 'token'))
-                (hash label='SSO' selected=(state-matches tabState 'sso'))
-              }}
-              @onclick={{queue (action tabDispatch) (action dispatch 'RESET')}}
-            />
-          {{/if}}
-          <State @matches='error'>
-            {{#if this.error.status}}
-              <Hds::Alert @type='inline' @color='critical' class='mb-1 mt-2' as |A|>
-                <A.Title>
-                  {{#if this.value.Name}}
-                    {{#if (eq this.error.status '403')}}
-                      Consul login failed
-                    {{else if (eq this.error.status '401')}}
-                      Could not log in to provider
-                    {{else if (eq this.error.status '499')}}
-                      SSO log in window closed
-                    {{else}}
-                      Error
-                    {{/if}}
-                  {{else}}
-                    {{#if (eq this.error.status '403')}}
-                      Invalid token
-                    {{else if (eq this.error.status '404')}}
-                      No providers
-                    {{else}}
-                      Error
-                    {{/if}}
-                  {{/if}}
-                </A.Title>
-                <A.Description>
-                  {{#if this.value.Name}}
-                    {{#if (eq this.error.status '403')}}
-                      We received a token from your OIDC provider but could not log in to Consul
-                      with it.
-                    {{else if (eq this.error.status '401')}}
-                      The OIDC provider has rejected this access token. Please have an
-                      administrator check your auth method configuration.
-                    {{else if (eq this.error.status '499')}}
-                      The OIDC provider window was closed. Please try again.
-                    {{else}}
-                      {{this.error.detail}}
-                    {{/if}}
-                  {{else}}
-                    {{#if (eq this.error.status '403')}}
-                      The token entered does not exist. Please enter a valid token to log in.
-                    {{else if (eq this.error.status '404')}}
-                      No SSO providers are configured for that Partition.
-                    {{else}}
-                      {{this.error.detail}}
-                    {{/if}}
-                  {{/if}}
-                </A.Description>
-              </Hds::Alert>
+          <span>Log in with a token</span>
+
+          {{! Blink/Webkit based seem to leak password inputs }}
+          {{! this will only occur during acceptance testing so }}
+          {{! turn them into text inputs during acceptance testing }}
+          <input
+            {{did-insert (set this 'input')}}
+            disabled={{state-matches state "loading"}}
+            type={{if (eq (env 'environment') 'testing') 'text' 'password'}}
+            name="auth[SecretID]"
+            placeholder="SecretID"
+            value={{this.secret}}
+            oninput={{queue
+              (action (mut this.secret) value="target.value")
+              (action (mut this.value) value="target.value")
+              (action dispatch "TYPING")
+            }}
+          />
+          <State @matches="error">
+            {{#if (not this.error.status)}}
+              <strong role="alert">
+                Please enter your secret
+              </strong>
             {{/if}}
           </State>
-          <TabState @matches='token'>
-            <form onsubmit={{action dispatch 'SUBMIT'}}>
-              <fieldset>
-                <label
-                  class={{concat
-                    'type-password'
-                    (if (and (state-matches state 'error') (not this.error.status)) ' has-error')
-                  }}
-                >
-                  <span>Log in with a token</span>
+        </label>
+      </fieldset>
+      <Action
+        @type="submit"
+        disabled={{state-matches state "loading"}}
+      >
+        Log in
+      </Action>
+    </form>
+</TabState>
 
-                  {{! Blink/Webkit based seem to leak password inputs }}
-                  {{! this will only occur during acceptance testing so }}
-                  {{! turn them into text inputs during acceptance testing }}
-                  <input
-                    {{did-insert (set this 'input')}}
-                    disabled={{state-matches state 'loading'}}
-                    type={{if (eq (env 'environment') 'testing') 'text' 'password'}}
-                    name='auth[SecretID]'
-                    placeholder='SecretID'
-                    value={{this.secret}}
-                    oninput={{queue
-                      (action (mut this.secret) value='target.value')
-                      (action (mut this.value) value='target.value')
-                      (action dispatch 'TYPING')
-                    }}
-                  />
-                  <State @matches='error'>
-                    {{#if (not this.error.status)}}
-                      <strong role='alert'>
-                        Please enter your secret
-                      </strong>
-                    {{/if}}
-                  </State>
-                </label>
-              </fieldset>
-              <Hds::Button
-                type='submit'
-                @text='Log in'
-                disabled={{state-matches state 'loading'}}
-              />
-            </form>
-          </TabState>
+{{yield (assign exported (hash Method=TabState))}}
 
-          {{yield (assign exported (hash Method=TabState))}}
+      <em>
+        Contact your administrator for login credentials.
+      </em>
+</StateChart>
 
-          <em>
-            Contact your administrator for login credentials.
-          </em>
-        </StateChart>
 
-      </div>
-      <State @matches='loading'>
-        <TokenSource
-          @dc={{@dc}}
-          @nspace={{or this.value.Namespace @nspace}}
-          @partition={{or this.value.Partition @partition}}
-          @type={{if this.value.Name 'oidc' 'secret'}}
-          @value={{this.value}}
-          @onchange={{queue (action dispatch 'RESET') @onsubmit}}
-          @onerror={{queue
-            (action (mut this.error) value='error.errors.firstObject')
-            (action dispatch 'ERROR')
-          }}
-        />
-      </State>
-    {{/let}}
-  {{/let}}
+  </div>
+  <State @matches="loading">
+    <TokenSource
+      @dc={{@dc}}
+      @nspace={{or this.value.Namespace @nspace}}
+      @partition={{or this.value.Partition @partition}}
+      @type={{if this.value.Name 'oidc' 'secret'}}
+      @value={{this.value}}
+      @onchange={{queue (action dispatch "RESET") @onsubmit}}
+      @onerror={{queue (action (mut this.error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+    />
+  </State>
+{{/let}}
+{{/let}}
 </StateChart>

@@ -1,1 +1,0 @@
-xds: configure Envoy `alpn_protocols` for connect-proxy and ingress-gateway based on service protocol.

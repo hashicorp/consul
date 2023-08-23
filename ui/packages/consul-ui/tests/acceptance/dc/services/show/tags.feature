@@ -19,7 +19,7 @@ Feature: dc / services / show / tags
       dc: dc1
       service: service
     ---
-    And I see tagsIsVisible on the tabs
+    And I see tags on the tabs
     When I click tags on the tabs
     And I see tagsIsSelected on the tabs
     And I see 3 tag models on the tabs.tagsTab component
@@ -42,7 +42,7 @@ Feature: dc / services / show / tags
       dc: dc1
       service: service
     ---
-    And I see tagsIsVisible on the tabs
+    And I see tags on the tabs
     When I click tags on the tabs
     And I see tagsIsSelected on the tabs
     And I see 3 tag models on the tabs.tagsTab component

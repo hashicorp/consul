@@ -1,28 +1,34 @@
 ---
 layout: commands
 page_title: 'Commands: Services Register'
-description: |
-  The `consul services register` command registers services with the Consul catalog.
 ---
 
 # Consul Agent Service Registration
 
 Command: `consul services register`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/service/register](/consul/api-docs/agent/service#register-service)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/service/register](/api-docs/agent/service#register-service)
 
 The `services register` command registers a service with the local agent.
 This command returns after registration and must be paired with explicit
 service deregistration. This command simplifies service registration from
-scripts. Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for information about other service registration methods.
+scripts, in dev mode, etc.
 
-The following table shows the [ACLs](/consul/api-docs/api-structure#authentication) required to use the `consul services register` command:
+This is just one method of service registration. Services can also be
+registered by placing a [service definition](/docs/discovery/services)
+in the Consul agent configuration directory and issuing a
+[reload](/commands/reload). This approach is easiest for
+configuration management systems that other systems that have access to
+the configuration directory. Clients may also use the
+[HTTP API](/api-docs/agent/service) directly.
+
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required    |
 | --------------- |
 | `service:write` |
-
-You cannot use the Consul command line to configure [blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching), you can configure them from the corresponding HTTP endpoint.
 
 ## Usage
 
@@ -38,7 +44,7 @@ This command returns after registration succeeds. It must be paired with
 a deregistration command or API call to remove the service. To ensure that
 services are properly deregistered, it is **highly recommended** that
 a check is created with the
-[`DeregisterCriticalServiceAfter`](/consul/api-docs/agent/check#deregistercriticalserviceafter)
+[`DeregisterCriticalServiceAfter`](/api-docs/agent/check#deregistercriticalserviceafter)
 configuration set. This will ensure that even if deregistration failed for
 any reason, the agent will automatically deregister the service instance after
 it is unhealthy for the specified period of time.
@@ -57,7 +63,9 @@ The flags below should only be set if _no arguments_ are given. If no
 arguments are given, the flags below can be used to register a single
 service.
 
-The following fields specify identical parameters in a standard service definition file. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference) for details about each configuration option.
+Note that the behavior of each of the fields below is exactly the same
+as when constructing a standard [service definition](/docs/discovery/services).
+Please refer to that documentation for full details.
 
 - `-id` - The ID of the service. This will default to `-name` if not set.
 

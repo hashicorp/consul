@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 import { guidFor } from '@ember/object/internals';
 
@@ -81,10 +76,10 @@ export default class DomService extends Service {
   setEventTargetProperty(e, property, cb) {
     const target = e.target;
     return new Proxy(e, {
-      get: function (obj, prop, receiver) {
+      get: function(obj, prop, receiver) {
         if (prop === 'target') {
           return new Proxy(target, {
-            get: function (obj, prop, receiver) {
+            get: function(obj, prop, receiver) {
               if (prop === property) {
                 return cb(e.target[property]);
               }
@@ -100,10 +95,10 @@ export default class DomService extends Service {
   setEventTargetProperties(e, propObj) {
     const target = e.target;
     return new Proxy(e, {
-      get: function (obj, prop, receiver) {
+      get: function(obj, prop, receiver) {
         if (prop === 'target') {
           return new Proxy(target, {
-            get: function (obj, prop, receiver) {
+            get: function(obj, prop, receiver) {
               if (typeof propObj[prop] !== 'undefined') {
                 return propObj[prop](e.target);
               }
@@ -161,10 +156,10 @@ export default class DomService extends Service {
 
   components(selector, context) {
     return [...this.elements(selector, context)]
-      .map(function (item) {
+      .map(function(item) {
         return $_(item);
       })
-      .filter(function (item) {
+      .filter(function(item) {
         return item != null;
       });
   }
@@ -173,7 +168,7 @@ export default class DomService extends Service {
     inViewportCallbacks.set($el, cb);
     let observer = new IntersectionObserver(
       (entries, observer) => {
-        entries.map((item) => {
+        entries.map(item => {
           const cb = inViewportCallbacks.get(item.target);
           if (typeof cb === 'function') {
             cb(item.isIntersecting);

@@ -29,8 +29,8 @@ Feature: dc / acls / roles / update: ACL Role Update
         Description: [Description]
     ---
     Then the url should be /datacenter/acls/roles
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
     Where:
       ------------------------------------------
       | Name        | Description              |
@@ -42,8 +42,8 @@ Feature: dc / acls / roles / update: ACL Role Update
     Given the url "/v1/acl/role/role-id" responds with a 500 status
     And I submit
     Then the url should be /datacenter/acls/roles/role-id
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    Then "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "error" class
 
   @notNamespaceable
   Scenario: Updating a simple ACL role when Namespaces are disabled does not send Namespace
@@ -57,5 +57,5 @@ Feature: dc / acls / roles / update: ACL Role Update
       - Namespace
     ---
     Then the url should be /datacenter/acls/roles
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class

@@ -16,7 +16,7 @@
       },
       "connectTimeout": "33s",
       "circuitBreakers": {
-        "thresholds": [
+        "thresholds":[
           {
             "maxConnections": 2048,
             "maxPendingRequests": 512,

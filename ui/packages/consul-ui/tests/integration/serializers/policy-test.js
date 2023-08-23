@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
@@ -12,35 +7,32 @@ import {
   HEADERS_NAMESPACE as NSPACE,
   HEADERS_PARTITION as PARTITION,
 } from 'consul-ui/utils/http/consul';
-module('Integration | Serializer | policy', function (hooks) {
+module('Integration | Serializer | policy', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'policy-name';
   const undefinedNspace = 'default';
   const undefinedPartition = 'default';
   const partition = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
-    test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(1);
-
+  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
+    test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
       const serializer = this.owner.lookup('serializer:policy');
       const request = {
         url: `/v1/acl/policies?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${
           typeof partition !== 'undefined' ? `&partition=${partition}` : ``
         }`,
       };
-      return get(request.url).then(function (payload) {
-        const expected = payload.map((item) =>
+      return get(request.url).then(function(payload) {
+        const expected = payload.map(item =>
           Object.assign({}, item, {
             Datacenter: dc,
             Namespace: item.Namespace || undefinedNspace,
-            uid: `["${item.Partition || undefinedPartition}","${
-              item.Namespace || undefinedNspace
-            }","${dc}","${item.ID}"]`,
+            uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
+              undefinedNspace}","${dc}","${item.ID}"]`,
           })
         );
         const actual = serializer.respondForQuery(
-          function (cb) {
+          function(cb) {
             const headers = {
               [DC]: dc,
               [NSPACE]: nspace || undefinedNspace,
@@ -58,16 +50,14 @@ module('Integration | Serializer | policy', function (hooks) {
         assert.deepEqual(actual, expected);
       });
     });
-    test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(1);
-
+    test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
       const serializer = this.owner.lookup('serializer:policy');
       const request = {
         url: `/v1/acl/policy/${id}?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${
           typeof partition !== 'undefined' ? `&partition=${partition}` : ``
         }`,
       };
-      return get(request.url).then(function (payload) {
+      return get(request.url).then(function(payload) {
         const expected = Object.assign({}, payload, {
           Datacenter: dc,
           [META]: {
@@ -77,12 +67,11 @@ module('Integration | Serializer | policy', function (hooks) {
           },
           Namespace: payload.Namespace || undefinedNspace,
           Partition: payload.Partition || undefinedPartition,
-          uid: `["${payload.Partition || undefinedPartition}","${
-            payload.Namespace || undefinedNspace
-          }","${dc}","${id}"]`,
+          uid: `["${payload.Partition || undefinedPartition}","${payload.Namespace ||
+            undefinedNspace}","${dc}","${id}"]`,
         });
         const actual = serializer.respondForQueryRecord(
-          function (cb) {
+          function(cb) {
             const headers = {
               [DC]: dc,
               [NSPACE]: nspace || undefinedNspace,

@@ -17,7 +17,7 @@ policies to support full conditional logic and integration with external systems
 
 Sentinel policies are applied during writes to the KV Store.
 
-An optional `sentinel` field specifying code and enforcement level can be added to [ACL policy definitions](/consul/docs/security/acl/acl-rules#sentinel-integration) for Consul KV. The following policy ensures that the value written during a KV update must end with "dc1".
+An optional `sentinel` field specifying code and enforcement level can be added to [ACL policy definitions](/docs/security/acl/acl-rules#sentinel-integration) for Consul KV. The following policy ensures that the value written during a KV update must end with "dc1".
 
 <CodeBlockConfig heading="Ensure values written during KV updates end in 'dc1'">
 
@@ -40,7 +40,7 @@ If the `enforcementlevel` property is not set, it defaults to "hard-mandatory".
 
 ## Imports
 
-Consul imports all the [standard imports](https://docs.hashicorp.com/sentinel/imports) from Sentinel _except_ [`http`](https://docs.hashicorp.com/sentinel/imports/http). All functions in these imports are available to be used in policies.
+Consul imports all the [standard imports](https://docs.hashicorp.com/sentinel/imports/) from Sentinel _except_ [`http`](https://docs.hashicorp.com/sentinel/imports/http). All functions in these imports are available to be used in policies.
 
 ## Injected Variables
 
@@ -52,7 +52,7 @@ Consul passes some context as variables into Sentinel, which are available to us
 | ------------- | -------- | ---------------------- |
 | `key`         | `string` | Key being written      |
 | `value`       | `string` | Value being written    |
-| `flags`       | `uint64` | [Flags](/consul/api-docs/kv#flags) |
+| `flags`       | `uint64` | [Flags](/api-docs/kv#flags) |
 
 ## Sentinel Examples
 

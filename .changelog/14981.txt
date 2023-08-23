@@ -1,3 +1,0 @@
-```release-note:feature
-peering: add support for routine peering control-plane traffic through mesh gateways
-```

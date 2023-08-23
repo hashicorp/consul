@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -39,7 +36,6 @@ const (
 	indexUUID        = "uuid"
 	indexMeta        = "meta"
 	indexCounterOnly = "counter"
-	indexManualVIPs  = "manual-vips"
 )
 
 // nodesTableSchema returns a new table schema used for storing struct.Node.
@@ -422,7 +418,8 @@ func indexServiceNameFromHealthCheck(hc *structs.HealthCheck) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// gatewayServicesTableSchema returns a new table schema used to store information
+//	gatewayServicesTableSchema returns a new table schema used to store information
+//
 // about services associated with terminating gateways.
 func gatewayServicesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
@@ -609,19 +606,10 @@ func (q NodeCheckQuery) PartitionOrDefault() string {
 // ServiceVirtualIP is used to store a virtual IP associated with a service.
 // It is also used to store assigned virtual IPs when a snapshot is created.
 type ServiceVirtualIP struct {
-	Service   structs.PeeredServiceName
-	IP        net.IP
-	ManualIPs []string
+	Service structs.PeeredServiceName
+	IP      net.IP
 
 	structs.RaftIndex
-}
-
-func (s ServiceVirtualIP) IPWithOffset() (string, error) {
-	result, err := addIPOffset(startingVirtualIP, s.IP)
-	if err != nil {
-		return "", err
-	}
-	return result.String(), nil
 }
 
 // FreeVirtualIP is used to store a virtual IP freed up by a service deregistration.
@@ -638,33 +626,6 @@ func counterIndex(obj interface{}) (bool, error) {
 	return false, fmt.Errorf("object is not a virtual IP entry")
 }
 
-type ServiceManualVIPIndex struct{}
-
-func (index *ServiceManualVIPIndex) FromObject(obj interface{}) (bool, []byte, error) {
-	entry, ok := obj.(ServiceVirtualIP)
-	if !ok {
-		return false, nil, fmt.Errorf("object is not a ServiceVirtualIP")
-	}
-
-	// Enforce lowercase and add null character as terminator
-	id := strings.ToLower(entry.Service.ServiceName.PartitionOrDefault()) + "\x00"
-
-	return true, []byte(id), nil
-}
-
-func (index *ServiceManualVIPIndex) FromArgs(args ...interface{}) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("must provide only a single argument")
-	}
-	arg, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("argument must be a string: %#v", args[0])
-	}
-
-	id := strings.ToLower(arg) + "\x00"
-	return []byte(id), nil
-}
-
 func serviceVirtualIPTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: tableServiceVirtualIPs,
@@ -678,19 +639,6 @@ func serviceVirtualIPTableSchema() *memdb.TableSchema {
 					writeIndex: indexFromServiceVirtualIP,
 					// Read all peers in a cluster / partition
 					prefixIndex: prefixIndexFromQueryWithPeerWildcardable,
-				},
-			},
-			indexManualVIPs: {
-				Name:         indexManualVIPs,
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.CompoundMultiIndex{
-					Indexes: []memdb.Indexer{
-						&ServiceManualVIPIndex{},
-						&memdb.StringSliceFieldIndex{
-							Field: "ManualIPs",
-						},
-					},
 				},
 			},
 		},

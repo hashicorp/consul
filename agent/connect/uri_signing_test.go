@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -81,7 +78,7 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "service - good mixed case",
+			name:  "service - good midex case",
 			id:    testSigning,
 			input: &SpiffeIDService{Host: strings.ToUpper(TestClusterID) + ".CONsuL", Namespace: "defAUlt", Datacenter: "dc1", Service: "WEB"},
 			want:  true,
@@ -105,7 +102,7 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "mesh gateway - good mixed case",
+			name:  "mesh gateway - good midex case",
 			id:    testSigning,
 			input: &SpiffeIDMeshGateway{Host: strings.ToUpper(TestClusterID) + ".CONsuL", Datacenter: "dc1"},
 			want:  true,
@@ -120,30 +117,6 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			name:  "mesh gateway - different TLD",
 			id:    testSigning,
 			input: &SpiffeIDMeshGateway{Host: TestClusterID + ".fake", Datacenter: "dc1"},
-			want:  false,
-		},
-		{
-			name:  "server - good",
-			id:    testSigning,
-			input: &SpiffeIDServer{Host: TestClusterID + ".consul", Datacenter: "dc1"},
-			want:  true,
-		},
-		{
-			name:  "server - good mixed case",
-			id:    testSigning,
-			input: &SpiffeIDServer{Host: strings.ToUpper(TestClusterID) + ".CONsuL", Datacenter: "dc1"},
-			want:  true,
-		},
-		{
-			name:  "server - different cluster",
-			id:    testSigning,
-			input: &SpiffeIDServer{Host: "55555555-4444-3333-2222-111111111111.consul", Datacenter: "dc1"},
-			want:  false,
-		},
-		{
-			name:  "server - different TLD",
-			id:    testSigning,
-			input: &SpiffeIDServer{Host: TestClusterID + ".fake", Datacenter: "dc1"},
 			want:  false,
 		},
 	}

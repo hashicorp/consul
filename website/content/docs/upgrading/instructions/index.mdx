@@ -10,43 +10,43 @@ description: >-
 
 This document is intended to help users who find themselves many versions behind to upgrade safely.
 
-## General Upgrade Path
+## Upgrade Path
 
-Each upgrade should jump at most 2 major versions, except where
-[dedicated instructions](#dedicated-instructions-for-specific-upgrade-paths)
-are provided for a larger jump between specific versions.
-If your upgrade path has no applicable [dedicated instructions](#dedicated-instructions-for-specific-upgrade-paths),
-review the [version-specific upgrade details](/consul/docs/upgrading/upgrade-specific)
-to plan your upgrade, starting from the next version and working
-upwards to your target version.
+Our recommended upgrade path is to move through the following sequence of versions:
 
-For example, to upgrade from Consul 1.12 to Consul 1.15:
+- 0.8.5 (final 0.8.x)
+- 1.2.4 (final 1.2.x)
+- 1.6.10 (final 1.6.x)
+- 1.8.19 (final 1.8.x)
+- Latest 1.10.x
+- Latest 1.12.x
+- Latest 1.13.x ([at least 1.13.1](/docs/upgrading/upgrade-specific#service-mesh-compatibility))
 
-1. Upgrade to Consul 1.14 as an intermediate step.
-   To plan, review the upgrade details for
-   [1.13](/consul/docs/upgrading/upgrade-specific#consul-1-13-x) and
-   [1.14](/consul/docs/upgrading/upgrade-specific#consul-1-14-x).
-1. Upgrade to Consul 1.15.
-   To plan, review the upgrade details for
-   [1.15](/consul/docs/upgrading/upgrade-specific#consul-1-15-x).
+## Getting Started
 
-## Dedicated Instructions for Specific Upgrade Paths
+To get instructions for your upgrade, follow the instructions given below for
+your _currently installed_ release series until you are on the latest current version.
+The upgrade guides will mention notable changes and link to relevant changelogs –
+we recommend reviewing the changelog for versions between the one you are on and the
+one you are upgrading to at each step to familiarize yourself with changes.
 
-The following table provides links to dedicated instructions
-for directly upgrading from a version in the starting range
-to a destination version.
+Select your _currently installed_ release series:
+- 1.12.x: work upwards from [1.13 upgrade notes](/docs/upgrading/upgrade-specific#consul-1-13-x)
+- 1.11.x: work upwards from [1.12 upgrade notes](/docs/upgrading/upgrade-specific#consul-1-12-0)
+- 1.10.x: work upwards from [1.11 upgrade notes](/docs/upgrading/upgrade-specific#consul-1-11-0)
+- [1.9.x](/docs/upgrading/instructions/upgrade-to-1-10-x)
+- [1.8.x](/docs/upgrading/instructions/upgrade-to-1-10-x)
+- [1.7.x](/docs/upgrading/instructions/upgrade-to-1-8-x)
+- [1.6.x](/docs/upgrading/instructions/upgrade-to-1-8-x)
+- [1.5.x](/docs/upgrading/instructions/upgrade-to-1-6-x)
+- [1.4.x](/docs/upgrading/instructions/upgrade-to-1-6-x)
+- [1.3.x](/docs/upgrading/instructions/upgrade-to-1-6-x)
+- [1.2.x](/docs/upgrading/instructions/upgrade-to-1-6-x)
+- [1.1.x](/docs/upgrading/instructions/upgrade-to-1-2-x)
+- [1.0.x](/docs/upgrading/instructions/upgrade-to-1-2-x)
+- [0.9.x](/docs/upgrading/instructions/upgrade-to-1-2-x)
+- [0.8.x](/docs/upgrading/instructions/upgrade-to-1-2-x)
 
-| Starting Version Range | Destination Version | Upgrade Instructions |
-| ---------------------- | ------------------- | -------------------- |
-| 1.8.0 - 1.9.17         | 1.10.12             | Refer to [upgrading to latest 1.10.x](/consul/docs/upgrading/instructions/upgrade-to-1-10-x) |
-| 1.6.9 - 1.8.18         | 1.8.19              | Refer to [upgrading to latest 1.8.x](/consul/docs/upgrading/instructions/upgrade-to-1-8-x) |
-| 1.2.4 - 1.6.9          | 1.6.10              | Refer to [upgrading to latest 1.6.x](/consul/docs/upgrading/instructions/upgrade-to-1-6-x) |
-| 0.8.5 - 1.2.3          | 1.2.4               | Refer to [upgrading to latest 1.2.x](/consul/docs/upgrading/instructions/upgrade-to-1-2-x) |
-
-For example, to upgrade from Consul 1.3.1 to latest 1.12:
-1. Upgrade to Consul 1.6.10 using the dedicated instructions.
-1. Upgrade to Consul 1.8.19 using the dedicated instructions.
-1. Upgrade to Consul 1.10.12 using the dedicated instructions.
-1. Upgrade to latest Consul 1.12.x after consulting the
-   [version-specific upgrade details](/consul/docs/upgrading/upgrade-specific)
-   for 1.11 and 1.12.
+If you are using <= 0.7.x, please contact support for assistance:
+- OSS users without paid support plans can request help in our [Community Forum](https://discuss.hashicorp.com/c/consul/29)
+- Enterprise and OSS users with paid support plans can contact [HashiCorp Support](https://support.hashicorp.com/)

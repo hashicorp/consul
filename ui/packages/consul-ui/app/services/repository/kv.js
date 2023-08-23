@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import RepositoryService from 'consul-ui/services/repository';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get } from '@ember/object';
@@ -84,7 +79,7 @@ export default class KvService extends RepositoryService {
     //   async () => {
     let items = await this.findAll(...arguments);
     const meta = items.meta;
-    items = items.filter((item) => params.id !== get(item, 'Key'));
+    items = items.filter(item => params.id !== get(item, 'Key'));
     items.meta = meta;
     return items;
     // },

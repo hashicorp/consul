@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -108,7 +105,7 @@ func TestEventPayloadCARoots_HasReadPermission(t *testing.T) {
 			service "foo" {
 				policy = "write"
 			}
-		`, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

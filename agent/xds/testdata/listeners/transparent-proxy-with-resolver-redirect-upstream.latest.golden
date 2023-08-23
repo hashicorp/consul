@@ -17,8 +17,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.db-redir.default.default.dc1",
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.db-redir.default.default.dc1"
               }
             }
           ]
@@ -124,7 +124,9 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+
+                },
                 "statPrefix": "connect_authz"
               }
             },
@@ -142,7 +144,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {

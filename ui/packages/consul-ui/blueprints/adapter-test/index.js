@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 /*eslint node/no-extraneous-require: "off"*/
 const useTestFrameworkDetector = require('@ember-data/private-build-infra/src/utilities/test-framework-detector');
 
@@ -23,6 +18,7 @@ module.exports = useTestFrameworkDetector({
   },
 
   locals(options) {
-    return {};
+    return {
+    };
   },
 });

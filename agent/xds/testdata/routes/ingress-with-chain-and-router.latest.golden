@@ -277,33 +277,12 @@
             },
             {
               "match": {
-                "prefix": "/idle-timeout"
-              },
-              "route": {
-                "cluster": "idle-timeout.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "idleTimeout": "33s"
-              }
-            },
-            {
-              "match": {
                 "prefix": "/retry-connect"
               },
               "route": {
                 "cluster": "retry-connect.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "retryPolicy": {
                   "retryOn": "connect-failure",
-                  "numRetries": 15
-                }
-              }
-            },
-            {
-              "match": {
-                "prefix": "/retry-reset"
-              },
-              "route": {
-                "cluster": "retry-reset.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "retryPolicy": {
-                  "retryOn": "reset",
                   "numRetries": 15
                 }
               }
@@ -327,12 +306,12 @@
             },
             {
               "match": {
-                "prefix": "/retry-all"
+                "prefix": "/retry-both"
               },
               "route": {
-                "cluster": "retry-all.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "cluster": "retry-both.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "retryPolicy": {
-                  "retryOn": "5xx,gateway-error,reset,connect-failure,envoy-ratelimited,retriable-4xx,refused-stream,cancelled,deadline-exceeded,internal,resource-exhausted,unavailable,retriable-status-codes",
+                  "retryOn": "connect-failure,retriable-status-codes",
                   "retriableStatusCodes": [
                     401,
                     409,

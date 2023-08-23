@@ -1,12 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -25,20 +21,16 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	grpcexternal "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
-
-const localTestDC = "dc1"
 
 func TestPreparedQuery_Apply(t *testing.T) {
 	if testing.Short() {
@@ -96,7 +88,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 
 	// Fix that and ensure Targets and NearestN cannot be set at the same time.
 	query.Query.Service.Failover.NearestN = 1
-	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{Peer: "peer"}}
+	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{PeerName: "peer"}}
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if err == nil || !strings.Contains(err.Error(), "Targets cannot be populated with") {
 		t.Fatalf("bad: %v", err)
@@ -105,7 +97,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	// Fix that and ensure Targets and Datacenters cannot be set at the same time.
 	query.Query.Service.Failover.NearestN = 0
 	query.Query.Service.Failover.Datacenters = []string{"dc2"}
-	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{Peer: "peer"}}
+	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{PeerName: "peer"}}
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if err == nil || !strings.Contains(err.Error(), "Targets cannot be populated with") {
 		t.Fatalf("bad: %v", err)
@@ -1443,9 +1435,138 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-	t.Parallel()
 
-	es := createExecuteServers(t)
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	waitForLeaderEstablishment(t, s1)
+	codec1 := rpcClient(t, s1)
+	defer codec1.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	waitForLeaderEstablishment(t, s2)
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc3"
+		c.PrimaryDatacenter = "dc3"
+		c.NodeName = "acceptingServer.dc3"
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+	waitForLeaderEstablishment(t, s3)
+	codec3 := rpcClient(t, s3)
+	defer codec3.Close()
+
+	// Try to WAN join.
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members want %d", got, want)
+		}
+		if got, want := len(s2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members want %d", got, want)
+		}
+	})
+
+	// check for RPC forwarding
+	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
+	testrpc.WaitForLeader(t, s3.RPC, "dc3")
+
+	acceptingPeerName := "my-peer-accepting-server"
+	dialingPeerName := "my-peer-dialing-server"
+
+	// Set up peering between dc1 (dailing) and dc3 (accepting) and export the foo service
+	{
+		// Create a peering by generating a token.
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		t.Cleanup(cancel)
+
+		ctx = grpcexternal.ContextWithToken(ctx, "root")
+
+		conn, err := grpc.DialContext(ctx, s3.config.RPCAddr.String(),
+			grpc.WithContextDialer(newServerDialer(s3.config.RPCAddr.String())),
+			grpc.WithInsecure(),
+			grpc.WithBlock())
+		require.NoError(t, err)
+		defer conn.Close()
+
+		peeringClient := pbpeering.NewPeeringServiceClient(conn)
+		req := pbpeering.GenerateTokenRequest{
+			PeerName: dialingPeerName,
+		}
+		resp, err := peeringClient.GenerateToken(ctx, &req)
+		require.NoError(t, err)
+
+		conn, err = grpc.DialContext(ctx, s1.config.RPCAddr.String(),
+			grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+			grpc.WithInsecure(),
+			grpc.WithBlock())
+		require.NoError(t, err)
+		defer conn.Close()
+
+		peeringClient = pbpeering.NewPeeringServiceClient(conn)
+		establishReq := pbpeering.EstablishRequest{
+			PeerName:     acceptingPeerName,
+			PeeringToken: resp.PeeringToken,
+		}
+		establishResp, err := peeringClient.Establish(ctx, &establishReq)
+		require.NoError(t, err)
+		require.NotNil(t, establishResp)
+
+		readResp, err := peeringClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: acceptingPeerName})
+		require.NoError(t, err)
+		require.NotNil(t, readResp)
+
+		// Wait for the stream to be connected.
+		retry.Run(t, func(r *retry.R) {
+			status, found := s1.peerStreamServer.StreamStatus(readResp.GetPeering().GetID())
+			require.True(r, found)
+			require.True(r, status.Connected)
+		})
+
+		exportedServices := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc3",
+			Entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name:      "foo",
+						Consumers: []structs.ServiceConsumer{{PeerName: dialingPeerName}},
+					},
+				},
+			},
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec3, "ConfigEntry.Apply", &exportedServices, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	execNoNodesToken := createTokenWithPolicyName(t, codec1, "no-nodes", `service_prefix "foo" { policy = "read" }`, "root")
+	rules := `
+		service_prefix "foo" { policy = "read" }
+		node_prefix "" { policy = "read" }
+	`
+	execToken := createTokenWithPolicyName(t, codec1, "with-read", rules, "root")
+	denyToken := createTokenWithPolicyName(t, codec1, "with-deny", `service_prefix "foo" { policy = "deny" }`, "root")
 
 	newSessionDC1 := func(t *testing.T) string {
 		t.Helper()
@@ -1453,12 +1574,12 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.SessionCreate,
 			Session: structs.Session{
-				Node: es.server.server.config.NodeName,
+				Node: s1.config.NodeName,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var session string
-		if err := msgpackrpc.CallWithCodec(es.server.codec, "Session.Apply", &req, &session); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec1, "Session.Apply", &req, &session); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return session
@@ -1471,9 +1592,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				codec rpc.ClientCodec
 				dc    string
 			}{
-				{es.server.codec, "dc1"},
-				{es.wanServer.codec, "dc2"},
-				{es.peeringServer.codec, "dc3"},
+				{codec1, "dc1"},
+				{codec2, "dc2"},
+				{codec3, "dc3"},
 			} {
 				req := structs.RegisterRequest{
 					Datacenter: d.dc,
@@ -1522,7 +1643,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	if err := msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1534,12 +1655,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		err := msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply)
+		err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply)
 		assert.EqualError(t, err, structs.ErrQueryNotFound.Error())
 		assert.Len(t, reply.Nodes, 0)
 	})
 
-	expectNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
+	expectNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
+		t.Helper()
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc1", reply.Datacenter)
 		assert.Equal(t, 0, reply.Failovers)
@@ -1547,7 +1669,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Equal(t, query.Query.DNS, reply.DNS)
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
-	expectFailoverNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
+	expectFailoverNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
+		t.Helper()
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc2", reply.Datacenter)
 		assert.Equal(t, 1, reply.Failovers)
@@ -1556,10 +1679,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
 
-	expectFailoverPeerNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
+	expectFailoverPeerNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
+		t.Helper()
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "", reply.Datacenter)
-		assert.Equal(t, es.peeringServer.acceptingPeerName, reply.PeerName)
+		assert.Equal(t, acceptingPeerName, reply.PeerName)
 		assert.Equal(t, 2, reply.Failovers)
 		assert.Equal(t, query.Query.Service.Service, reply.Service)
 		assert.Equal(t, query.Query.DNS, reply.DNS)
@@ -1570,11 +1694,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 		expectNodes(t, &query, &reply, 10)
 	})
 
@@ -1583,11 +1707,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
 			Limit:         3,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 		expectNodes(t, &query, &reply, 3)
 	})
 
@@ -1631,16 +1755,16 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				},
 				WriteRequest: structs.WriteRequest{Token: "root"},
 			}
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &nodeMetaQuery, &nodeMetaQuery.Query.ID))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &nodeMetaQuery, &nodeMetaQuery.Query.ID))
 
 			req := structs.PreparedQueryExecuteRequest{
 				Datacenter:    "dc1",
 				QueryIDOrName: nodeMetaQuery.Query.ID,
-				QueryOptions:  structs.QueryOptions{Token: es.execToken},
+				QueryOptions:  structs.QueryOptions{Token: execToken},
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 			assert.Len(t, reply.Nodes, tc.numNodes)
 
 			for _, node := range reply.Nodes {
@@ -1694,16 +1818,16 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				WriteRequest: structs.WriteRequest{Token: "root"},
 			}
 
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &svcMetaQuery, &svcMetaQuery.Query.ID))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &svcMetaQuery, &svcMetaQuery.Query.ID))
 
 			req := structs.PreparedQueryExecuteRequest{
 				Datacenter:    "dc1",
 				QueryIDOrName: svcMetaQuery.Query.ID,
-				QueryOptions:  structs.QueryOptions{Token: es.execToken},
+				QueryOptions:  structs.QueryOptions{Token: execToken},
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 			assert.Len(t, reply.Nodes, tc.numNodes)
 			for _, node := range reply.Nodes {
 				assert.True(t, structs.SatisfiesMetaFilters(node.Service.Meta, tc.filters), "meta: %v", node.Service.Meta)
@@ -1721,8 +1845,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out struct{}
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "Coordinate.Update", &req, &out))
-		time.Sleep(3 * es.server.server.config.CoordinateUpdatePeriod)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "Coordinate.Update", &req, &out))
+		time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
 	}
 
 	// Try an RTT sort. We don't have any other coordinates in there but
@@ -1737,11 +1861,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 					Datacenter: "dc1",
 					Node:       "node3",
 				},
-				QueryOptions: structs.QueryOptions{Token: es.execToken},
+				QueryOptions: structs.QueryOptions{Token: execToken},
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 			expectNodes(t, &query, &reply, 10)
 			assert.Equal(t, "node3", reply.Nodes[0].Node.Node)
@@ -1755,11 +1879,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			req := structs.PreparedQueryExecuteRequest{
 				Datacenter:    "dc1",
 				QueryIDOrName: query.Query.ID,
-				QueryOptions:  structs.QueryOptions{Token: es.execToken},
+				QueryOptions:  structs.QueryOptions{Token: execToken},
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 			expectNodes(t, &query, &reply, 10)
 
@@ -1784,7 +1908,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	// so node3 should always show up first.
 	query.Op = structs.PreparedQueryUpdate
 	query.Query.Service.Near = "node3"
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Now run the query and make sure the sort looks right.
 	for i := 0; i < 10; i++ {
@@ -1796,11 +1920,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				},
 				Datacenter:    "dc1",
 				QueryIDOrName: query.Query.ID,
-				QueryOptions:  structs.QueryOptions{Token: es.execToken},
+				QueryOptions:  structs.QueryOptions{Token: execToken},
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 			assert.Len(t, reply.Nodes, 10)
 			assert.Equal(t, "node3", reply.Nodes[0].Node.Node)
 		})
@@ -1823,13 +1947,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		shuffled := false
 		for i := 0; i < 10; i++ {
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 			assert.Len(t, reply.Nodes, 10)
 
 			if node := reply.Nodes[0].Node.Node; node != "node3" {
@@ -1851,12 +1975,12 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		for i := 0; i < 10; i++ {
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 			assert.Len(t, reply.Nodes, 10)
 			assert.Equal(t, "node1", reply.Nodes[0].Node.Node)
 		}
@@ -1864,7 +1988,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Bake the magic "_agent" flag into the query.
 	query.Query.Service.Near = "_agent"
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Check that we sort the local agent first when the magic flag is set.
 	t.Run("local agent is first using _agent on node3", func(t *testing.T) {
@@ -1875,12 +1999,12 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		for i := 0; i < 10; i++ {
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 			assert.Len(t, reply.Nodes, 10)
 			assert.Equal(t, "node3", reply.Nodes[0].Node.Node)
 		}
@@ -1897,7 +2021,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		// Expect the set to be shuffled since we have no coordinates
@@ -1905,7 +2029,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		shuffled := false
 		for i := 0; i < 10; i++ {
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 			assert.Len(t, reply.Nodes, 10)
 			if node := reply.Nodes[0].Node.Node; node != "node3" {
 				shuffled = true
@@ -1930,13 +2054,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		shuffled := false
 		for i := 0; i < 10; i++ {
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 			assert.Len(t, reply.Nodes, 10)
 			if reply.Nodes[0].Node.Node != "node3" {
 				shuffled = true
@@ -1949,19 +2073,19 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Un-bake the near parameter.
 	query.Query.Service.Near = ""
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Update the health of a node to mark it critical.
-	setHealth := func(t *testing.T, codec rpc.ClientCodec, dc string, i int, health string) {
+	setHealth := func(t *testing.T, codec rpc.ClientCodec, dc string, node string, health string) {
 		t.Helper()
 		req := structs.RegisterRequest{
 			Datacenter: dc,
-			Node:       fmt.Sprintf("node%d", i),
+			Node:       node,
 			Address:    "127.0.0.1",
 			Service: &structs.NodeService{
 				Service: "foo",
 				Port:    8000,
-				Tags:    []string{dc, fmt.Sprintf("tag%d", i)},
+				Tags:    []string{"dc1", "tag1"},
 			},
 			Check: &structs.HealthCheck{
 				Name:      "failing",
@@ -1973,18 +2097,18 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		var reply struct{}
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply))
 	}
-	setHealth(t, es.server.codec, "dc1", 1, api.HealthCritical)
+	setHealth(t, codec1, "dc1", "node1", api.HealthCritical)
 
 	// The failing node should be filtered.
 	t.Run("failing node filtered", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 9)
 		for _, node := range reply.Nodes {
@@ -1993,34 +2117,34 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	})
 
 	// Upgrade it to a warning and re-query, should be 10 nodes again.
-	setHealth(t, es.server.codec, "dc1", 1, api.HealthWarning)
+	setHealth(t, codec1, "dc1", "node1", api.HealthWarning)
 	t.Run("warning nodes are included", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 10)
 	})
 
 	// Make the query more picky so it excludes warning nodes.
 	query.Query.Service.OnlyPassing = true
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// The node in the warning state should be filtered.
 	t.Run("warning nodes are omitted with onlypassing=true", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 9)
 		for _, node := range reply.Nodes {
@@ -2031,31 +2155,31 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	// Make the query ignore all our health checks (which have "failing" ID
 	// implicitly from their name).
 	query.Query.Service.IgnoreCheckIDs = []types.CheckID{"failing"}
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// We should end up with 10 nodes again
 	t.Run("all nodes including when ignoring failing checks", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 10)
 	})
 
 	// Undo that so all the following tests aren't broken!
 	query.Query.Service.IgnoreCheckIDs = nil
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Make the query more picky by adding a tag filter. This just proves we
 	// call into the tag filter, it is tested more thoroughly in a separate
 	// test.
 	query.Query.Service.Tags = []string{"!tag3"}
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// The node in the warning state should be filtered as well as the node
 	// with the filtered tag.
@@ -2063,11 +2187,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 8)
 		for _, node := range reply.Nodes {
@@ -2081,29 +2205,29 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.denyToken},
+			QueryOptions:  structs.QueryOptions{Token: denyToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
 	})
 
 	// Bake the exec token into the query.
-	query.Query.Token = es.execToken
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	query.Query.Token = execToken
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Now even querying with the deny token should work.
 	t.Run("query with deny token still works", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.denyToken},
+			QueryOptions:  structs.QueryOptions{Token: denyToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 8)
 		for _, node := range reply.Nodes {
@@ -2114,18 +2238,18 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Un-bake the token.
 	query.Query.Token = ""
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Make sure the query gets denied again with the deny token.
 	t.Run("denied with deny token when no query token", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.denyToken},
+			QueryOptions:  structs.QueryOptions{Token: denyToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
 	})
@@ -2134,11 +2258,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execNoNodesToken},
+			QueryOptions:  structs.QueryOptions{Token: execNoNodesToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
 		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
@@ -2148,11 +2272,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 8)
 		for _, node := range reply.Nodes {
@@ -2163,35 +2287,35 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Now fail everything in dc1 and we should get an empty list back.
 	for i := 0; i < 10; i++ {
-		setHealth(t, es.server.codec, "dc1", i+1, api.HealthCritical)
+		setHealth(t, codec1, "dc1", fmt.Sprintf("node%d", i+1), api.HealthCritical)
 	}
 	t.Run("everything is failing so should get empty list", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
 	})
 
 	// Modify the query to have it fail over to a bogus DC and then dc2.
 	query.Query.Service.Failover.Datacenters = []string{"bogus", "dc2"}
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Now we should see 9 nodes from dc2 (we have the tag filter still).
 	t.Run("see 9 nodes from dc2 using tag filter", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 9)
 		for _, node := range reply.Nodes {
@@ -2206,13 +2330,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			QueryIDOrName: query.Query.ID,
 			Limit:         3,
 			QueryOptions: structs.QueryOptions{
-				Token:             es.execToken,
+				Token:             execToken,
 				RequireConsistent: true,
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 3)
 		for _, node := range reply.Nodes {
@@ -2227,11 +2351,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			req := structs.PreparedQueryExecuteRequest{
 				Datacenter:    "dc1",
 				QueryIDOrName: query.Query.ID,
-				QueryOptions:  structs.QueryOptions{Token: es.execToken},
+				QueryOptions:  structs.QueryOptions{Token: execToken},
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 			expectFailoverNodes(t, &query, &reply, 9)
 			var names []string
@@ -2255,11 +2379,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.denyToken},
+			QueryOptions:  structs.QueryOptions{Token: denyToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 0)
 	})
@@ -2268,30 +2392,30 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execNoNodesToken},
+			QueryOptions:  structs.QueryOptions{Token: execNoNodesToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 0)
 		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// Bake the exec token into the query.
-	query.Query.Token = es.execToken
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	query.Query.Token = execToken
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Now even querying with the deny token should work.
 	t.Run("query from dc2 with exec token using deny token works", func(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.denyToken},
+			QueryOptions:  structs.QueryOptions{Token: denyToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 9)
 		for _, node := range reply.Nodes {
@@ -2303,14 +2427,14 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	query.Query.Service.Failover = structs.QueryFailoverOptions{
 		Targets: []structs.QueryFailoverTarget{
 			{Datacenter: "dc2"},
-			{Peer: es.peeringServer.acceptingPeerName},
+			{PeerName: acceptingPeerName},
 		},
 	}
-	require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Apply", &query, &query.Query.ID))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Ensure the foo service has fully replicated.
 	retry.Run(t, func(r *retry.R) {
-		_, nodes, err := es.server.server.fsm.State().CheckServiceNodes(nil, "foo", nil, es.peeringServer.acceptingPeerName)
+		_, nodes, err := s1.fsm.State().CheckServiceNodes(nil, "foo", nil, acceptingPeerName)
 		require.NoError(r, err)
 		require.Len(r, nodes, 10)
 	})
@@ -2320,11 +2444,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		for _, node := range reply.Nodes {
 			assert.NotEqual(t, "node3", node.Node.Node)
@@ -2334,7 +2458,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Set all checks in dc2 as critical
 	for i := 0; i < 10; i++ {
-		setHealth(t, es.wanServer.codec, "dc2", i+1, api.HealthCritical)
+		setHealth(t, codec2, "dc2", fmt.Sprintf("node%d", i+1), api.HealthCritical)
 	}
 
 	// Now we should see 9 nodes from dc3 (we have the tag filter still)
@@ -2342,41 +2466,16 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req := structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: es.execToken},
+			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		for _, node := range reply.Nodes {
 			assert.NotEqual(t, "node3", node.Node.Node)
 		}
 		expectFailoverPeerNodes(t, &query, &reply, 9)
-	})
-
-	// Set all checks in dc1 as passing
-	for i := 0; i < 10; i++ {
-		setHealth(t, es.server.codec, "dc1", i+1, api.HealthPassing)
-	}
-
-	// Nothing is healthy so nothing is returned
-	t.Run("un-failing over", func(t *testing.T) {
-		retry.Run(t, func(r *retry.R) {
-			req := structs.PreparedQueryExecuteRequest{
-				Datacenter:    "dc1",
-				QueryIDOrName: query.Query.ID,
-				QueryOptions:  structs.QueryOptions{Token: es.execToken},
-			}
-
-			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(r, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
-
-			for _, node := range reply.Nodes {
-				assert.NotEqual(r, "node3", node.Node.Node)
-			}
-
-			expectNodes(r, &query, &reply, 9)
-		})
 	})
 }
 
@@ -2808,23 +2907,19 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 		t.Fatalf("bad: %v", ret)
 	}
 	// Since we have no idea when the joinWAN operation completes
-	// we keep on querying until the join operation completes.
+	// we keep on querying until the the join operation completes.
 	retry.Run(t, func(r *retry.R) {
 		r.Check(s1.forwardDC("Status.Ping", "dc2", &struct{}{}, &struct{}{}))
 	})
 }
 
-var _ queryServer = (*mockQueryServer)(nil)
-
 type mockQueryServer struct {
-	queryServerWrapper
 	Datacenters      []string
 	DatacentersError error
 	QueryLog         []string
 	QueryFn          func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error
 	Logger           hclog.Logger
 	LogBuffer        *bytes.Buffer
-	SamenessGroup    map[string]*structs.SamenessGroupConfigEntry
 }
 
 func (m *mockQueryServer) JoinQueryLog() string {
@@ -2845,7 +2940,7 @@ func (m *mockQueryServer) GetLogger() hclog.Logger {
 }
 
 func (m *mockQueryServer) GetLocalDC() string {
-	return localTestDC
+	return "dc1"
 }
 
 func (m *mockQueryServer) GetOtherDatacentersByDistance() ([]string, error) {
@@ -2853,22 +2948,15 @@ func (m *mockQueryServer) GetOtherDatacentersByDistance() ([]string, error) {
 }
 
 func (m *mockQueryServer) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-	peerName := args.Query.Service.Peer
-	partitionName := args.Query.Service.PartitionOrEmpty()
-	namespaceName := args.Query.Service.NamespaceOrEmpty()
+	peerName := args.Query.Service.PeerName
 	dc := args.Datacenter
 	if peerName != "" {
 		m.QueryLog = append(m.QueryLog, fmt.Sprintf("peer:%s", peerName))
-	} else if partitionName != "" {
-		m.QueryLog = append(m.QueryLog, fmt.Sprintf("partition:%s", partitionName))
-	} else if namespaceName != "" {
-		m.QueryLog = append(m.QueryLog, fmt.Sprintf("namespace:%s", namespaceName))
 	} else {
 		m.QueryLog = append(m.QueryLog, fmt.Sprintf("%s:%s", dc, "PreparedQuery.ExecuteRemote"))
 	}
 	reply.PeerName = peerName
 	reply.Datacenter = dc
-	reply.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(partitionName, namespaceName)
 
 	if m.QueryFn != nil {
 		return m.QueryFn(args, reply)
@@ -2876,36 +2964,9 @@ func (m *mockQueryServer) ExecuteRemote(args *structs.PreparedQueryExecuteRemote
 	return nil
 }
 
-type mockStateLookup struct {
-	SamenessGroup map[string]*structs.SamenessGroupConfigEntry
-}
-
-func (sl mockStateLookup) samenessGroupLookup(name string, entMeta acl.EnterpriseMeta) (uint64, *structs.SamenessGroupConfigEntry, error) {
-	lookup := name
-	if ap := entMeta.PartitionOrEmpty(); ap != "" {
-		lookup = fmt.Sprintf("%s-%s", lookup, ap)
-	} else if ns := entMeta.NamespaceOrEmpty(); ns != "" {
-		lookup = fmt.Sprintf("%s-%s", lookup, ns)
-	}
-
-	sg, ok := sl.SamenessGroup[lookup]
-	if !ok {
-		return 0, nil, errors.New("unable to find sameness group")
-	}
-
-	return 0, sg, nil
-}
-
-func (m *mockQueryServer) GetSamenessGroupFailoverTargets(name string, entMeta acl.EnterpriseMeta) ([]structs.QueryFailoverTarget, error) {
-	m.sl = mockStateLookup{
-		SamenessGroup: m.SamenessGroup,
-	}
-	return m.queryServerWrapper.GetSamenessGroupFailoverTargets(name, entMeta)
-}
-
 func TestPreparedQuery_queryFailover(t *testing.T) {
 	t.Parallel()
-	query := structs.PreparedQuery{
+	query := &structs.PreparedQuery{
 		Name: "test",
 		Service: structs.ServiceQuery{
 			Failover: structs.QueryFailoverOptions{
@@ -2930,7 +2991,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	}
 
 	// Datacenters are available but the query doesn't use them.
-	t.Run("Query no datacenters used", func(t *testing.T) {
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 		}
@@ -2942,10 +3003,10 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if len(reply.Nodes) != 0 || reply.Datacenter != "" || reply.Failovers != 0 {
 			t.Fatalf("bad: %v", reply)
 		}
-	})
+	}
 
 	// Make it fail to get datacenters.
-	t.Run("Fail to get datacenters", func(t *testing.T) {
+	{
 		mock := &mockQueryServer{
 			Datacenters:      []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			DatacentersError: fmt.Errorf("XXX"),
@@ -2959,11 +3020,11 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if len(reply.Nodes) != 0 || reply.Datacenter != "" || reply.Failovers != 0 {
 			t.Fatalf("bad: %v", reply)
 		}
-	})
+	}
 
 	// The query wants to use other datacenters but none are available.
-	t.Run("no datacenters available", func(t *testing.T) {
-		query.Service.Failover.NearestN = 3
+	query.Service.Failover.NearestN = 3
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{},
 		}
@@ -2975,11 +3036,11 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if len(reply.Nodes) != 0 || reply.Datacenter != "" || reply.Failovers != 0 {
 			t.Fatalf("bad: %v", reply)
 		}
-	})
+	}
 
 	// Try the first three nearest datacenters, first one has the data.
-	t.Run("first datacenter has data", func(t *testing.T) {
-		query.Service.Failover.NearestN = 3
+	query.Service.Failover.NearestN = 3
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
@@ -3002,11 +3063,11 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-	})
+	}
 
 	// Try the first three nearest datacenters, last one has the data.
-	t.Run("last datacenter has data", func(t *testing.T) {
-		query.Service.Failover.NearestN = 3
+	query.Service.Failover.NearestN = 3
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
@@ -3029,11 +3090,11 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc3:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-	})
+	}
 
 	// Try the first four nearest datacenters, nobody has the data.
-	t.Run("no datacenters with data", func(t *testing.T) {
-		query.Service.Failover.NearestN = 4
+	query.Service.Failover.NearestN = 4
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 		}
@@ -3049,13 +3110,13 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc3:PreparedQuery.ExecuteRemote|xxx:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-	})
+	}
 
 	// Try the first two nearest datacenters, plus a user-specified one that
 	// has the data.
-	t.Run("user specified datacenter with data", func(t *testing.T) {
-		query.Service.Failover.NearestN = 2
-		query.Service.Failover.Datacenters = []string{"dc4"}
+	query.Service.Failover.NearestN = 2
+	query.Service.Failover.Datacenters = []string{"dc4"}
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
@@ -3078,12 +3139,12 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-	})
+	}
 
 	// Add in a hard-coded value that overlaps with the nearest list.
-	t.Run("overlap with nearest list", func(t *testing.T) {
-		query.Service.Failover.NearestN = 2
-		query.Service.Failover.Datacenters = []string{"dc4", "dc1"}
+	query.Service.Failover.NearestN = 2
+	query.Service.Failover.Datacenters = []string{"dc4", "dc1"}
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
@@ -3106,12 +3167,12 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-	})
+	}
 
 	// Now add a bogus user-defined one to the mix.
-	t.Run("bogus user-defined", func(t *testing.T) {
-		query.Service.Failover.NearestN = 2
-		query.Service.Failover.Datacenters = []string{"nope", "dc4", "dc1"}
+	query.Service.Failover.NearestN = 2
+	query.Service.Failover.Datacenters = []string{"nope", "dc4", "dc1"}
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
@@ -3135,13 +3196,13 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			t.Fatalf("bad: %s", queries)
 		}
 		require.Contains(t, mock.LogBuffer.String(), "Skipping unknown datacenter")
-	})
+	}
 
 	// Same setup as before but dc1 is going to return an error and should
 	// get skipped over, still yielding data from dc4 which comes later.
-	t.Run("dc1 error", func(t *testing.T) {
-		query.Service.Failover.NearestN = 2
-		query.Service.Failover.Datacenters = []string{"dc4", "dc1"}
+	query.Service.Failover.NearestN = 2
+	query.Service.Failover.Datacenters = []string{"dc4", "dc1"}
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
@@ -3169,12 +3230,12 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if !strings.Contains(mock.LogBuffer.String(), "Failed querying") {
 			t.Fatalf("bad: %s", mock.LogBuffer.String())
 		}
-	})
+	}
 
 	// Just use a hard-coded list and now xxx has the data.
-	t.Run("hard coded list", func(t *testing.T) {
-		query.Service.Failover.NearestN = 0
-		query.Service.Failover.Datacenters = []string{"dc3", "xxx"}
+	query.Service.Failover.NearestN = 0
+	query.Service.Failover.Datacenters = []string{"dc3", "xxx"}
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
@@ -3197,12 +3258,12 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc3:PreparedQuery.ExecuteRemote|xxx:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-	})
+	}
 
 	// Make sure the limit and query options are plumbed through.
-	t.Run("limit and query options used", func(t *testing.T) {
-		query.Service.Failover.NearestN = 0
-		query.Service.Failover.Datacenters = []string{"xxx"}
+	query.Service.Failover.NearestN = 0
+	query.Service.Failover.Datacenters = []string{"xxx"}
+	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
@@ -3234,331 +3295,33 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "xxx:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-	})
+	}
 
 	// Failover returns data from the first cluster peer with data.
-	t.Run("failover first peer with data", func(t *testing.T) {
-		query.Service.Failover.Datacenters = nil
-		query.Service.Failover.Targets = []structs.QueryFailoverTarget{
-			{Peer: "cluster-01"},
-			{Datacenter: "dc44"},
-			{Peer: "cluster-02"},
-		}
-		{
-			mock := &mockQueryServer{
-				Datacenters: []string{"dc44"},
-				QueryFn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-					if args.Query.Service.Peer == "cluster-02" {
-						reply.Nodes = nodes()
-					}
-					return nil
-				},
-			}
-
-			var reply structs.PreparedQueryExecuteResponse
-			if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			require.Equal(t, "cluster-02", reply.PeerName)
-			require.Equal(t, 3, reply.Failovers)
-			require.Equal(t, nodes(), reply.Nodes)
-			require.Equal(t, "peer:cluster-01|dc44:PreparedQuery.ExecuteRemote|peer:cluster-02", mock.JoinQueryLog())
-		}
-	})
-
-	tests := []struct {
-		name               string
-		targets            []structs.QueryFailoverTarget
-		datacenters        []string
-		queryfn            func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error
-		expectedPeer       string
-		expectedDatacenter string
-		expectedReplies    int
-		expectedQuery      string
-	}{
-		{
-			name: "failover first peer with data",
-			targets: []structs.QueryFailoverTarget{
-				{Peer: "cluster-01"},
-				{Datacenter: "dc44"},
-				{Peer: "cluster-02"},
-			},
-			queryfn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-				if args.Query.Service.Peer == "cluster-02" {
-					reply.Nodes = nodes()
-				}
-				return nil
-			},
-			datacenters:        []string{"dc44"},
-			expectedPeer:       "cluster-02",
-			expectedDatacenter: "",
-			expectedReplies:    3,
-			expectedQuery:      "peer:cluster-01|dc44:PreparedQuery.ExecuteRemote|peer:cluster-02",
-		},
-		{
-			name: "failover datacenter with data",
-			targets: []structs.QueryFailoverTarget{
-				{Peer: "cluster-01"},
-				{Datacenter: "dc44"},
-				{Peer: "cluster-02"},
-			},
-			queryfn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-				if args.Datacenter == "dc44" {
-					reply.Nodes = nodes()
-				}
-				return nil
-			},
-			datacenters:        []string{"dc44"},
-			expectedPeer:       "",
-			expectedDatacenter: "dc44",
-			expectedReplies:    2,
-			expectedQuery:      "peer:cluster-01|dc44:PreparedQuery.ExecuteRemote",
-		},
+	query.Service.Failover.Datacenters = nil
+	query.Service.Failover.Targets = []structs.QueryFailoverTarget{
+		{PeerName: "cluster-01"},
+		{Datacenter: "dc44"},
+		{PeerName: "cluster-02"},
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			query.Service.Failover.Datacenters = nil
-			query.Service.Failover.Targets = tt.targets
-
-			mock := &mockQueryServer{
-				Datacenters: tt.datacenters,
-				QueryFn:     tt.queryfn,
-			}
-
-			var reply structs.PreparedQueryExecuteResponse
-			if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			require.Equal(t, tt.expectedPeer, reply.PeerName)
-			require.Equal(t, tt.expectedReplies, reply.Failovers)
-			require.Equal(t, nodes(), reply.Nodes)
-			require.Equal(t, tt.expectedQuery, mock.JoinQueryLog())
-		})
-	}
-}
-
-type serverTestMetadata struct {
-	server            *Server
-	codec             rpc.ClientCodec
-	datacenter        string
-	acceptingPeerName string
-	dialingPeerName   string
-}
-
-type executeServers struct {
-	server           *serverTestMetadata
-	peeringServer    *serverTestMetadata
-	wanServer        *serverTestMetadata
-	execToken        string
-	denyToken        string
-	execNoNodesToken string
-}
-
-func createExecuteServers(t *testing.T) *executeServers {
-	es := newExecuteServers(t)
-	es.initWanFed(t)
-	es.exportPeeringServices(t)
-	es.initTokens(t)
-
-	return es
-}
-
-func newExecuteServers(t *testing.T) *executeServers {
-
-	// Setup server
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.PrimaryDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLInitialManagementToken = "root"
-		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-	})
-	t.Cleanup(func() {
-		os.RemoveAll(dir1)
-	})
-	t.Cleanup(func() {
-		s1.Shutdown()
-	})
-	waitForLeaderEstablishment(t, s1)
-	codec1 := rpcClient(t, s1)
-	t.Cleanup(func() {
-		codec1.Close()
-	})
-
-	ca := connect.TestCA(t, nil)
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc3"
-		c.PrimaryDatacenter = "dc3"
-		c.NodeName = "acceptingServer.dc3"
-		c.GRPCTLSPort = freeport.GetOne(t)
-		c.CAConfig = &structs.CAConfiguration{
-			ClusterID: connect.TestClusterID,
-			Provider:  structs.ConsulCAProvider,
-			Config: map[string]interface{}{
-				"PrivateKey": ca.SigningKey,
-				"RootCert":   ca.RootCert,
-			},
-		}
-	})
-	t.Cleanup(func() {
-		os.RemoveAll(dir3)
-	})
-	t.Cleanup(func() {
-		s3.Shutdown()
-	})
-	waitForLeaderEstablishment(t, s3)
-	codec3 := rpcClient(t, s3)
-	t.Cleanup(func() {
-		codec3.Close()
-	})
-
-	// check for RPC forwarding
-	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
-	testrpc.WaitForLeader(t, s3.RPC, "dc3")
-
-	acceptingPeerName := "my-peer-accepting-server"
-	dialingPeerName := "my-peer-dialing-server"
-
-	// Set up peering between dc1 (dialing) and dc3 (accepting) and export the foo service
 	{
-		// Create a peering by generating a token.
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		t.Cleanup(cancel)
-
-		options := structs.QueryOptions{Token: "root"}
-		ctx, err := grpcexternal.ContextWithQueryOptions(ctx, options)
-		require.NoError(t, err)
-
-		conn, err := grpc.DialContext(ctx, s3.config.RPCAddr.String(),
-			grpc.WithContextDialer(newServerDialer(s3.config.RPCAddr.String())),
-			//nolint:staticcheck
-			grpc.WithInsecure(),
-			grpc.WithBlock())
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			conn.Close()
-		})
-
-		peeringClient := pbpeering.NewPeeringServiceClient(conn)
-		req := pbpeering.GenerateTokenRequest{
-			PeerName: dialingPeerName,
-		}
-		resp, err := peeringClient.GenerateToken(ctx, &req)
-		require.NoError(t, err)
-
-		conn, err = grpc.DialContext(ctx, s1.config.RPCAddr.String(),
-			grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
-			//nolint:staticcheck
-			grpc.WithInsecure(),
-			grpc.WithBlock())
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			conn.Close()
-		})
-
-		peeringClient = pbpeering.NewPeeringServiceClient(conn)
-		establishReq := pbpeering.EstablishRequest{
-			PeerName:     acceptingPeerName,
-			PeeringToken: resp.PeeringToken,
-		}
-		establishResp, err := peeringClient.Establish(ctx, &establishReq)
-		require.NoError(t, err)
-		require.NotNil(t, establishResp)
-
-		readResp, err := peeringClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: acceptingPeerName})
-		require.NoError(t, err)
-		require.NotNil(t, readResp)
-
-		// Wait for the stream to be connected.
-		retry.Run(t, func(r *retry.R) {
-			status, found := s1.peerStreamServer.StreamStatus(readResp.GetPeering().GetID())
-			require.True(r, found)
-			require.True(r, status.Connected)
-		})
-	}
-
-	es := executeServers{
-		server: &serverTestMetadata{
-			server:     s1,
-			codec:      codec1,
-			datacenter: "dc1",
-		},
-		peeringServer: &serverTestMetadata{
-			server:            s3,
-			codec:             codec3,
-			datacenter:        "dc3",
-			dialingPeerName:   dialingPeerName,
-			acceptingPeerName: acceptingPeerName,
-		},
-	}
-
-	return &es
-}
-
-func (es *executeServers) initTokens(t *testing.T) {
-	es.execNoNodesToken = createTokenWithPolicyName(t, es.server.codec, "no-nodes", `service_prefix "foo" { policy = "read" }`, "root")
-	rules := `
-		service_prefix "" { policy = "read" }
-		node_prefix "" { policy = "read" }
-	`
-	es.execToken = createTokenWithPolicyName(t, es.server.codec, "with-read", rules, "root")
-	es.denyToken = createTokenWithPolicyName(t, es.server.codec, "with-deny", `service_prefix "foo" { policy = "deny" }`, "root")
-}
-
-func (es *executeServers) exportPeeringServices(t *testing.T) {
-	exportedServices := structs.ConfigEntryRequest{
-		Op:         structs.ConfigEntryUpsert,
-		Datacenter: "dc3",
-		Entry: &structs.ExportedServicesConfigEntry{
-			Name: "default",
-			Services: []structs.ExportedService{
-				{
-					Name:      "foo",
-					Consumers: []structs.ServiceConsumer{{Peer: es.peeringServer.dialingPeerName}},
-				},
+		mock := &mockQueryServer{
+			Datacenters: []string{"dc44"},
+			QueryFn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+				if args.Query.Service.PeerName == "cluster-02" {
+					reply.Nodes = nodes()
+				}
+				return nil
 			},
-		},
-	}
-	var configOutput bool
-	require.NoError(t, msgpackrpc.CallWithCodec(es.peeringServer.codec, "ConfigEntry.Apply", &exportedServices, &configOutput))
-	require.True(t, configOutput)
-}
-
-func (es *executeServers) initWanFed(t *testing.T) {
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc2"
-		c.PrimaryDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-	})
-	t.Cleanup(func() {
-		os.RemoveAll(dir2)
-	})
-	t.Cleanup(func() {
-		s2.Shutdown()
-	})
-	waitForLeaderEstablishment(t, s2)
-	codec2 := rpcClient(t, s2)
-	t.Cleanup(func() {
-		codec2.Close()
-	})
-
-	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
-
-	// Try to WAN join.
-	joinWAN(t, s2, es.server.server)
-	retry.Run(t, func(r *retry.R) {
-		if got, want := len(es.server.server.WANMembers()), 2; got != want {
-			r.Fatalf("got %d WAN members want %d", got, want)
 		}
-		if got, want := len(s2.WANMembers()), 2; got != want {
-			r.Fatalf("got %d WAN members want %d", got, want)
+
+		var reply structs.PreparedQueryExecuteResponse
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+			t.Fatalf("err: %v", err)
 		}
-	})
-	testrpc.WaitForLeader(t, es.server.server.RPC, "dc2", testrpc.WithToken("root"))
-	es.wanServer = &serverTestMetadata{
-		server:     s2,
-		codec:      codec2,
-		datacenter: "dc2",
+		require.Equal(t, "cluster-02", reply.PeerName)
+		require.Equal(t, 3, reply.Failovers)
+		require.Equal(t, nodes(), reply.Nodes)
+		require.Equal(t, "peer:cluster-01|dc44:PreparedQuery.ExecuteRemote|peer:cluster-02", mock.JoinQueryLog())
 	}
 }

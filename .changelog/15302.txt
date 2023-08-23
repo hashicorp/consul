@@ -1,7 +1,0 @@
-```release-note:breaking-change
-config: update 1.14 config defaults: Enable `peering` and `connect` by default.
-```
-
-```release-note:breaking-change
-config: update 1.14 config defaults: Set gRPC TLS port default value to 8503
-```

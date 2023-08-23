@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 brand:
   consul: Consul
   consul-api-gateway: Consul API Gateway
@@ -8,7 +5,6 @@ brand:
   nomad: Nomad
   vault: Vault
   aws: AWS
-  lambda: AWS Lambda
   aws-iam: AWS IAM
   kubernetes: Kubernetes
   jwt: JWT
@@ -35,7 +31,6 @@ consul:
   ingress-gateway: Ingress Gateway
   terminating-gateway: Terminating Gateway
   mesh-gateway: Mesh Gateway
-  api-gateway: API Gateway
   status: Health Status
   service.meta: Service Meta
   node.meta: Node Meta
@@ -53,7 +48,6 @@ consul:
   redundancyzone: Redundancy zone
   peername: Peer
   partition: Admin Partitions
-  version: Version
 search:
   search: Search
   searchproperty: Search Across
@@ -78,9 +72,6 @@ sort:
   status:
     asc: Unhealthy to Healthy
     desc: Healthy to Unhealthy
-  version:
-    asc: Oldest to Latest
-    desc: Latest to Oldest
 validations:
   dns-hostname:
     help: |
@@ -89,6 +80,4 @@ validations:
     error: "{name} must be a valid DNS hostname."
   immutable:
     help: Once created, this cannot be changed.
-  server-external-addresses:
-    help: |
-      Enter a comma separated list of this peer's fallback server address(es) to be used in the event of failed automatic updates. This field is required for HCP-managed clusters.
+

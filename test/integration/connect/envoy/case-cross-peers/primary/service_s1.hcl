@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 services {
   name = "s1"
   port = 8080
@@ -12,9 +9,6 @@ services {
             destination_name = "s2"
             destination_peer = "primary-to-alpha"
             local_bind_port  = 5000
-            mesh_gateway {
-              mode = "local"
-            }
           }
         ]
       }

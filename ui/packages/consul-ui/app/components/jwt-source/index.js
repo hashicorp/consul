@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 
@@ -23,19 +18,19 @@ export default class JWTSource extends Component {
     // TODO: Could this use once? Double check but I don't think it can
     this.source = fromPromise(this.repo.findCodeByURL(this.args.src));
     this._listeners.add(this.source, {
-      message: (e) => this.onchange(e),
-      error: (e) => this.onerror(e),
+      message: e => this.onchange(e),
+      error: e => this.onerror(e),
     });
   }
 
   onchange(e) {
-    if (typeof this.args.onchange === 'function') {
+    if(typeof this.args.onchange === 'function') {
       this.args.onchange(...arguments);
     }
   }
 
   onerror(e) {
-    if (typeof this.args.onerror === 'function') {
+    if(typeof this.args.onerror === 'function') {
       this.args.onerror(...arguments);
     }
   }

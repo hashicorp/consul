@@ -1,3 +1,0 @@
-```release-note: improvement
-integ test: fix flakiness due to test condition from retry app endoint
-```

@@ -1,19 +1,14 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
-module('Integration | Adapter | partition', function (hooks) {
+module('Integration | Adapter | partition', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'slug';
-  test('requestForQuery returns the correct url/method', async function (assert) {
+  test('requestForQuery returns the correct url/method', async function(assert) {
     const adapter = this.owner.lookup('adapter:partition');
     const client = this.owner.lookup('service:client/http');
-    const request = function () {
+    const request = function() {
       return () => client.requestParams.bind(client)(...arguments);
     };
     const expected = `GET /v1/partitions?dc=${dc}`;
@@ -23,10 +18,10 @@ module('Integration | Adapter | partition', function (hooks) {
     actual = actual();
     assert.equal(`${actual.method} ${actual.url}`, expected);
   });
-  test('requestForQueryRecord returns the correct url/method', async function (assert) {
+  test('requestForQueryRecord returns the correct url/method', async function(assert) {
     const adapter = this.owner.lookup('adapter:partition');
     const client = this.owner.lookup('service:client/http');
-    const request = function () {
+    const request = function() {
       return () => client.requestParams.bind(client)(...arguments);
     };
     const expected = `GET /v1/partition/${id}?dc=${dc}`;
@@ -37,10 +32,10 @@ module('Integration | Adapter | partition', function (hooks) {
     actual = actual();
     assert.equal(`${actual.method} ${actual.url}`, expected);
   });
-  test("requestForQueryRecord throws if you don't specify an id", function (assert) {
+  test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:partition');
     const client = this.owner.lookup('service:client/http');
-    const request = function () {
+    const request = function() {
       return () => client.requestParams.bind(client)(...arguments);
     };
     assert.rejects(

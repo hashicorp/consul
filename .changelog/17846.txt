@@ -1,3 +1,0 @@
-```release-note:bug
-connect/ca: Fixes a bug preventing CA configuration updates in secondary datacenters
-```

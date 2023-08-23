@@ -1,94 +1,97 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <ListCollection
-  class='consul-service-list'
+  class="consul-service-list"
   ...attributes
   @items={{@items}}
-  @linkable='linkable service'
+  @linkable="linkable service"
   as |item index|
 >
-  <BlockSlot @name='header'>
+  <BlockSlot @name="header">
     <dl class={{item.MeshStatus}}>
       <dt>
         Health
       </dt>
-      <dd {{tooltip item.healthTooltipText}}></dd>
+      <dd>
+        <Tooltip @position="top-start">
+          {{#if (eq 'critical' item.MeshStatus)}}
+            At least one health check on one instance is failing.
+          {{else if (eq 'warning' item.MeshStatus)}}
+            At least one health check on one instance has a warning.
+          {{else if (eq 'passing' item.MeshStatus)}}
+            All health checks are passing.
+          {{else}}
+            There are no health checks.
+          {{/if}}
+        </Tooltip>
+      </dd>
     </dl>
-    {{#if (gt item.InstanceCount 0)}}
-      <a
-        data-test-service-name
-        href={{href-to
-          'dc.services.show.index'
-          item.Name
-          params=(if
-            (not-eq item.Partition @partition)
-            (hash partition=item.Partition nspace=item.Namespace peer=item.PeerName)
-            (hash peer=item.PeerName)
-          )
-        }}
-      >
-        {{item.Name}}
-      </a>
-    {{else}}
-      <p data-test-service-name>
-        {{item.Name}}
-      </p>
-    {{/if}}
-  </BlockSlot>
-  <BlockSlot @name='details'>
-    <Consul::Kind @item={{item}} />
-    <Consul::ExternalSource @item={{item}} />
-    {{#if
-      (and
-        (not-eq item.InstanceCount 0)
-        (and (not-eq item.Kind 'terminating-gateway') (not-eq item.Kind 'ingress-gateway'))
+{{#if (gt item.InstanceCount 0)}}
+  <a
+    data-test-service-name
+    href={{href-to "dc.services.show.index" item.Name
+      params=(if (not-eq item.Partition @partition)
+        (hash
+          partition=item.Partition
+          nspace=item.Namespace
+          peer=item.PeerName
+        )
+        (hash
+          peer=item.PeerName
+        )
       )
     }}
-      <span>
-        {{format-number item.InstanceCount}}
-        {{pluralize item.InstanceCount 'instance' without-count=true}}
-      </span>
-    {{/if}}
-    {{! we are displaying imported-services - don't show bucket-list }}
-    {{#unless @isPeerDetail}}
-      <Consul::Bucket::List @item={{item}} @nspace={{@nspace}} @partition={{@partition}} />
-    {{/unless}}
-    {{#if (eq item.Kind 'terminating-gateway')}}
-      <span data-test-associated-service-count>
-        {{format-number item.GatewayConfig.AssociatedServiceCount}}
-        {{pluralize item.GatewayConfig.AssociatedServiceCount 'linked service' without-count=true}}
-      </span>
-    {{else if (eq item.Kind 'ingress-gateway')}}
-      <span data-test-associated-service-count>
-        {{format-number item.GatewayConfig.AssociatedServiceCount}}
-        {{pluralize item.GatewayConfig.AssociatedServiceCount 'upstream' without-count=true}}
-      </span>
-    {{/if}}
-    {{#if (or item.ConnectedWithGateway item.ConnectedWithProxy)}}
-      <dl class='mesh'>
-        <dt>
-          <Tooltip>
-            This service uses a proxy for the Consul service mesh
-          </Tooltip>
-        </dt>
-        {{#if (and item.ConnectedWithGateway item.ConnectedWithProxy)}}
-          <dd data-test-mesh>
-            in service mesh with proxy and gateway
-          </dd>
-        {{else if item.ConnectedWithProxy}}
-          <dd data-test-mesh>
-            in service mesh with proxy
-          </dd>
-        {{else if item.ConnectedWithGateway}}
-          <dd data-test-mesh>
-            in service mesh with gateway
-          </dd>
-        {{/if}}
-      </dl>
-    {{/if}}
+  >
+    {{item.Name}}
+  </a>
+{{else}}
+  <p data-test-service-name>
+      {{item.Name}}
+  </p>
+{{/if}}
+  </BlockSlot>
+  <BlockSlot @name="details">
+    <Consul::Kind @item={{item}} />
+    <Consul::ExternalSource @item={{item}} />
+  {{#if (and (not-eq item.InstanceCount 0) (and (not-eq item.Kind 'terminating-gateway') (not-eq item.Kind 'ingress-gateway'))) }}
+    <span>
+      {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'instance' without-count=true}}
+    </span>
+  {{/if}}
+  <Consul::Bucket::List
+    @item={{item}}
+    @nspace={{@nspace}}
+    @partition={{@partition}}
+  />
+  {{#if (eq item.Kind 'terminating-gateway')}}
+    <span data-test-associated-service-count>
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} {{pluralize item.GatewayConfig.AssociatedServiceCount 'linked service' without-count=true}}
+    </span>
+  {{else if (eq item.Kind 'ingress-gateway')}}
+    <span data-test-associated-service-count>
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} {{pluralize item.GatewayConfig.AssociatedServiceCount 'upstream' without-count=true}}
+    </span>
+  {{/if}}
+  {{#if (or item.ConnectedWithGateway item.ConnectedWithProxy)}}
+    <dl class="mesh">
+      <dt>
+        <Tooltip>
+          This service uses a proxy for the Consul service mesh
+        </Tooltip>
+      </dt>
+      {{#if (and item.ConnectedWithGateway item.ConnectedWithProxy )}}
+        <dd data-test-mesh>
+          in service mesh with proxy and gateway
+        </dd>
+      {{else if item.ConnectedWithProxy}}
+        <dd data-test-mesh>
+          in service mesh with proxy
+        </dd>
+      {{else if item.ConnectedWithGateway}}
+        <dd data-test-mesh>
+          in service mesh with gateway
+        </dd>
+      {{/if}}
+    </dl>
+  {{/if}}
     <TagList @item={{item}} />
   </BlockSlot>
 </ListCollection>

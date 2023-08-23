@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Adapter from './application';
 
 // TODO: Update to use this.formatDatacenter()
@@ -63,10 +58,10 @@ export default class NodeAdapter extends Adapter {
 
   queryLeader(store, type, id, snapshot) {
     return this.rpc(
-      function (adapter, request, serialized, unserialized) {
+      function(adapter, request, serialized, unserialized) {
         return adapter.requestForQueryLeader(request, serialized, unserialized);
       },
-      function (serializer, respond, serialized, unserialized) {
+      function(serializer, respond, serialized, unserialized) {
         return serializer.respondForQueryLeader(respond, serialized, unserialized);
       },
       snapshot,

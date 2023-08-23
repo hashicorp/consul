@@ -1,3 +1,0 @@
-```release-note:feature
-cli: `consul operator raft list-peers` command shows the number of commits each follower is trailing the leader by to aid in troubleshooting.
-```

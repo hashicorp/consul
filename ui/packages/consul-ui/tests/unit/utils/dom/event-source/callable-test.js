@@ -1,22 +1,17 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import domEventSourceCallable, { defaultRunner } from 'consul-ui/utils/dom/event-source/callable';
-import { module, test } from 'qunit';
-import sinon from 'sinon';
+import { module } from 'qunit';
+import test from 'ember-sinon-qunit/test-support/test';
 
-module('Unit | Utility | dom/event-source/callable', function () {
-  const createEventTarget = function () {
-    const EventTarget = function (cb) {};
+module('Unit | Utility | dom/event-source/callable', function() {
+  const createEventTarget = function() {
+    const EventTarget = function(cb) {};
     const o = EventTarget.prototype;
-    ['addEventListener', 'removeEventListener', 'dispatchEvent'].forEach(function (item) {
-      o[item] = function () {};
+    ['addEventListener', 'removeEventListener', 'dispatchEvent'].forEach(function(item) {
+      o[item] = function() {};
     });
     return EventTarget;
   };
-  const createPromise = function () {
+  const createPromise = function() {
     class PromiseMock {
       then(cb) {
         cb();
@@ -27,44 +22,44 @@ module('Unit | Utility | dom/event-source/callable', function () {
         return this;
       }
     }
-    PromiseMock.resolve = function () {
+    PromiseMock.resolve = function() {
       return new PromiseMock();
     };
     return PromiseMock;
   };
-  test('it creates an EventSource class implementing EventTarget', function (assert) {
+  test('it creates an EventSource class implementing EventTarget', function(assert) {
     const EventTarget = createEventTarget();
     const EventSource = domEventSourceCallable(EventTarget, createPromise());
     assert.ok(EventSource instanceof Function);
     const source = new EventSource();
     assert.ok(source instanceof EventTarget);
   });
-  test('the default runner loops and can be closed', function (assert) {
+  test('the default runner loops and can be closed', function(assert) {
     assert.expect(13); // 10 not closed, 1 to close, the final call count, plus the close event
     let count = 0;
-    const isClosed = function () {
+    const isClosed = function() {
       count++;
       assert.ok(true);
       return count === 11;
     };
     const configuration = {};
-    const then = sinon.stub().callsArg(0);
+    const then = this.stub().callsArg(0);
     const target = {
-      source: function (configuration) {
+      source: function(configuration) {
         return {
           then: then,
         };
       },
-      dispatchEvent: sinon.stub(),
+      dispatchEvent: this.stub(),
     };
     defaultRunner(target, configuration, isClosed);
-    assert.equal(then.callCount, 10);
+    assert.ok(then.callCount == 10);
     assert.ok(target.dispatchEvent.calledOnce);
   });
-  test('it calls the defaultRunner', function (assert) {
+  test('it calls the defaultRunner', function(assert) {
     const Promise = createPromise();
     const EventTarget = createEventTarget();
-    const run = sinon.stub();
+    const run = this.stub();
     const EventSource = domEventSourceCallable(EventTarget, Promise, run);
     const source = new EventSource();
     assert.ok(run.calledOnce);

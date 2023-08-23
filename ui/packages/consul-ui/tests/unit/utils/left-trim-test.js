@@ -1,15 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-import { module, test } from 'qunit';
+import { module } from 'qunit';
+import test from 'ember-sinon-qunit/test-support/test';
 import leftTrim from 'consul-ui/utils/left-trim';
 
-module('Unit | Utility | left trim', function () {
-  test('it trims characters from the left hand side', function (assert) {
-    assert.expect(8);
-
+module('Unit | Utility | left trim', function() {
+  test('it trims characters from the left hand side', function(assert) {
     [
       {
         args: ['/a/folder/here', '/'],
@@ -43,7 +37,7 @@ module('Unit | Utility | left trim', function () {
         args: ['/a/folder/here/', '/a/folder/here/'],
         expected: '',
       },
-    ].forEach(function (item) {
+    ].forEach(function(item) {
       const actual = leftTrim(...item.args);
       assert.equal(actual, item.expected);
     });

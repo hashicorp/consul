@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peerstream
 
 import (
@@ -8,13 +5,11 @@ import (
 	"fmt"
 	"io"
 	"sync"
-	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 type MockClient struct {
@@ -51,24 +46,6 @@ func (c *MockClient) Close() {
 func NewMockClient(ctx context.Context) *MockClient {
 	return &MockClient{
 		ReplicationStream: newTestReplicationStream(ctx),
-	}
-}
-
-// DrainStream reads messages from the stream until both the exported service list and
-// trust bundle messages have been read. We do this because their ording is indeterministic.
-func (c *MockClient) DrainStream(t *testing.T) {
-	seen := make(map[string]struct{})
-	for len(seen) < 2 {
-		msg, err := c.Recv()
-		require.NoError(t, err)
-
-		if r := msg.GetResponse(); r != nil && r.ResourceURL == pbpeerstream.TypeURLExportedServiceList {
-			seen[pbpeerstream.TypeURLExportedServiceList] = struct{}{}
-		}
-
-		if r := msg.GetResponse(); r != nil && r.ResourceURL == pbpeerstream.TypeURLPeeringTrustBundle {
-			seen[pbpeerstream.TypeURLPeeringTrustBundle] = struct{}{}
-		}
 	}
 }
 

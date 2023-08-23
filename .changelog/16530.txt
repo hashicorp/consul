@@ -1,7 +1,0 @@
-```release-note:bug
-cli: Fixes an issue with `consul connect envoy` where a log to STDOUT could malform JSON when used with `-bootstrap`.
-```
-
-```release-note:bug
-cli: Fixes an issue with `consul connect envoy` where grpc-disabled agents were not error-handled correctly.
-```

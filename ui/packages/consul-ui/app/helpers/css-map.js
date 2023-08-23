@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { helper } from '@ember/component/helper';
 import { CSSResult } from '@lit/reactive-element';
 
@@ -13,9 +8,9 @@ import { CSSResult } from '@lit/reactive-element';
  * @typedef {([CSSResult, boolean] | [CSSResult])} cssInfo
  * @param {(cssInfo | string)[]} entries - An array of 'entry-like' arrays of `cssInfo`s to map
  */
-const cssMap = (entries) => {
+const cssMap = entries => {
   return entries
-    .filter((entry) => (entry instanceof CSSResult ? true : entry[entry.length - 1]))
-    .map((entry) => (entry instanceof CSSResult ? entry : entry[0]));
+    .filter(entry => (entry instanceof CSSResult ? true : entry[entry.length - 1]))
+    .map(entry => (entry instanceof CSSResult ? entry : entry[0]))
 };
 export default helper(cssMap);

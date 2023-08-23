@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package acl
 
 import (
@@ -73,7 +70,7 @@ type PermissionDeniedError struct {
 	Accessor string
 	// Resource (e.g. Service)
 	Resource Resource
-	// Access level (e.g. Read)
+	// Access leve (e.g. Read)
 	AccessLevel AccessLevel
 	// e.g. "sidecar-proxy-1"
 	ResourceID ResourceDescriptor
@@ -99,8 +96,8 @@ func (e PermissionDeniedError) Error() string {
 		return message.String()
 	}
 
-	if e.Accessor == AnonymousTokenID {
-		message.WriteString(": anonymous token")
+	if e.Accessor == "" {
+		message.WriteString(": provided token")
 	} else {
 		fmt.Fprintf(&message, ": token with AccessorID '%s'", e.Accessor)
 	}
@@ -109,10 +106,6 @@ func (e PermissionDeniedError) Error() string {
 
 	if e.ResourceID.Name != "" {
 		fmt.Fprintf(&message, " on %s", e.ResourceID.ToString())
-	}
-
-	if e.Accessor == AnonymousTokenID {
-		message.WriteString(". The anonymous token is used implicitly when a request does not specify a token.")
 	}
 	return message.String()
 }
@@ -142,11 +135,4 @@ func extractAccessorID(authz interface{}) string {
 		accessor = v
 	}
 	return accessor
-}
-
-func ACLResourceNotExistError(resourceType string, entMeta EnterpriseMeta) error {
-	if ns := entMeta.NamespaceOrEmpty(); ns != "" {
-		return fmt.Errorf("Requested %s not found in namespace %s: %w", resourceType, ns, ErrNotFound)
-	}
-	return fmt.Errorf("Requested %s does not exist: %w", resourceType, ErrNotFound)
 }

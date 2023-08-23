@@ -1,13 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import setHelpers from 'mnemonist/set';
 
 export default {
   kind: {
-    'api-gateway': (item, value) => item.Kind === value,
     'ingress-gateway': (item, value) => item.Kind === value,
     'terminating-gateway': (item, value) => item.Kind === value,
     'mesh-gateway': (item, value) => item.Kind === value,
@@ -20,7 +14,6 @@ export default {
     warning: (item, value) => item.MeshStatus === value,
     critical: (item, value) => item.MeshStatus === value,
     empty: (item, value) => item.MeshChecksTotal === 0,
-    unknown: (item) => item.peerIsFailing || item.isZeroCountButPeered,
   },
   instance: {
     registered: (item, value) => item.InstanceCount > 0,

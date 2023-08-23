@@ -1,81 +1,30 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-((routes) =>
-  routes({
-    dc: {
-      peers: {
+(routes => routes({
+  dc: {
+    peers: {
+      _options: { 
+        path: '/peers'
+      },
+      index: {
         _options: {
-          path: "/peers",
-        },
-        index: {
-          _options: {
-            path: "/",
-            queryParams: {
-              sortBy: "sort",
-              state: "state",
-              searchproperty: {
-                as: "searchproperty",
-                empty: [["Name", "ID"]],
-              },
-              search: {
-                as: "filter",
-                replace: true,
-              },
+          path: '/',
+          queryParams: {
+            sortBy: 'sort',
+            state: 'state',
+            searchproperty: {
+              as: 'searchproperty',
+              empty: [['Name', 'ID']],
             },
-          },
-        },
-        show: {
-          _options: {
-            path: "/:name",
-          },
-          imported: {
-            _options: {
-              path: "/imported-services",
-              queryParams: {
-                sortBy: "sort",
-                status: "status",
-                source: "source",
-                kind: "kind",
-                searchproperty: {
-                  as: "searchproperty",
-                  empty: [["Name", "Tags"]],
-                },
-                search: {
-                  as: "filter",
-                  replace: true,
-                },
-              },
-            },
-          },
-          exported: {
-            _options: {
-              path: "/exported-services",
-              queryParams: {
-                search: {
-                  as: "filter",
-                  replace: true,
-                },
-              },
-            },
-          },
-          addresses: {
-            _options: {
-              path: "/addresses",
+            search: {
+              as: 'filter',
+              replace: true,
             },
           },
         },
       },
     },
-  }))(
-  (
-    json,
-    data = typeof document !== "undefined"
-      ? document.currentScript.dataset
-      : module.exports
-  ) => {
+  },
+}))(
+  (json, data = (typeof document !== 'undefined' ? document.currentScript.dataset : module.exports)) => {
     data[`routes`] = JSON.stringify(json);
   }
 );

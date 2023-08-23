@@ -1,39 +1,31 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-import Application from 'consul-ui/app';
-import config from 'consul-ui/config/environment';
-import * as QUnit from 'qunit';
+import Application from '../app';
+import config from '../config/environment';
 import { setApplication } from '@ember/test-helpers';
-import { setup } from 'qunit-dom';
 import { registerWaiter } from '@ember/test';
 import './helpers/flash-message';
 import start from 'ember-exam/test-support/start';
-import setupSinon from 'ember-sinon-qunit';
 
 import ClientConnections from 'consul-ui/services/client/connections';
 
 let activeRequests = 0;
-registerWaiter(function () {
+registerWaiter(function() {
   return activeRequests === 0;
 });
 ClientConnections.reopen({
-  addVisibilityChange: function () {
+  addVisibilityChange: function() {
     // for the moment don't listen for tab hiding during testing
     // TODO: make this controllable from testing so we can fake a tab hide
   },
-  purge: function () {
+  purge: function() {
     const res = this._super(...arguments);
     activeRequests = 0;
     return res;
   },
-  acquire: function () {
+  acquire: function() {
     activeRequests++;
     return this._super(...arguments);
   },
-  release: function () {
+  release: function() {
     const res = this._super(...arguments);
     activeRequests--;
     return res;
@@ -41,12 +33,6 @@ ClientConnections.reopen({
 });
 const application = Application.create(config.APP);
 application.inject('component:copy-button', 'clipboard', 'service:clipboard/local-storage');
-
 setApplication(application);
-
-setup(QUnit.assert);
-setupSinon();
-
-setup(QUnit.assert);
 
 start();

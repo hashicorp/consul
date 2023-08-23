@@ -1,124 +1,138 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-<Route @name={{routeName}} as |route|>
+<Route
+  @name={{routeName}}
+as |route|>
   <DataLoader
-    @src={{uri
-      '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}/${peer}'
-      (hash
-        partition=route.params.partition
-        nspace=route.params.nspace
-        dc=route.params.dc
-        id=route.params.id
-        node=route.params.node
-        name=route.params.name
-        peer=route.params.peer
-      )
-    }}
-    as |loader|
-  >
+    @src={{uri '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}/${peer}'
+        (hash
+          partition=route.params.partition
+          nspace=route.params.nspace
+          dc=route.params.dc
+          id=route.params.id
+          node=route.params.node
+          name=route.params.name
+          peer=route.params.peer
+        )
+      }}
+  as |loader|>
 
-    <BlockSlot @name='error'>
-      <AppError @error={{loader.error}} @login={{route.model.app.login.open}} />
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
     </BlockSlot>
 
-    <BlockSlot @name='disconnected' as |after|>
-      {{#if (eq loader.error.status '404')}}
-        <Hds::Toast
-          @color='warning'
-          {{notification sticky=true}}
-          as |T|>
-          <T.Title>Warning!</T.Title>
-          <T.Description>
-            This service has been deregistered and no longer exists in the catalog.
-          </T.Description>
-        </Hds::Toast>
-      {{else if (eq loader.error.status '403')}}
-        <Hds::Toast
-          @color='critical'
-          {{notification sticky=true}}
-          as |T|>
-          <T.Title>Error!</T.Title>
-          <T.Description>
-            You no longer have access to this service.
-          </T.Description>
-        </Hds::Toast>
+    <BlockSlot @name="disconnected" as |after|>
+      {{#if (eq loader.error.status "404")}}
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <strong>Warning!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              This service has been deregistered and no longer exists in the catalog.
+            </p>
+          </notice.Body>
+        </Notice>
+      {{else if (eq loader.error.status "403")}}
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="error"
+        as |notice|>
+          <notice.Header>
+            <strong>Error!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              You no longer have access to this service
+            </p>
+          </notice.Body>
+        </Notice>
       {{else}}
-        <Hds::Toast
-          @color='critical'
-          {{notification sticky=true}}
-          as |T|>
-          <T.Title>Warning!</T.Title>
-          <T.Description>
-            An error was returned whilst loading this data, refresh to try again.
-          </T.Description>
-        </Hds::Toast>
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="error"
+        as |notice|>
+          <notice.Header>
+            <strong>Warning!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              An error was returned whilst loading this data, refresh to try again.
+            </p>
+          </notice.Body>
+        </Notice>
       {{/if}}
     </BlockSlot>
 
-    <BlockSlot @name='loaded'>
-      {{#let loader.data as |item|}}
-        {{#if item.IsOrigin}}
-          <DataSource
-            @src={{uri
-              '/${partition}/${nspace}/${dc}/proxy-instance/${id}/${node}/${name}'
-              (hash
-                partition=route.params.partition
-                nspace=route.params.nspace
-                dc=route.params.dc
-                id=route.params.id
-                node=route.params.node
-                name=route.params.name
-              )
-            }}
-            @onchange={{action (mut meta) value='data'}}
-            as |meta|
-          >
-            {{! We only really need meta to get the correct ServiceID }}
-            {{! but we may as well use the NodeName and ServiceName }}
-            {{! from meta also, but they should be the same as the instance }}
-            {{! so if we can ever get ServiceID from elsewhere we could save }}
-            {{! a HTTP request/long poll here }}
-            {{#if meta.data.ServiceID}}
-              {{! if we have a proxy then get the additional instance information }}
-              {{! for the proxy itself so if the service is called `backend` }}
-              {{! its likely to have a proxy service called `backend-sidecar-proxy` }}
-              {{! and this second request get the info for that instance and saves }}
-              {{! it into the `proxy` variable }}
-              <DataSource
-                @src={{uri
-                  '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}/${peer}'
-                  (hash
-                    partition=route.params.partition
-                    nspace=route.params.nspace
-                    dc=route.params.dc
-                    id=meta.data.ServiceID
-                    node=meta.data.NodeName
-                    name=meta.data.ServiceName
-                    peer=route.params.peer
-                  )
-                }}
-                @onchange={{action (mut proxy) value='data'}}
-              />
-            {{/if}}
-          </DataSource>
-        {{/if}}
-        <AppView>
-          <BlockSlot @name='breadcrumbs'>
-            <ol>
-              <li><a href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
-              <li><a
-                  {{tooltip (concat 'Service (' item.Service.Service ')')}}
-                  data-test-back
-                  href={{href-to 'dc.services.show'}}
-                >
-                  Service ({{item.Service.Service}})
-                </a></li>
-            </ol>
+    <BlockSlot @name="loaded">
+{{#let
+
+  loader.data
+
+as |item|}}
+      {{#if item.IsOrigin}}
+        <DataSource
+          @src={{uri '/${partition}/${nspace}/${dc}/proxy-instance/${id}/${node}/${name}'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+              id=route.params.id
+              node=route.params.node
+              name=route.params.name
+            )
+          }}
+          @onchange={{action (mut meta) value="data"}}
+        as |meta|>
+          {{! We only really need meta to get the correct ServiceID }}
+          {{! but we may as well use the NodeName and ServiceName }}
+          {{! from meta also, but they should be the same as the instance }}
+          {{! so if we can ever get ServiceID from elsewhere we could save }}
+          {{! a HTTP request/long poll here }}
+          {{#if meta.data.ServiceID}}
+          {{! if we have a proxy then get the additional instance information }}
+          {{! for the proxy itself so if the service is called `backend` }}
+          {{! its likely to have a proxy service called `backend-sidecar-proxy` }}
+          {{! and this second request get the info for that instance and saves }}
+          {{! it into the `proxy` variable }}
+            <DataSource
+            @src={{uri '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}/${peer}'
+                (hash
+                  partition=route.params.partition
+                  nspace=route.params.nspace
+                  dc=route.params.dc
+                  id=meta.data.ServiceID
+                  node=meta.data.NodeName
+                  name=meta.data.ServiceName
+                  peer=route.params.peer
+                )
+              }}
+              @onchange={{action (mut proxy) value="data"}}
+            />
+          {{/if}}
+        </DataSource>
+      {{/if}}
+      <AppView>
+          <BlockSlot @name="breadcrumbs">
+              <ol>
+                  <li><a href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
+                  <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service.Service}})</a></li>
+              </ol>
           </BlockSlot>
-          <BlockSlot @name='header'>
+          <BlockSlot @name="header">
             <h1>
               <route.Title @title={{item.Service.ID}} />
             </h1>
@@ -130,92 +144,52 @@
               <Consul::TransparentProxy />
             {{/if}}
           </BlockSlot>
-          <BlockSlot @name='nav'>
+          <BlockSlot @name="nav">
             <dl>
               <dt>Service Name</dt>
-              <dd><a
-                  href='{{href-to "dc.services.show" item.Service.Service}}'
-                >{{item.Service.Service}}</a></dd>
+              <dd><a href="{{href-to 'dc.services.show' item.Service.Service}}">{{item.Service.Service}}</a></dd>
             </dl>
-            {{#unless item.Node.Meta.synthetic-node}}
-              <dl>
-                <dt>Node Name</dt>
-                <dd><a
-                    data-test-service-instance-node-name
-                    href='{{href-to "dc.nodes.show" item.Node.Node}}'
-                  >{{item.Node.Node}}</a></dd>
-              </dl>
-            {{/unless}}
+            <dl>
+              <dt>Node Name</dt>
+              <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
+            </dl>
             {{#if item.Service.PeerName}}
               <dl>
                 <dt>Peer Name</dt>
-                <dd><a
-                    data-test-service-instance-peer-name
-                    href={{href-to
-                      'dc.peers.show'
-                      item.Service.PeerName
-                      params=(hash peer=undefined)
-                    }}
-                  >{{item.Service.PeerName}}</a></dd>
+                <dd>{{item.Service.PeerName}}</dd>
               </dl>
             {{/if}}
           </BlockSlot>
-          <BlockSlot @name='actions'>
+          <BlockSlot @name="actions">
             {{#let (or item.Service.Address item.Node.Address) as |address|}}
-              <CopyButton @value={{address}} @name='Address'>{{address}}</CopyButton>
+              <CopyButton @value={{address}} @name="Address">{{address}}</CopyButton>
             {{/let}}
           </BlockSlot>
-          <BlockSlot @name='content'>
-            <TabNav
-              @items={{compact
-                (array
-                  (hash
-                    label='Health Checks'
-                    href=(href-to 'dc.services.instance.healthchecks')
-                    selected=(is-href 'dc.services.instance.healthchecks')
+          <BlockSlot @name="content">
+            <TabNav @items={{
+              compact
+                  (array
+                                          (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
+(if (eq item.Service.Kind 'mesh-gateway') (hash label="Addresses" href=(href-to "dc.services.instance.addresses") selected=(is-href "dc.services.instance.addresses")))
+                                (if proxy (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams")))
+                                (if proxy (hash label="Exposed Paths" href=(href-to "dc.services.instance.exposedpaths") selected=(is-href "dc.services.instance.exposedpaths")))
+                                          (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
                   )
-                  (if
-                    (eq item.Service.Kind 'mesh-gateway')
-                    (hash
-                      label='Addresses'
-                      href=(href-to 'dc.services.instance.addresses')
-                      selected=(is-href 'dc.services.instance.addresses')
-                    )
-                  )
-                  (if
-                    proxy
-                    (hash
-                      label='Upstreams'
-                      href=(href-to 'dc.services.instance.upstreams')
-                      selected=(is-href 'dc.services.instance.upstreams')
-                    )
-                  )
-                  (if
-                    proxy
-                    (hash
-                      label='Exposed Paths'
-                      href=(href-to 'dc.services.instance.exposedpaths')
-                      selected=(is-href 'dc.services.instance.exposedpaths')
-                    )
-                  )
-                  (hash
-                    label='Tags & Meta'
-                    href=(href-to 'dc.services.instance.metadata')
-                    selected=(is-href 'dc.services.instance.metadata')
-                  )
-                )
               }}
             />
             <Outlet
               @name={{routeName}}
-              @model={{assign (hash proxy=proxy meta=meta item=item) route.model}}
-              as |o|
-            >
+              @model={{assign (hash
+                proxy=proxy
+                meta=meta
+                item=item
+              ) route.model}}
+            as |o|>
               {{outlet}}
             </Outlet>
           </BlockSlot>
-        </AppView>
-      {{/let}}
+      </AppView>
+{{/let}}
     </BlockSlot>
   </DataLoader>
 </Route>

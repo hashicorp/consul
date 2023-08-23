@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxy
 
 import (
@@ -9,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
@@ -11,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,19 +19,16 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
-	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -46,7 +39,6 @@ type testCase struct {
 	desc             string
 	args             []string
 	setup            func() // TODO: accept a testing.T instead of panic
-	cleanup          func()
 	expected         func(rt *RuntimeConfig)
 	expectedErr      string
 	expectedWarnings []string
@@ -61,8 +53,6 @@ func (tc testCase) source(format string) []string {
 	}
 	return tc.json
 }
-
-var defaultGrpcTlsAddr = net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:8503"))
 
 // TestConfigFlagsAndEdgecases tests the command line flags and
 // edgecases for the config parsing. It provides a test structure which
@@ -186,13 +176,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Bootstrap = true
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"bootstrap = true: do not enable unless necessary"},
 	})
@@ -206,13 +193,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.BootstrapExpect = 3
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"bootstrap_expect > 0: expecting 3 servers"},
 	})
@@ -223,7 +207,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.TLS.ServerMode = false
 			rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4")}
 			rt.DNSAddrs = []net.Addr{tcpAddr("1.2.3.4:8600"), udpAddr("1.2.3.4:8600")}
 			rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:8500")}
@@ -324,7 +307,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DevMode = true
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
-			rt.Experiments = []string{"resource-apis"}
 			rt.EnableDebug = true
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
@@ -336,7 +318,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SerfBindAddrLAN = tcpAddr("127.0.0.1:8301")
 			rt.SerfBindAddrWAN = tcpAddr("127.0.0.1:8302")
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TaggedAddresses = map[string]string{
 				"lan":      "127.0.0.1",
@@ -360,8 +341,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GRPCPort = 8502
 			rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -552,11 +531,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.RetryJoinLAN = []string{"a", "b"}
+			rt.StartJoinAddrsLAN = []string{"a", "b"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecatedFlagWarning("-join", "-retry-join"),
 		},
 	})
 	run(t, testCase{
@@ -567,11 +543,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.RetryJoinWAN = []string{"a", "b"}
+			rt.StartJoinAddrsWAN = []string{"a", "b"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecatedFlagWarning("-join-wan", "-retry-join-wan"),
 		},
 	})
 	run(t, testCase{
@@ -619,7 +592,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeName = "a"
 			rt.TLS.NodeName = "a"
 			rt.DataDir = dataDir
-			rt.Cloud.NodeName = "a"
 		},
 	})
 	run(t, testCase{
@@ -631,7 +603,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.NodeID = "a"
 			rt.DataDir = dataDir
-			rt.Cloud.NodeID = "a"
 		},
 	})
 	run(t, testCase{
@@ -687,12 +658,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			// server things
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -872,13 +840,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -1037,13 +1002,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				return nil, fmt.Errorf("should not detect advertise_addr")
 			},
 		},
-	})
-	run(t, testCase{
-		desc:        "locality invalid",
-		args:        []string{`-data-dir=` + dataDir},
-		json:        []string{`{"locality": {"zone": "us-west-1a"}}`},
-		hcl:         []string{`locality { zone = "us-west-1a" }`},
-		expectedErr: "locality is invalid: zone cannot be set without region",
 	})
 	run(t, testCase{
 		desc: "client addr and ports == 0",
@@ -1424,11 +1382,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`{ "start_join": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
 		hcl:  []string{`start_join = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
 		expected: func(rt *RuntimeConfig) {
-			rt.RetryJoinLAN = []string{"1.2.3.4", "4.3.2.1"}
+			rt.StartJoinAddrsLAN = []string{"1.2.3.4", "4.3.2.1"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 	run(t, testCase{
@@ -1437,11 +1392,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`{ "start_join_wan": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
 		hcl:  []string{`start_join_wan = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
 		expected: func(rt *RuntimeConfig) {
-			rt.RetryJoinWAN = []string{"1.2.3.4", "4.3.2.1"}
+			rt.StartJoinAddrsWAN = []string{"1.2.3.4", "4.3.2.1"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecationWarning("start_join_wan", "retry_join_wan"),
 		},
 	})
 	run(t, testCase{
@@ -1539,14 +1491,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 0
 			rt.Datacenter = "b"
 			rt.PrimaryDatacenter = "b"
-			rt.RetryJoinLAN = []string{"a", "b", "c", "d"}
+			rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
 			rt.NodeMeta = map[string]string{"a": "c"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			// TODO: deduplicate warnings?
-			deprecationWarning("start_join", "retry_join"),
-			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 	run(t, testCase{
@@ -1603,7 +1550,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeMeta = map[string]string{"a": "c"}
 			rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
 			rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
-			rt.RetryJoinLAN = []string{"c", "d", "a", "b"}
+			rt.StartJoinAddrsLAN = []string{"c", "d", "a", "b"}
 			rt.TaggedAddresses = map[string]string{
 				"lan":      "1.1.1.1",
 				"lan_ipv4": "1.1.1.1",
@@ -1611,10 +1558,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"wan_ipv4": "2.2.2.2",
 			}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecatedFlagWarning("-join", "-retry-join"),
-			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 
@@ -1937,12 +1880,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 0
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"BootstrapExpect is set to 1; this is the same as Bootstrap mode.", "bootstrap = true: do not enable unless necessary"},
 	})
@@ -1957,12 +1897,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 2
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -1980,12 +1917,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 4
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -2002,7 +1936,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.LeaveOnTerm = true
 			rt.ServerMode = false
-			rt.TLS.ServerMode = false
 			rt.SkipLeaveOnInt = false
 			rt.DataDir = dataDir
 		},
@@ -2312,79 +2245,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "cloud resource id from env",
-		args: []string{
-			`-server`,
-			`-data-dir=` + dataDir,
-		},
-		setup: func() {
-			os.Setenv("HCP_RESOURCE_ID", "env-id")
-		},
-		cleanup: func() {
-			os.Unsetenv("HCP_RESOURCE_ID")
-		},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.Cloud = hcpconfig.CloudConfig{
-				// ID is only populated from env if not populated from other sources.
-				ResourceID: "env-id",
-				NodeName:   "thehostname",
-				NodeID:     "",
-			}
-
-			// server things
-			rt.ServerMode = true
-			rt.Telemetry.EnableHostMetrics = true
-			rt.TLS.ServerMode = true
-			rt.LeaveOnTerm = false
-			rt.SkipLeaveOnInt = true
-			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
-		},
-	})
-	run(t, testCase{
-		desc: "cloud resource id from file",
-		args: []string{
-			`-server`,
-			`-data-dir=` + dataDir,
-		},
-		setup: func() {
-			os.Setenv("HCP_RESOURCE_ID", "env-id")
-		},
-		cleanup: func() {
-			os.Unsetenv("HCP_RESOURCE_ID")
-		},
-		json: []string{`{
-			  "cloud": {
-              	"resource_id": "file-id" 
-              }
-			}`},
-		hcl: []string{`
-			  cloud = {
-	            resource_id = "file-id" 
-			  }
-			`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.Cloud = hcpconfig.CloudConfig{
-				// ID is only populated from env if not populated from other sources.
-				ResourceID: "file-id",
-				NodeName:   "thehostname",
-			}
-
-			// server things
-			rt.ServerMode = true
-			rt.Telemetry.EnableHostMetrics = true
-			rt.TLS.ServerMode = true
-			rt.LeaveOnTerm = false
-			rt.SkipLeaveOnInt = true
-			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
-		},
-	})
-	run(t, testCase{
 		desc: "sidecar_service can't have ID",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -2584,40 +2444,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "os_service check no interval",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{
-			`{ "check": { "name": "a", "os_service": "foo" } }`,
-		},
-		hcl: []string{
-			`check = { name = "a", os_service = "foo" }`,
-		},
-		expectedErr: `Interval must be > 0 for Script, HTTP, H2PING, TCP, UDP or OSService checks`,
-	})
-	run(t, testCase{
-		desc: "os_service check",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{
-			`{ "check": { "name": "a", "os_service": "foo", "interval": "30s" } }`,
-		},
-		hcl: []string{
-			`check = { name = "a", os_service = "foo", interval = "30s" }`,
-		},
-		expected: func(rt *RuntimeConfig) {
-			rt.Checks = []*structs.CheckDefinition{
-				{Name: "a",
-					OSService:     "foo",
-					Interval:      30 * time.Second,
-					OutputMaxSize: checks.DefaultBufSize,
-				},
-			}
-			rt.DataDir = dataDir
-		}})
-	run(t, testCase{
 		desc: "multiple service files",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -2736,44 +2562,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.TLS.InternalRPC.VerifyServerHostname = true
-			rt.TLS.InternalRPC.VerifyOutgoing = true
-		},
-	})
-	run(t, testCase{
-		desc: "verify_server_hostname in the defaults stanza and internal_rpc",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		hcl: []string{`
-			tls {
-				defaults {
-					verify_server_hostname = false
-				},
-				internal_rpc {
-					verify_server_hostname = true
-				}
-			}
-		`},
-		json: []string{`
-			{
-				"tls": {
-					"defaults": {
-						"verify_server_hostname": false
-					},
-					"internal_rpc": {
-						"verify_server_hostname": true
-					}
-				}
-			}
-		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.TLS.InternalRPC.VerifyServerHostname = true
-			rt.TLS.InternalRPC.VerifyOutgoing = true
-		},
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "verify_server_hostname in the grpc stanza",
@@ -2796,7 +2585,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanza",
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "verify_server_hostname in the https stanza",
@@ -2819,7 +2608,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanza",
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "translated keys",
@@ -3261,17 +3050,15 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.TLS.InternalRPC.VerifyIncoming = true
+			rt.TLS.SpecifiedTLSStanza = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
 			// server things
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3295,17 +3082,15 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 
 			rt.TLS.InternalRPC.VerifyIncoming = true
+			rt.TLS.SpecifiedTLSStanza = true
 			rt.TLS.GRPC.VerifyIncoming = true
 			rt.TLS.HTTPS.VerifyIncoming = true
 
 			// server things
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3328,15 +3113,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 			rt.TLS.InternalRPC.VerifyIncoming = true
+			rt.TLS.SpecifiedTLSStanza = true
 
 			// server things
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3359,12 +3142,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			// server things
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3384,7 +3164,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			// rpc.enable_streaming make no sense in not-server mode
 			rt.RPCConfig.EnableStreaming = true
 			rt.ServerMode = false
-			rt.TLS.ServerMode = false
 		},
 	})
 	run(t, testCase{
@@ -3408,11 +3187,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.UseStreamingBackend = true
 			// server things
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3688,10 +3464,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			    enable_mesh_gateway_wan_federation = true
 			  }
 			`},
-		expectedErr: "'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'",
-		expectedWarnings: []string{
-			deprecatedFlagWarning("-join-wan", "-retry-join-wan"),
-		},
+		expectedErr: "'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'",
 	})
 	run(t, testCase{
 		desc: "connect.enable_mesh_gateway_wan_federation cannot use -retry-join-wan",
@@ -3831,12 +3604,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectMeshGatewayWANFederationEnabled = true
 			// server things
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 
@@ -4256,7 +4026,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									  "namespace"               : "leek",
 									  "prefix_rewrite"          : "/alternate",
 									  "request_timeout"         : "99s",
-									  "idle_timeout"            : "99s",
 									  "num_retries"             : 12345,
 									  "retry_on_connect_failure": true,
 									  "retry_on_status_codes"   : [401, 209]
@@ -4345,7 +4114,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								  namespace             = "leek"
 								  prefix_rewrite         = "/alternate"
 								  request_timeout        = "99s"
-								  idle_timeout           = "99s"
 								  num_retries            = 12345
 								  retry_on_connect_failure = true
 								  retry_on_status_codes    = [401, 209]
@@ -4435,7 +4203,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
-								IdleTimeout:           99 * time.Second,
 								NumRetries:            12345,
 								RetryOnConnectFailure: true,
 								RetryOnStatusCodes:    []uint32{401, 209},
@@ -4764,13 +4531,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
-			rt.RequestLimitsMode = consulrate.ModeDisabled
-			rt.RequestLimitsReadRate = rate.Inf
-			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
-			rt.XDSUpdateRateLimit = 250
-			rt.RPCRateLimit = rate.Inf
-			rt.RPCMaxBurst = 1000
 		},
 	})
 
@@ -5009,6 +4770,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.TLS.InternalRPC.VerifyOutgoing = true
 			rt.TLS.AutoTLS = true
+			rt.TLS.SpecifiedTLSStanza = true
 		},
 	})
 
@@ -5265,12 +5027,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
-			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TLS.InternalRPC.CertFile = "foo"
+			rt.TLS.SpecifiedTLSStanza = true
 			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	// UI Config tests
@@ -5707,6 +5467,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
+			rt.TLS.SpecifiedTLSStanza = true
 
 			rt.TLS.InternalRPC.CAFile = "internal_rpc_ca_file"
 			rt.TLS.InternalRPC.CAPath = "default_ca_path"
@@ -5755,74 +5516,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
-
-			rt.TLS.InternalRPC.VerifyServerHostname = true
-			rt.TLS.InternalRPC.VerifyOutgoing = true
-		},
-	})
-	run(t, testCase{
-		desc: "tls.defaults.verify_server_hostname implies tls.internal_rpc.verify_outgoing",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"tls": {
-					"defaults": {
-						"verify_server_hostname": true
-					}
-				}
-			}
-		`},
-		hcl: []string{`
-			tls {
-				defaults {
-					verify_server_hostname = true
-				}
-			}
-		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-
-			rt.TLS.Domain = "consul."
-			rt.TLS.NodeName = "thehostname"
-
-			rt.TLS.InternalRPC.VerifyServerHostname = true
-			rt.TLS.InternalRPC.VerifyOutgoing = true
-		},
-	})
-	run(t, testCase{
-		desc: "tls.internal_rpc.verify_server_hostname overwrites tls.defaults.verify_server_hostname",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"tls": {
-					"defaults": {
-						"verify_server_hostname": false
-					},
-					"internal_rpc": {
-						"verify_server_hostname": true
-					}
-				}
-			}
-		`},
-		hcl: []string{`
-			tls {
-				defaults {
-					verify_server_hostname = false
-				},
-				internal_rpc {
-					verify_server_hostname = true
-				}
-			}
-		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-
-			rt.TLS.Domain = "consul."
-			rt.TLS.NodeName = "thehostname"
+			rt.TLS.SpecifiedTLSStanza = true
 
 			rt.TLS.InternalRPC.VerifyServerHostname = true
 			rt.TLS.InternalRPC.VerifyOutgoing = true
@@ -5850,6 +5544,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 			rt.TLS.GRPC.UseAutoCert = false
+			rt.TLS.SpecifiedTLSStanza = false // TLS stanza was defined but is empty.
 		},
 	})
 	run(t, testCase{
@@ -5871,6 +5566,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 			rt.TLS.GRPC.UseAutoCert = false
+			rt.TLS.SpecifiedTLSStanza = false // TLS stanza was defined but is empty.
 		},
 	})
 	run(t, testCase{
@@ -5917,6 +5613,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 			rt.TLS.GRPC.UseAutoCert = true
+			rt.TLS.SpecifiedTLSStanza = true
 		},
 	})
 	run(t, testCase{
@@ -5945,143 +5642,37 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 			rt.TLS.GRPC.UseAutoCert = false
+			rt.TLS.SpecifiedTLSStanza = true
 		},
 	})
 	run(t, testCase{
-		desc: "logstore defaults",
+		desc: "SpecifiedTLSStanza is not set if tls stanza was not defined",
 		args: []string{
 			`-data-dir=` + dataDir,
 		},
-		json: []string{``},
-		hcl:  []string{``},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
-			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
-		},
-	})
-	run(t, testCase{
-		// this was a bug in the initial config commit. Specifying part of this
-		// stanza should still result in sensible defaults for the other parts.
-		desc: "wal defaults",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`{
-			"raft_logstore": {
-				"backend": "boltdb"
+		json: []string{`
+			{
+				"cert_file": "foo",
+				"key_file": "bar"
 			}
-		}`},
+		`},
 		hcl: []string{`
-			raft_logstore {
-				backend = "boltdb"
-			}
+			cert_file = "foo"
+			key_file = "bar"
 		`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
-			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+			rt.TLS.SpecifiedTLSStanza = false
+			rt.TLS.HTTPS.CertFile = "foo"
+			rt.TLS.HTTPS.KeyFile = "bar"
+			rt.TLS.InternalRPC.CertFile = "foo"
+			rt.TLS.InternalRPC.KeyFile = "bar"
+			rt.TLS.GRPC.CertFile = "foo"
+			rt.TLS.GRPC.KeyFile = "bar"
 		},
-	})
-	run(t, testCase{
-		desc: "wal segment size lower bound",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"server": true,
-				"raft_logstore": {
-					"wal":{
-						"segment_size_mb": 0
-					}
-				}
-			}`},
-		hcl: []string{`
-			server = true
-			raft_logstore {
-				wal {
-					segment_size_mb = 0
-				}
-			}`},
-		expectedErr: "raft_logstore.wal.segment_size_mb cannot be less than",
-	})
-	run(t, testCase{
-		desc: "wal segment size upper bound",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"server": true,
-				"raft_logstore": {
-					"wal":{
-						"segment_size_mb": 1025
-					}
-				}
-			}`},
-		hcl: []string{`
-			server = true
-			raft_logstore {
-				wal {
-					segment_size_mb = 1025
-				}
-			}`},
-		expectedErr: "raft_logstore.wal.segment_size_mb cannot be greater than",
-	})
-	run(t, testCase{
-		desc: "valid logstore backend",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"server": true,
-				"raft_logstore": {
-					"backend": "thecloud"
-				}
-			}`},
-		hcl: []string{`
-			server = true
-			raft_logstore {
-				backend = "thecloud"
-			}`},
-		expectedErr: "raft_logstore.backend must be one of 'boltdb' or 'wal'",
-	})
-	run(t, testCase{
-		desc: "raft_logstore merging",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{
-			// File 1 has logstore info
-			`{
-				"raft_logstore": {
-					"backend": "wal"
-				}
-			}`,
-			// File 2 doesn't have anything for logstore
-			`{
-				"enable_debug": true
-			}`,
-		},
-		hcl: []string{
-			// File 1 has logstore info
-			`
-			raft_logstore {
-				backend = "wal"
-			}`,
-			// File 2 doesn't have anything for logstore
-			`
-			enable_debug = true
-			`,
-		},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			// The logstore settings from first file should not be overridden by a
-			// later file with nothing to say about logstores!
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendWAL
-			rt.EnableDebug = true
+		expectedWarnings: []string{
+			"The 'cert_file' field is deprecated. Use the 'tls.defaults.cert_file' field instead.",
+			"The 'key_file' field is deprecated. Use the 'tls.defaults.key_file' field instead.",
 		},
 	})
 }
@@ -6105,9 +5696,10 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 
 		for i, data := range tc.source(format) {
 			opts.sources = append(opts.sources, FileSource{
-				Name:   fmt.Sprintf("src-%d.%s", i, format),
-				Format: format,
-				Data:   data,
+				Name:     fmt.Sprintf("src-%d.%s", i, format),
+				Format:   format,
+				Data:     data,
+				FromUser: true,
 			})
 		}
 
@@ -6153,9 +5745,6 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
-		if tc.cleanup != nil {
-			tc.cleanup()
-		}
 	}
 }
 
@@ -6189,13 +5778,12 @@ func TestLoad_FullConfig(t *testing.T) {
 	nodeEntMeta := structs.NodeEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
-		AEInterval:                     time.Minute,
-		CheckDeregisterIntervalMin:     time.Minute,
-		CheckReapInterval:              30 * time.Second,
-		SegmentNameLimit:               64,
-		SyncCoordinateIntervalMin:      15 * time.Second,
-		SyncCoordinateRateTarget:       64,
-		LocalProxyConfigResyncInterval: 30 * time.Second,
+		AEInterval:                 time.Minute,
+		CheckDeregisterIntervalMin: time.Minute,
+		CheckReapInterval:          30 * time.Second,
+		SegmentNameLimit:           64,
+		SyncCoordinateIntervalMin:  15 * time.Second,
+		SyncCoordinateRateTarget:   64,
 
 		Revision:          "JNtPSav3",
 		Version:           "R909Hblt",
@@ -6289,7 +5877,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "RJQND605",
 				H2PING:                         "9N1cSb5B",
 				H2PingUseTLS:                   false,
-				OSService:                      "aAjE6m9Z",
 				Interval:                       22164 * time.Second,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				DockerContainerID:              "ipgdFtjd",
@@ -6319,7 +5906,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "4jG5casb",
 				H2PING:                         "HCHU7gEb",
 				H2PingUseTLS:                   false,
-				OSService:                      "aqq95BhP",
 				Interval:                       28767 * time.Second,
 				DockerContainerID:              "THW6u7rL",
 				Shell:                          "C1Zt3Zwh",
@@ -6348,7 +5934,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "JY6fTTcw",
 				H2PING:                         "rQ8eyCSF",
 				H2PingUseTLS:                   false,
-				OSService:                      "aZaCAXww",
 				Interval:                       18714 * time.Second,
 				DockerContainerID:              "qF66POS9",
 				Shell:                          "sOnDy228",
@@ -6427,55 +6012,45 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxConcurrent":    float64(2),
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
-		Cloud: hcpconfig.CloudConfig{
-			ResourceID:   "N43DsscE",
-			ClientID:     "6WvsDZCP",
-			ClientSecret: "lCSMHOpB",
-			Hostname:     "DH4bh7aC",
-			AuthURL:      "332nCdR2",
-			ScadaAddress: "aoeusth232",
-			NodeID:       types.NodeID("AsUIlw99"),
-			NodeName:     "otlLxGaI",
-		},
-		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
-		DNSARecordLimit:                  29907,
-		DNSAllowStale:                    true,
-		DNSDisableCompression:            true,
-		DNSDomain:                        "7W1xXSqd",
-		DNSAltDomain:                     "1789hsd",
-		DNSEnableTruncate:                true,
-		DNSMaxStale:                      29685 * time.Second,
-		DNSNodeTTL:                       7084 * time.Second,
-		DNSOnlyPassing:                   true,
-		DNSPort:                          7001,
-		DNSRecursorStrategy:              "sequential",
-		DNSRecursorTimeout:               4427 * time.Second,
-		DNSRecursors:                     []string{"63.38.39.58", "92.49.18.18"},
-		DNSSOA:                           RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
-		DNSServiceTTL:                    map[string]time.Duration{"*": 32030 * time.Second},
-		DNSUDPAnswerLimit:                29909,
-		DNSNodeMetaTXT:                   true,
-		DNSUseCache:                      true,
-		DNSCacheMaxAge:                   5 * time.Minute,
-		DataDir:                          dataDir,
-		Datacenter:                       "rzo029wg",
-		DefaultQueryTime:                 16743 * time.Second,
-		DisableAnonymousSignature:        true,
-		DisableCoordinates:               true,
-		DisableHostNodeID:                true,
-		DisableHTTPUnprintableCharFilter: true,
-		DisableKeyringFile:               true,
-		DisableRemoteExec:                true,
-		DisableUpdateCheck:               true,
-		DiscardCheckOutput:               true,
-		DiscoveryMaxStale:                5 * time.Second,
-		EnableAgentTLSForChecks:          true,
-		EnableCentralServiceConfig:       false,
-		EnableDebug:                      true,
-		EnableRemoteScriptChecks:         true,
-		EnableLocalScriptChecks:          true,
-		EncryptKey:                       "A4wELWqH",
-		Experiments:                      []string{"foo"},
+		ConnectServerlessPluginEnabled:         true,
+		DNSAddrs:                               []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
+		DNSARecordLimit:                        29907,
+		DNSAllowStale:                          true,
+		DNSDisableCompression:                  true,
+		DNSDomain:                              "7W1xXSqd",
+		DNSAltDomain:                           "1789hsd",
+		DNSEnableTruncate:                      true,
+		DNSMaxStale:                            29685 * time.Second,
+		DNSNodeTTL:                             7084 * time.Second,
+		DNSOnlyPassing:                         true,
+		DNSPort:                                7001,
+		DNSRecursorStrategy:                    "sequential",
+		DNSRecursorTimeout:                     4427 * time.Second,
+		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
+		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
+		DNSServiceTTL:                          map[string]time.Duration{"*": 32030 * time.Second},
+		DNSUDPAnswerLimit:                      29909,
+		DNSNodeMetaTXT:                         true,
+		DNSUseCache:                            true,
+		DNSCacheMaxAge:                         5 * time.Minute,
+		DataDir:                                dataDir,
+		Datacenter:                             "rzo029wg",
+		DefaultQueryTime:                       16743 * time.Second,
+		DisableAnonymousSignature:              true,
+		DisableCoordinates:                     true,
+		DisableHostNodeID:                      true,
+		DisableHTTPUnprintableCharFilter:       true,
+		DisableKeyringFile:                     true,
+		DisableRemoteExec:                      true,
+		DisableUpdateCheck:                     true,
+		DiscardCheckOutput:                     true,
+		DiscoveryMaxStale:                      5 * time.Second,
+		EnableAgentTLSForChecks:                true,
+		EnableCentralServiceConfig:             false,
+		EnableDebug:                            true,
+		EnableRemoteScriptChecks:               true,
+		EnableLocalScriptChecks:                true,
+		EncryptKey:                             "A4wELWqH",
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,
@@ -6483,8 +6058,6 @@ func TestLoad_FullConfig(t *testing.T) {
 
 		GRPCPort:              4881,
 		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
-		GRPCTLSPort:           5201,
-		GRPCTLSAddrs:          []net.Addr{tcpAddr("23.14.88.19:5201")},
 		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -6529,23 +6102,19 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftTrailingLogs:        83749,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
-		RequestLimitsMode:       consulrate.ModePermissive,
-		RequestLimitsReadRate:   99.0,
-		RequestLimitsWriteRate:  101.0,
 		RejoinAfterLeave:        true,
 		RetryJoinIntervalLAN:    8067 * time.Second,
 		RetryJoinIntervalWAN:    28866 * time.Second,
-		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij", "LR3hGDoG", "MwVpZ4Up"},
+		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij"},
 		RetryJoinMaxAttemptsLAN: 913,
 		RetryJoinMaxAttemptsWAN: 23160,
-		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER", "EbFSc3nA", "kwXTh623"},
+		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
 		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
 		SegmentLimit:            123,
 		SerfPortLAN:             8301,
 		SerfPortWAN:             8302,
 		ServerMode:              true,
 		ServerName:              "Oerr9n1G",
-		ServerRejoinAgeMax:      604800 * time.Second,
 		ServerPort:              3757,
 		Services: []*structs.ServiceDefinition{
 			{
@@ -6579,7 +6148,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "ICbxkpSF",
 						H2PING:                         "7s7BbMyb",
 						H2PingUseTLS:                   false,
-						OSService:                      "amfeO5if",
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
 						Shell:                          "CEfzx0Fo",
@@ -6632,7 +6200,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "MN3oA9D2",
 						H2PING:                         "OV6Q2XEg",
 						H2PingUseTLS:                   false,
-						OSService:                      "GTti9hCA",
 						Interval:                       32718 * time.Second,
 						DockerContainerID:              "cU15LMet",
 						Shell:                          "nEz9qz2l",
@@ -6778,7 +6345,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "bNnNfx2A",
 						H2PING:                         "qC1pidiW",
 						H2PingUseTLS:                   false,
-						OSService:                      "ZA99e9Ka",
 						Interval:                       22224 * time.Second,
 						DockerContainerID:              "ipgdFtjd",
 						Shell:                          "omVZq7Sz",
@@ -6805,7 +6371,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "FfvCwlqH",
 						H2PING:                         "spI3muI3",
 						H2PingUseTLS:                   false,
-						OSService:                      "GAaO6Mpr",
 						Interval:                       12356 * time.Second,
 						DockerContainerID:              "HBndBU6R",
 						Shell:                          "hVI33JjA",
@@ -6832,7 +6397,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "fjiLFqVd",
 						H2PING:                         "5NbNWhan",
 						H2PingUseTLS:                   false,
-						OSService:                      "RAa85Dv8",
 						Interval:                       23926 * time.Second,
 						DockerContainerID:              "dO5TtRHk",
 						Shell:                          "e6q2ttES",
@@ -6853,6 +6417,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		SerfAllowedCIDRsWAN:  []net.IPNet{},
 		SessionTTLMin:        26627 * time.Second,
 		SkipLeaveOnInt:       true,
+		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
+		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -6881,7 +6447,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				Expiration: 15 * time.Second,
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
-			EnableHostMetrics: true,
 		},
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{
@@ -6917,9 +6482,9 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 			NodeName:                "otlLxGaI",
 			ServerName:              "Oerr9n1G",
-			ServerMode:              true,
 			Domain:                  "7W1xXSqd",
 			EnableAgentTLSForChecks: true,
+			SpecifiedTLSStanza:      true,
 		},
 		TaggedAddresses: map[string]string{
 			"7MYgHrYH": "dALJAhLD",
@@ -6966,17 +6531,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
-		XDSUpdateRateLimit: 9526.2,
-		RaftLogStoreConfig: consul.RaftLogStoreConfig{
-			Backend:         consul.LogStoreBackendWAL,
-			DisableLogCache: true,
-			Verification: consul.RaftLogStoreVerificationConfig{
-				Enabled:  true,
-				Interval: 12345 * time.Second,
-			},
-			BoltDB: consul.RaftBoltDBConfig{NoFreelistSync: true},
-			WAL:    consul.WALConfig{SegmentSize: 15 * 1024 * 1024},
-		},
+		RaftBoltDBConfig:                 consul.RaftBoltDBConfig{NoFreelistSync: true},
 		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}
 	entFullRuntimeConfig(expected)
@@ -7008,8 +6563,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		deprecationWarning("verify_outgoing", "tls.defaults.verify_outgoing"),
 		deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"),
 		"The 'tls_prefer_server_cipher_suites' field is deprecated and will be ignored.",
-		deprecationWarning("start_join", "retry_join"),
-		deprecationWarning("start_join_wan", "retry_join_wan"),
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)
 
@@ -7241,11 +6794,6 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 			EntryFetchMaxBurst: 42,
 			EntryFetchRate:     0.334,
 		},
-		Cloud: hcpconfig.CloudConfig{
-			ResourceID:   "cluster1",
-			ClientID:     "id",
-			ClientSecret: "secret",
-		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RaftProtocol:                 3,
 		RetryJoinLAN: []string{
@@ -7291,8 +6839,6 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
-		Locality:           &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
-		ServerRejoinAgeMax: 24 * 7 * time.Hour,
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

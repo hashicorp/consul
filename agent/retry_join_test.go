@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -15,7 +12,7 @@ func TestAgentRetryNewDiscover(t *testing.T) {
 	d, err := newDiscover()
 	require.NoError(t, err)
 	expected := []string{
-		"aliyun", "aws", "azure", "digitalocean", "gce", "hcp", "k8s", "linode",
+		"aliyun", "aws", "azure", "digitalocean", "gce", "k8s", "linode",
 		"mdns", "os", "packet", "scaleway", "softlayer", "tencentcloud",
 		"triton", "vsphere",
 	}

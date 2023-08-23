@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import I18nService, { formatOptionsSymbol } from 'consul-ui/services/i18n';
 import ucfirst from 'consul-ui/utils/ucfirst';
 
@@ -10,7 +5,7 @@ import faker from 'faker';
 
 // we currently use HTML in translations, so anything 'word-like' with these
 // chars won't get translated
-const translator = (cb) => (item) => !['<', '>', '='].includes(item) ? cb(item) : item;
+const translator = cb => item => (!['<', '>', '='].includes(item) ? cb(item) : item);
 
 export default class DebugI18nService extends I18nService {
   formatMessage(value, formatOptions) {
@@ -22,10 +17,10 @@ export default class DebugI18nService extends I18nService {
           return text
             .split(' ')
             .map(
-              translator((item) =>
+              translator(item =>
                 item
                   .split('')
-                  .map((item) => '-')
+                  .map(item => '-')
                   .join('')
               )
             )
@@ -38,7 +33,7 @@ export default class DebugI18nService extends I18nService {
           return text
             .split(' ')
             .map(
-              translator((item) => {
+              translator(item => {
                 const word = faker.lorem.word();
                 return item.charAt(0) === item.charAt(0).toUpperCase() ? ucfirst(word) : word;
               })
@@ -61,3 +56,4 @@ export default class DebugI18nService extends I18nService {
     return formatOptions;
   }
 }
+

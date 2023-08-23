@@ -1,3 +1,0 @@
-```release-note:feature
-DNS-proxy support via gRPC request.
-```

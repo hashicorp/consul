@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import ObjectProxy from '@ember/object/proxy';
 import ArrayProxy from '@ember/array/proxy';
 
@@ -27,7 +22,7 @@ import { env } from 'consul-ui/env';
 let runner;
 switch (env('CONSUL_UI_REALTIME_RUNNER')) {
   case 'ec':
-    runner = function (target, configuration, isClosed) {
+    runner = function(target, configuration, isClosed) {
       return EmberObject.extend({
         task: task(function* run() {
           while (!isClosed(target)) {
@@ -41,8 +36,8 @@ switch (env('CONSUL_UI_REALTIME_RUNNER')) {
     };
     break;
   case 'generator':
-    runner = async function (target, configuration, isClosed) {
-      const run = function* () {
+    runner = async function(target, configuration, isClosed) {
+      const run = function*() {
         while (!isClosed(target)) {
           yield target.source.bind(target)(configuration);
         }
@@ -57,8 +52,8 @@ switch (env('CONSUL_UI_REALTIME_RUNNER')) {
     };
     break;
   case 'async':
-    runner = async function (target, configuration, isClosed) {
-      const run = function () {
+    runner = async function(target, configuration, isClosed) {
+      const run = function() {
         return target.source.bind(target)(configuration);
       };
       let res;
@@ -82,49 +77,49 @@ export const StorageEventSource = StorageEventSourceFactory(EventTarget, Promise
 export const proxy = proxyFactory(ObjectProxy, ArrayProxy, createListeners);
 export const resolve = firstResolverFactory(Promise);
 
-export const source = function (source) {
+export const source = function(source) {
   // create API needed for conventional promise blocked, loading, Routes
   // i.e. resolve/reject on first response
-  return resolve(source, createListeners()).then(function (data) {
+  return resolve(source, createListeners()).then(function(data) {
     // create API needed for conventional DD/computed and Controllers
     return proxy(source, data);
   });
 };
 export const cache = cacheFactory(source, BlockingEventSource, Promise);
 
-const errorEvent = function (e) {
+const errorEvent = function(e) {
   return new ErrorEvent('error', {
     error: e,
     message: e.message,
   });
 };
-export const fromPromise = function (promise) {
-  return new CallableEventSource(function (configuration) {
+export const fromPromise = function(promise) {
+  return new CallableEventSource(function(configuration) {
     const dispatch = this.dispatchEvent.bind(this);
     const close = () => {
       this.close();
     };
     return promise
-      .then(function (result) {
+      .then(function(result) {
         close();
         dispatch({ type: 'message', data: result });
       })
-      .catch(function (e) {
+      .catch(function(e) {
         close();
         dispatch(errorEvent(e));
       });
   });
 };
-export const toPromise = function (target, cb, eventName = 'message', errorName = 'error') {
-  return new Promise(function (resolve, reject) {
+export const toPromise = function(target, cb, eventName = 'message', errorName = 'error') {
+  return new Promise(function(resolve, reject) {
     // TODO: e.target.data
-    const message = function (e) {
+    const message = function(e) {
       resolve(e.data);
     };
-    const error = function (e) {
+    const error = function(e) {
       reject(e.error);
     };
-    const remove = function () {
+    const remove = function() {
       if (typeof target.close === 'function') {
         target.close();
       }
@@ -136,14 +131,14 @@ export const toPromise = function (target, cb, eventName = 'message', errorName 
     cb(remove);
   });
 };
-export const once = function (cb, configuration, Source = OpenableEventSource) {
-  return new Source(function (configuration, source) {
+export const once = function(cb, configuration, Source = OpenableEventSource) {
+  return new Source(function(configuration, source) {
     return cb(configuration, source)
-      .then(function (data) {
+      .then(function(data) {
         source.dispatchEvent({ type: 'message', data: data });
         source.close();
       })
-      .catch(function (e) {
+      .catch(function(e) {
         source.dispatchEvent({ type: 'error', error: e });
         source.close();
       });

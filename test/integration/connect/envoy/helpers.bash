@@ -1,7 +1,4 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
@@ -49,23 +46,32 @@ function retry_long {
   retry 30 1 "$@"
 }
 
-# assert_upstream_message asserts both the returned code
-# and message from upstream service
-function assert_upstream_message {
-  local HOSTPORT=$1
-  run curl -s -d hello localhost:$HOSTPORT
+function echored {
+  tput setaf 1
+  tput bold
+  echo $@
+  tput sgr0
+}
 
-  if [ "$status" -ne 0 ]; then
-    echo "Command failed"
-    return 1
-  fi
+function echogreen {
+  tput setaf 2
+  tput bold
+  echo $@
+  tput sgr0
+}
 
-  if (echo $output | grep 'hello'); then
-    return 0
-  fi
+function echoyellow {
+  tput setaf 3
+  tput bold
+  echo $@
+  tput sgr0
+}
 
-  echo "expected message not found in $output"
-  return 1
+function echoblue {
+  tput setaf 4
+  tput bold
+  echo $@
+  tput sgr0
 }
 
 function is_set {
@@ -150,20 +156,6 @@ function assert_cert_signed_by_ca {
   echo "$CERT" | grep 'Verify return code: 0 (ok)'
 }
 
-function assert_cert_has_cn {
-  local HOSTPORT=$1
-  local CN=$2
-  local SERVER_NAME=${3:-$CN}
-
-  CERT=$(openssl s_client -connect $HOSTPORT -servername $SERVER_NAME -showcerts </dev/null 2>/dev/null)
-
-  echo "WANT CN: ${CN} (SNI: ${SERVER_NAME})"
-  echo "GOT CERT:"
-  echo "$CERT"
-
-  echo "$CERT" | grep "CN = ${CN}"
-}
-
 function assert_envoy_version {
   local ADMINPORT=$1
   run retry_default curl -f -s localhost:$ADMINPORT/server_info
@@ -210,7 +202,7 @@ function assert_envoy_expose_checks_listener_count {
   RANGES=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filter_chain_match.source_prefix_ranges | length')
   echo "RANGES = $RANGES (expect 3)"
   # note: if IPv6 is not supported in the kernel per
-  # agent/xds/platform:SupportsIPv6() then this will only be 2
+  # agent/xds:kernelSupportsIPv6() then this will only be 2
   [ "${RANGES:-0}" -eq 3 ]
 
   HCM=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filters[0]')
@@ -226,13 +218,6 @@ function get_envoy_expose_checks_listener_once {
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("exposed_path_"))'
-}
-
-function get_envoy_public_listener_once {
-  local HOSTPORT=$1
-  run curl -s -f $HOSTPORT/config_dump
-  [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("public_listener:"))'
 }
 
 function assert_envoy_http_rbac_policy_count {
@@ -265,14 +250,6 @@ function get_envoy_network_rbac_once {
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
-}
-
-function get_envoy_http_filter {
-  local HOSTPORT=$1
-  local FILTER_NAME=$2
-  run retry_default curl -s -f $HOSTPORT/config_dump
-  [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"${FILTER_NAME}\")"
 }
 
 function get_envoy_listener_filters {
@@ -636,14 +613,14 @@ function assert_intention_denied {
 function docker_consul {
   local DC=$1
   shift 1
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul:local "$@"
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
 }
 
 function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
 
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul:local "$@" 2>/dev/null
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
 }
 
 function docker_wget {
@@ -655,7 +632,7 @@ function docker_wget {
 function docker_curl {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul:local "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
 }
 
 function docker_exec {
@@ -739,7 +716,7 @@ function must_pass_tcp_connection {
   echo "OUTPUT $output"
 
   [ "$status" == "0" ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 # must_fail_http_connection see must_fail_tcp_connection but this expects Envoy
@@ -870,28 +847,6 @@ function wait_for_config_entry {
   retry_default read_config_entry "$@" >/dev/null
 }
 
-function upsert_config_entry {
-  local DC="$1"
-  local BODY="$2"
-
-  echo "$BODY" | docker_consul "$DC" config write -
-}
-
-function assert_config_entry_status {
-  local TYPE="$1"
-  local STATUS="$2"
-  local REASON="$3"
-  local DC="$4"
-  local KIND="$5"
-  local NAME="$6"
-  local NS=${7:-}
-  local AP=${8:-}
-  local PEER=${9:-}
-
-  status=$(curl -s -f "consul-${DC}-client:8500/v1/config/${KIND}/${NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER}" | jq ".Status.Conditions[] | select(.Type == \"$TYPE\" and .Status == \"$STATUS\" and .Reason == \"$REASON\")")
-  [ -n "$status" ]
-}
-
 function delete_config_entry {
   local KIND=$1
   local NAME=$2
@@ -900,14 +855,7 @@ function delete_config_entry {
 
 function register_services {
   local DC=${1:-primary}
-  wait_for_leader "$DC"
   docker_consul_exec ${DC} sh -c "consul services register /workdir/${DC}/register/service_*.hcl"
-}
-
-# wait_for_leader waits until a leader is elected.
-# Its first argument must be the datacenter name.
-function wait_for_leader {
-  retry_default docker_consul_exec "$1" sh -c '[[ $(curl --fail -sS http://127.0.0.1:8500/v1/status/leader) ]]'
 }
 
 function setup_upsert_l4_intention {
@@ -1078,19 +1026,13 @@ function create_peering {
   fi
 }
 
-function assert_service_has_imported {
-  local DC=${1:-primary}
-  local SERVICE_NAME=$2
-  local PEER_NAME=$3
-
-  run curl -s -f "http://consul-${DC}-client:8500/v1/peering/${PEER_NAME}"
-  [ "$status" == 0 ]
-
-  echo "$output" | jq --raw-output '.StreamStatus.ImportedServices' | grep -e "${SERVICE_NAME}"
-  if [ $? -ne 0 ]; then
-    echo "Error finding service: ${SERVICE_NAME}"
-    return 1
-  fi
+function get_lambda_envoy_http_filter {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  # get the full http filter object so the individual fields can be validated.
+  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"envoy.filters.http.aws_lambda\") | .typed_config"
 }
 
 function register_lambdas {
@@ -1120,12 +1062,13 @@ function assert_lambda_envoy_dynamic_cluster_exists {
 
 function assert_lambda_envoy_dynamic_http_filter_exists {
   local HOSTPORT=$1
-  local ARN=$2
+  local NAME_PREFIX=$2
+  local ARN=$3
 
-  local FILTER=$(get_envoy_http_filter $HOSTPORT 'envoy.filters.http.aws_lambda')
+  local FILTER=$(get_lambda_envoy_http_filter $HOSTPORT $NAME_PREFIX)
   [ -n "$FILTER" ]
 
-  [ "$(echo $FILTER | jq -r '.typed_config | .arn')" == "$ARN" ]
+  [ "$(echo $FILTER | jq -r '.arn')" == "$ARN" ]
 }
 
 function varsub {
@@ -1134,24 +1077,4 @@ function varsub {
   for v in "$@"; do
     sed -i "s/\${$v}/${!v}/g" $file
   done
-}
-
-function get_url_header {
-  local URL=$1
-  local HEADER=$2
-  run curl -s -f -X GET -I "${URL}"
-  [ "$status" == 0 ]
-  RESP=$(echo "$output" | tr -d '\r')
-  RESP=$(echo "$RESP" | grep -E "^${HEADER}: ")
-  RESP=$(echo "$RESP" | sed "s/^${HEADER}: //g")
-  echo "$RESP"
-}
-
-function assert_url_header {
-  local URL=$1
-  local HEADER=$2
-  local VALUE=$3
-  run get_url_header "$URL" "$HEADER"
-  [ "$status" == 0 ]
-  [ "$VALUE" = "$output" ]
 }

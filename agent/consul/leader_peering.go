@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -9,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -30,34 +26,16 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
-var leaderExportedServicesCountKeyDeprecated = []string{"consul", "peering", "exported_services"}
-var leaderExportedServicesCountKey = []string{"peering", "exported_services"}
-var leaderHealthyPeeringKeyDeprecated = []string{"consul", "peering", "healthy"}
-var leaderHealthyPeeringKey = []string{"peering", "healthy"}
+var leaderExportedServicesCountKey = []string{"consul", "peering", "exported_services"}
 var LeaderPeeringMetrics = []prometheus.GaugeDefinition{
-	{
-		Name: leaderExportedServicesCountKeyDeprecated,
-		Help: fmt.Sprint("Deprecated - please use ", strings.Join(leaderExportedServicesCountKey, "_")),
-	},
 	{
 		Name: leaderExportedServicesCountKey,
 		Help: "A gauge that tracks how many services are exported for the peering. " +
-			"The labels are \"peer_name\", \"peer_id\" and, for enterprise, \"partition\". " +
-			"We emit this metric every 9 seconds",
-	},
-	{
-		Name: leaderHealthyPeeringKeyDeprecated,
-		Help: fmt.Sprint("Deprecated - please use ", strings.Join(leaderExportedServicesCountKey, "_")),
-	},
-	{
-		Name: leaderHealthyPeeringKey,
-		Help: "A gauge that tracks how if a peering is healthy (1) or not (0). " +
-			"The labels are \"peer_name\", \"peer_id\" and, for enterprise, \"partition\". " +
+			"The labels are \"peering\" and, for enterprise, \"partition\". " +
 			"We emit this metric every 9 seconds",
 	},
 }
@@ -69,8 +47,6 @@ var (
 	maxFastConnRetries = uint(5)
 	// maxFastRetryBackoff is the maximum amount of time we'll wait between retries following the fast path.
 	maxFastRetryBackoff = 8192 * time.Millisecond
-	// maxRetryBackoffPeering is the maximum number of seconds we'll wait between retries when attempting to re-establish a peering connection.
-	maxRetryBackoffPeering = 64
 )
 
 func (s *Server) startPeeringStreamSync(ctx context.Context) {
@@ -92,24 +68,30 @@ func (s *Server) runPeeringMetrics(ctx context.Context) error {
 
 			// "Zero-out" the metric on exit so that when prometheus scrapes this
 			// metric from a non-leader, it does not get a stale value.
-			metrics.SetGauge(leaderExportedServicesCountKeyDeprecated, float32(0))
 			metrics.SetGauge(leaderExportedServicesCountKey, float32(0))
 			return nil
 		case <-ticker.C:
-			if err := s.emitPeeringMetricsOnce(defaultMetrics()); err != nil {
+			if err := s.emitPeeringMetricsOnce(logger, defaultMetrics()); err != nil {
 				s.logger.Error("error emitting peering stream metrics", "error", err)
 			}
 		}
 	}
 }
 
-func (s *Server) emitPeeringMetricsOnce(metricsImpl *metrics.Metrics) error {
+func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metrics.Metrics) error {
 	_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
 	if err != nil {
 		return err
 	}
 
 	for _, peer := range peers {
+		status, found := s.peerStreamServer.StreamStatus(peer.ID)
+		if !found {
+			logger.Trace("did not find status for", "peer_name", peer.Name)
+			continue
+		}
+
+		esc := status.GetExportedServicesCount()
 		part := peer.Partition
 		labels := []metrics.Label{
 			{Name: "peer_name", Value: peer.Name},
@@ -119,23 +101,7 @@ func (s *Server) emitPeeringMetricsOnce(metricsImpl *metrics.Metrics) error {
 			labels = append(labels, metrics.Label{Name: "partition", Value: part})
 		}
 
-		status, found := s.peerStreamServer.StreamStatus(peer.ID)
-		if found {
-			// exported services count metric
-			esc := status.GetExportedServicesCount()
-			metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKeyDeprecated, float32(esc), labels)
-			metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
-		}
-
-		// peering health metric
-		healthy := 0
-		switch {
-		case status.NeverConnected:
-		case s.peerStreamServer.Tracker.IsHealthy(status):
-			healthy = 1
-		}
-		metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(healthy), labels)
-		metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(healthy), labels)
+		metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
 	}
 
 	return nil
@@ -244,22 +210,11 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 			continue
 		}
 
-		// We may have written this peering to the store to trigger xDS updates, but still in the process of establishing.
-		// If there isn't a secret yet, we're still trying to reach the other server.
-		logger.Trace("reading peering secret", "sequence_id", seq)
-		secret, err := s.fsm.State().PeeringSecretsRead(ws, peer.ID)
-		if err != nil {
-			return fmt.Errorf("failed to read secret for peering: %w", err)
-		}
-		if secret.GetStream().GetActiveSecretID() == "" {
-			continue
-		}
-
 		status, found := s.peerStreamServer.StreamStatus(peer.ID)
+
+		// TODO(peering): If there is new peering data and a connected stream, should we tear down the stream?
 		if found && status.Connected {
 			// Nothing to do when we already have an active stream to the peer.
-			// Updated data will only be used if the stream becomes disconnected
-			// since there's no need to tear down an active stream.
 			continue
 		}
 		logger.Trace("ensuring stream to peer", "peer_id", peer.ID, "sequence_id", seq)
@@ -271,7 +226,7 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 			cancel()
 		}
 
-		if err := s.establishStream(ctx, logger, peer, secret, cancelFns); err != nil {
+		if err := s.establishStream(ctx, logger, ws, peer, cancelFns); err != nil {
 			// TODO(peering): These errors should be reported in the peer status, otherwise they're only in the logs.
 			//                Lockable status isn't available here though. Could report it via the peering.Service?
 			logger.Error("error establishing peering stream", "peer_id", peer.ID, "error", err)
@@ -285,6 +240,7 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 	logger.Trace("checking connected streams", "streams", connectedStreams, "sequence_id", seq)
 
 	// Clean up active streams of peerings that were deleted from the state store.
+	// TODO(peering): This is going to trigger shutting down peerings we generated a token for. Is that OK?
 	for stream, doneCh := range connectedStreams {
 		if _, ok := stored[stream]; ok {
 			// Active stream is in the state store, nothing to do.
@@ -309,11 +265,7 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 	return merr.ErrorOrNil()
 }
 
-func (s *Server) establishStream(ctx context.Context,
-	logger hclog.Logger,
-	peer *pbpeering.Peering,
-	secret *pbpeering.PeeringSecrets,
-	cancelFns map[string]context.CancelFunc) error {
+func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws memdb.WatchSet, peer *pbpeering.Peering, cancelFns map[string]context.CancelFunc) error {
 	logger = logger.With("peer_name", peer.Name, "peer_id", peer.ID)
 
 	if peer.PeerID == "" {
@@ -325,38 +277,46 @@ func (s *Server) establishStream(ctx context.Context,
 		return fmt.Errorf("failed to build TLS dial option from peering: %w", err)
 	}
 
+	// Create a ring buffer to cycle through peer addresses in the retry loop below.
+	buffer := ring.New(len(peer.PeerServerAddresses))
+	for _, addr := range peer.PeerServerAddresses {
+		buffer.Value = addr
+		buffer = buffer.Next()
+	}
+
+	secret, err := s.fsm.State().PeeringSecretsRead(ws, peer.ID)
+	if err != nil {
+		return fmt.Errorf("failed to read secret for peering: %w", err)
+	}
 	if secret.GetStream().GetActiveSecretID() == "" {
 		return errors.New("missing stream secret for peering stream authorization, peering must be re-established")
 	}
 
 	logger.Trace("establishing stream to peer")
 
-	streamStatus, err := s.peerStreamServer.Tracker.Register(peer.ID)
+	retryCtx, cancel := context.WithCancel(ctx)
+	cancelFns[peer.ID] = cancel
+
+	streamStatus, err := s.peerStreamTracker.Register(peer.ID)
 	if err != nil {
 		return fmt.Errorf("failed to register stream: %v", err)
 	}
 
-	streamCtx, cancel := context.WithCancel(ctx)
-	cancelFns[peer.ID] = cancel
-
-	// Start a goroutine to watch for updates to peer server addresses.
-	// The latest valid server address can be received from nextServerAddr.
-	nextServerAddr := make(chan string)
-	go s.watchAddresses(streamCtx, peer.ID, nextServerAddr)
-
 	// Establish a stream-specific retry so that retrying stream/conn errors isn't dependent on state store changes.
-	go retryLoopBackoffPeering(streamCtx, logger, func() error {
+	go retryLoopBackoffPeering(retryCtx, logger, func() error {
 		// Try a new address on each iteration by advancing the ring buffer on errors.
-		addr, stillOpen := <-nextServerAddr
-		if !stillOpen {
-			// If the channel was closed that means the context was canceled, so we return.
-			return streamCtx.Err()
+		defer func() {
+			buffer = buffer.Next()
+		}()
+		addr, ok := buffer.Value.(string)
+		if !ok {
+			return fmt.Errorf("peer server address type %T is not a string", buffer.Value)
 		}
 
-		opts := []grpc.DialOption{
+		logger.Trace("dialing peer", "addr", addr)
+		conn, err := grpc.DialContext(retryCtx, addr,
+			// TODO(peering): use a grpc.WithStatsHandler here?)
 			tlsOption,
-			// TODO(peering): Use a grpc.WithStatsHandler here.
-			//				  This should wait until the grpc-external server is wired up with a stats handler in NET-50.
 			// For keep alive parameters there is a larger comment in ClientConnPool.dial about that.
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
 				Time:    30 * time.Second,
@@ -364,19 +324,14 @@ func (s *Server) establishStream(ctx context.Context,
 				// send keepalive pings even if there is no active streams
 				PermitWithoutStream: true,
 			}),
-			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(8*1024*1024), grpc.MaxCallRecvMsgSize(8*1024*1024)),
-		}
-
-		logger.Trace("dialing peer", "addr", addr)
-		conn, err := grpc.DialContext(streamCtx, addr, opts...)
-
+		)
 		if err != nil {
 			return fmt.Errorf("failed to dial: %w", err)
 		}
 		defer conn.Close()
 
 		client := pbpeerstream.NewPeerStreamServiceClient(conn)
-		stream, err := client.StreamResources(streamCtx)
+		stream, err := client.StreamResources(retryCtx)
 		if err != nil {
 			return err
 		}
@@ -386,11 +341,6 @@ func (s *Server) establishStream(ctx context.Context,
 				Open: &pbpeerstream.ReplicationMessage_Open{
 					PeerID:         peer.PeerID,
 					StreamSecretID: secret.GetStream().GetActiveSecretID(),
-					Remote: &pbpeering.RemoteInfo{
-						Partition:  peer.Partition,
-						Datacenter: s.config.Datacenter,
-						Locality:   pbcommon.LocalityToProto(s.config.Locality),
-					},
 				},
 			},
 		}
@@ -418,79 +368,15 @@ func (s *Server) establishStream(ctx context.Context,
 	}, func(err error) {
 		// TODO(peering): why are we using TrackSendError here? This could also be a receive error.
 		streamStatus.TrackSendError(err.Error())
-
-		switch {
-		case isErrCode(err, codes.FailedPrecondition):
+		if isFailedPreconditionErr(err) {
 			logger.Debug("stream disconnected due to 'failed precondition' error; reconnecting",
 				"error", err)
-
-		case isErrCode(err, codes.ResourceExhausted):
-			logger.Debug("stream disconnected due to 'resource exhausted' error; reconnecting",
-				"error", err)
-
-		case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded):
-			logger.Debug("stream context was canceled", "error", err)
-
-		case err != nil:
-			logger.Error("error managing peering stream", "error", err)
+			return
 		}
+		logger.Error("error managing peering stream", "error", err)
 	}, peeringRetryTimeout)
 
 	return nil
-}
-
-// watchAddresses sends an up-to-date address to nextServerAddr.
-// These could be either remote peer server addresses, or local mesh gateways.
-// The function loads the addresses into a ring buffer and cycles through them until:
-//  1. streamCtx is cancelled (peer is deleted or we're re-establishing the stream with new data)
-//  2. the peer, Mesh config entry, or (optionally) mesh gateway address set is modified, and the watchset fires.
-//
-// In case (2) we re-fetch all the data sources and rebuild the ring buffer.
-// In the event that the PeerThroughMeshGateways is set in the Mesh entry, we front-load the ring buffer with
-// local mesh gateway addresses, so we can try those first, with the option to fall back to remote server addresses.
-func (s *Server) watchAddresses(ctx context.Context, peerID string, nextServerAddr chan<- string) {
-	defer close(nextServerAddr)
-
-	var ringbuf *ring.Ring
-	var ws memdb.WatchSet
-
-	fetchAddresses := func() error {
-		// Re-instantiate ws since it can only be watched once.
-		ws = memdb.NewWatchSet()
-
-		newRing, _, err := s.peeringBackend.GetDialAddresses(s.logger, ws, peerID)
-		if err != nil {
-			return fmt.Errorf("failed to fetch updated addresses to dial peer: %w", err)
-		}
-		ringbuf = newRing
-
-		return nil
-	}
-
-	// Initialize the first ring buffer.
-	if err := fetchAddresses(); err != nil {
-		s.logger.Warn("error fetching addresses", "peer_id", peerID, "error", err)
-	}
-
-	for {
-		select {
-		case nextServerAddr <- ringbuf.Value.(string):
-			ringbuf = ringbuf.Next()
-
-		case err := <-ws.WatchCh(ctx):
-			if err != nil {
-				// Context was cancelled.
-				return
-			}
-
-			// Watch fired so we re-fetch the necessary addresses and replace the ring buffer.
-			if err := fetchAddresses(); err != nil {
-				s.logger.Warn("watch for new addresses fired but the address list to dial may not have been updated",
-					"peer_id", peerID,
-					"error", err)
-			}
-		}
-	}
 }
 
 func (s *Server) startPeeringDeferredDeletion(ctx context.Context) {
@@ -697,7 +583,7 @@ func retryLoopBackoffPeering(ctx context.Context, logger hclog.Logger, loopFn fu
 // quickly. For example in the case of connecting with a follower through a load balancer, we just need to retry
 // until our request lands on a leader.
 func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
-	if loopErr != nil && isErrCode(loopErr, codes.FailedPrecondition) {
+	if loopErr != nil && isFailedPreconditionErr(loopErr) {
 		// Wait a constant time for the first number of retries.
 		if failedAttempts <= maxFastConnRetries {
 			return fastConnRetryTimeout
@@ -714,34 +600,30 @@ func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
 		return ms
 	}
 
-	// if the message sent is too large probably should not retry at all
-	if loopErr != nil && isErrCode(loopErr, codes.ResourceExhausted) {
-		return maxFastRetryBackoff
-	}
-
 	// Else we go with the default backoff from retryLoopBackoff.
-	if (1 << failedAttempts) < maxRetryBackoffPeering {
+	if (1 << failedAttempts) < maxRetryBackoff {
 		return (1 << failedAttempts) * time.Second
 	}
-	return time.Duration(maxRetryBackoffPeering) * time.Second
+	return time.Duration(maxRetryBackoff) * time.Second
 }
 
-// isErrCode returns true if err is a gRPC error with given error code.
-func isErrCode(err error, code codes.Code) bool {
+// isFailedPreconditionErr returns true if err is a gRPC error with code FailedPrecondition.
+func isFailedPreconditionErr(err error) bool {
 	if err == nil {
 		return false
 	}
+
 	// Handle wrapped errors, since status.FromError does a naive assertion.
 	var statusErr interface {
 		GRPCStatus() *grpcstatus.Status
 	}
 	if errors.As(err, &statusErr) {
-		return statusErr.GRPCStatus().Code() == code
+		return statusErr.GRPCStatus().Code() == codes.FailedPrecondition
 	}
 
 	grpcErr, ok := grpcstatus.FromError(err)
 	if !ok {
 		return false
 	}
-	return grpcErr.Code() == code
+	return grpcErr.Code() == codes.FailedPrecondition
 }

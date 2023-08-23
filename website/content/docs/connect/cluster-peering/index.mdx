@@ -1,37 +1,29 @@
 ---
 layout: docs
-page_title: Cluster Peering Overview
+page_title: Service Mesh - What is Cluster Peering?
 description: >-
-  Cluster peering establishes communication between independent clusters in Consul, allowing services to interact across datacenters. Learn how cluster peering works, its differences with WAN federation for multi-datacenter deployments, and how to troubleshoot common issues.
+  Cluster peering establishes communication between independent clusters in Consul, allowing services to interact across datacenters. Learn about the cluster peering process, differences with WAN federation for multi-datacenter deployments, and technical constraints.  
 ---
 
-# Cluster peering overview
+# What is Cluster Peering?
 
-This topic provides an overview of cluster peering, which lets you connect two or more independent Consul clusters so that services deployed to different partitions or datacenters can communicate.
-Cluster peering is enabled in Consul by default. For specific information about cluster peering configuration and usage, refer to following pages.
+~> **Cluster peering is currently in beta**: Functionality associated with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support. <br/><br/>Cluster peering is not currently available in the HCP Consul offering.
 
-## What is cluster peering?
+You can create peering connections between two or more independent clusters so that services deployed to different partitions or datacenters can communicate.
 
-Consul supports cluster peering connections between two [admin partitions](/consul/docs/enterprise/admin-partitions) _in different datacenters_. Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a default partition. Meanwhile, admin partitions _in the same datacenter_ do not require cluster peering connections because you can export services between them without generating or exchanging a peering token.
+## Overview
 
-The following diagram describes Consul's cluster peering architecture.
+Cluster peering allows Consul clusters in different datacenters to communicate with each other. The cluster peering process consists of the following steps:
+1. Create a peering token in one cluster.
+1. Use the peering token to establish peering with a second cluster.
+1. Export services between clusters.
+1. Create intentions to authorize services for peers.
 
-![Diagram of cluster peering with admin partitions](/img/cluster-peering-diagram.png)
+For detailed instructions on setting up cluster peering, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering).
 
-In this diagram, the `default` partition in Consul DC 1 has a cluster peering connection with the `web` partition in Consul DC 2. Enforced by their respective mesh gateways, this cluster peering connection enables `Service B` to communicate with `Service C` as a service upstream.
+### Differences between WAN federation and cluster peering
 
-Cluster peering leverages several components of Consul's architecture to enforce secure communication between services:
-
-- A _peering token_ contains an embedded secret that securely establishes communication when shared symmetrically between datacenters. Sharing this token enables each datacenter's server agents to recognize requests from authorized peers, similar to how the [gossip encryption key secures agent LAN gossip](/consul/docs/security/encryption#gossip-encryption).
-- A _mesh gateway_ encrypts outgoing traffic, decrypts incoming traffic, and directs traffic to healthy services. Consul's service mesh features must be enabled in order to use mesh gateways. Mesh gateways support the specific admin partitions they are deployed on. Refer to [Mesh gateways](/consul/docs/connect/gateways/mesh-gateway) for more information.
-- An _exported service_ communicates with downstreams deployed in other admin partitions. They are explicitly defined in an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services).
-- A _service intention_ secures [service-to-service communication in a service mesh](/consul/docs/connect/intentions). Intentions enable identity-based access between services by exchanging TLS certificates, which the service's sidecar proxy verifies upon each request.
-
-### Compared with WAN federation
-
-WAN federation and cluster peering are different ways to connect services through mesh gateways so that they can communicate across datacenters. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
-
-WAN federation and cluster peering also treat encrypted traffic differently. While mesh gateways between WAN federated datacenters use mTLS to keep data encrypted, mesh gateways between peers terminate mTLS sessions, decrypt data to HTTP services, and then re-encrypt traffic to send to services. Data must be decrypted in order to evaluate and apply dynamic routing rules at the destination cluster, which reduces coupling between peers.
+WAN federation and cluster peering are different ways to connect clusters. The most important distinction is that WAN federation assumes clusters are owned by the same operators, so it maintains and replicates global states such as ACLs and configuration entries. As a result, WAN federation requires a _primary datacenter_ to serve as an authority for replicated data.
 
 Regardless of whether you connect your clusters through WAN federation or cluster peering, human and machine users can use either method to discover services in other clusters or dial them through the service mesh.
 
@@ -41,56 +33,27 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Shares support queries and service endpoints       |    &#9989;     |    &#9989;      |
 | Connects clusters owned by different operators     |    &#10060;    |    &#9989;      |
 | Functions without declaring primary datacenter     |    &#10060;    |    &#9989;      |
-| Can use sameness groups for identical services     |    &#10060;    |    &#9989;      |
 | Replicates exported services for service discovery |    &#10060;    |    &#9989;      |
-| Gossip protocol: Requires LAN gossip only          |    &#10060;    |    &#9989;      |
 | Forwards service requests for service discovery    |    &#9989;     |    &#10060;     |
 | Shares key/value stores                            |    &#9989;     |    &#10060;     |
-| Can replicate ACL tokens, policies, and roles      |    &#9989;     |    &#10060;     |
+| Uses gossip protocol                               |    &#9989;     |    &#10060;     |
 
-## Guidance
+## Beta release features and constraints
 
-The following resources are available to help you use Consul's cluster peering features.
+The cluster peering beta includes the following features and functionality:
 
-### Tutorials
+- Mesh gateways for _service to service traffic_ between clusters are available. For more information on configuring mesh gateways across peers, refer to [Service-to-service Traffic Across Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers).
+- You can generate peering tokens, establish, list, read, and delete peerings, and manage intentions for peering connections with both the API and the UI.
+- You can configure [transparent proxies](/docs/connect/transparent-proxy) for peered services.
+- You can use the [`peering` rule for ACL enforcement](/docs/security/acl/acl-rules#peering) of peering APIs.
 
-- To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) and Google Kubernetes Engine (GKE) environments, complete the [Connect services between Consul datacenters with cluster peering tutorial](/consul/tutorials/developer-mesh/cluster-peering).
+Not all features and functionality are available in the beta release. In particular, consider the following technical constraints:
 
-### Usage documentation
-
-- [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering)
-- [Manage cluster peering connections](/consul/docs/connect/cluster-peering/usage/manage-connections)
-- [Manage L7 traffic with cluster peering](/consul/docs/connect/cluster-peering/usage/peering-traffic-management)
-- [Create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups)
-
-### Kubernetes documentation
-
-- [Cluster peering on Kubernetes technical specifications](/consul/docs/k8s/connect/cluster-peering/tech-specs)
-- [Establish cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering)
-- [Manage cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/manage-peering)
-- [Manage L7 traffic with cluster peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/l7-traffic)
-- [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups)
-
-### HCP Consul documentation
-
-- [Cluster peering](/hcp/docs/consul/usage/cluster-peering)
-- [Cluster peering topologies](/hcp/docs/consul/usage/cluster-peering/topologies)
-- [Establish cluster peering connections on HCP Consul](/hcp/docs/consul/usage/cluster-peering/create-connections)
-- [Cluster peering with management plane](/hcp/docs/consul/usage/management-plane#cluster-peering)
-
-### Reference documentation
-
-- [Cluster peering technical specifications](/consul/docs/connect/cluster-peering/tech-specs)
-- [HTTP API reference: `/peering/` endpoint](/consul/api-docs/peering)
-- [CLI reference: `peering` command](/consul/commands/peering).
-
-## Basic troubleshooting
-
-If you experience errors when using Consul's cluster peering features, refer to the following list of technical constraints.
-
-- Peer names can only contain lowercase characters.
-- Services with node, instance, and check definitions totaling more than 8MB cannot be exported to a peer.
-- Two admin partitions in the same datacenter cannot be peered. Use the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services#exporting-services-to-peered-clusters) instead.
-- To manage intentions that specify services in peered clusters, use [configuration entries](/consul/docs/connect/config-entries/service-intentions). The `consul intention` CLI command is not supported.
-- The Consul UI does not support exporting services between clusters or creating service intentions. Use either the API or the CLI to complete these required steps when establishing new cluster peering connections.
+- Mesh gateways for _server to server traffic_ are not available.
+- Services with node, instance, and check definitions totaling more than 4MB cannot be exported to a peer.
+- Dynamic routing features such as splits, custom routes, and redirects cannot target services in a peered cluster.
+- Configuring service failover across peers is not supported for service mesh.
+- Consul datacenters that are already federated stay federated. You do not need to migrate WAN federated clusters to cluster peering.
+- The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.
+- Because non-Enterprise Consul instances are restricted to the `default` namespace, Consul Enterprise instances cannot export services from outside of the `default` namespace to non-Enterprise peers.

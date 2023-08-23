@@ -1,15 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-export default function (EventTarget, P = Promise) {
-  const handler = function (e) {
+export default function(EventTarget, P = Promise) {
+  const handler = function(e) {
     // e is undefined on the opening call
     if (typeof e === 'undefined' || e.key === this.configuration.key) {
       if (this.readyState === 1) {
         const res = this.source(this.configuration);
-        P.resolve(res).then((data) => {
+        P.resolve(res).then(data => {
           this.configuration.cursor++;
           this._currentEvent = { type: 'message', data: data };
           this.dispatchEvent({ type: 'message', data: data });

@@ -1,15 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service from '@ember/service';
 import { get } from '@ember/object';
 import { runInDebug } from '@ember/debug';
 import atob from 'consul-ui/utils/atob';
 import btoa from 'consul-ui/utils/btoa';
 
-const createRegExpEncoder = function (re, encoder = (str) => str, strict = true) {
+const createRegExpEncoder = function(re, encoder = str => str, strict = true) {
   return (template = '', vars = {}) => {
     if (template !== '') {
       return template.replace(re, (match, group) => {
@@ -48,13 +43,11 @@ export default class EncoderService extends Service {
     return this.tag(this.uriJoin.bind(this));
   }
 
-  joiner =
-    (encoder, joiner = '', defaultValue = '') =>
-    (values, strs) =>
-      (strs || Array(values.length).fill(joiner)).reduce(
-        (prev, item, i) => `${prev}${item}${encoder(values[i] || defaultValue)}`,
-        ''
-      );
+  joiner = (encoder, joiner = '', defaultValue = '') => (values, strs) =>
+    (strs || Array(values.length).fill(joiner)).reduce(
+      (prev, item, i) => `${prev}${item}${encoder(values[i] || defaultValue)}`,
+      ''
+    );
 
   tag(join) {
     return (strs, ...values) => join(values, strs);

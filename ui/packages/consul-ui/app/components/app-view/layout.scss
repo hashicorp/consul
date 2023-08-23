@@ -1,43 +1,25 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 /* layout */
 %app-view-title {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas: "title actions";
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
   position: relative;
   z-index: 5;
 }
-%app-view-title-left-container {
-  grid-area: title;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  white-space: normal;
-}
-%app-view-title-left-container > :first-child {
-  flex-basis: 100%;
-}
-
-%app-view-title-left-container > :not(:first-child) {
-  margin-right: 8px;
-}
-
 %app-view-actions {
-  grid-area: actions;
-  align-self: end;
   display: flex;
   align-items: flex-start;
   margin-left: auto;
-  margin-top: 9px;
 }
-
 /* units */
 %app-view-title {
-  padding-bottom: 1.4em;
+  padding-bottom: 0.2em;
+}
+%app-view-title > :not(:last-child) {
+  margin-right: 8px;
+}
+%app-view-actions {
+  margin-top: 9px;
 }
 
 /* content */

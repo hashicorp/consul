@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 {{#if @item}}
   {{#let (service/external-source @item) as |externalSource|}}
   {{#if (and @withInfo (eq externalSource 'consul-api-gateway'))}}
@@ -10,10 +5,9 @@
           <dt>
             <span
               data-test-external-source={{externalSource}}
-              class="consul-external-source"
+              class="consul-external-source {{externalSource}}"
               ...attributes
             >
-              <FlightIcon @name={{icon-mapping externalSource}} class="mr-1.5 w-4 h-4"  />
               Registered via {{t (concat "common.brand." externalSource)}}
             </span>
           </dt>
@@ -38,10 +32,9 @@
   {{else if externalSource}}
     <span
       data-test-external-source={{externalSource}}
-      class="consul-external-source"
+      class="consul-external-source {{externalSource}}"
       ...attributes
     >
-      <FlightIcon @name={{icon-mapping externalSource}} @color="var(--token-color-hashicorp-brand)" class="mr-1.5 h-4 w-4" />
       {{#if @label}}
         {{@label}}
       {{else}}

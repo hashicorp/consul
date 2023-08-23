@@ -1,3 +1,0 @@
-```release-note:bug
-cli: fatal error if config file does not have HCL or JSON extension, instead of warn and skip
-```

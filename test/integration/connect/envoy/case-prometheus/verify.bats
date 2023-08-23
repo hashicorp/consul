@@ -30,7 +30,7 @@ load helpers
 @test "s1 upstream should be able to connect to s2 with http/1.1" {
   run retry_default curl --http1.1 -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 @test "s1 proxy should be exposing metrics to prometheus" {

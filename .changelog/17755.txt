@@ -1,3 +1,0 @@
-```release-note:improvement
-mesh: Stop jwt providers referenced by intentions from being deleted.
-```

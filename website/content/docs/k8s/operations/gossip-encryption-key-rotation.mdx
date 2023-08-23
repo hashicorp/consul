@@ -7,9 +7,9 @@ description: >-
 
 # Rotate Gossip Encryption Keys for Consul on Kubernetes
 
-The following instructions provides a step-by-step manual process for rotating [gossip encryption](/consul/docs/security/encryption#gossip-encryption) keys on Consul clusters that are deployed onto a Kubernetes cluster with Consul on Kubernetes.
+The following instructions provides a step-by-step manual process for rotating [gossip encryption](/docs/security/encryption#gossip-encryption) keys on Consul clusters that are deployed onto a Kubernetes cluster with Consul on Kubernetes.
 
-The following steps need only be performed once in any single datacenter if your Consul clusters are [federated](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes). Rotating the gossip encryption key in one datacenter will automatically rotate the gossip encryption key for all the other datacenters.
+The following steps need only be performed once in any single datacenter if your Consul clusters are [federated](/docs/k8s/installation/multi-cluster/kubernetes). Rotating the gossip encryption key in one datacenter will automatically rotate the gossip encryption key for all the other datacenters.
 
 -> **Note:** Careful precaution should be taken to prohibit new clients from joining during the gossip encryption rotation process, otherwise the new clients will join the gossip pool without knowledge of the new primary gossip encryption key. In addition, deletion of a gossip encryption key from the keyring should occur only after clients have safely migrated to utilizing the new gossip encryption key for communication.
 
@@ -18,7 +18,7 @@ The following steps need only be performed once in any single datacenter if your
     ```shell-session
     $ kubectl config set-context --current --namespace=consul
     ```
-1. Generate a new key and store in safe place for retrieval in the future ([Vault KV Secrets Engine](/vault/docs/secrets/kv/kv-v2#usage) is a recommended option).
+1. Generate a new key and store in safe place for retrieval in the future ([Vault KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv/kv-v2#usage) is a recommended option).
 
     ```shell-session
     $ consul keygen
@@ -128,7 +128,7 @@ The following steps need only be performed once in any single datacenter if your
     </Tab>
     <Tab heading="Vault">
 
-    -> **Note:** These Vault instructions assume that you have integrated your [Gossip encryption key](/consul/docs/k8s/deployment-configurations/vault/data-integration/gossip) using [Vault as a Secrets Backend](/consul/docs/k8s/deployment-configurations/vault).
+    -> **Note:** These Vault instructions assume that you have integrated your [Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) using [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
 
     Update the gossip encryption Vault Secret with the value of the new gossip encryption key to ensure that subsequent `helm upgrades` commands execute successfully.
     The name of the secret that stores the value of the gossip encryption key can be found in the Helm values file:

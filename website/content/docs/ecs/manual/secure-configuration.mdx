@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Manual Secure Configuration - Consul on AWS Elastic Container Service (ECS)
+page_title: Secure Configuration - AWS ECS
 description: >-
-  Securely configure Consul Service Mesh on Amazon Web Services ECS to protect the communication of sensitive data in production workloads. Learn how to manually configure auth methods to create tokens for clients and services and then apply tokens by role or policy.
+  Manual Secure Configuration of the Consul Service Mesh on AWS ECS (Elastic Container Service).
 ---
 
-# Manual Secure Configuration of Consul on AWS Elastic Container Service (ECS)
+# Secure Configuration
 
 This topic describes how to enable Consul security features for your production workloads.
 
@@ -13,28 +13,28 @@ This topic describes how to enable Consul security features for your production 
 
 The following features must be configured for your Consul server cluster:
 
-- [TLS encryption](/consul/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
-- [Gossip encryption](/consul/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
-- [Access control lists (ACLs)](/consul/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
+- [TLS encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
+- [Gossip encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
+- [Access control lists (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
 
-You should already have followed the [manual installation instructions](/consul/docs/ecs/manual/install) to define the necessary components of the task definition for Consul on ECS.
+You should already have followed the [manual installation instructions](/docs/ecs/manual/install) to define the necessary components of the task definition for Consul on ECS.
 
 You should be familiar with [specifying sensitive data](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) on ECS.
 
-You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the [ACL system documentation](/consul/docs/security/acl) and  [Day 1: Security tutorials](/consul/tutorials/security) for an introduction and additional information.
+You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the [ACL system documentation](/docs/security/acl) and  [Day 1: Security tutorials](https://learn.hashicorp.com/collections/consul/security) for an introduction and additional information.
 
 ## Auth Method
 
 Tokens are artifacts within the ACL system that authenticate users, services, and Consul agents. Tokens are linked to policies that specify the resources the token bearer has access to when making requests in the network.
 
-Auth Methods are a Consul server component that performs authentication against a trusted external party to authorize the creation of ACL tokens. The [AWS IAM auth method](/consul/docs/security/acl/auth-methods/aws-iam) is used to enable an ECS task to automatically obtain ACL tokens when the task starts up.
+Auth Methods are a Consul server component that performs authentication against a trusted external party to authorize the creation of ACL tokens. The [AWS IAM auth method](/docs/security/acl/auth-methods/aws-iam) is used to enable an ECS task to automatically obtain ACL tokens when the task starts up.
 
 There are two types of ACL tokens for Consul on ECS:
 
 * **Client tokens:** used by the `consul-client` containers to join the Consul cluster
 * **Service tokens:** used by sidecar containers for service registration and health syncing
 
-This section describes how to manually configure the AWS IAM auth method for Consul on ECS. Alternatively, you can install the ACL controller to ease the burden of creating these resources. The ACL controller can automatically configure ACL resources for Consul on ECS. For additional details, refer to [ACL Controller](/consul/docs/ecs/manual/acl-controller) and [Architecture](/consul/docs/ecs/architecture).
+This section describes how to manually configure the AWS IAM auth method for Consul on ECS. Alternatively, you can install the ACL controller to ease the burden of creating these resources. The ACL controller can automatically configure ACL resources for Consul on ECS. For additional details, refer to [ACL Controller](/docs/manual/acl-controller) and [Architecture](/docs/ecs/architecture).
 
 ### ECS Task Role Configuration
 
@@ -49,7 +49,7 @@ The task role must be configured with the following details to compatible with t
 method.
 
 * An `iam:GetRole` permission to fetch itself. See
-  [IAM Policies](/consul/docs/security/acl/auth-methods/aws-iam#iam-policies) for details.
+  [IAM Policies](/docs/security/acl/auth-methods/aws-iam#iam-policies) for details.
 * A `consul.hashicorp.com.service-name` tag on the task role which contains the Consul service name
   for the application in this task.
 * <EnterpriseAlert inline /> A <code>consul.hashicorp.com.namespace</code> tag on the task role
@@ -89,7 +89,7 @@ The following flags are required:
 | `-type`         | string  | Must be `aws-iam`.                                                                                                                |
 | `-name`         | string  | A name of your choice. Must be unique among all auth methods.                                                                     |
 | `-description`  | string  | A description of your choice.                                                                                                     |
-| `-config`       | string  | A JSON string containing the [configuration](/consul/docs/security/acl/auth-methods/aws-iam#config-parameters) for the auth method.  |
+| `-config`       | string  | A JSON string containing the [configuration](/docs/security/acl/auth-methods/aws-iam#config-parameters) for the the auth method.  |
 
 In the `-config` option, the following fields are required:
 
@@ -117,9 +117,9 @@ service_prefix "" {
 
 The policy allows `node:write` for any node name, which is necessary because the Consul node names on ECS are not known until runtime.
 
-You can add the policy in Consul using the [`consul acl policy create`](/consul/commands/acl/policy/create) command or the [`[PUT] /v1/acl/policy`](/consul/api-docs/acl/policies#create-a-policy) API endpoint.
+You can add the policy in Consul using the [`consul acl policy create`](/commands/acl/policy/create) command or the [`[PUT] /v1/acl/policy`](/api-docs/acl/policies#create-a-policy) API endpoint.
 
-After the policy is created, create a Consul role associated with the policy by using the [`consul acl role create`](/consul/commands/acl/role/create) command or the [`[PUT] /v1/acl/role`](/consul/api-docs/acl/roles#create-a-role) API endpoint.
+After the policy is created, create a Consul role associated with the policy by using the [`consul acl role create`](/commands/acl/role/create) command or the [`[PUT] /v1/acl/role`](/api-docs/acl/roles#create-a-role) API endpoint.
 
 The following example shows how to use the Consul CLI to create the client policy and role.
 
@@ -177,7 +177,7 @@ The following flags are required:
 | `-type`         | string  | Must be `aws-iam`.                                                                                                                |
 | `-name`         | string  | A name of your choice. Must be unique among all auth methods.                                                                     |
 | `-description`  | string  | A description of your choice.                                                                                                     |
-| `-config`       | string  | A JSON string containing the [configuration](/consul/docs/security/acl/auth-methods/aws-iam#config-parameters) for the auth method.  |
+| `-config`       | string  | A JSON string containing the [configuration](/docs/security/acl/auth-methods/aws-iam#config-parameters) for the the auth method.  |
 
 In the `-config` option, the following fields are required:
 
@@ -336,7 +336,7 @@ Next, update the Consul client startup script with the `consul login` command an
 options for a secure configuration.
 
 The following is an example of the *additional* content to include in the `consul-client` startup script. Refer to the [install
-page](/consul/docs/ecs/manual/install#consul-client-container) for the remainder of the startup script and how to pass this
+page](/docs/ecs/manual/install#consul-client-container) for the remainder of the startup script and how to pass this
 script to the container.
 
 <CodeBlockConfig highlight="3-60,66-91">
@@ -346,9 +346,9 @@ script to the container.
 
 # Obtain details from the task metadata
 ECS_TASK_META=$(curl -s $ECS_CONTAINER_METADATA_URI_V4/task)
-TASK_REGION=$(echo "$ECS_TASK_META" | jq --raw-output '.TaskARN / ":" | .[3]')
-TASK_ID=$(echo "$ECS_TASK_META" | jq --raw-output '.TaskARN / "/" | .[2]')
-CLUSTER_ARN=$(echo "$ECS_TASK_META" | jq --raw-output '.TaskARN | sub(":task/(?<cluster>[^/]+).*"; ":cluster/\(.cluster)")')
+TASK_REGION=$(echo "$ECS_TASK_META" | jq -r .TaskARN | cut -d ':' -f 4)
+TASK_ID=$(echo "$ECS_TASK_META" | jq -r .TaskARN | cut -d '/' -f 3)
+CLUSTER_ARN=$(echo "$ECS_TASK_META" | jq -r .TaskARN | sed -E 's|:task/([^/]+).*|:cluster/\1|')
 
 # Write the CA certs to a files in the shared volume
 echo "$CONSUL_CACERT_PEM" > /consul/consul-ca-cert.pem
@@ -452,12 +452,12 @@ The following flags are passed to the `consul login` command:
 
 | Field name                                                                      | Type    | Description                                                                                           |
 | ------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------                  |
-| [`-http-addr`](/consul/commands/login#http-addr)                                       | string  | HTTP(S) address of the Consul server.                                                                 |
-| [`-ca-file`](/consul/commands/login#ca-file)                                           | string  | Path of the CA cert for Consul's HTTPS interface. Not required when using Consul servers on HCP.      |
+| [`-http-addr`](/commands/login#http-addr)                                       | string  | HTTP(S) address of the Consul server.                                                                 |
+| [`-ca-file`](/commands/login#ca-file)                                           | string  | Path of the CA cert for Consul's HTTPS interface. Not required when using Consul servers on HCP.      |
 | `-partition`                                                                    | string  | <EnterpriseAlert inline /> The Consul Enterprise admin partition the auth method belongs to.          |
-| [`-type`](/consul/commands/login#type)                                                 | string  | The auth method type. Must be `aws-iam`.                                                              |
-| [`-method`](/consul/commands/login#type)                                               | string  | The auth method name. Must be the name of the auth method for ECS client tokens.                      |
-| [`-meta`](/consul/commands/login#meta)                                                 | string  | Metadata to set in description of the created token. Should include the task id and cluster as shown. |
+| [`-type`](/commands/login#type)                                                 | string  | The auth method type. Must be `aws-iam`.                                                              |
+| [`-method`](/commands/login#type)                                               | string  | The auth method name. Must be the name of the auth method for ECS client tokens.                      |
+| [`-meta`](/commands/login#meta)                                                 | string  | Metadata to set in description of the created token. Should include the task id and cluster as shown. |
 | `-aws-region`                                                                   | string  | The AWS region where the task is running.                                                             |
 | `-aws-auto-bearer-token`                                                        |         | Must be set to login to the AWS IAM auth method.                                                      |
 | `-aws-include-entity`                                                           |         | Must be set to enable IAM role details.                                                               |
@@ -466,14 +466,14 @@ The following table describes the additional fields that must be included in the
 
 | Field name                                                                      | Type    | Description                                                                             |
 | ------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------    |
-| [`encrypt`](/consul/docs/agent/config/cli-flags#_encrypt)                              | string  | Gossip encryption key                                                                   |
-| [`tls.defaults.ca_file`](/consul/docs/agent/config/config-files#tls_defaults_ca_file)  | string  | Consul server CA cert for TLS verification.                                             |
-| [`acl.enabled`](/consul/docs/agent/config/config-files#acl_enabled)                    | boolean | Enable ACLs for this agent.                                                             |
-| [`acl.tokens.agent`](/consul/docs/agent/config/config-files#acl_tokens_agent)          | string  | Consul client token which authorizes this agent with Consul servers.                    |
-| [`partition`](/consul/docs/agent/config/config-files#partition-1)                      | string  | <EnterpriseAlert inline /> The Consul Enterprise admin partition this agent belongs to. |
+| [`encrypt`](/docs/agent/config/cli-flags#_encrypt)                              | string  | Gossip encryption key                                                                   |
+| [`tls.defaults.ca_file`](/docs/agent/config/config-files#tls_defaults_ca_file)  | string  | Consul server CA cert for TLS verification.                                             |
+| [`acl.enabled`](/docs/agent/config/config-files#acl_enabled)                    | boolean | Enable ACLs for this agent.                                                             |
+| [`acl.tokens.agent`](/docs/agent/config/config-files#acl_tokens_agent)          | string  | Consul client token which authorizes this agent with Consul servers.                    |
+| [`partition`](/docs/agent/config/config-files#partition-1)                      | string  | <EnterpriseAlert inline /> The Consul Enterprise admin partition this agent belongs to. |
 
 ### Configure Audit Logging <EnterpriseAlert inline />
-[Audit logging](/consul/docs/enterprise/audit-logging) is supported on clients running Consul Enterprise with ACLs enabled.
+[Audit logging](/docs/enterprise/audit-logging) is supported on clients running Consul Enterprise with ACLs enabled.
 To enable audit logging, update the startup script to add an `audit` stanza to the Consul client configuration file.
 
 The following example modifies the `consul-client` startup script to configure audit logs to be written to the `stdout` of the `consul-client` container.
@@ -508,12 +508,12 @@ The following table describes the fields that must be included to configure audi
 
 | Field name                                                                      | Type    | Description                                                                             |
 | ------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------    |
-| [`audit.enabled`](/consul/docs/agent/config/config-files#enabled)                      | boolean | Enable audit logging for this agent.                                                    |
-| [`audit.sink`](/consul/docs/agent/config/config-files#sink)                            | object  | The audit logging sink for this agent.                                                  |
+| [`audit.enabled`](/docs/agent/config/config-files#enabled)                      | boolean | Enable audit logging for this agent.                                                    |
+| [`audit.sink`](/docs/agent/config/config-files#sink)                            | object  | The audit logging sink for this agent.                                                  |
 
 ## Configure `consul-ecs-mesh-init` and `consul-ecs-health-sync`
 
-The following *additional* options should be set in the [`CONSUL_ECS_CONFIG_JSON`](/consul/docs/ecs/manual/install#consul_ecs_config_json) environment variable. When these options are specified, the `consul-ecs mesh-init` command will run the `consul login` command to obtain a service token from the Consul AWS IAM Auth method. The `consul-ecs health-sync` command is responsible for running a `consul logout` command for both the service and client tokens when the task shuts down.
+The following *additional* options should be set in the [`CONSUL_ECS_CONFIG_JSON`](/docs/ecs/manual/install#consul_ecs_config_json) environment variable. When these options are specified, the `consul-ecs mesh-init` command will run the `consul login` command to obtain a service token from the Consul AWS IAM Auth method. The `consul-ecs health-sync` command is responsible for running a `consul logout` command for both the service and client tokens when the task shuts down.
 
 <CodeBlockConfig highlight="2-8">
 

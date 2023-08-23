@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -8,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	discoverhcp "github.com/hashicorp/consul/agent/hcp/discover"
 	discover "github.com/hashicorp/go-discover"
 	discoverk8s "github.com/hashicorp/go-discover/provider/k8s"
 	"github.com/hashicorp/go-hclog"
@@ -50,8 +46,10 @@ func (a *Agent) retryJoinWAN() {
 		// completely hijack whatever the user configured to correctly
 		// implement the star-join.
 		//
-		// Elsewhere we enforce that retry-join-wan cannot be set if wanfed is
-		// enabled so we don't have to emit any warnings related to that here.
+		// Elsewhere we enforce that start-join-wan and retry-join-wan cannot
+		// be set if wanfed is enabled so we don't have to emit any warnings
+		// related to that here.
+
 		if isPrimary {
 			// Wanfed requires that secondaries join TO the primary and the
 			// primary doesn't explicitly join down to the secondaries, so as
@@ -116,7 +114,6 @@ func newDiscover() (*discover.Discover, error) {
 		providers[k] = v
 	}
 	providers["k8s"] = &discoverk8s.Provider{}
-	providers["hcp"] = &discoverhcp.Provider{}
 
 	return discover.New(
 		discover.WithUserAgent(lib.UserAgent()),

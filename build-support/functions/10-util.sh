@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 function err {
    if test "${COLORIZE}" -eq 1
    then
@@ -236,7 +233,7 @@ function get_version {
    local vers="$VERSION"
    if test -z "$vers"
    then
-      # parse the CE version from version.go
+      # parse the OSS version from version.go
       vers="$(parse_version ${1} ${2} ${3})"
    fi
 
@@ -637,7 +634,6 @@ function ui_logo_type {
    then
      echo "enterprise"
    else
-     # TODO(spatel): CE refactor
      echo "oss"
    fi
    return 0

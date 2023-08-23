@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package submatview
 
 import (
@@ -12,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/lib/retry"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // LocalMaterializer is a materializer for a stream of events
@@ -69,24 +66,12 @@ func (m *LocalMaterializer) Run(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
-		if m.isTerminalError(err) {
-			return
-		}
-
 		m.mat.handleError(req, err)
 
 		if err := m.mat.retryWaiter.Wait(ctx); err != nil {
 			return
 		}
 	}
-}
-
-// isTerminalError determines whether the given error cannot be recovered from
-// and should cause the materializer to halt and be evicted from the view store.
-//
-// This roughly matches the logic in agent/proxycfg-glue.newUpdateEvent.
-func (m *LocalMaterializer) isTerminalError(err error) bool {
-	return acl.IsErrNotFound(err)
 }
 
 // subscribeOnce opens a new subscription to a local backend and runs

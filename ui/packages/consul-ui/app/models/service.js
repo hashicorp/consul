@@ -1,16 +1,11 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-import Model, { attr, belongsTo } from '@ember-data/model';
+import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { fragment } from 'ember-data-model-fragments/attributes';
 import replace, { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
-export const SLUG_KEY = 'Name,PeerName';
+export const SLUG_KEY = 'Name';
 
 export const Collection = class Collection {
   @tracked items;
@@ -20,7 +15,7 @@ export const Collection = class Collection {
   }
 
   get ExternalSources() {
-    const items = this.items.reduce(function (prev, item) {
+    const items = this.items.reduce(function(prev, item) {
       return prev.concat(item.ExternalSources || []);
     }, []);
     // unique, non-empty values, alpha sort
@@ -30,7 +25,7 @@ export const Collection = class Collection {
   // when and when not somewhere in the docs
   get Partitions() {
     // unique, non-empty values, alpha sort
-    return [...new Set(this.items.map((item) => item.Partition))].sort();
+    return [...new Set(this.items.map(item => item.Partition))].sort();
   }
 };
 export default class Service extends Model {
@@ -63,18 +58,6 @@ export default class Service extends Model {
 
   @attr() meta; // {}
 
-  @belongsTo({ async: false }) peer;
-
-  @computed('peer', 'InstanceCount')
-  get isZeroCountButPeered() {
-    return this.peer && this.InstanceCount === 0;
-  }
-
-  @computed('peer.State')
-  get peerIsFailing() {
-    return this.peer && this.peer.State === 'FAILING';
-  }
-
   @computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical')
   get ChecksTotal() {
     return this.ChecksPassing + this.ChecksWarning + this.ChecksCritical;
@@ -96,19 +79,9 @@ export default class Service extends Model {
     return this.MeshEnabled || (this.Kind || '').length > 0;
   }
 
-  @computed(
-    'MeshChecksPassing',
-    'MeshChecksWarning',
-    'MeshChecksCritical',
-    'isZeroCountButPeered',
-    'peerIsFailing'
-  )
+  @computed('MeshChecksPassing', 'MeshChecksWarning', 'MeshChecksCritical')
   get MeshStatus() {
     switch (true) {
-      case this.isZeroCountButPeered:
-        return 'unknown';
-      case this.peerIsFailing:
-        return 'unknown';
       case this.MeshChecksCritical !== 0:
         return 'critical';
       case this.MeshChecksWarning !== 0:
@@ -118,27 +91,6 @@ export default class Service extends Model {
       default:
         return 'empty';
     }
-  }
-
-  @computed('isZeroCountButPeered', 'peerIsFailing', 'MeshStatus')
-  get healthTooltipText() {
-    const { MeshStatus, isZeroCountButPeered, peerIsFailing } = this;
-    if (isZeroCountButPeered) {
-      return 'This service currently has 0 instances. Check with the operator of its peer to make sure this is expected behavior.';
-    }
-    if (peerIsFailing) {
-      return 'This peer is out of sync, so the current health statuses of its services are unknown.';
-    }
-    if (MeshStatus === 'critical') {
-      return 'At least one health check on one instance is failing.';
-    }
-    if (MeshStatus === 'warning') {
-      return 'At least one health check on one instance has a warning.';
-    }
-    if (MeshStatus == 'passing') {
-      return 'All health checks are passing.';
-    }
-    return 'There are no health checks';
   }
 
   @computed('ChecksPassing', 'Proxy.ChecksPassing')

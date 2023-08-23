@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -52,7 +49,7 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz resolver.Result, op api
 			return false, err
 		}
 
-	case api.KVGet, api.KVGetTree, api.KVGetOrEmpty:
+	case api.KVGet, api.KVGetTree:
 		// Filtering for GETs is done on the output side.
 
 	case api.KVCheckSession, api.KVCheckIndex:

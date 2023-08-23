@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -236,7 +232,7 @@ func decodeStringKey(key string) ([]byte, error) {
 func (a *Agent) keyringProcess(args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
 	var reply structs.KeyringResponses
 
-	if err := a.RPC(context.Background(), "Internal.KeyringOperation", args, &reply); err != nil {
+	if err := a.RPC("Internal.KeyringOperation", args, &reply); err != nil {
 		return &reply, err
 	}
 

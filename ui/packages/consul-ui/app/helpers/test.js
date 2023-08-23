@@ -1,14 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Helper from './can';
 import { is } from './is';
 
 export default class extends Helper {
   compute([abilityString, model], properties) {
-    switch (true) {
+    switch(true) {
       case abilityString.startsWith('can '):
         return super.compute([abilityString.substr(4), model], properties);
       case abilityString.startsWith('is '):

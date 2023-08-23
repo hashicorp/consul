@@ -1,12 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-const mb = function (path) {
-  return function (obj) {
+const mb = function(path) {
+  return function(obj) {
     return (
-      path.map(function (prop) {
+      path.map(function(prop) {
         obj = obj || {};
         if (isNaN(parseInt(prop))) {
           return (obj = obj[prop]);
@@ -18,14 +13,14 @@ const mb = function (path) {
   };
 };
 let currentPage;
-export const getCurrentPage = function () {
+export const getCurrentPage = function() {
   return currentPage;
 };
-export const setCurrentPage = function (page) {
+export const setCurrentPage = function(page) {
   currentPage = page;
   return page;
 };
-export const find = function (path, page = currentPage) {
+export const find = function(path, page = currentPage) {
   const parts = path.split('.');
   const last = parts.pop();
   let obj;

@@ -1,12 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-export default function (encode = encodeURIComponent) {
+export default function(encode = encodeURIComponent) {
   return function stringify(obj, parent) {
     return Object.entries(obj)
-      .reduce(function (prev, [key, value], i) {
+      .reduce(function(prev, [key, value], i) {
         // if the value is undefined do nothing
         if (typeof value === 'undefined') {
           return prev;

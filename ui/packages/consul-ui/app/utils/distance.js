@@ -1,12 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // TODO: Istanbul is ignored for the moment as it's not mine,
 // once I come here properly and 100% follow unignore
 /* istanbul ignore file */
-export default function (a, b) {
+export default function(a, b) {
   a = a.Coord;
   b = b.Coord;
   let sum = 0;

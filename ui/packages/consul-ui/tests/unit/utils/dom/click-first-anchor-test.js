@@ -1,24 +1,17 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import domClickFirstAnchor from 'consul-ui/utils/dom/click-first-anchor';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | dom/click first anchor', function () {
-  test('it does nothing if the clicked element is generally a clickable thing', function (assert) {
-    assert.expect(4);
-
-    const closest = function () {
+module('Unit | Utility | dom/click first anchor', function() {
+  test('it does nothing if the clicked element is generally a clickable thing', function(assert) {
+    const closest = function() {
       return {
-        querySelector: function () {
+        querySelector: function() {
           assert.ok(false);
         },
       };
     };
     const click = domClickFirstAnchor(closest);
-    ['INPUT', 'LABEL', 'A', 'Button'].forEach(function (item) {
+    ['INPUT', 'LABEL', 'A', 'Button'].forEach(function(item) {
       const expected = null;
       const actual = click({
         target: {
@@ -28,10 +21,10 @@ module('Unit | Utility | dom/click first anchor', function () {
       assert.equal(actual, expected);
     });
   });
-  test("it does nothing if an anchor isn't found", function (assert) {
-    const closest = function () {
+  test("it does nothing if an anchor isn't found", function(assert) {
+    const closest = function() {
       return {
-        querySelector: function () {
+        querySelector: function() {
           return null;
         },
       };
@@ -45,14 +38,14 @@ module('Unit | Utility | dom/click first anchor', function () {
     });
     assert.equal(actual, expected);
   });
-  test('it dispatches the result of `mouseup`, `mousedown`, `click` if an anchor is found', function (assert) {
+  test('it dispatches the result of `mouseup`, `mousedown`, `click` if an anchor is found', function(assert) {
     assert.expect(3);
     const expected = ['mousedown', 'mouseup', 'click'];
-    const closest = function () {
+    const closest = function() {
       return {
-        querySelector: function () {
+        querySelector: function() {
           return {
-            dispatchEvent: function (ev) {
+            dispatchEvent: function(ev) {
               const actual = ev.type;
               assert.equal(actual, expected.shift());
             },

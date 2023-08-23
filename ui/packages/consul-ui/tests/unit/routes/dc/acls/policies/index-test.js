@@ -1,15 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
-module('Unit | Route | dc/acls/policies/index', function (hooks) {
+module('Unit | Route | dc/acls/policies/index', function(hooks) {
   setupTest(hooks);
 
-  test('it exists', function (assert) {
+  test('it exists', function(assert) {
     let route = this.owner.lookup('route:dc/acls/policies/index');
     assert.ok(route);
   });

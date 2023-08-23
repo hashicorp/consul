@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package acl
 
 import (
@@ -23,9 +20,8 @@ func TestPolicyAuthorizer(t *testing.T) {
 	}
 
 	type aclTest struct {
-		policy       *Policy
-		authzContext *AuthorizerContext
-		checks       []aclCheck
+		policy *Policy
+		checks []aclCheck
 	}
 
 	cases := map[string]aclTest{
@@ -66,101 +62,6 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "DefaultSessionRead", prefix: "foo", check: checkDefaultSessionRead},
 				{name: "DefaultSessionWrite", prefix: "foo", check: checkDefaultSessionWrite},
 				{name: "DefaultSnapshot", prefix: "foo", check: checkDefaultSnapshot},
-			},
-		},
-		"Defaults - from peer": {
-			policy:       &Policy{},
-			authzContext: &AuthorizerContext{Peer: "some-peer"},
-			checks: []aclCheck{
-				{name: "DefaultNodeRead", prefix: "foo", check: checkDefaultNodeRead},
-				{name: "DefaultServiceRead", prefix: "foo", check: checkDefaultServiceRead},
-			},
-		},
-		"Peering - ServiceRead allowed with service:write": {
-			policy: &Policy{PolicyRules: PolicyRules{
-				Services: []*ServiceRule{
-					{
-						Name:       "foo",
-						Policy:     PolicyWrite,
-						Intentions: PolicyWrite,
-					},
-				},
-			}},
-			authzContext: &AuthorizerContext{Peer: "some-peer"},
-			checks: []aclCheck{
-				{name: "ServiceWriteAny", prefix: "imported-svc", check: checkAllowServiceRead},
-			},
-		},
-		"Peering - ServiceRead allowed with service:read on all": {
-			policy: &Policy{PolicyRules: PolicyRules{
-				ServicePrefixes: []*ServiceRule{
-					{
-						Name:       "",
-						Policy:     PolicyRead,
-						Intentions: PolicyRead,
-					},
-				},
-			}},
-			authzContext: &AuthorizerContext{Peer: "some-peer"},
-			checks: []aclCheck{
-				{name: "ServiceReadAll", prefix: "imported-svc", check: checkAllowServiceRead},
-			},
-		},
-		"Peering - ServiceRead not allowed with service:read on single service": {
-			policy: &Policy{PolicyRules: PolicyRules{
-				Services: []*ServiceRule{
-					{
-						Name:       "same-name-as-imported",
-						Policy:     PolicyRead,
-						Intentions: PolicyRead,
-					},
-				},
-			}},
-			authzContext: &AuthorizerContext{Peer: "some-peer"},
-			checks: []aclCheck{
-				{name: "ServiceReadAll", prefix: "same-name-as-imported", check: checkDefaultServiceRead},
-			},
-		},
-		"Peering - NodeRead allowed with service:write": {
-			policy: &Policy{PolicyRules: PolicyRules{
-				Services: []*ServiceRule{
-					{
-						Name:   "foo",
-						Policy: PolicyWrite,
-					},
-				},
-			}},
-			authzContext: &AuthorizerContext{Peer: "some-peer"},
-			checks: []aclCheck{
-				{name: "ServiceWriteAny", prefix: "imported-svc", check: checkAllowNodeRead},
-			},
-		},
-		"Peering - NodeRead allowed with node:read on all": {
-			policy: &Policy{PolicyRules: PolicyRules{
-				NodePrefixes: []*NodeRule{
-					{
-						Name:   "",
-						Policy: PolicyRead,
-					},
-				},
-			}},
-			authzContext: &AuthorizerContext{Peer: "some-peer"},
-			checks: []aclCheck{
-				{name: "NodeReadAll", prefix: "imported-svc", check: checkAllowNodeRead},
-			},
-		},
-		"Peering - NodeRead not allowed with node:read on single service": {
-			policy: &Policy{PolicyRules: PolicyRules{
-				Nodes: []*NodeRule{
-					{
-						Name:   "same-name-as-imported",
-						Policy: PolicyRead,
-					},
-				},
-			}},
-			authzContext: &AuthorizerContext{Peer: "some-peer"},
-			checks: []aclCheck{
-				{name: "NodeReadAll", prefix: "same-name-as-imported", check: checkDefaultNodeRead},
 			},
 		},
 		"Prefer Exact Matches": {
@@ -560,7 +461,7 @@ func TestPolicyAuthorizer(t *testing.T) {
 				t.Run(checkName, func(t *testing.T) {
 					check := check
 
-					check.check(t, authz, check.prefix, tcase.authzContext)
+					check.check(t, authz, check.prefix, nil)
 				})
 			}
 		})

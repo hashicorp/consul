@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Model, { attr } from '@ember-data/model';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
 import { computed } from '@ember/object';
@@ -20,7 +15,7 @@ export const Collection = class Collection {
   }
 
   get ExternalSources() {
-    const sources = this.items.reduce(function (prev, item) {
+    const sources = this.items.reduce(function(prev, item) {
       return prev.concat(item.ExternalSources || []);
     }, []);
     // unique, non-empty values, alpha sort
@@ -69,13 +64,9 @@ export default class ServiceInstance extends Model {
 
   @computed('Service.Kind')
   get IsProxy() {
-    return [
-      'connect-proxy',
-      'mesh-gateway',
-      'ingress-gateway',
-      'terminating-gateway',
-      'api-gateway',
-    ].includes(this.Service.Kind);
+    return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
+      this.Service.Kind
+    );
   }
 
   // IsOrigin means that the service can have associated up or down streams,
@@ -108,17 +99,17 @@ export default class ServiceInstance extends Model {
 
   @computed('Checks.[]')
   get ChecksPassing() {
-    return this.Checks.filter((item) => item.Status === 'passing');
+    return this.Checks.filter(item => item.Status === 'passing');
   }
 
   @computed('Checks.[]')
   get ChecksWarning() {
-    return this.Checks.filter((item) => item.Status === 'warning');
+    return this.Checks.filter(item => item.Status === 'warning');
   }
 
   @computed('Checks.[]')
   get ChecksCritical() {
-    return this.Checks.filter((item) => item.Status === 'critical');
+    return this.Checks.filter(item => item.Status === 'critical');
   }
 
   @computed('Checks.[]', 'ChecksPassing')

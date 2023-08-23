@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { env } from 'consul-ui/env';
 const OPTIONAL = {};
 if (env('CONSUL_PARTITIONS_ENABLED')) {
@@ -20,8 +15,8 @@ const trailingSlashRe = /\/$/;
 // see below re: ember double slashes
 // const moreThan1SlashRe = /\/{2,}/g;
 
-const _uuid = function () {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+const _uuid = function() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 3) | 8).toString(16);
   });
@@ -32,7 +27,7 @@ const _uuid = function () {
  * Register a callback to be invoked whenever the browser history changes,
  * including using forward and back buttons.
  */
-const route = function (e) {
+const route = function(e) {
   const path = e.state.path;
   const url = this.getURLForTransition(path);
   // Ignore initial page load popstate event in Chrome
@@ -193,14 +188,10 @@ export default class FSMWithOptionalLocation {
   /**
    * Turns a routeName into a full URL string for anchor hrefs etc.
    */
-  hrefTo(routeName, params, _hash) {
-    // copy to always work with a new hash even when helper persists hash
-    const hash = { ..._hash };
-
+  hrefTo(routeName, params, hash) {
     if (typeof hash.dc !== 'undefined') {
       delete hash.dc;
     }
-
     if (typeof hash.nspace !== 'undefined') {
       hash.nspace = `~${hash.nspace}`;
     }
@@ -312,11 +303,9 @@ export default class FSMWithOptionalLocation {
       const temp = url.split('/');
       optional = {
         ...this.optional,
-        ...(optional || {}),
+        ...(optional || {})
       };
-      optional = Object.values(optional)
-        .filter((item) => Boolean(item))
-        .map((item) => item.value || item, []);
+      optional = Object.values(optional).filter(item => Boolean(item)).map(item => item.value || item, []);
       temp.splice(...[1, 0].concat(optional));
       url = temp.join('/');
     }

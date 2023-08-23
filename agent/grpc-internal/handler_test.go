@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package internal
 
 import (
@@ -9,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 
 	"github.com/hashicorp/go-hclog"
@@ -17,9 +13,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
+	"github.com/hashicorp/consul/agent/grpc-internal/internal/testservice"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
-	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 )
 
 func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
@@ -32,8 +27,7 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 	})
 
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
-	registerWithGRPC(t, res, bb)
+	registerWithGRPC(t, res)
 
 	srv := newPanicTestServer(t, logger, "server-1", "dc1", nil)
 	res.AddServer(types.AreaLAN, srv.Metadata())
@@ -63,6 +57,5 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 	// Checking the entire stack trace is not possible, let's
 	// make sure that it contains a couple of expected strings.
 	require.Contains(t, strLog, `[ERROR] panic serving grpc request: panic="panic from Something`)
-	require.Contains(t, strLog, `github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice.(*SimplePanic).Something`)
-
+	require.Contains(t, strLog, `github.com/hashicorp/consul/agent/grpc-internal.(*simplePanic).Something`)
 }

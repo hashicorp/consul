@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 import builderFactory from 'consul-ui/utils/form/builder';
 
@@ -44,10 +39,10 @@ export default class FormService extends Service {
       // only do special things for our new things for the moment
       if (name === 'role' || name === 'policy') {
         const repo = this[name];
-        form.clear(function (obj) {
+        form.clear(function(obj) {
           return repo.create(obj);
         });
-        form.submit(function (obj) {
+        form.submit(function(obj) {
           return repo.persist(obj);
         });
       }

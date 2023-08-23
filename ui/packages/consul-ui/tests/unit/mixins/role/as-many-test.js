@@ -1,15 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import EmberObject from '@ember/object';
 import RoleAsManyMixin from 'consul-ui/mixins/role/as-many';
 import { module, test } from 'qunit';
 
-module('Unit | Mixin | role/as many', function () {
+module('Unit | Mixin | role/as many', function() {
   // Replace this with your real tests.
-  test('it works', function (assert) {
+  test('it works', function(assert) {
     let RoleAsManyObject = EmberObject.extend(RoleAsManyMixin);
     let subject = RoleAsManyObject.create();
     assert.ok(subject);

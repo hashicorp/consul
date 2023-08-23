@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Inflector from 'ember-inflector';
 import helpers from '@ember/test-helpers';
 import $ from '-jquery';
@@ -12,7 +7,7 @@ import pages from 'consul-ui/tests/pages';
 
 import api from 'consul-ui/tests/helpers/api';
 
-export default function ({ assert, utils, library }) {
+export default function({ assert, utils, library }) {
   return steps({
     assert,
     utils,

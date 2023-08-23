@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package prepared_query
 
 import (
@@ -45,8 +42,7 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		".Tags[0]:tag1",
 		".Tags[1]:tag2",
 		".Tags[2]:tag3",
-		".Peer:",
-		".SamenessGroup:",
+		".PeerName:",
 	}
 	expected = append(expected, entMetaWalkFields...)
 	sort.Strings(expected)

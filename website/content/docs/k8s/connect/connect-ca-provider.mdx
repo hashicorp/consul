@@ -1,43 +1,52 @@
----
+"---
 layout: docs
-page_title: Configure Service Mesh Certificate Authority (CA) for Consul on Kubernetes
+page_title: Configure Certificate Authority (CA) for Consul on Kubernetes
 description: >-
   Consul includes a built-in CA, but when bootstrapping a cluster on k8s, you can configure your service mesh to use a custom certificate provider instead. Learn how to configure Vault as an external CA in primary and secondary datacenters and manually rotate Vault tokens.
----
+---"
 
-#  Configure Service Mesh Certificate Authority for Consul on Kubernetes
+#  Configure Certificate Authority (CA) for Consul on Kubernetes
 
-If `connect` is enabled, the built-in Consul CA provider is automatically enabled for the service mesh certificate authority (CA). You can use different CA providers with Consul service mesh. Refer to [Service Mesh Certificate Management](/consul/docs/connect/ca) for supported providers.
+~> **NOTE:** The instructions below should only be used for initially bootstrapping a cluster with **Consul K8s 0.38.0+.**
+To update the Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
+please use the [Update CA Configuration Endpoint](/api-docs/connect/ca#update-ca-configuration).
 
-## Overview
+Consul has support for different certificate authority (CA) providers to be used with the Consul Service Mesh.
+Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
+we currently support.
 
-You should only complete the following instructions during the initial cluster bootstrapping procedure with Consul K8s CLI 0.38.0 or later. To update the Consul service mesh CA provider on an existing cluster or to update any provider properties, such as tokens, refer to [Update CA Configuration Endpoint](/consul/api-docs/connect/ca#update-ca-configuration).
-
-To configure an external CA provider using the Consul Helm chart, complete the following steps:
+If Connect is enabled, the built-in Consul CA is automatically enabled for the Connect CA.
+To configure an external CA provider via the Consul Helm chart, you need to follow three steps:
 
 1. Create a configuration file containing your provider information.
 1. Create a Kubernetes secret containing the configuration file.
-1. Reference the Kubernetes secret in the [`server.extraVolumes`](/consul/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
+1. Reference the Kubernetes secret in the [`server.extraVolumes`](/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
 
-To configure the Vault service mesh provider, refer to [Vault as the Service Mesh Certificate Provider on Kubernetes](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca).
-
-## Configuring Vault as a Service Mesh CA (Consul K8s 0.37.0 and earlier)
+To configure the Vault Connect Provider please see [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca).
 
 
-If you use Vault 1.11.0+ as Consul's service mesh CA, versions of Consul released before Dec 13, 2022 will develop an issue with Consul control plane or service mesh communication ([GH-15525](https://github.com/hashicorp/consul/pull/15525)). Use or upgrade to a [Consul version that includes the fix](https://support.hashicorp.com/hc/en-us/articles/11308460105491#01GMC24E6PPGXMRX8DMT4HZYTW) to avoid this problem.
+~> **NOTE:** The following instructions are only valid for Consul-k8s 0.37.0 and prior.
 
-The following instructions are only valid for Consul K8s CLI 0.37.0 and prior. It describes how to configure Vault as the service mesh CA. You can configure other providers during initial bootstrap of the cluster by providing the appropriate [`ca_config`] and [`ca_provider`] values for your provider.
+Below we will go over the process for configuring Vault as the Connect CA.
+However, other providers can similarly be configured during initial bootstrap of the cluster
+by providing the appropriate [`ca_config`] and [`ca_provider`] values for the provider you're using.
 
--> **Auto-renewal:** If using Vault as your service mesh CA, we strongly recommend Consul 1.8.5 or later, which includes support for token auto-renewal. If the Vault token is [renewable](/vault/api-docs/auth/token#renewable), then Consul automatically renews the token periodically. Otherwise, you must [manually rotate](#manually-rotating-vault-tokens) the Vault token before it expires.
+## Configuring Vault as a Connect CA (Consul K8s 0.37.0 and earlier)
+
+-> **NOTE:** If using Vault as your Connect CA, it's highly recommended to run a Consul version >= 1.8.5 that supports
+token auto-renewal. With this feature, if the Vault token is [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
+then Consul will automatically renew the token periodically. Without this feature, you
+will need to [manually rotate](#manually-rotating-vault-tokens) the Vault
+token before it expires.
 
 ### Primary Datacenter
 
-To configure Vault as a CA provider for Consul service mesh,
+To configure Vault as a CA provider for Consul Connect,
 first, create a provider configuration JSON file.
-Please refer to [Vault as a service mesh CA](/consul/docs/connect/ca/vault) for the configuration options.
+Please refer to [Vault as a Connect CA](/docs/connect/ca/vault) for the configuration options.
 You will need to provide a Vault token to the `token` property.
-Please refer to [these docs](/consul/docs/connect/ca/vault#token) for the permissions that the token needs to have.
-This token should be [renewable](/vault/api-docs/auth/token#renewable).
+Please refer to [these docs](/docs/connect/ca/vault#token) for the permissions that the token needs to have.
+This token should be [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable).
 
 To provide a CA, you first need to create a Kubernetes secret containing the CA.
 For example, you may create a secret with the Vault CA like so:
@@ -77,7 +86,7 @@ based on the Kubernetes secret for the Vault CA that we have created before.
 We will provide that secret later in the Helm values for our Consul cluster.
 
 ~> NOTE: If you have used Kubernetes CA to sign Vault's certificate,
-such as shown in [Standalone Server with TLS](/vault/docs/platform/k8s/helm/examples/standalone-tls),
+such as shown in [Standalone Server with TLS](https://www.vaultproject.io/docs/platform/k8s/helm/examples/standalone-tls),
 you don't need to create a Kubernetes secret with Vault's CA and can reference the CA directly
 by setting `ca_file` to `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`.
 
@@ -90,7 +99,7 @@ $ kubectl create secret generic vault-config --from-file=config=vault-config.jso
 We will provide this secret and the Vault CA secret, to the Consul server via the
 `server.extraVolumes` Helm value.
 
-<CodeBlockConfig filename="values.yaml" highlight="4-13">
+<CodeBlockConfig filename="config.yaml" highlight="4-13">
 
   ```yaml
   global:
@@ -112,10 +121,10 @@ We will provide this secret and the Vault CA secret, to the Consul server via th
 
 </CodeBlockConfig>
 
-Finally, [install](/consul/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
+Finally, [install](/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
 
 ```shell-session
-$ helm install consul --values values.yaml hashicorp/consul
+$ helm install consul --values config.yaml hashicorp/consul
 ```
 
 Verify that the CA provider is set correctly:
@@ -142,7 +151,7 @@ $ kubectl exec consul-server-0 -- curl --silent http://localhost:8500/v1/connect
 
 ### Secondary Datacenters
 
-To configure Vault as the service mesh CA in secondary datacenters, you need to make sure that the Root CA is the same,
+To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA is the same,
 but the intermediate is different for each datacenter. In the `connect` configuration for a secondary datacenter,
 you can specify a `intermediate_pki_path` that is, for example, prefixed with the datacenter
 for which this configuration is intended.
@@ -176,7 +185,7 @@ Note that all secondary datacenters need to have access to the same Vault instan
 
 ### Manually Rotating Vault Tokens
 
-If running Consul < 1.8.5 or using a Vault token that is not [renewable](/vault/api-docs/auth/token#renewable)
+If running Consul < 1.8.5 or using a Vault token that is not [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
 then you will need to manually renew or rotate the Vault token before it expires.
 
 #### Rotating Vault Token
@@ -185,12 +194,12 @@ The [`ca_config`] and [`ca_provider`] options defined in the Consul agent
 configuration are only used when initially bootstrapping the cluster. Once the
 cluster is running, subsequent changes to the [`ca_provider`] config are **ignored**–even if `consul reload` is run or the servers are restarted.
 
-To update any settings under these keys, you must use Consul's [Update CA Configuration](/consul/api-docs/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](/consul/commands/connect/ca#set-config) command.
+To update any settings under these keys, you must use Consul's [Update CA Configuration](/api-docs/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](/commands/connect/ca#set-config) command.
 
 #### Renewing Vault Token
 
-To renew the Vault token, use the [`vault token renew`](/vault/docs/commands/token/renew) CLI command
+To renew the Vault token, use the [`vault token renew`](https://www.vaultproject.io/docs/commands/token/renew) CLI command
 or API.
 
-[`ca_config`]: /consul/docs/agent/config/config-files#connect_ca_config
-[`ca_provider`]: /consul/docs/agent/config/config-files#connect_ca_provider
+[`ca_config`]: /docs/agent/config/config-files#connect_ca_config
+[`ca_provider`]: /docs/agent/config/config-files#connect_ca_provider

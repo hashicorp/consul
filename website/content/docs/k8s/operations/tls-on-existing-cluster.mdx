@@ -13,9 +13,9 @@ you may want to configure TLS in a way that minimizes downtime to your applicati
 Consul already supports rolling out TLS on an existing cluster without downtime.
 However, depending on your Kubernetes use case, your upgrade procedure may be different.
 
-## Gradual TLS Rollout without Consul Service Mesh
+## Gradual TLS Rollout without Consul Connect
 
-If you do not use a service mesh, follow this process.
+If you're **not using Consul Connect**, follow this process.
 
 1. Run a Helm upgrade with the following config:
 
@@ -31,15 +31,16 @@ If you do not use a service mesh, follow this process.
      updatePartition: <number_of_server_replicas>
    ```
 
-  This upgrade trigger a rolling update of `consul-k8s` components.
+This upgrade will trigger a rolling update of the clients, as well as any
+other `consul-k8s` components, such as sync catalog or client snapshot deployments.
 
 1. Perform a rolling upgrade of the servers, as described in
-   [Upgrade Consul Servers](/consul/docs/k8s/upgrade#upgrading-consul-servers).
+   [Upgrade Consul Servers](/docs/k8s/upgrade#upgrading-consul-servers).
 
 1. Repeat steps 1 and 2, turning on TLS verification by setting `global.tls.verify`
    to `true`.
 
-## Gradual TLS Rollout with Consul Service Mesh
+## Gradual TLS Rollout with Consul Connect
 
 Because the sidecar Envoy proxies need to talk to the Consul client agent regularly
 for service discovery, we can't enable TLS on the clients without also re-injecting a
@@ -49,9 +50,9 @@ applications to it.
 
 1. Add a new identical node pool.
 
-1. Cordon all nodes in the old pool by running `kubectl cordon`.
-   This command ensures Kubernetes does not schedule any new workloads on those nodes,
-   and instead schedules onto the new TLS-enabled nodes.
+1. Cordon all nodes in the **old** pool by running `kubectl cordon`
+   to ensure Kubernetes doesn't schedule any new workloads on those nodes
+   and instead schedules onto the new nodes, which shortly will be TLS-enabled.
 
 1. Create the following Helm config file for the upgrade:
 
@@ -71,20 +72,30 @@ applications to it.
    ```
 
    In this configuration, we're setting `server.updatePartition` to the number of
-   server replicas as described in [Upgrade Consul Servers](/consul/docs/k8s/upgrade#upgrading-consul-servers).
+   server replicas as described in [Upgrade Consul Servers](/docs/k8s/upgrade#upgrading-consul-servers)
+   and `client.updateStrategy` to `OnDelete` to manually trigger an upgrade of the clients.
 
-1. Run `helm upgrade` with the above config file.
+1. Run `helm upgrade` with the above config file. The upgrade will trigger an update of all
+   components except clients and servers, such as the Consul Connect webhook deployment
+   or the sync catalog deployment. Note that the sync catalog and the client
+   snapshot deployments will not be in the `ready` state until the clients on their
+   nodes are upgraded. It is OK to proceed to the next step without them being ready
+   because Kubernetes will keep the old deployment pod around, and so there will be no
+   downtime.
 
-1. At this point, all components (e.g., Consul service mesh webhook and sync catalog) should be running
+1. Gradually perform an upgrade of the clients by deleting client pods on the **new** node
+   pool.
+
+1. At this point, all components (e.g., Consul Connect webhook and sync catalog) should be running
    on the new node pool.
 
-1. Redeploy all your mesh-enabled applications.
+1. Redeploy all your Connect-enabled applications.
    One way to trigger a redeploy is to run `kubectl drain` on the nodes in the old pool.
-   Now that the service mesh webhook is TLS-aware, it adds TLS configuration to
+   Now that the Connect webhook is TLS-aware, it will add TLS configuration to
    the sidecar proxy. Also, Kubernetes should schedule these applications on the new node pool.
 
 1. Perform a rolling upgrade of the servers described in
-   [Upgrade Consul Servers](/consul/docs/k8s/upgrade#upgrading-consul-servers).
+   [Upgrade Consul Servers](/docs/k8s/upgrade#upgrading-consul-servers).
 
 1. If everything is healthy, delete the old node pool.
 

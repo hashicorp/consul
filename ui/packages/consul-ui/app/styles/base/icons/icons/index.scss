@@ -1,13 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // @import './alert-circle-fill/index.scss';
 @import './alert-circle-outline/index.scss';
 @import './alert-triangle/index.scss';
 // @import './arrow-down/index.scss';
-@import './arrow-left/index.scss';
+// @import './arrow-left/index.scss';
 @import './arrow-right/index.scss';
 // @import './arrow-up/index.scss';
 // @import './bolt/index.scss';
@@ -80,6 +75,8 @@
 // @import './lock-open/index.scss';
 // @import './logo-alicloud-color/index.scss';
 // @import './logo-alicloud-monochrome/index.scss';
+// @import './logo-aws-color/index.scss';
+// @import './logo-aws-monochrome/index.scss';
 // @import './logo-azure-color/index.scss';
 // @import './logo-azure-dev-ops-color/index.scss';
 // @import './logo-azure-dev-ops-monochrome/index.scss';
@@ -195,6 +192,10 @@
 // @import './auth0-color/index.scss';
 // @import './auto-apply/index.scss';
 // @import './award/index.scss';
+@import './aws/index.scss';
+@import './aws-color/index.scss';
+// @import './aws-ec2/index.scss';
+// @import './aws-ec2-color/index.scss';
 // @import './azure/index.scss';
 // @import './azure-color/index.scss';
 // @import './azure-devops/index.scss';
@@ -275,6 +276,8 @@
 // @import './compass/index.scss';
 // @import './connection/index.scss';
 // @import './connection-gateway/index.scss';
+@import './consul/index.scss';
+// @import './consul-color/index.scss';
 // @import './corner-down-left/index.scss';
 // @import './corner-down-right/index.scss';
 // @import './corner-left-down/index.scss';
@@ -327,7 +330,7 @@
 // @import './file-minus/index.scss';
 // @import './file-plus/index.scss';
 // @import './file-source/index.scss';
-@import './file-text/index.scss';
+// @import './file-text/index.scss';
 // @import './file-x/index.scss';
 // @import './files/index.scss';
 // @import './film/index.scss';
@@ -452,6 +455,8 @@
 @import './network-alt/index.scss';
 // @import './newspaper/index.scss';
 // @import './node/index.scss';
+// @import './nomad/index.scss';
+// @import './nomad-color/index.scss';
 // @import './octagon/index.scss';
 // @import './okta/index.scss';
 // @import './okta-color/index.scss';
@@ -588,6 +593,7 @@
 // @import './users/index.scss';
 // @import './vagrant/index.scss';
 // @import './vagrant-color/index.scss';
+@import './vault/index.scss';
 // @import './vault-color/index.scss';
 // @import './verified/index.scss';
 // @import './video/index.scss';
@@ -629,13 +635,17 @@
 // @import './layers/index.scss';
 @import './loading-motion/index.scss';
 @import './logo-auth0-color/index.scss';
+@import './logo-consul-color/index.scss';
 @import './logo-ember-circle-color/index.scss';
 @import './logo-glimmer-color/index.scss';
 // @import './logo-hashicorp-color/index.scss';
 @import './logo-jwt-color/index.scss';
 @import './logo-microsoft-color/index.scss';
+@import './logo-nomad-color/index.scss';
 @import './logo-oidc-color/index.scss';
 @import './logo-okta-color/index.scss';
+@import './logo-terraform-color/index.scss';
+// @import './logo-vault-color/index.scss';
 @import './mesh/index.scss';
 // @import './path/index.scss';
 @import './port/index.scss';

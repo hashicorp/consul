@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <div
   ...attributes
   class="consul-intention-permission-form"
@@ -139,20 +134,23 @@ as |group|>
       <Ref @target={{this}} @name="headerForm" @value={{headerForm}} />
     </Consul::Intention::Permission::Header::Form>
 
-    <Hds::ButtonSet>
-      <Hds::Button
-        data-test-add-header
-        @text='Add{{if (gt (get (changeset-get changeset 'HTTP.Header') 'length') 0) ' another' ''}} header'
-        @color='primary'
-        disabled={{if (not this.headerForm.isDirty) 'disabled'}}
-        onclick={{action this.headerForm.submit}}
-      />
-      <Hds::Button
-        @text='Cancel'
-        @color='secondary'
-        onclick={{action this.headerForm.reset}}
-      />
-    </Hds::ButtonSet>
+    <button
+      data-test-add-header
+      type="button"
+      class="type-submit"
+      disabled={{if (not this.headerForm.isDirty) 'disabled'}}
+      onclick={{action this.headerForm.submit}}
+    >
+      Add{{#if (gt (get (changeset-get changeset 'HTTP.Header') 'length') 0)}} another{{/if}} header
+    </button>
+    <button
+      type="button"
+      class="type-cancel"
+      onclick={{action this.headerForm.reset}}
+    >
+      Cancel
+    </button>
+
   </fieldset>
   </FormGroup>
 </div>

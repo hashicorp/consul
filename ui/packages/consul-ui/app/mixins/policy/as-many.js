@@ -1,15 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Mixin from '@ember/object/mixin';
 import { get } from '@ember/object';
 
 import minimizeModel from 'consul-ui/utils/minimizeModel';
 
-const normalizeIdentities = function (items, template, name, dc) {
-  return (items || []).map(function (item) {
+const normalizeIdentities = function(items, template, name, dc) {
+  return (items || []).map(function(item) {
     const policy = {
       template: template,
       Name: item[name],
@@ -22,20 +17,20 @@ const normalizeIdentities = function (items, template, name, dc) {
 };
 // Sometimes we get `Policies: null`, make null equal an empty array
 // and add an empty template
-const normalizePolicies = function (items) {
-  return (items || []).map(function (item) {
+const normalizePolicies = function(items) {
+  return (items || []).map(function(item) {
     return {
       template: '',
       ...item,
     };
   });
 };
-const serializeIdentities = function (items, template, name, dc) {
+const serializeIdentities = function(items, template, name, dc) {
   return items
-    .filter(function (item) {
+    .filter(function(item) {
       return get(item, 'template') === template;
     })
-    .map(function (item) {
+    .map(function(item) {
       const identity = {
         [name]: get(item, 'Name'),
       };
@@ -45,16 +40,16 @@ const serializeIdentities = function (items, template, name, dc) {
       return identity;
     });
 };
-const serializePolicies = function (items) {
-  return items.filter(function (item) {
+const serializePolicies = function(items) {
+  return items.filter(function(item) {
     return get(item, 'template') === '';
   });
 };
 
 export default Mixin.create({
   //TODO: what about update and create?
-  respondForQueryRecord: function (respond, query) {
-    return this._super(function (cb) {
+  respondForQueryRecord: function(respond, query) {
+    return this._super(function(cb) {
       return respond((headers, body) => {
         body.Policies = normalizePolicies(body.Policies)
           .concat(
@@ -72,12 +67,12 @@ export default Mixin.create({
       });
     }, query);
   },
-  respondForQuery: function (respond, query) {
-    return this._super(function (cb) {
-      return respond(function (headers, body) {
+  respondForQuery: function(respond, query) {
+    return this._super(function(cb) {
+      return respond(function(headers, body) {
         return cb(
           headers,
-          body.map(function (item) {
+          body.map(function(item) {
             item.Policies = normalizePolicies(item.Policies)
               .concat(
                 normalizeIdentities(
@@ -96,7 +91,7 @@ export default Mixin.create({
       });
     }, query);
   },
-  serialize: function (snapshot, options) {
+  serialize: function(snapshot, options) {
     const data = this._super(...arguments);
     data.ServiceIdentities = serializeIdentities(
       data.Policies,

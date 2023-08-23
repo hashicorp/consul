@@ -71,28 +71,3 @@ Feature: dc / intentions / index
     ---
     Then the url should be /dc-1/intentions
     Then I don't see customResourceNotice on the intentionList
-  Scenario: Viewing an empty intentions page with acl enabled
-    Given 1 datacenter model with the value "dc-1"
-    And 0 intention models
-    When I visit the intentions page for yaml
-    ---
-      dc: dc-1
-    ---
-    Then the url should be /dc-1/intentions
-    And the title should be "Intentions - Consul"
-    Then I see 0 intention models on the intentionList component
-    And I see the text "There don't seem to be any Intentions in this Consul cluster, or you may not have intentions:read permissions access to this view." in ".empty-state p"
-    And I see the "[data-test-empty-state-login]" element
-  Scenario: Viewing an empty intentions page with acl disabled 
-    Given ACLs are disabled
-    Given 1 datacenter model with the value "dc-1"
-    And 0 intention models
-    When I visit the intentions page for yaml
-    ---
-      dc: dc-1
-    ---
-    Then the url should be /dc-1/intentions
-    And the title should be "Intentions - Consul"
-    Then I see 0 intention models on the intentionList component
-    And I see the text "There don't seem to be any Intentions in this Consul cluster." in ".empty-state p"
-    And I don't see the "[data-test-empty-state-login]" element

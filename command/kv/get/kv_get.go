@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package get
 
 import (
@@ -102,32 +99,6 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	switch {
-	case c.keys && c.recurse:
-		pairs, _, err := client.KV().List(key, &api.QueryOptions{
-			AllowStale: c.http.Stale(),
-		})
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
-			return 1
-		}
-
-		for i, pair := range pairs {
-			if c.detailed {
-				var b bytes.Buffer
-				if err := prettyKVPair(&b, pair, false, true); err != nil {
-					c.UI.Error(fmt.Sprintf("Error rendering KV key: %s", err))
-					return 1
-				}
-				c.UI.Info(b.String())
-
-				if i < len(pairs)-1 {
-					c.UI.Info("")
-				}
-			} else {
-				c.UI.Info(fmt.Sprintf("%s", pair.Key))
-			}
-		}
-		return 0
 	case c.keys:
 		keys, _, err := client.KV().Keys(key, c.separator, &api.QueryOptions{
 			AllowStale: c.http.Stale(),
@@ -154,7 +125,7 @@ func (c *cmd) Run(args []string) int {
 		for i, pair := range pairs {
 			if c.detailed {
 				var b bytes.Buffer
-				if err := prettyKVPair(&b, pair, c.base64encode, false); err != nil {
+				if err := prettyKVPair(&b, pair, c.base64encode); err != nil {
 					c.UI.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
 					return 1
 				}
@@ -190,7 +161,7 @@ func (c *cmd) Run(args []string) int {
 
 		if c.detailed {
 			var b bytes.Buffer
-			if err := prettyKVPair(&b, pair, c.base64encode, false); err != nil {
+			if err := prettyKVPair(&b, pair, c.base64encode); err != nil {
 				c.UI.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
 				return 1
 			}
@@ -216,7 +187,7 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool, keysOnly bool) error {
+func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
 	tw := tabwriter.NewWriter(w, 0, 2, 6, ' ', 0)
 	fmt.Fprintf(tw, "CreateIndex\t%d\n", pair.CreateIndex)
 	fmt.Fprintf(tw, "Flags\t%d\n", pair.Flags)
@@ -234,9 +205,9 @@ func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool, keysOnl
 	if pair.Namespace != "" {
 		fmt.Fprintf(tw, "Namespace\t%s\n", pair.Namespace)
 	}
-	if !keysOnly && base64EncodeValue {
+	if base64EncodeValue {
 		fmt.Fprintf(tw, "Value\t%s", base64.StdEncoding.EncodeToString(pair.Value))
-	} else if !keysOnly {
+	} else {
 		fmt.Fprintf(tw, "Value\t%s", pair.Value)
 	}
 	return tw.Flush()

@@ -1,69 +1,64 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-<li class='dcs' data-test-datacenter-menu>
+<li
+  class="dcs"
+  data-test-datacenter-menu
+>
   {{#if (gt @dcs.length 1)}}
     <DisclosureMenu
-      aria-label='Datacenter'
+      aria-label="Datacenter"
       @items={{sort-by 'Primary:desc' 'Local:desc' 'Name:asc' @dcs}}
       data-test-datacenter-disclosure-menu
-      as |disclosure|
-    >
-      <disclosure.Action {{on 'click' disclosure.toggle}}>
+    as |disclosure|>
+      <disclosure.Action
+        {{on 'click' disclosure.toggle}}
+      >
         {{@dc.Name}}
       </disclosure.Action>
       <disclosure.Menu as |panel|>
         <DataSource
           @src={{uri '/*/*/*/datacenters'}}
-          @onchange={{action (mut @dcs) value='data'}}
+          @onchange={{action (mut @dcs) value="data"}}
         />
-        <p class='dcs-message'>
-          Datacenters shown in this dropdown are available through WAN Federation.
-        </p>
-        <panel.Menu as |menu|>
-          <menu.Separator>
-            DATACENTERS
-          </menu.Separator>
-          {{#each menu.items as |item|}}
-            <menu.Item
-              data-test-dc-item
-              aria-current={{if (eq @dc.Name item.Name) 'true'}}
-              class={{class-map (array 'is-local' item.Local) (array 'is-primary' item.Primary)}}
-            >
-              <menu.Action
-                {{on 'click' disclosure.close}}
-                @href={{href-to
-                  '.'
-                  params=(hash
+          <p class="dcs-message">
+            Datacenters shown in this dropdown are available through WAN Federation.
+          </p>
+          <panel.Menu as |menu|>
+            <menu.Separator>
+              DATACENTERS
+            </menu.Separator>
+            {{#each menu.items as |item|}}
+              <menu.Item
+                data-test-dc-item
+                aria-current={{if (eq @dc.Name item.Name) 'true'}}
+                class={{class-map
+                  (array 'is-local' item.Local)
+                  (array 'is-primary' item.Primary)
+                }}
+              >
+                <menu.Action
+                  {{on 'click' disclosure.close}}
+                  @href={{href-to '.' params=(hash
                     dc=item.Name
                     partition=undefined
                     nspace=(if (gt @nspace.length 0) @nspace undefined)
-                  )
-                }}
-              >
-                {{item.Name}}
+                  )}}
+                >
+                  {{item.Name}}
                 {{#if item.Primary}}
                   <span>Primary</span>
                 {{/if}}
                 {{#if item.Local}}
                   <span>Local</span>
                 {{/if}}
-              </menu.Action>
-            </menu.Item>
-          {{/each}}
-        </panel.Menu>
+                </menu.Action>
+              </menu.Item>
+            {{/each}}
+          </panel.Menu>
       </disclosure.Menu>
     </DisclosureMenu>
   {{else}}
-    <div class='dc-name' data-test-datacenter-single>
+    <div class="dc-name" data-test-datacenter-single>
       {{@dcs.firstObject.Name}}
-      {{#let (env 'CONSUL_HCP_MANAGED_RUNTIME') as |managedRuntime|}}
-        {{#if managedRuntime}}
-          <span>{{capitalize managedRuntime}}</span>
-        {{/if}}
-      {{/let}}
     </div>
   {{/if}}
 </li>
+

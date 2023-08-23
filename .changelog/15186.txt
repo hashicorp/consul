@@ -1,3 +1,0 @@
-```release-note:bug
-connect: Fix issue where mesh-gateway settings were not properly inherited from configuration entries.
-```

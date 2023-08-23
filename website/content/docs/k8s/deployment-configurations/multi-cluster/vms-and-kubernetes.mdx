@@ -1,27 +1,26 @@
 ---
 layout: docs
-page_title: WAN Federation Through Mesh Gateways - VMs and Kubernetes
+page_title: Federation Between VMs and Kubernetes
 description: >-
-  WAN federation through mesh gateways extends service mesh deployments by enabling Consul on Kubernetes to securely communicate with instances on VMs. Learn how to configure multi-cluster federation with k8s as either the primary or secondary datacenter.
+  Federating Kubernetes clusters and VMs.
 ---
 
-# WAN Federation Between VMs and Kubernetes Through Mesh Gateways
+# Federation Between VMs and Kubernetes
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
 
-~> This topic requires familiarity with [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) and [WAN Federation Via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
-
-This page describes how to federate Consul clusters separately deployed in VM and Kubernetes runtimes. Refer to [Multi-Cluster Overview](/consul/docs/k8s/deployment-configurations/multi-cluster)
-for more information, including [Kubernetes networking requirements](/consul/docs/k8s/deployment-configurations/multi-cluster#network-requirements).
+~> This topic requires familiarity with [Mesh Gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) and [WAN Federation Via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
 Consul datacenters running on non-kubernetes platforms like VMs or bare metal can
-be federated with Kubernetes datacenters. 
+be federated with Kubernetes datacenters. Just like with Kubernetes, one datacenter
+must be the [primary](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter).
 
 ## Kubernetes as the Primary
 
-One Consul datacenter must be the [primary](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter). If your primary datacenter is running on Kubernetes, use the Helm config from the [Primary Datacenter](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
+If your primary datacenter is running on Kubernetes, use the Helm config from the
+[Primary Datacenter](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
 
-Once installed on Kubernetes, and with the `ProxyDefaults` [resource created](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#proxydefaults),
+Once installed on Kubernetes, and with the `ProxyDefaults` [resource created](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults),
 you'll need to export the following information from the primary Kubernetes cluster:
 
 - Certificate authority cert and key (in order to create SSL certs for VMs)
@@ -64,7 +63,7 @@ The following sections detail how to export this data.
    ==> Saved vm-dc-server-consul-0-key.pem
    ```
 
-   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](/consul/docs/agent#running-an-agent). This is a [requirement](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
+   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](/docs/agent#running-an-agent). This is a [requirement](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
    Not satisfying this requirement would result in the following error in the Consul Server logs:
    `[ERROR] agent.server.rpc: TLS handshake failed: conn=from= error="remote error: tls: bad certificate"`
 
@@ -96,7 +95,7 @@ The following sections detail how to export this data.
    ==> Saved dc1-client-consul-0-key.pem
    ```
 
-   Or use the [auto_encrypt](/consul/docs/agent/config/config-files#auto_encrypt) feature.
+   Or use the [auto_encrypt](/docs/agent/config/config-files#auto_encrypt) feature.
 
 ### Mesh Gateway Addresses
 
@@ -145,7 +144,7 @@ acls {
 ```
 
 -> **NOTE:** You'll also need to set up additional ACL tokens as needed by the
-ACL system. See tutorial [Secure Consul with Access Control Lists (ACLs)](/consul/tutorials/security/access-control-setup-production#apply-individual-tokens-to-agents)
+ACL system. See tutorial [Secure Consul with Access Control Lists (ACLs)](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#apply-individual-tokens-to-agents)
 for more information.
 
 ### Gossip Encryption Key
@@ -210,11 +209,11 @@ ports {
 ## Kubernetes as the Secondary
 
 If you're running your primary datacenter on VMs then you'll need to manually
-construct the [Federation Secret](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#federation-secret) in order to federate
-Kubernetes clusters as secondaries. In addition, primary clusters must be able to make requests to the Kubernetes API URLs of secondary clusters when ACLs are enabled.
+construct the [Federation Secret](/docs/k8s/installation/multi-cluster/kubernetes#federation-secret) in order to federate
+Kubernetes clusters as secondaries.
 
 -> Your VM cluster must be running mesh gateways, and have mesh gateway WAN
-federation enabled. See [WAN Federation via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+federation enabled. See [WAN Federation via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
 You'll need:
 
@@ -259,51 +258,6 @@ You'll need:
      }
    }
    ```
-1. If ACLs are enabled you must also modify the [anonymous token](/consul/docs/security/acl/tokens#anonymous-token) policy to have the following permissions:
-
-   ```hcl
-   node_prefix "" {
-      policy = "read"
-   }
-   service_prefix "" {
-      policy = "read"
-   }
-   ```
-
-   With Consul Enterprise, use:
-
-   ```hcl
-   partition_prefix "" {
-     namespace_prefix "" {
-       node_prefix "" {
-         policy = "read"
-       }
-       service_prefix "" {
-         policy = "read"
-       }
-     }
-   }
-   ```
-
-   These permissions are needed to allow cross-datacenter requests. To make a cross-dc request the sidecar proxy in the originating DC needs to know about the
-   services running in the remote DC. To do so, it needs an ACL token that allows it to look up the services in the remote DC. The way tokens are created in
-   Kubernetes, the sidecar proxies have local ACL tokens–i.e tokens that are only valid in the local DC. When a request goes from one DC to another, if the
-   request has a local token, it is stripped from the request because the remote DC won't be able to validate it. When the request lands in the other DC,
-   it has no ACL token and so will be subject to the anonymous token policy. This is why the anonymous token policy must be configured to allow read access
-   to all services. When the Kubernetes DC is the primary, this is handled automatically, but when the primary DC is on VMs, this must be configured manually.
-
-   To configure the anonymous token policy, first create a policy with the above rules, then attach it to the anonymous token. For example using the CLI:
-
-   ```sh
-   echo 'node_prefix "" {
-      policy = "read"
-   }
-   service_prefix "" {
-      policy = "read"
-   }' | consul acl policy create -name anonymous -rules -
-
-   consul acl token update -id 00000000-0000-0000-0000-000000000002 -policy-name anonymous
-   ```
 
 1. If gossip encryption is enabled, you'll need the key.
 
@@ -322,7 +276,7 @@ kubectl create secret generic consul-federation \
 If ACLs are enabled, you must next determine the Kubernetes API URL for the secondary cluster. The API URL of the
 must be specified in the config files for all secondary clusters because secondary clusters need
 to create global Consul ACL tokens (tokens that are valid in all datacenters) and these tokens can only be created
-by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/consul/docs/security/acl/auth-methods)
+by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/docs/security/acl/auth-methods)
 in the primary cluster so that components in the secondary cluster can use their Kubernetes ServiceAccount tokens
 to retrieve global Consul ACL tokens from the primary.
 
@@ -375,6 +329,8 @@ global:
 
 connectInject:
   enabled: true
+controller:
+  enabled: true
 meshGateway:
   enabled: true
 server:
@@ -391,14 +347,14 @@ gateways running on VMs.
 1. Set `global.federation.k8sAuthMethodHost` to the Kubernetes API URL of this cluster (including `https://`).
 1. `global.federation.primaryDatacenter` should be set to the name of your primary datacenter.
 
-With your config file ready to go, follow our [Installation Guide](/consul/docs/k8s/installation/install)
+With your config file ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
 to install Consul on your secondary cluster(s).
 
 After installation, if you're using consul-helm 0.30.0+, [create the
-`ProxyDefaults` resource](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#proxydefaults)
+`ProxyDefaults` resource](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults)
 to allow traffic between datacenters.
 
 ## Next Steps
 
-In both cases (Kubernetes as primary or secondary), after installation, follow the [Verifying Federation](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#verifying-federation)
+In both cases (Kubernetes as primary or secondary), after installation, follow the [Verifying Federation](/docs/k8s/deployment-configurations/multi-cluster/kubernetes#verifying-federation)
 section to verify that federation is working as expected.

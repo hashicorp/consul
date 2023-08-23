@@ -20,7 +20,9 @@
                 "statPrefix": "ingress_upstream_443",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "443"
@@ -34,13 +36,10 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
+                  "randomSampling": {
+
                   }
-                ]
+                }
               }
             }
           ]
@@ -67,7 +66,9 @@
                 "statPrefix": "ingress_upstream_8080",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "8080"
@@ -81,13 +82,10 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
+                  "randomSampling": {
+
                   }
-                ]
+                }
               }
             }
           ]

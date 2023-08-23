@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -21,8 +18,6 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
-	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -120,10 +115,44 @@ func (c *cmd) startupUpdateCheck(config *config.RuntimeConfig) {
 	}()
 }
 
+// startupJoin is invoked to handle any joins specified to take place at start time
+func (c *cmd) startupJoin(agent *agent.Agent, cfg *config.RuntimeConfig) error {
+	if len(cfg.StartJoinAddrsLAN) == 0 {
+		return nil
+	}
+
+	c.logger.Info("Joining cluster")
+	// NOTE: For partitioned servers you are only capable of using start join
+	// to join nodes in the default partition.
+	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN, agent.AgentEnterpriseMeta())
+	if err != nil {
+		return err
+	}
+
+	c.logger.Info("Join completed. Initial agents synced with", "agent_count", n)
+	return nil
+}
+
+// startupJoinWan is invoked to handle any joins -wan specified to take place at start time
+func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) error {
+	if len(cfg.StartJoinAddrsWAN) == 0 {
+		return nil
+	}
+
+	c.logger.Info("Joining wan cluster")
+	n, err := agent.JoinWAN(cfg.StartJoinAddrsWAN)
+	if err != nil {
+		return err
+	}
+
+	c.logger.Info("Join wan completed. Initial agents synced with", "agent_count", n)
+	return nil
+}
+
 func (c *cmd) run(args []string) int {
 	ui := &mcli.PrefixedUi{
 		OutputPrefix: "==> ",
-		InfoPrefix:   "    ", // Note that startupLogger also uses this prefix
+		InfoPrefix:   "    ",
 		ErrorPrefix:  "==> ",
 		Ui:           c.ui,
 	}
@@ -146,44 +175,7 @@ func (c *cmd) run(args []string) int {
 		c.configLoadOpts.DefaultConfig = source
 		return config.Load(c.configLoadOpts)
 	}
-
-	// wait for signal
-	signalCh := make(chan os.Signal, 10)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// startup logger is a shim since we need to be about to log both before and
-	// after logging is setup properly but before agent has started fully. This
-	// takes care of that!
-	suLogger := newStartupLogger()
-	go handleStartupSignals(ctx, cancel, signalCh, suLogger)
-
-	// See if we need to bootstrap config from HCP before we go any further with
-	// agent startup. First do a preliminary load of agent configuration using the given loader.
-	// This is just to peek whether bootstrapping from HCP is enabled. The result is discarded
-	// on the call to agent.NewBaseDeps so that the wrapped loader takes effect.
-	res, err := loader(nil)
-	if err != nil {
-		ui.Error(err.Error())
-		return 1
-	}
-	if res.RuntimeConfig.IsCloudEnabled() {
-		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
-		if err != nil {
-			ui.Error("error building HCP HTTP client: " + err.Error())
-			return 1
-		}
-
-		// We override loader with the one returned as it was modified to include HCP-provided config.
-		loader, err = hcpbootstrap.LoadConfig(ctx, client, res.RuntimeConfig.DataDir, loader, ui)
-		if err != nil {
-			ui.Error(err.Error())
-			return 1
-		}
-	}
-
-	bd, err := agent.NewBaseDeps(loader, logGate, nil)
+	bd, err := agent.NewBaseDeps(loader, logGate)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1
@@ -194,9 +186,6 @@ func (c *cmd) run(args []string) int {
 		ui.Error(err.Error())
 		return 1
 	}
-
-	// Upgrade our startupLogger to use the real logger now we have it
-	suLogger.SetLogger(c.logger)
 
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {
@@ -212,38 +201,68 @@ func (c *cmd) run(args []string) int {
 	if config.ServerMode {
 		segment = "<all>"
 	}
-	ui.Info(fmt.Sprintf("           Version: '%s'", c.versionHuman))
+	ui.Info(fmt.Sprintf("          Version: '%s'", c.versionHuman))
 	if strings.Contains(c.versionHuman, "dev") {
-		ui.Info(fmt.Sprintf("          Revision: '%s'", c.revision))
+		ui.Info(fmt.Sprintf("         Revision: '%s'", c.revision))
 	}
-	ui.Info(fmt.Sprintf("        Build Date: '%s'", c.buildDate))
-	ui.Info(fmt.Sprintf("           Node ID: '%s'", config.NodeID))
-	ui.Info(fmt.Sprintf("         Node name: '%s'", config.NodeName))
+	ui.Info(fmt.Sprintf("       Build Date: '%s'", c.buildDate))
+	ui.Info(fmt.Sprintf("          Node ID: '%s'", config.NodeID))
+	ui.Info(fmt.Sprintf("        Node name: '%s'", config.NodeName))
 	if ap := config.PartitionOrEmpty(); ap != "" {
-		ui.Info(fmt.Sprintf("         Partition: '%s'", ap))
+		ui.Info(fmt.Sprintf("        Partition: '%s'", ap))
 	}
-	ui.Info(fmt.Sprintf("        Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	ui.Info(fmt.Sprintf("            Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("       Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.GRPCTLSPort, config.DNSPort))
-	ui.Info(fmt.Sprintf("      Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+	ui.Info(fmt.Sprintf("       Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	ui.Info(fmt.Sprintf("           Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	ui.Info(fmt.Sprintf("      Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
+	ui.Info(fmt.Sprintf("     Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
-	ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
-	ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
-	ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
+	ui.Info(fmt.Sprintf("Gossip Encryption: %t", config.EncryptKey != ""))
 	if config.ServerMode {
 		ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
 	}
-	ui.Info(fmt.Sprintf("ACL Default Policy: %s", config.ACLResolverSettings.ACLDefaultPolicy))
-	ui.Info(fmt.Sprintf("         HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
+	ui.Info(fmt.Sprintf(" Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+	ui.Info(fmt.Sprintf("        HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
 		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
-	ui.Info(fmt.Sprintf("          gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
-	ui.Info(fmt.Sprintf("  Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
+	ui.Info(fmt.Sprintf("         gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
+	ui.Info(fmt.Sprintf(" Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
 		config.TLS.InternalRPC.VerifyIncoming, config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyServerHostname, config.TLS.InternalRPC.TLSMinVersion))
 	// Enable log streaming
 	ui.Output("")
 	ui.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
+
+	// wait for signal
+	signalCh := make(chan os.Signal, 10)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		for {
+			var sig os.Signal
+			select {
+			case s := <-signalCh:
+				sig = s
+			case <-ctx.Done():
+				return
+			}
+
+			switch sig {
+			case syscall.SIGPIPE:
+				continue
+
+			case syscall.SIGHUP:
+				err := fmt.Errorf("cannot reload before agent started")
+				c.logger.Error("Caught", "signal", sig, "error", err)
+
+			default:
+				c.logger.Info("Caught", "signal", sig)
+				cancel()
+				return
+			}
+		}
+	}()
 
 	err = agent.Start(ctx)
 	signal.Stop(signalCh)
@@ -260,6 +279,16 @@ func (c *cmd) run(args []string) int {
 
 	if !config.DisableUpdateCheck && !config.DevMode {
 		c.startupUpdateCheck(config)
+	}
+
+	if err := c.startupJoin(agent, config); err != nil {
+		c.logger.Error(err.Error())
+		return 1
+	}
+
+	if err := c.startupJoinWan(agent, config); err != nil {
+		c.logger.Error(err.Error())
+		return 1
 	}
 
 	// Let the agent know we've finished registration
@@ -332,32 +361,6 @@ func (c *cmd) run(args []string) int {
 				c.logger.Info("Graceful exit completed")
 				return 0
 			}
-		}
-	}
-}
-
-func handleStartupSignals(ctx context.Context, cancel func(), signalCh chan os.Signal, logger *startupLogger) {
-	for {
-		var sig os.Signal
-		select {
-		case s := <-signalCh:
-			sig = s
-		case <-ctx.Done():
-			return
-		}
-
-		switch sig {
-		case syscall.SIGPIPE:
-			continue
-
-		case syscall.SIGHUP:
-			err := fmt.Errorf("cannot reload before agent started")
-			logger.Error("Caught", "signal", sig, "error", err)
-
-		default:
-			logger.Info("Caught", "signal", sig)
-			cancel()
-			return
 		}
 	}
 }

@@ -1,3 +1,3 @@
-```release-note:bug
+```release-note:bugfix
 envoy: validate name before deleting proxy default configurations. 
 ```

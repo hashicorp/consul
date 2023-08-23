@@ -1,35 +1,25 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 'use strict';
 
 module.exports = {
   name: require('./package').name,
-  getTransform: function () {
+  getTransform: function() {
     return {
       name: 'custom-element',
       plugin: class {
         transform(ast) {
           this.syntax.traverse(ast, {
             ElementNode: (node) => {
-              if (node.tag === 'CustomElement') {
+              if(node.tag === 'CustomElement') {
                 node.attributes = node.attributes
                   // completely remove these ones, they are not used runtime
                   // element is potentially only temporarily being removed
-                  .filter(
-                    (item) =>
-                      !['element', 'description', 'slots', 'cssparts'].includes(
-                        `${item.name.substr(1)}`
-                      )
-                  )
-                  .map((item) => {
-                    switch (true) {
+                  .filter(item => !['element', 'description', 'slots', 'cssparts'].includes(`${item.name.substr(1)}`))
+                  .map(item => {
+                    switch(true) {
                       // these ones are ones where we need to remove the documentation only
                       // the attributes themselves are required at runtime
                       case ['attrs', 'cssprops'].includes(`${item.name.substr(1)}`):
-                        item.value.params = item.value.params.map((item) => {
+                        item.value.params = item.value.params.map(item => {
                           // we can't use arr.length here as we don't know
                           // whether someone has used the documentation entry
                           // in the array or not We use the hardcoded `3` for
@@ -40,6 +30,7 @@ module.exports = {
                           return item;
                         });
                         break;
+
                     }
                     return item;
                   });
@@ -48,13 +39,14 @@ module.exports = {
           });
           return ast;
         }
+
       },
-      baseDir: function () {
+      baseDir: function() {
         return __dirname;
       },
-      cacheKey: function () {
+      cacheKey: function() {
         return 'custom-element';
-      },
+      }
     };
   },
   setupPreprocessorRegistry(type, registry) {
@@ -62,8 +54,10 @@ module.exports = {
     transform.parallelBabel = {
       requireFile: __filename,
       buildUsing: 'getTransform',
-      params: {},
+      params: {}
     };
     registry.add('htmlbars-ast-plugin', transform);
   },
+
 };
+

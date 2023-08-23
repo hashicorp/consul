@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -27,8 +24,6 @@ var (
 		`^(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
 	spiffeIDAgentRegexp = regexp.MustCompile(
 		`^(?:/ap/([^/]+))?/agent/client/dc/([^/]+)/id/([^/]+)$`)
-	spiffeIDServerRegexp = regexp.MustCompile(
-		`^/agent/server/dc/([^/]+)$`)
 	spiffeIDMeshGatewayRegexp = regexp.MustCompile(
 		`^(?:/ap/([^/]+))?/gateway/mesh/dc/([^/]+)$`)
 )
@@ -147,19 +142,6 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 		return &SpiffeIDMeshGateway{
 			Host:       input.Host,
 			Partition:  ap,
-			Datacenter: dc,
-		}, nil
-	} else if v := spiffeIDServerRegexp.FindStringSubmatch(path); v != nil {
-		dc := v[1]
-		if input.RawPath != "" {
-			var err error
-			if dc, err = url.PathUnescape(v[1]); err != nil {
-				return nil, fmt.Errorf("Invalid datacenter: %s", err)
-			}
-		}
-
-		return &SpiffeIDServer{
-			Host:       input.Host,
 			Datacenter: dc,
 		}, nil
 	}

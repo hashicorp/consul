@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package envoy
 
 import (
@@ -516,57 +513,6 @@ const (
     }
   ]
 }`
-
-	expectedStatsdSink = `{
-	"name": "envoy.stat_sinks.statsd",
-	"typedConfig": {
-		"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
-		"address": {
-			"socket_address": {
-				"address": "127.0.0.1",
-				"port_value": 9125
-			}
-		}
-	}
-}`
-
-	expectedTelemetryCollectorStatsSink = `{
-	"name": "envoy.stat_sinks.metrics_service",
-	"typed_config": {
-	  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-	  "transport_api_version": "V3",
-	  "grpc_service": {
-		"envoy_grpc": {
-		  "cluster_name": "consul_telemetry_collector_loopback"
-		}
-	  },
-	  "emit_tags_as_labels": true
-	}
-  }`
-
-	expectedTelemetryCollectorCluster = `{
-	"name": "consul_telemetry_collector_loopback",
-	"type": "STATIC",
-	"http2_protocol_options": {},
-	"loadAssignment": {
-	  "clusterName": "consul_telemetry_collector_loopback",
-	  "endpoints": [
-		{
-		  "lbEndpoints": [
-			{
-			  "endpoint": {
-				"address": {
-				  "pipe": {
-					"path": "/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
-				  }
-				}
-			  }
-			}
-		  ]
-		}
-	  ]
-	}
-  }`
 )
 
 func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
@@ -611,63 +557,13 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
+				StatsSinksJSON: `[{
 					"name": "envoy.custom_exciting_sink",
 					"config": {
 						"foo": "bar"
 					}
-				}`,
+				}]`,
 			},
-		},
-		{
-			name: "telemetry-collector-sink",
-			baseArgs: BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			input: BootstrapConfig{
-				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
-			},
-			wantArgs: BootstrapTplArgs{
-				ProxyID:         "web-sidecar-proxy",
-				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.metrics_service",
-					"typed_config": {
-					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-					  "transport_api_version": "V3",
-					  "grpc_service": {
-						"envoy_grpc": {
-						  "cluster_name": "consul_telemetry_collector_loopback"
-						}
-					  },
-					  "emit_tags_as_labels": true
-					}
-				  }`,
-				StaticClustersJSON: `{
-					"name": "consul_telemetry_collector_loopback",
-					"type": "STATIC",
-					"http2_protocol_options": {},
-					"loadAssignment": {
-					  "clusterName": "consul_telemetry_collector_loopback",
-					  "endpoints": [
-						{
-						  "lbEndpoints": [
-							{
-							  "endpoint": {
-								"address": {
-								  "pipe": {
-									"path": "/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
-								  }
-								}
-							  }
-							}
-						  ]
-						}
-					  ]
-					}
-				  }`,
-			},
-			wantErr: false,
 		},
 		{
 			name: "simple-statsd-sink",
@@ -676,7 +572,18 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON:  expectedStatsdSink,
+				StatsSinksJSON: `[{
+					"name": "envoy.stat_sinks.statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
+						"address": {
+							"socket_address": {
+								"address": "127.0.0.1",
+								"port_value": 9125
+							}
+						}
+					}
+				}]`,
 			},
 			wantErr: false,
 		},
@@ -693,7 +600,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
+				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
@@ -710,7 +617,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 					"config": {
 						"foo": "bar"
 					}
-				}`,
+				}]`,
 			},
 			wantErr: false,
 		},
@@ -722,7 +629,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			env: []string{"MY_STATSD_URL=udp://127.0.0.1:9125"},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
+				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
@@ -733,7 +640,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}`,
+				}]`,
 			},
 			wantErr: false,
 		},
@@ -745,7 +652,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			env: []string{"HOST_IP=127.0.0.1"},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
+				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
@@ -756,7 +663,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}`,
+				}]`,
 			},
 			wantErr: false,
 		},
@@ -778,7 +685,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
+				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
@@ -789,7 +696,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}`,
+				}]`,
 			},
 			wantErr: false,
 		},
@@ -800,7 +707,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
+				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
@@ -810,7 +717,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}`,
+				}]`,
 			},
 			wantErr: false,
 		},
@@ -823,7 +730,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			env: []string{"MY_STATSD_URL=udp://127.0.0.1:9125"},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
+				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
@@ -834,7 +741,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}`,
+				}]`,
 			},
 			wantErr: false,
 		},
@@ -1524,7 +1431,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "tcp listener no namespace or partition (CE)",
+			name: "tcp listener no namespace or partition (OSS)",
 			stat: "tcp.upstream.db.dc1.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.datacenter": {"db.dc1.", "dc1"},
@@ -1534,7 +1441,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "tcp peered listener no namespace or partition (CE)",
+			name: "tcp peered listener no namespace or partition (OSS)",
 			stat: "tcp.upstream_peered.db.cloudpeer.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.peer":      {"db.cloudpeer.", "cloudpeer"},
@@ -1562,7 +1469,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "http listener no namespace or partition (CE)",
+			name: "http listener no namespace or partition (OSS)",
 			stat: "http.upstream.web.dc1.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.datacenter": {"web.dc1.", "dc1"},
@@ -1572,7 +1479,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "http peered listener no namespace or partition (CE)",
+			name: "http peered listener no namespace or partition (OSS)",
 			stat: "http.upstream_peered.web.cloudpeer.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.peer":      {"web.cloudpeer.", "cloudpeer"},
@@ -1629,68 +1536,6 @@ func TestConsulTagSpecifiers(t *testing.T) {
 
 			assert.Equal(t, tc.expect, got)
 			assert.Equal(t, tc.expectNoDeprecated, gotNoDeprecated)
-		})
-	}
-}
-
-func TestAppendTelemetryCollectorMetrics(t *testing.T) {
-	tests := map[string]struct {
-		inputArgs     *BootstrapTplArgs
-		bindSocketDir string
-		wantArgs      *BootstrapTplArgs
-	}{
-		"dir-without-trailing-slash": {
-			inputArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			bindSocketDir: "/tmp/consul/telemetry-collector",
-			wantArgs: &BootstrapTplArgs{
-				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
-				StaticClustersJSON: expectedTelemetryCollectorCluster,
-			},
-		},
-		"dir-with-trailing-slash": {
-			inputArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			bindSocketDir: "/tmp/consul/telemetry-collector",
-			wantArgs: &BootstrapTplArgs{
-				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
-				StaticClustersJSON: expectedTelemetryCollectorCluster,
-			},
-		},
-		"append-clusters-and-stats-sink": {
-			inputArgs: &BootstrapTplArgs{
-				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedStatsdSink,
-				StaticClustersJSON: expectedSelfAdminCluster,
-			},
-			bindSocketDir: "/tmp/consul/telemetry-collector",
-			wantArgs: &BootstrapTplArgs{
-				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedStatsdSink + ",\n" + expectedTelemetryCollectorStatsSink,
-				StaticClustersJSON: expectedSelfAdminCluster + ",\n" + expectedTelemetryCollectorCluster,
-			},
-		},
-	}
-
-	for name, tt := range tests {
-		t.Run(name, func(t *testing.T) {
-			appendTelemetryCollectorConfig(tt.inputArgs, tt.bindSocketDir)
-
-			// Some of our JSON strings are comma separated objects to be
-			// insertedinto an array which is not valid JSON on it's own so wrap
-			// them all in an array. For simple values this is still valid JSON
-			// too.
-			wantStatsSink := "[" + tt.wantArgs.StatsSinksJSON + "]"
-			gotStatsSink := "[" + tt.inputArgs.StatsSinksJSON + "]"
-			require.JSONEq(t, wantStatsSink, gotStatsSink, "field StatsSinksJSON should be equivalent JSON")
-
-			wantClusters := "[" + tt.wantArgs.StaticClustersJSON + "]"
-			gotClusters := "[" + tt.inputArgs.StaticClustersJSON + "]"
-			require.JSONEq(t, wantClusters, gotClusters, "field StaticClustersJSON should be equivalent JSON")
 		})
 	}
 }

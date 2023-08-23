@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -71,9 +68,6 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		Proxy: &api.AgentServiceConnectProxyConfig{
 			DestinationServiceName: "web",
 		},
-		Meta: map[string]string{
-			"MetaKey": "MetaValue",
-		},
 	}
 	err = client.Agent().ServiceRegister(regProxy)
 	require.Nil(t, err)
@@ -81,7 +75,6 @@ func TestConsulResolver_Resolve(t *testing.T) {
 	// And another proxy so we can test handling with multiple endpoints returned
 	regProxy.Port = 9091
 	regProxy.ID = "web-proxy-2"
-	regProxy.Meta = map[string]string{}
 	err = client.Agent().ServiceRegister(regProxy)
 	require.Nil(t, err)
 
@@ -117,7 +110,6 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		Name       string
 		Type       int
 		Datacenter string
-		Filter     string
 	}
 	tests := []struct {
 		name        string
@@ -152,32 +144,6 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			// don't need to load the current one this way.
 			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "db", ""),
 			wantErr:     false,
-		},
-		{
-			name: "service discovery with filter",
-			fields: fields{
-				Namespace: "default",
-				Name:      "web",
-				Type:      ConsulResolverTypeService,
-				Filter:    "Service.Meta[`MetaKey`] == `MetaValue`",
-			},
-			// Want empty host since we don't enforce trust domain outside of TLS and
-			// don't need to load the current one this way.
-			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
-			wantErr:     false,
-			addrs: []string{
-				agent.Config.AdvertiseAddrLAN.String() + ":9090",
-			},
-		},
-		{
-			name: "service discovery with filter",
-			fields: fields{
-				Namespace: "default",
-				Name:      "web",
-				Type:      ConsulResolverTypeService,
-				Filter:    "`AnotherMetaValue` in Service.Meta.MetaKey",
-			},
-			wantErr: true,
 		},
 		{
 			name: "Bad Type errors",
@@ -240,7 +206,6 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name:       tt.fields.Name,
 				Type:       tt.fields.Type,
 				Datacenter: tt.fields.Datacenter,
-				Filter:     tt.fields.Filter,
 			}
 			// WithCancel just to have a cancel func in scope to assign in the if
 			// clause.

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service from '@ember/service';
 
 import createHeaders from 'consul-ui/utils/http/create-headers';
@@ -24,11 +19,11 @@ export default class XhrService extends Service {
     });
     const options = {
       ...params,
-      beforeSend: function (xhr) {
+      beforeSend: function(xhr) {
         request.open(xhr);
       },
       converters: {
-        'text json': function (response) {
+        'text json': function(response) {
           try {
             return JSON.parse(response);
           } catch (e) {
@@ -36,7 +31,7 @@ export default class XhrService extends Service {
           }
         },
       },
-      success: function (headers, response, status, statusText) {
+      success: function(headers, response, status, statusText) {
         // Response-ish
         request.respond({
           headers: headers,
@@ -45,7 +40,7 @@ export default class XhrService extends Service {
           statusText: statusText,
         });
       },
-      error: function (headers, response, status, statusText, err) {
+      error: function(headers, response, status, statusText, err) {
         let error;
         if (err instanceof Error) {
           error = err;
@@ -54,7 +49,7 @@ export default class XhrService extends Service {
         }
         request.error(error);
       },
-      complete: function (status) {
+      complete: function(status) {
         request.close();
       },
     };

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -111,9 +108,6 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	if s.config.GRPCPort > 0 {
 		conf.Tags["grpc_port"] = fmt.Sprintf("%d", s.config.GRPCPort)
 	}
-	if s.config.GRPCTLSPort > 0 {
-		conf.Tags["grpc_tls_port"] = fmt.Sprintf("%d", s.config.GRPCTLSPort)
-	}
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
 	}
@@ -157,11 +151,11 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	serfLogger := s.logger.
 		NamedIntercept(logging.Serf).
 		NamedIntercept(subLoggerName).
-		StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
+		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 	memberlistLogger := s.logger.
 		NamedIntercept(logging.Memberlist).
 		NamedIntercept(subLoggerName).
-		StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
+		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 
 	conf.MemberlistConfig.Logger = memberlistLogger
 	conf.Logger = serfLogger

@@ -1,25 +1,20 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { runInDebug } from '@ember/debug';
 import wayfarer from 'wayfarer';
 
 const router = wayfarer();
 const routes = {};
-export default (path) => (target, propertyKey, desc) => {
+export default path => (target, propertyKey, desc) => {
   runInDebug(() => {
     routes[path] = { cls: target, method: propertyKey };
   });
-  router.on(path, function (params, owner, request) {
+  router.on(path, function(params, owner, request) {
     const container = owner.lookup('service:container');
     const instance = container.get(target);
-    return (configuration) => desc.value.apply(instance, [params, configuration, request]);
+    return configuration => desc.value.apply(instance, [params, configuration, request]);
   });
   return desc;
 };
-export const match = (path) => {
+export const match = path => {
   return router.match(path);
 };
 
@@ -34,10 +29,13 @@ runInDebug(() => {
   <pre>
 ${Object.entries(routes)
   .map(([key, value]) => {
-    let cls = container.keyForClass(value.cls).split('/').pop();
+    let cls = container
+      .keyForClass(value.cls)
+      .split('/')
+      .pop();
     cls = cls
       .split('-')
-      .map((item) => `${item[0].toUpperCase()}${item.substr(1)}`)
+      .map(item => `${item[0].toUpperCase()}${item.substr(1)}`)
       .join('');
     return `${key}
       ${cls}Repository.${value.method}(params)

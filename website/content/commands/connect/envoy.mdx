@@ -11,11 +11,7 @@ Command: `consul connect envoy`
 
 The connect Envoy command is used to generate a bootstrap configuration for
 [Envoy proxy](https://envoyproxy.io) for use with [Consul
-service mesh](/consul/docs/connect/).
-
-Refer to the [examples](#examples) for guidance on common use cases,
-such as [launching a service instance's sidecar proxy
-when ACLs are enabled](#sidecar-proxy-with-acls-enabled).
+Connect](/docs/connect/).
 
 The default behavior is to generate the necessary bootstrap configuration for
 Envoy based on the environment variables and options provided and by talking to
@@ -36,7 +32,7 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
 
 #### Envoy Options for both Sidecars and Gateways
 
-- `-proxy-id` - The [proxy service](/consul/docs/connect/registration/service-registration) ID.
+- `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
   This service ID must already be registered with the local agent unless a gateway is being
   registered with the `-register` flag. As of Consul 1.8.0, this can also be
   specified via the `CONNECT_PROXY_ID` environment variable.
@@ -56,18 +52,10 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   ACL token from `-token` or the environment and so should be handled as a secret.
   This token grants the identity of any service it has `service:write` permission
   for and so can be used to access any upstream service that that service is
-  allowed to access by [service mesh intentions](/consul/docs/connect/intentions).
+  allowed to access by [Connect intentions](/docs/connect/intentions).
 
 - `-envoy-version` - The version of envoy that is being started. Default is
-  `1.23.1`. This is required so that the correct configuration can be generated.
-
-- `-grpc-ca-file` - Path to a CA file to use for TLS when communicating with the
-    Consul agent through xDS. This can also be specified via the CONSUL_GRPC_CACERT
-    environment variable.
-
-- `-grpc-ca-path` - Path to a directory of CA certificates to use for TLS when
-    communicating with the Consul agent through xDS. This can also be specified via
-    the CONSUL_GRPC_CAPATH environment variable.
+  `1.19.1`. This is required so that the correct configuration can be generated.
 
 - `-no-central-config` - By default the proxy's bootstrap configuration can be
   customized centrally. This requires that the command run on the same agent
@@ -116,10 +104,6 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
   is set in proxy config.
 
-- `-ignore-envoy-compatibility` - If set to `true`, this flag ignores the Envoy version
-compatibility check. We recommend setting this flag to `false` to ensure
-compatibility with Envoy and prevent potential issues. Default is `false`.
-
 - `-- [pass-through options]` - Any options given after a double dash are passed
   directly through to the `envoy` invocation. See [Envoy's
   documentation](https://www.envoyproxy.io/docs) for more details. The command
@@ -133,7 +117,7 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
   local agent yet but a [sidecar proxy
-  registration](/consul/docs/connect/registration/service-registration) with
+  registration](/docs/connect/registration/service-registration) with
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
@@ -165,17 +149,17 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
   If Envoy is configured as a terminating or mesh gateway, traffic from services
   within the mesh will be received at the specified IP and port.
 
-  If Envoy is configured as an ingress gateway, Consul instantiates a `/ready` HTTP endpoint at the specified IP and port. Consul uses `/ready` HTTP endpoints
-  to check gateway health. Ingress gateways also use the specified IP when instantiating user-defined listeners configured in the
-  [ingress gateway configuration entry](/consul/docs/connect/config-entries/ingress-gateway).
+  If Envoy is configured as an ingress gateway, a `/ready` HTTP endpoint will be
+  instantiated at the specified IP and port. Consul uses `/ready` HTTP endpoints
+  to check gateway health. The specified IP will also be used by the ingress
+  gateway when instantiating user-defined listeners configured in the
+  [ingress gateway](/docs/connect/gateways/ingress-gateway) configuration entry.
 
   ~> **Note**: Ensure that user-defined ingress gateway listeners use a
      different port than the port specified in `-address` so that they do not
      conflict with the health check endpoint.
 
-- `-admin-access-log-path` -
-  **Deprecated in Consul 1.15.0 in favor of [`proxy-defaults` access logs](/consul/docs/connect/config-entries/proxy-defaults#accesslogs).**
-  The path to write the access log for the administration
+- `-admin-access-log-path` The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
   use `/dev/null`.
 
@@ -215,7 +199,7 @@ proxy configuration needed.
   be used instead. The scheme can also be set to HTTPS by setting the
   environment variable CONSUL_HTTP_SSL=true. This may be a unix domain socket
   using `unix:///path/to/socket` if the [agent is configured to
-  listen](/consul/docs/agent/config/config-files#addresses) that way.
+  listen](/docs/agent/config/config-files#addresses) that way.
 
   -> **Note:** gRPC uses the same TLS
   settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
@@ -227,7 +211,7 @@ proxy configuration needed.
 
 Assume a local service instance is registered on the local agent with a
 sidecar proxy (using the [sidecar service
-registration](/consul/docs/connect/registration/service-registration) helper) as below.
+registration](/docs/connect/registration/service-registration) helper) as below.
 
 ```hcl
 service {
@@ -237,7 +221,7 @@ service {
 }
 ```
 
-### Basic sidecar proxy
+### Basic Sidecar Proxy
 
 The sidecar Envoy process can be started with.
 
@@ -248,32 +232,6 @@ $ consul connect envoy -sidecar-for web
 This example assumes that the correct [environment variables](#api-options) are
 used to set the local agent connection information and ACL token, or that the
 agent is using all-default configuration.
-
-### Sidecar proxy with ACLs enabled
-
-In secure deployments, Consul's ACL system is enabled with a default `deny` policy.
-To access Consul API resources, an API request must present a Consul ACL token
-with the necessary privileges. If ACLs are enabled, you must provide an ACL token to the sidecar proxy. The token must grant the proxy privileges to register itself and the service it fronts and to access all potential upstreams of that service.
-We recommend [using a service identity](/consul/commands/acl/token/create#create-a-token-for-a-service)
-to directly create a token with the privileges necessary for a service and its sidecar proxy,
-rather than creating a unique ACL policy for every service.
-
-After creating a token using a service identity, provide the token when
-launching the Envoy sidecar proxy instance with the `consul connect envoy` command.
-You can provide the token through an environment variable or CLI flag.
-
-Environment variables:
-- [`CONSUL_HTTP_TOKEN`](/consul/commands#consul_http_token) or
-- [`CONSUL_HTTP_TOKEN_FILE`](/consul/commands#consul_http_token_file)
-
-CLI flags:
-- [`-token`](/consul/commands/connect/envoy#token) or
-- [`-token-file`](/consul/commands/connect/envoy#token-file)
-
-```shell-session
-$ export CONSUL_HTTP_TOKEN="<secret-id-of-token-with-service-identity-for-web>"
-$ consul connect envoy -sidecar-for web
-```
 
 ### Additional Envoy Arguments
 
@@ -342,7 +300,7 @@ immediately unlinks it so it can't be read by any other process that doesn't
 already have the file descriptor. It then writes the bootstrap JSON, and unsets
 the CLOEXEC bit on the file handle so that it remains available to the Envoy
 process after exec. Finally it `exec`s Envoy with `--config-file /dev/fd/X`
-where `X` is the file descriptor number of the temp file.
+where `X` is the the file descriptor number of the temp file.
 
 This ensures that Envoy can read the file without any other normal user process
 being able to (assuming they don't have privileged access to /proc). Once the

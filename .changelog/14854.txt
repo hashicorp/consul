@@ -1,3 +1,0 @@
-```release-note:breaking-change
-peering: Rename `PeerName` to `Peer` on prepared queries and exported services.
-```

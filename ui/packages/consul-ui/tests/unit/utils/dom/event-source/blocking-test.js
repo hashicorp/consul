@@ -1,30 +1,25 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import domEventSourceBlocking, {
   validateCursor,
   createErrorBackoff,
 } from 'consul-ui/utils/dom/event-source/blocking';
-import { module, test } from 'qunit';
-import sinon from 'sinon';
+import { module } from 'qunit';
+import test from 'ember-sinon-qunit/test-support/test';
 
-module('Unit | Utility | dom/event-source/blocking', function () {
-  const createEventSource = function () {
-    const EventSource = function (cb) {
+module('Unit | Utility | dom/event-source/blocking', function() {
+  const createEventSource = function() {
+    const EventSource = function(cb) {
       this.readyState = 1;
       this.source = cb;
     };
     const o = EventSource.prototype;
-    ['addEventListener', 'removeEventListener', 'dispatchEvent', 'close'].forEach(function (item) {
-      o[item] = function () {};
+    ['addEventListener', 'removeEventListener', 'dispatchEvent', 'close'].forEach(function(item) {
+      o[item] = function() {};
     });
     return EventSource;
   };
-  const createPromise = function (resolve = function () {}) {
+  const createPromise = function(resolve = function() {}) {
     class PromiseMock {
-      constructor(cb = function () {}) {
+      constructor(cb = function() {}) {
         cb(resolve);
       }
       then(cb) {
@@ -36,23 +31,21 @@ module('Unit | Utility | dom/event-source/blocking', function () {
         return this;
       }
     }
-    PromiseMock.resolve = function () {
+    PromiseMock.resolve = function() {
       return new PromiseMock();
     };
     return PromiseMock;
   };
-  test('it creates an BlockingEventSource class implementing EventSource', function (assert) {
+  test('it creates an BlockingEventSource class implementing EventSource', function(assert) {
     const EventSource = createEventSource();
-    const BlockingEventSource = domEventSourceBlocking(EventSource, function () {});
+    const BlockingEventSource = domEventSourceBlocking(EventSource, function() {});
     assert.ok(BlockingEventSource instanceof Function);
-    const source = new BlockingEventSource(function () {
+    const source = new BlockingEventSource(function() {
       return createPromise().resolve();
     });
     assert.ok(source instanceof EventSource);
   });
-  test("the 5xx backoff continues to throw when it's not a 5xx", function (assert) {
-    assert.expect(11);
-
+  test("the 5xx backoff continues to throw when it's not a 5xx", function(assert) {
     const backoff = createErrorBackoff();
     [
       undefined,
@@ -66,15 +59,13 @@ module('Unit | Utility | dom/event-source/blocking', function () {
       { errors: [{ status: '50' }] },
       { errors: [{ status: '5000' }] },
       { errors: [{ status: '5050' }] },
-    ].forEach(function (item) {
-      assert.throws(function () {
+    ].forEach(function(item) {
+      assert.throws(function() {
         backoff(item);
       });
     });
   });
-  test('the 5xx backoff returns a resolve promise on a 5xx (apart from 500)', function (assert) {
-    assert.expect(18);
-
+  test('the 5xx backoff returns a resolve promise on a 5xx (apart from 500)', function(assert) {
     [
       { statusCode: 501 },
       { errors: [{ status: 501 }] },
@@ -82,9 +73,9 @@ module('Unit | Utility | dom/event-source/blocking', function () {
       { errors: [{ status: '503' }] },
       { errors: [{ status: '504' }] },
       { errors: [{ status: '524' }] },
-    ].forEach((item) => {
-      const timeout = sinon.stub().callsArg(0);
-      const resolve = sinon.stub().withArgs(item);
+    ].forEach(item => {
+      const timeout = this.stub().callsArg(0);
+      const resolve = this.stub().withArgs(item);
       const Promise = createPromise(resolve);
       const backoff = createErrorBackoff(undefined, Promise, timeout);
       const promise = backoff(item);
@@ -93,17 +84,13 @@ module('Unit | Utility | dom/event-source/blocking', function () {
       assert.ok(timeout.calledOnce, 'timeout was called once');
     });
   });
-  test("the cursor validation always returns undefined if the cursor can't be parsed to an integer", function (assert) {
-    assert.expect(4);
-
-    ['null', null, '', undefined].forEach((item) => {
+  test("the cursor validation always returns undefined if the cursor can't be parsed to an integer", function(assert) {
+    ['null', null, '', undefined].forEach(item => {
       const actual = validateCursor(item);
       assert.equal(actual, undefined);
     });
   });
-  test('the cursor validation always returns a cursor greater than zero', function (assert) {
-    assert.expect(5);
-
+  test('the cursor validation always returns a cursor greater than zero', function(assert) {
     [
       {
         cursor: 0,
@@ -125,14 +112,12 @@ module('Unit | Utility | dom/event-source/blocking', function () {
         cursor: 10,
         expected: 10,
       },
-    ].forEach((item) => {
+    ].forEach(item => {
       const actual = validateCursor(item.cursor);
       assert.equal(actual, item.expected, 'cursor is greater than zero');
     });
   });
-  test('the cursor validation resets to 1 if its less than the previous cursor', function (assert) {
-    assert.expect(4);
-
+  test('the cursor validation resets to 1 if its less than the previous cursor', function(assert) {
     [
       {
         previous: 100,
@@ -154,7 +139,7 @@ module('Unit | Utility | dom/event-source/blocking', function () {
         cursor: 101,
         expected: 101,
       },
-    ].forEach((item) => {
+    ].forEach(item => {
       const actual = validateCursor(item.cursor, item.previous);
       assert.equal(actual, item.expected);
     });

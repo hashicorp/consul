@@ -1,21 +1,15 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import getNspaceRunner from 'consul-ui/tests/helpers/get-nspace-runner';
 
 const nspaceRunner = getNspaceRunner('intention');
 
-module('Integration | Adapter | intention', function (hooks) {
+module('Integration | Adapter | intention', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id =
     'SourcePartition:SourceNS:SourceName:DestinationPartition:DestinationNS:DestinationName';
-  test('requestForQuery returns the correct url', function (assert) {
-    assert.expect(2);
+  test('requestForQuery returns the correct url', function(assert) {
     return nspaceRunner(
       (adapter, serializer, client) => {
         const request = client.body.bind(client);
@@ -41,7 +35,7 @@ module('Integration | Adapter | intention', function (hooks) {
       assert
     );
   });
-  test('requestForQueryRecord returns the correct url', function (assert) {
+  test('requestForQueryRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
@@ -54,17 +48,17 @@ module('Integration | Adapter | intention', function (hooks) {
       .split('\n')[0];
     assert.equal(actual, expected);
   });
-  test("requestForQueryRecord throws if you don't specify an id", function (assert) {
+  test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    assert.throws(function () {
+    assert.throws(function() {
       adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });
   });
-  test('requestForCreateRecord returns the correct url', function (assert) {
+  test('requestForCreateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
@@ -86,7 +80,7 @@ module('Integration | Adapter | intention', function (hooks) {
       .split('\n')[0];
     assert.equal(actual, expected);
   });
-  test('requestForUpdateRecord returns the correct url', function (assert) {
+  test('requestForUpdateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
@@ -108,7 +102,7 @@ module('Integration | Adapter | intention', function (hooks) {
       .split('\n')[0];
     assert.equal(actual, expected);
   });
-  test('requestForDeleteRecord returns the correct url', function (assert) {
+  test('requestForDeleteRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);

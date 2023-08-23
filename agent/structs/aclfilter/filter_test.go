@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package aclfilter
 
 import (
@@ -18,472 +15,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 )
-
-func TestACL_filterImported_IndexedHealthChecks(t *testing.T) {
-	t.Parallel()
-
-	logger := hclog.NewNullLogger()
-
-	type testCase struct {
-		policyRules string
-		list        *structs.IndexedHealthChecks
-		expectEmpty bool
-	}
-
-	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
-		require.NoError(t, err)
-
-		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-		require.NoError(t, err)
-
-		New(authz, logger).Filter(tc.list)
-
-		if tc.expectEmpty {
-			require.Empty(t, tc.list.HealthChecks)
-		} else {
-			require.Len(t, tc.list.HealthChecks, 1)
-		}
-	}
-
-	tt := map[string]testCase{
-		"permissions for imports (Allowed)": {
-			policyRules: `
-service_prefix "" { policy = "read" } node_prefix "" { policy = "read" }`,
-			list: &structs.IndexedHealthChecks{
-				HealthChecks: structs.HealthChecks{
-					{
-						Node:        "node1",
-						CheckID:     "check1",
-						ServiceName: "foo",
-						PeerName:    "some-peer",
-					},
-				},
-			},
-			// Can read imports with wildcard service/node reads in the importing partition.
-			expectEmpty: false,
-		},
-		"permissions for local only (Deny)": {
-			policyRules: `
-service "foo" { policy = "read" } node "node1" { policy = "read" }`,
-			list: &structs.IndexedHealthChecks{
-				HealthChecks: structs.HealthChecks{
-					{
-						Node:        "node1",
-						CheckID:     "check1",
-						ServiceName: "foo",
-						PeerName:    "some-peer",
-					},
-				},
-			},
-			// Cannot read imports with rules referencing local resources with the same name
-			// as the imported ones.
-			expectEmpty: true,
-		},
-	}
-
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
-
-func TestACL_filterImported_IndexedNodes(t *testing.T) {
-	t.Parallel()
-
-	logger := hclog.NewNullLogger()
-
-	type testCase struct {
-		policyRules string
-		list        *structs.IndexedNodes
-		configFunc  func(config *acl.Config)
-		expectEmpty bool
-	}
-
-	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
-		require.NoError(t, err)
-
-		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-		require.NoError(t, err)
-
-		New(authz, logger).Filter(tc.list)
-
-		if tc.expectEmpty {
-			require.Empty(t, tc.list.Nodes)
-		} else {
-			require.Len(t, tc.list.Nodes, 1)
-		}
-	}
-
-	tt := map[string]testCase{
-		"permissions for imports (Allowed)": {
-			policyRules: `
-		node_prefix "" { policy = "read" }`,
-			list: &structs.IndexedNodes{
-				Nodes: structs.Nodes{
-					{
-						ID:         types.NodeID("1"),
-						Node:       "foo",
-						Address:    "127.0.0.1",
-						Datacenter: "dc1",
-						PeerName:   "some-peer",
-					},
-				},
-			},
-			// Can read imports with wildcard service/node reads in the importing partition.
-			expectEmpty: false,
-		},
-		"permissions for local only (Deny)": {
-			policyRules: `
-node "node1" { policy = "read" }`,
-			list: &structs.IndexedNodes{
-				Nodes: structs.Nodes{
-					{
-						ID:         types.NodeID("1"),
-						Node:       "node1",
-						Address:    "127.0.0.1",
-						Datacenter: "dc1",
-						PeerName:   "some-peer",
-					},
-				},
-			},
-			// Cannot read imports with rules referencing local resources with the same name
-			// as the imported ones.
-			expectEmpty: true,
-		},
-	}
-
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
-
-func TestACL_filterImported_IndexedNodeServices(t *testing.T) {
-	t.Parallel()
-
-	logger := hclog.NewNullLogger()
-
-	type testCase struct {
-		policyRules string
-		list        *structs.IndexedNodeServices
-		configFunc  func(config *acl.Config)
-		expectEmpty bool
-	}
-
-	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
-		require.NoError(t, err)
-
-		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-		require.NoError(t, err)
-
-		New(authz, logger).Filter(tc.list)
-
-		if tc.expectEmpty {
-			require.Nil(t, tc.list.NodeServices)
-		} else {
-			require.Len(t, tc.list.NodeServices.Services, 1)
-		}
-	}
-
-	tt := map[string]testCase{
-		"permissions for imports (Allowed)": {
-			policyRules: `
-service_prefix "" { policy = "read" } node_prefix "" { policy = "read" }`,
-			list: &structs.IndexedNodeServices{
-				NodeServices: &structs.NodeServices{
-					Node: &structs.Node{
-						Node:     "node1",
-						PeerName: "some-peer",
-					},
-					Services: map[string]*structs.NodeService{
-						"foo": {
-							ID:       "foo",
-							Service:  "foo",
-							PeerName: "some-peer",
-						},
-					},
-				},
-			},
-			// Can read imports with wildcard service/node reads in the importing partition.
-			expectEmpty: false,
-		},
-		"permissions for local only (Deny)": {
-			policyRules: `
-service "foo" { policy = "read" } node "node1" { policy = "read" }`,
-			list: &structs.IndexedNodeServices{
-				NodeServices: &structs.NodeServices{
-					Node: &structs.Node{
-						Node:     "node1",
-						PeerName: "some-peer",
-					},
-					Services: map[string]*structs.NodeService{
-						"foo": {
-							ID:       "foo",
-							Service:  "foo",
-							PeerName: "some-peer",
-						},
-					},
-				},
-			},
-			// Cannot read imports with rules referencing local resources with the same name
-			// as the imported ones.
-			expectEmpty: true,
-		},
-	}
-
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
-
-func TestACL_filterImported_IndexedNodeServiceList(t *testing.T) {
-	t.Parallel()
-
-	logger := hclog.NewNullLogger()
-
-	type testCase struct {
-		policyRules string
-		list        *structs.IndexedNodeServiceList
-		configFunc  func(config *acl.Config)
-		expectEmpty bool
-	}
-
-	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
-		require.NoError(t, err)
-
-		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-		require.NoError(t, err)
-
-		New(authz, logger).Filter(tc.list)
-
-		if tc.expectEmpty {
-			require.Nil(t, tc.list.NodeServices.Node)
-			require.Nil(t, tc.list.NodeServices.Services)
-		} else {
-			require.Len(t, tc.list.NodeServices.Services, 1)
-		}
-	}
-
-	tt := map[string]testCase{
-		"permissions for imports (Allowed)": {
-			policyRules: `
-service_prefix "" { policy = "read" } node_prefix "" { policy = "read" }`,
-			list: &structs.IndexedNodeServiceList{
-				NodeServices: structs.NodeServiceList{
-					Node: &structs.Node{
-						Node:     "node1",
-						PeerName: "some-peer",
-					},
-					Services: []*structs.NodeService{
-						{
-							Service:  "foo",
-							PeerName: "some-peer",
-						},
-					},
-				},
-			},
-			// Can read imports with wildcard service/node reads in the importing partition.
-			expectEmpty: false,
-		},
-		"permissions for local only (Deny)": {
-			policyRules: `
-service "foo" { policy = "read" } node "node1" { policy = "read" }`,
-			list: &structs.IndexedNodeServiceList{
-				NodeServices: structs.NodeServiceList{
-					Node: &structs.Node{
-						Node:     "node1",
-						PeerName: "some-peer",
-					},
-					Services: []*structs.NodeService{
-						{
-							Service:  "foo",
-							PeerName: "some-peer",
-						},
-					},
-				},
-			},
-			// Cannot read imports with rules referencing local resources with the same name
-			// as the imported ones.
-			expectEmpty: true,
-		},
-	}
-
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
-
-func TestACL_filterImported_IndexedServiceNodes(t *testing.T) {
-	t.Parallel()
-
-	logger := hclog.NewNullLogger()
-
-	type testCase struct {
-		policyRules string
-		list        *structs.IndexedServiceNodes
-		configFunc  func(config *acl.Config)
-		expectEmpty bool
-	}
-
-	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
-		require.NoError(t, err)
-
-		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-		require.NoError(t, err)
-
-		New(authz, logger).Filter(tc.list)
-
-		if tc.expectEmpty {
-			require.Empty(t, tc.list.ServiceNodes)
-		} else {
-			require.Len(t, tc.list.ServiceNodes, 1)
-		}
-	}
-
-	tt := map[string]testCase{
-		"permissions for imports (Allowed)": {
-			policyRules: `
-service_prefix "" { policy = "read" } node_prefix "" { policy = "read" }`,
-			list: &structs.IndexedServiceNodes{
-				ServiceNodes: structs.ServiceNodes{
-					{
-						Node:        "node1",
-						ServiceName: "foo",
-						PeerName:    "some-peer",
-					},
-				},
-			},
-			// Can read imports with wildcard service/node reads in the importing partition.
-			expectEmpty: false,
-		},
-		"permissions for local only (Deny)": {
-			policyRules: `
-service "foo" { policy = "read" } node "node1" { policy = "read" }`,
-			list: &structs.IndexedServiceNodes{
-				ServiceNodes: structs.ServiceNodes{
-					{
-						Node:        "node1",
-						ServiceName: "foo",
-						PeerName:    "some-peer",
-					},
-				},
-			},
-			// Cannot read imports with rules referencing local resources with the same name
-			// as the imported ones.
-			expectEmpty: true,
-		},
-	}
-
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
-
-func TestACL_filterImported_CheckServiceNode(t *testing.T) {
-	t.Parallel()
-
-	logger := hclog.NewNullLogger()
-
-	type testCase struct {
-		policyRules string
-		list        *structs.CheckServiceNodes
-		configFunc  func(config *acl.Config)
-		expectEmpty bool
-	}
-
-	run := func(t *testing.T, tc testCase) {
-		policy, err := acl.NewPolicyFromSource(tc.policyRules, nil, nil)
-		require.NoError(t, err)
-
-		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-		require.NoError(t, err)
-
-		New(authz, logger).Filter(tc.list)
-
-		if tc.expectEmpty {
-			require.Empty(t, tc.list)
-		} else {
-			require.Len(t, *tc.list, 1)
-		}
-	}
-
-	tt := map[string]testCase{
-		"permissions for imports (Allowed)": {
-			policyRules: `
-service_prefix "" { policy = "read" } node_prefix "" { policy = "read" }`,
-			list: &structs.CheckServiceNodes{
-				{
-					Node: &structs.Node{
-						Node:     "node1",
-						PeerName: "some-peer",
-					},
-					Service: &structs.NodeService{
-						ID:       "foo",
-						Service:  "foo",
-						PeerName: "some-peer",
-					},
-					Checks: structs.HealthChecks{
-						{
-							Node:        "node1",
-							CheckID:     "check1",
-							ServiceName: "foo",
-							PeerName:    "some-peer",
-						},
-					},
-				},
-			},
-			// Can read imports with wildcard service/node reads in the importing partition.
-			expectEmpty: false,
-		},
-		"permissions for local only (Deny)": {
-			policyRules: `
-service "foo" { policy = "read" } node "node1" { policy = "read" }`,
-			list: &structs.CheckServiceNodes{
-				{
-					Node: &structs.Node{
-						Node:     "node1",
-						PeerName: "some-peer",
-					},
-					Service: &structs.NodeService{
-						ID:       "foo",
-						Service:  "foo",
-						PeerName: "some-peer",
-					},
-					Checks: structs.HealthChecks{
-						{
-							Node:        "node1",
-							CheckID:     "check1",
-							ServiceName: "foo",
-							PeerName:    "some-peer",
-						},
-					},
-				},
-			},
-			// Cannot read imports with rules referencing local resources with the same name
-			// as the imported ones.
-			expectEmpty: true,
-		},
-	}
-
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
 
 func TestACL_filterHealthChecks(t *testing.T) {
 	t.Parallel()
@@ -508,16 +39,10 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-			service_prefix "foo" {
-			  policy = "read"
-			}
 			node "node1" {
 			  policy = "read"
 			}
-			node_prefix "node1" {
-			  policy = "read"
-			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -536,10 +61,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-			service_prefix "foo" {
-			  policy = "read"
-			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -558,10 +80,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-			node_prefix "node1" {
-			  policy = "read"
-			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -619,10 +138,7 @@ func TestACL_filterIntentions(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-			service_prefix "foo" {
-			  policy = "read"
-			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -693,7 +209,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -712,7 +228,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -776,7 +292,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -795,7 +311,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -814,7 +330,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -873,7 +389,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -892,7 +408,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -911,7 +427,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -954,7 +470,7 @@ func TestACL_filterGatewayServices(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1014,7 +530,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1033,7 +549,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1052,7 +568,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1112,7 +628,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1131,7 +647,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1150,7 +666,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1249,7 +765,7 @@ node "node1" {
 service "foo" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -1277,7 +793,7 @@ node "node2" {
 service "bar" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -1311,7 +827,7 @@ node "node2" {
 service "bar" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -1362,7 +878,7 @@ func TestACL_filterCoordinates(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1414,7 +930,7 @@ func TestACL_filterSessions(t *testing.T) {
 			session "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1462,273 +978,78 @@ func TestACL_filterNodeDump(t *testing.T) {
 					},
 				},
 			},
-			ImportedDump: structs.NodeDump{
-				{
-					// The node and service names are intentionally the same to ensure that
-					// local permissions for the same names do not allow reading imports.
-					Node:     "node1",
-					PeerName: "cluster-02",
-					Services: []*structs.NodeService{
-						{
-							ID:       "foo",
-							Service:  "foo",
-							PeerName: "cluster-02",
-						},
-					},
-					Checks: []*structs.HealthCheck{
-						{
-							Node:        "node1",
-							CheckID:     "check1",
-							ServiceName: "foo",
-							PeerName:    "cluster-02",
-						},
-					},
-				},
-			},
 		}
 	}
-	type testCase struct {
-		authzFn func() acl.Authorizer
-		expect  *structs.IndexedNodeDump
-	}
 
-	run := func(t *testing.T, tc testCase) {
-		authz := tc.authzFn()
+	t.Run("allowed", func(t *testing.T) {
+
+		policy, err := acl.NewPolicyFromSource(`
+			service "foo" {
+			  policy = "read"
+			}
+			node "node1" {
+			  policy = "read"
+			}
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(t, err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
 
 		list := makeList()
 		New(authz, logger).Filter(list)
 
-		require.Equal(t, tc.expect, list)
-	}
+		require.Len(t, list.Dump, 1)
+		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 
-	tt := map[string]testCase{
-		"denied": {
-			authzFn: func() acl.Authorizer {
-				return acl.DenyAll()
-			},
-			expect: &structs.IndexedNodeDump{
-				Dump:         structs.NodeDump{},
-				ImportedDump: structs.NodeDump{},
-				QueryMeta:    structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"can read local service but not the node": {
-			authzFn: func() acl.Authorizer {
-				policy, err := acl.NewPolicyFromSource(`
+	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
+
+		policy, err := acl.NewPolicyFromSource(`
 			service "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
-				require.NoError(t, err)
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(t, err)
 
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
 
-				return authz
-			},
-			expect: &structs.IndexedNodeDump{
-				Dump:         structs.NodeDump{},
-				ImportedDump: structs.NodeDump{},
-				QueryMeta:    structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"can read the local node but not the service": {
-			authzFn: func() acl.Authorizer {
-				policy, err := acl.NewPolicyFromSource(`
+		list := makeList()
+		New(authz, logger).Filter(list)
+
+		require.Empty(t, list.Dump)
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("allowed to read the node, but not the service", func(t *testing.T) {
+
+		policy, err := acl.NewPolicyFromSource(`
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
-				require.NoError(t, err)
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(t, err)
 
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
 
-				return authz
-			},
-			expect: &structs.IndexedNodeDump{
-				Dump: structs.NodeDump{
-					{
-						Node:     "node1",
-						Services: []*structs.NodeService{},
-						Checks:   structs.HealthChecks{},
-					},
-				},
-				ImportedDump: structs.NodeDump{},
-				QueryMeta:    structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"can read local data": {
-			authzFn: func() acl.Authorizer {
-				policy, err := acl.NewPolicyFromSource(`
-			service "foo" {
-			  policy = "read"
-			}
-			node "node1" {
-			  policy = "read"
-			}
-		`, nil, nil)
-				require.NoError(t, err)
+		list := makeList()
+		New(authz, logger).Filter(list)
 
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
+		require.Len(t, list.Dump, 1)
+		require.Empty(t, list.Dump[0].Services)
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
 
-				return authz
-			},
-			expect: &structs.IndexedNodeDump{
-				Dump: structs.NodeDump{
-					{
-						Node: "node1",
-						Services: []*structs.NodeService{
-							{
-								ID:      "foo",
-								Service: "foo",
-							},
-						},
-						Checks: []*structs.HealthCheck{
-							{
-								Node:        "node1",
-								CheckID:     "check1",
-								ServiceName: "foo",
-							},
-						},
-					},
-				},
-				ImportedDump: structs.NodeDump{},
-				QueryMeta:    structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"can read imported service but not the node": {
-			authzFn: func() acl.Authorizer {
-				// Wildcard service read also grants read to imported services.
-				policy, err := acl.NewPolicyFromSource(`
-			service "" {
-			  policy = "read"
-			}
-		`, nil, nil)
-				require.NoError(t, err)
+	t.Run("denied", func(t *testing.T) {
 
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
+		list := makeList()
+		New(acl.DenyAll(), logger).Filter(list)
 
-				return authz
-			},
-			expect: &structs.IndexedNodeDump{
-				Dump:         structs.NodeDump{},
-				ImportedDump: structs.NodeDump{},
-				QueryMeta:    structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"can read the imported node but not the service": {
-			authzFn: func() acl.Authorizer {
-				// Wildcard node read also grants read to imported nodes.
-				policy, err := acl.NewPolicyFromSource(`
-			node "" {
-			  policy = "read"
-			},
-			node_prefix "" {
-			  policy = "read"
-			}
-		`, nil, nil)
-				require.NoError(t, err)
-
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
-
-				return authz
-			},
-			expect: &structs.IndexedNodeDump{
-				Dump: structs.NodeDump{
-					{
-						Node:     "node1",
-						Services: []*structs.NodeService{},
-						Checks:   structs.HealthChecks{},
-					},
-				},
-				ImportedDump: structs.NodeDump{
-					{
-						Node:     "node1",
-						PeerName: "cluster-02",
-						Services: []*structs.NodeService{},
-						Checks:   structs.HealthChecks{},
-					},
-				},
-				QueryMeta: structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"can read all data": {
-			authzFn: func() acl.Authorizer {
-				policy, err := acl.NewPolicyFromSource(`
-			service "" {
-			  policy = "read"
-			},
-            service_prefix "" {
-			  policy = "read"
-			}
-			node "" {
-			  policy = "read"
-			},
-            node_prefix "" {
-			  policy = "read"
-			}
-		`, nil, nil)
-				require.NoError(t, err)
-
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
-
-				return authz
-			},
-			expect: &structs.IndexedNodeDump{
-				Dump: structs.NodeDump{
-					{
-						Node: "node1",
-						Services: []*structs.NodeService{
-							{
-								ID:      "foo",
-								Service: "foo",
-							},
-						},
-						Checks: []*structs.HealthCheck{
-							{
-								Node:        "node1",
-								CheckID:     "check1",
-								ServiceName: "foo",
-							},
-						},
-					},
-				},
-				ImportedDump: structs.NodeDump{
-					{
-						Node:     "node1",
-						PeerName: "cluster-02",
-						Services: []*structs.NodeService{
-							{
-								ID:       "foo",
-								Service:  "foo",
-								PeerName: "cluster-02",
-							},
-						},
-						Checks: []*structs.HealthCheck{
-							{
-								Node:        "node1",
-								CheckID:     "check1",
-								ServiceName: "foo",
-								PeerName:    "cluster-02",
-							},
-						},
-					},
-				},
-				QueryMeta: structs.QueryMeta{ResultsFilteredByACLs: false},
-			},
-		},
-	}
-
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
+		require.Empty(t, list.Dump)
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
 }
 
 func TestACL_filterNodes(t *testing.T) {
@@ -1786,224 +1107,113 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 				{Service: structs.ServiceNameFromString("foo")},
 				{Service: structs.ServiceNameFromString("bar")},
 			},
-			ImportedNodes: structs.CheckServiceNodes{
-				{
-					Node: &structs.Node{
-						Node:     "imported-node",
-						PeerName: "cluster-02",
-					},
-					Service: &structs.NodeService{
-						ID:       "zip",
-						Service:  "zip",
-						PeerName: "cluster-02",
-					},
-					Checks: structs.HealthChecks{
-						{
-							Node:        "node1",
-							CheckID:     "check1",
-							ServiceName: "zip",
-							PeerName:    "cluster-02",
-						},
-					},
-				},
-			},
 		}
 	}
 
-	type testCase struct {
-		authzFn func() acl.Authorizer
-		expect  *structs.IndexedNodesWithGateways
-	}
+	t.Run("allowed", func(t *testing.T) {
 
-	run := func(t *testing.T, tc testCase) {
-		authz := tc.authzFn()
+		policy, err := acl.NewPolicyFromSource(`
+			service "foo" {
+			  policy = "read"
+			}
+			service "bar" {
+			  policy = "read"
+			}
+			node "node1" {
+			  policy = "read"
+			}
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(t, err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
 
 		list := makeList()
 		New(authz, logger).Filter(list)
 
-		require.Equal(t, tc.expect, list)
-	}
+		require.Len(t, list.Nodes, 1)
+		require.Len(t, list.Gateways, 2)
+		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
 
-	tt := map[string]testCase{
-		"not filtered": {
-			authzFn: func() acl.Authorizer {
-				policy, err := acl.NewPolicyFromSource(`
-			service "baz" {
-				policy = "write"
-			}
+	t.Run("not allowed to read the node", func(t *testing.T) {
+
+		policy, err := acl.NewPolicyFromSource(`
 			service "foo" {
 			  policy = "read"
 			}
 			service "bar" {
 			  policy = "read"
 			}
-			node "node1" {
-			  policy = "read"
-			}
-		`, nil, nil)
-				require.NoError(t, err)
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(t, err)
 
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
-				return authz
-			},
-			expect: &structs.IndexedNodesWithGateways{
-				Nodes: structs.CheckServiceNodes{
-					{
-						Node: &structs.Node{
-							Node: "node1",
-						},
-						Service: &structs.NodeService{
-							ID:      "foo",
-							Service: "foo",
-						},
-						Checks: structs.HealthChecks{
-							{
-								Node:        "node1",
-								CheckID:     "check1",
-								ServiceName: "foo",
-							},
-						},
-					},
-				},
-				Gateways: structs.GatewayServices{
-					{Service: structs.ServiceNameFromString("foo")},
-					{Service: structs.ServiceNameFromString("bar")},
-				},
-				// Service write to "bar" allows reading all imported services
-				ImportedNodes: structs.CheckServiceNodes{
-					{
-						Node: &structs.Node{
-							Node:     "imported-node",
-							PeerName: "cluster-02",
-						},
-						Service: &structs.NodeService{
-							ID:       "zip",
-							Service:  "zip",
-							PeerName: "cluster-02",
-						},
-						Checks: structs.HealthChecks{
-							{
-								Node:        "node1",
-								CheckID:     "check1",
-								ServiceName: "zip",
-								PeerName:    "cluster-02",
-							},
-						},
-					},
-				},
-				QueryMeta: structs.QueryMeta{ResultsFilteredByACLs: false},
-			},
-		},
-		"not allowed to read the node": {
-			authzFn: func() acl.Authorizer {
-				policy, err := acl.NewPolicyFromSource(`
-			service "foo" {
-			  policy = "read"
-			}
-			service "bar" {
-			  policy = "read"
-			}
-		`, nil, nil)
-				require.NoError(t, err)
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
 
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
-				return authz
-			},
-			expect: &structs.IndexedNodesWithGateways{
-				Nodes: structs.CheckServiceNodes{},
-				Gateways: structs.GatewayServices{
-					{Service: structs.ServiceNameFromString("foo")},
-					{Service: structs.ServiceNameFromString("bar")},
-				},
-				ImportedNodes: structs.CheckServiceNodes{},
-				QueryMeta:     structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"not allowed to read the service": {
-			authzFn: func() acl.Authorizer {
-				policy, err := acl.NewPolicyFromSource(`
+		list := makeList()
+		New(authz, logger).Filter(list)
+
+		require.Empty(t, list.Nodes)
+		require.Len(t, list.Gateways, 2)
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("allowed to read the node, but not the service", func(t *testing.T) {
+
+		policy, err := acl.NewPolicyFromSource(`
 			node "node1" {
 			  policy = "read"
 			}
 			service "bar" {
 			  policy = "read"
 			}
-		`, nil, nil)
-				require.NoError(t, err)
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(t, err)
 
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
-				return authz
-			},
-			expect: &structs.IndexedNodesWithGateways{
-				Nodes: structs.CheckServiceNodes{},
-				Gateways: structs.GatewayServices{
-					{Service: structs.ServiceNameFromString("bar")},
-				},
-				ImportedNodes: structs.CheckServiceNodes{},
-				QueryMeta:     structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"not allowed to read the other gateway service": {
-			authzFn: func() acl.Authorizer {
-				policy, err := acl.NewPolicyFromSource(`
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+
+		list := makeList()
+		New(authz, logger).Filter(list)
+
+		require.Empty(t, list.Nodes)
+		require.Len(t, list.Gateways, 1)
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("not allowed to read the other gatway service", func(t *testing.T) {
+
+		policy, err := acl.NewPolicyFromSource(`
 			service "foo" {
 			  policy = "read"
 			}
 			node "node1" {
 			  policy = "read"
 			}
-		`, nil, nil)
-				require.NoError(t, err)
+		`, acl.SyntaxLegacy, nil, nil)
+		require.NoError(t, err)
 
-				authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-				require.NoError(t, err)
-				return authz
-			},
-			expect: &structs.IndexedNodesWithGateways{
-				Nodes: structs.CheckServiceNodes{
-					{
-						Node: &structs.Node{
-							Node: "node1",
-						},
-						Service: &structs.NodeService{
-							ID:      "foo",
-							Service: "foo",
-						},
-						Checks: structs.HealthChecks{
-							{
-								Node:        "node1",
-								CheckID:     "check1",
-								ServiceName: "foo",
-							},
-						},
-					},
-				},
-				Gateways: structs.GatewayServices{
-					{Service: structs.ServiceNameFromString("foo")},
-				},
-				ImportedNodes: structs.CheckServiceNodes{},
-				QueryMeta:     structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-		"denied": {
-			authzFn: acl.DenyAll,
-			expect: &structs.IndexedNodesWithGateways{
-				Nodes:         structs.CheckServiceNodes{},
-				Gateways:      structs.GatewayServices{},
-				ImportedNodes: structs.CheckServiceNodes{},
-				QueryMeta:     structs.QueryMeta{ResultsFilteredByACLs: true},
-			},
-		},
-	}
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
 
-	for name, tc := range tt {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
+		list := makeList()
+		New(authz, logger).Filter(list)
+
+		require.Len(t, list.Nodes, 1)
+		require.Len(t, list.Gateways, 1)
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("denied", func(t *testing.T) {
+
+		list := makeList()
+		New(acl.DenyAll(), logger).Filter(list)
+
+		require.Empty(t, list.Nodes)
+		require.Empty(t, list.Gateways)
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
 }
 
 func TestACL_filterIndexedServiceDump(t *testing.T) {
@@ -2049,7 +1259,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 			service_prefix "bar" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2071,7 +1281,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 			service_prefix "bar" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2094,7 +1304,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 			service "foo-gateway" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2116,7 +1326,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2191,7 +1401,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 			service_prefix "" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2211,7 +1421,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 			service_prefix "" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2230,7 +1440,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 			node_prefix "" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2387,7 +1597,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 			query "query-with-a-token" {
 			  policy = "read"
 			}
-		`, nil, nil)
+		`, acl.SyntaxLegacy, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -2459,7 +1669,7 @@ func TestACL_unhandledFilterType(t *testing.T) {
 func policy(t *testing.T, hcl string) acl.Authorizer {
 	t.Helper()
 
-	policy, err := acl.NewPolicyFromSource(hcl, nil, nil)
+	policy, err := acl.NewPolicyFromSource(hcl, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
 
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

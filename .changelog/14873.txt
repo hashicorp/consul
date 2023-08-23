@@ -1,3 +1,0 @@
-```release-note:feature
-telemetry: emit memberlist size metrics and broadcast queue depth metric.
-```

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
@@ -63,10 +60,10 @@ func TestExportedServicesConfigEntry(t *testing.T) {
 						Name: "web",
 						Consumers: []ServiceConsumer{
 							{
-								Peer: "foo",
+								PeerName: "foo",
 							},
 							{
-								Peer: "*",
+								PeerName: "*",
 							},
 						},
 					},
@@ -83,13 +80,13 @@ func TestExportedServicesConfigEntry(t *testing.T) {
 						Consumers: []ServiceConsumer{
 							{
 								Partition: "foo",
-								Peer:      "bar",
+								PeerName:  "bar",
 							},
 						},
 					},
 				},
 			},
-			validateErr: `Services[0].Consumers[0]: must define at most one of Peer, Partition, or SamenessGroup`,
+			validateErr: `Services[0].Consumers[0]: must define at most one of PeerName or Partition`,
 		},
 	}
 

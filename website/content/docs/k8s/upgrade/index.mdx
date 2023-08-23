@@ -5,35 +5,47 @@ description: >-
   Consul on Kubernetes relies on packages and binaries that have individual upgrade requirements. Learn how to update Helm configurations, Helm versions, Consul versions, and Consul agents, as well as how to determine what will change and its impact on your service mesh.
 ---
 
-# Upgrading Consul on Kubernetes components
+# Upgrading Consul on Kubernetes Components
 
-This topic describes considerations and strategies for upgrading Consul deployments running on Kubernetes clusters. In addition to upgrading the version of Consul, you may need to update your Helm chart or the release version of the Helm chart.
+## Upgrade Types
 
-## Version-specific upgrade requirements
+Consul on Kubernetes will need to be upgraded/updated if you change your Helm configuration,
+if a new Helm chart is released, or if you wish to upgrade your Consul version.
 
-As of Consul v1.14.0, Kubernetes deployments use [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. If you upgrade Consul from a version that uses client agents to a version that uses dataplanes, you must follow specific steps to update your Helm chart and remove client agents from the existing deployment. Refer to [Upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplane) for more information.
+### Helm Configuration Changes
 
-The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs`](https://github.com/hashicorp/go-netaddrs) library and command line tool for more information.
-
-## Upgrade types
-
-We recommend updating Consul on Kubernetes when:
-
-  - You change your Helm configuration
-  - A new Helm chart is released
-  - You want to upgrade your Consul version
-
-### Helm configuration changes
-
-If you make a change to your Helm values file, you need to perform a `helm upgrade`
+If you make a change to your Helm values file, you will need to perform a `helm upgrade`
 for those changes to take effect.
 
-For example, if you installed Consul with `connectInject.enabled: false` and you want to change its value to `true`:
+For example, if you've installed Consul with the following:
+
+<CodeBlockConfig filename="config.yaml">
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: false
+```
+  
+</CodeBlockConfig>
+
+And you wish to set `connectInject.enabled` to `true`:
+
+```diff
+global:
+  name: consul
+connectInject:
+-  enabled: false
++  enabled: true
+```
+
+To update your deployment configuration using Helm, perform the following steps.
 
 1. Determine your current installed chart version.
 
   ```shell-session
-  $ helm list --filter consul --namespace consul
+  $ helm list --filter consul --namespace consul 
   NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
   consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.40.0	1.11.2
   ```
@@ -46,15 +58,17 @@ For example, if you installed Consul with `connectInject.enabled: false` and you
    $ helm upgrade consul hashicorp/consul --namespace consul --version 0.40.0 --values /path/to/my/values.yaml
    ```
 
-   **Before performing the upgrade, be sure you read the other sections on this page,
-   continuing at [Determine scope of changes](#determine-scope-of-changes).**
+   **Before performing the upgrade, be sure you've read the other sections on this page,
+   continuing at [Determining What Will Change](#determining-what-will-change).**
 
-~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise, Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
+~> NOTE: It's important to always set the `--version` flag, because otherwise Helm
+will use the most up-to-date version in its local cache, which may result in an
+unintended upgrade.
 
-### Upgrade Helm chart version
+### Helm Chart Version Upgrade
 
-You may wish to upgrade your Helm chart version to take advantage of new features and
-bug fixes, or because you want to upgrade your Consul version and it requires a
+You may wish to upgrade your Helm chart version to take advantage of new features,
+bugfixes, or because you want to upgrade your Consul version, and it requires a
 certain Helm chart version.
 
 1. Update your local Helm repository cache:
@@ -84,8 +98,7 @@ certain Helm chart version.
   ```
 
   In this example, version `0.39.0` (from `consul-k8s:0.39.0`) is being used.
-
-If you want to upgrade to the latest `0.40.0` version, use the following procedure:
+  If you want to upgrade to the latest `0.40.0` version, use the following procedure:
 
 1. Check the changelog for any breaking changes from that version and any versions in between: [CHANGELOG.md](https://github.com/hashicorp/consul-k8s/blob/main/CHANGELOG.md).
 
@@ -96,17 +109,17 @@ If you want to upgrade to the latest `0.40.0` version, use the following procedu
   ```
 
   **Before performing the upgrade, be sure you've read the other sections on this page,
-  continuing at [Determine scope of changes](#determine-scope-of-changes).**
+  continuing at [Determining What Will Change](#determining-what-will-change).**
 
-### Upgrade Consul version
+### Consul Version Upgrade
 
-If a new version of Consul is released, you need to perform a Helm upgrade
-to update to the new version. Before you upgrade to a new version:
+If a new version of Consul is released, you will need to perform a Helm upgrade
+to update to the new version.
 
-1. Read the [Upgrading Consul](/consul/docs/upgrading) documentation.
-1. Read any [specific instructions](/consul/docs/upgrading/upgrade-specific) for the version you want to upgrade
-   to, as well as the Consul [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md) for that version.
-1. Read our [Compatibility Matrix](/consul/docs/k8s/compatibility) to ensure
+1. Ensure you've read the [Upgrading Consul](/docs/upgrading) documentation.
+1. Ensure you've read any [specific instructions](/docs/upgrading/upgrade-specific) for the version you're upgrading
+   to and the Consul [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md) for that version.
+1. Read our [Compatibility Matrix](/docs/k8s/compatibility) to ensure
    your current Helm chart version supports this Consul version. If it does not,
    you may need to also upgrade your Helm chart version at the same time.
 1. Set `global.image` in your `values.yaml` to the desired version:
@@ -120,7 +133,7 @@ to update to the new version. Before you upgrade to a new version:
 
    </CodeBlockConfig>
 
-2. Determine the version of your existing Helm installation. In this example, version `0.39.0` (from `consul-k8s:0.39.0`) is being used.
+1. Determine your current installed chart version. In this example, version `0.39.0` (from `consul-k8s:0.39.0`) is being used.
 
   ```shell-session
   $ helm list --filter consul --namespace consul
@@ -135,18 +148,20 @@ to update to the new version. Before you upgrade to a new version:
   ```
 
   **Before performing the upgrade, be sure you have read the other sections on this page,
-  continuing at [Determine scope of changes](#determine-scope-of-changes).**
+  continuing at [Determining What Will Change](#determining-what-will-change).**
 
-~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise, Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
+~> NOTE: It's important to always set the `--version` flag, because otherwise Helm
+will use the most up-to-date version in its local cache, which may result in an
+unintended upgrade.
 
-## Determine scope of changes
+## Determining What Will Change
 
-Before upgrading, it is important to understand the changes that affect your
-cluster. For example, you need to take more care if your upgrade results
+Before upgrading, it's important to understand what changes will be made to your
+cluster. For example, you will need to take more care if your upgrade will result
 in the Consul server StatefulSet being redeployed.
 
-There is no built-in functionality in Helm that shows what a helm upgrade
-changes. There is, however, a Helm plugin [helm-diff](https://github.com/databus23/helm-diff)
+There is no built-in functionality in Helm that shows what a helm upgrade will
+change. There is, however, a Helm plugin [helm-diff](https://github.com/databus23/helm-diff)
 that can be used.
 
 1. Install `helm-diff` with:
@@ -162,46 +177,105 @@ that can be used.
   $ helm diff upgrade consul hashicorp/consul --namespace consul --version 0.40.0 --values /path/to/your/values.yaml
   ```
 
-  This command prints out the manifests that will be updated and their diffs.
+  This will print out the manifests that will be updated and their diffs.
 
-1. To see only updated objects, add `| grep "has changed"`:
+1. To see only the objects that will be updated, add `| grep "has changed"`:
 
   ```shell-session
   $ helm diff upgrade consul hashicorp/consul --namespace consul --version 0.40.0 --values /path/to/your/values.yaml |
     grep "has changed"
   ```
 
-1. Take specific note if `consul-server, StatefulSet` is listed, as it means your Consul server statefulset will be redeployed.
+1. Take specific note if `consul-client, DaemonSet` or `consul-server, StatefulSet` are listed.
+   This means that your Consul client daemonset or Consul server statefulset (or both) will be redeployed.
 
-  If your Consul server statefulset needs to be redeployed, follow the same pattern for upgrades as
-  on other platforms by redeploying servers one by one. Refer tp [Upgrading Consul](/consul/docs/upgrading) for more information.
+  If either is being redeployed, we will follow the same pattern for upgrades as
+  on other platforms: the servers will be redeployed one-by-one, and then the
+  clients will be redeployed in batches. Read [Upgrading Consul](/docs/upgrading) and then continue
+  reading below.
 
-  If neither the server statefulset is not being redeployed,
-  then you can continue with the Helm upgrade without any specific sequence to follow.
+  If neither the client daemonset nor the server statefulset is being redeployed,
+  then you can continue with the helm upgrade without any specific sequence to follow.
 
-## Upgrade Consul servers
+## Service Mesh
 
-Initiate the server upgrade:
+If you are using Consul's service mesh features, as opposed to the [service sync](/docs/k8s/service-sync)
+functionality, you must be aware of the behavior of the service mesh during upgrades.
 
-1. Change the `global.image` value to the desired Consul version.
-1. Set the `server.updatePartition` value to the number of server replicas. By default, there are 3 servers, so you would set this value to `3`.
-1. Set the `updateStrategy` for clients to `OnDelete`.
+Consul clients operate as a daemonset across all Kubernetes nodes. During an upgrade,
+if the Consul client daemonset has changed, the client pods will need to be restarted
+because their spec has changed.
 
-  <CodeBlockConfig filename="values.yaml">
+When a Consul client pod is restarted, it will deregister itself from Consul when it stops.
+When the pod restarts, it will re-register itself with Consul.
+Thus, during the period between the Consul client on a node stopping and restarting,
+the following will occur:
 
+1. The node will be deregistered from Consul. It will not show up in the Consul UI
+   nor in API requests.
+1. Because the node is deregistered, all service pods that were on that node will
+   also be deregistered. This means they will not receive service mesh traffic
+   until the Consul client pod restarts.
+1. Service pods on that node can continue to make requests through the service
+   mesh because each Envoy proxy maintains a cache of the locations of upstream
+   services. However, if the upstream services change IPs, Envoy will not be able
+   to refresh its cluster information until its local Consul client is restarted.
+   So services can continue to make requests without downtime for a short period
+   of time, however, it's important for the local Consul client to be restarted
+   as quickly as possible.
+
+Once the local Consul client pod restarts, each service pod needs to be re-registered
+with its local Consul client. This is done automatically by the connect inject controller.
+
+Because service mesh pods are briefly deregistered during a Consul client restart,
+it's **important that you do not restart all Consul clients at once**. Otherwise
+you may experience downtime because no replicas of a specific service will be in the mesh.
+
+In addition, it's **important that you have multiple replicas** for each service.
+If you only have one replica, then during restart of the Consul client on the
+node hosting that replica, it will be briefly deregistered from the mesh. Since
+it's the only replica, other services will not be able to make calls to that
+service. (NOTE: This can also be avoided by stopping that replica so it is rescheduled to
+a node whose Consul client has already been updated.)
+
+Given the above, we recommend that after Consul servers are upgraded, the Consul
+client daemonset is set to use the `OnDelete` update strategy and Consul clients
+are deleted one by one or in batches. See [Upgrading Consul Servers](#upgrading-consul-server)
+and [Upgrading Consul Clients](#upgrading-consul-clients) for more details.
+
+## Upgrading Consul Servers
+
+To initiate the upgrade:
+
+1. Change the `global.image` value to the desired Consul version
+1. Set the `server.updatePartition` value _equal to the number of server replicas_.
+   By default there are 3 servers, so you would set this value to `3`
+1. Set the `updateStrategy` for clients to `OnDelete`
+
+  <CodeBlockConfig filename="config.yaml">
+  
   ```yaml
   global:
     image: 'consul:123.456'
   server:
     updatePartition: 3
+  client:
+    updateStrategy: |
+      type: OnDelete
   ```
-
+  
   </CodeBlockConfig>
 
   The `updatePartition` value controls how many instances of the server
   cluster are updated. Only instances with an index _greater than_ the
   `updatePartition` value are updated (zero-indexed). Therefore, by setting
-  it equal to replicas, updates should not occur immediately.
+  it equal to replicas, none should update yet.
+
+  The `updateStrategy` controls how Kubernetes rolls out changes to the client daemonset.
+  By setting it to `OnDelete`, no clients will be restarted until their pods are deleted.
+  Without this, they would be redeployed alongside the servers because their Docker
+  image versions have changed. This is not desirable because we want the Consul
+  servers to be upgraded _before_ the clients.
 
 1. Next, perform the upgrade:
 
@@ -209,8 +283,8 @@ Initiate the server upgrade:
   $ helm upgrade consul hashicorp/consul --namespace consul --version <your-version> --values /path/to/your/values.yaml
   ```
 
-  This command does not cause the servers to redeploy, although the resource is updated. If
-  everything is stable, decrease the `updatePartition` value by one
+  This will not cause the servers to redeploy (although the resource will be updated). If
+  everything is stable, begin by decreasing the `updatePartition` value by one,
   and performing `helm upgrade` again. This will cause the first Consul server
   to be stopped and restarted with the new image.
 
@@ -222,48 +296,38 @@ Initiate the server upgrade:
    `updatePartition` is `0`. At this point, you may remove the
    `updatePartition` configuration. Your server upgrade is complete.
 
-## Upgrading to Consul Dataplane
+## Upgrading Consul Clients
 
-In earlier versions, Consul on Kubernetes used client agents in its deployments. As of v1.14.0, Consul uses [Consul Dataplane](/consul/docs/connect/dataplane/) in Kubernetes deployments instead of client agents.
+With the servers upgraded, it is time to upgrade the clients.
+If you are using Consul's service mesh features, you will want to be careful
+restarting the clients as outlined in [Service Mesh](#service-mesh).
 
-If you upgrade Consul from a version that uses client agents to a version the uses dataplanes, complete the following steps to upgrade your deployment safely and without downtime.
+You can either:
 
-1. If ACLs are enabled, you must first upgrade to consul-k8s 0.49.8 or above. These versions expose the setting `connectInject.prepareDataplanesUpgrade`
-   which is required for no-downtime upgrades when ACLs are enabled.
+1. Manually issue `kubectl delete pod <id>` for each consul daemonset pod
+1. Set the updateStrategy to rolling update with a small number:
 
-   Set `connectInject.prepareDataplanesUpgrade` to `true` and then perform the upgrade to 0.49.8 or above (whichever is the latest in the 0.49.x series)
-
-  ```yaml filename="values.yaml"
-  connectInject:
-    prepareDataplanesUpgrade: true
-  ```
-
-1. Consul dataplanes disables Consul clients by default, but during an upgrade you need to ensure Consul clients continue to run. Edit your Helm chart configuration and set the [`client.enabled`](/consul/docs/k8s/helm#v-client-enabled) field to `true` and specify an action for Consul to take during the upgrade process in the [`client.updateStrategy`](/consul/docs/k8s/helm#v-client-updatestrategy) field:
-
-  ```yaml filename="values.yaml"
+  ```yaml
   client:
-    enabled: true
     updateStrategy: |
-      type: OnDelete
+      rollingUpdate:
+        maxUnavailable: 2
+      type: RollingUpdate
   ```
 
-1. Follow our [recommended procedures to upgrade servers](#upgrade-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul. The latest version of consul-k8s components may be in a CrashLoopBackoff state during the performance of the server upgrade from versions <1.14.x until all Consul servers are on versions >=1.14.x. Components in CrashLoopBackoff will not negatively affect the cluster because older versioned components will still be operating. Once all servers have been fully upgraded, the latest consul-k8s components will automatically restore from CrashLoopBackoff and older component versions will be spun down.
+  Then, run `helm upgrade`. This will upgrade the clients in batches, waiting
+  until the clients come up healthy before continuing.
 
-1. Run `kubectl rollout restart` to restart your service mesh applications. Restarting service mesh application causes Kubernetes to re-inject them with the webhook for dataplanes.
+1. Cordon and drain each node to ensure there are no connect pods active on it, and then delete the
+   consul client pod on that node.
 
-1. Restart all gateways in your service mesh.
+-> NOTE: If you are using only the Service Sync functionality, you can perform an upgrade without
+following a specific sequence since that component is more resilient to brief restarts of
+Consul clients.
 
-1. Now that all services and gateways are using Consul dataplanes, disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false` and running a `consul-k8s` or Helm upgrade.
-
-1. If ACLs are enabled, outdated ACL tokens will persist a result of the upgrade. You can manually delete the tokens to declutter your Consul environment.
-
-   Outdated connect-injector tokens have the following description: `token created via login: {"component":"connect-injector"}`. Do not delete
-   the tokens that have a description where `pod` is a key, for example `token created via login: {"component":"connect-injector","pod":"default/consul-connect-injector-576b65747c-9547x"}`). The dataplane-enabled connect inject pods use these tokens.
-
-   You can also review the creation date for the tokens and only delete the injector tokens created before your upgrade, but do not delete all old tokens without considering if they are still in use. Some tokens, such as the server tokens, are still necessary.
-
-## Configuring TLS on an existing cluster
+## Configuring TLS on an Existing Cluster
 
 If you already have a Consul cluster deployed on Kubernetes and
 would like to turn on TLS for internal Consul communication,
-refer to [Configuring TLS on an Existing Cluster](/consul/docs/k8s/operations/tls-on-existing-cluster).
+please see
+[Configuring TLS on an Existing Cluster](/docs/k8s/operations/tls-on-existing-cluster).

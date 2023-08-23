@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -62,9 +59,7 @@ func TestGRPCIntegration_ConnectCA_Sign(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	options := structs.QueryOptions{Token: TestDefaultInitialManagementToken}
-	ctx, err := external.ContextWithQueryOptions(ctx, options)
-	require.NoError(t, err)
+	ctx = external.ContextWithToken(ctx, TestDefaultInitialManagementToken)
 
 	// This would fail if it wasn't forwarded to the leader.
 	rsp, err := client.Sign(ctx, &pbconnectca.SignRequest{
@@ -101,9 +96,7 @@ func TestGRPCIntegration_ServerDiscovery_WatchServers(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	options := structs.QueryOptions{Token: TestDefaultInitialManagementToken}
-	ctx, err := external.ContextWithQueryOptions(ctx, options)
-	require.NoError(t, err)
+	ctx = external.ContextWithToken(ctx, TestDefaultInitialManagementToken)
 
 	serverStream, err := client.WatchServers(ctx, &pbserverdiscovery.WatchServersRequest{Wan: false})
 	require.NoError(t, err)

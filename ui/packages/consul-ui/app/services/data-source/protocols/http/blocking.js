@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 
@@ -26,7 +21,7 @@ export default class BlockingService extends Service {
       return maybeCall(deleteCursor, ifNotBlocking(this.settings))().then(() => {
         return find(configuration)
           .then(maybeCall(close, ifNotBlocking(this.settings)))
-          .then(function (res = {}) {
+          .then(function(res = {}) {
             const meta = get(res, 'meta') || {};
             if (typeof meta.cursor === 'undefined' && typeof meta.interval === 'undefined') {
               close();

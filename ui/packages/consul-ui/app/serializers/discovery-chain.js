@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Serializer from './application';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/discovery-chain';
 
@@ -11,8 +6,8 @@ export default class DiscoveryChainSerializer extends Serializer {
   slugKey = SLUG_KEY;
 
   respondForQueryRecord(respond, query) {
-    return super.respondForQueryRecord(function (cb) {
-      return respond(function (headers, body) {
+    return super.respondForQueryRecord(function(cb) {
+      return respond(function(headers, body) {
         return cb(headers, {
           ...body,
           [SLUG_KEY]: body.Chain[SLUG_KEY],

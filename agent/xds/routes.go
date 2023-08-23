@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package xds
 
 import (
@@ -14,16 +11,13 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"google.golang.org/protobuf/proto"
+
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/config"
-	"github.com/hashicorp/consul/agent/xds/response"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
@@ -38,8 +32,6 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 		return s.routesForConnectProxy(cfgSnap)
 	case structs.ServiceKindIngressGateway:
 		return s.routesForIngressGateway(cfgSnap)
-	case structs.ServiceKindAPIGateway:
-		return s.routesForAPIGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesForTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
@@ -58,12 +50,16 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
-		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false)
+		explicit := cfgSnap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
+			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
+		virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, []string{"*"}, "")
 		if err != nil {
 			return nil, err
-		}
-		if virtualHost == nil {
-			continue
 		}
 
 		route := &envoy_route_v3.RouteConfiguration{
@@ -72,7 +68,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
-			ValidateClusters: response.MakeBoolValue(true),
+			ValidateClusters: makeBoolValue(true),
 		}
 		resources = append(resources, route)
 	}
@@ -142,7 +138,7 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		cfg, err := config.ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
+		cfg, err := ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -170,7 +166,7 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 
 		for _, address := range svcConfig.Destination.Addresses {
 			clusterName := clusterNameForDestination(cfgSnap, svc.Name, address, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
-			cfg, err := config.ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
+			cfg, err := ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
 			if err != nil {
 				// Don't hard fail on a config typo, just warn. The parse func returns
 				// default config if there is an error so it's safe to continue.
@@ -247,20 +243,20 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			continue // ignore; not relevant
 		}
 
+		if cfgSnap.MeshGateway.Leaf == nil {
+			continue // ignore; not ready
+		}
+
 		uid := proxycfg.NewUpstreamIDFromServiceName(svc)
 
-		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(
-			cfgSnap,
-			uid,
+		virtualHost, err := makeUpstreamRouteForDiscoveryChain(
+			uid.EnvoyID(),
 			chain,
 			[]string{"*"},
-			true,
+			meshGatewayExportedClusterNamePrefix,
 		)
 		if err != nil {
 			return nil, err
-		}
-		if virtualHost == nil {
-			continue
 		}
 
 		route := &envoy_route_v3.RouteConfiguration{
@@ -269,7 +265,7 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
-			ValidateClusters: response.MakeBoolValue(true),
+			ValidateClusters: makeBoolValue(true),
 		}
 		resources = append(resources, route)
 	}
@@ -287,7 +283,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, t
 	// Configure Envoy to rewrite Host header
 	if autoHostRewrite {
 		action.Route.HostRewriteSpecifier = &envoy_route_v3.RouteAction_AutoHostRewrite{
-			AutoHostRewrite: response.MakeBoolValue(true),
+			AutoHostRewrite: makeBoolValue(true),
 		}
 	}
 
@@ -312,7 +308,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, t
 		// ValidateClusters defaults to true when defined statically and false
 		// when done via RDS. Re-set the reasonable value of true to prevent
 		// null-routing traffic.
-		ValidateClusters: response.MakeBoolValue(true),
+		ValidateClusters: makeBoolValue(true),
 	}, nil
 }
 
@@ -322,7 +318,7 @@ func makeNamedAddressesRoute(routeName string, addresses map[string]string) (*en
 		// ValidateClusters defaults to true when defined statically and false
 		// when done via RDS. Re-set the reasonable value of true to prevent
 		// null-routing traffic.
-		ValidateClusters: response.MakeBoolValue(true),
+		ValidateClusters: makeBoolValue(true),
 	}
 	for clusterName, address := range addresses {
 		action := makeRouteActionFromName(clusterName)
@@ -364,26 +360,20 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
-			ValidateClusters: response.MakeBoolValue(true),
+			ValidateClusters: makeBoolValue(true),
 		}
 
 		for _, u := range upstreams {
 			uid := proxycfg.NewUpstreamID(&u)
 			chain := cfgSnap.IngressGateway.DiscoveryChain[uid]
 			if chain == nil {
-				// Note that if we continue here we must also do this in the cluster generation
-				s.Logger.Warn("could not find discovery chain for ingress upstream",
-					"listener", listenerKey, "upstream", uid)
 				continue
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, domains, "")
 			if err != nil {
 				return nil, err
-			}
-			if virtualHost == nil {
-				continue
 			}
 
 			// Lookup listener and service config details from ingress gateway
@@ -413,7 +403,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			} else {
 				svcRoute := &envoy_route_v3.RouteConfiguration{
 					Name:             svcRouteName,
-					ValidateClusters: response.MakeBoolValue(true),
+					ValidateClusters: makeBoolValue(true),
 					VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
 				}
 				result = append(result, svcRoute)
@@ -428,86 +418,6 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	return result, nil
 }
 
-// routesForAPIGateway returns the xDS API representation of the "routes" in the snapshot.
-func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	var result []proto.Message
-
-	readyUpstreamsList := getReadyListeners(cfgSnap)
-
-	for _, readyUpstreams := range readyUpstreamsList {
-		listenerCfg := readyUpstreams.listenerCfg
-		// Do not create any route configuration for TCP listeners
-		if listenerCfg.Protocol != structs.ListenerProtocolHTTP {
-			continue
-		}
-
-		routeRef := readyUpstreams.routeReference
-		listenerKey := readyUpstreams.listenerKey
-
-		defaultRoute := &envoy_route_v3.RouteConfiguration{
-			Name: listenerKey.RouteName(),
-			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the reasonable value of true to prevent
-			// null-routing traffic.
-			ValidateClusters: response.MakeBoolValue(true),
-		}
-
-		route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
-		if !ok {
-			return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
-		}
-
-		// Reformat the route here since discovery chains were indexed earlier using the
-		// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
-		// convert our route to use the same naming convention, we won't find any chains below.
-		reformatedRoutes := discoverychain.ReformatHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
-
-		for _, reformatedRoute := range reformatedRoutes {
-			reformatedRoute := reformatedRoute
-
-			upstream := buildHTTPRouteUpstream(reformatedRoute, listenerCfg)
-			uid := proxycfg.NewUpstreamID(&upstream)
-			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
-			if chain == nil {
-				// Note that if we continue here we must also do this in the cluster generation
-				s.Logger.Debug("Discovery chain not found for flattened route", "discovery chain ID", uid)
-				continue
-			}
-
-			domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
-
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
-			if err != nil {
-				return nil, err
-			}
-			if virtualHost == nil {
-				continue
-			}
-
-			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
-		}
-
-		if len(defaultRoute.VirtualHosts) > 0 {
-			result = append(result, defaultRoute)
-		}
-	}
-
-	return result, nil
-}
-
-func buildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener structs.APIGatewayListener) structs.Upstream {
-	return structs.Upstream{
-		DestinationName:      route.GetName(),
-		DestinationNamespace: route.NamespaceOrDefault(),
-		DestinationPartition: route.PartitionOrDefault(),
-		IngressHosts:         route.Hostnames,
-		LocalBindPort:        listener.Port,
-		Config: map[string]interface{}{
-			"protocol": string(listener.Protocol),
-		},
-	}
-}
-
 func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
 	opts := make([]*envoy_core_v3.HeaderValueOption, 0, len(vals))
 	for k, v := range vals {
@@ -516,7 +426,7 @@ func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.
 				Key:   k,
 				Value: v,
 			},
-			Append: response.MakeBoolValue(add),
+			Append: makeBoolValue(add),
 		}
 		opts = append(opts, o)
 	}
@@ -528,7 +438,7 @@ func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Ups
 	// only one IngressService for each unique name although originally that
 	// wasn't checked as it didn't matter. Assume there is only one now
 	// though!
-	wantSID := u.DestinationID().ServiceName.ToServiceID()
+	wantSID := u.DestinationID()
 	var foundSameNSWildcard *structs.IngressService
 	for _, s := range l.Services {
 		sid := structs.NewServiceID(s.Name, &s.EnterpriseMeta)
@@ -594,29 +504,17 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	return domains
 }
 
-func generateUpstreamAPIsDomains(listenerKey proxycfg.APIGatewayListenerKey, u structs.Upstream, hosts []string) []string {
-	u.IngressHosts = hosts
-	return generateUpstreamIngressDomains(listenerKey, u)
-}
-
-func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
-	cfgSnap *proxycfg.ConfigSnapshot,
-	uid proxycfg.UpstreamID,
+func makeUpstreamRouteForDiscoveryChain(
+	routeName string,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
-	forMeshGateway bool,
+	clusterNamePrefix string,
 ) (*envoy_route_v3.VirtualHost, error) {
-	routeName := uid.EnvoyID()
 	var routes []*envoy_route_v3.Route
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
 		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
-	}
-
-	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
-	if err != nil && !forMeshGateway {
-		return nil, err
 	}
 
 	switch startNode.Type {
@@ -640,17 +538,13 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				routeAction, err = s.makeRouteActionForSplitter(upstreamsSnapshot, nextNode.Splits, chain, forMeshGateway)
+				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain, clusterNamePrefix)
 				if err != nil {
 					return nil, err
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
-				ra, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, nextNode.Resolver.Target, chain, forMeshGateway)
-				if !ok {
-					continue
-				}
-				routeAction = ra
+				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain, clusterNamePrefix)
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
@@ -675,12 +569,26 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
 
-				if destination.IdleTimeout > 0 {
-					routeAction.Route.IdleTimeout = durationpb.New(destination.IdleTimeout)
-				}
-
 				if destination.HasRetryFeatures() {
-					routeAction.Route.RetryPolicy = getRetryPolicyForDestination(destination)
+					retryPolicy := &envoy_route_v3.RetryPolicy{}
+					if destination.NumRetries > 0 {
+						retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
+					}
+
+					// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
+					if destination.RetryOnConnectFailure {
+						retryPolicy.RetryOn = "connect-failure"
+					}
+					if len(destination.RetryOnStatusCodes) > 0 {
+						if retryPolicy.RetryOn != "" {
+							retryPolicy.RetryOn = retryPolicy.RetryOn + ",retriable-status-codes"
+						} else {
+							retryPolicy.RetryOn = "retriable-status-codes"
+						}
+						retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
+					}
+
+					routeAction.Route.RetryPolicy = retryPolicy
 				}
 
 				if err := injectHeaderManipToRoute(destination, route); err != nil {
@@ -695,10 +603,11 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		routeAction, err := s.makeRouteActionForSplitter(upstreamsSnapshot, startNode.Splits, chain, forMeshGateway)
+		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain, clusterNamePrefix)
 		if err != nil {
 			return nil, err
 		}
+
 		var lb *structs.LoadBalancer
 		if startNode.LoadBalancer != nil {
 			lb = startNode.LoadBalancer
@@ -715,10 +624,8 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
-		routeAction, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, startNode.Resolver.Target, chain, forMeshGateway)
-		if !ok {
-			break
-		}
+		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain, clusterNamePrefix)
+
 		var lb *structs.LoadBalancer
 		if startNode.LoadBalancer != nil {
 			lb = startNode.LoadBalancer
@@ -750,43 +657,6 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func getRetryPolicyForDestination(destination *structs.ServiceRouteDestination) *envoy_route_v3.RetryPolicy {
-	retryPolicy := &envoy_route_v3.RetryPolicy{}
-	if destination.NumRetries > 0 {
-		retryPolicy.NumRetries = response.MakeUint32Value(int(destination.NumRetries))
-	}
-
-	// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
-	var retryStrings []string
-
-	if len(destination.RetryOn) > 0 {
-		retryStrings = append(retryStrings, destination.RetryOn...)
-	}
-
-	if destination.RetryOnConnectFailure {
-		// connect-failure can be enabled by either adding connect-failure to the RetryOn list or by using the legacy RetryOnConnectFailure option
-		// Check that it's not already in the RetryOn list, so we don't set it twice
-		connectFailureExists := false
-		for _, r := range retryStrings {
-			if r == "connect-failure" {
-				connectFailureExists = true
-			}
-		}
-		if !connectFailureExists {
-			retryStrings = append(retryStrings, "connect-failure")
-		}
-	}
-
-	if len(destination.RetryOnStatusCodes) > 0 {
-		retryStrings = append(retryStrings, "retriable-status-codes")
-		retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
-	}
-
-	retryPolicy.RetryOn = strings.Join(retryStrings, ",")
-
-	return retryPolicy
-}
-
 func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *envoy_route_v3.RouteMatch {
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
@@ -806,7 +676,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 		}
 	case match.HTTP.PathRegex != "":
 		em.PathSpecifier = &envoy_route_v3.RouteMatch_SafeRegex{
-			SafeRegex: response.MakeEnvoyRegexMatch(match.HTTP.PathRegex),
+			SafeRegex: makeEnvoyRegexMatch(match.HTTP.PathRegex),
 		}
 	default:
 		em.PathSpecifier = &envoy_route_v3.RouteMatch_Prefix{
@@ -828,7 +698,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 				}
 			case hdr.Regex != "":
 				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-					SafeRegexMatch: response.MakeEnvoyRegexMatch(hdr.Regex),
+					SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
 				}
 			case hdr.Prefix != "":
 				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
@@ -860,7 +730,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
 			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
 			},
 		}
 
@@ -887,7 +757,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 				eq.QueryParameterMatchSpecifier = &envoy_route_v3.QueryParameterMatcher_StringMatch{
 					StringMatch: &envoy_matcher_v3.StringMatcher{
 						MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-							SafeRegex: response.MakeEnvoyRegexMatch(qm.Regex),
+							SafeRegex: makeEnvoyRegexMatch(qm.Regex),
 						},
 					},
 				}
@@ -919,17 +789,13 @@ func makeDefaultRouteMatch() *envoy_route_v3.RouteMatch {
 	}
 }
 
-func (s *ResourceGenerator) makeRouteActionForChainCluster(
-	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
+func makeRouteActionForChainCluster(
 	targetID string,
 	chain *structs.CompiledDiscoveryChain,
-	forMeshGateway bool,
-) (*envoy_route_v3.Route_Route, bool) {
-	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
-	if clusterName == "" {
-		return nil, false
-	}
-	return makeRouteActionFromName(clusterName), true
+	clusterNamePrefix string,
+) *envoy_route_v3.Route_Route {
+	target := chain.Targets[targetID]
+	return makeRouteActionFromName(clusterNamePrefix + CustomizeClusterName(target.Name, chain))
 }
 
 func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
@@ -942,14 +808,12 @@ func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
 	}
 }
 
-func (s *ResourceGenerator) makeRouteActionForSplitter(
-	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
+func makeRouteActionForSplitter(
 	splits []*structs.DiscoverySplit,
 	chain *structs.CompiledDiscoveryChain,
-	forMeshGateway bool,
+	clusterNamePrefix string,
 ) (*envoy_route_v3.Route_Route, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
-	totalWeight := 0
 	for _, split := range splits {
 		nextNode := chain.Nodes[split.NextNode]
 
@@ -958,17 +822,14 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		}
 		targetID := nextNode.Resolver.Target
 
-		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
-		if clusterName == "" {
-			continue
-		}
+		target := chain.Targets[targetID]
+
+		clusterName := clusterNamePrefix + CustomizeClusterName(target.Name, chain)
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
-		weight := int(split.Weight * 100)
-		totalWeight += weight
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
-			Weight: response.MakeUint32Value(weight),
+			Weight: makeUint32Value(int(split.Weight * 100)),
 			Name:   clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
@@ -982,18 +843,12 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
 	}
 
-	var envoyWeightScale *wrapperspb.UInt32Value
-	if totalWeight == 10000 {
-		envoyWeightScale = response.MakeUint32Value(10000)
-	}
-
 	return &envoy_route_v3.Route_Route{
 		Route: &envoy_route_v3.RouteAction{
 			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
 				WeightedClusters: &envoy_route_v3.WeightedCluster{
-					Clusters: clusters,
-					// this field is deprecated, and we should get the desired behavior with the front-end validation
-					TotalWeight: envoyWeightScale, // scaled up 100%
+					Clusters:    clusters,
+					TotalWeight: makeUint32Value(10000), // scaled up 100%
 				},
 			},
 		},

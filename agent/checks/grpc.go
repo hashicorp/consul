@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package checks
 
 import (
@@ -40,7 +37,6 @@ func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Con
 	if tlsConfig != nil {
 		dialOptions = append(dialOptions, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 	} else {
-		//nolint:staticcheck
 		dialOptions = append(dialOptions, grpc.WithInsecure())
 	}
 

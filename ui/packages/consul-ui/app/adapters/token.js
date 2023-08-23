@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Adapter from './application';
 import { inject as service } from '@ember/service';
 import { SLUG_KEY } from 'consul-ui/models/token';
@@ -85,7 +80,6 @@ export default class TokenAdapter extends Adapter {
 
       ${{
         Description: serialized.Description,
-        AccessorID: serialized.AccessorID,
         Policies: serialized.Policies,
         Roles: serialized.Roles,
         ServiceIdentities: serialized.ServiceIdentities,
@@ -140,10 +134,10 @@ export default class TokenAdapter extends Adapter {
   // services/store.js
   self(store, type, id, unserialized) {
     return this.rpc(
-      function (adapter, request, serialized, data) {
+      function(adapter, request, serialized, data) {
         return adapter.requestForSelf(request, serialized, data);
       },
-      function (serializer, respond, serialized, data) {
+      function(serializer, respond, serialized, data) {
         return serializer.respondForSelf(respond, serialized, data);
       },
       unserialized,
@@ -153,7 +147,7 @@ export default class TokenAdapter extends Adapter {
 
   clone(store, type, id, snapshot) {
     return this.rpc(
-      function (adapter, request, serialized, data) {
+      function(adapter, request, serialized, data) {
         return adapter.requestForCloneRecord(request, serialized, data);
       },
       (serializer, respond, serialized, data) => {

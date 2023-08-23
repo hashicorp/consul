@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -22,118 +19,109 @@ func TestParseCertURIFromString(t *testing.T) {
 		ParseError string
 	}{
 		{
-			Name:       "invalid scheme",
-			URI:        "http://google.com/",
-			Struct:     nil,
-			ParseError: "scheme",
+			"invalid scheme",
+			"http://google.com/",
+			nil,
+			"scheme",
 		},
 		{
-			Name: "basic service ID",
-			URI:  "spiffe://1234.consul/ns/default/dc/dc01/svc/web",
-			Struct: &SpiffeIDService{
+			"basic service ID",
+			"spiffe://1234.consul/ns/default/dc/dc01/svc/web",
+			&SpiffeIDService{
 				Host:       "1234.consul",
 				Partition:  defaultEntMeta.PartitionOrDefault(),
 				Namespace:  "default",
 				Datacenter: "dc01",
 				Service:    "web",
 			},
-			ParseError: "",
+			"",
 		},
 		{
-			Name: "basic service ID with partition",
-			URI:  "spiffe://1234.consul/ap/bizdev/ns/default/dc/dc01/svc/web",
-			Struct: &SpiffeIDService{
+			"basic service ID with partition",
+			"spiffe://1234.consul/ap/bizdev/ns/default/dc/dc01/svc/web",
+			&SpiffeIDService{
 				Host:       "1234.consul",
 				Partition:  "bizdev",
 				Namespace:  "default",
 				Datacenter: "dc01",
 				Service:    "web",
 			},
-			ParseError: "",
+			"",
 		},
 		{
-			Name: "basic agent ID",
-			URI:  "spiffe://1234.consul/agent/client/dc/dc1/id/uuid",
-			Struct: &SpiffeIDAgent{
+			"basic agent ID",
+			"spiffe://1234.consul/agent/client/dc/dc1/id/uuid",
+			&SpiffeIDAgent{
 				Host:       "1234.consul",
 				Partition:  defaultEntMeta.PartitionOrDefault(),
 				Datacenter: "dc1",
 				Agent:      "uuid",
 			},
-			ParseError: "",
+			"",
 		},
 		{
-			Name: "basic agent ID with partition",
-			URI:  "spiffe://1234.consul/ap/bizdev/agent/client/dc/dc1/id/uuid",
-			Struct: &SpiffeIDAgent{
+			"basic agent ID with partition",
+			"spiffe://1234.consul/ap/bizdev/agent/client/dc/dc1/id/uuid",
+			&SpiffeIDAgent{
 				Host:       "1234.consul",
 				Partition:  "bizdev",
 				Datacenter: "dc1",
 				Agent:      "uuid",
 			},
-			ParseError: "",
+			"",
 		},
 		{
-			Name: "basic server",
-			URI:  "spiffe://1234.consul/agent/server/dc/dc1",
-			Struct: &SpiffeIDServer{
-				Host:       "1234.consul",
-				Datacenter: "dc1",
-			},
-			ParseError: "",
-		},
-		{
-			Name: "mesh-gateway with no partition",
-			URI:  "spiffe://1234.consul/gateway/mesh/dc/dc1",
-			Struct: &SpiffeIDMeshGateway{
+			"mesh-gateway with no partition",
+			"spiffe://1234.consul/gateway/mesh/dc/dc1",
+			&SpiffeIDMeshGateway{
 				Host:       "1234.consul",
 				Partition:  "default",
 				Datacenter: "dc1",
 			},
-			ParseError: "",
+			"",
 		},
 		{
-			Name: "mesh-gateway with partition",
-			URI:  "spiffe://1234.consul/ap/bizdev/gateway/mesh/dc/dc1",
-			Struct: &SpiffeIDMeshGateway{
+			"mesh-gateway with partition",
+			"spiffe://1234.consul/ap/bizdev/gateway/mesh/dc/dc1",
+			&SpiffeIDMeshGateway{
 				Host:       "1234.consul",
 				Partition:  "bizdev",
 				Datacenter: "dc1",
 			},
-			ParseError: "",
+			"",
 		},
 		{
-			Name: "service with URL-encoded values",
-			URI:  "spiffe://1234.consul/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
-			Struct: &SpiffeIDService{
+			"service with URL-encoded values",
+			"spiffe://1234.consul/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
+			&SpiffeIDService{
 				Host:       "1234.consul",
 				Partition:  defaultEntMeta.PartitionOrDefault(),
 				Namespace:  "foo/bar",
 				Datacenter: "bar/baz",
 				Service:    "baz/qux",
 			},
-			ParseError: "",
+			"",
 		},
 		{
-			Name: "service with URL-encoded values with partition",
-			URI:  "spiffe://1234.consul/ap/biz%2Fdev/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
-			Struct: &SpiffeIDService{
+			"service with URL-encoded values with partition",
+			"spiffe://1234.consul/ap/biz%2Fdev/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
+			&SpiffeIDService{
 				Host:       "1234.consul",
 				Partition:  "biz/dev",
 				Namespace:  "foo/bar",
 				Datacenter: "bar/baz",
 				Service:    "baz/qux",
 			},
-			ParseError: "",
+			"",
 		},
 		{
-			Name: "signing ID",
-			URI:  "spiffe://1234.consul",
-			Struct: &SpiffeIDSigning{
+			"signing ID",
+			"spiffe://1234.consul",
+			&SpiffeIDSigning{
 				ClusterID: "1234",
 				Domain:    "consul",
 			},
-			ParseError: "",
+			"",
 		},
 	}
 
@@ -150,19 +138,4 @@ func TestParseCertURIFromString(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestSpiffeIDServer_URI(t *testing.T) {
-	srv := &SpiffeIDServer{
-		Host:       "1234.consul",
-		Datacenter: "dc1",
-	}
-
-	require.Equal(t, "spiffe://1234.consul/agent/server/dc/dc1", srv.URI().String())
-}
-
-func TestServerSAN(t *testing.T) {
-	san := PeeringServerSAN("dc1", TestTrustDomain)
-	expect := "server.dc1.peering." + TestTrustDomain
-	require.Equal(t, expect, san)
 }

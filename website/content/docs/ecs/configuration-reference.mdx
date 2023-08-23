@@ -1,11 +1,12 @@
 ---
 layout: docs
-page_title: Consul on AWS Elastic Container Service (ECS) Configuration Reference
+page_title: AWS ECS
 description: >-
-  Use the `consul-ecs` reference guide to manually configure Consul for deployment on Amazon Web Services ECS. Learn how the configuration values correspond to Terraform module input variables and review JSON configuration models for `consulLogin`, `gateway`, `proxy`, and `service` fields.
+  Configuration Reference for Consul on AWS ECS (Elastic Container Service).
+  Do not modify by hand! This is automatically generated documentation.
 ---
 
-# Consul on AWS Elastic Container Service (ECS) Configuration Reference
+# Configuration Reference
 
 This pages details the configuration options for the JSON config format used
 by the `consul-ecs` binary. This configuration is passed to the `consul-ecs`
@@ -185,7 +186,6 @@ Defines the Consul checks for the service. Each `check` object may contain the f
 | `method` | `string` | optional | Specifies the HTTP method to be used for an HTTP check. When no value is specified, `GET` is used.  |
 | `name` | `string` | optional | The name of the check.  |
 | `notes` | `string` | optional | Specifies arbitrary information for humans. This is not used by Consul internally.  |
-| `os_service` | `string` | optional | Specifies the name of a service on which to perform an [OS service check](/consul/docs/services/usage/checks#osservice-check). The check runs according the frequency specified in the `interval` parameter.  |
 | `status` | `string` | optional | Specifies the initial status the health check. Must be one of `passing`, `warning`, `critical`, `maintenance`, or `null`. |
 | `successBeforePassing` | `integer` | optional | Specifies the number of consecutive successful results required before check status transitions to passing.  |
 | `tcp` | `string` | optional | Specifies this is a TCP check. Must be an IP/hostname plus port to which a TCP connection is made every `interval`.  |

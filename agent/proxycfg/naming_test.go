@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -36,13 +33,6 @@ func TestUpstreamIDFromTargetID(t *testing.T) {
 			expect: UpstreamID{
 				Name:       "foo",
 				Datacenter: "dc2",
-			},
-		},
-		"peered": {
-			tid: "foo.default.default.external.cluster-01",
-			expect: UpstreamID{
-				Name: "foo",
-				Peer: "cluster-01",
 			},
 		},
 	}

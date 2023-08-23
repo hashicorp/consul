@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -34,8 +31,9 @@ func tokensTableSchema() *memdb.TableSchema {
 		Name: tableACLTokens,
 		Indexes: map[string]*memdb.IndexSchema{
 			indexAccessor: {
-				Name:         indexAccessor,
-				AllowMissing: false,
+				Name: indexAccessor,
+				// DEPRECATED (ACL-Legacy-Compat) - we should not AllowMissing here once legacy compat is removed
+				AllowMissing: true,
 				Unique:       true,
 				Indexer: indexerSingle[string, *structs.ACLToken]{
 					readIndex:  indexFromUUIDString,
@@ -104,6 +102,23 @@ func tokensTableSchema() *memdb.TableSchema {
 				Indexer: indexerSingle[*TimeQuery, *structs.ACLToken]{
 					readIndex:  indexFromTimeQuery,
 					writeIndex: indexExpiresLocalFromACLToken,
+				},
+			},
+
+			// DEPRECATED (ACL-Legacy-Compat) - This index is only needed while we support upgrading v1 to v2 acls
+			// This table indexes all the ACL tokens that do not have an AccessorID
+			// TODO(ACL-Legacy-Compat): remove in phase 2
+			"needs-upgrade": {
+				Name:         "needs-upgrade",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.ConditionalIndex{
+					Conditional: func(obj interface{}) (bool, error) {
+						if token, ok := obj.(*structs.ACLToken); ok {
+							return token.AccessorID == "", nil
+						}
+						return false, nil
+					},
 				},
 			},
 		},

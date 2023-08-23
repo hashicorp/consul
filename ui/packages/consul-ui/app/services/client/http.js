@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { next } from '@ember/runloop';
@@ -20,8 +15,8 @@ import createHeaders from 'consul-ui/utils/http/create-headers';
 import createQueryParams from 'consul-ui/utils/http/create-query-params';
 
 // reopen EventSources if a user changes tab
-export const restartWhenAvailable = function (client) {
-  return function (e) {
+export const restartWhenAvailable = function(client) {
+  return function(e) {
     // setup the aborted connection restarting
     // this should happen here to avoid cache deletion
     const status = get(e, 'errors.firstObject.status');
@@ -41,13 +36,13 @@ const QueryParams = {
 };
 const parseHeaders = createHeaders();
 
-const parseBody = function (strs, ...values) {
+const parseBody = function(strs, ...values) {
   let body = {};
-  const doubleBreak = strs.reduce(function (prev, item, i) {
+  const doubleBreak = strs.reduce(function(prev, item, i) {
     // Ensure each line has no whitespace either end, including empty lines
     item = item
       .split('\n')
-      .map((item) => item.trim())
+      .map(item => item.trim())
       .join('\n');
     if (item.indexOf('\n\n') !== -1) {
       return i;
@@ -61,7 +56,7 @@ const parseBody = function (strs, ...values) {
     // matters slightly as we assumed post bodies would be an object.
     // This actually works as it just uses the value of the first object, if its an array
     // it concats
-    body = values.splice(doubleBreak).reduce(function (prev, item, i) {
+    body = values.splice(doubleBreak).reduce(function(prev, item, i) {
       switch (true) {
         case Array.isArray(item):
           if (i === 0) {
@@ -94,9 +89,7 @@ export default class HttpService extends Service {
   init() {
     super.init(...arguments);
     this._listeners = this.dom.listeners();
-    this.parseURL = createURL(encodeURIComponent, (obj) =>
-      QueryParams.stringify(this.sanitize(obj))
-    );
+    this.parseURL = createURL(encodeURIComponent, obj => QueryParams.stringify(this.sanitize(obj)));
     const uriTag = this.encoder.uriTag();
     this.cache = (data, id) => {
       // interpolate the URI
@@ -104,15 +97,17 @@ export default class HttpService extends Service {
       // save the time we received it for cache management purposes
       data.SyncTime = new Date().getTime();
       // save the data to the cache
-      return this.store.push({
-        data: {
-          id: data.uri,
-          // the model is encoded as the protocol in the URI
-          type: new URL(data.uri).protocol.slice(0, -1),
-          attributes: data,
-        },
-      });
-    };
+      return this.store.push(
+        {
+          data: {
+            id: data.uri,
+            // the model is encoded as the protocol in the URI
+            type: new URL(data.uri).protocol.slice(0, -1),
+            attributes: data
+          }
+        }
+      );
+    }
   }
 
   sanitize(obj) {
@@ -167,7 +162,7 @@ export default class HttpService extends Service {
       data: body,
     };
     // Remove and save things that shouldn't be sent in the request
-    params.clientHeaders = CLIENT_HEADERS.reduce(function (prev, item) {
+    params.clientHeaders = CLIENT_HEADERS.reduce(function(prev, item) {
       if (typeof params.headers[item] !== 'undefined') {
         prev[item.toLowerCase()] = params.headers[item];
         delete params.headers[item];
@@ -208,15 +203,13 @@ export default class HttpService extends Service {
     // also see adapters/kv content-types in requestForCreate/UpdateRecord
     // also see https://github.com/hashicorp/consul/issues/3804
     params.headers[CONTENT_TYPE] = 'application/json; charset=utf-8';
-    params.url = `${this.env.var('CONSUL_API_PREFIX')}${params.url}`;
     return params;
   }
 
   fetchWithToken(path, params) {
-    return this.settings.findBySlug('token').then((token) => {
-      return fetch(`${this.env.var('CONSUL_API_PREFIX')}${path}`, {
+    return this.settings.findBySlug('token').then(token => {
+      return fetch(`${path}`, {
         ...params,
-        credentials: 'include',
         headers: {
           'X-Consul-Token': typeof token.SecretID === 'undefined' ? '' : token.SecretID,
           ...params.headers,
@@ -227,9 +220,9 @@ export default class HttpService extends Service {
   request(cb) {
     const client = this;
     const cache = this.cache;
-    return cb(function (strs, ...values) {
+    return cb(function(strs, ...values) {
       const params = client.requestParams(...arguments);
-      return client.settings.findBySlug('token').then((token) => {
+      return client.settings.findBySlug('token').then(token => {
         const options = {
           ...params,
           headers: {
@@ -240,12 +233,12 @@ export default class HttpService extends Service {
         const request = client.transport.request(options);
         return new Promise((resolve, reject) => {
           const remove = client._listeners.add(request, {
-            open: (e) => {
+            open: e => {
               client.acquire(e.target);
             },
-            message: (e) => {
+            message: e => {
               const headers = {
-                ...Object.entries(e.data.headers).reduce(function (prev, [key, value], i) {
+                ...Object.entries(e.data.headers).reduce(function(prev, [key, value], i) {
                   if (!CLIENT_HEADERS.includes(key)) {
                     prev[key] = value;
                   }
@@ -257,25 +250,28 @@ export default class HttpService extends Service {
                 // we can use them later for store reconciliation. Namespace
                 // will look at the ns query parameter first, followed by the
                 // Namespace property of the users token, defaulting back to
-                // 'default' which will mainly be used in CE
+                // 'default' which will mainly be used in OSS
                 [CONSUL_DATACENTER]: params.data.dc,
                 [CONSUL_NAMESPACE]: params.data.ns || token.Namespace || 'default',
                 [CONSUL_PARTITION]: params.data.partition || token.Partition || 'default',
               };
-              const respond = function (cb) {
+              const respond = function(cb) {
                 let res = cb(headers, e.data.response, cache);
                 const meta = res.meta || {};
-                if (meta.version === 2) {
-                  if (Array.isArray(res.body)) {
-                    res = new Proxy(res.body, {
-                      get: (target, prop) => {
-                        switch (prop) {
-                          case 'meta':
-                            return meta;
+                if(meta.version === 2) {
+                  if(Array.isArray(res.body)) {
+                    res = new Proxy(
+                      res.body,
+                      {
+                        get: (target, prop) => {
+                          switch(prop) {
+                            case 'meta':
+                              return meta;
+                          }
+                          return target[prop];
                         }
-                        return target[prop];
-                      },
-                    });
+                      }
+                    );
                   } else {
                     res = res.body;
                     res.meta = meta;
@@ -285,10 +281,10 @@ export default class HttpService extends Service {
               };
               next(() => resolve(respond));
             },
-            error: (e) => {
+            error: e => {
               next(() => reject(e.error));
             },
-            close: (e) => {
+            close: e => {
               client.release(e.target);
               remove();
             },

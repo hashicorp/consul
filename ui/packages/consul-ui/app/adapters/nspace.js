@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/nspace';
 
@@ -45,8 +40,8 @@ export default class NspaceAdapter extends Adapter {
         Name: serialized.Name,
         Description: serialized.Description,
         ACLs: {
-          PolicyDefaults: serialized.ACLs.PolicyDefaults.map((item) => ({ ID: item.ID })),
-          RoleDefaults: serialized.ACLs.RoleDefaults.map((item) => ({ ID: item.ID })),
+          PolicyDefaults: serialized.ACLs.PolicyDefaults.map(item => ({ ID: item.ID })),
+          RoleDefaults: serialized.ACLs.RoleDefaults.map(item => ({ ID: item.ID })),
         },
       }}
     `;
@@ -62,8 +57,8 @@ export default class NspaceAdapter extends Adapter {
       ${{
         Description: serialized.Description,
         ACLs: {
-          PolicyDefaults: serialized.ACLs.PolicyDefaults.map((item) => ({ ID: item.ID })),
-          RoleDefaults: serialized.ACLs.RoleDefaults.map((item) => ({ ID: item.ID })),
+          PolicyDefaults: serialized.ACLs.PolicyDefaults.map(item => ({ ID: item.ID })),
+          RoleDefaults: serialized.ACLs.RoleDefaults.map(item => ({ ID: item.ID })),
         },
       }}
     `;

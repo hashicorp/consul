@@ -30,13 +30,13 @@ load helpers
 @test "s1 upstream should be able to connect to s2 with http/1.1" {
   run retry_default curl --http1.1 -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 @test "s1 proxy should have been configured with http connection managers" {
   LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19000)
-  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
-  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ')
+  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
 
   echo "LISTEN_FILTERS = $LISTEN_FILTERS"
   echo "PUB = $PUB"
@@ -48,7 +48,7 @@ load helpers
 
 @test "s2 proxy should have been configured with an http connection manager" {
   LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19001)
-  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
+  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
 
   echo "LISTEN_FILTERS = $LISTEN_FILTERS"
   echo "PUB = $PUB"
@@ -58,34 +58,23 @@ load helpers
 
 @test "s1 proxy should have been configured with http rbac filters" {
   HTTP_FILTERS=$(get_envoy_http_filters localhost:19000)
-  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
-  UPS=$(echo "$HTTP_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ')
+  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+  UPS=$(echo "$HTTP_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
 
   echo "HTTP_FILTERS = $HTTP_FILTERS"
   echo "PUB = $PUB"
   echo "UPS = $UPS"
 
-  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.header_to_metadata,envoy.filters.http.router" ]
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.router" ]
   [ "$UPS" = "envoy.filters.http.router" ]
-}
-
-@test "s1 proxy should have been configured with passive_health_check" {
-  CLUSTER_CONFIG=$(get_envoy_cluster_config localhost:19000 1a47f6e1~s2.default.primary)
-  echo $CLUSTER_CONFIG
-
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.interval')" = "22s" ]
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.consecutive_5xx')" = null ]
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.enforcing_consecutive_5xx')" = null ]
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.max_ejection_percent')" = null ]
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.base_ejection_time')" = null ]
 }
 
 @test "s2 proxy should have been configured with http rbac filters" {
   HTTP_FILTERS=$(get_envoy_http_filters localhost:19001)
-  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
+  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
 
   echo "HTTP_FILTERS = $HTTP_FILTERS"
   echo "PUB = $PUB"
 
-  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.header_to_metadata,envoy.filters.http.router" ]
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.router" ]
 }

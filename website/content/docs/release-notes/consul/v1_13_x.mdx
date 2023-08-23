@@ -9,29 +9,29 @@ description: >-
 
 ## Release Highlights
 
-- **Cluster Peering (Beta)**: This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/consul/docs/connect/cluster-peering) documentation.
+- **Cluster Peering (Beta)**: This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/docs/connect/cluster-peering) documentation.
 
-- **Transparent proxying through terminating gateways**: This version adds egress traffic control to destinations outside of Consul's catalog, such as APIs on the public internet. Transparent proxies can dial [destinations defined in service-defaults](/consul/docs/connect/config-entries/service-defaults#destination) and have the traffic routed through terminating gateways. For more information, refer to the [terminating gateway](/consul/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) documentation.
+- **Transparent proxying through terminating gateways**: This version adds egress traffic control to destinations outside of Consul's catalog, such as APIs on the public internet. Transparent proxies can dial [destinations defined in service-defaults](/docs/connect/config-entries/service-defaults#destination) and have the traffic routed through terminating gateways. For more information, refer to the [terminating gateway](/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) documentation.
 
 - **Enables TLS on the Envoy Prometheus endpoint**: The Envoy prometheus endpoint can be enabled when `envoy_prometheus_bind_addr` is set and then secured over TLS using new CLI flags for the `consul connect envoy` command. These commands are: `-prometheus-ca-file`, `-prometheus-ca-path`, `-prometheus-cert-file` and `-prometheus-key-file`. The CA, cert, and key can be provided to Envoy by a Kubernetes mounted volume so that Envoy can watch the files and dynamically reload the certs when the volume is updated.
 
-- **UDP Health Checks**: Adds the ability to register service discovery health checks that periodically send UDP datagrams to the specified IP/hostname and port. Refer to [UDP checks](/consul/docs/services/usage/checks#udp-checks).
+- **UDP Health Checks**: Adds the ability to register service discovery health checks that periodically send UDP datagrams to the specified IP/hostname and port. Refer to [UDP checks](/docs/discovery/checks#udp-interval).
 
 ## What's Changed
 
-- Removes support for Envoy 1.19.x and adds support for Envoy 1.23. Refer to the [Envoy Compatibility matrix](/consul/docs/connect/proxies/envoy) for more details.
+- Removes support for Envoy 1.19.x and adds support for Envoy 1.23. Refer to the [Envoy Compatibility matrix](/docs/connect/proxies/envoy) for more details.
 
-- The [`disable_compat_19`](/consul/docs/agent/config/config-files#telemetry-disable_compat_1.9) telemetry configuration option is now removed. In Consul versions 1.10.x through 1.11.x, the config defaulted to `false`. In version 1.12.x it defaulted to `true`. Before upgrading you should remove this flag from your config if the flag is being used.
+- The [`disable_compat_19`](/docs/agent/config/config-files#telemetry-disable_compat_1.9) telemetry configuration option is now removed. In Consul versions 1.10.x through 1.11.x, the config defaulted to `false`. In version 1.12.x it defaulted to `true`. Before upgrading you should remove this flag from your config if the flag is being used.
 
 ## Upgrading
 
-For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific#consul-1-13-0) and the changelogs.
+For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-13-0) and the changelogs.
 
 ## Known Issues
 The following issues are know to exist in the 1.13.0 release:
 
 - Consul 1.13.1 fixes a compatibility issue when restoring snapshots from pre-1.13.0 versions of Consul. Refer to GitHub issue [[GH-14149](https://github.com/hashicorp/consul/issues/14149)] for more details.
-- Consul 1.13.0 and Consul 1.13.1 default to requiring TLS for gRPC communication with Envoy proxies when auto-encrypt and auto-config are enabled. In environments where Envoy proxies are not already configured to use TLS for gRPC, upgrading Consul 1.13 will cause Envoy proxies to disconnect from the control plane (Consul agents). A future patch release will default to disabling TLS by default for GRPC communication with Envoy proxies when using Service Mesh and auto-config or auto-encrypt. Refer to GitHub issue [[GH-14253](https://github.com/hashicorp/consul/issues/14253)] and [Service Mesh deployments using auto-config and auto-encrypt](/consul/docs/upgrading/upgrade-specific#service-mesh-deployments-using-auto-encrypt-or-auto-config) for more details.
+- Consul 1.13.0 and Consul 1.13.1 default to requiring TLS for gRPC communication with Envoy proxies when auto-encrypt and auto-config are enabled. In environments where Envoy proxies are not already configured to use TLS for gRPC, upgrading Consul 1.13 will cause Envoy proxies to disconnect from the control plane (Consul agents). A future patch release will default to disabling TLS by default for GRPC communication with Envoy proxies when using Service Mesh and auto-config or auto-encrypt. Refer to GitHub issue [[GH-14253](https://github.com/hashicorp/consul/issues/14253)] and [Service Mesh deployments using auto-config and auto-encrypt](https://www.consul.io/docs/upgrading/upgrade-specific#service-mesh-deployments-using-auto-encrypt-or-auto-config) for more details.
 
 
 ## Changelogs
@@ -42,8 +42,3 @@ The changelogs for this major release version and any maintenance versions are l
 
 - [1.13.0](https://github.com/hashicorp/consul/releases/tag/v1.13.0)
 - [1.13.1](https://github.com/hashicorp/consul/releases/tag/v1.13.1)
-- [1.13.2](https://github.com/hashicorp/consul/releases/tag/v1.13.2)
-- [1.13.3](https://github.com/hashicorp/consul/releases/tag/v1.13.3)
-- [1.13.4](https://github.com/hashicorp/consul/releases/tag/v1.13.4)
-- [1.13.5](https://github.com/hashicorp/consul/releases/tag/v1.13.5)
-- [1.13.6](https://github.com/hashicorp/consul/releases/tag/v1.13.6)

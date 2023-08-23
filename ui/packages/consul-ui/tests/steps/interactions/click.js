@@ -1,11 +1,6 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-export default function (scenario, find, click) {
+export default function(scenario, find, click) {
   scenario
-    .when('I click "$selector"', function (selector) {
+    .when('I click "$selector"', function(selector) {
       return click(selector);
     })
     // TODO: Probably nicer to think of better vocab than having the 'without " rule'
@@ -15,11 +10,11 @@ export default function (scenario, find, click) {
         'I click $property on the $component',
         'I click $property on the $component component',
       ],
-      async function (property, component, next) {
+      async function(property, component, next) {
         if (typeof component === 'string') {
           property = `${component}.${property}`;
         }
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 0));
         return find(property)();
       }
     );

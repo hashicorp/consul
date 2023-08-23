@@ -1,3 +1,0 @@
-```release-note:improvement
-api: Enable setting query options on agent force-leave endpoint.
-```

@@ -1,4 +1,0 @@
-```release-note:breaking-change
-xds: Convert service mesh failover to use Envoy's aggregate clusters. This
-changes the names of some [Envoy dynamic HTTP metrics](https://www.envoyproxy.io/docs/envoy/latest/configuration/upstream/cluster_manager/cluster_stats#dynamic-http-statistics).
-```

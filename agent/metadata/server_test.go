@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package metadata_test
 
 import (
@@ -76,7 +73,6 @@ func TestIsConsulServer(t *testing.T) {
 				"build":         "0.8.0",
 				"wan_join_port": "1234",
 				"grpc_port":     "9876",
-				"grpc_tls_port": "9877",
 				"vsn":           "1",
 				"expect":        "3",
 				"raft_vsn":      "3",
@@ -86,20 +82,19 @@ func TestIsConsulServer(t *testing.T) {
 		}
 
 		expected := &metadata.Server{
-			Name:                "foo",
-			ShortName:           "foo",
-			ID:                  "asdf",
-			Datacenter:          "east-aws",
-			Segment:             "",
-			Port:                10000,
-			SegmentAddrs:        map[string]string{},
-			SegmentPorts:        map[string]int{},
-			WanJoinPort:         1234,
-			LanJoinPort:         5454,
-			ExternalGRPCPort:    9876,
-			ExternalGRPCTLSPort: 9877,
-			Bootstrap:           false,
-			Expect:              3,
+			Name:             "foo",
+			ShortName:        "foo",
+			ID:               "asdf",
+			Datacenter:       "east-aws",
+			Segment:          "",
+			Port:             10000,
+			SegmentAddrs:     map[string]string{},
+			SegmentPorts:     map[string]int{},
+			WanJoinPort:      1234,
+			LanJoinPort:      5454,
+			ExternalGRPCPort: 9876,
+			Bootstrap:        false,
+			Expect:           3,
 			Addr: &net.TCPAddr{
 				IP:   net.IP([]byte{127, 0, 0, 1}),
 				Port: 10000,
@@ -142,41 +137,15 @@ func TestIsConsulServer(t *testing.T) {
 		case "feature-namespaces":
 			m.Tags["ft_ns"] = "1"
 			expected.FeatureFlags = map[string]int{"ns": 1}
-		case "no-role":
-			delete(m.Tags, "role")
 			//
-		case "missing-grpc-port":
-			delete(m.Tags, "grpc_port")
-			expected.ExternalGRPCPort = 0
-		case "missing-grpc-tls-port":
-			delete(m.Tags, "grpc_tls_port")
-			expected.ExternalGRPCTLSPort = 0
-		case "missing-both-grpc-ports":
-			delete(m.Tags, "grpc_port")
-			delete(m.Tags, "grpc_tls_port")
-			expected.ExternalGRPCPort = 0
-			expected.ExternalGRPCTLSPort = 0
-		case "bad-both-grpc-ports":
-			m.Tags["grpc_port"] = ""
-			m.Tags["grpc_tls_port"] = ""
 		case "bad-grpc-port":
 			m.Tags["grpc_port"] = "three"
-			m.Tags["grpc_tls_port"] = ""
-		case "bad-grpc-tls-port":
-			m.Tags["grpc_port"] = ""
-			m.Tags["grpc_tls_port"] = "three"
 		case "negative-grpc-port":
 			m.Tags["grpc_port"] = "-1"
-			m.Tags["grpc_tls_port"] = ""
-		case "negative-grpc-tls-port":
-			m.Tags["grpc_port"] = ""
-			m.Tags["grpc_tls_port"] = "-1"
 		case "zero-grpc-port":
 			m.Tags["grpc_port"] = "0"
-			m.Tags["grpc_tls_port"] = ""
-		case "zero-grpc-tls-port":
-			m.Tags["grpc_port"] = ""
-			m.Tags["grpc_tls_port"] = "0"
+		case "no-role":
+			delete(m.Tags, "role")
 		default:
 			t.Fatalf("unhandled variant: %s", variant)
 		}
@@ -205,18 +174,11 @@ func TestIsConsulServer(t *testing.T) {
 		"bootstrapped":       true,
 		"optionals":          true,
 		"feature-namespaces": true,
-		"no-role":            false,
 		//
-		"missing-grpc-port":       true,
-		"missing-grpc-tls-port":   true,
-		"missing-both-grpc-ports": true,
-		"bad-both-grpc-ports":     false,
-		"bad-grpc-port":           false,
-		"negative-grpc-port":      false,
-		"zero-grpc-port":          false,
-		"bad-grpc-tls-port":       false,
-		"negative-grpc-tls-port":  false,
-		"zero-grpc-tls-port":      false,
+		"no-role":            false,
+		"bad-grpc-port":      false,
+		"negative-grpc-port": false,
+		"zero-grpc-port":     false,
 	}
 
 	for variant, expectOK := range cases {

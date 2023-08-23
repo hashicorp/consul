@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Fragment from 'ember-data-model-fragments/fragment';
 import { fragmentArray, array } from 'ember-data-model-fragments/attributes';
 import { attr } from '@ember-data/model';
@@ -30,6 +25,6 @@ export default class IntentionPermissionHttp extends Fragment {
 
   @computed(...schema.PathType.allowedValues)
   get PathType() {
-    return schema.PathType.allowedValues.find((prop) => typeof this[prop] === 'string');
+    return schema.PathType.allowedValues.find(prop => typeof this[prop] === 'string');
   }
 }

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import format from 'pretty-ms';
 import parse from 'parse-duration';
 import { assert } from '@ember/debug';
@@ -13,9 +8,10 @@ import Service from '@ember/service';
 dayjs.extend(relativeTime);
 
 export default class TemporalService extends Service {
+
   format(value, options) {
     const djs = dayjs(value);
-    if (dayjs().isBefore(djs)) {
+    if(dayjs().isBefore(djs)) {
       return dayjs().to(djs, true);
     } else {
       return dayjs().from(djs, true);
@@ -45,6 +41,7 @@ export default class TemporalService extends Service {
       default:
         assert(`${value} is not a valid type`, false);
         return value;
+
     }
   }
 }

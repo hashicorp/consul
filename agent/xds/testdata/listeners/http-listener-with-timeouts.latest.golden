@@ -83,8 +83,7 @@
                           },
                           "route": {
                             "cluster": "local_app",
-                            "timeout": "2.345s",
-                            "idleTimeout": "3.456s"
+                            "timeout": "2.345s"
                           }
                         }
                       ]
@@ -96,85 +95,9 @@
                     "name": "envoy.filters.http.rbac",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules": {}
-                    }
-                  },
-                  {
-                    "name": "envoy.filters.http.header_to_metadata",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.header_to_metadata.v3.Config",
-                      "requestRules": [
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "metadataNamespace": "consul",
-                            "key": "trust-domain",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\1"
-                            }
-                          }
-                        },
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "metadataNamespace": "consul",
-                            "key": "partition",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\2"
-                            }
-                          }
-                        },
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "metadataNamespace": "consul",
-                            "key": "namespace",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\3"
-                            }
-                          }
-                        },
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "metadataNamespace": "consul",
-                            "key": "datacenter",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\4"
-                            }
-                          }
-                        },
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "metadataNamespace": "consul",
-                            "key": "service",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\5"
-                            }
-                          }
-                        }
-                      ]
+                      "rules": {
+
+                      }
                     }
                   },
                   {
@@ -185,7 +108,9 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
+                  "randomSampling": {
+
+                  }
                 },
                 "forwardClientCertDetails": "APPEND_FORWARD",
                 "setCurrentClientCertDetails": {
@@ -194,12 +119,7 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
-                  }
-                ]
+                }
               }
             }
           ],
@@ -208,7 +128,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -223,10 +145,7 @@
                   "trustedCa": {
                     "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
                   }
-                },
-                "alpnProtocols": [
-                  "http/1.1"
-                ]
+                }
               },
               "requireClientCertificate": true
             }

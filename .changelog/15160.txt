@@ -1,3 +1,0 @@
-```release-note:bug
-peering: fix nil pointer in calling handleUpdateService
-```

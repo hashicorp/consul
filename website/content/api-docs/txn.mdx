@@ -36,10 +36,10 @@ the leader via the Raft consensus protocol.
 | `PUT`  | `/txn` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                                                                                   |
 | ---------------- | ----------------- | ------------- | ---------------------------------------------------------------------------------------------- |
@@ -92,7 +92,7 @@ a value of an object specific to that operation.
   - `Verb` `(string: <required>)` - Specifies the type of operation to perform.
 
   - `Node` `(Node: <required>)` - Specifies the node information to use
-    for the operation. See the [catalog endpoint](/consul/api-docs/catalog#parameters) for the fields in this object. Note the only the node can be specified here, not any services or checks - separate service or check operations must be used for those.
+    for the operation. See the [catalog endpoint](/api-docs/catalog#parameters) for the fields in this object. Note the only the node can be specified here, not any services or checks - separate service or check operations must be used for those.
 
 - `Service` operations have the following fields:
 
@@ -102,14 +102,14 @@ a value of an object specific to that operation.
     this service operation.
 
   - `Service` `(Service: <required>)` - Specifies the service instance information to use
-    for the operation. See the [catalog endpoint](/consul/api-docs/catalog#parameters) for the fields in this object.
+    for the operation. See the [catalog endpoint](/api-docs/catalog#parameters) for the fields in this object.
 
 - `Check` operations have the following fields:
 
   - `Verb` `(string: <required>)` - Specifies the type of operation to perform.
 
   - `Check` `(Service: <required>)` - Specifies the check to use
-    for the operation. See the [catalog endpoint](/consul/api-docs/catalog#parameters) for the fields in this object.
+    for the operation. See the [catalog endpoint](/api-docs/catalog#parameters) for the fields in this object.
 
   Please see the table below for available verbs.
 
@@ -266,21 +266,20 @@ look like this:
 The following tables summarize the available verbs and the fields that apply to
 those operations ("X" means a field is required and "O" means it is optional):
 
-| Verb               | Operation                                 | Key | Value | Flags | Index | Session |
-| ------------------ | ----------------------------------------- | :-: | :---: | :---: | :---: | :-----: |
-| `set`              | Sets the `Key` to the given `Value`       | `x` |  `x`  |  `o`  |       |         |
-| `cas`              | Sets, but with CAS semantics              | `x` |  `x`  |  `o`  |  `x`  |         |
-| `lock`             | Lock with the given `Session`             | `x` |  `x`  |  `o`  |       |   `x`   |
-| `unlock`           | Unlock with the given `Session`           | `x` |  `x`  |  `o`  |       |   `x`   |
-| `get`              | Get the key, fails if it does not exist   | `x` |       |       |       |         |
-| `get-or-empty`     | Get the key, or null if it does not exist | `x` |       |       |       |         |
-| `get-tree`         | Gets all keys with the prefix             | `x` |       |       |       |         |
-| `check-index`      | Fail if modify index != index             | `x` |       |       |  `x`  |         |
-| `check-session`    | Fail if not locked by session             | `x` |       |       |       |   `x`   |
-| `check-not-exists` | Fail if key exists                        | `x` |       |       |       |         |
-| `delete`           | Delete the key                            | `x` |       |       |       |         |
-| `delete-tree`      | Delete all keys with a prefix             | `x` |       |       |       |         |
-| `delete-cas`       | Delete, but with CAS semantics            | `x` |       |       |  `x`  |         |
+| Verb               | Operation                               | Key | Value | Flags | Index | Session |
+| ------------------ | --------------------------------------- | :-: | :---: | :---: | :---: | :-----: |
+| `set`              | Sets the `Key` to the given `Value`     | `x` |  `x`  |  `o`  |       |         |
+| `cas`              | Sets, but with CAS semantics            | `x` |  `x`  |  `o`  |  `x`  |         |
+| `lock`             | Lock with the given `Session`           | `x` |  `x`  |  `o`  |       |   `x`   |
+| `unlock`           | Unlock with the given `Session`         | `x` |  `x`  |  `o`  |       |   `x`   |
+| `get`              | Get the key, fails if it does not exist | `x` |       |       |       |         |
+| `get-tree`         | Gets all keys with the prefix           | `x` |       |       |       |         |
+| `check-index`      | Fail if modify index != index           | `x` |       |       |  `x`  |         |
+| `check-session`    | Fail if not locked by session           | `x` |       |       |       |   `x`   |
+| `check-not-exists` | Fail if key exists                      | `x` |       |       |       |         |
+| `delete`           | Delete the key                          | `x` |       |       |       |         |
+| `delete-tree`      | Delete all keys with a prefix           | `x` |       |       |       |         |
+| `delete-cas`       | Delete, but with CAS semantics          | `x` |       |       |  `x`  |         |
 
 #### Node Operations
 

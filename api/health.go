@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -69,7 +66,6 @@ type HealthCheckDefinition struct {
 	TCP                                    string
 	UDP                                    string
 	GRPC                                   string
-	OSService                              string
 	GRPCUseTLS                             bool
 	IntervalDuration                       time.Duration `json:"-"`
 	TimeoutDuration                        time.Duration `json:"-"`

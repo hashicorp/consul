@@ -25,7 +25,9 @@
                 "statPrefix": "mesh_gateway_local_peered.db.default.default.dc1",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "db"
@@ -39,7 +41,9 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
+                  "randomSampling": {
+
+                  }
                 },
                 "forwardClientCertDetails": "SANITIZE_SET",
                 "setCurrentClientCertDetails": {
@@ -48,12 +52,7 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
-                  }
-                ]
+                }
               }
             }
           ],
@@ -62,7 +61,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {

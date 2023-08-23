@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { set } from '@ember/object';
 import { inject as service } from '@ember/service';
@@ -22,20 +17,20 @@ export default Component.extend({
   readonly: false,
   syntax: '',
   // TODO: Change this to oninput to be consistent? We'll have to do it throughout the templates
-  onkeyup: function () {},
-  oninput: function () {},
-  init: function () {
+  onkeyup: function() {},
+  oninput: function() {},
+  init: function() {
     this._super(...arguments);
     set(this, 'modes', this.helper.modes());
   },
-  didReceiveAttrs: function () {
+  didReceiveAttrs: function() {
     this._super(...arguments);
     const editor = this.editor;
     if (editor) {
       editor.setOption('readOnly', this.readonly);
     }
   },
-  setMode: function (mode) {
+  setMode: function(mode) {
     let options = {
       ...DEFAULTS,
       mode: mode.mime,
@@ -53,13 +48,13 @@ export default Component.extend({
     this.helper.lint(editor, mode.mode);
     set(this, 'mode', mode);
   },
-  willDestroyElement: function () {
+  willDestroyElement: function() {
     this._super(...arguments);
     if (this.observer) {
       this.observer.disconnect();
     }
   },
-  didInsertElement: function () {
+  didInsertElement: function() {
     this._super(...arguments);
     const $code = this.dom.element('textarea ~ pre code', this.element);
     if ($code.firstChild) {
@@ -75,11 +70,11 @@ export default Component.extend({
       set(this, 'value', $code.firstChild.wholeText);
     }
     set(this, 'editor', this.helper.getEditor(this.element));
-    this.settings.findBySlug('code-editor').then((mode) => {
+    this.settings.findBySlug('code-editor').then(mode => {
       const modes = this.modes;
       const syntax = this.syntax;
       if (syntax) {
-        mode = modes.find(function (item) {
+        mode = modes.find(function(item) {
           return item.name.toLowerCase() == syntax.toLowerCase();
         });
       }
@@ -87,11 +82,11 @@ export default Component.extend({
       this.setMode(mode);
     });
   },
-  didAppear: function () {
+  didAppear: function() {
     this.editor.refresh();
   },
   actions: {
-    change: function (value) {
+    change: function(value) {
       this.settings.persist({
         'code-editor': value,
       });

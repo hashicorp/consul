@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -50,13 +47,6 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 	if len(future.Configuration().Servers) != 1 {
 		t.Fatalf("bad: %v", future.Configuration().Servers)
 	}
-
-	serverIDLastIndexMap := make(map[raft.ServerID]uint64)
-
-	for _, serverState := range s1.autopilot.GetState().Servers {
-		serverIDLastIndexMap[serverState.Server.ID] = serverState.Stats.LastIndex
-	}
-
 	me := future.Configuration().Servers[0]
 	expected := structs.RaftConfigurationResponse{
 		Servers: []*structs.RaftServer{
@@ -67,7 +57,6 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 				Leader:          true,
 				Voter:           true,
 				ProtocolVersion: "3",
-				LastIndex:       serverIDLastIndexMap[me.ID],
 			},
 		},
 		Index: future.Index(),
@@ -121,10 +110,6 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	if len(future.Configuration().Servers) != 1 {
 		t.Fatalf("bad: %v", future.Configuration().Servers)
 	}
-	serverIDLastIndexMap := make(map[raft.ServerID]uint64)
-	for _, serverState := range s1.autopilot.GetState().Servers {
-		serverIDLastIndexMap[serverState.Server.ID] = serverState.Stats.LastIndex
-	}
 	me := future.Configuration().Servers[0]
 	expected := structs.RaftConfigurationResponse{
 		Servers: []*structs.RaftServer{
@@ -135,7 +120,6 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 				Leader:          true,
 				Voter:           true,
 				ProtocolVersion: "3",
-				LastIndex:       serverIDLastIndexMap[me.ID],
 			},
 		},
 		Index: future.Index(),

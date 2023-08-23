@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service from '@ember/service';
 import promisedTimeoutFactory from 'consul-ui/utils/promisedTimeout';
 import { next } from '@ember/runloop';
@@ -17,7 +12,7 @@ export default class TimeoutService extends Service {
   }
 
   tick() {
-    return new Promise(function (resolve, reject) {
+    return new Promise(function(resolve, reject) {
       next(resolve);
     });
   }

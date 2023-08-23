@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { inject as service } from '@ember/service';
 import Adapter from '@ember-data/adapter';
 import AdapterError, {
@@ -20,24 +15,24 @@ import AdapterError, {
 // `serialized, unserialized` and the other just `query`
 // they could actually be one function now, but would be nice to think about
 // the naming of things (serialized vs query etc)
-const read = function (adapter, modelName, type, query = {}) {
+const read = function(adapter, modelName, type, query = {}) {
   return adapter.rpc(
-    function (adapter, ...rest) {
+    function(adapter, ...rest) {
       return adapter[`requestFor${type}`](...rest);
     },
-    function (serializer, ...rest) {
+    function(serializer, ...rest) {
       return serializer[`respondFor${type}`](...rest);
     },
     query,
     modelName
   );
 };
-const write = function (adapter, modelName, type, snapshot) {
+const write = function(adapter, modelName, type, snapshot) {
   return adapter.rpc(
-    function (adapter, ...rest) {
+    function(adapter, ...rest) {
       return adapter[`requestFor${type}`](...rest);
     },
-    function (serializer, ...rest) {
+    function(serializer, ...rest) {
       return serializer[`respondFor${type}`](...rest);
     },
     snapshot,
@@ -71,13 +66,13 @@ export default class HttpAdapter extends Adapter {
     }
 
     return client
-      .request(function (request) {
+      .request(function(request) {
         return req(adapter, request, serialized, unserialized, modelClass);
       })
-      .catch(function (e) {
+      .catch(function(e) {
         return adapter.error(e);
       })
-      .then(function (respond) {
+      .then(function(respond) {
         // TODO: When HTTPAdapter:responder changes, this will also need to change
         return resp(serializer, respond, serialized, unserialized, modelClass);
       });

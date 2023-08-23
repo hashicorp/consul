@@ -1,20 +1,15 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import comparators from 'consul-ui/sort/comparators/service';
 import { properties } from 'consul-ui/services/sort';
 import { module, test } from 'qunit';
 
-module('Unit | Sort | Comparator | service', function () {
+module('Unit | Sort | Comparator | service', function() {
   const comparator = comparators({ properties });
-  test('Passing anything but Status: just returns what you gave it', function (assert) {
+  test('Passing anything but Status: just returns what you gave it', function(assert) {
     const expected = 'Name:asc';
     const actual = comparator(expected);
     assert.equal(actual, expected);
   });
-  test('items are sorted by a fake Status which uses MeshChecks{Passing,Warning,Critical}', function (assert) {
+  test('items are sorted by a fake Status which uses MeshChecks{Passing,Warning,Critical}', function(assert) {
     const items = [
       {
         MeshChecksPassing: 1,

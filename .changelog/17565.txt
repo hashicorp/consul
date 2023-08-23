@@ -1,3 +1,0 @@
-```release-note:feature
-reloadable config: Made enable_debug config reloadable and enable pprof command to work when config toggles to true
-```

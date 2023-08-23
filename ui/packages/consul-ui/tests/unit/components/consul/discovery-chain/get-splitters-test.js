@@ -1,13 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { getSplitters } from 'consul-ui/components/consul/discovery-chain/utils';
 import { module, test } from 'qunit';
 
-module('Unit | Component | consul/discovery-chain/get-splitters', function () {
-  test('it collects and correctly parses splitter Names', function (assert) {
+module('Unit | Component | consul/discovery-chain/get-splitters', function() {
+  test('it collects and correctly parses splitter Names', function(assert) {
     const actual = getSplitters({
       'splitter:splitter-name.default.default': {
         Type: 'splitter',

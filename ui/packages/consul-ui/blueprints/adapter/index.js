@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 'use strict';
 
 module.exports = {
@@ -12,11 +7,13 @@ module.exports = {
 
   root: __dirname,
 
-  fileMapTokens(options) {},
+  fileMapTokens(options) {
+  },
   locals(options) {
     // Return custom template variables here.
-    return {};
-  },
+    return {
+    };
+  }
 
   // afterInstall(options) {
   //   // Perform extra work here.

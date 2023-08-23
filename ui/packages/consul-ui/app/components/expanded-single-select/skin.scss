@@ -1,11 +1,6 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %expanded-single-select {
   border: var(--decor-border-100);
-  border-color: var(--token-color-palette-neutral-300);
+  border-color: rgb(var(--tone-gray-300));
   border-radius: var(--decor-radius-100);
 }
 %expanded-single-select label {
@@ -14,10 +9,10 @@
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,
 %expanded-single-select input[type='radio']:focus + * {
-  box-shadow: var(--token-elevation-high-box-shadow);
+  box-shadow: var(--decor-elevation-300);
 }
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,
 %expanded-single-select input[type='radio']:focus + * {
-  background-color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-gray-000));
 }

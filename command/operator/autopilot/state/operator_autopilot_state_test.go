@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -107,7 +104,7 @@ func TestStateCommand_JSON(t *testing.T) {
 
 func TestStateCommand_Formatter(t *testing.T) {
 	cases := []string{
-		"ce",
+		"oss",
 		"enterprise",
 	}
 

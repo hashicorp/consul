@@ -1,13 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-{{#let (icon-mapping @item.Type) as |flightIcon|}}
-  <span class="consul-auth-method-type {{unless flightIcon @item.Type}}" data-test-type={{@item.Type}}>
-    {{#if flightIcon}}
-      <FlightIcon @name={{flightIcon}} class="mr-1.5 w-4 h-4" />
-    {{/if}}
-    {{t (concat "common.brand." @item.Type)}}
-  </span>
-{{/let}}
+<span class="consul-auth-method-type {{@item.Type}}" data-test-type={{@item.Type}}>
+  {{t (concat "common.brand." @item.Type)}}
+</span>

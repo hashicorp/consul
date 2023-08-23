@@ -7,53 +7,53 @@ description: |-
 
 # Consul API Overview
 
-The Consul HTTP API is a RESTful interface that allows you to leverage Consul functionality in your network. This topic provides guidance about the essential API endpoints for different workstreams. Refer to the [HTTP API structure](/consul/api-docs/api-structure) docs to learn how to interact with and authenticate against the Consul HTTP API.
+The Consul HTTP API is a RESTful interface that allows you to leverage Consul functionality in your network. This topic provides guidance about the essential API endpoints for different workstreams. Refer to the [HTTP API structure](/api-docs/api-structure) docs to learn how to interact with and authenticate against the Consul HTTP API.
 
 ## Connect your services
 
 Use the following API endpoints to configure and connect your services.
 
-- [`/catalog`](/consul/api-docs/catalog): Register and deregister nodes, services, and health checks.
-- [`/health`](/consul/api-docs/health): Query node health when health checks are enabled.
-- [`/query`](/consul/api-docs/query): Create and manage prepared queries in Consul. Prepared queries allow you to register a complex service query and send it later.
-- [`/coordinate`](/consul/api-docs/coordinate): Query the network coordinates for nodes in the local datacenter and Consul servers in the local datacenter and remote datacenters.
+- [`/catalog`](/api-docs/catalog): Register and deregister nodes, services, and health checks.
+- [`/health`](/api-docs/health): Query node health when health checks are enabled.
+- [`/query`](/api-docs/query): Create and manage prepared queries in Consul. Prepared queries allow you to register a complex service query and send it later.
+- [`/coordinate`](/api-docs/coordinate): Query the network coordinates for nodes in the local datacenter and Consul servers in the local datacenter and remote datacenters.
 
 The following endpoints are specific to service mesh:
 
-- [`/config`](/consul/api-docs/config): Create, update, delete, and query central configuration entries registered with Consul. Configuration entries define the default behavior of resources in the service mesh.
-- [`/agent/connect`](/consul/api-docs/agent/connect): Interact with local agents in the service mesh.
-- [`/connect`](/consul/api-docs/connect): Manage service mesh-related operations, including service intentions ([`/connect/intentions`](/consul/api-docs/connect/intentions)) and the service mesh certificate authority (CA) ([`/connect/ca`](/consul/api-docs/connect/ca)).
+- [`/config`](/api-docs/config): Create, update, delete, and query central configuration entries registered with Consul. Configuration entries define the default behavior of resources in the service mesh.
+- [`/agent/connect`](/api-docs/agent/connect): Interact with local agents in the service mesh.
+- [`/connect`](/api-docs/connect): Manage service mesh-related operations, including service intentions ([`/connect/intentions`](/api-docs/connect/intentions)) and the service mesh certificate authority (CA) ([`/connect/ca`](/api-docs/connect/ca)).
 
 
 ## Enable zero-trust network security
 
 The following API endpoints give you control over access to services in your network and access to the Consul API.
 
-- [`/acl`](/consul/api-docs/acl): Create and manage tokens that authenticate requests and authorize access to resources in the network. We recommend enabling access control lists (ACL) to secure access to the Consul API, UI, and CLI.
-- [`/connect/intentions`](/consul/api-docs/connect/intentions): Create and manage service intentions.
+- [`/acl`](/api-docs/acl): Create and manage tokens that authenticate requests and authorize access to resources in the network. We recommend enabling access control lists (ACL) to secure access to the Consul API, UI, and CLI.
+- [`/connect/intentions`](/api-docs/connect/intentions): Create and manage service intentions.
 
 ## Observe your network
 
 Use the following API endpoints enable network observability.
 
-- [`/status`](/consul/api-docs/status): Debug your Consul datacenter by returning low-level Raft information about Consul server peers.
-- [`/agent/metrics`](/consul/api-docs/agent#view-metrics): Retrieve metrics for the most recent intervals that have finished. For more information about metrics, refer to [Telemetry](/consul/docs/agent/telemetry).
+- [`/status`](/api-docs/status): Debug your Consul datacenter by returning low-level Raft information about Consul server peers.
+- [`/agent/metrics`](/api-docs/agent#view-metrics): Retrieve metrics for the most recent intervals that have finished. For more information about metrics, refer to [Telemetry](/docs/agent/telemetry).
 
 
 ## Manage Consul
 
 The following API endpoints help you manage Consul operations.
 
-- [`/operator`](/consul/api-docs/operator): Perform cluster-level tasks, such as interacting with the Raft subsystem or obtaining license information.
-- [`/partition`](/consul/api-docs/admin-partitions): Create and manage administrative or admin partitions in Consul. Admin partitions are supersets of Consul namespaces that isolate groups of resources to lower operational overhead.
-- [`/namespace`](/consul/api-docs/namespaces): Create and manage namespaces in Consul. Namespaces isolate groups of resources to lower operational overhead.
-- [`/snapshot`](/consul/api-docs/snapshot): Save and restore Consul server state in the event of a disaster.
-- [`/txn`](/consul/api-docs/txn): Apply multiple operations, such as updating the catalog and retrieving multiple KV entries, in a single transaction.
+- [`/operator`](/api-docs/operator): Perform cluster-level tasks, such as interacting with the Raft subsystem or obtaining license information.
+- [`/partition`](/api-docs/partition): Create and manage administrative or admin partitions in Consul. Admin partitions are supersets of Consul namespaces that isolate groups of resources to lower operational overhead.
+- [`/namespace`](/api-docs/namespace): Create and manage namespaces in Consul. Namespaces isolate groups of resources to lower operational overhead.
+- [`/snapshot`](/api-docs/snapshot): Save and restore Consul server state in the event of a disaster.
+- [`/txn`](/api-docs/txn): Apply multiple operations, such as updating the catalog and retrieving multiple KV entries, in a single transaction.
 
 ## Configure your services dynamically
 
 The following API endpoints enable you to dynamically configure your services.
 
-- [`/event`](/consul/api-docs/event): Start a custom event that you can use to build scripts and automations.
-- [`/kv`](/consul/api-docs/kv): Add, remove, and update metadata stored in the Consul KV store.
-- [`/session`](/consul/api-docs/session): Create and manage [sessions](/consul/docs/dynamic-app-config/sessions) in Consul. You can use sessions to build distributed and granular locks to ensure nodes are properly writing to the Consul KV store.
+- [`/event`](/api-docs/event): Start a custom event that you can use to build scripts and automations.
+- [`/kv`](/api-docs/kv): Add, remove, and update metadata stored in the Consul KV store.
+- [`/session`](/api-docs/session): Create and manage [sessions](/docs/dynamic-app-config/sessions) in Consul. You can use sessions to build distributed and granular locks to ensure nodes are properly writing to the Consul KV store.

@@ -1,13 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 
-const replace = function (
+const replace = function(
   obj,
   prop,
   value,
@@ -25,21 +20,21 @@ export default Component.extend({
   logger: service('logger'),
   data: service('data-source/service'),
   closeOnDestroy: true,
-  onerror: function (e) {
+  onerror: function(e) {
     this.logger.execute(e.error);
   },
-  init: function () {
+  init: function() {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
   },
-  willDestroyElement: function () {
+  willDestroyElement: function() {
     if (this.closeOnDestroy) {
       this.actions.close.apply(this, []);
     }
     this._listeners.remove();
     this._super(...arguments);
   },
-  didReceiveAttrs: function () {
+  didReceiveAttrs: function() {
     this._super(...arguments);
     // only close and reopen if the uri changes
     // otherwise this will fire whenever the proxies data changes
@@ -48,7 +43,7 @@ export default Component.extend({
     }
   },
   actions: {
-    open: function () {
+    open: function() {
       replace(this, 'source', this.data.open(this.src, this), (prev, source) => {
         // Makes sure any previous source (if different) is ALWAYS closed
         if (typeof prev !== 'undefined') {
@@ -61,7 +56,7 @@ export default Component.extend({
           prev.destroy();
         }
       });
-      const error = (err) => {
+      const error = err => {
         try {
           const error = get(err, 'error.errors.firstObject');
           if (get(error || {}, 'status') !== '429') {
@@ -76,13 +71,13 @@ export default Component.extend({
       // we only need errors here as this only uses proxies which
       // automatically update their data
       const remove = this._listeners.add(this.source, {
-        error: (e) => {
+        error: e => {
           error(e);
         },
       });
       replace(this, '_remove', remove);
     },
-    close: function () {
+    close: function() {
       if (typeof this.source !== 'undefined') {
         this.data.close(this.source, this);
         replace(this, '_remove', undefined);

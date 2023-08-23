@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -59,17 +56,8 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		return &resp, nil
 	}
 
-	newTarget := func(opts structs.DiscoveryTargetOpts) *structs.DiscoveryTarget {
-		if opts.Namespace == "" {
-			opts.Namespace = "default"
-		}
-		if opts.Partition == "" {
-			opts.Partition = "default"
-		}
-		if opts.Datacenter == "" {
-			opts.Datacenter = "dc1"
-		}
-		t := structs.NewDiscoveryTarget(opts)
+	newTarget := func(service, serviceSubset, namespace, partition, datacenter string) *structs.DiscoveryTarget {
+		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
 		t.Name = t.SNI
 		t.ConnectTimeout = 5 * time.Second // default
@@ -131,7 +119,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 				},
 			},
 			Targets: map[string]*structs.DiscoveryTarget{
-				"web.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "web"}),
+				"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
 			},
 		},
 	}
@@ -257,12 +245,10 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
 					"web.default.default.dc1": targetWithConnectTimeout(
-						newTarget(structs.DiscoveryTargetOpts{Service: "web"}),
+						newTarget("web", "", "default", "default", "dc1"),
 						33*time.Second,
 					),
 				},
-				AutoVirtualIPs:   []string{"240.0.0.1"},
-				ManualVirtualIPs: []string{},
 			},
 		}
 		require.Equal(t, expect, resp)

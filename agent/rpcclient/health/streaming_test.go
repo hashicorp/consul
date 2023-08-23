@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package health
 
 import (
@@ -8,7 +5,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // streamClient is a mock StreamingClient for testing that allows

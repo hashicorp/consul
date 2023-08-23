@@ -1,14 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-import { module, test } from 'qunit';
+import { module } from 'qunit';
+import test from 'ember-sinon-qunit/test-support/test';
 import btoa from 'consul-ui/utils/btoa';
 
-module('Unit | Utils | btoa', function () {
-  test('it encodes strings properly', function (assert) {
-    assert.expect(2);
+module('Unit | Utils | btoa', function() {
+  test('it encodes strings properly', function(assert) {
     [
       {
         test: '',
@@ -18,7 +13,7 @@ module('Unit | Utils | btoa', function () {
         test: '1234',
         expected: 'MTIzNA==',
       },
-    ].forEach(function (item) {
+    ].forEach(function(item) {
       const actual = btoa(item.test);
       assert.equal(actual, item.expected);
     });

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import BaseAbility from 'consul-ui/abilities/base';
 import { inject as service } from '@ember/service';
 
@@ -16,7 +11,10 @@ export default class PeerAbility extends BaseAbility {
     return this.canDelete;
   }
   get canDelete() {
-    return !['DELETING'].includes(this.item.State) && super.canDelete;
+    return ![
+      'DELETING',
+      'TERMINATED'
+    ].includes(this.item.State) && super.canDelete;
   }
 
   get canUse() {

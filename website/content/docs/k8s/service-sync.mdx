@@ -12,7 +12,7 @@ services are available to Consul agents and services in Consul can be available
 as first-class Kubernetes services. This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul K8s Helm chart](/consul/docs/k8s/installation/install).
+[Consul Helm chart](/docs/k8s/installation/install).
 
 ![screenshot of a Kubernetes service in the UI](/img/k8s-service.png)
 
@@ -20,18 +20,23 @@ automatically installed and configured using the
 Consul catalog enable Kubernetes services to be accessed by any node that
 is part of the Consul cluster, including other distinct Kubernetes clusters.
 For non-Kubernetes nodes, they can access services using the standard
-[Consul DNS](/consul/docs/services/discovery/dns-overview) or HTTP API.
+[Consul DNS](/docs/discovery/dns) or HTTP API.
 
 **Why sync Consul services to Kubernetes?** Syncing Consul services to
-Kubernetes services enables non-Kubernetes services to be accessed using kube-dns and Kubernetes-specific
-environment variables. This integration makes it very easy to automate external
+Kubernetes services enables non-Kubernetes services (such as external to
+the cluster) to be accessed in a native Kubernetes way: using kube-dns,
+environment variables, etc. This makes it very easy to automate external
 service discovery, including hosted services like databases.
 
-## Installation and configuration
+## Installation and Configuration
 
-~> Enabling both Service Mesh and Service Sync on the same Kubernetes services is not supported, as Service Mesh also registers Kubernetes service instances to Consul. Ensure that Service Sync is only enabled for namespaces and services that are not injected with the Consul sidecar for Service Mesh as described in [Sync Enable/Disable](/consul/docs/k8s/service-sync#sync-enable-disable).
+~> Enabling both Service Mesh and Service Sync on the same Kubernetes services is not supported, as Service Mesh also registers Kubernetes service instances to Consul. Please ensure that Service Sync is only enabled for namespaces and services that are not injected with the Consul sidecar for Service Mesh as described in [Sync Enable/Disable](/docs/k8s/service-sync#sync-enable-disable).
 
-The service sync feature deploys a long-running process which can run either inside or outside of a Kubernetes cluster. However, running this process within the Kubernetes cluster is generally easier since it is automated using the [Helm chart](/consul/docs/k8s/helm).
+The service sync is done using an external long-running process in the
+[consul-k8s project](https://github.com/hashicorp/consul-k8s). This process
+can run either in or out of a Kubernetes cluster. However, running this within
+the Kubernetes cluster is generally easier since it is automated using the
+[Helm chart](/docs/k8s/helm).
 
 The Consul server cluster can run either in or out of a Kubernetes cluster.
 The Consul server cluster does not need to be running on the same machine
@@ -40,7 +45,7 @@ with the address to a Consul agent as well as any additional access
 information such as ACL tokens.
 
 To install the sync process, enable the catalog sync feature using
-[Helm values](/consul/docs/k8s/helm#configuration-values) and
+[Helm values](/docs/k8s/helm#configuration-values) and
 upgrade the installation using `helm upgrade` for existing installs or
 `helm install` for a fresh install.
 
@@ -49,7 +54,8 @@ syncCatalog:
   enabled: true
 ```
 
-This value enables service syncing in both direction. You can also disable a direction so that only Kubernetes services sync to Consul, or only Consul services sync to Kubernetes.
+This will enable services to sync _in both directions_. You can also choose
+to only sync Kubernetes services to Consul or vice versa by disabling a direction.
 
 To only enable syncing Consul services to Kubernetes use the config:
 
@@ -69,7 +75,7 @@ syncCatalog:
   toK8S: false
 ```
 
-Refer to the [Helm configuration](/consul/docs/k8s/helm#v-synccatalog)
+See the [Helm configuration](/docs/k8s/helm#v-synccatalog)
 for more information.
 
 ### Authentication
@@ -77,17 +83,18 @@ for more information.
 The sync process must authenticate to both Kubernetes and Consul to read
 and write services.
 
-If running `consul-k8s` using the Helm chart, then this authentication is handled for you.
+If running `consul-k8s` using the Helm chart then this authentication is handled for you.
 
 If running `consul-k8s` outside of Kubernetes, a valid kubeconfig file must be provided with cluster
-and authentication information. The sync process looks into the default locations
+and authentication information. The sync process will look into the default locations
 for both in-cluster and out-of-cluster authentication. If `kubectl` works,
 then the sync program should work.
 
-If ACLs are configured on the Consul cluster, you need to provide a Consul
-[ACL token](/consul/tutorials/security/access-control-setup-production). Review the [ACL rules](/consul/docs/security/acl/acl-rules)
+For Consul, if ACLs are configured on the cluster, a Consul
+[ACL token](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
+will need to be provided. Review the [ACL rules](/docs/security/acl/acl-rules)
 when creating this token so that it only allows the necessary privileges. The catalog
-sync process accepts this token by using the [`CONSUL_HTTP_TOKEN`](/consul/commands#consul_http_token)
+sync process accepts this token by using the [`CONSUL_HTTP_TOKEN`](/commands#consul_http_token)
 environment variable. This token should be set as a
 [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-your-own-secrets)
 and referenced in the Helm chart.
@@ -96,21 +103,22 @@ and referenced in the Helm chart.
 
 This sync registers Kubernetes services to the Consul catalog automatically.
 
-This sync enables discovery and connection to Kubernetes services using native
-Consul service discovery protocols such as DNS or HTTP. This is particularly useful for
+This enables discovery and connection to Kubernetes services using native
+Consul service discovery such as DNS or HTTP. This is particularly useful for
 non-Kubernetes nodes. This also causes all discoverable services to be part of
 a central service catalog in Consul for further syncing into alternate
 Kubernetes clusters or other platforms.
 
-Each synced service is registered onto a Consul node called `k8s-sync`. This node
-is not a real node. Instead, the catalog sync process is monitoring Kubernetes
+Each synced service will be registered onto a Consul node called `k8s-sync`. This
+is not a real node because there is no Consul client registering and monitoring
+the services. Instead, the catalog sync process is monitoring Kubernetes
 and syncing the services to Consul.
 
-### Kubernetes service types
+### Kubernetes Service Types
 
 Not all Kubernetes services are externally accessible. The sync program by
-default only syncs services of the following types or configurations.
-If a service type is not listed below, then the sync program ignores that
+default will only sync services of the following types or configurations.
+If a service type is not listed below, then the sync program will ignore that
 service type.
 
 #### NodePort
@@ -118,60 +126,59 @@ service type.
 [NodePort services](https://kubernetes.io/docs/concepts/services-networking/service/#nodeport)
 register a static port that every node in the K8S cluster listens on.
 
-For NodePort services, a Consul service instance is created for each
+For NodePort services, a Consul service instance will be created for each
 node that has the representative pod running. While Kubernetes configures
 a static port on all nodes in the cluster, this limits the number of service
 instances to be equal to the nodes running the target pods.
-By default it uses the external IP of the node but this can be configured through
-the [`nodePortSyncType` helm option](/consul/docs/k8s/helm#v-synccatalog-nodeportsynctype).
+By default it will use the external IP of the node but this can be configured via
+the [`nodePortSyncType` helm option](/docs/k8s/helm#v-synccatalog-nodeportsynctype).
 
-The service instance's port is set to the first defined node port of the service unless
-set specifically in the `consul.hashicorp.com/service-port` annotation. Refer to [Service Ports](/consul/docs/k8s/service-sync#service-ports) for more information.
+The service instance's port will be set to the _first_ defined node port of the service unless
+set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 #### LoadBalancer
 
-For LoadBalancer services, a single service instance is registered with
+For LoadBalancer services, a single service instance will be registered with
 the external IP of the created load balancer. Because this is already a load
-balancer, only one service instance is registered with Consul rather
+balancer, only one service instance will be registered with Consul rather
 than registering each individual pod endpoint.
 
-The service instance's port is set to the first defined port of the
-service unless set specifically in the `consul.hashicorp.com/service-port` annotation. Refer to [Service Ports](/consul/docs/k8s/service-sync#service-ports) for more information.
+The service instance's port will be set to the _first_ defined port of the
+service unless set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 #### External IPs
 
 Any service type may specify an
 "[external IP](https://kubernetes.io/docs/concepts/services-networking/service/#external-ips)"
 configuration. The external IP must be configured by some other system, but
-any service discovery resolves to this set of IP addresses rather than a
+any service discovery will resolve to this set of IP addresses rather than a
 virtual IP.
 
-If an external IP list is present, a service instance in Consul is created
+If an external IP list is present, a service instance in Consul will be created
 for each external IP. It is assumed that if an external IP is present that it
 is routable and configured by some other system.
 
-The service instance's port is set to the _first_ defined port of the
-service unless set specifically with the `consul.hashicorp.com/service-port` annotation. Refer to [Service Ports](/consul/docs/k8s/service-sync#service-ports) for more information.
+The service instance's port will be set to the _first_ defined port of the
+service unless set specifically via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 #### ClusterIP
 
 ClusterIP services are synced by default as of `consul-k8s` version 0.3.0.
-Each pod that is an endpoint for the service is synced as a Consul service
+Each pod that is an endpoint for the service will be synced as a Consul service
 instance with its IP set to the pod IP and its port set to the `targetPort`.
 
-The service instance's port can be overridden with the `consul.hashicorp.com/service-port` annotation. Refer to [Service Ports](/consul/docs/k8s/service-sync#service-ports) for more information.
+The service instance's port can be overridden via the `consul.hashicorp.com/service-port` annotation (see [Service Ports](/docs/k8s/service-sync#service-ports)).
 
 -> In Kubernetes clusters where pod IPs are not accessible outside the cluster,
 the services registered in Consul may not be routable. To
-skip syncing ClusterIP services, set [`syncClusterIPServices`](/consul/docs/k8s/helm#v-synccatalog-syncclusteripservices)
+skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/k8s/helm#v-synccatalog-syncclusteripservices)
 to `false` in the Helm chart values file.
 
-### Enable and disable sync
+### Sync Enable/Disable
 
-By default, all valid service types are synced from every Kubernetes
-namespace except for `kube-system` and `kube-public`.
-
-To only sync specific services, first modify the annotation to set the default to `false`:
+By default, all valid service types (as explained above) are synced from every Kubernetes
+namespace (except for `kube-system` and `kube-public`).
+If you wish to only sync specific services via annotation, set the default to `false`:
 
 ```yaml
 syncCatalog:
@@ -179,7 +186,7 @@ syncCatalog:
   default: false
 ```
 
-Then, explicitly enable syncing specific services with the `consul.hashicorp.com/service-sync` annotation:
+And explicitly enable syncing specific services via the `consul.hashicorp.com/service-sync` annotation:
 
 ```yaml
 kind: Service
@@ -190,7 +197,7 @@ metadata:
     'consul.hashicorp.com/service-sync': 'true'
 ```
 
--> **Note:** If the annotation is set to `false` when the default sync is `true`, the service does not sync.
+-> **NOTE:** If the annotation is set to `false` when the default sync is `true`, the service will **not** be synced.
 
 You can allow or deny syncing from specific Kubernetes namespaces by setting the
 `k8sAllowNamespaces` and `k8sDenyNamespaces` keys:
@@ -203,10 +210,10 @@ syncCatalog:
   k8sDenyNamespaces: ['kube-system', 'kube-public']
 ```
 
-In the default configuration, services from all namespaces except for
-`kube-system` and `kube-public` are synced.
+In the default configuration (shown above), services from all namespaces except for
+`kube-system` and `kube-public` will be synced.
 
-To only sync from specific namespaces, you can list only those
+If you wish to only sync from specific namespaces, you can list only those
 namespaces in the `k8sAllowNamespaces` key:
 
 ```yaml
@@ -217,7 +224,8 @@ syncCatalog:
   k8sDenyNamespaces: []
 ```
 
-To sync from every namespace except specific namespaces, use `*` in the allow list and then specify the non-syncing namespaces in the deny list:
+If you wish to sync from every namespace _except_ specific namespaces, you can
+use `*` in the allow list and then specify the non-syncing namespaces in the deny list:
 
 ```yaml
 syncCatalog:
@@ -227,15 +235,15 @@ syncCatalog:
   k8sDenyNamespaces: ['no-sync-ns-1', 'no-sync-ns-2']
 ```
 
--> **Note:** The deny list takes precedence over the allow list. If a namespace
-is listed in both lists, it does not sync.
+-> **NOTE:** The deny list takes precedence over the allow list. If a namespace
+is listed in both lists, it will **not** be synced.
 
-### Service name
+### Service Name
 
 When a Kubernetes service is synced to Consul, the name of the service in Consul
-by default is the value of the `name` metadata on that Kubernetes service.
+by default will be the value of the "name" metadata on that Kubernetes service.
 This makes it so that service sync works with zero configuration changes.
-This setting can be overridden using an annotation to specify the Consul service name:
+This can be overridden using an annotation to specify the Consul service name:
 
 ```yaml
 kind: Service
@@ -246,15 +254,17 @@ metadata:
     'consul.hashicorp.com/service-name': my-consul-service
 ```
 
-**If a conflicting service name exists in Consul,** the sync program
-registers additional instances to that same service. Therefore, services inside
+**If a conflicting service name exists in Consul,** the sync program will
+register additional instances to that same service. Therefore, services inside
 and outside of Kubernetes should have different names unless you want either
 side to potentially connect. This default behavior also enables gracefully
-transitioning a service between deployments inside and outside of Kubernetes.
+transitioning a service from outside of K8S to inside, and vice versa.
 
-### Service ports
+### Service Ports
 
-When syncing the Kubernetes service to Consul, the Consul service port is the first defined port in the service. Additionally, all ports become registered in the service instance metadata with the key "port-X," where X is
+When syncing the Kubernetes service to Consul, the Consul service port will be
+the first defined port in the service. Additionally, all ports will be
+registered in the service instance metadata with the key "port-X" where X is
 the name of the port and the value is the externally accessible port.
 
 The default service port can be overridden using an annotation:
@@ -270,10 +280,13 @@ metadata:
 
 The annotation value may be a name of a port (recommended) or an exact port value.
 
-### Service tags
+### Service Tags
 
-A service registered in Consul from Kubernetes always has the tag "k8s" added
-to it. Additional tags can be specified with a comma-separated annotation value. These custom tags automatically include the "k8s" tag, which can't be disabled. When specifying values, use commas without whitespace.
+A service registered in Consul from Kubernetes will always have the tag "k8s" added
+to it. Additional tags can be specified with a comma-separated annotation value
+as shown below. This will also automatically include the "k8s" tag which can't
+be disabled. The values should be specified comma-separated without any
+additional whitespace.
 
 ```yaml
 kind: Service
@@ -284,15 +297,16 @@ metadata:
     'consul.hashicorp.com/service-tags': 'primary,foo'
 ```
 
-### Service meta
+### Service Meta
 
-A service registered in Consul from Kubernetes sets the `external-source` key to
-`kubernetes`. This can be used from the API, CLI and UI to filter
-service instances that are set in k8s. The Consul UI displays a Kubernetes icon next to all externally
+A service registered in Consul from Kubernetes will set the `external-source` key to
+"kubernetes". This can be used by API consumers, the UI, CLI, etc. to filter
+service instances that are set in k8s. The Consul UI (in Consul 1.2.3 and later)
+will read this value to show a Kubernetes icon next to all externally
 registered services from Kubernetes.
 
 Additional metadata can be specified using annotations. The "KEY" below can be
-set to any key. This allows setting multiple meta values.
+set to any key. This allows setting multiple meta values:
 
 ```yaml
 kind: Service
@@ -306,12 +320,14 @@ metadata:
 ### Consul Enterprise Namespaces
 
 Consul Enterprise supports Consul namespaces. These can be used when syncing
-from Kubernetes to Consul. However, namespaces are not supported when syncing from Consul to Kubernetes.
+from Kubernetes to Consul (although not vice-versa).
 
 There are three options available:
 
 1.  **Single Destination Namespace** – Sync all Kubernetes services, regardless of namespace,
     into the same Consul namespace.
+
+    This can be configured with:
 
     ```yaml
     global:
@@ -323,11 +339,13 @@ There are three options available:
         consulDestinationNamespace: 'my-consul-ns'
     ```
 
-1.  **Mirror Namespaces** - Each Kubernetes service is synced to a Consul namespace with the same
+1.  **Mirror Namespaces** - Each Kubernetes service will be synced to a Consul namespace with the same
     name as its Kubernetes namespace.
 
-    For example, service `foo` in Kubernetes namespace `ns-1` is synced to the Consul namespace `ns-1`.
-    If a mirrored namespace does not exist in Consul, it is created automatically.
+    For example, service `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `ns-1`.
+    If a mirrored namespace does not exist in Consul, it will be created.
+
+    This can be configured with:
 
     ```yaml
     global:
@@ -341,10 +359,12 @@ There are three options available:
     addK8SNamespaceSuffix: false
     ```
 
-1.  **Mirror Namespaces With Prefix** - Each Kubernetes service is synced to a Consul namespace
-    with the same name as its Kubernetes namespace with a prefix. For example, given a prefix
-    `k8s-`, service `foo` in Kubernetes namespace `ns-1` syncs to the Consul namespace
+1.  **Mirror Namespaces With Prefix** - Each Kubernetes service will be synced to a Consul namespace
+    with the same name as its Kubernetes namespace **with a prefix**. For example, given a prefix
+    `k8s-`, service `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace
     `k8s-ns-1`.
+
+    This can be configured with:
 
     ```yaml
     global:
@@ -359,20 +379,24 @@ There are three options available:
     addK8SNamespaceSuffix: false
     ```
 
--> Note that in both mirroring examples, `addK8SNamespaceSuffix` is set to `false`. If set to its default value, `true`, the Kubernetes namespace is added as a suffix to each
+-> Note that in both mirroring examples we're setting `addK8SNamespaceSuffix: false`. If set to `true`
+(the default), the Kubernetes namespace will be added as a suffix to each
 Consul service name. For example Kubernetes service `foo` in namespace `k8s-ns`
 would be registered into Consul with the name `foo-k8s-ns`.
 This is useful when syncing from multiple Kubernetes namespaces to
-a single Consul namespace. However, you may want to disable this behavior
-when mirroring namespaces so that services do not overlap with services from
+a single consul namespace but is likely something you'll want turned off
+when mirroring namespaces since services won't overlap with services from
 other namespaces.
 
 ## Consul to Kubernetes
 
 This syncs Consul services into first-class Kubernetes services.
-The sync creates an [`ExternalName`](https://kubernetes.io/docs/concepts/services-networking/service/#externalname) for each Consul service. The "external name" is the Consul DNS name.
+The sync service will create an [`ExternalName`](https://kubernetes.io/docs/concepts/services-networking/service/#externalname)
+`Service` for each Consul service. The "external name" will be
+the Consul DNS name.
 
-For example, given a Consul service `foo`:
+For example, given a Consul service `foo`, a Kubernetes Service will be created
+as follows:
 
 ```yaml
 apiVersion: v1
@@ -386,22 +410,22 @@ spec:
 ```
 
 With Consul To Kubernetes syncing enabled, DNS requests of the form `<consul-service-name>`
-are serviced by Consul DNS. From a different Kubernetes namespace than where Consul
+will be serviced by Consul DNS. From a different Kubernetes namespace than where Consul
 is deployed, the DNS request would need to be `<consul-service-name>.<consul-namespace>`.
 
--> **Note:** Consul to Kubernetes syncing is not required if you enabled [Consul DNS on Kubernetes](/consul/docs/k8s/dns).
-All you need to do is address services in the form `<consul-service-name>.service.consul`, so you do not need Kubernetes `Service` objects created.
+-> **Note:** Consul to Kubernetes syncing **isn't required** if you've enabled [Consul DNS on Kubernetes](/docs/k8s/dns)
+_and_ all you need to do is address services in the form `<consul-service-name>.service.consul`, i.e. you don't need Kubernetes `Service` objects created.
 
 ~> **Requires Consul DNS via CoreDNS in Kubernetes:** This feature requires that
-[Consul DNS](/consul/docs/k8s/dns) is configured within Kubernetes.
-Additionally, [CoreDNS](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#config-coredns)
-is required instead of kube-dns to resolve an
+[Consul DNS](/docs/k8s/dns) is configured within Kubernetes.
+Additionally, **[CoreDNS](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#config-coredns)
+is required (instead of kube-dns)** to resolve an
 issue with resolving `externalName` services pointing to custom domains.
 
-### Enable and disable sync
+### Sync Enable/Disable
 
 All Consul services visible to the sync process based on its given ACL token
-are synced to Kubernetes.
+will be synced to Kubernetes.
 
 There is no way to change this behavior per service. For the opposite sync
 direction (Kubernetes to Consul), you can use Kubernetes annotations to disable
@@ -413,24 +437,24 @@ In the future, we hope to support per-service configuration.
 ### Service Name
 
 When a Consul service is synced to Kubernetes, the name of the Kubernetes
-service matches the name of the Consul service exactly.
+service will exactly match the name of the Consul service.
 
 To change this default exact match behavior, it is possible to specify a
 prefix to be added to service names within Kubernetes by using the
 `-k8s-service-prefix` flag. This can also be specified in the Helm
 configuration.
 
-**If a conflicting service is found**: the service is not synced. This
+**If a conflicting service is found,** the service will not be synced. This
 does not match the Kubernetes to Consul behavior, but given the current
-implementation we must do this because Kubernetes cannot mix both CNAME and
+implementation we must do this because Kubernetes can't mix both CNAME and
 Endpoint-based services.
 
-### Kubernetes service labels and annotations
+### Kubernetes Service Labels and Annotations
 
-Any Consul services synced to Kubernetes are labeled and annotated.
-An annotation `consul.hashicorp.com/synced` is set to `true` to note
+Any Consul services synced to Kubernetes will be labeled and annotated.
+An annotation `consul.hashicorp.com/synced` will be set to "true" to note
 that this is a synced service from Consul.
 
-Additionally, a label `consul=true` is specified so that label selectors
+Additionally, a label `consul=true` will be specified so that label selectors
 can be used with `kubectl` and other tooling to easily filter all Consul-synced
 services.

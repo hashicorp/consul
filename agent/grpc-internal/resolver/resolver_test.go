@@ -1,12 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package resolver
 
 import (
 	"fmt"
 	"net"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -44,7 +40,7 @@ func TestServerResolverBuilder(t *testing.T) {
 		_, err := rs.Build(resolver.Target{
 			Scheme:    "consul",
 			Authority: rs.Authority(),
-			URL:       url.URL{Opaque: endpoint},
+			Endpoint:  endpoint,
 		}, cc, resolver.BuildOptions{})
 		require.NoError(t, err)
 
@@ -186,9 +182,8 @@ type fakeClientConn struct {
 
 var _ resolver.ClientConn = (*fakeClientConn)(nil)
 
-func (f *fakeClientConn) UpdateState(state resolver.State) error {
+func (f *fakeClientConn) UpdateState(state resolver.State) {
 	f.state = state
-	return nil
 }
 
 func (*fakeClientConn) ReportError(error)                       {}

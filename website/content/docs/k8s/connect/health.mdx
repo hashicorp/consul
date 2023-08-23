@@ -2,7 +2,7 @@
 layout: docs
 page_title: Configure Health Checks for Consul on Kubernetes
 description: >-
-  Kubernetes has built-in health probes you can sync with Consul's health checks to ensure service mesh traffic is routed to healthy pods.
+  Kubernetes has built-in health probes you can sync with Consul's health checks to ensure service mesh traffic is routed to healthy pods. Learn how to register a TTL Health check and use mutating webhooks to redirect k8s liveness, readiness, and startup probes through Envoy proxies.
 ---
 
 # Configure Health Checks for Consul on Kubernetes
@@ -14,17 +14,14 @@ Health check synchronization with Consul is done automatically whenever `connect
 
 For each Kubernetes pod that is connect-injected the following will be configured:
 
-1. A [Consul health check](/consul/api-docs/catalog#register-entity) is registered within Consul catalog.
-The Consul health check's state reflects the pod's readiness status.
+1. A [TTL health check](/docs/discovery/checks#ttl) is registered within Consul.
+The Consul health check's state will reflect the pod's readiness status,
+which is the combination of all Kubernetes probes registered with the pod.
 
-1. If the pod is using [transparent proxy mode](/consul/docs/connect/transparent-proxy),
-the mutating webhook redirects all `http` based startup, liveness, and readiness probes in the pod through the Envoy proxy.
-This webhook is defined in the
-[`ExposePaths` configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
-for each probe so that kubelet can access the endpoint through the Envoy proxy.
+1. If the pod is utilizing [Transparent Proxy](/docs/connect/transparent-proxy) mode, the mutating webhook will mutate all `http` based Startup, Liveness, and Readiness probes in the pod to redirect through the Envoy proxy.
+This is done with [`ExposePaths` configuration](/docs/connect/registration/service-registration#expose-paths-configuration-reference) for each probe so that kubelet can access the endpoint through the Envoy proxy.
 
-The mutation behavior can be disabled, by setting either the `consul.hashicorp.com/transparent-proxy-overwrite-probes`
-pod annotation to `false` or the `connectInject.defaultOverwriteProbes` Helm value to `false`.
+~> The mutation behavior can be disabled by either setting the `consul.hashicorp.com/transparent-proxy-overwrite-probes` pod annotation to `false` or the `connectInject.defaultOverwriteProbes` Helm value to `false`.
 
 When readiness probes are set for a pod, the status of the pod will be reflected within Consul and will cause Consul to redirect service
 mesh traffic to the pod based on the pod's health. If the pod has failing health checks, Consul will no longer use
@@ -34,6 +31,6 @@ then use the respective service instance for service mesh traffic.
 In the case where no user defined health checks are assigned to a pod, the default behavior is that the Consul health check will
 be marked `passing` until the pod becomes unready.
 
--> It is highly recommended to [enable TLS](/consul/docs/k8s/helm#v-global-tls-enabled) for all production configurations to mitigate any
+-> It is highly recommended to [enable TLS](/docs/k8s/helm#v-global-tls-enabled) for all production configurations to mitigate any
 security concerns should the pod network ever be compromised. The controller makes calls across the network to Consul agents on all
 nodes so an attacker could potentially sniff ACL tokens *if those calls are not encrypted* via TLS.

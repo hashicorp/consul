@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -181,43 +178,20 @@ func TestQuerySNI(t *testing.T) {
 func TestTargetSNI(t *testing.T) {
 	// empty namespace, empty subset
 	require.Equal(t, "api.default.foo."+testTrustDomainSuffix1,
-		TargetSNI(structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
-			Service:    "api",
-			Partition:  "default",
-			Datacenter: "foo",
-		}), testTrustDomain1))
+		TargetSNI(structs.NewDiscoveryTarget("api", "", "", "default", "foo"), testTrustDomain1))
 
 	require.Equal(t, "api.default.foo."+testTrustDomainSuffix1,
-		TargetSNI(structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
-			Service:    "api",
-			Datacenter: "foo",
-		}), testTrustDomain1))
+		TargetSNI(structs.NewDiscoveryTarget("api", "", "", "", "foo"), testTrustDomain1))
 
 	// set namespace, empty subset
 	require.Equal(t, "api.neighbor.foo."+testTrustDomainSuffix2,
-		TargetSNI(structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
-			Service:    "api",
-			Namespace:  "neighbor",
-			Partition:  "default",
-			Datacenter: "foo",
-		}), testTrustDomain2))
+		TargetSNI(structs.NewDiscoveryTarget("api", "", "neighbor", "default", "foo"), testTrustDomain2))
 
 	// empty namespace, set subset
 	require.Equal(t, "v2.api.default.foo."+testTrustDomainSuffix1,
-		TargetSNI(structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
-			Service:       "api",
-			ServiceSubset: "v2",
-			Partition:     "default",
-			Datacenter:    "foo",
-		}), testTrustDomain1))
+		TargetSNI(structs.NewDiscoveryTarget("api", "v2", "", "default", "foo"), testTrustDomain1))
 
 	// set namespace, set subset
 	require.Equal(t, "canary.api.neighbor.foo."+testTrustDomainSuffix2,
-		TargetSNI(structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
-			Service:       "api",
-			ServiceSubset: "canary",
-			Namespace:     "neighbor",
-			Partition:     "default",
-			Datacenter:    "foo",
-		}), testTrustDomain2))
+		TargetSNI(structs.NewDiscoveryTarget("api", "canary", "neighbor", "default", "foo"), testTrustDomain2))
 }

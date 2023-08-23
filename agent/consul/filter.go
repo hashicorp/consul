@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -49,17 +46,14 @@ func (t *txnResultsFilter) Filter(i int) bool {
 	case result.KV != nil:
 		result.KV.EnterpriseMeta.FillAuthzContext(&authzContext)
 		return t.authorizer.KeyRead(result.KV.Key, &authzContext) != acl.Allow
-
 	case result.Node != nil:
 		(*structs.Node)(result.Node).FillAuthzContext(&authzContext)
 		return t.authorizer.NodeRead(result.Node.Node, &authzContext) != acl.Allow
-
 	case result.Service != nil:
-		(*structs.NodeService)(result.Service).FillAuthzContext(&authzContext)
+		result.Service.EnterpriseMeta.FillAuthzContext(&authzContext)
 		return t.authorizer.ServiceRead(result.Service.Service, &authzContext) != acl.Allow
-
 	case result.Check != nil:
-		(*structs.HealthCheck)(result.Check).FillAuthzContext(&authzContext)
+		result.Check.EnterpriseMeta.FillAuthzContext(&authzContext)
 		if result.Check.ServiceName != "" {
 			return t.authorizer.ServiceRead(result.Check.ServiceName, &authzContext) != acl.Allow
 		}

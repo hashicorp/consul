@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // Package freeport provides a helper for reserving free TCP ports across multiple
 // processes on the same machine. Each process reserves a block of ports outside
 // the ephemeral port range. Tests can request one of these reserved ports
@@ -79,9 +76,6 @@ var (
 	// total is the total number of available ports in the block for use.
 	total int
 
-	// seededRand is a random generator that is pre-seeded from the current time.
-	seededRand *rand.Rand
-
 	// stopCh is used to signal to background goroutines to terminate. Only
 	// really exists for the safety of reset() during unit tests.
 	stopCh chan struct{}
@@ -120,7 +114,6 @@ func initialize() {
 		panic("freeport: block size too big or too many blocks requested")
 	}
 
-	seededRand = rand.New(rand.NewSource(time.Now().UnixNano())) // This is compatible with go 1.19 but unnecessary in >= go1.20
 	firstPort, lockLn = alloc()
 
 	condNotEmpty = sync.NewCond(&mu)
@@ -262,7 +255,7 @@ func adjustMaxBlocks() (int, error) {
 // be automatically released when the application terminates.
 func alloc() (int, net.Listener) {
 	for i := 0; i < attempts; i++ {
-		block := int(seededRand.Int31n(int32(effectiveMaxBlocks)))
+		block := int(rand.Int31n(int32(effectiveMaxBlocks)))
 		firstPort := lowPort + block*blockSize
 		ln, err := net.ListenTCP("tcp", tcpAddr("127.0.0.1", firstPort))
 		if err != nil {

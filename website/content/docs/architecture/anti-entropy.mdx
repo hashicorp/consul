@@ -26,7 +26,7 @@ health checks and updating their local state.
 Services and checks within the context of an agent have a rich set of
 configuration options available. This is because the agent is responsible for
 generating information about its services and their health through the use of
-[health checks](/consul/docs/services/usage/checks).
+[health checks](/docs/discovery/checks).
 
 #### Catalog
 
@@ -43,7 +43,7 @@ responsible for recording and returning information _about_ services, nodes, and
 health.
 
 The catalog is maintained only by server nodes. This is because the catalog is
-replicated via the [Raft log](/consul/docs/architecture/consensus) to provide a
+replicated via the [Raft log](/docs/architecture/consensus) to provide a
 consolidated and consistent view of the cluster.
 
 ### Anti-Entropy
@@ -117,7 +117,8 @@ the source of truth for tag information. For example, the Redis
 database and its monitoring service Redis Sentinel have this kind of
 relationship. Redis instances are responsible for much of their
 configuration, but Sentinels determine whether the Redis instance is a
-primary or a secondary. Enable the
-[`enable_tag_override`](/consul/docs/services/configuration/services-configuration-reference#enable_tag_override) parameter in your service definition file to tell the Consul agent where the Redis database is running to bypass
-tags during anti-entropy synchronization. Refer to
-[Modify anti-entropy synchronization](/consul/docs/services/usage/define-services#modify-anti-entropy-synchronization) for additional information.
+primary or a secondary. Using the Consul service configuration item
+[enable_tag_override](/docs/discovery/services) you can instruct the
+Consul agent on which the Redis database is running to NOT update the
+tags during anti-entropy synchronization. For more information see
+[Services](/docs/discovery/services#enable-tag-override-and-anti-entropy) page.

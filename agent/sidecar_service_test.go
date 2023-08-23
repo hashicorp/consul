@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -96,7 +93,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 							LocalServiceAddress:    "127.0.127.0",
 							LocalServicePort:       9999,
 							Config:                 map[string]interface{}{"baz": "qux"},
-							Upstreams:              structs.TestUpstreams(t, false),
+							Upstreams:              structs.TestUpstreams(t),
 						},
 					},
 				},
@@ -121,7 +118,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 					LocalServiceAddress:    "127.0.127.0",
 					LocalServicePort:       9999,
 					Config:                 map[string]interface{}{"baz": "qux"},
-					Upstreams: structs.TestAddDefaultsToUpstreams(t, structs.TestUpstreams(t, false),
+					Upstreams: structs.TestAddDefaultsToUpstreams(t, structs.TestUpstreams(t),
 						*structs.DefaultEnterpriseMetaInDefaultPartition()),
 				},
 			},
@@ -134,78 +131,25 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			wantToken: "custom-token",
 		},
 		{
-			name: "inherit locality, tags and meta",
+			name: "inherit tags and meta",
 			sd: &structs.ServiceDefinition{
 				ID:   "web1",
 				Name: "web",
 				Port: 1111,
 				Tags: []string{"foo"},
 				Meta: map[string]string{"foo": "bar"},
-				Locality: &structs.Locality{
-					Region: "us-east-1",
-					Zone:   "us-east-1a",
-				},
 				Connect: &structs.ServiceConnect{
 					SidecarService: &structs.ServiceDefinition{},
 				},
 			},
 			wantNS: &structs.NodeService{
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				Kind:           structs.ServiceKindConnectProxy,
-				ID:             "web1-sidecar-proxy",
-				Service:        "web-sidecar-proxy",
-				Port:           0,
-				Tags:           []string{"foo"},
-				Meta:           map[string]string{"foo": "bar"},
-				Locality: &structs.Locality{
-					Region: "us-east-1",
-					Zone:   "us-east-1a",
-				},
-				LocallyRegisteredAsSidecar: true,
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "web",
-					DestinationServiceID:   "web1",
-					LocalServiceAddress:    "127.0.0.1",
-					LocalServicePort:       1111,
-				},
-			},
-			wantChecks: nil,
-		},
-		{
-			name: "retain locality, tags and meta if explicitly configured",
-			sd: &structs.ServiceDefinition{
-				ID:   "web1",
-				Name: "web",
-				Port: 1111,
-				Tags: []string{"foo"},
-				Meta: map[string]string{"foo": "bar"},
-				Locality: &structs.Locality{
-					Region: "us-east-1",
-					Zone:   "us-east-1a",
-				},
-				Connect: &structs.ServiceConnect{
-					SidecarService: &structs.ServiceDefinition{
-						Tags: []string{"bar"},
-						Meta: map[string]string{"baz": "qux"},
-						Locality: &structs.Locality{
-							Region: "us-east-2",
-							Zone:   "us-east-2a",
-						},
-					},
-				},
-			},
-			wantNS: &structs.NodeService{
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				Kind:           structs.ServiceKindConnectProxy,
-				ID:             "web1-sidecar-proxy",
-				Service:        "web-sidecar-proxy",
-				Port:           0,
-				Tags:           []string{"bar"},
-				Meta:           map[string]string{"baz": "qux"},
-				Locality: &structs.Locality{
-					Region: "us-east-2",
-					Zone:   "us-east-2a",
-				},
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       0,
+				Tags:                       []string{"foo"},
+				Meta:                       map[string]string{"foo": "bar"},
 				LocallyRegisteredAsSidecar: true,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "web",
@@ -273,7 +217,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 	}
 }
 
-func TestAgent_SidecarPortFromServiceID(t *testing.T) {
+func TestAgent_SidecarPortFromServiceIDLocked(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -284,7 +228,7 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 		enterpriseMeta    acl.EnterpriseMeta
 		maxPort           int
 		port              int
-		preRegister       []*structs.ServiceDefinition
+		preRegister       *structs.ServiceDefinition
 		serviceID         string
 		wantPort          int
 		wantErr           string
@@ -298,61 +242,34 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 			name: "re-registering same sidecar with no port should pick same one",
 			// Allow multiple ports to be sure we get the right one
 			maxPort: 2500,
-			// Pre register the main service and sidecar we want
-			preRegister: []*structs.ServiceDefinition{{
-				Kind:           structs.ServiceKindConnectProxy,
-				ID:             "web1",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				Name:           "web",
-				Port:           2221,
-				Proxy: &structs.ConnectProxyConfig{
-					DestinationServiceName: "web",
-					DestinationServiceID:   "web1",
-					LocalServiceAddress:    "127.0.0.1",
-					LocalServicePort:       1110,
-				},
-			}, {
-				Kind:           structs.ServiceKindConnectProxy,
-				ID:             "web1-sidecar-proxy",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				Name:           "web-sidecar-proxy",
-				Port:           2222,
+			// Pre register the sidecar we want
+			preRegister: &structs.ServiceDefinition{
+				Kind: structs.ServiceKindConnectProxy,
+				ID:   "web1-sidecar-proxy",
+				Name: "web-sidecar-proxy",
+				Port: 2222,
 				Proxy: &structs.ConnectProxyConfig{
 					DestinationServiceName: "web",
 					DestinationServiceID:   "web1",
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       1111,
 				},
-			}},
-			// Register same sidecar again
-			serviceID:      "web1-sidecar-proxy",
-			enterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-			wantPort:       2222, // Should claim the same port as before
+			},
+			// Register same again
+			serviceID: "web1-sidecar-proxy",
+			wantPort:  2222, // Should claim the same port as before
 		},
 		{
 			name: "all auto ports already taken",
-			// register another service with sidecar consuming our 1 and only allocated auto port.
-			preRegister: []*structs.ServiceDefinition{{
-				Kind:           structs.ServiceKindConnectProxy,
-				ID:             "api1",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				Name:           "api",
-				Port:           2221,
-				Proxy: &structs.ConnectProxyConfig{
-					DestinationServiceName: "api",
-					DestinationServiceID:   "api1",
-					LocalServiceAddress:    "127.0.0.1",
-					LocalServicePort:       1110,
-				},
-			}, {
+			// register another sidecar consuming our 1 and only allocated auto port.
+			preRegister: &structs.ServiceDefinition{
 				Kind: structs.ServiceKindConnectProxy,
 				Name: "api-proxy-sidecar",
 				Port: 2222, // Consume the one available auto-port
 				Proxy: &structs.ConnectProxyConfig{
-					DestinationServiceID:   "api1",
 					DestinationServiceName: "api",
 				},
-			}},
+			},
 			wantErr: "none left in the configured range [2222, 2222]",
 		},
 		{
@@ -386,11 +303,9 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 			a := NewTestAgent(t, hcl)
 			defer a.Shutdown()
 
-			if len(tt.preRegister) > 0 {
-				for _, s := range tt.preRegister {
-					err := a.addServiceFromSource(s.NodeService(), nil, false, "", ConfigSourceLocal)
-					require.NoError(t, err)
-				}
+			if tt.preRegister != nil {
+				err := a.addServiceFromSource(tt.preRegister.NodeService(), nil, false, "", ConfigSourceLocal)
+				require.NoError(t, err)
 			}
 
 			gotPort, err := a.sidecarPortFromServiceIDLocked(structs.ServiceID{ID: tt.serviceID, EnterpriseMeta: tt.enterpriseMeta})

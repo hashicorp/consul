@@ -1,10 +1,5 @@
 # Cluster Persistence
 
-> **Note**  
-> While the content of this document is still accurate, it doesn't cover the new
-> generic resource-oriented storage layer introduced in Consul 1.16. Please see
-> [Resources](../resources) for more information.
-
 The cluser persistence subsystem runs entirely in Server Agents. It handles both read and
 write requests from the [RPC] subsystem. See the [Consul Architecture Guide] for an
 introduction to the Consul deployment architecture and the [Consensus Protocol] used by
@@ -63,11 +58,11 @@ There are two styles for defining table indexes. The original style uses generic
 implementations from [hashicorp/go-memdb] (ex: `StringFieldIndex`). These indexes use
 [reflect] to find values for an index. These generic indexers work well when the index
 value is a single value available directly from the struct field, and there are no
-ce/enterprise differences.
+oss/enterprise differences.
 
 The second style of indexers are custom indexers implemented using only functions and
 based on the types defined in [indexer.go]. This style of index works well when the index
-value is a value derived from one or multiple fields, or when there are ce/enterprise
+value is a value derived from one or multiple fields, or when there are oss/enterprise
 differences between the indexes.
 
 [reflect]: https://golang.org/pkg/reflect/

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
@@ -41,9 +38,6 @@ type CompiledDiscoveryChain struct {
 	// entry for the service named ServiceName.
 	ServiceMeta map[string]string `json:",omitempty"`
 
-	// EnvoyExtensions has a list of configurations for an extension that patches Envoy resources.
-	EnvoyExtensions []EnvoyExtension `json:",omitempty"`
-
 	// StartNode is the first key into the Nodes map that should be followed
 	// when walking the discovery chain.
 	StartNode string `json:",omitempty"`
@@ -57,21 +51,30 @@ type CompiledDiscoveryChain struct {
 
 	// Targets is a list of all targets used in this chain.
 	Targets map[string]*DiscoveryTarget `json:",omitempty"`
+}
 
-	// VirtualIPs is a list of virtual IPs associated with the service.
-	AutoVirtualIPs   []string
-	ManualVirtualIPs []string
+func (c *CompiledDiscoveryChain) WillFailoverThroughMeshGateway(node *DiscoveryGraphNode) bool {
+	if node.Type != DiscoveryGraphNodeTypeResolver {
+		return false
+	}
+	failover := node.Resolver.Failover
+
+	if failover != nil && len(failover.Targets) > 0 {
+		for _, failTargetID := range failover.Targets {
+			failTarget := c.Targets[failTargetID]
+			switch failTarget.MeshGateway.Mode {
+			case MeshGatewayModeLocal, MeshGatewayModeRemote:
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.
 // This ID allows us to compare a discovery chain target to the chain upstream itself.
 func (c *CompiledDiscoveryChain) ID() string {
-	return ChainID(DiscoveryTargetOpts{
-		Service:    c.ServiceName,
-		Namespace:  c.Namespace,
-		Partition:  c.Partition,
-		Datacenter: c.Datacenter,
-	})
+	return chainID("", c.ServiceName, c.Namespace, c.Partition, c.Datacenter)
 }
 
 func (c *CompiledDiscoveryChain) CompoundServiceName() ServiceName {
@@ -185,23 +188,7 @@ type DiscoverySplit struct {
 
 // compiled form of ServiceResolverFailover
 type DiscoveryFailover struct {
-	Targets []string                       `json:",omitempty"`
-	Policy  *ServiceResolverFailoverPolicy `json:",omitempty"`
-	Regions []string                       `json:",omitempty"`
-}
-
-// compiled form of ServiceResolverPrioritizeByLocality
-type DiscoveryPrioritizeByLocality struct {
-	Mode string `json:",omitempty"`
-}
-
-func (pbl *ServiceResolverPrioritizeByLocality) ToDiscovery() *DiscoveryPrioritizeByLocality {
-	if pbl == nil {
-		return nil
-	}
-	return &DiscoveryPrioritizeByLocality{
-		Mode: pbl.Mode,
-	}
+	Targets []string `json:",omitempty"`
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver
@@ -212,17 +199,14 @@ type DiscoveryTarget struct {
 	// chain. It should be treated as a per-compile opaque string.
 	ID string `json:",omitempty"`
 
-	Service       string    `json:",omitempty"`
-	ServiceSubset string    `json:",omitempty"`
-	Namespace     string    `json:",omitempty"`
-	Partition     string    `json:",omitempty"`
-	Datacenter    string    `json:",omitempty"`
-	Peer          string    `json:",omitempty"`
-	Locality      *Locality `json:",omitempty"`
+	Service       string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty"`
+	Namespace     string `json:",omitempty"`
+	Partition     string `json:",omitempty"`
+	Datacenter    string `json:",omitempty"`
 
-	MeshGateway      MeshGatewayConfig      `json:",omitempty"`
-	Subset           ServiceResolverSubset  `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig `json:",omitempty"`
+	MeshGateway MeshGatewayConfig     `json:",omitempty"`
+	Subset      ServiceResolverSubset `json:",omitempty"`
 
 	ConnectTimeout time.Duration `json:",omitempty"`
 
@@ -237,8 +221,6 @@ type DiscoveryTarget struct {
 	// balancer objects.  This has a structure similar to SNI, but will not be
 	// affected by SNI customizations.
 	Name string `json:",omitempty"`
-
-	PrioritizeByLocality *DiscoveryPrioritizeByLocality `json:",omitempty"`
 }
 
 func (t *DiscoveryTarget) MarshalJSON() ([]byte, error) {
@@ -277,86 +259,28 @@ func (t *DiscoveryTarget) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type DiscoveryTargetOpts struct {
-	Service              string
-	ServiceSubset        string
-	Namespace            string
-	Partition            string
-	Datacenter           string
-	Peer                 string
-	PrioritizeByLocality *DiscoveryPrioritizeByLocality
-}
-
-func MergeDiscoveryTargetOpts(opts ...DiscoveryTargetOpts) DiscoveryTargetOpts {
-	var final DiscoveryTargetOpts
-	for _, o := range opts {
-		if o.Service != "" {
-			final.Service = o.Service
-		}
-
-		if o.ServiceSubset != "" {
-			final.ServiceSubset = o.ServiceSubset
-		}
-
-		// default should override the existing value
-		if o.Namespace != "" {
-			final.Namespace = o.Namespace
-		}
-
-		// default should override the existing value
-		if o.Partition != "" {
-			final.Partition = o.Partition
-		}
-
-		if o.Datacenter != "" {
-			final.Datacenter = o.Datacenter
-		}
-
-		if o.Peer != "" {
-			final.Peer = o.Peer
-		}
-	}
-
-	return final
-}
-
-func NewDiscoveryTarget(opts DiscoveryTargetOpts) *DiscoveryTarget {
+func NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter string) *DiscoveryTarget {
 	t := &DiscoveryTarget{
-		Service:       opts.Service,
-		ServiceSubset: opts.ServiceSubset,
-		Namespace:     opts.Namespace,
-		Partition:     opts.Partition,
-		Datacenter:    opts.Datacenter,
-		Peer:          opts.Peer,
+		Service:       service,
+		ServiceSubset: serviceSubset,
+		Namespace:     namespace,
+		Partition:     partition,
+		Datacenter:    datacenter,
 	}
 	t.setID()
 	return t
 }
 
-func (t *DiscoveryTarget) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
-	return DiscoveryTargetOpts{
-		Service:       t.Service,
-		ServiceSubset: t.ServiceSubset,
-		Namespace:     t.Namespace,
-		Partition:     t.Partition,
-		Datacenter:    t.Datacenter,
-		Peer:          t.Peer,
-	}
-}
-
-func ChainID(opts DiscoveryTargetOpts) string {
+func chainID(subset, service, namespace, partition, dc string) string {
 	// NOTE: this format is similar to the SNI syntax for simplicity
-	if opts.Peer != "" {
-		return fmt.Sprintf("%s.%s.%s.external.%s", opts.Service, opts.Namespace, opts.Partition, opts.Peer)
+	if subset == "" {
+		return fmt.Sprintf("%s.%s.%s.%s", service, namespace, partition, dc)
 	}
-	if opts.ServiceSubset == "" {
-		return fmt.Sprintf("%s.%s.%s.%s", opts.Service, opts.Namespace, opts.Partition, opts.Datacenter)
-	}
-	return fmt.Sprintf("%s.%s.%s.%s.%s", opts.ServiceSubset, opts.Service, opts.Namespace, opts.Partition, opts.Datacenter)
+	return fmt.Sprintf("%s.%s.%s.%s.%s", subset, service, namespace, partition, dc)
 }
 
 func (t *DiscoveryTarget) setID() {
-	t.ID = ChainID(t.ToDiscoveryTargetOpts())
+	t.ID = chainID(t.ServiceSubset, t.Service, t.Namespace, t.Partition, t.Datacenter)
 }
 
 func (t *DiscoveryTarget) String() string {

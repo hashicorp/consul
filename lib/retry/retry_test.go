@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package retry
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -158,38 +154,6 @@ func TestWaiter_Wait(t *testing.T) {
 		require.Equal(t, err, context.DeadlineExceeded)
 		assertApproximateDuration(t, elapsed, 5*time.Millisecond)
 		require.Equal(t, w.failures, uint(201))
-	})
-}
-
-func TestWaiter_RetryLoop(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-	// Change the default factor so that we retry faster.
-	w := &Waiter{Factor: 1 * time.Millisecond}
-
-	t.Run("exits if operation is successful after a few reties", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		t.Cleanup(cancel)
-		numRetries := 0
-		err := w.RetryLoop(ctx, func() error {
-			if numRetries < 2 {
-				numRetries++
-				return fmt.Errorf("operation not successful")
-			}
-			return nil
-		})
-		require.NoError(t, err)
-	})
-
-	t.Run("errors if operation is never successful", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		t.Cleanup(cancel)
-		err := w.RetryLoop(ctx, func() error {
-			return fmt.Errorf("operation not successful")
-		})
-		require.NotNil(t, err)
-		require.EqualError(t, err, "could not retry operation: operation not successful")
 	})
 }
 

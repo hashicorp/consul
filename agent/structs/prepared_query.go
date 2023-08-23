@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
@@ -44,22 +41,12 @@ func (f *QueryFailoverOptions) AsTargets() []QueryFailoverTarget {
 	return f.Targets
 }
 
-// IsEmpty returns true if the QueryFailoverOptions are empty (not set), false otherwise
-func (f *QueryFailoverOptions) IsEmpty() bool {
-	if f == nil || (f.NearestN == 0 && len(f.Datacenters) == 0 && len(f.Targets) == 0) {
-		return true
-	}
-	return false
-}
-
 type QueryFailoverTarget struct {
-	// Peer specifies a peer to try during failover.
-	Peer string
+	// PeerName specifies a peer to try during failover.
+	PeerName string
 
 	// Datacenter specifies a datacenter to try during failover.
 	Datacenter string
-
-	acl.EnterpriseMeta
 }
 
 // QueryDNSOptions controls settings when query results are served over DNS.
@@ -73,11 +60,6 @@ type QueryDNSOptions struct {
 type ServiceQuery struct {
 	// Service is the service to query.
 	Service string
-
-	// SamenessGroup specifies a sameness group to query. The first member of the Sameness Group will
-	// be targeted first on PQ execution and subsequent members will be targeted during failover scenarios.
-	// This field is mutually exclusive with Failover.
-	SamenessGroup string
 
 	// Failover controls what we do if there are no healthy nodes in the
 	// local datacenter.
@@ -123,9 +105,9 @@ type ServiceQuery struct {
 	// should be directly next to their services so this isn't an issue.
 	Connect bool
 
-	// If not empty, Peer represents the peer that the service
+	// If not empty, PeerName represents the peer that the service
 	// was imported from.
-	Peer string
+	PeerName string
 
 	// EnterpriseMeta is the embedded enterprise metadata
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -341,7 +323,7 @@ type PreparedQueryExecuteRemoteRequest struct {
 	Connect bool
 
 	// QueryOptions (unfortunately named here) controls the consistency
-	// settings for the service lookups.
+	// settings for the the service lookups.
 	QueryOptions
 }
 

@@ -1,13 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Helper from '@ember/component/helper';
 
 export default class DomPosition extends Helper {
   compute([target], { from, offset = false }) {
-    return (e) => {
+    return e => {
       if (typeof target === 'function') {
         let rect;
         let $el;
@@ -34,9 +29,11 @@ export default class DomPosition extends Helper {
         // provide and easy way to map coords to CSS props
         const $el = e.target;
         const rect = $el.getBoundingClientRect();
-        target.forEach(([prop, value]) => {
-          $el.style[value] = `${rect[prop]}px`;
-        });
+        target.forEach(
+          ([prop, value]) => {
+            $el.style[value] = `${rect[prop]}px`;
+          }
+        );
       }
     };
   }

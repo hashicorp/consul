@@ -1,16 +1,11 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { andOr } from 'consul-ui/utils/filter';
 import predicates from 'consul-ui/filter/predicates/intention';
 import { module, test } from 'qunit';
 
-module('Unit | Filter | Predicates | intention', function () {
+module('Unit | Filter | Predicates | intention', function() {
   const predicate = andOr(predicates);
 
-  test('it returns items depending on Action', function (assert) {
+  test('it returns items depending on Action', function(assert) {
     const items = [
       {
         Action: 'allow',

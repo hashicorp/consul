@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: service-router destinations have gained a `RetryOn` field for specifying the conditions when Envoy should retry requests beyond specific status codes and generic connection failure which already exists.
-```

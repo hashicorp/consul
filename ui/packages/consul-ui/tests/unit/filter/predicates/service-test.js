@@ -1,16 +1,11 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import predicates from 'consul-ui/filter/predicates/service';
 import { andOr } from 'consul-ui/utils/filter';
 import { module, test } from 'qunit';
 
-module('Unit | Filter | Predicates | service', function () {
+module('Unit | Filter | Predicates | service', function() {
   const predicate = andOr(predicates);
 
-  test('it returns registered/unregistered items depending on instance count', function (assert) {
+  test('it returns registered/unregistered items depending on instance count', function(assert) {
     const items = [
       {
         InstanceCount: 1,
@@ -47,7 +42,7 @@ module('Unit | Filter | Predicates | service', function () {
     assert.deepEqual(actual, expected);
   });
 
-  test('it returns items depending on status', function (assert) {
+  test('it returns items depending on status', function(assert) {
     const items = [
       {
         MeshStatus: 'passing',
@@ -87,7 +82,7 @@ module('Unit | Filter | Predicates | service', function () {
     assert.deepEqual(actual, expected);
   });
 
-  test('it returns items depending on service type', function (assert) {
+  test('it returns items depending on service type', function(assert) {
     const items = [
       {
         Kind: 'ingress-gateway',
@@ -124,7 +119,7 @@ module('Unit | Filter | Predicates | service', function () {
     );
     assert.deepEqual(actual, expected);
   });
-  test('it returns items depending on a mixture of properties', function (assert) {
+  test('it returns items depending on a mixture of properties', function(assert) {
     const items = [
       {
         Kind: 'ingress-gateway',
@@ -175,7 +170,7 @@ module('Unit | Filter | Predicates | service', function () {
     assert.deepEqual(actual, expected);
   });
 
-  test('it returns items without an External Source or items with a peer name when source `consul` is specified', function (assert) {
+  test('it returns items without an External Source or items with a peer name when source `consul` is specified', function(assert) {
     const items = [
       {
         _Name: 'external',
@@ -215,7 +210,7 @@ module('Unit | Filter | Predicates | service', function () {
       })
     );
 
-    const actual = filteredItems.map((i) => i._Name);
+    const actual = filteredItems.map(i => i._Name);
 
     const expected = ['empty-array', 'peered-external', 'peered', 'undefined', 'empty-string'];
     assert.deepEqual(actual, expected, 'filtering works with source `consul`');

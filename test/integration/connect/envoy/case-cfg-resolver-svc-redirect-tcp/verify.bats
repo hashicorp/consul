@@ -37,9 +37,10 @@ load helpers
 @test "s1 upstream should be able to connect to its upstream simply" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 @test "s1 upstream should be able to connect to s3 via upstream s2" {
   assert_expected_fortio_name s3
 }
+

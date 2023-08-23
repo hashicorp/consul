@@ -1,0 +1,5 @@
+{{yield (hash
+  host=(fn this.attachShadow)
+  root=this.shadowRoot
+  Template=(component 'shadow-template' shadowRoot=this.shadowRoot)
+)}}

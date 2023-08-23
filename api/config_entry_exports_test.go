@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -54,7 +51,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 					Namespace: defaultNamespace,
 					Consumers: []ServiceConsumer{
 						{
-							Peer: "alpha",
+							PeerName: "alpha",
 						},
 					},
 				},

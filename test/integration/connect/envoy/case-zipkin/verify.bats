@@ -28,24 +28,23 @@ load helpers
 }
 
 @test "s1 upstream should be able to connect to s2" {
-  retry_default assert_upstream_message 5000
+  run retry_default curl -s -f -d hello localhost:5000
+  [ "$status" == "0" ]
+  [ "$output" == "hello" ]
 }
 
 @test "s1 proxy should send trace spans to zipkin/jaeger" {
   # Send traced request through upstream. Debug echoes headers back which we can
   # use to get the traceID generated (no way to force one I can find with Envoy
   # currently?)
-  # Fixed from /Debug -> /debug. Reason: /Debug return null
-  run curl -s -f -H 'x-client-trace-id:test-sentinel' localhost:5000/debug -m 5
+  run curl -s -f -H 'x-client-trace-id:test-sentinel' localhost:5000/Debug
 
   echo "OUTPUT $output"
 
   [ "$status" == "0" ]
 
   # Get the traceID from the output
-  # Replaced grep by jq to filter the TraceId.
-  # Reason: Grep did not filter and return the entire raw string and the test was failing
-  TRACEID=$(echo $output | jq -rR 'split("X-B3-Traceid: ") | last' | cut -c -16)
+  TRACEID=$(echo $output | grep 'X-B3-Traceid:' | cut -c 15-)
 
   # Get the trace from Jaeger. Won't bother parsing it just seeing it show up
   # there is enough to know that the tracing config worked.

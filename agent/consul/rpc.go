@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -10,16 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/go-connlimit"
+	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -29,8 +26,6 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/blockingquery"
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -246,9 +241,6 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCGRPC:
 		s.grpcHandler.Handle(conn)
 
-	case pool.RPCRaftForwarding:
-		s.handleRaftForwarding(conn)
-
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.rpcLogger().Error("unrecognized RPC byte",
@@ -316,9 +308,6 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 
 	case pool.ALPN_RPCGRPC:
 		s.grpcHandler.Handle(tlsConn)
-
-	case pool.ALPN_RPCRaftForwarding:
-		s.handleRaftForwarding(tlsConn)
 
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
@@ -428,21 +417,13 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		}
 
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
-			//EOF or closed are not considered as errors.
-			if err == io.EOF || strings.Contains(err.Error(), "closed") {
-				return
+			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
+				s.rpcLogger().Error("RPC error",
+					"conn", logConn(conn),
+					"error", err,
+				)
+				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
-
-			metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
-			// When a rate-limiting error is returned, it's already logged, so skip logging.
-			if errors.Is(err, rate.ErrRetryLater) || errors.Is(err, rate.ErrRetryElsewhere) {
-				return
-			}
-
-			s.rpcLogger().Error("RPC error",
-				"conn", logConn(conn),
-				"error", err,
-			)
 			return
 		}
 		metrics.IncrCounter([]string{"rpc", "request"}, 1)
@@ -500,19 +481,6 @@ func (s *Server) handleRaftRPC(conn net.Conn) {
 
 	metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
 	s.raftLayer.Handoff(conn)
-}
-
-func (s *Server) handleRaftForwarding(conn net.Conn) {
-	if tlsConn, ok := conn.(*tls.Conn); ok {
-		err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
-		if err != nil {
-			s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft forwarding")
-			conn.Close()
-			return
-		}
-	}
-
-	s.raftStorageBackend.HandleConnection(conn)
 }
 
 func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
@@ -579,23 +547,8 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 	return c.lr.Read(b)
 }
 
-func getWaitTime(rpcHoldTimeout time.Duration, retryCount int) time.Duration {
-	const backoffMultiplier = 2.0
-
-	rpcHoldTimeoutInMilli := int(rpcHoldTimeout.Milliseconds())
-	initialBackoffInMilli := rpcHoldTimeoutInMilli / structs.JitterFraction
-
-	if initialBackoffInMilli < 1 {
-		initialBackoffInMilli = 1
-	}
-
-	waitTimeInMilli := initialBackoffInMilli * int(math.Pow(backoffMultiplier, float64(retryCount-1)))
-
-	return time.Duration(waitTimeInMilli) * time.Millisecond
-}
-
 // canRetry returns true if the request and error indicate that a retry is safe.
-func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config, retryableMessages []error) bool {
+func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
 	if info != nil {
 		timedOut, timeoutError := info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime)
 		if timeoutError != nil {
@@ -617,10 +570,9 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config, 
 		return true
 	}
 
-	for _, m := range retryableMessages {
-		if err != nil && strings.Contains(err.Error(), m.Error()) {
-			return true
-		}
+	// If we are chunking and it doesn't seem to have completed, try again.
+	if err != nil && strings.Contains(err.Error(), ErrChunkingResubmit.Error()) {
+		return true
 	}
 
 	// Reads are safe to retry for stream errors, such as if a server was
@@ -752,10 +704,7 @@ func (s *Server) canServeReadRequest(info structs.RPCInfo) bool {
 // See the comment for forwardRPC for more details.
 func (s *Server) forwardRequestToLeader(info structs.RPCInfo, forwardToLeader func(leader *metadata.Server) error) (handled bool, err error) {
 	firstCheck := time.Now()
-	retryCount := 0
-	previousJitter := time.Duration(0)
 CHECK_LEADER:
-	retryCount++
 	// Fail fast if we are in the process of leaving
 	select {
 	case <-s.leaveCh:
@@ -779,18 +728,9 @@ CHECK_LEADER:
 		}
 	}
 
-	retryableMessages := []error{
-		// If we are chunking and it doesn't seem to have completed, try again.
-		ErrChunkingResubmit,
-
-		rate.ErrRetryLater,
-	}
-
-	if retry := canRetry(info, rpcErr, firstCheck, s.config, retryableMessages); retry {
+	if retry := canRetry(info, rpcErr, firstCheck, s.config); retry {
 		// Gate the request until there is a leader
-		jitter := lib.RandomStaggerWithRange(previousJitter, getWaitTime(s.config.RPCHoldTimeout, retryCount))
-		previousJitter = jitter
-
+		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
 		select {
 		case <-time.After(jitter):
 			goto CHECK_LEADER
@@ -922,19 +862,21 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 }
 
 // raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
-// raftApplyEncoded.
+// raftApplyWithEncoder.
 func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.Encode)
 }
 
 // raftApplyProtobuf encodes the msg using protobuf and calls raft.Apply. See
-// raftApplyEncoded.
+// raftApplyWithEncoder.
 func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
 }
 
 // raftApplyWithEncoder encodes a message, and then calls raft.Apply with the
-// encoded message. See raftApplyEncoded.
+// encoded message. Returns the FSM response along with any errors. If the
+// FSM.Apply response is an error it will be returned as the error return
+// value with a nil response.
 func (s *Server) raftApplyWithEncoder(
 	t structs.MessageType,
 	msg interface{},
@@ -947,13 +889,7 @@ func (s *Server) raftApplyWithEncoder(
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}
-	return s.raftApplyEncoded(t, buf)
-}
 
-// raftApplyEncoded calls raft.Apply with the encoded message. Returns the FSM
-// response along with any errors. If the FSM.Apply response is an error it will
-// be returned as the error return value with a nil response.
-func (s *Server) raftApplyEncoded(t structs.MessageType, buf []byte) (any, error) {
 	// Warn if the command is very large
 	if n := len(buf); n > raftWarnSize {
 		s.rpcLogger().Warn("Attempting to apply large raft entry", "size_in_bytes", n)
@@ -1018,26 +954,167 @@ type blockingQueryResponseMeta interface {
 	SetResultsFilteredByACLs(bool)
 }
 
-// blockingQuery is a passthrough to blockingquery.Query that keeps API
-// compatibility with Server. That has RPC and FSM machinery mixed in the same consul
-// package.
+// blockingQuery performs a blocking query if opts.GetMinQueryIndex is
+// greater than 0, otherwise performs a non-blocking query. Blocking queries will
+// block until responseMeta.Index is greater than opts.GetMinQueryIndex,
+// or opts.GetMaxQueryTime is reached. Non-blocking queries return immediately
+// after performing the query.
+//
+// If opts.GetRequireConsistent is true, blockingQuery will first verify it is
+// still the cluster leader before performing the query.
+//
+// The query function is expected to be a closure that has access to responseMeta
+// so that it can set the Index. The actual result of the query is opaque to blockingQuery.
+//
+// The query function can return errNotFound, which is a sentinel error. Returning
+// errNotFound indicates that the query found no results, which allows
+// blockingQuery to keep blocking until the query returns a non-nil error.
+// The query function must take care to set the actual result of the query to
+// nil in these cases, otherwise when blockingQuery times out it may return
+// a previous result. errNotFound will never be returned to the caller, it is
+// converted to nil before returning.
+//
+// The query function can return errNotChanged, which is a sentinel error. This
+// can only be returned on calls AFTER the first call, as it would not be
+// possible to detect the absence of a change on the first call. Returning
+// errNotChanged indicates that the query results are identical to the prior
+// results which allows blockingQuery to keep blocking until the query returns
+// a real changed result.
+//
+// The query function must take care to ensure the actual result of the query
+// is either left unmodified or explicitly left in a good state before
+// returning, otherwise when blockingQuery times out it may return an
+// incomplete or unexpected result. errNotChanged will never be returned to the
+// caller, it is converted to nil before returning.
+//
+// If query function returns any other error, the error is returned to the caller
+// immediately.
+//
+// The query function must follow these rules:
+//
+//  1. to access data it must use the passed in state.Store.
+//  2. it must set the responseMeta.Index to an index greater than
+//     opts.GetMinQueryIndex if the results return by the query have changed.
+//  3. any channels added to the memdb.WatchSet must unblock when the results
+//     returned by the query have changed.
+//
+// To ensure optimal performance of the query, the query function should make a
+// best-effort attempt to follow these guidelines:
+//
+//  1. only set responseMeta.Index to an index greater than
+//     opts.GetMinQueryIndex when the results returned by the query have changed.
+//  2. any channels added to the memdb.WatchSet should only unblock when the
+//     results returned by the query have changed.
 func (s *Server) blockingQuery(
-	requestOpts blockingquery.RequestOptions,
-	responseMeta blockingquery.ResponseMeta,
-	query blockingquery.QueryFn,
+	opts blockingQueryOptions,
+	responseMeta blockingQueryResponseMeta,
+	query queryFn,
 ) error {
-	return blockingquery.Query(s, requestOpts, responseMeta, query)
+	var ctx context.Context = &lib.StopChannelContext{StopCh: s.shutdownCh}
+
+	metrics.IncrCounter([]string{"rpc", "query"}, 1)
+
+	minQueryIndex := opts.GetMinQueryIndex()
+	// Perform a non-blocking query
+	if minQueryIndex == 0 {
+		if opts.GetRequireConsistent() {
+			if err := s.consistentRead(); err != nil {
+				return err
+			}
+		}
+
+		var ws memdb.WatchSet
+		err := query(ws, s.fsm.State())
+		s.setQueryMeta(responseMeta, opts.GetToken())
+		if errors.Is(err, errNotFound) || errors.Is(err, errNotChanged) {
+			return nil
+		}
+		return err
+	}
+
+	maxQueryTimeout, err := opts.GetMaxQueryTime()
+	if err != nil {
+		return err
+	}
+	timeout := s.rpcQueryTimeout(maxQueryTimeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	count := atomic.AddUint64(&s.queriesBlocking, 1)
+	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(count))
+	// decrement the count when the function returns.
+	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+
+	var (
+		notFound bool
+		ranOnce  bool
+	)
+
+	for {
+		if opts.GetRequireConsistent() {
+			if err := s.consistentRead(); err != nil {
+				return err
+			}
+		}
+
+		// Operate on a consistent set of state. This makes sure that the
+		// abandon channel goes with the state that the caller is using to
+		// build watches.
+		state := s.fsm.State()
+
+		ws := memdb.NewWatchSet()
+		// This channel will be closed if a snapshot is restored and the
+		// whole state store is abandoned.
+		ws.Add(state.AbandonCh())
+
+		err := query(ws, state)
+		s.setQueryMeta(responseMeta, opts.GetToken())
+
+		switch {
+		case errors.Is(err, errNotFound):
+			if notFound {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
+			}
+			notFound = true
+		case errors.Is(err, errNotChanged):
+			if ranOnce {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
+			}
+		case err != nil:
+			return err
+		}
+		ranOnce = true
+
+		if responseMeta.GetIndex() > minQueryIndex {
+			return nil
+		}
+
+		// block until something changes, or the timeout
+		if err := ws.WatchCtx(ctx); err != nil {
+			// exit if we've reached the timeout, or other cancellation
+			return nil
+		}
+
+		// exit if the state store has been abandoned
+		select {
+		case <-state.AbandonCh():
+			return nil
+		default:
+		}
+	}
 }
 
 var (
-	errNotFound   = blockingquery.ErrNotFound
-	errNotChanged = blockingquery.ErrNotChanged
+	errNotFound   = fmt.Errorf("no data found for query")
+	errNotChanged = fmt.Errorf("data did not change for query")
 )
 
-// SetQueryMeta is used to populate the QueryMeta data for an RPC call
+// setQueryMeta is used to populate the QueryMeta data for an RPC call
 //
 // Note: This method must be called *after* filtering query results with ACLs.
-func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
+func (s *Server) setQueryMeta(m blockingQueryResponseMeta, token string) {
 	if s.IsLeader() {
 		m.SetLastContact(0)
 		m.SetKnownLeader(true)
@@ -1059,59 +1136,43 @@ func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
 	}
 }
 
-func (s *Server) consistentReadWithContext(ctx context.Context) error {
+// consistentRead is used to ensure we do not perform a stale
+// read. This is done by verifying leadership before the read.
+func (s *Server) consistentRead() error {
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
-		return err // fail fast if leader verification fails
+		return err //fail fast if leader verification fails
 	}
-
+	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
 	if s.isReadyForConsistentReads() {
 		return nil
 	}
+	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
+	deadline := time.Now().Add(s.config.RPCHoldTimeout)
 
-	// Poll until the context reaches its deadline, or for RPCHoldTimeout if the
-	// context has no deadline.
-	pollFor := s.config.RPCHoldTimeout
-	if deadline, ok := ctx.Deadline(); ok {
-		pollFor = time.Until(deadline)
-	}
+	for time.Now().Before(deadline) {
 
-	interval := pollFor / structs.JitterFraction
-	if interval <= 0 {
-		return structs.ErrNotReadyForConsistentReads
-	}
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for {
 		select {
-		case <-ticker.C:
-			if s.isReadyForConsistentReads() {
-				return nil
-			}
-		case <-ctx.Done():
-			return structs.ErrNotReadyForConsistentReads
+		case <-time.After(jitter):
+			// Drop through and check before we loop again.
+
 		case <-s.shutdownCh:
 			return fmt.Errorf("shutdown waiting for leader")
 		}
+
+		if s.isReadyForConsistentReads() {
+			return nil
+		}
 	}
+
+	return structs.ErrNotReadyForConsistentReads
 }
 
-// ConsistentRead is used to ensure we do not perform a stale
-// read. This is done by verifying leadership before the read.
-func (s *Server) ConsistentRead() error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.config.RPCHoldTimeout)
-	defer cancel()
-
-	return s.consistentReadWithContext(ctx)
-}
-
-// RPCQueryTimeout calculates the timeout for the query, ensures it is
+// rpcQueryTimeout calculates the timeout for the query, ensures it is
 // constrained to the configured limit, and adds jitter to prevent multiple
 // blocking queries from all timing out at the same time.
-func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
+func (s *Server) rpcQueryTimeout(queryTimeout time.Duration) time.Duration {
 	// Restrict the max query time, and ensure there is always one.
 	if queryTimeout > s.config.MaxQueryTime {
 		queryTimeout = s.config.MaxQueryTime

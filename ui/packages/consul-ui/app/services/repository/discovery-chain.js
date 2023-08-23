@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import RepositoryService from 'consul-ui/services/repository';
@@ -26,7 +21,7 @@ export default class DiscoveryChainService extends RepositoryService {
     if (typeof datacenter !== 'undefined' && !get(datacenter, 'MeshEnabled')) {
       return Promise.resolve();
     }
-    return super.findBySlug(...arguments).catch((e) => {
+    return super.findBySlug(...arguments).catch(e => {
       const code = get(e, 'errors.firstObject.status');
       const body = (get(e, 'errors.firstObject.detail') || '').trim();
       switch (code) {

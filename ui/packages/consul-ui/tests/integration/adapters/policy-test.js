@@ -1,17 +1,12 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { env } from '../../../env';
-const shouldHaveNspace = function (nspace) {
+const shouldHaveNspace = function(nspace) {
   return typeof nspace !== 'undefined' && env('CONSUL_NSPACES_ENABLED');
 };
-module('Integration | Adapter | policy', function (hooks) {
+module('Integration | Adapter | policy', function(hooks) {
   setupTest(hooks);
-  skip('urlForTranslateRecord returns the correct url', function (assert) {
+  skip('urlForTranslateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:policy');
     const client = this.owner.lookup('service:client/http');
     const request = client.id.bind(client);
@@ -22,8 +17,8 @@ module('Integration | Adapter | policy', function (hooks) {
   const dc = 'dc-1';
   const id = 'policy-name';
   const undefinedNspace = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
-    test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, function (assert) {
+  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
+    test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
       const request = client.requestParams.bind(client);
@@ -36,7 +31,7 @@ module('Integration | Adapter | policy', function (hooks) {
       });
       assert.equal(`${actual.method} ${actual.url}`, expected);
     });
-    test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
+    test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
       const request = client.requestParams.bind(client);
@@ -50,7 +45,7 @@ module('Integration | Adapter | policy', function (hooks) {
       });
       assert.equal(`${actual.method} ${actual.url}`, expected);
     });
-    test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
+    test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
@@ -70,7 +65,7 @@ module('Integration | Adapter | policy', function (hooks) {
         .shift();
       assert.equal(actual, expected);
     });
-    test(`requestForUpdateRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
+    test(`requestForUpdateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
@@ -91,7 +86,7 @@ module('Integration | Adapter | policy', function (hooks) {
         .shift();
       assert.equal(actual, expected);
     });
-    test(`requestForDeleteRecord returns the correct url/method when the nspace is ${nspace}`, function (assert) {
+    test(`requestForDeleteRecord returns the correct url/method when the nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
@@ -113,11 +108,11 @@ module('Integration | Adapter | policy', function (hooks) {
       assert.equal(actual, expected);
     });
   });
-  test("requestForQueryRecord throws if you don't specify an id", function (assert) {
+  test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:policy');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    assert.throws(function () {
+    assert.throws(function() {
       adapter.requestForQueryRecord(request, {
         dc: dc,
       });

@@ -1,124 +1,134 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
+<StateChart
+  @src={{chart}}
+as |State Guard ChartAction dispatch state|>
+{{#let
+  (hash
+    State=State
+    Guard=Guard
+    Action=ChartAction
+    dispatch=dispatch
+    state=state
+  )
+as |chart|}}
 
-<StateChart @src={{chart}} as |State Guard ChartAction dispatch state|>
-  {{#let
-    (hash State=State Guard=Guard Action=ChartAction dispatch=dispatch state=state)
-    as |chart|
-  }}
+<div
+  class="oidc-select"
+  ...attributes
+>
+    <State @notMatches="idle">
+      <DataSource
+        @src={{uri '/${partition}/${nspace}/${dc}/oidc/providers'
+          (hash
+            partition=this.partition
+            nspace=@nspace
+            dc=@dc
+          )
+        }}
+        @onchange={{queue (action (mut this.items) value="data") (fn dispatch "SUCCESS")}}
+        @onerror={{queue (fn dispatch "RESET") @onerror}}
+      />
+    </State>
 
-    <div class='oidc-select' ...attributes>
-      <State @notMatches='idle'>
-        <DataSource
-          @src={{uri
-            '/${partition}/${nspace}/${dc}/oidc/providers'
-            (hash partition=this.partition nspace=@nspace dc=@dc)
-          }}
-          @onchange={{queue (action (mut this.items) value='data') (fn dispatch 'SUCCESS')}}
-          @onerror={{queue (fn dispatch 'RESET') @onerror}}
-        />
-      </State>
-
-      <State @matches='loaded'>
-        <Action
-          {{on 'click' (queue (set this 'partition' '') (fn dispatch 'RESET'))}}
-          class='reset'
-        >
-          Choose different Partition
-        </Action>
-      </State>
-
-      <StateChart
-        @src={{state-chart 'validate'}}
-        as |ignoredState ignoredGuard ignoredAction formDispatch state|
+    <State @matches="loaded">
+      <Action
+        {{on 'click' (queue (set this 'partition' '') (fn dispatch "RESET"))}}
+        class="reset"
       >
-        <TextInput
-          @name='partition'
-          @label='Admin Partition'
-          @item={{this}}
-          @validations={{hash
-            partition=(array
-              (hash
-                test='^[a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$'
-                error='Name must be a valid DNS hostname.'
-              )
-            )
-          }}
-          @placeholder='Enter your Partition'
-          @oninput={{action (mut this.partition) value='target.value'}}
-          @chart={{hash state=state dispatch=formDispatch}}
-        />
+        Choose different Partition
+      </Action>
+    </State>
 
-        {{! this belongs to the outer StateChart but we need }}
-        {{! to understand validation state }}
-        <State @matches='idle'>
-          <Hds::Button
-            type='submit'
-            @text='Choose provider'
-            disabled={{or (lt this.partition.length 1) (state-matches state 'error')}}
-            {{on 'click' (fn dispatch 'LOAD')}}
-          />
-        </State>
+  <StateChart
+    @src={{state-chart 'validate'}}
+  as |ignoredState ignoredGuard ignoredAction formDispatch state|>
+    <TextInput
+      @name="partition"
+      @label="Admin Partition"
+      @item={{this}}
+      @validations={{hash
+        partition=(array
+          (hash
+            test='^[a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$'
+            error='Name must be a valid DNS hostname.'
+          )
+        )
+      }}
+      @placeholder="Enter your Partition"
+      @oninput={{action (mut this.partition) value="target.value"}}
+      @chart={{hash
+        state=state
+        dispatch=formDispatch
+      }}
+    />
 
-      </StateChart>
+  {{! this belongs to the outer StateChart but we need }}
+  {{! to understand validation state }}
+  <State @matches="idle">
+    <Action
+      {{disabled (or (lt this.partition.length 1) (state-matches state "error"))}}
+      {{on "click" (fn dispatch "LOAD")}}
+    >
+      Choose provider
+    </Action>
+  </State>
 
-      <State @matches='loading'>
-        <Progress aria-label='Loading' />
-      </State>
+  </StateChart>
 
-      <State @matches='loaded'>
-        {{#if (lt this.items.length 3)}}
+  <State @matches="loading">
+    <Progress aria-label="Loading" />
+  </State>
 
-          <ul>
-            {{#each this.items as |item|}}
-              <li>
-                <Action
-                  class={{concat item.Kind '-oidc-provider'}}
-                  disabled={{@disabled}}
-                  @type='button'
-                  {{on 'click' (fn @onchange item)}}
-                >
-                  Continue with
-                  {{or item.DisplayName item.Name}}{{#if (not-eq item.Namespace 'default')}}
-                    ({{item.Namespace}}){{/if}}
-                </Action>
-              </li>
-            {{/each}}
-          </ul>
+  <State @matches="loaded">
+    {{#if (lt this.items.length 3)}}
 
-        {{else}}
-
-          {{#let (or this.provider (object-at 0 this.items)) as |item|}}
-
-            <OptionInput
-              @label='SSO Provider'
-              @name='provider'
-              @item={{this}}
-              @selected={{item}}
-              @items={{this.items}}
-              @onchange={{action (mut this.provider)}}
-              @disabled={{@disabled}}
+        <ul>
+        {{#each this.items as |item|}}
+          <li>
+            <Action
+              class={{concat item.Kind '-oidc-provider'}}
+              disabled={{@disabled}}
+              @type="button"
+              {{on 'click' (fn @onchange item)}}
             >
-              <:option as |option|>
-                <span class={{concat option.item.Kind '-oidc-provider'}}>
-                  {{or option.item.DisplayName option.item.Name}}{{#if
-                    (not-eq option.item.Namespace 'default')
-                  }} ({{option.item.Namespace}}){{/if}}
-                </span>
-              </:option>
-            </OptionInput>
+              Continue with {{or item.DisplayName item.Name}}{{#if (not-eq item.Namespace 'default')}} ({{item.Namespace}}){{/if}}
+            </Action>
+          </li>
+        {{/each}}
+        </ul>
 
-          <Hds::Button
-            @color='primary'
-            @text='Log in'
-            disabled={{@disabled}}
-            {{on 'click' (fn @onchange item)}}
-          />
-          {{/let}}
-        {{/if}}
-      </State>
+    {{else}}
+
+      {{#let (or this.provider (object-at 0 this.items)) as |item|}}
+
+        <OptionInput
+          @label="SSO Provider"
+          @name="provider"
+          @item={{this}}
+          @selected={{item}}
+          @items={{this.items}}
+          @onchange={{action (mut this.provider)}}
+          @disabled={{@disabled}}
+        >
+          <:option as |option|>
+            <span
+              class={{concat option.item.Kind '-oidc-provider'}}
+            >
+              {{or option.item.DisplayName option.item.Name}}{{#if (not-eq option.item.Namespace 'default')}} ({{option.item.Namespace}}){{/if}}
+            </span>
+          </:option>
+        </OptionInput>
+
+        <Action
+          @type="button"
+          {{disabled @disabled}}
+          {{on 'click' (fn @onchange item)}}
+        >
+          Log in
+        </Action>
+
+      {{/let}}
+    {{/if}}
+  </State>
     </div>
-  {{/let}}
+{{/let}}
 </StateChart>

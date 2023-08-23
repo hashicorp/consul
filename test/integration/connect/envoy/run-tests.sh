@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 
 set -eEuo pipefail
 
@@ -19,8 +16,6 @@ ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
-# Always run tests on amd64 because that's what the CI environment uses.
-export DOCKER_DEFAULT_PLATFORM="linux/amd64"
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -49,20 +44,17 @@ function network_snippet {
 }
 
 function aws_snippet {
-  LAMBDA_TESTS_ENABLED=${LAMBDA_TESTS_ENABLED:-false}
-  if [ "$LAMBDA_TESTS_ENABLED" != false ]; then
-    local snippet=""
+  local snippet=""
 
-    # The Lambda integration cases assume that a Lambda function exists in $AWS_REGION with an ARN of $AWS_LAMBDA_ARN.
-    # The AWS credentials must have permission to invoke the Lambda function.
-    [ -n "$(set | grep '^AWS_ACCESS_KEY_ID=')" ] && snippet="${snippet} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-    [ -n "$(set | grep '^AWS_SECRET_ACCESS_KEY=')" ] && snippet="${snippet} -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-    [ -n "$(set | grep '^AWS_SESSION_TOKEN=')" ] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-    [ -n "$(set | grep '^AWS_LAMBDA_REGION=')" ] && snippet="${snippet} -e AWS_LAMBDA_REGION=$AWS_LAMBDA_REGION"
-    [ -n "$(set | grep '^AWS_LAMBDA_ARN=')" ] && snippet="${snippet} -e AWS_LAMBDA_ARN=$AWS_LAMBDA_ARN"
+  # The Lambda integration cases assume that a Lambda function exists in $AWS_REGION with an ARN of $AWS_LAMBDA_ARN.
+  # The AWS credentials must have permission to invoke the Lambda function.
+  [ -n "$(set | grep '^AWS_ACCESS_KEY_ID=')" ] && snippet="${snippet} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+  [ -n "$(set | grep '^AWS_SECRET_ACCESS_KEY=')" ] && snippet="${snippet} -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+  [ -n "$(set | grep '^AWS_SESSION_TOKEN=')" ] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+  [ -n "$(set | grep '^AWS_LAMBDA_REGION=')" ] && snippet="${snippet} -e AWS_LAMBDA_REGION=$AWS_LAMBDA_REGION"
+  [ -n "$(set | grep '^AWS_LAMBDA_ARN=')" ] && snippet="${snippet} -e AWS_LAMBDA_ARN=$AWS_LAMBDA_ARN"
 
-    echo "$snippet"
-  fi
+  echo "$snippet"
 }
 
 function init_workdir {
@@ -183,7 +175,7 @@ function start_consul {
   # xDS sessions are served directly by a Consul server, and another in which it
   # goes through a client agent.
   #
-  # This is necessary because servers and clients source configuration data in
+  # This is nessasary because servers and clients source configuration data in
   # different ways (client agents use an RPC-backed cache and servers use their
   # own local data) and we want to catch regressions in both.
   #
@@ -219,16 +211,22 @@ function start_consul {
     docker_kill_rm consul-${DC}-server
     docker_kill_rm consul-${DC}
 
+    server_grpc_port="-1"
+    if is_set $REQUIRE_PEERS; then
+      server_grpc_port="8502"
+    fi
+
     docker run -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}-server" \
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
-      consul:local \
+      consul-dev \
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
+      -grpc-port $server_grpc_port \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
@@ -239,7 +237,7 @@ function start_consul {
       --network-alias "consul-${DC}-client" \
       -e "CONSUL_LICENSE=$license" \
       ${ports[@]} \
-      consul:local \
+      consul-dev \
       agent -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -data-dir "/tmp/consul" \
@@ -258,7 +256,7 @@ function start_consul {
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
       ${ports[@]} \
-      consul:local \
+      consul-dev \
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
@@ -292,7 +290,7 @@ function start_partitioned_client {
     --hostname "consul-${PARTITION}-client" \
     --network-alias "consul-${PARTITION}-client" \
     -e "CONSUL_LICENSE=$license" \
-    consul:local agent \
+    consul-dev agent \
     -datacenter "primary" \
     -retry-join "consul-primary-server" \
     -grpc-port 8502 \
@@ -350,10 +348,10 @@ function verify {
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
     bats-verify \
-    --formatter tap /workdir/${CLUSTER}/bats ; then
-    echo "✓ PASS"
+    --pretty /workdir/${CLUSTER}/bats ; then
+    echogreen "✓ PASS"
   else
-    echo "⨯ FAIL"
+    echored "⨯ FAIL"
     res=1
   fi
 
@@ -468,7 +466,7 @@ function run_tests {
 
   # Allow vars.sh to set a reason to skip this test case based on the ENV
   if [ "$SKIP_CASE" != "" ] ; then
-    echo "SKIPPING CASE: $SKIP_CASE"
+    echoyellow "SKIPPING CASE: $SKIP_CASE"
     return 0
   fi
 
@@ -568,7 +566,7 @@ function suite_setup {
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    retry_default docker build -t test-sds-server -f test-sds-server/Dockerfile test-sds-server
+    retry_default docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
 }
 
 function suite_teardown {
@@ -798,10 +796,6 @@ function run_container_gateway-alpha {
 
 function run_container_ingress-gateway-primary {
   common_run_container_gateway ingress-gateway primary
-}
-
-function run_container_api-gateway-primary {
-  common_run_container_gateway api-gateway primary
 }
 
 function run_container_terminating-gateway-primary {

@@ -1,28 +1,12 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <ListCollection
   class="consul-peer-list"
   ...attributes
   @items={{@items}}
-  @linkable="linkable peers"
-  as |item index|
->
+as |item index|>
   <BlockSlot @name="header">
-    {{#if (can "delete peer" item=item)}}
-      <a
-        data-test-peer={{item.Name}}
-        href={{href-to "dc.peers.show" item.Name}}
-      >
-        {{item.Name}}
-      </a>
-    {{else}}
-      <p data-test-peer={{item.Name}}>
-        {{item.Name}}
-      </p>
-    {{/if}}
+    <p>
+      {{item.Name}}
+    </p>
   </BlockSlot>
   <BlockSlot @name="details">
     <div class="peers__list__peer-detail">
@@ -30,22 +14,24 @@
 
       <div
         {{tooltip
-          (t "routes.dc.peers.index.detail.imported.tooltip" name=item.Name)
+          (t 'routes.dc.peers.index.detail.imported.tooltip'
+            name=item.Name
+          )
         }}
       >
-        {{t
-          "routes.dc.peers.index.detail.imported.count"
+        {{t 'routes.dc.peers.index.detail.imported.count'
           count=(format-number item.ImportedServiceCount)
         }}
       </div>
 
       <div
         {{tooltip
-          (t "routes.dc.peers.index.detail.exported.tooltip" name=item.Name)
+          (t 'routes.dc.peers.index.detail.exported.tooltip'
+            name=item.Name
+          )
         }}
       >
-        {{t
-          "routes.dc.peers.index.detail.exported.count"
+        {{t 'routes.dc.peers.index.detail.exported.count'
           count=(format-number item.ExportedServiceCount)
         }}
       </div>
@@ -53,51 +39,47 @@
     </div>
   </BlockSlot>
   <BlockSlot @name="actions" as |Actions|>
-    {{#if (can "delete peer" item=item)}}
+{{#if (can 'delete peer' item=item)}}
 
-      <Actions as |Action|>
-        {{#if (and (can "write peer" item=item) item.isDialer)}}
-          <Action data-test-regenerate-action {{on "click" (fn @onedit item)}}>
-            <BlockSlot @name="label">
-              Regenerate token
+    <Actions as |Action|>
+{{#if (can "write peer" item=item)}}
+        <Action
+          data-test-edit-action
+          {{on 'click' (fn @onedit item)}}
+        >
+          <BlockSlot @name="label">
+            Regenerate token
+          </BlockSlot>
+        </Action>
+{{/if}}
+      <Action
+        data-test-delete-action
+        @onclick={{fn @ondelete item}}
+        class="dangerous"
+      >
+        <BlockSlot @name="label">
+          Delete
+        </BlockSlot>
+        <BlockSlot @name="confirmation" as |Confirmation|>
+          <Confirmation class="warning">
+            <BlockSlot @name="header">
+              Confirm delete
             </BlockSlot>
-          </Action>
-        {{/if}}
-        <Action
-          data-test-view-action
-          @href={{href-to "dc.peers.show" item.Name}}
-        >
-          <BlockSlot @name="label">
-            View
-          </BlockSlot>
-        </Action>
-        <Action
-          data-test-delete-action
-          @onclick={{fn @ondelete item}}
-          class="dangerous"
-        >
-          <BlockSlot @name="label">
-            Delete
-          </BlockSlot>
-          <BlockSlot @name="confirmation" as |Confirmation|>
-            <Confirmation class="warning">
-              <BlockSlot @name="header">
-                Confirm delete
-              </BlockSlot>
-              <BlockSlot @name="body">
-                <p>
-                  Are you sure you want to delete this peer?
-                </p>
-              </BlockSlot>
-              <BlockSlot @name="confirm" as |Confirm|>
-                <Confirm>
-                  Delete
-                </Confirm>
-              </BlockSlot>
-            </Confirmation>
-          </BlockSlot>
-        </Action>
-      </Actions>
-    {{/if}}
+            <BlockSlot @name="body">
+              <p>
+                Are you sure you want to delete this peer?
+              </p>
+            </BlockSlot>
+            <BlockSlot @name="confirm" as |Confirm|>
+              <Confirm>
+                Delete
+              </Confirm>
+            </BlockSlot>
+          </Confirmation>
+        </BlockSlot>
+      </Action>
+    </Actions>
+{{/if}}
   </BlockSlot>
 </ListCollection>
+

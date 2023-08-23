@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -31,17 +27,8 @@ func TestDiscoveryChainRead(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	newTarget := func(opts structs.DiscoveryTargetOpts) *structs.DiscoveryTarget {
-		if opts.Namespace == "" {
-			opts.Namespace = "default"
-		}
-		if opts.Partition == "" {
-			opts.Partition = "default"
-		}
-		if opts.Datacenter == "" {
-			opts.Datacenter = "dc1"
-		}
-		t := structs.NewDiscoveryTarget(opts)
+	newTarget := func(service, serviceSubset, namespace, partition, datacenter string) *structs.DiscoveryTarget {
+		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
 		t.Name = t.SNI
 		t.ConnectTimeout = 5 * time.Second // default
@@ -112,7 +99,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "web"}),
+					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -157,7 +144,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc2": newTarget(structs.DiscoveryTargetOpts{Service: "web", Datacenter: "dc2"}),
+					"web.default.default.dc2": newTarget("web", "", "default", "default", "dc2"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -211,7 +198,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "web"}),
+					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -220,7 +207,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 
 	{ // Now create one config entry.
 		out := false
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &structs.ConfigEntryRequest{
 			Datacenter: "dc1",
 			Entry: &structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
@@ -277,16 +264,14 @@ func TestDiscoveryChainRead(t *testing.T) {
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
 					"web.default.default.dc1": targetWithConnectTimeout(
-						newTarget(structs.DiscoveryTargetOpts{Service: "web"}),
+						newTarget("web", "", "default", "default", "dc1"),
 						33*time.Second,
 					),
 					"web.default.default.dc2": targetWithConnectTimeout(
-						newTarget(structs.DiscoveryTargetOpts{Service: "web", Datacenter: "dc2"}),
+						newTarget("web", "", "default", "default", "dc2"),
 						33*time.Second,
 					),
 				},
-				AutoVirtualIPs:   []string{"240.0.0.1"},
-				ManualVirtualIPs: []string{},
 			}
 			if !reflect.DeepEqual(expect, value.Chain) {
 				r.Fatalf("should be equal: expected=%+v, got=%+v", expect, value.Chain)
@@ -295,7 +280,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 	}))
 
 	expectTarget_DC1 := targetWithConnectTimeout(
-		newTarget(structs.DiscoveryTargetOpts{Service: "web"}),
+		newTarget("web", "", "default", "default", "dc1"),
 		22*time.Second,
 	)
 	expectTarget_DC1.MeshGateway = structs.MeshGatewayConfig{
@@ -303,7 +288,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 	}
 
 	expectTarget_DC2 := targetWithConnectTimeout(
-		newTarget(structs.DiscoveryTargetOpts{Service: "web", Datacenter: "dc2"}),
+		newTarget("web", "", "default", "default", "dc2"),
 		22*time.Second,
 	)
 	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{
@@ -335,8 +320,6 @@ func TestDiscoveryChainRead(t *testing.T) {
 			expectTarget_DC1.ID: expectTarget_DC1,
 			expectTarget_DC2.ID: expectTarget_DC2,
 		},
-		AutoVirtualIPs:   []string{"240.0.0.1"},
-		ManualVirtualIPs: []string{},
 	}
 
 	require.True(t, t.Run("POST: read modified chain with overrides (camel case)", func(t *testing.T) {

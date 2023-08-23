@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package autopilotevents
 
 import (
@@ -17,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -201,32 +198,25 @@ func (r *ReadyServersEventPublisher) readyServersEvents(state *autopilot.State) 
 	return []stream.Event{r.newReadyServersEvent(servers)}, true
 }
 
-// IsServerReady determines whether the given server (from the autopilot state)
-// is "ready" - by which we mean that they would be an acceptable target for
-// stale queries.
-func IsServerReady(srv *autopilot.ServerState) bool {
-	// All healthy servers are caught up enough to be considered ready.
-	// Servers with voting rights that are still healthy according to Serf are
-	// also included as they have likely just fallen behind the leader a little
-	// after initially replicating state. They are still acceptable targets
-	// for most stale queries and clients can bound the staleness if necessary.
-	// Including them is a means to prevent flapping the list of servers we
-	// advertise as ready and flooding the network with notifications to all
-	// dataplanes of server updates.
-	//
-	// TODO (agentless) for a non-voting server that is still alive but fell
-	// behind, should we cause it to be removed. For voters we know they were caught
-	// up at some point but for non-voters we cannot know the same thing.
-	return srv.Health.Healthy || (srv.HasVotingRights() && srv.Server.NodeStatus == autopilot.NodeAlive)
-}
-
 // autopilotStateToReadyServers will iterate through all servers in the autopilot
 // state and compile a list of servers which are "ready". Readiness means that
 // they would be an acceptable target for stale queries.
 func (r *ReadyServersEventPublisher) autopilotStateToReadyServers(state *autopilot.State) EventPayloadReadyServers {
 	var servers EventPayloadReadyServers
 	for _, srv := range state.Servers {
-		if IsServerReady(srv) {
+		// All healthy servers are caught up enough to be included in a ready servers.
+		// Servers with voting rights that are still healthy according to Serf are
+		// also included as they have likely just fallen behind the leader a little
+		// after initially replicating state. They are still acceptable targets
+		// for most stale queries and clients can bound the staleness if necessary.
+		// Including them is a means to prevent flapping the list of servers we
+		// advertise as ready and flooding the network with notifications to all
+		// dataplanes of server updates.
+		//
+		// TODO (agentless) for a non-voting server that is still alive but fell
+		// behind, should we cause it to be removed. For voters we know they were caught
+		// up at some point but for non-voters we cannot know the same thing.
+		if srv.Health.Healthy || (srv.HasVotingRights() && srv.Server.NodeStatus == autopilot.NodeAlive) {
 			// autopilot information contains addresses in the <host>:<port> form. We only care about the
 			// the host so we parse it out here and discard the port.
 			host, err := extractHost(string(srv.Server.Address))
@@ -313,14 +303,6 @@ func (r *ReadyServersEventPublisher) getGRPCPort(srv *autopilot.ServerState) int
 	if err != nil || ns == nil || ns.Meta == nil {
 		return 0
 	}
-
-	if str, ok := ns.Meta["grpc_tls_port"]; ok {
-		grpcPort, err := strconv.Atoi(str)
-		if err == nil {
-			return grpcPort
-		}
-	}
-
 	if str, ok := ns.Meta["grpc_port"]; ok {
 		grpcPort, err := strconv.Atoi(str)
 		if err == nil {

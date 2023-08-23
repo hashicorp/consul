@@ -1,3 +1,0 @@
-```release-note:improvement
-peering: require TLS for peering connections using server cert signed by Connect CA
-```

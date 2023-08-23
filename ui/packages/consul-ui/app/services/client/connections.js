@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 
 export default class ConnectionsService extends Service {
@@ -31,7 +26,7 @@ export default class ConnectionsService extends Service {
   addVisibilityChange() {
     // when the user hides the tab, abort all connections
     this._listeners.add(this.dom.document(), {
-      visibilitychange: (e) => {
+      visibilitychange: e => {
         if (e.target.hidden) {
           this.purge(-1);
         }
@@ -44,9 +39,9 @@ export default class ConnectionsService extends Service {
     // any aborted errors should restart
     const doc = this.dom.document();
     if (doc.hidden) {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         const remove = this._listeners.add(doc, {
-          visibilitychange: function (event) {
+          visibilitychange: function(event) {
             remove();
             // we resolve with the event that comes from
             // whenAvailable not visibilitychange
@@ -59,7 +54,7 @@ export default class ConnectionsService extends Service {
   }
 
   purge(statusCode = 0) {
-    [...this.connections].forEach(function (connection) {
+    [...this.connections].forEach(function(connection) {
       // Cancelled
       connection.abort(statusCode);
     });
@@ -69,7 +64,7 @@ export default class ConnectionsService extends Service {
   acquire(request) {
     if (this.connections.size >= this.env.var('CONSUL_HTTP_MAX_CONNECTIONS')) {
       const closed = this.data.closed();
-      let connection = [...this.connections].find((item) => {
+      let connection = [...this.connections].find(item => {
         const id = item.headers()['x-request-id'];
         if (id) {
           return closed.includes(item.headers()['x-request-id']);

@@ -1,3 +1,0 @@
-```release-note:improvement
-cli: always use name "global" for proxy-defaults config entries
-```

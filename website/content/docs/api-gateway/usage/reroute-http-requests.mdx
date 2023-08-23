@@ -11,16 +11,16 @@ This topic describes how to configure Consul API Gateway to reroute HTTP request
 
 ## Requirements
 
-1. Verify that the [requirements](/consul/docs/api-gateway/tech-specs) have been met.
-1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/consul/docs/api-gateway/install) for details.
+1. Verify that the [requirements](/docs/api-gateway/tech-specs) have been met.
+1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/docs/api-gateway/install) for details.
 
 ## Configuration
 
-Specify the following fields in your `Route` configuration. Refer to the [Route configuration reference](/consul/docs/api-gateway/configuration/routes) for details about the parameters.
+Specify the following fields in your `Route` configuration. Refer to the [Route configuration reference](/docs/api-gateway/configuration/routes) for details about the parameters.
 
-- [`rules.filters.type`](/consul/docs/api-gateway/configuration/routes#rules-filters-type): Set this parameter to `URLRewrite` to instruct Consul API Gateway to rewrite the URL when specific conditions are met. 
-- [`rules.filters.urlRewrite`](/consul/docs/api-gateway/configuration/routes#rules-filters-urlrewrite): Specify the `path` configuration.
-- [`rules.filters.urlRewrite.path`](/consul/docs/api-gateway/configuration/routes#rules-filters-urlrewrite-path): Contains the paths that incoming requests should be rewritten to based on the match conditions.  
+- [`rules.filters.type`](/docs/api-gateway/configuration/routes#rules-filters-type): Set this parameter to `URLRewrite` to instruct Consul API Gateway to rewrite the URL when specific conditions are met. 
+- [`rules.filters.urlRewrite`](/docs/api-gateway/configuration/routes#rules-filters-urlrewrite): Specify the `path` configuration.
+- [`rules.filters.urlRewrite.path`](/docs/api-gateway/configuration/routes#rules-filters-urlrewrite-path): Contains the paths that incoming requests should be rewritten to based on the match conditions.  
 
 To configure the route to accept paths with or without a trailing slash, you must make two separate routes to handle each case.
 

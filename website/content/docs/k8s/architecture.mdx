@@ -2,23 +2,21 @@
 layout: docs
 page_title: Consul on Kubernetes Control Plane Architecture
 description: >-
-  When running on Kubernetes, Consul’s control plane architecture does not change significantly. Server agents are deployed as a StatefulSet with a persistent volume, while client agents can run as a k8s DaemonSet with an exposed API port or be omitted with Consul Dataplanes.
+  When running on Kubernetes, Consul’s control plane architecture does not change significantly. Server agents are deployed as a StatefulSet with a persistent volume, while client agents run as a k8s DaemonSet with an exposed API port.
 ---
+
 
 # Architecture
 
-This topic describes the architecture, components, and resources associated with Consul deployments to Kubernetes. Consul employs the same architectural design on Kubernetes as it does with other platforms, but Kubernetes provides additional benefits that make operating a Consul cluster easier. Refer to [Consul Architecture](/consul/docs/architecture) for more general information on Consul's architecture.
+This topic describes the architecture, components, and resources associated with Consul deployments to Kubernetes. Consul employs the same architectural design on Kubernetes as it does with other platforms (see [Architecture](/docs/architecture)), but Kubernetes provides additional benefits that make operating a Consul cluster easier. 
 
-> **For more specific guidance:**
-> - For guidance on datacenter design, refer to [Consul and Kubernetes Reference Architecture](/consul/tutorials/kubernetes-production/kubernetes-reference-architecture).
-> - For step-by-step deployment guidance, refer to [Consul and Kubernetes Deployment Guide](/consul/tutorials/kubernetes-production/kubernetes-deployment-guide).
-> - For non-Kubernetes guidance, refer to the standard [production deployment guide](/consul/tutorials/production-deploy/deployment-guide).
+Refer to the standard [production deployment guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide) for important information, regardless of the deployment platform.
 
 ## Server Agents
 
 The server agents are deployed as a `StatefulSet` and use persistent volume
 claims to store the server state. This also ensures that the
-[node ID](/consul/docs/agent/config/config-files#node_id) is persisted so that servers
+[node ID](/docs/agent/config/config-files#node_id) is persisted so that servers
 can be rescheduled onto new IP addresses without causing issues. The server agents
 are configured with
 [anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
@@ -37,12 +35,32 @@ Volume Claims when a
 [StatefulSet is deleted](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage),
 so this must done manually when removing servers.
 
-## Consul Dataplane
+## Client Agents
 
-By default, Consul on Kubernetes uses an alternate service mesh configuration that injects sidecars without client agents. _Consul Dataplane_ manages Envoy proxies and leaves responsibility for other functions to the orchestrator, which removes the need to run client agents on every node.
+The client agents are run as a **DaemonSet**. This places one agent
+(within its own pod) on each Kubernetes node.
+The clients expose the Consul HTTP API via a static port (8500)
+bound to the host port. This enables all other pods on the node to connect
+to the node-local agent using the host IP that can be retrieved via the
+Kubernetes downward API. See
+[accessing the Consul HTTP API](/docs/k8s/installation/install#accessing-the-consul-http-api)
+for an example.
 
-![Diagram of Consul Dataplanes in Kubernetes deployment](/img/k8s-dataplanes-architecture.png)
+We do not use a **NodePort** Kubernetes service because requests to node ports get randomly routed
+to any pod in the service and we need to be able to route directly to the Consul
+client running on our node.
 
-Refer to [Simplified Service Mesh with Consul Dataplanes](/consul/docs/connect/dataplane) for more information.
+-> **Note:** There is no way to bind to a local-only
+host port. Therefore, any other node can connect to the agent. This should be
+considered for security. For a properly production-secured agent with TLS
+and ACLs, this is safe.
 
-Consul Dataplane is the default proxy manager in Consul on Kubernetes 1.14 and later. If you are on Consul 1.13 or older, refer to [upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for specific upgrade instructions.
+We run Consul clients as a **DaemonSet** instead of running a client in each
+application pod as a sidecar because this would turn
+a pod into a "node" in Consul and also causes an explosion of resource usage
+since every pod needs a Consul agent. Service registration should be handled via the
+catalog syncing feature with Services rather than pods.
+
+-> **Note:** Due to a limitation of anti-affinity rules with DaemonSets,
+a client-mode agent runs alongside server-mode agents in Kubernetes. This
+duplication wastes some resources, but otherwise functions perfectly fine.

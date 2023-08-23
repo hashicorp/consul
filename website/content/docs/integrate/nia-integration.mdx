@@ -11,13 +11,13 @@ HashiCorp's Network Infrastructure Automation (NIA) Integration Program allows p
 
 ## Network Infrastructure Automation
 
-Network Infrastructure Automation (NIA) relies on a declarative, workflow and service driven network automation architecture. NIA is carried out by [`Consul-Terraform-Sync`](/consul/docs/nia) which leverages Terraform as the underlying automation tool and utilizes the Terraform provider ecosystem to drive relevant change to the network infrastructure. This usage of the Terraform provider in conjunction with Consul-Terraform-Sync allows for HashiCorp Consul to act as the core data source where it is updated with the state of the infrastructure.
+Network Infrastructure Automation (NIA) relies on a declarative, workflow and service driven network automation architecture. NIA is carried out by [`Consul-Terraform-Sync`](/docs/nia) which leverages Terraform as the underlying automation tool and utilizes the Terraform provider ecosystem to drive relevant change to the network infrastructure. This usage of the Terraform provider in conjunction with Consul-Terraform-Sync allows for HashiCorp Consul to act as the core data source where it is updated with the state of the infrastructure.
 
 Consul-Terraform-Sync executes one or more automation tasks with an appropriate value of service variables based on updates from the Consul service catalog. Each task consists of a runbook automation written as a compatible Terraform module using resources and data sources for the underlying network infrastructure. The Consul-Terraform-Sync daemon runs on the same node as a Consul agent.
 
 [![NIA Architecture](/img/nia-highlevel-diagram.svg)](/img/nia-highlevel-diagram.svg)
 
--> Please note that the above indicated solution is a “push” based method and is not the only way to integrate network devices with Consul and drive Network Infrastructure Automation Integration. If your preferred method is to directly integrate with Consul without using Terraform, then please use [Consul Integration Program](/consul/docs/integrate/partnerships).
+-> Please note that the above indicated solution is a “push” based method and is not the only way to integrate network devices with Consul and drive Network Infrastructure Automation Integration. If your preferred method is to directly integrate with Consul without using Terraform, then please use [Consul Integration Program](/docs/integrate/partnerships).
 
 ## NIA Program Steps
 
@@ -42,16 +42,16 @@ Please begin by providing the following details: [NIA Integration Program](https
 
 Consul-Terraform-Sync compatible Terraform module development process is fairly straightforward and simple when technology partners have experience with building Terraform configuration files. Adopting Terraform best practices helps expedite the review and release cycles.
 
-- Consul [documentation](/consul/docs)
-- Consul-Terraform-Sync [documentation](/consul/docs/nia)
-- Writing Consul-Terraform-Sync compatible Terraform modules using our [guide](/consul/docs/nia/terraform-modules) and [tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-module?utm_source=docs)
+- Consul [documentation](/docs)
+- Consul-Terraform-Sync [documentation](/docs/nia)
+- Writing Consul-Terraform-Sync compatible Terraform modules using our [guide](/docs/nia/terraform-modules) and [tutorial](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-module?utm_source=docs)
 - Example Terraform Modules for reference: [PAN-OS](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest), [Simple Print Module](https://registry.terraform.io/modules/findkim/print/cts/latest) and a [Template to structure your Terraform Modules](https://github.com/hashicorp/consul-terraform-sync-template-module)
-- Publishing to the Terraform Registry [guidelines](/terraform/registry/modules/publish)
+- Publishing to the Terraform Registry [guidelines](https://www.terraform.io/registry/modules/publish)
 
 ### 3. Develop & Test
 
-Terraform modules are written in HashiCorp Configuration Language (HCL). Writing [Terraform modules](/terraform/language/modules/develop) or a [tutorial to build a module](/terraform/tutorials/modules/module-create) are good resources to begin writing a new module.
-Consul-Terraform-Sync compatible modules follow the [standard module structure](/terraform/language/modules/develop). Modules can use syntax supported by Terraform version 0.13, or higher. Consul-Terraform-Sync is designed to integrate with any module that satisfies these [specifications](/consul/docs/nia/terraform-modules#module-specifications). The guide will give you an introduction of the code structure and the basics of authoring a plugin that Terraform can interact with.
+Terraform modules are written in HashiCorp Configuration Language (HCL). Writing [Terraform modules](https://www.terraform.io/language/modules/develop) or a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create) are good resources to begin writing a new module.
+Consul-Terraform-Sync compatible modules follow the [standard module structure](https://www.terraform.io/language/modules/develop). Modules can use syntax supported by Terraform version 0.13, or higher. Consul-Terraform-Sync is designed to integrate with any module that satisfies these [specifications](/docs/nia/terraform-modules#module-specifications). The guide will give you an introduction of the code structure and the basics of authoring a plugin that Terraform can interact with.
 
 It is recommended that partners develop modules that cater to specific workflows on an individual platform in their product portfolio rather than having overarching modules that try to cover multiple workflows across different platforms. This is to keep the automation modular and adoptable by a broad set of users with varying network infrastructure topologies. Partners are encouraged to test the functionality of the modules against their supported platforms.
 
@@ -87,7 +87,7 @@ Once the module development has been completed another email should be sent to n
 
 At this stage, it is expected that the module is fully developed, all tests and documentation are in place, and that HashiCorp has reviewed the module to be compatible with Consul-Terraform-Sync.
 
-Once this is done, HashiCorp will get the new module listed as Consul-Terraform-Sync compatible on [consul.io](/consul/docs/nia/usage/requirements#partner-terraform-modules), and then the partner will be asked to publish the Terraform module to the [Terraform Registry](https://registry.terraform.io/browse/modules).
+Once this is done, HashiCorp will get the new module listed as Consul-Terraform-Sync compatible on [consul.io](/docs/nia/installation/requirements#partner-terraform-modules), and then the partner will be asked to publish the Terraform module to the [Terraform Registry](https://registry.terraform.io/browse/modules).
 
 ### 6. Support
 
@@ -95,7 +95,7 @@ Many partners view the release step to be the end of the journey, while at Hashi
 
 The expectation is to resolve all critical issues within 48 hours and all other issues within 5 business days. HashiCorp Consul and Terraform have an extremely wide community of users and contributors and we encourage everyone to report issues however small, as well as help resolve them when possible.
 
-Partners who choose to not follow the process of NIA Integration Program for their Consul-Terraform-Sync compatible Terraform modules will not have their modules listed on [consul.io](/consul/docs/nia/usage/requirements#partner-terraform-modules).
+Partners who choose to not follow the process of NIA Integration Program for their Consul-Terraform-Sync compatible Terraform modules will not have their modules listed on [consul.io](/docs/nia/installation/requirements#partner-terraform-modules).
 
 ### Contact Us
 

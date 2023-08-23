@@ -1,19 +1,6 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-%breadcrumbs {
-  display: grid;
-  grid-auto-flow: column;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
 %breadcrumbs > li {
   list-style-type: none;
   display: inline-flex;
-  overflow: hidden
 }
 %breadcrumb-milestone::before {
   margin-right: 4px;
@@ -23,8 +10,6 @@
   /* as the separator is a '/' the left margin needs */
   /* to be different from the right in order to center it */
   margin-left: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 %breadcrumb::before {
   margin-right: 8px;

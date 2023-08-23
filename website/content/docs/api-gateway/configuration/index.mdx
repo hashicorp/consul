@@ -1,24 +1,23 @@
 ---
 layout: docs
-page_title: Consul API Gateway Configuration - Overview
-description: >-
-  Configure your Consul API Gateway to manage traffic into your service mesh. Learn about the Kubernetes Gateway Specification items you can configure and how to configure custom API Gateways.
+page_title: Consul API Gateway Configuration
+description:  >-
+  Consul API Gateway Configuration
 ---
 
-# Consul API Gateway Configuration Overview
+# Configuration
 
 This topic provides an overview of the configuration items that enable Consul API Gateway to manage traffic into your Consul service mesh.
 
-- [Gateway](/consul/docs/api-gateway/configuration/gateway) defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more [listeners](/consul/docs/api-gateway/configuration/gateway#listeners), which specify the logical endpoints bound to the gateway's addresses.
-- [GatewayClass](/consul/docs/api-gateway/configuration/gatewayclass) defines a class of gateway resources that you can use as a template for creating gateways.
-- [GatewayClassConfig](/consul/docs/api-gateway/configuration/gatewayclassconfig) describes additional Consul API Gateway-related configuration parameters for the GatewayClass resource.
-- [Routes](/consul/docs/api-gateway/configuration/routes) specifies the path from the gateway to the backend service(s) client to the listener.
-- [Intentions](/consul/docs/connect/config-entries/service-intentions) specify traffic communication rules between services in the mesh. Intentions also enforce rules for service-to-service traffic routed through a Consul API gateway.
+- [Gateway](/docs/api-gateway/configuration/gateway) defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more [listeners](/docs/api-gateway/configuration/gateway#listeners), which specify the logical endpoints bound to the gateway's addresses.
+- [GatewayClass](/docs/api-gateway/configuration/gatewayclass) defines a class of gateway resources that you can use as a template for creating gateways.
+- [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig) describes additional Consul API Gateway-related configuration parameters for the GatewayClass resource.
+- [Routes](/docs/api-gateway/configuration/routes) specifies the path from the gateway to the backend service(s) client to the listener.
 
-You can create a basic Gateway object using the default [`gatewayClassName`](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) (`consul`). If you want to create custom Gateways suitable for your environment, complete the following steps:
+You can create a basic Gateway object using the default [`gatewayClassName`](/docs/api-gateway/configuration/gateway#gatewayclassname) (`consul-api-gateway`). If you want to create custom Gateways suitable for your environment, complete the following steps:
 
-1. Define a [GatewayClassConfig](/consul/docs/api-gateway/configuration/gatewayclassconfig) that contains your custom configurations.
-1. Define a [GatewayClass](/consul/docs/api-gateway/configuration/gatewayclass) and configure the [`parametersRef.name`](/consul/docs/api-gateway/configuration/gatewayclass#parametersref-name) to reference the name of your [GatewayClassConfig](/consul/docs/api-gateway/configuration/gatewayclassconfig).
-1. Define a [Gateway](/consul/docs/api-gateway/configuration/gateway) and configure the [`gatewayClassName`](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) to reference the name of your [GatewayClass](/consul/docs/api-gateway/configuration/gatewayclass).
+1. Define a [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig) that contains your custom configurations.
+1. Define a [GatewayClass](/docs/api-gateway/configuration/gatewayclass) and configure the [`parametersRef.name`](/docs/api-gateway/configuration/gatewayclass#parametersref-name) to reference the name of your [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig).
+1. Define a [Gateway](/docs/api-gateway/configuration/gateway) and configure the [`gatewayClassName`](/docs/api-gateway/configuration/gateway#gatewayclassname) to reference the name of your [GatewayClass](/docs/api-gateway/configuration/gatewayclass).
 
 <!--TODO add diagram -->

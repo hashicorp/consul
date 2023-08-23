@@ -1,23 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 // PeeringToken identifies a peer in order for a connection to be established.
 type PeeringToken struct {
-	CA                    []string
-	ManualServerAddresses []string
-	ServerAddresses       []string
-	ServerName            string
-	PeerID                string
-	EstablishmentSecret   string
-	Remote                PeeringTokenRemote
-}
-
-type PeeringTokenRemote struct {
-	Partition  string
-	Datacenter string
-	Locality   *Locality
+	CA                  []string
+	ServerAddresses     []string
+	ServerName          string
+	PeerID              string
+	EstablishmentSecret string
 }
 
 type IndexedExportedServiceList struct {
@@ -66,7 +55,8 @@ func (i ExportedDiscoveryChainInfo) Equal(o ExportedDiscoveryChainInfo) bool {
 	return true
 }
 
-// ListAllDiscoveryChains returns all discovery chains (union of Services and DiscoChains).
+// ListAllDiscoveryChains returns all discovery chains (union of Services and
+// DiscoChains).
 func (list *ExportedServiceList) ListAllDiscoveryChains() map[ServiceName]ExportedDiscoveryChainInfo {
 	chainsByName := make(map[ServiceName]ExportedDiscoveryChainInfo)
 	if list == nil {

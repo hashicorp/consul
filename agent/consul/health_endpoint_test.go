@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -1125,8 +1122,9 @@ node "foo" {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	var resp structs.IndexedCheckServiceNodes
-	assert.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp), "Permission denied")
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.Nodes, 0)
+	assert.Greater(t, resp.Index, uint64(0))
 
 	// List w/ token. This should work since we're requesting "foo", but should
 	// also only contain the proxies with names that adhere to our ACL.
@@ -1464,7 +1462,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		ServiceName: "db",
 		Ingress:     true,
 	}
-	require.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2), "Permission denied")
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
 	require.Len(t, out2.Nodes, 0)
 
 	// Requesting a service that is not covered by the token's policy
@@ -1474,7 +1472,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		Ingress:      true,
 		QueryOptions: structs.QueryOptions{Token: token.SecretID},
 	}
-	require.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2), "Permission denied")
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
 	require.Len(t, out2.Nodes, 0)
 
 	// Requesting service covered by the token's policy
@@ -1764,12 +1762,6 @@ func TestHealth_RPC_Filter(t *testing.T) {
 		require.Len(t, out.HealthChecks, 1)
 
 		args.State = api.HealthWarning
-		out = new(structs.IndexedHealthChecks)
-		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
-		require.Len(t, out.HealthChecks, 1)
-
-		args.State = api.HealthAny
-		args.Filter = "connect in ServiceTags and v2 in ServiceTags"
 		out = new(structs.IndexedHealthChecks)
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
 		require.Len(t, out.HealthChecks, 1)

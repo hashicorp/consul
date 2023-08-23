@@ -1,3 +1,0 @@
-```release-note:improvement
-hcp: Removes requirement for HCP to provide a management token
-```

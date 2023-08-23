@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Adapter from './application';
 import { inject as service } from '@ember/service';
 
@@ -72,10 +67,10 @@ export default class OidcProviderAdapter extends Adapter {
 
   authorize(store, type, id, snapshot) {
     return this.rpc(
-      function (adapter, request, serialized, unserialized) {
+      function(adapter, request, serialized, unserialized) {
         return adapter.requestForAuthorize(request, serialized, unserialized);
       },
-      function (serializer, respond, serialized, unserialized) {
+      function(serializer, respond, serialized, unserialized) {
         return serializer.respondForAuthorize(respond, serialized, unserialized);
       },
       snapshot,
@@ -85,10 +80,10 @@ export default class OidcProviderAdapter extends Adapter {
 
   logout(store, type, id, snapshot) {
     return this.rpc(
-      function (adapter, request, serialized, unserialized) {
+      function(adapter, request, serialized, unserialized) {
         return adapter.requestForLogout(request, serialized, unserialized);
       },
-      function (serializer, respond, serialized, unserialized) {
+      function(serializer, respond, serialized, unserialized) {
         // its ok to return nothing here for the moment at least
         return {};
       },

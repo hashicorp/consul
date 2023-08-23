@@ -1,11 +1,14 @@
 ---
 layout: docs
-page_title: JSON Web Token (JWT) Auth Method
+page_title: JWT Auth Method
 description: >-
-  Use the JWT auth method to authenticate to Consul with a JSON web token and receive an ACL token with privileges based on JWT identity attributes. Learn how to configure the auth method parameters using this reference page and example configuration.
+  The JWT auth method can be used to authenticate with Consul by providing a
+  JWT directly. The JWT is cryptographically verified using locally-provided
+  keys, or, if configured, an OIDC Discovery service can be used to fetch the
+  appropriate keys.
 ---
 
-# JSON Web Token (JWT) Auth Method
+# JWT Auth Method
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
@@ -15,17 +18,17 @@ cryptographically verified using locally-provided keys, or, if configured, an
 OIDC Discovery service can be used to fetch the appropriate keys.
 
 This page assumes general knowledge of JWTs and the concepts described in the
-main [auth method documentation](/consul/docs/security/acl/auth-methods).
+main [auth method documentation](/docs/security/acl/auth-methods).
 
-Both the [`jwt`](/consul/docs/security/acl/auth-methods/jwt) and the
-[`oidc`](/consul/docs/security/acl/auth-methods/oidc) auth method types allow additional
+Both the [`jwt`](/docs/security/acl/auth-methods/jwt) and the
+[`oidc`](/docs/security/acl/auth-methods/oidc) auth method types allow additional
 processing of the claims data in the JWT.
 
 @include 'jwt_or_oidc.mdx'
 
 ## Config Parameters
 
-The following auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
+The following auth method [`Config`](/api-docs/acl/auth-methods#config)
 parameters are required to properly configure an auth method of type
 `jwt`:
 

@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 # GPG Key ID to use for publically released builds
 HASHICORP_GPG_KEY="348FFC4C"
 
@@ -44,5 +41,4 @@ else
    SED_EXT="-r"
 fi
 
-# TODO(spatel): CE refactor
 CONSUL_BINARY_TYPE=oss

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -52,12 +49,6 @@ func (id SpiffeIDSigning) CanSign(cu CertURI) bool {
 		// built-in cluster ids.
 		return strings.ToLower(other.Host) == id.Host()
 	case *SpiffeIDMeshGateway:
-		// The host component of the service must be an exact match for now under
-		// ascii case folding (since hostnames are case-insensitive). Later we might
-		// worry about Unicode domains if we start allowing customisation beyond the
-		// built-in cluster ids.
-		return strings.ToLower(other.Host) == id.Host()
-	case *SpiffeIDServer:
 		// The host component of the service must be an exact match for now under
 		// ascii case folding (since hostnames are case-insensitive). Later we might
 		// worry about Unicode domains if we start allowing customisation beyond the

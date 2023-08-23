@@ -1,17 +1,12 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-export const createPolicies = function (item) {
-  return item.Policies.map(function (item) {
+export const createPolicies = function(item) {
+  return item.Policies.map(function(item) {
     return {
       template: '',
       ...item,
     };
   })
     .concat(
-      item.ServiceIdentities.map(function (item) {
+      item.ServiceIdentities.map(function(item) {
         const policy = {
           template: 'service-identity',
           Name: item.ServiceName,
@@ -23,7 +18,7 @@ export const createPolicies = function (item) {
       })
     )
     .concat(
-      item.NodeIdentities.map(function (item) {
+      item.NodeIdentities.map(function(item) {
         const policy = {
           template: 'node-identity',
           Name: item.NodeName,

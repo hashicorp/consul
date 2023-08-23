@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
 import RepositoryService, { softDelete } from 'consul-ui/services/repository';
@@ -11,16 +6,16 @@ import dataSource from 'consul-ui/decorators/data-source';
 
 import { defaultChangeset as changeset } from 'consul-ui/utils/form/builder';
 
-const findActiveNspace = function (nspaces, nspace) {
-  let found = nspaces.find(function (item) {
+const findActiveNspace = function(nspaces, nspace) {
+  let found = nspaces.find(function(item) {
     return item.Name === nspace.Name;
   });
   if (typeof found === 'undefined') {
-    runInDebug((_) =>
-      console.info(`${nspace.Name} not found in [${nspaces.map((item) => item.Name).join(', ')}]`)
+    runInDebug(_ =>
+      console.info(`${nspace.Name} not found in [${nspaces.map(item => item.Name).join(', ')}]`)
     );
     // if we can't find the nspace that was specified try default
-    found = nspaces.find(function (item) {
+    found = nspaces.find(function(item) {
       return item.Name === 'default';
     });
     // if there is no default just choose the first
@@ -92,7 +87,7 @@ export default class NspaceService extends RepositoryService {
         },
       ]);
     }
-    return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace }).catch(function (e) {
+    return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace }).catch(function(e) {
       return [];
     });
   }

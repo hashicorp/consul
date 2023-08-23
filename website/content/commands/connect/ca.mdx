@@ -10,15 +10,14 @@ description: >
 
 Command: `consul connect ca`
 
-This command is used to interact with Consul service mesh's Certificate Authority
-managed by the connect subsystem.
-It can be used to view or modify the current CA configuration. Refer to the
-[service mesh CA documentation](/consul/docs/connect/ca) for more information.
+The CA connect command is used to interact with Consul Connect's Certificate Authority
+subsystem. The command can be used to view or modify the current CA configuration. See the
+[Connect CA documentation](/docs/connect/ca) for more information.
 
 ```text
 Usage: consul connect ca <subcommand> [options] [args]
 
-  This command has subcommands for interacting with Consul service mesh's
+  This command has subcommands for interacting with Consul Connect's
   Certificate Authority (CA).
 
   Here are some simple examples, and more detailed examples are available
@@ -35,16 +34,16 @@ Usage: consul connect ca <subcommand> [options] [args]
   For more examples, ask for subcommand help or view the documentation.
 
 Subcommands:
-    get-config    Display the current service mesh Certificate Authority (CA) configuration
-    set-config    Modify the current service mesh CA configuration
+    get-config    Display the current Connect Certificate Authority (CA) configuration
+    set-config    Modify the current Connect CA configuration
 ```
 
 ## get-config
 
 This command displays the current CA configuration.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -53,7 +52,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul connect ca get-config [options]`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/ca/configuration](/consul/api-docs/connect/ca#get-ca-configuration)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/ca/configuration](/api-docs/connect/ca#get-ca-configuration)
 
 #### API Options
 
@@ -75,11 +74,11 @@ The output looks like this:
 ## set-config
 
 Modifies the current CA configuration. If this results in a new root certificate
-being used, the [Root Rotation](/consul/docs/connect/ca#root-certificate-rotation) process
+being used, the [Root Rotation](/docs/connect/ca#root-certificate-rotation) process
 will be triggered.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -88,7 +87,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul connect ca set-config [options]`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/connect/ca/configuration](/consul/api-docs/connect/ca#update-ca-configuration)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/connect/ca/configuration](/api-docs/connect/ca#update-ca-configuration)
 
 The output looks like this:
 
@@ -98,27 +97,17 @@ Configuration updated!
 
 The return code will indicate success or failure.
 
-~> **If currently using Vault CA provider:**
-   If you intend to change the CA provider from Vault to another,
-   or to change the Vault provider's [`RootPKIPath`](/consul/docs/connect/ca/vault#rootpkipath),
-   you must temporarily elevate the privileges of the Vault token
-   or auth method in use as described in the
-   [Vault CA provider documentation](/consul/docs/connect/ca/vault#additional-vault-acl-policies-for-sensitive-operations).
-
 #### Command Options
 
 - `-config-file` - (required) Specifies a JSON-formatted file to use for the new configuration.
   The format of this config file matches the request payload documented in the
-  [Update CA Configuration API](/consul/api-docs/connect/ca#update-ca-configuration).
+  [Update CA Configuration API](/api-docs/connect/ca#update-ca-configuration).
 
 - `-force-without-cross-signing` `(bool: <optional>)` - Indicates that the CA change
-  should be forced to complete even if the current CA doesn't support root cross-signing.
-
-  ~> **Caution:** Use of this flag will cause temporary connection failures
-  until service mesh proxies and/or Consul client agents receive a new certificate
-  that establishes trust with the new root.
-  Do not use this flag unless you are sure you need it.
-  Refer to [Forced Rotation Without Cross-Signing](/consul/docs/connect/ca#forced-rotation-without-cross-signing)
+  should be forced to complete even if the current CA doesn't support cross
+  signing. Changing root without cross-signing may cause temporary connection
+  failures until the rollout completes. See [Forced Rotation Without
+  Cross-Signing](/docs/connect/ca#forced-rotation-without-cross-signing)
   for more detail.
 
 #### API Options

@@ -1,14 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
-import { scheduleOnce } from '@ember/runloop';
 
 export default class PagedCollectionComponent extends Component {
+
   @tracked $pane;
   @tracked $viewport;
 
@@ -30,7 +25,7 @@ export default class PagedCollectionComponent extends Component {
   get perPage() {
     switch (this.type) {
       case 'virtual-scroll':
-        return this.visibleItems + this.overflow * 2;
+        return this.visibleItems + (this.overflow * 2);
       case 'index':
         return parseInt(this.args.perPage);
     }
@@ -50,7 +45,7 @@ export default class PagedCollectionComponent extends Component {
   }
 
   get itemsBefore() {
-    if (typeof this.$viewport === 'undefined') {
+    if(typeof this.$viewport === 'undefined') {
       return 0;
     }
     return Math.max(0, Math.round(this.top / this.rowHeight) - this.overflow);
@@ -89,7 +84,7 @@ export default class PagedCollectionComponent extends Component {
 
   @action
   resize() {
-    if (this.$viewport.clientHeight > 0 && this.rowHeight > 0) {
+    if(this.$viewport.clientHeight > 0 && this.rowHeight > 0) {
       this.visibleItems = Math.ceil(this.$viewport.clientHeight / this.rowHeight);
     } else {
       this.visibleItems = 0;
@@ -98,10 +93,9 @@ export default class PagedCollectionComponent extends Component {
 
   @action
   setViewport($viewport) {
-    this.$viewport =
-      $viewport === 'html' ? [...document.getElementsByTagName('html')][0] : $viewport;
+    this.$viewport = $viewport === 'html' ? [...document.getElementsByTagName('html')][0] : $viewport;
     this.$viewport.addEventListener('scroll', this.scroll);
-    if ($viewport === 'html') {
+    if($viewport === 'html') {
       this.$viewport.addEventListener('resize', this.resize);
     }
     this.scroll();
@@ -117,13 +111,8 @@ export default class PagedCollectionComponent extends Component {
   }
 
   @action setMaxHeight(str) {
-    scheduleOnce('actions', this, '_setMaxHeight');
-  }
-
-  @action _setMaxHeight(str) {
     const maxHeight = parseFloat(str);
-
-    if (!isNaN(maxHeight)) {
+    if(!isNaN(maxHeight)) {
       this._type = 'virtual-scroll';
     }
   }

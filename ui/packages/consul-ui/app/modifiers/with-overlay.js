@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { modifier } from 'ember-modifier';
 import tippy, { followCursor } from 'tippy.js';
 
@@ -45,7 +40,7 @@ export default modifier(($element, [content], hash = {}) => {
     // amount of time specified by the delay
     const delay = options.delay || [];
     if (typeof delay[1] !== 'undefined') {
-      options.onShown = (popover) => {
+      options.onShown = popover => {
         clearInterval(interval);
         interval = setTimeout(() => {
           popover.hide();
@@ -56,12 +51,12 @@ export default modifier(($element, [content], hash = {}) => {
   let $trigger = $anchor;
   const popover = tippy($anchor, {
     triggerTarget: $trigger,
-    content: ($anchor) => content,
+    content: $anchor => content,
     // showOnCreate: true,
     // hideOnClick: false,
     interactive: true,
-    plugins: [typeof options.followCursor !== 'undefined' ? followCursor : undefined].filter(
-      (item) => Boolean(item)
+    plugins: [typeof options.followCursor !== 'undefined' ? followCursor : undefined].filter(item =>
+      Boolean(item)
     ),
     ...options,
   });

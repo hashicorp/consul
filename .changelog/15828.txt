@@ -1,4 +1,0 @@
-```release-note:feature
-acl: Add new `acl.tokens.config_file_registration` config field which specifies the token used
-to register services and checks that are defined in config files.
-```

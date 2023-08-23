@@ -1,6 +1,0 @@
-```release-note:breaking-change
-config: Add new `ports.grpc_tls` configuration option.
-Introduce a new port to better separate TLS config from the existing `ports.grpc` config.
-The new `ports.grpc_tls` only supports TLS encrypted communication.
-The existing `ports.grpc` now only supports plain-text communication.
-```

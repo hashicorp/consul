@@ -1,55 +1,53 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-{{#let (dom-position (set this 'style') offset=true) 'tab' as |select name|}}
-  <nav
-    style={{{if
-      this.style
-      (concat
-        '--selected-width:'
-        this.style.width
-        ';'
-        '--selected-left:'
-        this.style.left
-        ';'
-        '--selected-height:'
-        this.style.height
-        ';'
-        '--selected-top:'
-        this.style.top
+{{#let
+  (dom-position (set this 'style') offset=true)
+  "tab"
+as |select name|}}
+<nav
+  style={{{if this.style (concat
+      '--selected-width:' this.style.width ';'
+      '--selected-left:' this.style.left ';'
+      '--selected-height:' this.style.height ';'
+      '--selected-top:' this.style.top
+    )
+    undefined
+  }}}
+  aria-label="Secondary"
+  class={{concat 'tab-nav' ' animatable'}}
+  ...attributes
+>
+  <ul>
+{{#each @items as |item|}}
+  <li
+    {{on 'click' (fn select)}}
+    {{did-upsert
+      (if item.selected
+        (fn select)
+        (noop)
       )
-      undefined
-    }}}
-    aria-label='Secondary'
-    class={{concat 'tab-nav' ' animatable'}}
-    ...attributes
+      @items.length
+    }}
+    data-test-tab={{concat name '_' (if item.label (slugify item.label) (slugify item))}}
+    class={{if (or item.selected (eq selected (if item.label (slugify item.label) (slugify item)))) 'selected'}}
   >
-    <ul>
-      {{#each @items as |item|}}
-        <li
-          {{on 'click' (fn select)}}
-          {{did-upsert (if item.selected (fn select) (noop)) @items.length}}
-          data-test-tab={{concat name '_' (if item.label (slugify item.label) (slugify item))}}
-          class={{if
-            (or item.selected (eq selected (if item.label (slugify item.label) (slugify item))))
-            'selected'
-          }}
-        >
-          <Action
-            {{on 'click' (fn this.onClick (uppercase item.label))}}
-            {{on 'click' (fn this.onTabClicked item)}}
-            @href={{item.href}}
-          >
-            {{#if item.tooltip}}
-              <span {{tooltip item.tooltip}}>{{item.label}}</span>
-            {{else}}
-              {{item.label}}
-            {{/if}}
-          </Action>
-        </li>
-      {{/each}}
-    </ul>
-  </nav>
+    <Action
+      {{on 'click'
+        (if (not-eq @onclick undefined)
+          (fn @onclick (uppercase item.label))
+          (noop)
+        )
+      }}
+      {{on 'click'
+        (if @onTabClicked
+          (fn @onTabClicked item)
+          (noop)
+        )
+      }}
+      @href={{item.href}}
+    >
+      {{item.label}}
+    </Action>
+  </li>
+{{/each}}
+  </ul>
+</nav>
 {{/let}}

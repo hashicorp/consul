@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package dataplane
 
 import (
@@ -10,15 +7,12 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/configentry"
+	acl "github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/accesslogs"
+	structs "github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
 
@@ -28,14 +22,10 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	logger.Trace("Started processing request")
 	defer logger.Trace("Finished processing request")
 
-	options, err := external.QueryOptionsFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+	token := external.TokenFromContext(ctx)
 	var authzContext acl.AuthorizerContext
 	entMeta := acl.NewEnterpriseMetaWithPartition(req.GetPartition(), req.GetNamespace())
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzContext)
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
@@ -61,62 +51,24 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	_, ns, err := configentry.MergeNodeServiceWithCentralConfig(
-		nil,
-		store,
-		svc.ToNodeService(),
-		logger,
-	)
-	if err != nil {
-		logger.Error("Error merging with central config", "error", err)
-		return nil, status.Errorf(codes.Unknown, "Error merging central config: %v", err)
+	// Build out the response
+
+	resp := &pbdataplane.GetEnvoyBootstrapParamsResponse{
+		Service:     svc.ServiceProxy.DestinationServiceName,
+		Partition:   svc.EnterpriseMeta.PartitionOrDefault(),
+		Namespace:   svc.EnterpriseMeta.NamespaceOrDefault(),
+		Datacenter:  s.Datacenter,
+		ServiceKind: convertToResponseServiceKind(svc.ServiceKind),
 	}
 
-	bootstrapConfig, err := structpb.NewStruct(ns.Proxy.Config)
+	bootstrapConfig, err := structpb.NewStruct(svc.ServiceProxy.Config)
 	if err != nil {
 		logger.Error("Error creating the envoy boostrap params config", "error", err)
 		return nil, status.Error(codes.Unknown, "Error creating the envoy boostrap params config")
 	}
+	resp.Config = bootstrapConfig
 
-	// Inspect access logging
-	// This is non-essential, and don't want to return an error unless there is a more serious issue
-	var accessLogs []string
-	if ns != nil && ns.Proxy.AccessLogs.Enabled {
-		envoyLoggers, err := accesslogs.MakeAccessLogs(&ns.Proxy.AccessLogs, false)
-		if err != nil {
-			logger.Warn("Error creating the envoy access log config", "error", err)
-		}
-
-		accessLogs = make([]string, 0, len(envoyLoggers))
-
-		for _, msg := range envoyLoggers {
-			logConfig, err := protojson.Marshal(msg)
-			if err != nil {
-				logger.Warn("Error marshaling the envoy access log config", "error", err)
-			}
-			accessLogs = append(accessLogs, string(logConfig))
-		}
-	}
-
-	// Build out the response
-	var serviceName string
-	if svc.ServiceKind == structs.ServiceKindConnectProxy {
-		serviceName = svc.ServiceProxy.DestinationServiceName
-	} else {
-		serviceName = svc.ServiceName
-	}
-
-	return &pbdataplane.GetEnvoyBootstrapParamsResponse{
-		Service:     serviceName,
-		Partition:   svc.EnterpriseMeta.PartitionOrDefault(),
-		Namespace:   svc.EnterpriseMeta.NamespaceOrDefault(),
-		Config:      bootstrapConfig,
-		Datacenter:  s.Datacenter,
-		ServiceKind: convertToResponseServiceKind(svc.ServiceKind),
-		NodeName:    svc.Node,
-		NodeId:      string(svc.ID),
-		AccessLogs:  accessLogs,
-	}, nil
+	return resp, nil
 }
 
 func convertToResponseServiceKind(serviceKind structs.ServiceKind) (respKind pbdataplane.ServiceKind) {
@@ -129,8 +81,6 @@ func convertToResponseServiceKind(serviceKind structs.ServiceKind) (respKind pbd
 		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TERMINATING_GATEWAY
 	case structs.ServiceKindIngressGateway:
 		respKind = pbdataplane.ServiceKind_SERVICE_KIND_INGRESS_GATEWAY
-	case structs.ServiceKindAPIGateway:
-		respKind = pbdataplane.ServiceKind_SERVICE_KIND_API_GATEWAY
 	case structs.ServiceKindTypical:
 		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TYPICAL
 	}

@@ -1,3 +1,0 @@
-```release-note:improvement
-peering: return information about the health of the peering when the leader is queried to read a peering.
-```

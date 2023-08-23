@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Remove node meta on service instances when using agentless and consolidate external-source labels on service instances page if they all match. 
-```

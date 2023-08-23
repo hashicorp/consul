@@ -20,7 +20,9 @@
                 "statPrefix": "ingress_upstream_8080",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "8080"
@@ -34,13 +36,10 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
+                  "randomSampling": {
+
                   }
-                ]
+                }
               }
             }
           ],
@@ -49,7 +48,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificateSdsSecretConfigs": [
                   {
                     "name": "listener-cert",
@@ -69,9 +70,6 @@
                       "resourceApiVersion": "V3"
                     }
                   }
-                ],
-                "alpnProtocols": [
-                  "http/1.1"
                 ]
               },
               "requireClientCertificate": false

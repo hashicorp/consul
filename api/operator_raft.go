@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 // RaftServer has information about a server in the Raft configuration.
@@ -28,9 +25,6 @@ type RaftServer struct {
 	// it's a non-voting server, which will be added in a future release of
 	// Consul.
 	Voter bool
-
-	// LastIndex is the last log index this server has a record of in its Raft log.
-	LastIndex uint64
 }
 
 // RaftConfiguration is returned when querying for the current Raft configuration.
@@ -40,11 +34,6 @@ type RaftConfiguration struct {
 
 	// Index has the Raft index of this configuration.
 	Index uint64
-}
-
-// TransferLeaderResponse is returned when querying for the current Raft configuration.
-type TransferLeaderResponse struct {
-	Success bool
 }
 
 // RaftGetConfiguration is used to query the current Raft peer set.
@@ -61,26 +50,6 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 	}
 
 	var out RaftConfiguration
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// RaftLeaderTransfer is used to transfer the current raft leader to another node
-func (op *Operator) RaftLeaderTransfer(q *QueryOptions) (*TransferLeaderResponse, error) {
-	r := op.c.newRequest("POST", "/v1/operator/raft/transfer-leader")
-	r.setQueryOptions(q)
-	_, resp, err := op.c.doRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return nil, err
-	}
-
-	var out TransferLeaderResponse
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}

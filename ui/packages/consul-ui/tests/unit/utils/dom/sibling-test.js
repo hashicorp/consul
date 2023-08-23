@@ -1,13 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import domSibling from 'consul-ui/utils/dom/sibling';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | dom/sibling', function () {
-  test('it returns the next sibling if it matches the requested nodeName', function (assert) {
+module('Unit | Utility | dom/sibling', function() {
+  test('it returns the next sibling if it matches the requested nodeName', function(assert) {
     const expected = {
       nodeType: 1,
       nodeName: 'H1',
@@ -20,7 +15,7 @@ module('Unit | Utility | dom/sibling', function () {
     );
     assert.deepEqual(actual, expected);
   });
-  test('it returns the next sibling from a list of nodes if it matches the requested nodeName', function (assert) {
+  test('it returns the next sibling from a list of nodes if it matches the requested nodeName', function(assert) {
     const expected = {
       nodeType: 1,
       nodeName: 'H1',
@@ -42,7 +37,7 @@ module('Unit | Utility | dom/sibling', function () {
     );
     assert.deepEqual(actual, expected);
   });
-  test("it returns the null from a list of nodes if it can't match", function (assert) {
+  test("it returns the null from a list of nodes if it can't match", function(assert) {
     let expected;
     const nodes = {
       nodeType: 3,

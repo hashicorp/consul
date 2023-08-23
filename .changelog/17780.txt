@@ -1,3 +1,0 @@
-```release-note:feature
-cli: `consul watch` command uses `-filter` expression to filter response from checks, services, nodes, and service.
-```

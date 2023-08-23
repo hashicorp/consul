@@ -22,7 +22,9 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+
+                },
                 "statPrefix": "connect_authz"
               }
             },
@@ -40,7 +42,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -75,7 +79,9 @@
                 "statPrefix": "upstream.external-IP-HTTP.default.default.dc1",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "destination.192-168-0-2.external-IP-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
@@ -85,7 +91,9 @@
                     "name": "envoy.filters.http.rbac",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules": {}
+                      "rules": {
+
+                      }
                     }
                   },
                   {
@@ -96,7 +104,9 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
+                  "randomSampling": {
+
+                  }
                 },
                 "forwardClientCertDetails": "APPEND_FORWARD",
                 "setCurrentClientCertDetails": {
@@ -105,12 +115,7 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
-                  }
-                ]
+                }
               }
             }
           ],
@@ -119,7 +124,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -151,7 +158,9 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+
+                },
                 "statPrefix": "connect_authz"
               }
             },
@@ -169,7 +178,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -201,7 +212,9 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+
+                },
                 "statPrefix": "connect_authz"
               }
             },
@@ -219,7 +232,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -251,7 +266,9 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+
+                },
                 "statPrefix": "connect_authz"
               }
             },
@@ -269,7 +286,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -301,7 +320,9 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+
+                },
                 "statPrefix": "connect_authz"
               }
             },
@@ -319,7 +340,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -354,7 +377,9 @@
                 "statPrefix": "upstream.external-hostname-HTTP.default.default.dc1",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "destination.httpbin-org.external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
@@ -364,7 +389,9 @@
                     "name": "envoy.filters.http.rbac",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules": {}
+                      "rules": {
+
+                      }
                     }
                   },
                   {
@@ -375,7 +402,9 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
+                  "randomSampling": {
+
+                  }
                 },
                 "forwardClientCertDetails": "APPEND_FORWARD",
                 "setCurrentClientCertDetails": {
@@ -384,12 +413,7 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
-                  }
-                ]
+                }
               }
             }
           ],
@@ -398,7 +422,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -430,7 +456,9 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+
+                },
                 "statPrefix": "connect_authz"
               }
             },
@@ -448,7 +476,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {

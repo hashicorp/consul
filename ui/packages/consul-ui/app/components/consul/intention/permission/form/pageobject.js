@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { clickable } from 'ember-cli-page-object';
 import { input, options, click, button } from 'consul-ui/tests/lib/page-object';
 import powerSelect from 'consul-ui/components/power-select/pageobject';

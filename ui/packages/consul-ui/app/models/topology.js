@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 
@@ -30,11 +25,8 @@ export default class Topology extends Model {
 
     undefinedDownstream =
       this.Downstreams.filter(
-        (item) =>
-          item.Source === 'specific-intention' &&
-          !item.TransparentProxy &&
-          !item.ConnectNative &&
-          item.Intention.Allowed
+        item =>
+          item.Source === 'specific-intention' && !item.TransparentProxy && !item.ConnectNative && item.Intention.Allowed
       ).length !== 0;
 
     return undefinedDownstream;
@@ -46,11 +38,11 @@ export default class Topology extends Model {
   // a wildcard intention
   get wildcardIntention() {
     const downstreamWildcard =
-      this.Downstreams.filter((item) => !item.Intention.HasExact && item.Intention.Allowed)
-        .length !== 0;
+      this.Downstreams.filter(item => !item.Intention.HasExact && item.Intention.Allowed).length !==
+      0;
 
     const upstreamWildcard =
-      this.Upstreams.filter((item) => !item.Intention.HasExact && item.Intention.Allowed).length !==
+      this.Upstreams.filter(item => !item.Intention.HasExact && item.Intention.Allowed).length !==
       0;
 
     return downstreamWildcard || upstreamWildcard;

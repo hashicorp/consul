@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -42,23 +39,6 @@ const (
 	PeeringStateTerminated PeeringState = "TERMINATED"
 )
 
-type PeeringRemoteInfo struct {
-	// Partition is the remote peer's partition.
-	Partition string
-	// Datacenter is the remote peer's datacenter.
-	Datacenter string
-	Locality   *Locality `json:",omitempty"`
-}
-
-// Locality identifies where a given entity is running.
-type Locality struct {
-	// Region is region the zone belongs to.
-	Region string
-
-	// Zone is the zone the entity is running in.
-	Zone string
-}
-
 type Peering struct {
 	// ID is a datacenter-scoped UUID for the peering.
 	ID string
@@ -82,27 +62,14 @@ type Peering struct {
 	PeerServerName string `json:",omitempty"`
 	// PeerServerAddresses contains all the connection addresses for the remote peer.
 	PeerServerAddresses []string `json:",omitempty"`
-	// StreamStatus contains information computed on read based on the state of the stream.
-	StreamStatus PeeringStreamStatus
+	// ImportedServiceCount is the count of how many services are imported from this peering.
+	ImportedServiceCount uint64
+	// ExportedServiceCount is the count of how many services are exported to this peering.
+	ExportedServiceCount uint64
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64
-	// ModifyIndex is the latest Raft index at which the Peering was modified.
+	// ModifyIndex is the latest Raft index at which the Peering. was modified.
 	ModifyIndex uint64
-	// Remote contains metadata for the remote peer.
-	Remote PeeringRemoteInfo
-}
-
-type PeeringStreamStatus struct {
-	// ImportedServices is the list of services imported from this peering.
-	ImportedServices []string
-	// ExportedServices is the list of services exported to this peering.
-	ExportedServices []string
-	// LastHeartbeat represents when the last heartbeat message was received.
-	LastHeartbeat *time.Time
-	// LastReceive represents when any message was last received, regardless of success or error.
-	LastReceive *time.Time
-	// LastSend represents when any message was last sent, regardless of success or error.
-	LastSend *time.Time
 }
 
 type PeeringReadResponse struct {

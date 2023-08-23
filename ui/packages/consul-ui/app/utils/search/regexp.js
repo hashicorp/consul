@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import PredicateSearch from './predicate';
 
 export default class RegExpSearch extends PredicateSearch {
@@ -15,6 +10,6 @@ export default class RegExpSearch extends PredicateSearch {
       // eager search of an incomplete regex
       return () => false;
     }
-    return (item) => regex.test(item);
+    return item => regex.test(item);
   }
 }

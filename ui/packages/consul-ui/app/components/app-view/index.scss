@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 @import './skin';
 @import './layout';
 .app-view {
@@ -15,9 +10,6 @@
 %app-view-header .title {
   @extend %app-view-title;
 }
-%app-view-title .title-left-container {
-  @extend %app-view-title-left-container;
-}
 %app-view-header .actions {
   @extend %app-view-actions;
 }
@@ -25,7 +17,8 @@
   @extend %app-view-content;
 }
 
-%app-view-actions a {
+%app-view-actions a,
+%app-view-actions button {
   @extend %button-compact;
 }
 
@@ -37,7 +30,7 @@
   width: 26px;
   height: 26px;
   cursor: pointer;
-  color: var(--token-color-foreground-action);
+  color: rgb(var(--tone-blue-500));
 }
 #toolbar-toggle {
   display: none;

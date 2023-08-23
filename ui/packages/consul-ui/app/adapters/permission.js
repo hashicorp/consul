@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Adapter from './application';
 import { inject as service } from '@ember/service';
 
@@ -21,10 +16,10 @@ export default class PermissionAdapter extends Adapter {
     // ^ same goes for Partitions
 
     if (this.env.var('CONSUL_NSPACES_ENABLED')) {
-      resources = resources.map((item) => ({ ...item, Namespace: ns }));
+      resources = resources.map(item => ({ ...item, Namespace: ns }));
     }
     if (this.env.var('CONSUL_PARTITIONS_ENABLED')) {
-      resources = resources.map((item) => ({ ...item, Partition: partition }));
+      resources = resources.map(item => ({ ...item, Partition: partition }));
     }
     return request`
       POST /v1/internal/acl/authorize?${{ dc }}
@@ -45,24 +40,24 @@ export default class PermissionAdapter extends Adapter {
         // Same goes ^ for partitions
         const nspacesEnabled = this.env.var('CONSUL_NSPACES_ENABLED');
         const partitionsEnabled = this.env.var('CONSUL_PARTITIONS_ENABLED');
-        if (nspacesEnabled || partitionsEnabled) {
+        if(nspacesEnabled || partitionsEnabled) {
           const token = await this.settings.findBySlug('token');
-          if (nspacesEnabled) {
-            if (typeof serialized.ns === 'undefined' || serialized.ns.length === 0) {
+          if(nspacesEnabled) {
+            if(typeof serialized.ns === 'undefined' || serialized.ns.length === 0) {
               serialized.ns = token.Namespace;
             }
           }
-          if (partitionsEnabled) {
-            if (typeof serialized.partition === 'undefined' || serialized.partition.length === 0) {
+          if(partitionsEnabled) {
+            if(typeof serialized.partition === 'undefined' || serialized.partition.length === 0) {
               serialized.partition = token.Partition;
             }
           }
         }
         return adapter.requestForAuthorize(request, serialized);
       },
-      function (serializer, respond, serialized, unserialized) {
+      function(serializer, respond, serialized, unserialized) {
         // Completely skip the serializer here
-        return respond(function (headers, body) {
+        return respond(function(headers, body) {
           return body;
         });
       },

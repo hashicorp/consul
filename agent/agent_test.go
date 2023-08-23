@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -12,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	mathrand "math/rand"
 	"net"
@@ -28,20 +24,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -50,17 +43,13 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/hcp"
-	"github.com/hashicorp/consul/agent/hcp/scada"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -215,7 +204,7 @@ func TestAgent_RPCPing(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	var out struct{}
-	if err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
+	if err := a.RPC("Status.Ping", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -323,7 +312,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					Tokens:          new(token.Store),
 					TLSConfigurator: tlsConf,
 					GRPCConnPool:    &fakeGRPCConnPool{},
-					Registry:        resource.NewRegistry(),
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
@@ -331,24 +319,12 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
-				Cache:  cache.New(cache.Options{}),
-				NetRPC: &LazyNetRPC{},
+				Cache: cache.New(cache.Options{}),
 			}
-
-			bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-				CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-				RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-				Config:      leafcert.Config{},
-			})
-
-			cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
-			bd, err = initEnterpriseBaseDeps(bd, &cfg)
+			bd, err = initEnterpriseBaseDeps(bd, nil)
 			require.NoError(t, err)
 
 			a, err := New(bd)
-			mockDelegate := delegateMock{}
-			mockDelegate.On("LicenseCheck").Return()
-			a.delegate = &mockDelegate
 			require.NoError(t, err)
 
 			a.startLicenseManager(testutil.TestContext(t))
@@ -442,9 +418,6 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 	`+extraHCL)
 	defer a.Shutdown()
 
-	duration3s, _ := time.ParseDuration("3s")
-	duration10s, _ := time.ParseDuration("10s")
-
 	tests := []struct {
 		desc       string
 		srv        *structs.NodeService
@@ -460,7 +433,6 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				Tags:           []string{"tag1"},
 				Weights:        nil, // nil weights...
 				Port:           8100,
-				Locality:       &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// ... should be populated to avoid "IsSame" returning true during AE.
@@ -491,50 +463,6 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname1",
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				},
-			},
-		},
-		{
-			"one http check with interval and duration",
-			&structs.NodeService{
-				ID:             "svcid1",
-				Service:        "svcname1",
-				Tags:           []string{"tag1"},
-				Weights:        nil, // nil weights...
-				Port:           8100,
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-			},
-			// ... should be populated to avoid "IsSame" returning true during AE.
-			func(ns *structs.NodeService) {
-				ns.Weights = &structs.Weights{
-					Passing: 1,
-					Warning: 1,
-				}
-			},
-			[]*structs.CheckType{
-				{
-					CheckID:  "check1",
-					Name:     "name1",
-					HTTP:     "http://localhost:8100/",
-					Interval: duration10s,
-					Timeout:  duration3s,
-					Notes:    "note1",
-				},
-			},
-			map[string]*structs.HealthCheck{
-				"check1": {
-					Node:           "node1",
-					CheckID:        "check1",
-					Name:           "name1",
-					Interval:       "10s",
-					Timeout:        "3s",
-					Status:         "critical",
-					Notes:          "note1",
-					ServiceID:      "svcid1",
-					ServiceName:    "svcname1",
-					ServiceTags:    []string{"tag1"},
-					Type:           "http",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
@@ -856,7 +784,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		args.Node = "node1"
 		args.AllowStale = true
 		var out structs.IndexedNodeServices
-		err := a.RPC(context.Background(), "Catalog.NodeServices", &args, &out)
+		err := a.RPC("Catalog.NodeServices", &args, &out)
 		assert.NoError(r, err)
 		foundService := false
 		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMetaInDefaultPartition())
@@ -1470,7 +1398,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	// check is added to an agent. 500ms so that we don't see flakiness ever.
 	time.Sleep(500 * time.Millisecond)
 
-	if err := a.RPC(context.Background(), "Health.ServiceNodes", args, &before); err != nil {
+	if err := a.RPC("Health.ServiceNodes", args, &before); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	for _, name := range before.Nodes[0].Checks {
@@ -1493,7 +1421,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	// has changed for the RPC, which means that idempotent ops
 	// are not working as intended.
 	var after structs.IndexedCheckServiceNodes
-	if err := a.RPC(context.Background(), "Health.ServiceNodes", args, &after); err != nil {
+	if err := a.RPC("Health.ServiceNodes", args, &after); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	require.Equal(t, before, after)
@@ -2177,7 +2105,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 
 	run := func(t *testing.T, ca string) {
 		a := StartTestAgent(t, TestAgent{
-			UseHTTPS: true,
+			UseTLS: true,
 			HCL: `
 				enable_agent_tls_for_checks = true
 
@@ -3955,7 +3883,7 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := TestAgent{UseHTTPS: true}
+	a := TestAgent{UseTLS: true}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
@@ -4176,61 +4104,6 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
 }
 
-func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
-
-	a := NewTestAgent(t, cfg)
-	defer a.Shutdown()
-
-	c := TestConfig(
-		testutil.Logger(t),
-		config.FileSource{
-			Name:   t.Name(),
-			Format: "hcl",
-			Data:   cfg + ` xds { update_max_per_second = 1000 }`,
-		},
-	)
-	require.NoError(t, a.reloadConfigInternal(c))
-	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
-}
-
-func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
-
-	a := NewTestAgent(t, cfg)
-	defer a.Shutdown()
-
-	c := TestConfig(
-		testutil.Logger(t),
-		config.FileSource{
-			Name:   t.Name(),
-			Format: "hcl",
-			Data:   cfg + ` enable_debug = true`,
-		},
-	)
-	require.NoError(t, a.reloadConfigInternal(c))
-	require.Equal(t, true, a.enableDebug.Load())
-
-	c = TestConfig(
-		testutil.Logger(t),
-		config.FileSource{
-			Name:   t.Name(),
-			Format: "hcl",
-			Data:   cfg + ` enable_debug = false`,
-		},
-	)
-	require.NoError(t, a.reloadConfigInternal(c))
-	require.Equal(t, false, a.enableDebug.Load())
-}
-
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -4293,28 +4166,6 @@ func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	require.Equal(t, uint64(812345), a.consulConfig().RaftConfig.TrailingLogs)
-}
-
-func TestAgent_consulConfig_RequestLimits(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	hcl := `
-		limits { 
-			request_limits {
-				mode = "enforcing"
-				read_rate = 8888
-				write_rate = 9999
-			}
-		}
-	`
-	a := NewTestAgent(t, hcl)
-	defer a.Shutdown()
-	require.Equal(t, "enforcing", a.consulConfig().RequestLimitsMode)
-	require.Equal(t, rate.Limit(8888), a.consulConfig().RequestLimitsReadRate)
-	require.Equal(t, rate.Limit(9999), a.consulConfig().RequestLimitsWriteRate)
 }
 
 func TestAgent_grpcInjectAddr(t *testing.T) {
@@ -5333,7 +5184,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 		},
 	}
 	var reply interface{}
-	require.NoError(t, srv.RPC(context.Background(), "ConnectCA.ConfigurationSet", &req, &reply))
+	require.NoError(t, srv.RPC("ConnectCA.ConfigurationSet", &req, &reply))
 
 	// ensure that a new cert gets generated and pushed into the TLS configurator
 	retry.Run(t, func(r *retry.R) {
@@ -5342,12 +5193,13 @@ func TestAutoConfig_Integration(t *testing.T) {
 		// check that the on disk certs match expectations
 		data, err := os.ReadFile(filepath.Join(client.DataDir, "auto-config.json"))
 		require.NoError(r, err)
+		rdr := strings.NewReader(string(data))
 
 		var resp pbautoconf.AutoConfigResponse
-		pbUnmarshaler := &protojson.UnmarshalOptions{
-			DiscardUnknown: false,
+		pbUnmarshaler := &jsonpb.Unmarshaler{
+			AllowUnknownFields: false,
 		}
-		require.NoError(r, pbUnmarshaler.Unmarshal(data, &resp), "data: %s", data)
+		require.NoError(r, pbUnmarshaler.Unmarshal(rdr, &resp), "data: %s", data)
 
 		actual, err := tls.X509KeyPair([]byte(resp.Certificate.CertPEM), []byte(resp.Certificate.PrivateKeyPEM))
 		require.NoError(r, err)
@@ -5408,7 +5260,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
 		}
 		retry_join = ["` + srv.Config.SerfBindAddrLAN.String() + `"]`,
-		UseHTTPS: true,
+		UseTLS: true,
 	})
 
 	defer client.Shutdown()
@@ -5482,7 +5334,6 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 			Tokens:          new(token.Store),
 			TLSConfigurator: tlsConf,
 			GRPCConnPool:    &fakeGRPCConnPool{},
-			Registry:        resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{
@@ -5490,24 +5341,13 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
 			},
 		},
-		Cache:  cache.New(cache.Options{}),
-		NetRPC: &LazyNetRPC{},
+		Cache: cache.New(cache.Options{}),
 	}
 
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
-
-	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
-	bd, err = initEnterpriseBaseDeps(bd, &cfg)
+	bd, err = initEnterpriseBaseDeps(bd, nil)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	agent.startLicenseManager(testutil.TestContext(t))
@@ -6082,28 +5922,17 @@ func TestAgent_startListeners(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
-			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{},
 		},
-		Cache:  cache.New(cache.Options{}),
-		NetRPC: &LazyNetRPC{},
+		Cache: cache.New(cache.Options{}),
 	}
 
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
-
-	bd, err := initEnterpriseBaseDeps(bd, &config.RuntimeConfig{})
+	bd, err := initEnterpriseBaseDeps(bd, nil)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// use up an address
@@ -6146,216 +5975,6 @@ func TestAgent_startListeners(t *testing.T) {
 		require.Contains(r, err.Error(), "address already in use")
 	})
 
-}
-
-func TestAgent_ServerCertificate(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	const expectURI = "spiffe://11111111-2222-3333-4444-555555555555.consul/agent/server/dc/dc1"
-
-	// Leader should acquire a sever cert after bootstrapping.
-	a1 := NewTestAgent(t, `
-node_name = "a1"
-acl {
-	enabled = true
-	tokens {
-		initial_management = "root"
-		default = "root"
-	}
-}
-connect {
-	enabled = true
-}
-peering {
-	enabled = true
-}`)
-	defer a1.Shutdown()
-	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
-
-	retry.Run(t, func(r *retry.R) {
-		cert := a1.tlsConfigurator.AutoEncryptCert()
-		require.NotNil(r, cert)
-		require.Len(r, cert.URIs, 1)
-		require.Equal(r, expectURI, cert.URIs[0].String())
-	})
-
-	// Join a follower, and it should be able to acquire a server cert as well.
-	a2 := NewTestAgent(t, `
-node_name = "a2"
-bootstrap = false
-acl {
-	enabled = true
-	tokens {
-		initial_management = "root"
-		default = "root"
-	}
-}
-connect {
-	enabled = true
-}
-peering {
-	enabled = true
-}`)
-	defer a2.Shutdown()
-
-	_, err := a2.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)}, nil)
-	require.NoError(t, err)
-
-	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
-
-	retry.Run(t, func(r *retry.R) {
-		cert := a2.tlsConfigurator.AutoEncryptCert()
-		require.NotNil(r, cert)
-		require.Len(r, cert.URIs, 1)
-		require.Equal(r, expectURI, cert.URIs[0].String())
-	})
-}
-
-func TestAgent_startListeners_scada(t *testing.T) {
-	t.Parallel()
-	pvd := scada.NewMockProvider(t)
-	c := capability.NewAddr("testcap")
-	pvd.EXPECT().Listen(c.Capability()).Return(nil, nil).Once()
-	bd := BaseDeps{
-		Deps: consul.Deps{
-			Logger:       hclog.NewInterceptLogger(nil),
-			Tokens:       new(token.Store),
-			GRPCConnPool: &fakeGRPCConnPool{},
-			HCP: hcp.Deps{
-				Provider: pvd,
-			},
-			Registry: resource.NewRegistry(),
-		},
-		RuntimeConfig: &config.RuntimeConfig{},
-		Cache:         cache.New(cache.Options{}),
-		NetRPC:        &LazyNetRPC{},
-	}
-
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
-
-	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
-	bd, err := initEnterpriseBaseDeps(bd, &cfg)
-	require.NoError(t, err)
-
-	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
-	require.NoError(t, err)
-
-	_, err = agent.startListeners([]net.Addr{c})
-	require.NoError(t, err)
-}
-
-func TestAgent_scadaProvider(t *testing.T) {
-	pvd := scada.NewMockProvider(t)
-
-	// this listener is used when mocking out the scada provider
-	l, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
-	require.NoError(t, err)
-	defer require.NoError(t, l.Close())
-
-	pvd.EXPECT().UpdateMeta(mock.Anything).Once()
-	pvd.EXPECT().Start().Return(nil).Once()
-	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
-	pvd.EXPECT().Stop().Return(nil).Once()
-	pvd.EXPECT().SessionStatus().Return("test")
-	a := TestAgent{
-		OverrideDeps: func(deps *BaseDeps) {
-			deps.HCP.Provider = pvd
-		},
-		Overrides: `
-cloud {
-  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100" 
-  client_id = "test"
-  client_secret = "test"
-}`,
-	}
-	defer a.Shutdown()
-	require.NoError(t, a.Start(t))
-
-	_, err = api.NewClient(&api.Config{Address: l.Addr().String()})
-	require.NoError(t, err)
-}
-
-func TestAgent_checkServerLastSeen(t *testing.T) {
-	bd := BaseDeps{
-		Deps: consul.Deps{
-			Logger:       hclog.NewInterceptLogger(nil),
-			Tokens:       new(token.Store),
-			GRPCConnPool: &fakeGRPCConnPool{},
-			Registry:     resource.NewRegistry(),
-		},
-		RuntimeConfig: &config.RuntimeConfig{},
-		Cache:         cache.New(cache.Options{}),
-		NetRPC:        &LazyNetRPC{},
-	}
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
-	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
-	require.NoError(t, err)
-
-	// Test that an ErrNotExist OS error is treated as ok.
-	t.Run("TestReadErrNotExist", func(t *testing.T) {
-		readFn := func(filename string) (*consul.ServerMetadata, error) {
-			return nil, os.ErrNotExist
-		}
-
-		err := agent.checkServerLastSeen(readFn)
-		require.NoError(t, err)
-	})
-
-	// Test that an error reading server metadata is treated as an error.
-	t.Run("TestReadErr", func(t *testing.T) {
-		expected := errors.New("read error")
-		readFn := func(filename string) (*consul.ServerMetadata, error) {
-			return nil, expected
-		}
-
-		err := agent.checkServerLastSeen(readFn)
-		require.ErrorIs(t, err, expected)
-	})
-
-	// Test that a server with a 7d old last seen timestamp is treated as an error.
-	t.Run("TestIsLastSeenStaleErr", func(t *testing.T) {
-		agent.config.ServerRejoinAgeMax = time.Hour
-
-		readFn := func(filename string) (*consul.ServerMetadata, error) {
-			return &consul.ServerMetadata{
-				LastSeenUnix: time.Now().Add(-24 * 7 * time.Hour).Unix(),
-			}, nil
-		}
-
-		err := agent.checkServerLastSeen(readFn)
-		require.Error(t, err)
-		require.ErrorContains(t, err, "refusing to rejoin cluster because server has been offline for more than the configured server_rejoin_age_max")
-	})
-
-	// Test that a server with a 6h old last seen timestamp is not treated as an error.
-	t.Run("TestNoErr", func(t *testing.T) {
-		agent.config.ServerRejoinAgeMax = 24 * 7 * time.Hour
-
-		readFn := func(filename string) (*consul.ServerMetadata, error) {
-			return &consul.ServerMetadata{
-				LastSeenUnix: time.Now().Add(-6 * time.Hour).Unix(),
-			}, nil
-		}
-
-		err := agent.checkServerLastSeen(readFn)
-		require.NoError(t, err)
-	})
 }
 
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {

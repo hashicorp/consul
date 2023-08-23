@@ -1,0 +1,266 @@
+---
+layout: docs
+page_title: Mesh Gateways between Datacenters
+description: >-
+  Mesh gateways are specialized proxies that route data between services that cannot communicate directly. Learn how to enable service-to-service traffic across datacenters and review example configuration entries.
+---
+
+# Mesh Gateways between Datacenters
+
+-> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
+
+Mesh gateways enable service mesh traffic to be routed between different Consul datacenters.
+Datacenters can reside in different clouds or runtime environments where general interconnectivity between all services
+in all datacenters isn't feasible.
+
+Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested. The gateway does not decrypt the data within the mTLS session.
+
+The following diagram describes the architecture for using mesh gateways for cross-datacenter communication:<a name="mesh-architecture-diagram"/>
+
+![Mesh Gateway Architecture](/img/mesh-gateways.png)
+
+-> **Mesh Gateway Tutorial**: Follow the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways) to learn important concepts associated with using mesh gateways for connecting services across datacenters.
+
+## Prerequisites
+
+Ensure that your Consul environment meets the following requirements.
+
+### Consul
+
+* Consul version 1.6.0 or newer.
+* A local Consul agent is required to manage its configuration.
+* Consul [Connect](/docs/agent/config/config-files#connect) must be enabled in both datacenters.
+* Each [datacenter](/docs/agent/config/config-files#datacenter) must have a unique name.
+* Each datacenters must be [WAN joined](https://learn.hashicorp.com/consul/security-networking/datacenters).
+* The [primary datacenter](/docs/agent/config/config-files#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
+* [gRPC](/docs/agent/config/config-files#grpc_port) must be enabled.
+* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/config-files#enable_central_service_config).
+
+### Network
+
+* General network connectivity to all services within its local Consul datacenter.
+* General network connectivity to all mesh gateways within remote Consul datacenters.
+
+### Proxy
+
+Envoy is the only proxy with mesh gateway capabilities in Consul.
+
+Mesh gateway proxies receive their configuration through Consul, which automatically generates it based on the proxy's registration.
+Consul can only translate mesh gateway registration information into Envoy configuration.
+
+Sidecar proxies that send traffic to an upstream service through a gateway need to know the location of that gateway. They discover the gateway based on their sidecar proxy registrations. Consul can only translate the gateway registration information into Envoy configuration.
+
+Sidecar proxies that do not send upstream traffic through a gateway are not affected when you deploy gateways. If you are using Consul's built-in proxy as a Connect sidecar it will continue to work for intra-datacenter traffic and will receive incoming traffic even if that traffic has passed through a gateway.
+
+## Configuration
+
+Configure the following settings to register the mesh gateway as a service in Consul.
+
+* Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
+* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
+* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
+* If ACLs are enabled, a token granting `service:write` for the gateway's service name and `service:read` for all services in the datacenter or partition must be added to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services, but does not allow decrypting any of their communications.
+
+### Modes
+
+Each upstream associated with a service mesh proxy can be configured so that it is routed through a mesh gateway.
+Depending on your network, the proxy's connection to the gateway can operate in one of the following modes (refer to the [mesh-architecture-diagram](#mesh-architecture-diagram)):
+
+* `none` - (Default) No gateway is used and a service mesh connect proxy makes its outbound connections directly
+  to the destination services.
+
+* `local` - The service mesh connect proxy makes an outbound connection to a gateway running in the
+  same datacenter. That gateway is responsible for ensuring that the data is forwarded to gateways in the destination datacenter.
+  Refer to the flow labeled `local` in the [mesh-architecture-diagram](#mesh-architecture-diagram).
+
+* `remote` - The service mesh proxy makes an outbound connection to a gateway running in the destination datacenter.
+  The gateway forwards the data to the final destination service.
+  Refer to the flow labeled `remote` in the [mesh-architecture-diagram](#mesh-architecture-diagram).
+
+### Connect Proxy Configuration
+
+Set the proxy to the preferred [mode](#modes) to configure the service mesh proxy. You can specify the mode globally or within child configurations to control proxy behaviors at a lower level. Consul recognizes the following order of precedence if the gateway mode is configured in multiple locations the order of precedence:
+
+1. Upstream definition (highest priority)
+2. Service instance definition
+3. Centralized `service-defaults` configuration entry
+4. Centralized `proxy-defaults` configuration entry
+
+## Example Configurations
+
+Use the following example configurations to help you understand some of the common scenarios.
+
+### Enabling Gateways Globally
+
+The following `proxy-defaults` configuration will enable gateways for all Connect services in the `local` mode.
+
+<CodeTabs heading="Example: Enabling gateways globally.">
+
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+MeshGateway {
+   Mode = "local"
+}
+```
+
+```yaml
+Kind: proxy-defaults
+MeshGateway:
+- Mode: local
+Name: global
+```
+</CodeTabs>
+
+### Enabling Gateways Per Service
+
+The following `service-defaults` configuration will enable gateways for all Connect services with the name `web`.
+
+<CodeTabs heading="Example: Enabling gateways per service.">
+
+```hcl
+Kind = "service-defaults"
+Name = "web"
+MeshGateway {
+   Mode = "local"
+}
+```
+
+```yaml
+Kind: service-defaults
+MeshGateway:
+- Mode: local
+Name: web
+```
+
+</CodeTabs>
+
+### Enabling Gateways for a Service Instance
+
+The following [Proxy Service Registration](/docs/connect/registration/service-registration)
+definition will enable gateways for the service instance in the `remote` mode.
+
+<CodeTabs heading="Example: Enabling gateways for a service instance.">
+
+```hcl
+service {
+   name = "web-sidecar-proxy"
+   kind = "connect-proxy"
+   port = 8181
+   proxy {
+      destination_service_name = "web"
+      mesh_gateway {
+         mode = "remote"
+      }
+      upstreams = [
+         {
+            destination_name = "api"
+            datacenter = "secondary"
+            local_bind_port = 10000
+         }
+      ]
+   }
+}
+
+# Or alternatively inline with the service definition:
+
+service {
+  name = "web"
+  port = 8181
+  connect {
+    sidecar_service {
+      proxy {
+        mesh_gateway {
+         mode = "remote"
+        }
+        upstreams = [
+          {
+            destination_name = "api"
+            datacenter = "secondary"
+            local_bind_port = 10000
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+```yaml
+service:
+- kind: connect-proxy
+  name: web-sidecar-proxy
+  port: 8181
+  proxy:
+  - destination_service_name: web
+    mesh_gateway:
+    - mode: remote
+    upstreams:
+    - datacenter: secondary
+      destination_name: api
+      local_bind_port: 100
+```
+
+</CodeTabs>
+
+### Enabling Gateways for a Proxy Upstream
+
+The following service definition will enable gateways in the `local` mode for one upstream, the `remote` mode for a second upstream and will disable gateways for a third upstream.
+
+<CodeTabs heading="Example: Enabling gateways for a proxy upstream.">
+
+```hcl
+service {
+   name = "web-sidecar-proxy"
+   kind = "connect-proxy"
+   port = 8181
+   proxy {
+      destination_service_name = "web"
+      upstreams = [
+         {
+            destination_name = "api"
+            local_bind_port = 10000
+            mesh_gateway {
+               mode = "remote"
+            }
+         },
+         {
+            destination_name = "db"
+            local_bind_port = 10001
+            mesh_gateway {
+               mode = "local"
+            }
+         },
+         {
+            destination_name = "logging"
+            local_bind_port = 10002
+            mesh_gateway {
+               mode = "none"
+            }
+         },
+      ]
+   }
+}
+```
+```yaml
+service:
+- kind: connect-proxy
+  name: web-sidecar-proxy
+  port: 8181
+  proxy:
+  - destination_service_name: web
+    upstreams:
+    - destination_name: api
+      local_bind_port: 10000
+      mesh_gateway:
+      - mode: remote
+    - destination_name: db
+      local_bind_port: 10001
+      mesh_gateway:
+      - mode: local
+    - destination_name: logging
+      local_bind_port: 10002
+      mesh_gateway:
+      - mode: none
+  ```
+  </CodeTabs>
