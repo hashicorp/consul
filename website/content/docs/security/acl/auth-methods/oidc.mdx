@@ -11,7 +11,7 @@ description: >-
 
 This feature requires version 1.8.0+ of
 self-managed Consul Enterprise.
-Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+Refer to the [enterprise feature matrix](/docs/enterprise#consul-enterprise-feature-availability) for additional information.
 
 </EnterpriseAlert>
 
@@ -23,17 +23,17 @@ This method may be initiated from the Consul UI or the command line.
 This page assumes general knowledge of [OIDC
 concepts](https://developer.okta.com/blog/2017/07/25/oidc-primer-part-1) and
 the concepts described in the main [auth method
-documentation](/consul/docs/security/acl/auth-methods).
+documentation](/docs/security/acl/auth-methods).
 
-Both the [`jwt`](/consul/docs/security/acl/auth-methods/jwt) and the
-[`oidc`](/consul/docs/security/acl/auth-methods/oidc) auth method types allow additional
+Both the [`jwt`](/docs/security/acl/auth-methods/jwt) and the
+[`oidc`](/docs/security/acl/auth-methods/oidc) auth method types allow additional
 processing of the claims data in the JWT.
 
 @include 'jwt_or_oidc.mdx'
 
 ## Config Parameters
 
-The following auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
+The following auth method [`Config`](/api-docs/acl/auth-methods#config)
 parameters are required to properly configure an auth method of type
 `oidc`:
 
@@ -119,7 +119,7 @@ applied.
 ## OIDC Authentication
 
 Consul includes two built-in OIDC login flows: the Consul UI, and the CLI using
-[`consul login`](/consul/commands/login).
+[`consul login`](/commands/login).
 
 ### Redirect URIs
 
@@ -172,7 +172,7 @@ These are typically not required to be set:
 
 The callback listener defaults to listen on `localhost:8550`. If you want to
 customize that use the optional flag
-[`-oidc-callback-listen-addr=<host:port>`](/consul/commands/login#oidc-callback-listen-addr).
+[`-oidc-callback-listen-addr=<host:port>`](/commands/login#oidc-callback-listen-addr).
 
 ## OIDC Configuration Troubleshooting
 
@@ -202,7 +202,7 @@ be tricky to debug why things aren't working. Some tips for setting up OIDC:
   request to obtain a JWT that you can inspect. An example of how to decode the
   JWT (in this case located in the `access_token` field of a JSON response):
 
-      jq --raw-output '.access_token / "." | .[1] | @base64d' jwt.json
+      cat jwt.json | jq --raw-output .access_token | cut -d. -f2 | base64 --decode
 
 - The [`VerboseOIDCLogging`](#verboseoidclogging) option is available which
   will log the received OIDC token if debug level logging is enabled. This can

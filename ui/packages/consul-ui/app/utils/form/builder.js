@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { get, set } from '@ember/object';
 import { Changeset as createChangeset } from 'ember-changeset';
 import Changeset from 'consul-ui/utils/form/changeset';

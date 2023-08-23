@@ -1,10 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -23,14 +20,14 @@ func TestMakeWatchHandler(t *testing.T) {
 	script := "bash -c 'echo $CONSUL_INDEX >> handler_index_out && cat >> handler_out'"
 	handler := makeWatchHandler(testutil.Logger(t), script)
 	handler(100, []string{"foo", "bar", "baz"})
-	raw, err := os.ReadFile("handler_out")
+	raw, err := ioutil.ReadFile("handler_out")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if string(raw) != "[\"foo\",\"bar\",\"baz\"]\n" {
 		t.Fatalf("bad: %s", raw)
 	}
-	raw, err = os.ReadFile("handler_index_out")
+	raw, err = ioutil.ReadFile("handler_index_out")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -50,7 +47,7 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 		if customHeader != "abc" {
 			t.Fatalf("bad: %s", idx)
 		}
-		body, err := io.ReadAll(r.Body)
+		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}

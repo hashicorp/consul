@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
@@ -15,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
-	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/dns"
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
@@ -498,6 +494,12 @@ type RuntimeConfig struct {
 	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool
 
+	// ConnectServerlessPluginEnabled opts the agent into the serverless plugin.
+	// This plugin allows services to be configured as AWS Lambdas. After the
+	// Lambda service is configured, Connect services can invoke the Lambda
+	// service like any other upstream.
+	ConnectServerlessPluginEnabled bool
+
 	// ConnectSidecarMinPort is the inclusive start of the range of ports
 	// allocated to the agent for asigning to sidecar services where no port is
 	// specified.
@@ -799,8 +801,6 @@ type RuntimeConfig struct {
 	// hcl: leave_on_terminate = (true|false)
 	LeaveOnTerm bool
 
-	Locality *Locality
-
 	// Logging configuration used to initialize agent logging.
 	Logging logging.Config
 
@@ -929,14 +929,14 @@ type RuntimeConfig struct {
 	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
 	// buckets.
 	//
-	// hcl: limits { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
+	// hcl: limit { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
 	RPCRateLimit rate.Limit
 	RPCMaxBurst  int
 
 	// RPCMaxConnsPerClient limits the number of concurrent TCP connections the
 	// RPC server will accept from any single source IP address.
 	//
-	// hcl: limits { rpc_max_conns_per_client = 100 }
+	// hcl: limits{ rpc_max_conns_per_client = 100 }
 	RPCMaxConnsPerClient int
 
 	// RPCProtocol is the Consul protocol version to use.
@@ -983,7 +983,7 @@ type RuntimeConfig struct {
 	// hcl: raft_trailing_logs = int
 	RaftTrailingLogs int
 
-	RaftLogStoreConfig consul.RaftLogStoreConfig
+	RaftBoltDBConfig consul.RaftBoltDBConfig
 
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to
@@ -1014,37 +1014,6 @@ type RuntimeConfig struct {
 	// hcl: rejoin_after_leave = (true|false)
 	// flag: -rejoin
 	RejoinAfterLeave bool
-
-	// RequestLimitsMode will disable or enable rate limiting.  If not disabled, it
-	// enforces the action that will occur when RequestLimitsReadRate
-	// or RequestLimitsWriteRate is exceeded.  The default value of "disabled" will
-	// prevent any rate limiting from occuring.  A value of "enforce" will block
-	// the request from processings by returning an error.  A value of
-	// "permissive" will not block the request and will allow the request to
-	// continue processing.
-	//
-	// hcl: limits { request_limits { mode = "permissive" } }
-	RequestLimitsMode consulrate.Mode
-
-	// RequestLimitsReadRate controls how frequently RPC, gRPC, and HTTP
-	// queries are allowed to happen. In any large enough time interval, rate
-	// limiter limits the rate to RequestLimitsReadRate tokens per second.
-	//
-	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
-	// buckets.
-	//
-	// hcl: limits { request_limits { read_rate = (float64|MaxFloat64) } }
-	RequestLimitsReadRate rate.Limit
-
-	// RequestLimitsWriteRate controls how frequently RPC, gRPC, and HTTP
-	// writes are allowed to happen. In any large enough time interval, rate
-	// limiter limits the rate to RequestLimitsWriteRate tokens per second.
-	//
-	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
-	// buckets.
-	//
-	// hcl: limits { request_limits { write_rate = (float64|MaxFloat64) } }
-	RequestLimitsWriteRate rate.Limit
 
 	// RetryJoinIntervalLAN specifies the amount of time to wait in between join
 	// attempts on agent start. The minimum allowed value is 1 second and
@@ -1358,18 +1327,6 @@ type RuntimeConfig struct {
 	// hcl: ports { server = int }
 	ServerPort int
 
-	// ServerRejoinAgeMax is used to specify the duration of time a server
-	// is allowed to be down/offline before a startup operation is refused.
-	//
-	// For example: if a server has been offline for 5 days, and this option
-	// is configured to 3 days, then any subsequent startup operation will fail
-	// and require an operator to manually intervene.
-	//
-	// The default is: 7 days
-	//
-	// hcl: server_rejoin_age_max = "duration"
-	ServerRejoinAgeMax time.Duration
-
 	// Services contains the provided service definitions:
 	//
 	// hcl: services = [
@@ -1403,6 +1360,22 @@ type RuntimeConfig struct {
 	// auto reloaded bases on config file modification
 	// hcl: auto_reload_config = (true|false)
 	AutoReloadConfig bool
+
+	// StartJoinAddrsLAN is a list of addresses to attempt to join -lan when the
+	// agent starts. If Serf is unable to communicate with any of these
+	// addresses, then the agent will error and exit.
+	//
+	// hcl: start_join = []string
+	// flag: -join string -join string
+	StartJoinAddrsLAN []string
+
+	// StartJoinWAN is a list of addresses to attempt to join -wan when the
+	// agent starts. If Serf is unable to communicate with any of these
+	// addresses, then the agent will error and exit.
+	//
+	// hcl: start_join_wan = []string
+	// flag: -join-wan string -join-wan string
+	StartJoinAddrsWAN []string
 
 	// TLS configures certificates, CA, cipher suites, and other TLS settings
 	// on Consul's listeners (i.e. Internal multiplexed RPC, HTTPS and gRPC).
@@ -1492,14 +1465,11 @@ type RuntimeConfig struct {
 	// AutoReloadConfigCoalesceInterval Coalesce Interval for auto reload config
 	AutoReloadConfigCoalesceInterval time.Duration
 
+	Reporting ReportingConfig
+
 	// LocalProxyConfigResyncInterval is not a user-configurable value and exists
 	// here so that tests can use a smaller value.
 	LocalProxyConfigResyncInterval time.Duration
-
-	Reporting ReportingConfig
-
-	// List of experiments to enable
-	Experiments []string
 
 	EnterpriseRuntimeConfig
 }
@@ -1741,17 +1711,6 @@ func (c *RuntimeConfig) VersionWithMetadata() string {
 		version += "+" + c.VersionMetadata
 	}
 	return version
-}
-
-// StructLocality converts the RuntimeConfig Locality to a struct Locality.
-func (c *RuntimeConfig) StructLocality() *structs.Locality {
-	if c.Locality == nil {
-		return nil
-	}
-	return &structs.Locality{
-		Region: stringVal(c.Locality.Region),
-		Zone:   stringVal(c.Locality.Zone),
-	}
 }
 
 // Sanitized returns a JSON/HCL compatible representation of the runtime

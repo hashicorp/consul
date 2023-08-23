@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <Route @name={{routeName}} as |route|>
   {{#let
     (filter (action 'syntheticNodeSearchPropertyFilter' route.model.item) searchProperties)
@@ -50,13 +45,19 @@
 
         {{#let (find-by 'Type' 'serf' items) as |serf|}}
           {{#if (and serf (eq serf.Status 'critical'))}}
-            <Hds::Alert @type="inline" @color="warning" class="mb-3 mt-2" data-test-critical-serf-notice as |A|>
-              <A.Title>{{t 'routes.dc.services.instance.healthchecks.critical-serf-notice.header'}}</A.Title>
-              <A.Description>{{t
-                'routes.dc.services.instance.healthchecks.critical-serf-notice.body'
-                htmlSafe=true
-              }}</A.Description>
-            </Hds::Alert>
+            <Notice data-test-critical-serf-notice @type='warning' as |notice|>
+              <notice.Header>
+                <h2>
+                  {{t 'routes.dc.services.instance.healthchecks.critical-serf-notice.header'}}
+                </h2>
+              </notice.Header>
+              <notice.Body>
+                {{t
+                  'routes.dc.services.instance.healthchecks.critical-serf-notice.body'
+                  htmlSafe=true
+                }}
+              </notice.Body>
+            </Notice>
           {{/if}}
         {{/let}}
         <DataCollection

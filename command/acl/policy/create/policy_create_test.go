@@ -1,11 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package policycreate
 
 import (
 	"encoding/json"
-	"os"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -50,7 +47,7 @@ func TestPolicyCreateCommand(t *testing.T) {
 	cmd := New(ui)
 
 	rules := []byte("service \"\" { policy = \"write\" }")
-	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
 	require.NoError(t, err)
 
 	args := []string{
@@ -90,7 +87,7 @@ func TestPolicyCreateCommand_JSON(t *testing.T) {
 	cmd := New(ui)
 
 	rules := []byte("service \"\" { policy = \"write\" }")
-	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
 	require.NoError(t, err)
 
 	args := []string{

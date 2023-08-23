@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 .tippy-box {
   @extend %overlay;
 }
@@ -31,9 +26,9 @@
     transition-timing-function: cubic-bezier(0.54, 1.5, 0.38, 1.11);
   }
   & {
-    background-color: var(--token-color-surface-primary);
+    background-color: rgb(var(--tone-gray-000));
     border-radius: var(--decor-radius-100);
-    box-shadow: var(--token-surface-mid-box-shadow);
+    box-shadow: var(--decor-elevation-400);
   }
   .tippy-arrow {
     @extend %overlay-tail;

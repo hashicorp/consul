@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 .consul-instance-checks {
   & {
     @extend %horizontal-kv-list;
@@ -12,18 +7,18 @@
   }
   &.passing dt::before {
     @extend %with-check-circle-fill-mask;
-    color: var(--token-color-foreground-success);
+    color: rgb(var(--tone-green-500));
   }
   &.warning dt::before {
     @extend %with-alert-triangle-mask;
-    color: var(--token-color-foreground-warning);
+    color: rgb(var(--tone-orange-500));
   }
   &.critical dt::before {
     @extend %with-cancel-square-fill-mask;
-    color: var(--token-color-foreground-critical);
+    color: rgb(var(--tone-red-500));
   }
   &.empty dt::before {
     @extend %with-minus-square-fill-mask;
-    color: var(--token-color-foreground-faint);
+    color: rgb(var(--tone-gray-500));
   }
 }

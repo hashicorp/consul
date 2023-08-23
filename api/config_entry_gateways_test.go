@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -36,10 +32,6 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 		Defaults: &IngressServiceConfig{
 			MaxConnections:     uint32Pointer(2048),
 			MaxPendingRequests: uint32Pointer(4096),
-			PassiveHealthCheck: &PassiveHealthCheck{
-				MaxFailures: 20,
-				Interval:    500000000,
-			},
 		},
 	}
 
@@ -108,9 +100,6 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 					MaxConnections:        uint32Pointer(5120),
 					MaxPendingRequests:    uint32Pointer(512),
 					MaxConcurrentRequests: uint32Pointer(2048),
-					PassiveHealthCheck: &PassiveHealthCheck{
-						MaxFailures: 10,
-					},
 				},
 			},
 			TLS: &GatewayTLSConfig{
@@ -189,10 +178,6 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			require.Equal(t, *ingress2.Defaults.MaxConnections, *readIngress.Defaults.MaxConnections)
 			require.Equal(t, uint32(4096), *readIngress.Defaults.MaxPendingRequests)
 			require.Equal(t, uint32(0), *readIngress.Defaults.MaxConcurrentRequests)
-			require.Equal(t, uint32(20), readIngress.Defaults.PassiveHealthCheck.MaxFailures)
-			require.Equal(t, time.Duration(500000000), readIngress.Defaults.PassiveHealthCheck.Interval)
-			require.Nil(t, readIngress.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx)
-
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
 			// Set namespace and partition to blank so that CE and ent can utilize the same tests
@@ -346,152 +331,5 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 
 	// verify deletion
 	_, _, err = configEntries.Get(TerminatingGateway, "foo", nil)
-	require.Error(t, err)
-}
-
-func TestAPI_ConfigEntries_APIGateway(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	configEntries := c.ConfigEntries()
-	listener1 := APIGatewayListener{
-		Name:     "listener1",
-		Hostname: "host.com",
-		Port:     3360,
-		Protocol: "http",
-	}
-
-	listener2 := APIGatewayListener{
-		Name:     "listener2",
-		Hostname: "host2.com",
-		Port:     3362,
-		Protocol: "http",
-	}
-
-	apigw1 := &APIGatewayConfigEntry{
-		Kind: APIGateway,
-		Name: "foo",
-		Meta: map[string]string{
-			"foo": "bar",
-			"gir": "zim",
-		},
-		Listeners: []APIGatewayListener{listener1},
-	}
-
-	apigw2 := &APIGatewayConfigEntry{
-		Kind:      APIGateway,
-		Name:      "bar",
-		Listeners: []APIGatewayListener{listener2},
-	}
-
-	// set it
-	_, wm, err := configEntries.Set(apigw1, nil)
-	require.NoError(t, err)
-	require.NotNil(t, wm)
-	require.NotEqual(t, 0, wm.RequestTime)
-
-	// also set the second one
-	_, wm, err = configEntries.Set(apigw2, nil)
-	require.NoError(t, err)
-	require.NotNil(t, wm)
-	require.NotEqual(t, 0, wm.RequestTime)
-
-	// get it
-	entry, qm, err := configEntries.Get(APIGateway, "foo", nil)
-	require.NoError(t, err)
-	require.NotNil(t, qm)
-	require.NotEqual(t, 0, qm.RequestTime)
-
-	// verify it
-	readGW, ok := entry.(*APIGatewayConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, apigw1.Kind, readGW.Kind)
-	require.Equal(t, apigw1.Name, readGW.Name)
-	require.Equal(t, apigw1.Meta, readGW.Meta)
-	require.Equal(t, apigw1.Meta, readGW.GetMeta())
-
-	// update it
-	apigw1.Listeners = []APIGatewayListener{
-		listener1,
-		{
-			Name:     "listener3",
-			Hostname: "host3.com",
-			Port:     3363,
-			Protocol: "http",
-		},
-	}
-
-	// CAS fail
-	written, _, err := configEntries.CAS(apigw1, 0, nil)
-	require.NoError(t, err)
-	require.False(t, written)
-
-	// CAS success
-	written, wm, err = configEntries.CAS(apigw1, readGW.ModifyIndex, nil)
-	require.NoError(t, err)
-	require.NotNil(t, wm)
-	require.NotEqual(t, 0, wm.RequestTime)
-	require.True(t, written)
-
-	// re-setting should not yield an error
-	_, wm, err = configEntries.Set(apigw1, nil)
-	require.NoError(t, err)
-	require.NotNil(t, wm)
-	require.NotEqual(t, 0, wm.RequestTime)
-
-	apigw2.Listeners = []APIGatewayListener{
-		listener2,
-		{
-			Name:     "listener4",
-			Hostname: "host4.com",
-			Port:     3364,
-			Protocol: "http",
-		},
-	}
-
-	_, wm, err = configEntries.Set(apigw2, nil)
-	require.NoError(t, err)
-	require.NotNil(t, wm)
-	require.NotEqual(t, 0, wm.RequestTime)
-
-	// list them
-	entries, qm, err := configEntries.List(APIGateway, nil)
-	require.NoError(t, err)
-	require.NotNil(t, qm)
-	require.NotEqual(t, 0, qm.RequestTime)
-	require.Len(t, entries, 2)
-
-	for _, entry = range entries {
-		switch entry.GetName() {
-		case "foo":
-			// this also verifies that the update value was persisted and
-			// the updated values are seen
-			readGW, ok = entry.(*APIGatewayConfigEntry)
-			require.True(t, ok)
-			require.Equal(t, apigw1.Kind, readGW.Kind)
-			require.Equal(t, apigw1.Name, readGW.Name)
-			require.Len(t, readGW.Listeners, 2)
-
-			require.Equal(t, apigw1.Listeners, readGW.Listeners)
-		case "bar":
-			readGW, ok = entry.(*APIGatewayConfigEntry)
-			require.True(t, ok)
-			require.Equal(t, apigw2.Kind, readGW.Kind)
-			require.Equal(t, apigw2.Name, readGW.Name)
-			require.Len(t, readGW.Listeners, 2)
-
-			require.Equal(t, apigw2.Listeners, readGW.Listeners)
-		}
-	}
-
-	// delete it
-	wm, err = configEntries.Delete(APIGateway, "foo", nil)
-	require.NoError(t, err)
-	require.NotNil(t, wm)
-	require.NotEqual(t, 0, wm.RequestTime)
-
-	// verify deletion
-	_, _, err = configEntries.Get(APIGateway, "foo", nil)
 	require.Error(t, err)
 }

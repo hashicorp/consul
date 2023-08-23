@@ -2,19 +2,19 @@
 layout: docs
 page_title: Services overview
 description: >-
-  Learn about services and service discovery workflows and concepts for virtual machine environments.
+  Learn about services and service discovery workflows and concepts for virtual machine environments. 
 ---
 
 # Services overview
 
 This topic provides overview information about services and how to make them discoverable in Consul when your network operates on virtual machines. If service mesh is enabled in your network, refer to the following articles for additional information about connecting services in a mesh:
 
-- [How Service Mesh Works](/consul/docs/connect/connect-internals)
+- [How Service Mesh Works](/consul/docs/connect/connect-internals) 
 - [How Consul Service Mesh Works on Kubernetes](/consul/docs/k8s/connect)
 
 ## Introduction
 
-A _service_ is an entity in your network that performs a specialized operation or set of related operations. In many contexts, a service is software that you want to make available to users or other programs with access to your network. Services can also refer to native Consul functionality, such as _service mesh proxies_ and _gateways_, that enable you to establish connections between different parts of your network.
+A _service_ is an entity in your network that performs a specialized operation or set of related operations. In many contexts, a service is software that you want to make available to users or other programs with access to your network. Services can also refer to native Consul functionality, such as _service mesh proxies_ and _gateways_, that enable you to establish connections between different parts of your network. 
 
 You can define and register services with Consul, which makes them discoverable to other services in the network. You can also define various types of health checks that perform several safety functions, such as allowing a web balancer to gracefully remove failing nodes and allowing a database to replace a failed secondary.
 
@@ -37,13 +37,13 @@ Consul redirects service traffic through sidecar proxies if you use Consul servi
 
 You must define upstream services in the service definition. Consul uses the upstream configuration to bind the service with its upstreams. After registering the service, you must start a sidecar proxy on the VM to enable mesh connectivity. Refer to [Register a Service Mesh Proxy in a Service Registration](/consul/docs/connect/registration/sidecar-service) for details.
 
-### Kubernetes
+### Kubernetes 
 
 If you use Consul on Kubernetes, enable the service mesh injector in your Consul Helm chart and Consul automatically adds a sidecar to each of your pods using the Kubernetes `Service` definition as a reference. You can specify upstream annotations in the `Deployment` definition to bind upstream services to the pods.
 Refer to [`connectInject`](/consul/docs/k8s/connect#installation-and-configuration) and [the upstreams annotation documentation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) for additional information.
 
 ### Multiple services
 
-You can define common characteristics for services in your mesh, such as the admin partition, namespace, or upstreams, by creating and applying a `service-defaults` configuration entry. You can also define override configurations for specific upstreams or service instances. To use `service-defaults` configuration entries, you must enable Consul service mesh in your network.
+You can define common characteristics for services in your mesh, such as the admin partition, namespace, or upstreams, by creating and applying a `service-defaults` configuration entry. You can also define override configurations for specific upstreams or service instances. To use `service-defaults` configuraiton entries, you must enable Consul service mesh in your network.
 
 Refer to [Define Service Defaults](/consul/docs/services/usage/define-services#define-service-defaults) for additional information.

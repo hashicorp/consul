@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default function (scenario, assert, find, currentPage) {
   scenario.then('I see the $property form with yaml\n$yaml', function (property, data) {
     let obj;

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package services
 
 import (
@@ -140,55 +137,11 @@ func TestStructsToAgentService(t *testing.T) {
 					DestinationServiceName: "web",
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       8181,
-					Upstreams:              structs.TestUpstreams(t, false),
-					Mode:                   structs.ProxyModeTransparent,
-					Config: map[string]interface{}{
-						"foo": "bar",
-					},
-				},
-			},
-			&api.AgentServiceRegistration{
-				Name: "web-proxy",
-				Tags: []string{"leader"},
-				Port: 1234,
-				Kind: api.ServiceKindConnectProxy,
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceID:   "web1",
-					DestinationServiceName: "web",
-					LocalServiceAddress:    "127.0.0.1",
-					LocalServicePort:       8181,
-					Upstreams:              structs.TestUpstreams(t, false).ToAPI(),
-					Mode:                   api.ProxyModeTransparent,
-					Config: map[string]interface{}{
-						"foo": "bar",
-					},
-				},
-			},
-		},
-		{
-			"TProxy proxy service w/ access logs",
-			&structs.ServiceDefinition{
-				Name: "web-proxy",
-				Kind: structs.ServiceKindConnectProxy,
-				Tags: []string{"leader"},
-				Port: 1234,
-				Proxy: &structs.ConnectProxyConfig{
-					DestinationServiceID:   "web1",
-					DestinationServiceName: "web",
-					LocalServiceAddress:    "127.0.0.1",
-					LocalServicePort:       8181,
-					Upstreams:              structs.TestUpstreams(t, false),
+					Upstreams:              structs.TestUpstreams(t),
 					Mode:                   structs.ProxyModeTransparent,
 					TransparentProxy: structs.TransparentProxyConfig{
 						OutboundListenerPort: 808,
 					},
-					AccessLogs: structs.AccessLogsConfig{
-						Enabled:             true,
-						DisableListenerLogs: true,
-						Type:                structs.FileLogSinkType,
-						Path:                "/var/logs/envoy.logs",
-						TextFormat:          "MY START TIME %START_TIME%",
-					},
 					Config: map[string]interface{}{
 						"foo": "bar",
 					},
@@ -204,17 +157,10 @@ func TestStructsToAgentService(t *testing.T) {
 					DestinationServiceName: "web",
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       8181,
-					Upstreams:              structs.TestUpstreams(t, false).ToAPI(),
+					Upstreams:              structs.TestUpstreams(t).ToAPI(),
 					Mode:                   api.ProxyModeTransparent,
 					TransparentProxy: &api.TransparentProxyConfig{
 						OutboundListenerPort: 808,
-					},
-					AccessLogs: &api.AccessLogsConfig{
-						Enabled:             true,
-						DisableListenerLogs: true,
-						Type:                api.FileLogSinkType,
-						Path:                "/var/logs/envoy.logs",
-						TextFormat:          "MY START TIME %START_TIME%",
 					},
 					Config: map[string]interface{}{
 						"foo": "bar",

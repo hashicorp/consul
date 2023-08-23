@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package dataplane
 
 import (
@@ -76,8 +73,8 @@ func testRegisterIngressGateway(t *testing.T) *structs.RegisterRequest {
 	return registerReq
 }
 
-func testProxyDefaults(t *testing.T, accesslogs bool) structs.ConfigEntry {
-	pd := &structs.ProxyConfigEntry{
+func testProxyDefaults(t *testing.T) structs.ConfigEntry {
+	return &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
@@ -85,11 +82,6 @@ func testProxyDefaults(t *testing.T, accesslogs bool) structs.ConfigEntry {
 			requestTimeoutKey: proxyDefaultsRequestTimeout,
 		},
 	}
-	if accesslogs {
-		pd.AccessLogs.Enabled = true
-		pd.AccessLogs.JSONFormat = "{ \"custom_field\": \"%START_TIME%\" }"
-	}
-	return pd
 }
 
 func testServiceDefaults(t *testing.T) structs.ConfigEntry {
@@ -184,14 +176,6 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 			requireConfigField(t, resp, requestTimeoutKey, structpb.NewNumberValue(proxyDefaultsRequestTimeout))
 		}
 
-		if tc.proxyDefaults != nil {
-			pd, ok := tc.proxyDefaults.(*structs.ProxyConfigEntry)
-			require.True(t, ok, "Invalid Proxy Defaults")
-			if pd.AccessLogs.Enabled {
-				require.JSONEq(t, "{\"name\":\"Consul Listener Filter Log\",\"typedConfig\":{\"@type\":\"type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog\",\"logFormat\":{\"jsonFormat\":{\"custom_field\":\"%START_TIME%\"}}}}", resp.AccessLogs[0])
-			}
-		}
-
 	}
 
 	testCases := []testCase{
@@ -216,12 +200,7 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		{
 			name:          "merge proxy defaults for sidecar proxy",
 			registerReq:   testRegisterRequestProxy(t),
-			proxyDefaults: testProxyDefaults(t, false),
-		},
-		{
-			name:          "proxy defaults access logs",
-			registerReq:   testRegisterRequestProxy(t),
-			proxyDefaults: testProxyDefaults(t, true),
+			proxyDefaults: testProxyDefaults(t),
 		},
 		{
 			name:            "merge service defaults for sidecar proxy",

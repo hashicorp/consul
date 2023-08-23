@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { runInDebug } from '@ember/debug';
 // 'environment' getter
 // there are currently 3 levels of environment variables:

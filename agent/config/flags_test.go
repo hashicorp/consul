@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
@@ -24,19 +21,19 @@ func TestAddFlags_WithParse(t *testing.T) {
 		{},
 		{
 			args:     []string{`-bind`, `a`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{BindAddr: pString("a")}}},
+			expected: LoadOpts{FlagValues: Config{BindAddr: pString("a")}},
 		},
 		{
 			args:     []string{`-bootstrap`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Bootstrap: pBool(true)}}},
+			expected: LoadOpts{FlagValues: Config{Bootstrap: pBool(true)}},
 		},
 		{
 			args:     []string{`-bootstrap=true`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Bootstrap: pBool(true)}}},
+			expected: LoadOpts{FlagValues: Config{Bootstrap: pBool(true)}},
 		},
 		{
 			args:     []string{`-bootstrap=false`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Bootstrap: pBool(false)}}},
+			expected: LoadOpts{FlagValues: Config{Bootstrap: pBool(false)}},
 		},
 		{
 			args:     []string{`-config-file`, `a`, `-config-dir`, `b`, `-config-file`, `c`, `-config-dir`, `d`},
@@ -44,58 +41,54 @@ func TestAddFlags_WithParse(t *testing.T) {
 		},
 		{
 			args:     []string{`-datacenter`, `a`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Datacenter: pString("a")}}},
+			expected: LoadOpts{FlagValues: Config{Datacenter: pString("a")}},
 		},
 		{
 			args:     []string{`-dns-port`, `1`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Ports: Ports{DNS: pInt(1)}}}},
+			expected: LoadOpts{FlagValues: Config{Ports: Ports{DNS: pInt(1)}}},
 		},
 		{
 			args:     []string{`-grpc-port`, `1`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Ports: Ports{GRPC: pInt(1)}}}},
+			expected: LoadOpts{FlagValues: Config{Ports: Ports{GRPC: pInt(1)}}},
 		},
 		{
 			args:     []string{`-http-port`, `1`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Ports: Ports{HTTP: pInt(1)}}}},
+			expected: LoadOpts{FlagValues: Config{Ports: Ports{HTTP: pInt(1)}}},
 		},
 		{
 			args:     []string{`-https-port`, `1`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Ports: Ports{HTTPS: pInt(1)}}}},
+			expected: LoadOpts{FlagValues: Config{Ports: Ports{HTTPS: pInt(1)}}},
 		},
 		{
 			args:     []string{`-serf-lan-port`, `1`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Ports: Ports{SerfLAN: pInt(1)}}}},
+			expected: LoadOpts{FlagValues: Config{Ports: Ports{SerfLAN: pInt(1)}}},
 		},
 		{
 			args:     []string{`-serf-wan-port`, `1`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Ports: Ports{SerfWAN: pInt(1)}}}},
+			expected: LoadOpts{FlagValues: Config{Ports: Ports{SerfWAN: pInt(1)}}},
 		},
 		{
 			args:     []string{`-server-port`, `1`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Ports: Ports{Server: pInt(1)}}}},
+			expected: LoadOpts{FlagValues: Config{Ports: Ports{Server: pInt(1)}}},
 		},
 		{
 			args:     []string{`-join`, `a`, `-join`, `b`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{DeprecatedConfig: DeprecatedConfig{StartJoinAddrsLAN: []string{"a", "b"}}}},
+			expected: LoadOpts{FlagValues: Config{StartJoinAddrsLAN: []string{"a", "b"}}},
 		},
 		{
 			args:     []string{`-node-meta`, `a:b`, `-node-meta`, `c:d`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{NodeMeta: map[string]string{"a": "b", "c": "d"}}}},
+			expected: LoadOpts{FlagValues: Config{NodeMeta: map[string]string{"a": "b", "c": "d"}}},
 		},
 		{
 			args:     []string{`-bootstrap`, `true`},
-			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Bootstrap: pBool(true)}}},
+			expected: LoadOpts{FlagValues: Config{Bootstrap: pBool(true)}},
 			extra:    []string{"true"},
 		},
 		{
 			args: []string{`-primary-gateway`, `foo.local`, `-primary-gateway`, `bar.local`},
-			expected: LoadOpts{
-				FlagValues: FlagValuesTarget{
-					Config: Config{
-						PrimaryGateways: []string{"foo.local", "bar.local"},
-					},
-				},
-			},
+			expected: LoadOpts{FlagValues: Config{PrimaryGateways: []string{
+				"foo.local", "bar.local",
+			}}},
 		},
 	}
 

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package catalog
 
 import (
@@ -170,7 +167,7 @@ func TestConfigSource_LocallyManagedService(t *testing.T) {
 	token := "token"
 
 	localState := testLocalState(t)
-	localState.AddServiceWithChecks(&structs.NodeService{ID: serviceID.ID}, nil, "", false)
+	localState.AddServiceWithChecks(&structs.NodeService{ID: serviceID.ID}, nil, "")
 
 	localWatcher := NewMockWatcher(t)
 	localWatcher.On("Watch", serviceID, nodeName, token).

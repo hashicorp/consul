@@ -20,7 +20,7 @@ or added dynamically using the HTTP API.
 It is important to note that the services known by the agent may be different
 from those reported by the catalog. This is usually due to changes being made
 while there is no leader elected. The agent performs active
-[anti-entropy](/consul/docs/architecture/anti-entropy), so in most situations
+[anti-entropy](/docs/architecture/anti-entropy), so in most situations
 everything will be in sync within a few seconds.
 
 @include 'http_api_results_filtered_by_acls.mdx'
@@ -30,10 +30,10 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/services` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -130,13 +130,13 @@ following selectors and filter operations being supported:
 
 This endpoint was added in Consul 1.3.0 and returns the full service definition
 for a single service instance registered on the local agent. It is used by
-[service mesh proxies](/consul/docs/connect/proxies) to discover the embedded proxy
+[Connect proxies](/docs/connect/proxies) to discover the embedded proxy
 configuration that was registered with the instance.
 
 It is important to note that the services known by the agent may be different
 from those reported by the catalog. This is usually due to changes being made
 while there is no leader elected. The agent performs active
-[anti-entropy](/consul/docs/architecture/anti-entropy), so in most situations
+[anti-entropy](/docs/architecture/anti-entropy), so in most situations
 everything will be in sync within a few seconds.
 
 | Method | Path                         | Produces           |
@@ -144,10 +144,10 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/service/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries  | Consistency Modes | Agent Caching | ACL Required   |
 | ----------------- | ----------------- | ------------- | -------------- |
@@ -249,10 +249,10 @@ the URL or use Mime Content negotiation by specifying a HTTP Header
 | `GET`  | `/agent/health/service/name/:service_name?format=text` | `text/plain`       |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -279,7 +279,7 @@ Those endpoints might be useful for the following use-cases:
 ##### Note
 
 If you know the ID of service you want to target, it is recommended to use
-[`/v1/agent/health/service/id/:service_id`](/consul/api-docs/agent/service#get-local-service-health-by-id)
+[`/v1/agent/health/service/id/:service_id`](/api-docs/agent/service#get-local-service-health-by-id)
 so you have the result for the service only. When requesting
 `/v1/agent/health/service/name/:service_name`, the caller will receive the
 worst state of all services having the given name.
@@ -424,7 +424,7 @@ Retrieve the health state of a specific service on the local agent by ID.
 | `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
 
 The supported request parameters are the same as
-[`/v1/agent/health/service/name/:service_name`](/consul/api-docs/agent/service#get-local-service-health).
+[`/v1/agent/health/service/name/:service_name`](/api-docs/agent/service#get-local-service-health).
 
 ### Sample Requests
 
@@ -580,16 +580,16 @@ For "connect-proxy" kind services, the `service:write` ACL for the
 | `PUT`  | `/agent/service/register` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `service:write` |
 
-The corresponding CLI command is [`consul services register`](/consul/commands/services/register).
+The corresponding CLI command is [`consul services register`](/commands/services/register).
 
 ### Query Parameters
 
@@ -630,30 +630,30 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
 
 - `Port` `(int: 0)` - Specifies the port of the service.
 
-- `Kind` `(string: "")` - The kind of service. Defaults to `""`, which is a
-  typical Consul service. You can specify the following values: 
-  - `"connect-proxy"` for [service mesh](/consul/docs/connect) proxies representing another service
-  - `"mesh-gateway"` for instances of a [mesh gateway](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration)
-  - `"terminating-gateway"` for instances of a [terminating gateway](/consul/docs/connect/gateways/terminating-gateway)
-  - `"ingress-gateway"` for instances of an [ingress gateway](/consul/docs/connect/gateways/ingress-gateway)
+- `Kind` `(string: "")` - The kind of service. Defaults to "" which is a
+  typical Consul service. This value may also be "connect-proxy" for
+  [Connect](/docs/connect) proxies representing another service,
+  "mesh-gateway" for instances of a [mesh gateway](/docs/connect/gateways/mesh-gateway#connect-proxy-configuration),
+  "terminating-gateway" for instances of a [terminating gateway](/docs/connect/gateways/terminating-gateway),
+  or "ingress-gateway" for instances of a [ingress gateway](/docs/connect/gateways/ingress-gateway).
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
-  service mesh proxy instance. This is only valid if `Kind` defines a proxy or gateway.
-  See the [Proxy documentation](/consul/docs/connect/registration/service-registration)
+  Connect service proxy instance. This is only valid if `Kind` defines a proxy or gateway.
+  See the [Proxy documentation](/docs/connect/registration/service-registration)
   for full details.
 
 - `Connect` `(Connect: nil)` - Specifies the
-  [configuration for service mesh](/consul/docs/connect/configuration). The connect subsystem provides Consul's service mesh capabilities. Refer to the
+  [configuration for Connect](/docs/connect/configuration). See the
   [Connect Structure](#connect-structure) section below for supported fields.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
-  [check documentation](/consul/api-docs/agent/check) for more information about the
+  [check documentation](/api-docs/agent/check) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
   will be generated. To provide a custom id and/or name set the `CheckID`
   and/or `Name` field.
 
 - `Checks` `(array<Check>: nil)` - Specifies a list of checks. Please see the
-  [check documentation](/consul/api-docs/agent/check) for more information about the
+  [check documentation](/api-docs/agent/check) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
   will be generated. To provide a custom id and/or name set the `CheckID`
   and/or `Name` field. The automatically generated `Name` and `CheckID` depend
@@ -663,7 +663,7 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
 
 - `EnableTagOverride` `(bool: false)` - Specifies to disable the anti-entropy
   feature for this service's tags. If `EnableTagOverride` is set to `true` then
-  external agents can update this service in the [catalog](/consul/api-docs/catalog)
+  external agents can update this service in the [catalog](/api-docs/catalog)
   and modify the tags. Subsequent local sync operations by this agent will
   ignore the updated tags. For instance, if an external agent modified both the
   tags and the port for this service and `EnableTagOverride` was set to `true`
@@ -689,17 +689,17 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
 For the `Connect` field, the parameters are:
 
 - `Native` `(bool: false)` - Specifies whether this service supports
-  the [Consul service mesh](/consul/docs/connect) protocol [natively](/consul/docs/connect/native).
-  If this is true, then service mesh proxies, DNS queries, etc. will be able to
+  the [Connect](/docs/connect) protocol [natively](/docs/connect/native).
+  If this is true, then Connect proxies, DNS queries, etc. will be able to
   service discover this service.
 - `Proxy` `(Proxy: nil)` -
-  **Deprecated** Specifies that a managed service mesh proxy should be started 
-  for this service instance, and optionally provides configuration for the proxy. 
-  Managed proxies (which have been deprecated since Consul v1.3.0) have been 
-  [removed](/consul/docs/connect/proxies) since v1.6.0.
+  [**Deprecated**](/docs/connect/proxies/managed-deprecated) Specifies that
+  a managed Connect proxy should be started for this service instance, and
+  optionally provides configuration for the proxy. The format is as documented
+  in [Managed Proxy Deprecation](/docs/connect/proxies/managed-deprecated).
 - `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested
   service definition to register. For more information see
-  [Sidecar Service Registration](/consul/docs/connect/registration/sidecar-service).
+  [Sidecar Service Registration](/docs/connect/registration/sidecar-service).
 
 ### Sample Payload
 
@@ -749,16 +749,16 @@ is an associated check, that is also deregistered.
 | `PUT`  | `/agent/service/deregister/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `service:write` |
 
-The corresponding CLI command is [`consul services deregister`](/consul/commands/services/deregister).
+The corresponding CLI command is [`consul services deregister`](/commands/services/deregister).
 
 ### Path Parameters
 
@@ -789,10 +789,10 @@ will be automatically restored on agent restart.
 | `PUT`  | `/agent/service/maintenance/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |

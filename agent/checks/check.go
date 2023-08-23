@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package checks
 
 import (
@@ -10,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -51,7 +49,7 @@ const (
 // interface that is implemented by the agent delegate for checks that need
 // to make RPC calls.
 type RPC interface {
-	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
+	RPC(method string, args interface{}, reply interface{}) error
 }
 
 // CheckNotifier interface is used by the CheckMonitor
@@ -862,7 +860,7 @@ func (c *CheckDocker) Start() {
 	}
 
 	if c.Logger == nil {
-		c.Logger = hclog.New(&hclog.LoggerOptions{Output: io.Discard})
+		c.Logger = hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
 	}
 
 	if c.Shell == "" {

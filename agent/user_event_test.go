@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -68,7 +64,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 		Tags:    []string{"test", "foo", "bar", "primary"},
 		Port:    5000,
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "", false)
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	p := &UserEvent{}
 	if !a.shouldProcessUserEvent(p) {
@@ -176,7 +172,7 @@ func TestFireReceiveEvent(t *testing.T) {
 		Tags:    []string{"test", "foo", "bar", "primary"},
 		Port:    5000,
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "", false)
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	p1 := &UserEvent{Name: "deploy", ServiceFilter: "web"}
 	err := a.UserEvent("dc1", "root", p1)
@@ -235,7 +231,7 @@ func TestUserEventToken(t *testing.T) {
 }
 
 type RPC interface {
-	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
+	RPC(method string, args interface{}, reply interface{}) error
 }
 
 func createToken(t *testing.T, rpc RPC, policyRules string) string {
@@ -249,7 +245,7 @@ func createToken(t *testing.T, rpc RPC, policyRules string) string {
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	err := rpc.RPC(context.Background(), "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+	err := rpc.RPC("ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
 	require.NoError(t, err)
 
 	token, err := uuid.GenerateUUID()
@@ -263,7 +259,7 @@ func createToken(t *testing.T, rpc RPC, policyRules string) string {
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	err = rpc.RPC(context.Background(), "ACL.TokenSet", &reqToken, &structs.ACLToken{})
+	err = rpc.RPC("ACL.TokenSet", &reqToken, &structs.ACLToken{})
 	require.NoError(t, err)
 	return token
 }

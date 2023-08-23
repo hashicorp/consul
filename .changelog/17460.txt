@@ -1,3 +1,0 @@
-```release-note:feature
-hcp: Add new metrics sink to collect, aggregate and export server metrics to HCP in OTEL format.
-```

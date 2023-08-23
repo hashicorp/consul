@@ -2,7 +2,7 @@
 layout: docs
 page_title: Consul Enterprise
 description: >-
-  Consul Enterprise is a paid offering that extends Consul’s open source functions to support large and complex deployments. Learn about scaling infrastructure, simplifying operations, and making networks more resilient with Enterprise. Evaluate Enterprise features with the feature availability and compatibility matrix.
+  Consul Enterprise is a paid offering that extends Consul’s open source functions to support large and complex deployments. Learn about scaling infrastructure, simplifying operations, and making networks more resilient with Enterprise.
 ---
 
 # Consul Enterprise
@@ -12,50 +12,33 @@ features address the organizational complexities of collaboration, operations, s
 If you have purchased or wish to try out Consul Enterprise,
 refer to [how to access Consul Enterprise](#access-consul-enterprise).
 
-## Enterprise features
+## Enterprise Features
 
 The following features are [available in several forms of Consul Enterprise](#consul-enterprise-feature-availability).
 
 ### Multi-Tenancy
-
-- [Admin Partitions](/consul/docs/enterprise/admin-partitions): Define administrative boundaries between tenants within a single Consul datacenter
-- [Namespaces](/consul/docs/enterprise/namespaces): Define resource boundaries within a single admin partition for further organizational flexibility
-- [Sameness Groups](/consul/docs/connect/config-entries/sameness-group): Define partitions and cluster peers as members of a group with identical services
+- [Admin Partitions](/docs/enterprise/admin-partitions): Define administrative boundaries between tenants within a single Consul datacenter
+- [Namespaces](/docs/enterprise/namespaces): Define resource boundaries within a single admin partition for further organizational flexibility
 
 ### Resiliency
-
-- [Automated Backups](/consul/docs/enterprise/backups): Configure the automatic backup of Consul state
-- [Redundancy Zones](/consul/docs/enterprise/redundancy): Deploy backup voting Consul servers to efficiently improve Consul fault tolerance
-- [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips): Limit gRPC and RPC traffic to servers for source IP addresses.
+- [Automated Backups](/docs/enterprise/backups): Configure the automatic backup of Consul state
+- [Redundancy Zones](/docs/enterprise/redundancy): Deploy backup voting Consul servers to efficiently improve Consul fault tolerance
 
 ### Scalability
+- [Read Replicas](/docs/enterprise/read-scale): Deploy non-voting Consul servers to enhance the scalability of read requests
 
-- [Read Replicas](/consul/docs/enterprise/read-scale): Deploy non-voting Consul servers to enhance the scalability of read requests
+### Operational Simplification
+- [Automated Upgrades](/docs/enterprise/upgrades): Ease upgrades by automating the transition from existing to newly deployed Consul servers
+- [Consul-Terraform-Sync Enterprise](/docs/nia/enterprise): Leverage the enhanced network infrastructure automation capabilities of the enterprise version of Consul-Terraform-Sync
 
-### Operational simplification
-
-- [Automated Upgrades](/consul/docs/enterprise/upgrades): Ease upgrades by automating the transition from existing to newly deployed Consul servers
-- [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise): Leverage the enhanced network infrastructure automation capabilities of the enterprise version of Consul-Terraform-Sync
-
-### Complex network topology support
-
-- [Network Areas](/consul/docs/enterprise/federation): Support complex network topologies between federated Consul datacenters with pairwise federation rather than full mesh federation
-- [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview): Support complex network topologies within a Consul datacenter by enforcing boundaries in Consul client gossip traffic
+### Complex Network Topology Support
+- [Network Areas](/docs/enterprise/federation): Support complex network topologies between federated Consul datacenters with pairwise federation rather than full mesh federation
+- [Network Segments](/docs/enterprise/network-segments/network-segments-overview): Support complex network topologies within a Consul datacenter by enforcing boundaries in Consul client gossip traffic
 
 ### Governance
-
-- [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc): Manage user access to Consul through an OIDC identity provider instead of Consul ACL tokens directly
-- [Audit Logging](/consul/docs/enterprise/audit-logging): Understand Consul access and usage patterns by reviewing access to the Consul HTTP API
-
-### Regulatory compliance
-
-- [FIPS 140-2 Compliance](/consul/docs/enterprise/fips): Leverage FIPS builds of Consul Enterprise to ensure your Consul deployments are secured with BoringCrypto and CNGCrypto, and compliant with FIPS 140-2.
-
-  <Note>
-
-  FIPS 140-2 builds of Consul Enterprise support all runtimes (VMs, Kubernetes) except for Lambda and ECS. In addition, HCP does not currently support FIPS builds of Consul Enterprise.
-
-  </Note>
+- [OIDC Auth Method](/docs/security/acl/auth-methods/oidc): Manage user access to Consul through an OIDC identity provider instead of Consul ACL tokens directly
+- [Audit Logging](/docs/enterprise/audit-logging): Understand Consul access and usage patterns by reviewing access to the Consul HTTP API 
+- [Sentinel for KV](/docs/enterprise/sentinel): Policy-as-code framework for defining advanced key-value storage access control policies
 
 ## Access Consul Enterprise
 
@@ -73,12 +56,12 @@ You can try out HCP Consul for free. Refer to the
 ### Self-Managed Consul
 
 To access Consul Enterprise in a self-managed installation,
-[apply a purchased license](/consul/docs/enterprise/license/overview)
+[apply a purchased license](/docs/enterprise/license/overview)
 to the Consul Enterprise binary that grants access to the desired features.
 
 Contact your [HashiCorp Support contact](https://support.hashicorp.com/) for a development license.
 
-## Consul Enterprise feature availability
+## Consul Enterprise Feature Availability
 
 The Consul Enterprise features that are available depend on your license and the runtimes you use in your deployment.
 
@@ -89,21 +72,18 @@ Available Enterprise features per Consul form and license include:
 | Feature                                                  | [HashiCorp Cloud Platform (HCP) Consul] | [Consul Enterprise] | Legacy Consul Enterprise (module-based)           |
 | -------------------------------------------------------- | --------------------------------------- | ------------------- | ------------------------------------------------- |
 | Consul servers as a managed service                      | Yes                                     | No (self-managed)   | No (self-managed)                                 |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)    | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Audit Logging](/consul/docs/enterprise/audit-logging)          | Standard tier and above                 | Yes                 | With Governance and Policy module                 |
-| [Automated Server Backups](/consul/docs/enterprise/backups)     | All tiers                               | Yes                 | Yes                                               |
-| [Automated Server Upgrades](/consul/docs/enterprise/upgrades)   | All tiers                               | Yes                 | Yes                                               |
-| [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise) | All tiers                               | Yes                 | Yes                                               |
-| [Enhanced Read Scalability](/consul/docs/enterprise/read-scale) | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips) | No                                      | Yes                 | No |
-| [Namespaces](/consul/docs/enterprise/namespaces)                | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Network Areas](/consul/docs/enterprise/federation)             | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)    | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc) | No                                      | Yes                 | Yes                                               |
-| [Redundancy Zones](/consul/docs/enterprise/redundancy)          | Not applicable                          | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Sameness Groups](/consul/docs/connect/config-entries/sameness-group) | No | Yes | N/A |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips) | All tiers | Yes | With Governance and Policy module |
-
+| [Admin Partitions](/docs/enterprise/admin-partitions)    | All tiers                               | Yes                 | With Governance and Policy module                 |
+| [Audit Logging](/docs/enterprise/audit-logging)          | Standard tier and above                 | Yes                 | With Governance and Policy module                 |
+| [Automated Server Backups](/docs/enterprise/backups)     | All tiers                               | Yes                 | Yes                                               |
+| [Automated Server Upgrades](/docs/enterprise/upgrades)   | All tiers                               | Yes                 | Yes                                               |
+| [Consul-Terraform-Sync Enterprise](/docs/nia/enterprise) | All tiers                               | Yes                 | Yes                                               |
+| [Enhanced Read Scalability](/docs/enterprise/read-scale) | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Namespaces](/docs/enterprise/namespaces)                | All tiers                               | Yes                 | With Governance and Policy module                 |
+| [Network Areas](/docs/enterprise/federation)             | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Network Segments](/docs/enterprise/network-segments/network-segments-overview)    | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
+| [OIDC Auth Method](/docs/security/acl/auth-methods/oidc) | No                                      | Yes                 | Yes                                               |
+| [Redundancy Zones](/docs/enterprise/redundancy)          | Not applicable                          | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Sentinel for KV](/docs/enterprise/sentinel)             | All tiers                               | Yes                 | With Governance and Policy module                 |
 
 [HashiCorp Cloud Platform (HCP) Consul]: https://cloud.hashicorp.com/products/consul
 [Consul Enterprise]: https://www.hashicorp.com/products/consul/
@@ -123,18 +103,16 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#9989;  |  &#9989;   |   &#9989;  |
-| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                   |  &#9989;  |  &#9989;   |   &#10060;  |
 | [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                     |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#9989;  |  &#10060;  |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  &#9989;  |  &#9989;   |   &#9989;  |
-| [Sameness Groups](/consul/docs/connect/config-entries/sameness-group)    |  &#9989;  |  &#9989;   |   &#9989;  |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips) | &#9989; | &#9989; | &#9989; |
+| [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |   &#9989;  |
 
 </Tab>
 
-<Tab heading="Server Runtime: Kubernetes">
+<Tab heading="Server Runtime: Kubnernetes">
 
 | Enterprise Feature                                                      | VM Client | K8s Client | ECS Client |
 | ----------------------------------------------------------------------- | :-------: | :--------: | :--------: |
@@ -143,14 +121,12 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#10060; |  &#10060;  |  &#10060;  |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#10060; |  &#10060;  |  &#10060;  |
-| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                   |  &#9989;  |  &#9989;   |   &#10060;  |
 | [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                     |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#10060; |  &#10060;  |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  &#10060; |  &#10060;  |  &#10060;  |
-| [Sameness Groups](/consul/docs/connect/config-entries/sameness-group)    |  &#9989;  |  &#9989;   |   &#9989;  |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips) | &#9989; | &#9989; | &#9989; |
+| [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |  &#9989;  |
 
 </Tab>
 
@@ -163,14 +139,12 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#10060; |  &#10060;  |  &#10060;  |
-| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                   |  &#10060; |  &#10060;  |  &#10060;  |
 | [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                     |  &#10060; |  &#10060;  |  &#10060;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#10060; |  &#10060;  |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#10060; |  &#10060;  |  &#10060;  |
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  n/a      |  n/a       |  n/a       |
-| [Sameness Groups](/consul/docs/connect/config-entries/sameness-group)    |  &#9989;  |  &#9989;   |   &#9989;  |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips) | &#9989; | &#9989; | &#9989; |
+| [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |   &#9989;  |
 
 </Tab>
 </Tabs>

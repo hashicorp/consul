@@ -1,17 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package acl
 
 const (
 	WildcardName = "*"
-
-	// AnonymousTokenID is the AccessorID of the anonymous token.
-	// When logging or displaying to users, use acl.AliasIfAnonymousToken
-	// to convert this to AnonymousTokenAlias.
-	AnonymousTokenID     = "00000000-0000-0000-0000-000000000002"
-	AnonymousTokenAlias  = "anonymous token"
-	AnonymousTokenSecret = "anonymous"
 
 	ReservedBuiltinPrefix = "builtin/"
 )
@@ -54,14 +44,4 @@ func (c *Config) Close() {
 	if c != nil {
 		c.EnterpriseConfig.Close()
 	}
-}
-
-// AliasIfAnonymousToken returns the string "anonymous token" if
-// accessorID is acl.AnonymousTokenID. Used for better
-// UX when logging the accessorID.
-func AliasIfAnonymousToken(accessorID string) string {
-	if accessorID == AnonymousTokenID {
-		return AnonymousTokenAlias
-	}
-	return accessorID
 }

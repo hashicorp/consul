@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -28,8 +25,7 @@ func TestSnapshot(t *testing.T) {
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 		body := bytes.NewBuffer(nil)
-		req, _ := http.NewRequest("GET", "/v1/snapshot", body)
-		req.Header.Add("X-Consul-Token", "root")
+		req, _ := http.NewRequest("GET", "/v1/snapshot?token=root", body)
 		resp := httptest.NewRecorder()
 		if _, err := a.srv.Snapshot(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -55,8 +51,7 @@ func TestSnapshot(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-		req, _ := http.NewRequest("PUT", "/v1/snapshot", snap)
-		req.Header.Add("X-Consul-Token", "root")
+		req, _ := http.NewRequest("PUT", "/v1/snapshot?token=root", snap)
 		resp := httptest.NewRecorder()
 		if _, err := a.srv.Snapshot(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -76,8 +71,7 @@ func TestSnapshot_Options(t *testing.T) {
 			defer a.Shutdown()
 
 			body := bytes.NewBuffer(nil)
-			req, _ := http.NewRequest(method, "/v1/snapshot", body)
-			req.Header.Add("X-Consul-Token", "anonymous")
+			req, _ := http.NewRequest(method, "/v1/snapshot?token=anonymous", body)
 			resp := httptest.NewRecorder()
 			_, err := a.srv.Snapshot(resp, req)
 			if !acl.IsErrPermissionDenied(err) {
@@ -103,8 +97,7 @@ func TestSnapshot_Options(t *testing.T) {
 			defer a.Shutdown()
 
 			body := bytes.NewBuffer(nil)
-			req, _ := http.NewRequest(method, "/v1/snapshot?stale", body)
-			req.Header.Add("X-Consul-Token", "root")
+			req, _ := http.NewRequest(method, "/v1/snapshot?token=root&stale", body)
 			resp := httptest.NewRecorder()
 			_, err := a.srv.Snapshot(resp, req)
 			if method == "GET" {

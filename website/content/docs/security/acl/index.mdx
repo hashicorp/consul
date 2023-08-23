@@ -13,12 +13,12 @@ Refer to the following tutorials for step-by-step instructions on how to get sta
 
 - [Bootstrap and Explore ACLs]
 - [Secure Consul with ACLs]
-- [Troubleshoot the ACL System](/consul/tutorials/security/access-control-troubleshoot)
+- [Troubleshoot the ACL System](https://learn.hashicorp.com/consul/security-networking/acl-troubleshooting?utm_source=docs)
 
-[bootstrap and explore acls]: /consul/tutorials/security/access-control-setup-production?utm_source=docs
-[secure consul with acls]: /consul/tutorials/security/access-control-setup-production
+[bootstrap and explore acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production?utm_source=docs
+[secure consul with acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production
 
-Refer to the [ACL API reference](/consul/api-docs/acl) and [ACL CLI reference](/consul/commands/acl) for additional usage information.
+Refer to the [ACL API reference](/api-docs/acl) and [ACL CLI reference](/commands/acl) for additional usage information.
 
 ## Workflow Overview
 
@@ -41,9 +41,9 @@ ACL tokens are the core method of authentication in Consul. Tokens contain sever
 
 Refer to the following topics for details about tokens:
 
-- [Tokens](/consul/docs/security/acl/tokens)
-- [ACL token command line](/consul/commands/acl/token)
-- [ACL tokens API](/consul/api-docs/acl/tokens)
+- [Tokens](/docs/security/acl/acl-tokens)
+- [ACL token command line](/commands/acl/token)
+- [ACL tokens API](/api-docs/acl/tokens)
 
 ## Policies
 
@@ -54,9 +54,9 @@ In addition to the rules that authenticate access to services, several attribute
 
 Refer to the following topics for details about policies:
 
-- [Policies](/consul/docs/security/acl/acl-policies)
-- [ACL policy command line](/consul/commands/acl/policy)
-- [ACL policy API](/consul/api-docs/acl/policies)
+- [Policies](/docs/security/acl/acl-policies)
+- [ACL policy command line](/commands/acl/policy)
+- [ACL policy API](/api-docs/acl/policies)
 
 ## Roles
 
@@ -65,7 +65,7 @@ They enable you to reuse policies by decoupling the policies from the token dist
 Instead, the token is linked to the role, which is able to hold several policies that can be updated asynchronously without distributing new tokens to users.
 As a result, roles can provide a more convenient authentication infrastructure than creating unique policies and tokens for each requester.
 
-Refer to the [Roles](/consul/docs/security/acl/acl-roles) topic for additional information.
+Refer to the [Roles](/docs/security/acl/acl-roles) topic for additional information.
 
 ## Service Identities
 
@@ -75,16 +75,16 @@ Service identities enable you to quickly construct policies for services, rather
 
 Refer to the following topics for additional information about service identities:
 
-- [Service Identities](/consul/docs/security/acl/acl-roles#service-identities)
-- [API documentation for roles](/consul/api-docs/acl/roles#sample-payload)
+- [Service Identities](/docs/security/acl/acl-roles#service-identities)
+- [API documentation for roles](/api-docs/acl/roles#sample-payload)
 
 ## Node Identities
 
-Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. You can use them during the authorization process to automatically generate a policy for specific nodes. When you configure the agent, you can specify the token linked to the policy with [`acl_tokens_agent`](/consul/docs/agent/config/config-files#acl_tokens_agent).
+Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. You can use them during the authorization process to automatically generate a policy for specific nodes. When you configure the agent, you can specify the token linked to the policy with [`acl_tokens_agent`](/docs/agent/config/config-files#acl_tokens_agent).
 
 Use node identities to quickly construct policies for multiple nodes, rather than creating identical polices for each individual node.
 
 Refer to the following topics for additional information about node identities:
 
-- [Node Identities](/consul/docs/security/acl/acl-roles#node-identities)
-- [API documentation for roles](/consul/api-docs/acl/roles#sample-payload)
+- [Node Identities](/docs/security/acl/acl-roles#node-identities)
+- [API documentation for roles](/api-docs/acl/roles#sample-payload)

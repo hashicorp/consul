@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package checks
 
 import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -113,7 +110,7 @@ func TestGRPC_Proxied(t *testing.T) {
 	notif := mock.NewNotify()
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:   uniqueID(),
-		Output: io.Discard,
+		Output: ioutil.Discard,
 	})
 
 	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
@@ -147,7 +144,7 @@ func TestGRPC_NotProxied(t *testing.T) {
 	notif := mock.NewNotify()
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:   uniqueID(),
-		Output: io.Discard,
+		Output: ioutil.Discard,
 	})
 
 	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)

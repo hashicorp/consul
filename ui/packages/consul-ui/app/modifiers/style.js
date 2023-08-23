@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Modifier from 'ember-modifier';
 import { assert } from '@ember/debug';
 

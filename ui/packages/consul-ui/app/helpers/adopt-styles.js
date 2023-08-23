@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Helper from '@ember/component/helper';
 import { assert } from '@ember/debug';
 import { adoptStyles } from '@lit/reactive-element';

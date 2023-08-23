@@ -1,25 +1,21 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package acl
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
 
-func GetTokenAccessorIDFromPartial(client *api.Client, partialAccessorID string) (string, error) {
-	if partialAccessorID == "anonymous" {
-		return acl.AnonymousTokenID, nil
+func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error) {
+	if partialID == "anonymous" {
+		return structs.ACLTokenAnonymousID, nil
 	}
 
 	// the full UUID string was given
-	if len(partialAccessorID) == 36 {
-		return partialAccessorID, nil
+	if len(partialID) == 36 {
+		return partialID, nil
 	}
 
 	tokens, _, err := client.ACL().TokenList(nil)
@@ -27,21 +23,21 @@ func GetTokenAccessorIDFromPartial(client *api.Client, partialAccessorID string)
 		return "", err
 	}
 
-	tokenAccessorID := ""
+	tokenID := ""
 	for _, token := range tokens {
-		if strings.HasPrefix(token.AccessorID, partialAccessorID) {
-			if tokenAccessorID != "" {
+		if strings.HasPrefix(token.AccessorID, partialID) {
+			if tokenID != "" {
 				return "", fmt.Errorf("Partial token ID is not unique")
 			}
-			tokenAccessorID = token.AccessorID
+			tokenID = token.AccessorID
 		}
 	}
 
-	if tokenAccessorID == "" {
-		return "", fmt.Errorf("No such token ID with prefix: %s", partialAccessorID)
+	if tokenID == "" {
+		return "", fmt.Errorf("No such token ID with prefix: %s", partialID)
 	}
 
-	return tokenAccessorID, nil
+	return tokenID, nil
 }
 
 func GetPolicyIDFromPartial(client *api.Client, partialID string) (string, error) {
@@ -103,6 +99,37 @@ func GetPolicyIDByName(client *api.Client, name string) (string, error) {
 	}
 
 	return policy.ID, nil
+}
+
+func GetRulesFromLegacyToken(client *api.Client, tokenID string, isSecret bool) (string, error) {
+	tokenID, err := GetTokenIDFromPartial(client, tokenID)
+	if err != nil {
+		return "", err
+	}
+
+	var token *api.ACLToken
+	if isSecret {
+		qopts := api.QueryOptions{
+			Token: tokenID,
+		}
+		token, _, err = client.ACL().TokenReadSelf(&qopts)
+	} else {
+		token, _, err = client.ACL().TokenRead(tokenID, nil)
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("Error reading token: %v", err)
+	}
+
+	if token == nil {
+		return "", fmt.Errorf("Token not found for ID")
+	}
+
+	if token.Rules == "" {
+		return "", fmt.Errorf("Token is not a legacy token with rules")
+	}
+
+	return token.Rules, nil
 }
 
 func GetRoleIDFromPartial(client *api.Client, partialID string) (string, error) {
@@ -174,7 +201,7 @@ func GetBindingRuleIDFromPartial(client *api.Client, partialID string) (string, 
 	}
 
 	if ruleID == "" {
-		return "", fmt.Errorf("no such rule ID with prefix: %s: %w", partialID, acl.ErrNotFound)
+		return "", fmt.Errorf("No such rule ID with prefix: %s", partialID)
 	}
 
 	return ruleID, nil

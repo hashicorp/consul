@@ -1,20 +1,18 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Policy List'
-description: |
-  The `consul acl policy list` command lists names and details for all ACL policies in the cluster.
 ---
 
 # Consul ACL Policy List
 
 Command: `consul acl policy list`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/policies](/consul/api-docs/acl/policies#list-policies)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/policies](/api-docs/acl/policies#list-policies)
 
 The `acl policy list` command lists all policies. By default it will not show metadata.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

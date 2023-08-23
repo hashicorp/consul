@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 @import 'layouts/index';
 
 /* position main app-view when there are/aren't breadcrumbs */
@@ -80,9 +75,11 @@ html[data-route='dc.services.index'] .consul-service-list ul,
 .consul-role-list ul,
 .consul-policy-list ul,
 .consul-token-list ul,
-.consul-peer-list ul,
 .consul-auth-method-list ul {
   @extend %list-after-filter-bar;
+}
+.notice + .consul-token-list ul {
+  border-top-width: 1px !important;
 }
 
 // TODO: This shouldn't be done here, decide the best way to do this

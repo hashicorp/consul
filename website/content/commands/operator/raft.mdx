@@ -29,12 +29,12 @@ Subcommands:
 
 ## list-peers
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/status/peers](/consul/api-docs/status#list-raft-peers)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/status/peers](/api-docs/status#list-raft-peers)
 
 This command displays the current Raft peer configuration.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -79,7 +79,7 @@ configuration.
 
 ## remove-peer
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/raft/peer](/consul/api-docs/operator/raft#delete-raft-peer)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/raft/peer](/api-docs/operator/raft#delete-raft-peer)
 
 This command removes the Consul server with given address from the Raft configuration.
 
@@ -87,13 +87,13 @@ There are rare cases where a peer may be left behind in the Raft configuration
 even though the server is no longer present and known to the cluster. This command
 can be used to remove the failed server so that it is no longer affects the
 Raft quorum. If the server still shows in the output of the
-[`consul members`](/consul/commands/members) command, it is preferable to
+[`consul members`](/commands/members) command, it is preferable to
 clean up by simply running
-[`consul force-leave`](/consul/commands/force-leave)
+[`consul force-leave`](/commands/force-leave)
 instead of this command.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -108,26 +108,3 @@ Usage: `consul operator raft remove-peer -address="IP:port"`
 - `-id` - ID of the server to remove.
 
 The return code will indicate success or failure.
-
-## transfer-leader
-
-Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/consul/api-docs/operator/raft#transfer-raft-leadership)
-
-This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id.
-
-Use this command to change leadership without restarting the leader node, which maintains quorum and workload capacity.
-
-The table below shows this command's [required ACLs](/consul/api-docs#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
-
-| ACL Required     |
-| ---------------- |
-| `operator:write` |
-
-Usage: `consul operator raft transfer-leader -id="server id"`
-
-- `-id` - Specifies the node ID of the raft peer to transfer leadership to.
-If empty, leadership transfers to a random server agent.
-
-The return code indicates success or failure.

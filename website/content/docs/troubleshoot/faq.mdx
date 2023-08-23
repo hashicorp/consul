@@ -17,10 +17,10 @@ through and look for any breaking changes.
 ### Q: Can I upgrade in place or should I spin up a new Kubernetes cluster?
 
 It is always safer to spin up a new Kubernetes cluster but that is not an
-option for most teams. Consul supports [upgrading in place](/consul/docs/k8s/upgrade).
+option for most teams. Consul supports [upgrading in place](/docs/k8s/upgrade).
 
 Non-production environments should be upgraded first. If upgrading
-a Consul version, Consul data should be [backed up](/consul/tutorials/kubernetes-production/kubernetes-disaster-recovery).
+a Consul version, Consul data should be [backed up](https://learn.hashicorp.com/tutorials/consul/kubernetes-disaster-recovery).
 
 ### Q: How can I run tcpdump on Consul servers?
 
@@ -36,7 +36,7 @@ server:
     fsGroup: 0
 ```
 
-Run a `helm upgrade` (see [Upgrade Consul on Kubernetes](/consul/docs/k8s/upgrade) for full upgrade instructions).
+Run a `helm upgrade` (see [Upgrade Consul on Kubernetes](/docs/k8s/upgrade) for full upgrade instructions).
 
 Now, `kubectl exec` into a server pod:
 
@@ -64,8 +64,8 @@ messages.
 This anonymous ID can be disabled. In fact, using the Checkpoint service is
 optional and can be disabled.
 
-See [`disable_anonymous_signature`](/consul/docs/agent/config/config-files#disable_anonymous_signature)
-and [`disable_update_check`](/consul/docs/agent/config/config-files#disable_update_check).
+See [`disable_anonymous_signature`](/docs/agent/config/config-files#disable_anonymous_signature)
+and [`disable_update_check`](/docs/agent/config/config-files#disable_update_check).
 
 ### Q: Does Consul rely on UDP Broadcast or Multicast?
 
@@ -80,9 +80,9 @@ Consul has two important subsystems, the service catalog and the gossip
 protocol.
 The service catalog stores all the nodes, service instances, health check data,
 ACLs, and KV information. It is strongly consistent, and replicated
-using the [consensus protocol](/consul/docs/architecture/consensus).
+using the [consensus protocol](/docs/architecture/consensus).
 
-The [gossip protocol](/consul/docs/architecture/gossip) is used to track which
+The [gossip protocol](/docs/architecture/gossip) is used to track which
 nodes are part of the cluster and to detect a node or agent failure. This
 information is eventually consistent by nature. When the servers detects a
 change in membership, or receive a health update, they update the service
@@ -118,7 +118,7 @@ as well as race conditions between data updates and watch registrations.
 
 ### Q: What network ports does Consul use?
 
-The [Ports Used](/consul/docs/agent/config/config-files#ports) section of the Configuration
+The [Ports Used](/docs/agent/config/config-files#ports) section of the Configuration
 documentation lists all ports that Consul uses.
 
 ### Q: Does Consul require certain user process resource limits?
@@ -145,11 +145,11 @@ of any excessive resource utilization before arbitrarily increasing the limits.
 The default recommended limit on a key's value size is 512KB. This is strictly
 enforced and an HTTP 413 status will be returned to any client that attempts to
 store more than that limit in a value. The limit can be increased by using the
-[`kv_max_value_size`](/consul/docs/agent/config/config-files#kv_max_value_size) configuration option.
+[`kv_max_value_size`](/docs/agent/config/config-files#kv_max_value_size) configuration option.
 
 It should be noted that the Consul key/value store is not designed to be used as
 a general purpose database. See
-[Server Performance](/consul/docs/install/performance) for more details.
+[Server Performance](/docs/install/performance) for more details.
 
 ### Q: What data is replicated between Consul datacenters?
 
@@ -161,7 +161,7 @@ If the remote datacenter is not available, then those resources will also not be
 available from that datacenter. That will not affect the requests to the local
 datacenter. There are some special situations where a limited subset of data
 can be replicated, such as with Consul's built-in
-[ACL replication](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
+[ACL replication](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters)
 capability, or external tools like
 [consul-replicate](https://github.com/hashicorp/consul-replicate).
 
@@ -176,7 +176,7 @@ We recommend taking any precautions or remediation steps that you would
 normally do for individual processes, based on your operating system.
 
 Please see our
-[Security Model](/consul/docs/security) for more information.
+[Security Model](/docs/security) for more information.
 
 ### Q: Are the Consul Docker Images OCI Compliant?
 

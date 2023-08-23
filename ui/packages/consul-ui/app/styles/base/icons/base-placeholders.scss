@@ -1,11 +1,14 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
+%theme-light {
+  --theme-dark-none: ;
+  --theme-light-none: initial;
+}
+%theme-dark {
+  --theme-dark-none: initial;
+  --theme-light-none: ;
+}
 %with-glyph-icon {
-  font-weight: var(--token-typography-font-weight-regular);
-  background-color: var(--token-color-surface-strong);
+  font-weight: var(--typo-weight-normal);
+  background-color: rgb(var(--tone-gray-100));
   visibility: visible;
   padding: 0 4px;
 }

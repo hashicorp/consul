@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package external
 
 import (
@@ -8,10 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestQueryOptionsFromContextRoundTrip(t *testing.T) {

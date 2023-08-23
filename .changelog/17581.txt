@@ -1,3 +1,0 @@
-```release-note:bug
-gateways: **(Enterprise only)** Fixed a bug in API gateways where gateway configuration objects in non-default partitions did not reconcile properly.
-```

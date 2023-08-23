@@ -1,20 +1,18 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Binding Rule Delete'
-description: |
-  The `consul acl binding-rule delete` command deletes an ACL binding rule according to a specified ID. These rules bind auth methods to specific services or roles.
 ---
 
 # Consul ACL Binding Rule Delete
 
 Command: `consul acl binding-rule delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/acl/binding-rule/:id](/consul/api-docs/acl/binding-rules#delete-a-binding-rule)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/acl/binding-rule/:id](/api-docs/acl/binding-rules#delete-a-binding-rule)
 
 The `acl binding-rule delete` command deletes a binding rule.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

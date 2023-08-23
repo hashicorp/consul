@@ -2,14 +2,14 @@
 layout: docs
 page_title: Consul compared to other service meshes
 description: >-
-  Consul's service mesh provides zero trust networking based on service identities to authorize, authenticate, and encrypt network services. Consul's service mesh can also provide advanced traffic management capabilities. Although there are many similar capabilities between Consul and other providers like Istio, Solo, Linkerd, Kong, Tetrate, and AWS App Mesh, we highlight the main differentiating factors for help customers compare.
+  Consul's service mesh provides zero trust networking based on service identities to authorize, authenticate, and encrypt network services. Consul's service mesh can also provide advanced traffic management capabilties. Although there are many similar capabilities between Consul and other providers like Istio, Solo, Linkerd, Kong, Tetrate, and AWS App Mesh, we highlight the main differentiating factors for help customers compare. 
 ---
 
 # Consul compared to other service mesh software
 
 **Examples**: Istio, Solo Gloo Mesh, Linkerd, Kong/Kuma, AWS App Mesh
 
-Consul’s service mesh allows organizations to securely connect and manage their network services across multiple different environments. Using Envoy as the sidecar proxy attached to every service, Consul ensures that all service-to-service communication is authorized, authenticated, and encrypted. Consul includes traffic management capabilities like load balancing and traffic splitting, which help developers perform canary testing, A/B tests, and blue/green deployments. Consul also includes health check and observability features.
+Consul’s service mesh allows organizations to securely connect and manage their network services across multiple different environments. Using Envoy as the sidecar proxy attached to every service, Consul ensures that all service-to-service communication is authorized, authenticated, and encrypted. Consul includes traffic management capabilities like load balancing and traffic splitting, which help developers perform canary testing, A/B tests, and blue/green deployments. Consul also includes health check and observability features. 
 
 Consul is platform agnostic — it supports any runtime (Kubernetes, EKS, AKS, GKE, VMs, ECS, Lambda, Nomad) and any cloud provider (AWS, Microsoft Azure, GCP, private clouds). This makes it one of the most flexible service discovery and service mesh platforms. While other service mesh software provides support for multiple runtimes for the data plane, they require you to run the control plane solely on Kubernetes. With Consul, you can run both the control plane and data plane in different runtimes.
 

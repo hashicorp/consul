@@ -1,10 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,13 +34,13 @@ func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 	leaf, _ := TestLeaf(t, "web", ca)
 
 	// Create a temporary directory for storing the certs
-	td, err := os.MkdirTemp("", "consul")
+	td, err := ioutil.TempDir("", "consul")
 	require.NoError(t, err)
 	defer os.RemoveAll(td)
 
 	// Write the cert
-	require.NoError(t, os.WriteFile(filepath.Join(td, "ca.pem"), []byte(ca.RootCert), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(td, "leaf.pem"), []byte(leaf[:]), 0644))
+	require.NoError(t, ioutil.WriteFile(filepath.Join(td, "ca.pem"), []byte(ca.RootCert), 0644))
+	require.NoError(t, ioutil.WriteFile(filepath.Join(td, "leaf.pem"), []byte(leaf[:]), 0644))
 
 	// Use OpenSSL to verify so we have an external, known-working process
 	// that can verify this outside of our own implementations.
@@ -68,7 +66,7 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 	leaf2, _ := TestLeaf(t, "web", ca2)
 
 	// Create a temporary directory for storing the certs
-	td, err := os.MkdirTemp("", "consul")
+	td, err := ioutil.TempDir("", "consul")
 	assert.Nil(t, err)
 	defer os.RemoveAll(td)
 
@@ -76,9 +74,9 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 	xcbundle := []byte(ca1.RootCert)
 	xcbundle = append(xcbundle, '\n')
 	xcbundle = append(xcbundle, []byte(ca2.SigningCert)...)
-	assert.Nil(t, os.WriteFile(filepath.Join(td, "ca.pem"), xcbundle, 0644))
-	assert.Nil(t, os.WriteFile(filepath.Join(td, "leaf1.pem"), []byte(leaf1), 0644))
-	assert.Nil(t, os.WriteFile(filepath.Join(td, "leaf2.pem"), []byte(leaf2), 0644))
+	assert.Nil(t, ioutil.WriteFile(filepath.Join(td, "ca.pem"), xcbundle, 0644))
+	assert.Nil(t, ioutil.WriteFile(filepath.Join(td, "leaf1.pem"), []byte(leaf1), 0644))
+	assert.Nil(t, ioutil.WriteFile(filepath.Join(td, "leaf2.pem"), []byte(leaf2), 0644))
 
 	// OpenSSL verify the cross-signed leaf (leaf2)
 	{

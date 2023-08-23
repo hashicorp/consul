@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Inflector from 'ember-inflector';
 import helpers from '@ember/test-helpers';
 import $ from '-jquery';

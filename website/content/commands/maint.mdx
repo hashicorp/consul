@@ -9,7 +9,7 @@ description: |
 
 Command: `consul maint`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/maintenance](/consul/api-docs/agent#enable-maintenance-mode)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/maintenance](/api-docs/agent#enable-maintenance-mode)
 
 The `maint` command provides control of service maintenance mode.
 Using the command, it is possible to mark a service provided by a node or all the services on the
@@ -21,8 +21,8 @@ Under the hood, maintenance mode is activated by registering a health check in
 critical status against a service, and deactivated by deregistering the
 health check.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

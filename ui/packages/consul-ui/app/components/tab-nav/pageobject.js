@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { is, clickable, attribute, isVisible } from 'ember-cli-page-object';
 import ucfirst from 'consul-ui/utils/ucfirst';
 export default function (name, items, blankKey = 'all') {

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default (collection, clickable, attribute, isPresent, deletable) =>
   (scope = '.consul-intention-list') => {
     const row = {

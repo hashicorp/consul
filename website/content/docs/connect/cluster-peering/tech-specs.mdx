@@ -13,54 +13,42 @@ For cluster peering requirements in Kubernetes deployments, refer to [cluster pe
 
 ## Requirements
 
-Consul's default configuration supports cluster peering connections directly between clusters. In production environments, we recommend using mesh gateways to securely route service mesh traffic between partitions with cluster peering connections.
-
-In addition, make sure your Consul environment meets the following prerequisites:
+To use cluster peering features, make sure your Consul environment meets the following prerequisites:
 
 - Consul v1.14 or higher.
+- A local Consul agent is required to manage mesh gateway configuration.
 - Use [Envoy proxies](/consul/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
-- A local Consul agent is required to manage mesh gateway configurations.
 
-## Mesh gateway specifications
+In addition, the following service mesh components are required in order to establish cluster peering connections:
+  
+- [Cluster peering technical specifications](#cluster-peering-technical-specifications)
+  - [Requirements](#requirements)
+    - [Mesh gateway requirements](#mesh-gateway-requirements)
+      - [Mesh gateway modes](#mesh-gateway-modes)
+  - [Sidecar proxy requirements](#sidecar-proxy-requirements)
+  - [Exported service requirements](#exported-service-requirements)
+  - [ACL requirements](#acl-requirements)
 
-To change Consul's default configuration and enable cluster peering through mesh gateways, use a mesh configuration entry to update your network's service mesh proxies globally:
+### Mesh gateway requirements
 
-1. In a `mesh` configuration entry, set `PeerThroughMeshGateways` to `true`:
+Mesh gateways are required for routing service mesh traffic between partitions with cluster peering connections. Consider the following general requirements for mesh gateways when using cluster peering:
 
-  <CodeBlockConfig filename="mesh-config.hcl">
-
-  ```hcl
-  Kind = "mesh"
-  Peering {
-    PeerThroughMeshGateways = true
-  }
-  ```
-
-  </CodeBlockConfig>
-
-1. Write the configuration entry to Consul:
-
-  ```shell
-  $ consul config write mesh-config.hcl
-  ```
-
-When cluster peering through mesh gateways, consider the following deployment requirements:
-
-- A cluster requires a registered mesh gateway in order to export services to peers in other regions or cloud providers.
-- The mesh gateway must also be registered in the same admin partition as the exported services and their `exported-services` configuration entry. An enterprise license is required to use multiple admin partitions with a single cluster of Consul servers.
+- A cluster requires a registered mesh gateway in order to export services to peers.
+- For Enterprise, this mesh gateway must also be registered in the same partition as the exported services and their `exported-services` configuration entry.
 - To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
-- Define the `Proxy.Config` settings using opaque parameters compatible with your proxy. Refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional Envoy proxy configuration information.
 
-### Mesh gateway modes
+In addition, you must define the `Proxy.Config` settings using opaque parameters compatible with your proxy. Refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional Envoy proxy configuration information.
 
-By default, cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote). Be aware of these additional requirements when changing a mesh gateway's mode.
+#### Mesh gateway modes
+
+By default, all cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote). Be aware of these additional requirements when changing a mesh gateway's mode.
 
 - For mesh gateways that connect peered clusters, you can set the `mode` as either `remote` or `local`.
 - The `none` mode is invalid for mesh gateways with cluster peering connections.
 
 Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) for more information.
 
-## Sidecar proxy specifications
+## Sidecar proxy requirements
 
 The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/services/usage/define-services).
 
@@ -69,13 +57,15 @@ The Envoy proxies that function as sidecars in your service mesh require configu
 - The `proxy.upstreams.destination_peer` parameter must be configured to enable cross-cluster traffic.
 - The `proxy.upstream/destination_namespace` configuration is only necessary if the destination service is in a non-default namespace.
 
-## Exported service specifications
+## Exported service requirements
 
-The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections. Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#export-services-between-clusters).
+The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections.
+
+Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering).
 
 Refer to the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) reference for more information.
 
-## ACL specifications
+## ACL requirements
 
 If ACLs are enabled, you must add tokens to grant the following permissions:
 

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package fsm
 
 import (
@@ -13,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 var CommandsSummaries = []prometheus.SummaryDefinition{
@@ -145,8 +142,6 @@ func init() {
 	registerCommand(structs.PeeringTrustBundleWriteType, (*FSM).applyPeeringTrustBundleWrite)
 	registerCommand(structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete)
 	registerCommand(structs.PeeringSecretsWriteType, (*FSM).applyPeeringSecretsWrite)
-	registerCommand(structs.ResourceOperationType, (*FSM).applyResourceOperation)
-	registerCommand(structs.UpdateVirtualIPRequestType, (*FSM).applyManualVirtualIPs)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -567,14 +562,6 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 		return true
-	case structs.ConfigEntryUpsertWithStatusCAS:
-		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
-			[]metrics.Label{{Name: "op", Value: "upsert_with_status"}})
-		updated, err := c.state.EnsureConfigEntryWithStatusCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry)
-		if err != nil {
-			return err
-		}
-		return updated
 	case structs.ConfigEntryDeleteCAS:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "delete"}})
@@ -782,25 +769,4 @@ func (c *FSM) applyPeeringTrustBundleDelete(buf []byte, index uint64) interface{
 		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
 	}
 	return c.state.PeeringTrustBundleDelete(index, q)
-}
-
-func (f *FSM) applyResourceOperation(buf []byte, idx uint64) any {
-	return f.deps.StorageBackend.Apply(buf, idx)
-}
-
-func (c *FSM) applyManualVirtualIPs(buf []byte, index uint64) interface{} {
-	var req state.ServiceVirtualIP
-	if err := structs.Decode(buf, &req); err != nil {
-		panic(fmt.Errorf("failed to decode request: %v", err))
-	}
-
-	found, unassignedFrom, err := c.state.AssignManualServiceVIPs(index, req.Service, req.ManualIPs)
-	if err != nil {
-		c.logger.Warn("AssignManualVirtualIPs failed", "error", err)
-		return err
-	}
-	return structs.AssignServiceManualVIPsResponse{
-		Found:          found,
-		UnassignedFrom: unassignedFrom,
-	}
 }

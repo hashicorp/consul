@@ -1,3 +1,0 @@
-```release-note:breaking-change
-extensions: Refactor Lambda integration to get configured with the Envoy extensions field on service-defaults configuration entries.
-```

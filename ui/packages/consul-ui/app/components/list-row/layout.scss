@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %list-row {
   /* this can be reused by internal components */
   /* for positioning if required */
@@ -60,5 +55,5 @@
   top: 30px;
 }
 %list-row-200 dd {
-  @extend %body-100-regular;
+  @extend %p2;
 }

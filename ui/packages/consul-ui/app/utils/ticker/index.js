@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import EventTarget from 'consul-ui/utils/dom/event-target/rsvp';
 import { set } from '@ember/object';
 const IntervalTickerGroup = class extends EventTarget {

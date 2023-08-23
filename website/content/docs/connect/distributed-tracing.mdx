@@ -145,16 +145,16 @@ spec:
 
 </CodeTabs>
 
--> **NOTE:** This example uses a [proxy defaults](/consul/docs/connect/config-entries/proxy-defaults) config entry which will apply to all proxies
+-> **NOTE:** This example uses a [proxy defaults](/docs/connect/config-entries/proxy-defaults) config entry which will apply to all proxies
 but you can also apply this config in the
-[proxy service registration](/consul/docs/connect/registration/service-registration#proxy-parameters) (not supported on Kubernetes).
+[proxy service registration](/docs/connect/registration/service-registration#proxy-parameters) (not supported on Kubernetes).
 
 Within the config there are two keys you need to customize:
 
-1. [`envoy_tracing_json`](/consul/docs/connect/proxies/envoy#envoy_tracing_json): Sets the tracing configuration for your specific tracing type.
+1. [`envoy_tracing_json`](/docs/connect/proxies/envoy#envoy_tracing_json): Sets the tracing configuration for your specific tracing type.
    See the [Envoy tracers documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/trace/trace) for your
    specific collector's configuration. This configuration will reference the cluster name defined in `envoy_extra_static_clusters_json`.
-1. [`envoy_extra_static_clusters_json`](/consul/docs/connect/proxies/envoy#envoy_extra_static_clusters_json): Defines the address
+1. [`envoy_extra_static_clusters_json`](/docs/connect/proxies/envoy#envoy_extra_static_clusters_json): Defines the address
    of your tracing collector where Envoy will send its spans. In this example the URL was `collector-url:9411`.
 
 ## Applying the configuration
@@ -231,14 +231,11 @@ config to take effect.
 
     </CodeTabs>
 
-1. Requests through [Ingress Gateways](/consul/docs/connect/gateways/ingress-gateway) will not be traced unless the header
+1. Requests through [Ingress Gateways](/docs/connect/gateways/ingress-gateway) will not be traced unless the header
    `x-client-trace-id: 1` is set (see [hashicorp/consul#6645](https://github.com/hashicorp/consul/issues/6645)).
 
-1. Consul's proxies do not currently support [OpenTelemetry](https://opentelemetry.io/) spans, as Envoy has not
-   [fully implemented](https://github.com/envoyproxy/envoy/issues/9958) it. Instead, you can add
-   OpenTelemetry libraries to your application to emit spans for other
-   [tracing protocols](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/tracing)
-   supported by Envoy, such as Zipkin or Jaeger.
+1. Consul does not currently support interoperation with [OpenTelemetry](https://opentelemetry.io/) libraries due to
+   Envoy not yet having support.
 
 1. Tracing is only supported with Envoy proxies, not the built-in proxy.
 

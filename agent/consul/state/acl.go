@@ -1,17 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbacl"
+	pbacl "github.com/hashicorp/consul/proto/pbacl"
 )
 
 // ACLTokens is used when saving a snapshot
@@ -425,10 +422,14 @@ type ACLTokenSetOptions struct {
 	CAS                          bool
 	AllowMissingPolicyAndRoleIDs bool
 	ProhibitUnprivileged         bool
+	Legacy                       bool // TODO(ACL-Legacy-Compat): remove
 	FromReplication              bool
 }
 
 func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, opts ACLTokenSetOptions) error {
+	if opts.Legacy {
+		return fmt.Errorf("failed inserting acl token: cannot use this endpoint to persist legacy tokens")
+	}
 
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
@@ -450,7 +451,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 		return ErrMissingACLTokenSecret
 	}
 
-	if token.AccessorID == "" {
+	if !opts.Legacy && token.AccessorID == "" {
 		return ErrMissingACLTokenAccessor
 	}
 
@@ -458,8 +459,20 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 		return fmt.Errorf("Cannot replicate local tokens")
 	}
 
+	// DEPRECATED (ACL-Legacy-Compat)
+	if token.Rules != "" {
+		// When we update a legacy acl token we may have to correct old HCL to
+		// prevent the propagation of older syntax into the state store and
+		// into in-memory representations.
+		correctedRules := structs.SanitizeLegacyACLTokenRules(token.Rules)
+		if correctedRules != "" {
+			token.Rules = correctedRules
+		}
+	}
+
 	// Check for an existing ACL
-	_, existing, err := aclTokenGetFromIndex(tx, token.AccessorID, indexAccessor, nil)
+	// DEPRECATED (ACL-Legacy-Compat) - transition to using accessor index instead of secret once v1 compat is removed
+	_, existing, err := aclTokenGetFromIndex(tx, token.SecretID, "id", nil)
 	if err != nil {
 		return fmt.Errorf("failed token lookup: %s", err)
 	}
@@ -483,6 +496,10 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 		if token.ModifyIndex != 0 && token.ModifyIndex != original.ModifyIndex {
 			return nil
 		}
+	}
+
+	if opts.Legacy && original != nil {
+		return fmt.Errorf("legacy tokens can not be modified")
 	}
 
 	if err := aclTokenUpsertValidateEnterprise(tx, token, original); err != nil {
@@ -556,7 +573,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 
 // ACLTokenGetBySecret is used to look up an existing ACL token by its SecretID.
 func (s *Store) ACLTokenGetBySecret(ws memdb.WatchSet, secret string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLToken, error) {
-	return s.aclTokenGet(ws, secret, indexID, entMeta)
+	return s.aclTokenGet(ws, secret, "id", entMeta)
 }
 
 // ACLTokenGetByAccessor is used to look up an existing ACL token by its AccessorID.
@@ -702,6 +719,29 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	return idx, result, nil
 }
 
+// TODO(ACL-Legacy-Compat): remove in phase 2
+func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan struct{}, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := tx.Get(tableACLTokens, "needs-upgrade", true)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed acl token listing: %v", err)
+	}
+
+	var tokens structs.ACLTokens
+	i := 0
+	for token := iter.Next(); token != nil; token = iter.Next() {
+		tokens = append(tokens, token.(*structs.ACLToken))
+		i += 1
+		if i >= max {
+			return tokens, nil, nil
+		}
+	}
+
+	return tokens, iter.WatchCh(), nil
+}
+
 func (s *Store) ACLTokenMinExpirationTime(local bool) (time.Time, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -768,8 +808,8 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	for _, accessorID := range tokenIDs {
-		if err := aclTokenDeleteTxn(tx, idx, accessorID, indexAccessor, nil); err != nil {
+	for _, tokenID := range tokenIDs {
+		if err := aclTokenDeleteTxn(tx, idx, tokenID, indexAccessor, nil); err != nil {
 			return err
 		}
 	}
@@ -799,7 +839,7 @@ func aclTokenDeleteTxn(tx WriteTxn, idx uint64, value, index string, entMeta *ac
 		return nil
 	}
 
-	if token.(*structs.ACLToken).AccessorID == acl.AnonymousTokenID {
+	if token.(*structs.ACLToken).AccessorID == structs.ACLTokenAnonymousID {
 		return fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
 	}
 

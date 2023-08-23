@@ -9,36 +9,36 @@ description: >-
 
 ## Release Highlights
 
-- **AWS IAM Auth Method**: Consul now provides an AWS IAM auth method that allows AWS IAM roles and users to authenticate with Consul to obtain ACL tokens. Refer to [AWS IAM Auth Method](/consul/docs/security/acl/auth-methods/aws-iam) for detailed configuration information. 
+- **AWS IAM Auth Method**: Consul now provides an AWS IAM auth method that allows AWS IAM roles and users to authenticate with Consul to obtain ACL tokens. Refer to [AWS IAM Auth Method](/docs/security/acl/auth-methods/aws-iam) for detailed configuration information. 
 
-- **Per listener TLS Config**: It is now possible to configure TLS differently for each of Consul's listeners, such as HTTPS, gRPC, and the internal multiplexed RPC listener, using the `tls` stanza. Refer to [TLS Configuration Reference](/consul/docs/agent/config/config-files#tls-configuration-reference) for more details. 
+- **Per listener TLS Config**: It is now possible to configure TLS differently for each of Consul's listeners, such as HTTPS, gRPC, and the internal multiplexed RPC listener, using the `tls` stanza. Refer to [TLS Configuration Reference](/docs/agent/config/config-files#tls-configuration-reference) for more details. 
 
 - **AWS Lambda**: Adds the ability to invoke AWS Lambdas through terminating gateways, which allows for cross-datacenter communication, transparent proxy, and intentions with Consul Service Mesh. Refer to [AWS Lambda](/consul/docs/lambda) and [Invoke Lambda Functions](/consul/docs/lambda/invocation) for more details. 
 
-- **Mesh-wide TLS min/max versions and cipher suites**: Using the [Mesh](/consul/docs/connect/config-entries/mesh#tls) Config Entry or CRD, it is now possible to set TLS min/max versions and cipher suites for both inbound and outbound mTLS connections.
+- **Mesh-wide TLS min/max versions and cipher suites**: Using the [Mesh](/docs/connect/config-entries/mesh#tls) Config Entry or CRD, it is now possible to set TLS min/max versions and cipher suites for both inbound and outbound mTLS connections.
 
 - **Expanded details for ACL Permission Denied errors**: Details are now provided when a permission denied errors surface for RPC calls. Details include the accessor ID of the ACL token, the missing permission, and any namespace or partition that the error occurred on. 
 
-- **ACL token read**: The `consul acl token read -rules` command now includes an `-expanded` option to display detailed info about any policies and rules affecting the token. Refer to [Consul ACL Token read](/consul/commands/acl/token/read) for more details.
+- **ACL token read**: The `consul acl token read -rules` command now includes an `-expanded` option to display detailed info about any policies and rules affecting the token. Refer to [Consul ACL Token read](/commands/acl/token/read) for more details.
 
-- **Automatically reload agent config when watching agent config file changes**: When using the `auto-reload-config` CLI flag or `auto_reload_config` agent config option, Consul now automatically reloads the [reloadable configuration options](/consul/docs/agent/config#reloadable-configuration) when configuration files change. Refer to [auto_reload_config](/consul/docs/agent/config/cli-flags#_auto_reload_config) for more details.
+- **Automatically reload agent config when watching agent config file changes**: When using the `auto-reload-config` CLI flag or `auto_reload_config` agent config option, Consul now automatically reloads the [reloadable configuration options](/docs/agent/config#reloadable-configuration) when configuration files change. Refer to [auto_reload_config](/docs/agent/config/cli-flags#_auto_reload_config) for more details.
 
 
 ## What's Changed
 
-- Removes support for Envoy 1.17.x and Envoy 1.18.x, and adds support for Envoy 1.21.x and Envoy 1.22.x. Refer to the [Envoy Compatibility matrix](/consul/docs/connect/proxies/envoy) for more details.  
+- Removes support for Envoy 1.17.x and Envoy 1.18.x, and adds support for Envoy 1.21.x and Envoy 1.22.x. Refer to the [Envoy Compatibility matrix](/docs/connect/proxies/envoy) for more details.  
 
 - The `disable_compat_1.9` option now defaults to true. Metrics formatted in the style of version 1.9, such as `consul.http...`,  can still be enabled by setting disable_compat_1.9 = false. However, these metrics will be removed in 1.13.
 
-- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. Refer to [ACL Agent Recovery Token](/consul/docs/security/acl/tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/consul/commands/acl/set-agent-token) for more information.
+- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. Refer to [ACL Agent Recovery Token](/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/commands/acl/set-agent-token) for more information.
 
-- If TLS min versions and max versions are not specified, the TLS min/max versions default to the following values. For details on how to configure TLS min and max, refer to the [Mesh TLS config entry](/consul/docs/connect/config-entries/mesh#tls) or CRD documentation. 
+- If TLS min versions and max versions are not specified, the TLS min/max versions default to the following values. For details on how to configure TLS min and max, refer to the [Mesh TLS config entry](/docs/connect/config-entries/mesh#tls) or CRD documentation. 
   - Incoming connections: TLS 1.2 for min0 version, TLS 1.3 for max version
   - Outgoing connections: TLS 1.2 for both TLS min and TLS max versions. 
 
 ## Upgrading
 
-For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific#consul-1-12-0) and the changelogs.
+For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-12-0) and the changelogs.
 
 ## Changelogs
 
@@ -51,9 +51,4 @@ The changelogs for this major release version and any maintenance versions are l
 - [1.12.2](https://github.com/hashicorp/consul/releases/tag/v1.12.2)
 - [1.12.3](https://github.com/hashicorp/consul/releases/tag/v1.12.3)
 - [1.12.4](https://github.com/hashicorp/consul/releases/tag/v1.12.4)
-- [1.12.5](https://github.com/hashicorp/consul/releases/tag/v1.12.5)
-- [1.12.6](https://github.com/hashicorp/consul/releases/tag/v1.12.6)
-- [1.12.7](https://github.com/hashicorp/consul/releases/tag/v1.12.7)
-- [1.12.8](https://github.com/hashicorp/consul/releases/tag/v1.12.8)
-- [1.12.9](https://github.com/hashicorp/consul/releases/tag/v1.12.9)
 

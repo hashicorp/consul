@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package autoconf
 
 import (
@@ -20,7 +17,6 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/retry"
@@ -126,23 +122,16 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 		"router-override": {
 			serverProvider: providerWithServer,
 			config: &config.RuntimeConfig{
-				RetryJoinLAN: []string{"127.0.0.1:9876", "192.168.1.2:4321"},
+				RetryJoinLAN:      []string{"127.0.0.1:9876"},
+				StartJoinAddrsLAN: []string{"192.168.1.2:4321"},
 			},
 			hosts: []string{"198.18.0.1:1234"},
 		},
 		"various-addresses": {
 			serverProvider: providerNone,
 			config: &config.RuntimeConfig{
-				RetryJoinLAN: []string{
-					"192.168.1.1:5432",
-					"start.local",
-					"[::ffff:172.16.5.4]",
-					"main.dev:6789",
-					"198.18.0.1",
-					"foo.com",
-					"[2001:db8::1234]:1234",
-					"abc.local:9876",
-				},
+				RetryJoinLAN:      []string{"198.18.0.1", "foo.com", "[2001:db8::1234]:1234", "abc.local:9876"},
+				StartJoinAddrsLAN: []string{"192.168.1.1:5432", "start.local", "[::ffff:172.16.5.4]", "main.dev:6789"},
 			},
 			hosts: []string{
 				"192.168.1.1",
@@ -158,7 +147,7 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 		"split-host-port-error": {
 			serverProvider: providerNone,
 			config: &config.RuntimeConfig{
-				RetryJoinLAN: []string{"this-is-not:a:ip:and_port"},
+				StartJoinAddrsLAN: []string{"this-is-not:a:ip:and_port"},
 			},
 			err: "no auto-encrypt server addresses available for use",
 		},
@@ -348,9 +337,10 @@ func TestAutoEncrypt_TokenUpdate(t *testing.T) {
 	})
 
 	leafCtx, leafCancel := context.WithCancel(context.Background())
-	testAC.mcfg.leafCerts.On("Notify",
+	testAC.mcfg.cache.On("Notify",
 		mock.Anything,
-		&leafcert.ConnectCALeafRequest{
+		cachetype.ConnectCALeafName,
+		&cachetype.ConnectCALeafRequest{
 			Datacenter: "dc1",
 			Agent:      "autoconf",
 			Token:      newToken,
@@ -430,14 +420,14 @@ func TestAutoEncrypt_CertUpdate(t *testing.T) {
 		NotAfter: secondCert.ValidBefore,
 	}).Once()
 
-	req := leafcert.ConnectCALeafRequest{
+	req := cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Agent:      "autoconf",
 		Token:      testAC.originalToken,
 		DNSSAN:     defaultDNSSANs,
 		IPSAN:      defaultIPSANs,
 	}
-	require.True(t, testAC.mcfg.leafCerts.sendNotification(context.Background(), req.Key(), cache.UpdateEvent{
+	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        secondCert,
 		Meta: cache.ResultMeta{
@@ -538,14 +528,14 @@ func TestAutoEncrypt_Fallback(t *testing.T) {
 
 	// now that all the mocks are set up we can trigger the whole thing by sending the second expired cert
 	// as a cache update event.
-	req := leafcert.ConnectCALeafRequest{
+	req := cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Agent:      "autoconf",
 		Token:      testAC.originalToken,
 		DNSSAN:     defaultDNSSANs,
 		IPSAN:      defaultIPSANs,
 	}
-	require.True(t, testAC.mcfg.leafCerts.sendNotification(context.Background(), req.Key(), cache.UpdateEvent{
+	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        secondCert,
 		Meta: cache.ResultMeta{

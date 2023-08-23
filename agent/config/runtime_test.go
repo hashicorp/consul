@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
@@ -10,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/netip"
 	"os"
@@ -23,19 +21,18 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
+
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
-	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -46,7 +43,6 @@ type testCase struct {
 	desc             string
 	args             []string
 	setup            func() // TODO: accept a testing.T instead of panic
-	cleanup          func()
 	expected         func(rt *RuntimeConfig)
 	expectedErr      string
 	expectedWarnings []string
@@ -324,7 +320,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DevMode = true
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
-			rt.Experiments = []string{"resource-apis"}
 			rt.EnableDebug = true
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
@@ -552,11 +547,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.RetryJoinLAN = []string{"a", "b"}
+			rt.StartJoinAddrsLAN = []string{"a", "b"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecatedFlagWarning("-join", "-retry-join"),
 		},
 	})
 	run(t, testCase{
@@ -567,11 +559,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.RetryJoinWAN = []string{"a", "b"}
+			rt.StartJoinAddrsWAN = []string{"a", "b"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecatedFlagWarning("-join-wan", "-retry-join-wan"),
 		},
 	})
 	run(t, testCase{
@@ -619,7 +608,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeName = "a"
 			rt.TLS.NodeName = "a"
 			rt.DataDir = dataDir
-			rt.Cloud.NodeName = "a"
 		},
 	})
 	run(t, testCase{
@@ -631,7 +619,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.NodeID = "a"
 			rt.DataDir = dataDir
-			rt.Cloud.NodeID = "a"
 		},
 	})
 	run(t, testCase{
@@ -1039,13 +1026,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc:        "locality invalid",
-		args:        []string{`-data-dir=` + dataDir},
-		json:        []string{`{"locality": {"zone": "us-west-1a"}}`},
-		hcl:         []string{`locality { zone = "us-west-1a" }`},
-		expectedErr: "locality is invalid: zone cannot be set without region",
-	})
-	run(t, testCase{
 		desc: "client addr and ports == 0",
 		args: []string{`-data-dir=` + dataDir},
 		json: []string{`{
@@ -1424,11 +1404,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`{ "start_join": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
 		hcl:  []string{`start_join = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
 		expected: func(rt *RuntimeConfig) {
-			rt.RetryJoinLAN = []string{"1.2.3.4", "4.3.2.1"}
+			rt.StartJoinAddrsLAN = []string{"1.2.3.4", "4.3.2.1"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 	run(t, testCase{
@@ -1437,11 +1414,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`{ "start_join_wan": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
 		hcl:  []string{`start_join_wan = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
 		expected: func(rt *RuntimeConfig) {
-			rt.RetryJoinWAN = []string{"1.2.3.4", "4.3.2.1"}
+			rt.StartJoinAddrsWAN = []string{"1.2.3.4", "4.3.2.1"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecationWarning("start_join_wan", "retry_join_wan"),
 		},
 	})
 	run(t, testCase{
@@ -1539,14 +1513,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 0
 			rt.Datacenter = "b"
 			rt.PrimaryDatacenter = "b"
-			rt.RetryJoinLAN = []string{"a", "b", "c", "d"}
+			rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
 			rt.NodeMeta = map[string]string{"a": "c"}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			// TODO: deduplicate warnings?
-			deprecationWarning("start_join", "retry_join"),
-			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 	run(t, testCase{
@@ -1603,7 +1572,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeMeta = map[string]string{"a": "c"}
 			rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
 			rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
-			rt.RetryJoinLAN = []string{"c", "d", "a", "b"}
+			rt.StartJoinAddrsLAN = []string{"c", "d", "a", "b"}
 			rt.TaggedAddresses = map[string]string{
 				"lan":      "1.1.1.1",
 				"lan_ipv4": "1.1.1.1",
@@ -1611,10 +1580,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"wan_ipv4": "2.2.2.2",
 			}
 			rt.DataDir = dataDir
-		},
-		expectedWarnings: []string{
-			deprecatedFlagWarning("-join", "-retry-join"),
-			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 
@@ -2319,22 +2284,19 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		setup: func() {
 			os.Setenv("HCP_RESOURCE_ID", "env-id")
-		},
-		cleanup: func() {
-			os.Unsetenv("HCP_RESOURCE_ID")
+			t.Cleanup(func() {
+				os.Unsetenv("HCP_RESOURCE_ID")
+			})
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Cloud = hcpconfig.CloudConfig{
 				// ID is only populated from env if not populated from other sources.
 				ResourceID: "env-id",
-				NodeName:   "thehostname",
-				NodeID:     "",
 			}
 
 			// server things
 			rt.ServerMode = true
-			rt.Telemetry.EnableHostMetrics = true
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
@@ -2351,9 +2313,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		setup: func() {
 			os.Setenv("HCP_RESOURCE_ID", "env-id")
-		},
-		cleanup: func() {
-			os.Unsetenv("HCP_RESOURCE_ID")
+			t.Cleanup(func() {
+				os.Unsetenv("HCP_RESOURCE_ID")
+			})
 		},
 		json: []string{`{
 			  "cloud": {
@@ -2370,12 +2332,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Cloud = hcpconfig.CloudConfig{
 				// ID is only populated from env if not populated from other sources.
 				ResourceID: "file-id",
-				NodeName:   "thehostname",
 			}
 
 			// server things
 			rt.ServerMode = true
-			rt.Telemetry.EnableHostMetrics = true
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
@@ -2736,44 +2696,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.TLS.InternalRPC.VerifyServerHostname = true
-			rt.TLS.InternalRPC.VerifyOutgoing = true
-		},
-	})
-	run(t, testCase{
-		desc: "verify_server_hostname in the defaults stanza and internal_rpc",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		hcl: []string{`
-			tls {
-				defaults {
-					verify_server_hostname = false
-				},
-				internal_rpc {
-					verify_server_hostname = true
-				}
-			}
-		`},
-		json: []string{`
-			{
-				"tls": {
-					"defaults": {
-						"verify_server_hostname": false
-					},
-					"internal_rpc": {
-						"verify_server_hostname": true
-					}
-				}
-			}
-		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.TLS.InternalRPC.VerifyServerHostname = true
-			rt.TLS.InternalRPC.VerifyOutgoing = true
-		},
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "verify_server_hostname in the grpc stanza",
@@ -2796,7 +2719,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanza",
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "verify_server_hostname in the https stanza",
@@ -2819,7 +2742,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanza",
+		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "translated keys",
@@ -3688,10 +3611,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			    enable_mesh_gateway_wan_federation = true
 			  }
 			`},
-		expectedErr: "'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'",
-		expectedWarnings: []string{
-			deprecatedFlagWarning("-join-wan", "-retry-join-wan"),
-		},
+		expectedErr: "'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'",
 	})
 	run(t, testCase{
 		desc: "connect.enable_mesh_gateway_wan_federation cannot use -retry-join-wan",
@@ -4764,13 +4684,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
-			rt.RequestLimitsMode = consulrate.ModeDisabled
-			rt.RequestLimitsReadRate = rate.Inf
-			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
 			rt.XDSUpdateRateLimit = 250
-			rt.RPCRateLimit = rate.Inf
-			rt.RPCMaxBurst = 1000
 		},
 	})
 
@@ -5761,74 +5676,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "tls.defaults.verify_server_hostname implies tls.internal_rpc.verify_outgoing",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"tls": {
-					"defaults": {
-						"verify_server_hostname": true
-					}
-				}
-			}
-		`},
-		hcl: []string{`
-			tls {
-				defaults {
-					verify_server_hostname = true
-				}
-			}
-		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-
-			rt.TLS.Domain = "consul."
-			rt.TLS.NodeName = "thehostname"
-
-			rt.TLS.InternalRPC.VerifyServerHostname = true
-			rt.TLS.InternalRPC.VerifyOutgoing = true
-		},
-	})
-	run(t, testCase{
-		desc: "tls.internal_rpc.verify_server_hostname overwrites tls.defaults.verify_server_hostname",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"tls": {
-					"defaults": {
-						"verify_server_hostname": false
-					},
-					"internal_rpc": {
-						"verify_server_hostname": true
-					}
-				}
-			}
-		`},
-		hcl: []string{`
-			tls {
-				defaults {
-					verify_server_hostname = false
-				},
-				internal_rpc {
-					verify_server_hostname = true
-				}
-			}
-		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-
-			rt.TLS.Domain = "consul."
-			rt.TLS.NodeName = "thehostname"
-
-			rt.TLS.InternalRPC.VerifyServerHostname = true
-			rt.TLS.InternalRPC.VerifyOutgoing = true
-		},
-	})
-	run(t, testCase{
 		desc: "tls.grpc.use_auto_cert defaults to false",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -5947,143 +5794,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.GRPC.UseAutoCert = false
 		},
 	})
-	run(t, testCase{
-		desc: "logstore defaults",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{``},
-		hcl:  []string{``},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
-			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
-		},
-	})
-	run(t, testCase{
-		// this was a bug in the initial config commit. Specifying part of this
-		// stanza should still result in sensible defaults for the other parts.
-		desc: "wal defaults",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`{
-			"raft_logstore": {
-				"backend": "boltdb"
-			}
-		}`},
-		hcl: []string{`
-			raft_logstore {
-				backend = "boltdb"
-			}
-		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
-			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
-		},
-	})
-	run(t, testCase{
-		desc: "wal segment size lower bound",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"server": true,
-				"raft_logstore": {
-					"wal":{
-						"segment_size_mb": 0
-					}
-				}
-			}`},
-		hcl: []string{`
-			server = true
-			raft_logstore {
-				wal {
-					segment_size_mb = 0
-				}
-			}`},
-		expectedErr: "raft_logstore.wal.segment_size_mb cannot be less than",
-	})
-	run(t, testCase{
-		desc: "wal segment size upper bound",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"server": true,
-				"raft_logstore": {
-					"wal":{
-						"segment_size_mb": 1025
-					}
-				}
-			}`},
-		hcl: []string{`
-			server = true
-			raft_logstore {
-				wal {
-					segment_size_mb = 1025
-				}
-			}`},
-		expectedErr: "raft_logstore.wal.segment_size_mb cannot be greater than",
-	})
-	run(t, testCase{
-		desc: "valid logstore backend",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"server": true,
-				"raft_logstore": {
-					"backend": "thecloud"
-				}
-			}`},
-		hcl: []string{`
-			server = true
-			raft_logstore {
-				backend = "thecloud"
-			}`},
-		expectedErr: "raft_logstore.backend must be one of 'boltdb' or 'wal'",
-	})
-	run(t, testCase{
-		desc: "raft_logstore merging",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{
-			// File 1 has logstore info
-			`{
-				"raft_logstore": {
-					"backend": "wal"
-				}
-			}`,
-			// File 2 doesn't have anything for logstore
-			`{
-				"enable_debug": true
-			}`,
-		},
-		hcl: []string{
-			// File 1 has logstore info
-			`
-			raft_logstore {
-				backend = "wal"
-			}`,
-			// File 2 doesn't have anything for logstore
-			`
-			enable_debug = true
-			`,
-		},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			// The logstore settings from first file should not be overridden by a
-			// later file with nothing to say about logstores!
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendWAL
-			rt.EnableDebug = true
-		},
-	})
 }
 
 func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
@@ -6153,9 +5863,6 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
-		if tc.cleanup != nil {
-			tc.cleanup()
-		}
 	}
 }
 
@@ -6427,6 +6134,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxConcurrent":    float64(2),
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
+		ConnectServerlessPluginEnabled:         true,
 		Cloud: hcpconfig.CloudConfig{
 			ResourceID:   "N43DsscE",
 			ClientID:     "6WvsDZCP",
@@ -6434,8 +6142,6 @@ func TestLoad_FullConfig(t *testing.T) {
 			Hostname:     "DH4bh7aC",
 			AuthURL:      "332nCdR2",
 			ScadaAddress: "aoeusth232",
-			NodeID:       types.NodeID("AsUIlw99"),
-			NodeName:     "otlLxGaI",
 		},
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
@@ -6475,7 +6181,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",
-		Experiments:                      []string{"foo"},
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,
@@ -6529,23 +6234,19 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftTrailingLogs:        83749,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
-		RequestLimitsMode:       consulrate.ModePermissive,
-		RequestLimitsReadRate:   99.0,
-		RequestLimitsWriteRate:  101.0,
 		RejoinAfterLeave:        true,
 		RetryJoinIntervalLAN:    8067 * time.Second,
 		RetryJoinIntervalWAN:    28866 * time.Second,
-		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij", "LR3hGDoG", "MwVpZ4Up"},
+		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij"},
 		RetryJoinMaxAttemptsLAN: 913,
 		RetryJoinMaxAttemptsWAN: 23160,
-		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER", "EbFSc3nA", "kwXTh623"},
+		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
 		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
 		SegmentLimit:            123,
 		SerfPortLAN:             8301,
 		SerfPortWAN:             8302,
 		ServerMode:              true,
 		ServerName:              "Oerr9n1G",
-		ServerRejoinAgeMax:      604800 * time.Second,
 		ServerPort:              3757,
 		Services: []*structs.ServiceDefinition{
 			{
@@ -6853,6 +6554,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		SerfAllowedCIDRsWAN:  []net.IPNet{},
 		SessionTTLMin:        26627 * time.Second,
 		SkipLeaveOnInt:       true,
+		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
+		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -6881,7 +6584,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				Expiration: 15 * time.Second,
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
-			EnableHostMetrics: true,
 		},
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{
@@ -6966,17 +6668,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
-		XDSUpdateRateLimit: 9526.2,
-		RaftLogStoreConfig: consul.RaftLogStoreConfig{
-			Backend:         consul.LogStoreBackendWAL,
-			DisableLogCache: true,
-			Verification: consul.RaftLogStoreVerificationConfig{
-				Enabled:  true,
-				Interval: 12345 * time.Second,
-			},
-			BoltDB: consul.RaftBoltDBConfig{NoFreelistSync: true},
-			WAL:    consul.WALConfig{SegmentSize: 15 * 1024 * 1024},
-		},
+		XDSUpdateRateLimit:               9526.2,
+		RaftBoltDBConfig:                 consul.RaftBoltDBConfig{NoFreelistSync: true},
 		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}
 	entFullRuntimeConfig(expected)
@@ -7008,8 +6701,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		deprecationWarning("verify_outgoing", "tls.defaults.verify_outgoing"),
 		deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"),
 		"The 'tls_prefer_server_cipher_suites' field is deprecated and will be ignored.",
-		deprecationWarning("start_join", "retry_join"),
-		deprecationWarning("start_join_wan", "retry_join_wan"),
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)
 
@@ -7291,8 +6982,6 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
-		Locality:           &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
-		ServerRejoinAgeMax: 24 * 7 * time.Hour,
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
@@ -7573,7 +7262,7 @@ func writeFile(path string, data []byte) {
 	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		panic(err)
 	}
-	if err := os.WriteFile(path, data, 0640); err != nil {
+	if err := ioutil.WriteFile(path, data, 0640); err != nil {
 		panic(err)
 	}
 }
