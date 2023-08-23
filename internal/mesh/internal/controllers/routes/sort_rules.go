@@ -148,6 +148,12 @@ func (r *sortableHTTPRouteRules) Less(i, j int) bool {
 	//
 }
 
+// gammaInitialSortWrappedRoutes will sort the original inputs by the
+// resource-envelope-only fields before we further stable sort by type-specific
+// fields.
+//
+// If more than 1 route is provided the OriginalResource field must be set on
+// all inputs (i.e. no synthetic default routes should be processed here).
 func gammaInitialSortWrappedRoutes(routes []*inputRouteNode) {
 	if len(routes) < 2 {
 		return
@@ -157,12 +163,16 @@ func gammaInitialSortWrappedRoutes(routes []*inputRouteNode) {
 	// stable sort take care of the ultimate tiebreakers.
 	sort.SliceStable(routes, func(i, j int) bool {
 		var (
-			resA = routes[i].OriginalResource()
-			resB = routes[j].OriginalResource()
+			resA = routes[i].OriginalResource
+			resB = routes[j].OriginalResource
 
 			genA = resA.Generation
 			genB = resB.Generation
 		)
+
+		if resA == nil || resB == nil {
+			panic("some provided nodes lacked original resources")
+		}
 
 		// (END-1) The oldest Route based on creation timestamp.
 		//

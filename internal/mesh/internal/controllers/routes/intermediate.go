@@ -25,13 +25,9 @@ type inputRouteNode struct {
 
 	NewTargets map[string]*pbmesh.BackendTargetDetails
 
-	// These three are the originals. If something needs customization for
-	// compilation a shadow field will exist on this enclosing object instead.
-	//
-	// only one of these can be set to non-nil
-	HTTP *types.DecodedHTTPRoute
-	GRPC *types.DecodedGRPCRoute
-	TCP  *types.DecodedTCPRoute
+	// This field is non-nil for nodes based on a single xRoute, and nil for
+	// composite nodes or default nodes.
+	OriginalResource *pbresource.Resource
 }
 
 func newInputRouteNode(port string) *inputRouteNode {
@@ -70,19 +66,6 @@ func (n *inputRouteNode) AppendRulesFrom(next *inputRouteNode) {
 		n.GRPCRules = append(n.GRPCRules, next.GRPCRules...)
 	case resource.EqualType(n.RouteType, types.TCPRouteType):
 		n.TCPRules = append(n.TCPRules, next.TCPRules...)
-	default:
-		panic("impossible")
-	}
-}
-
-func (n *inputRouteNode) OriginalResource() *pbresource.Resource {
-	switch {
-	case n.HTTP != nil:
-		return n.HTTP.GetResource()
-	case n.GRPC != nil:
-		return n.GRPC.GetResource()
-	case n.TCP != nil:
-		return n.TCP.GetResource()
 	default:
 		panic("impossible")
 	}

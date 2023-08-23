@@ -190,19 +190,25 @@ func compile(
 			if top.RouteType != routeNode.RouteType {
 				// This should only happen with user-provided ones, since we
 				// would never have two synthetic default routes at once.
-				res := routeNode.OriginalResource()
-				pending.AddConditions(resource.NewReferenceKey(res.Id), res, []*pbresource.Condition{
-					ConditionConflictNotBoundToParentRef(
-						parentServiceRef,
-						port,
-						top.RouteType,
-					),
-				})
+				res := routeNode.OriginalResource
+				if res != nil {
+					pending.AddConditions(resource.NewReferenceKey(res.Id), res, []*pbresource.Condition{
+						ConditionConflictNotBoundToParentRef(
+							parentServiceRef,
+							port,
+							top.RouteType,
+						),
+					})
+				}
 				continue
 			}
 			top.AppendRulesFrom(routeNode)
 			top.AddTargetsFrom(routeNode)
 		}
+
+		// Clear this field as it's no longer used and doesn't make sense once
+		// this represents multiple xRoutes or defaults.
+		top.OriginalResource = nil
 
 		// Now we can do the big sort.
 		gammaSortRouteRules(top)
@@ -295,13 +301,8 @@ func compileHTTPRouteNode(
 	route = protoClone(route)
 	node := newInputRouteNode(port)
 
-	dec := &types.DecodedHTTPRoute{
-		Resource: res,
-		Data:     route,
-	}
-
 	node.RouteType = types.HTTPRouteType
-	node.HTTP = dec
+	node.OriginalResource = res
 	node.HTTPRules = make([]*pbmesh.ComputedHTTPRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
 		irule := &pbmesh.ComputedHTTPRouteRule{
@@ -369,13 +370,9 @@ func compileGRPCRouteNode(
 	route = protoClone(route)
 
 	node := newInputRouteNode(port)
-	dec := &types.DecodedGRPCRoute{
-		Resource: res,
-		Data:     route,
-	}
 
 	node.RouteType = types.GRPCRouteType
-	node.GRPC = dec
+	node.OriginalResource = res
 	node.GRPCRules = make([]*pbmesh.ComputedGRPCRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
 		irule := &pbmesh.ComputedGRPCRouteRule{
@@ -435,13 +432,9 @@ func compileTCPRouteNode(
 	route = protoClone(route)
 
 	node := newInputRouteNode(port)
-	dec := &types.DecodedTCPRoute{
-		Resource: res,
-		Data:     route,
-	}
 
 	node.RouteType = types.TCPRouteType
-	node.TCP = dec
+	node.OriginalResource = res
 	node.TCPRules = make([]*pbmesh.ComputedTCPRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
 		irule := &pbmesh.ComputedTCPRouteRule{
