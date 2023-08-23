@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -1121,7 +1121,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	require.Nil(t, err)
 	assertIndex(t, resp)
 
-	// Construct expected addresses so that differences between OSS/Ent are
+	// Construct expected addresses so that differences between CE/Ent are
 	// handled by code. We specifically don't include the trailing DNS . here as
 	// we are constructing what we are expecting, not the actual value
 	webDNS := serviceIngressDNSName("web", "dc1", "consul", structs.DefaultEnterpriseMetaInDefaultPartition())

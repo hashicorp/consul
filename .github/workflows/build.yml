@@ -13,6 +13,7 @@ on:
 
 env:
   PKG_NAME: consul
+  # TODO(spatel): CE refactor
   METADATA: oss
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
@@ -84,15 +85,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.6", goos: "linux", goarch: "386"}
-          - {go: "1.20.6", goos: "linux", goarch: "amd64"}
-          - {go: "1.20.6", goos: "linux", goarch: "arm"}
-          - {go: "1.20.6", goos: "linux", goarch: "arm64"}
-          - {go: "1.20.6", goos: "freebsd", goarch: "386"}
-          - {go: "1.20.6", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.20.6", goos: "windows", goarch: "386"}
-          - {go: "1.20.6", goos: "windows", goarch: "amd64"}
-          - {go: "1.20.6", goos: "solaris", goarch: "amd64"}
+          - {go: "1.20.7", goos: "linux", goarch: "386"}
+          - {go: "1.20.7", goos: "linux", goarch: "amd64"}
+          - {go: "1.20.7", goos: "linux", goarch: "arm"}
+          - {go: "1.20.7", goos: "linux", goarch: "arm64"}
+          - {go: "1.20.7", goos: "freebsd", goarch: "386"}
+          - {go: "1.20.7", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.20.7", goos: "windows", goarch: "386"}
+          - {go: "1.20.7", goos: "windows", goarch: "amd64"}
+          - {go: "1.20.7", goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -181,7 +182,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.6", goos: "linux", goarch: "s390x"}
+          - {go: "1.20.7", goos: "linux", goarch: "s390x"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -232,7 +233,7 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64", "arm64" ]
-        go: [ "1.20.6" ]
+        go: [ "1.20.7" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build

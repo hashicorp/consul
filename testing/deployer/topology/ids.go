@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package topology
 
 import (
@@ -134,7 +137,7 @@ func DefaultToEmpty(name string) string {
 
 // PartitionQueryOptions returns an *api.QueryOptions with the given partition
 // field set only if the partition is non-default. This helps when writing
-// tests for joint use in OSS and ENT.
+// tests for joint use in CE and ENT.
 func PartitionQueryOptions(partition string) *api.QueryOptions {
 	return &api.QueryOptions{
 		Partition: DefaultToEmpty(partition),

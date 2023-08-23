@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 syntax = "proto3";
 
@@ -706,6 +706,8 @@ message APIGatewayListener {
   // mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
   APIGatewayListenerProtocol Protocol = 4;
   APIGatewayTLSConfiguration TLS = 5;
+  APIGatewayPolicy Override = 6;
+  APIGatewayPolicy Default = 7;
 }
 
 // mog annotation:
@@ -721,6 +723,30 @@ message APIGatewayTLSConfiguration {
   string MaxVersion = 3;
   // mog: func-from=cipherSuitesFromStructs func-to=cipherSuitesToStructs
   repeated string CipherSuites = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayPolicy
+// output=config_entry.gen.go
+// name=Structs
+message APIGatewayPolicy {
+  // mog: func-to=gwJWTRequirementToStructs func-from=gwJWTRequirementFromStructs
+  APIGatewayJWTRequirement JWT = 1;
+}
+
+message APIGatewayJWTRequirement {
+  repeated APIGatewayJWTProvider Providers = 1;
+}
+
+message APIGatewayJWTProvider {
+  string Name = 1;
+  repeated APIGatewayJWTClaimVerification VerifyClaims = 2;
+}
+
+message APIGatewayJWTClaimVerification {
+  repeated string Path = 1;
+  string Value = 2;
 }
 
 // mog annotation:
@@ -884,6 +910,10 @@ message HTTPQueryMatch {
 message HTTPFilters {
   repeated HTTPHeaderFilter Headers = 1;
   URLRewrite URLRewrite = 2;
+  RetryFilter RetryFilter = 3;
+  TimeoutFilter TimeoutFilter = 4;
+  // mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
+  JWTFilter JWT = 5;
 }
 
 // mog annotation:
@@ -893,6 +923,34 @@ message HTTPFilters {
 // name=Structs
 message URLRewrite {
   string Path = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RetryFilter
+// output=config_entry.gen.go
+// name=Structs
+message RetryFilter {
+  uint32 NumRetries = 1;
+  repeated string RetryOn = 2;
+  repeated uint32 RetryOnStatusCodes = 3;
+  bool RetryOnConnectFailure = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TimeoutFilter
+// output=config_entry.gen.go
+// name=Structs
+message TimeoutFilter {
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration RequestTimeout = 1;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration IdleTimeout = 2;
+}
+
+message JWTFilter {
+  repeated APIGatewayJWTProvider Providers = 1;
 }
 
 // mog annotation:

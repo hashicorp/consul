@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
@@ -987,7 +988,7 @@ func authenticatedPatternPrincipal(pattern string) *envoy_rbac_v3.Principal {
 			Authenticated: &envoy_rbac_v3.Principal_Authenticated{
 				PrincipalName: &envoy_matcher_v3.StringMatcher{
 					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-						SafeRegex: makeEnvoyRegexMatch(pattern),
+						SafeRegex: response.MakeEnvoyRegexMatch(pattern),
 					},
 				},
 			},
@@ -1019,7 +1020,7 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 				HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
 					StringMatch: &envoy_matcher_v3.StringMatcher{
 						MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-							SafeRegex: makeEnvoyRegexMatch(pattern),
+							SafeRegex: response.MakeEnvoyRegexMatch(pattern),
 						},
 					},
 				},
@@ -1224,7 +1225,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 					Rule: &envoy_matcher_v3.PathMatcher_Path{
 						Path: &envoy_matcher_v3.StringMatcher{
 							MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-								SafeRegex: makeEnvoyRegexMatch(perm.HTTP.PathRegex),
+								SafeRegex: response.MakeEnvoyRegexMatch(perm.HTTP.PathRegex),
 							},
 						},
 					},
@@ -1245,7 +1246,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 			}
 		case hdr.Regex != "":
 			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
+				SafeRegexMatch: response.MakeEnvoyRegexMatch(hdr.Regex),
 			}
 		case hdr.Prefix != "":
 			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
@@ -1280,7 +1281,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
 			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
+				SafeRegexMatch: response.MakeEnvoyRegexMatch(methodHeaderRegex),
 			},
 		}
 

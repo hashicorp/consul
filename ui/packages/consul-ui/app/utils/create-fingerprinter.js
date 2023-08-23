@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 import { get } from '@ember/object';
@@ -35,7 +35,7 @@ export default function (foreignKey, nspaceKey, partitionKey, hash = JSON.string
         })
         .compact();
       // This ensures that all data objects have a Namespace and a Partition
-      // value set, even in OSS.
+      // value set, even in CE.
       if (typeof item[nspaceKey] === 'undefined') {
         if (nspaceValue === '*') {
           nspaceValue = 'default';
