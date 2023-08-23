@@ -173,7 +173,7 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
-			// Set namespace and partition to blank so that OSS and ent can utilize the same tests
+			// Set namespace and partition to blank so that CE and ent can utilize the same tests
 			readIngress.Listeners[0].Services[0].Namespace = ""
 			readIngress.Listeners[0].Services[0].Partition = ""
 
@@ -192,7 +192,7 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
-			// Set namespace and partition to blank so that OSS and ent can utilize the same tests
+			// Set namespace and partition to blank so that CE and ent can utilize the same tests
 			readIngress.Listeners[0].Services[0].Namespace = ""
 			readIngress.Listeners[0].Services[0].Partition = ""
 
@@ -318,7 +318,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			require.Equal(t, terminating1.Kind, readTerminating.Kind)
 			require.Equal(t, terminating1.Name, readTerminating.Name)
 			require.Len(t, readTerminating.Services, 1)
-			// Set namespace to blank so that OSS and ent can utilize the same tests
+			// Set namespace to blank so that CE and ent can utilize the same tests
 			readTerminating.Services[0].Namespace = ""
 
 			require.Equal(t, terminating1.Services, readTerminating.Services)
@@ -328,7 +328,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			require.Equal(t, terminating2.Kind, readTerminating.Kind)
 			require.Equal(t, terminating2.Name, readTerminating.Name)
 			require.Len(t, readTerminating.Services, 1)
-			// Set namespace to blank so that OSS and ent can utilize the same tests
+			// Set namespace to blank so that CE and ent can utilize the same tests
 			readTerminating.Services[0].Namespace = ""
 
 			require.Equal(t, terminating2.Services, readTerminating.Services)

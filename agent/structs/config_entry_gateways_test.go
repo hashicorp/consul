@@ -521,7 +521,7 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				},
 			},
 			// Match only the last part of the exected error because the service name
-			// differs between Ent and OSS default/default/web vs web
+			// differs between Ent and CE default/default/web vs web
 			validateErr: "cannot be added multiple times (listener on port 1111)",
 		},
 		"TLS.SDS kitchen sink": {
@@ -865,7 +865,7 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				},
 			},
 			// Note we don't assert the last part `(service \"*\" on listener on port 1111)`
-			// since the service name is normalized differently on OSS and Ent
+			// since the service name is normalized differently on CE and Ent
 			validateErr: "A service specifying TLS.SDS.CertResource must have at least one item in Hosts",
 		},
 		"TLS.SDS at service level needs a cluster from somewhere": {
@@ -892,7 +892,7 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				},
 			},
 			// Note we don't assert the last part `(service \"foo\" on listener on port 1111)`
-			// since the service name is normalized differently on OSS and Ent
+			// since the service name is normalized differently on CE and Ent
 			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
 		},
 	}
