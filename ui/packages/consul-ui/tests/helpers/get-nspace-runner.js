@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default function (type) {
   return function (cb, withNspaces, withoutNspaces, container, assert) {
     let CONSUL_NSPACES_ENABLED = true;

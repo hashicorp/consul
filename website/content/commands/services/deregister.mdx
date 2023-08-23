@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Services Deregister'
 description: |
-  The `consul services deregister` command removes a service from the Consul catalog. Run the command on the agent that initially registered the service.
+  The `consul services deregister` command removes a service from the Consul catalog. Run the commeand on the agent that initially registered the service.
 ---
 
 # Consul Agent Service Deregistration
@@ -13,12 +13,12 @@ Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/service/deregister/:service_
 
 The `services deregister` command deregisters a service with the local agent.
 Note that this command can only deregister services that were registered
-with the agent specified and is intended to be paired with `services register`.
-By default, the command deregisters services on the local agent.
+with the agent specified and is intended to be paired with `services register`. 
+By default, the command deregisters services on the local agent. 
 
 We recommend deregistering services registered with a configuration file by deleting the file and [reloading](/consul/commands/reload) Consul. Refer to [Services Overview](/consul/docs/services/services) for additional information about services.
 
-The following table shows the [ACLs](/consul/api-docs/api-structure#authentication) required to run the `consul services deregister` command:
+The following table shows the [ACLs](/consul/api-docs/api-structure#authentication) required to run the `consul services deregister` command: 
 
 | ACL Required    |
 | --------------- |

@@ -1,9 +1,4 @@
 /**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-/**
  * basic path.resolve like function for resolving ember Route-type paths
  * importantly your from should look ember-y route-like (i.e. with no prefix /)
  * and your to should begin with either ./ or ../

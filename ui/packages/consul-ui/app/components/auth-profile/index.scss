@@ -1,24 +1,19 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 .auth-profile {
   padding: 0.9em 1em;
 }
 .auth-profile {
-  @extend %body-100-regular;
+  @extend %p2;
 }
 .auth-profile dt span {
-  font-weight: var(--token-typography-font-weight-regular);
+  font-weight: var(--typo-weight-normal);
 }
 .auth-profile dt {
-  font-weight: var(--token-typography-font-weight-bold);
+  font-weight: var(--typo-weight-bold);
 }
 .auth-profile dt,
 .auth-profile dd {
-  color: var(--token-color-paletter-neutral-300);
+  color: rgb(var(--tone-gray-800));
 }
 .auth-profile dt span {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-600));
 }

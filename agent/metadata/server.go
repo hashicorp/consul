@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package metadata
 
 import (
@@ -220,14 +217,4 @@ func AddFeatureFlags(tags map[string]string, flags ...string) {
 	for _, flag := range flags {
 		tags[featureFlagPrefix+flag] = "1"
 	}
-}
-
-func GetIP(addr net.Addr) []byte {
-	switch a := addr.(type) {
-	case *net.UDPAddr:
-		return []byte(a.IP.String())
-	case *net.TCPAddr:
-		return []byte(a.IP.String())
-	}
-	return []byte{}
 }

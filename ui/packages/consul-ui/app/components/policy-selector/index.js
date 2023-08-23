@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import ChildSelectorComponent from '../child-selector/index';
 import { set } from '@ember/object';
 import { inject as service } from '@ember/service';

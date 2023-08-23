@@ -1,9 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 version: v1
-deps:
-  - buf.build/hashicorp/consul
 lint:
   use:
     - DEFAULT
@@ -23,7 +18,6 @@ lint:
     - ONEOF_LOWER_SNAKE_CASE
     - ENUM_VALUE_PREFIX
   service_suffix: ""
-  rpc_allow_google_protobuf_empty_responses: true
 breaking:
   use:
     - FILE

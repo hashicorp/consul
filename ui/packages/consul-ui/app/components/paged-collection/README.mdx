@@ -29,7 +29,7 @@ A renderless component to act as a helper for different types of pagination.
     as |pager|>
       <div
         style={{{style-map
-          (array 'outline' '1px solid var(--token-color-palette-neutral-300)')
+          (array 'outline' '1px solid rgb(var(--tone-gray-300))')
           (array 'max-height' '360' 'px')
           (array '--paged-row-height' (if (not-eq this.type 'index') '43px'))
         }}}
@@ -46,7 +46,7 @@ A renderless component to act as a helper for different types of pagination.
           <li
             style={{{style-map
               (array 'height' '43' 'px')
-              (array 'outline' '1px solid var(--token-color-surface-strong)')
+              (array 'outline' '1px solid rgb(var(--tone-gray-100))')
             }}}
           >
             {{item.Node}}

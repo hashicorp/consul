@@ -1,11 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
-	"time"
-
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -212,19 +207,19 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, ns
 			// no intentions defined for these services
 			{
 				CorrelationID: serviceIntentionsIDPrefix + web.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + api.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + db.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + cache.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			// ========
 			{
@@ -392,23 +387,23 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 			// no intentions defined for these services
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalIPTCP.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameTCP.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalIPHTTP.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameHTTP.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameWithSNI.String(),
-				Result:        structs.SimplifiedIntentions{},
+				Result:        structs.Intentions{},
 			},
 			// ========
 			{
@@ -650,7 +645,6 @@ func testConfigSnapshotTerminatingGatewayLBConfig(t testing.T, variant string) *
 				OnlyPassing: true,
 			},
 		},
-		RequestTimeout: 200 * time.Millisecond,
 		LoadBalancer: &structs.LoadBalancer{
 			Policy: "ring_hash",
 			RingHashConfig: &structs.RingHashConfig{

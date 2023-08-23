@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <Route
   @name={{routeName}}
 as |route|>
@@ -29,32 +24,56 @@ as |item|}}
 
     <BlockSlot @name="disconnected" as |after|>
       {{#if (eq loader.error.status "404")}}
-        <Hds::Toast
-          @color='warning'
+        <Notice
           {{notification
             sticky=true
-          }} as |T|>
-          <T.Title>Warning!</T.Title>
-          <T.Description>This service has been deregistered and no longer exists in the catalog.</T.Description>
-        </Hds::Toast>
+          }}
+          class="notification-update"
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <strong>Warning!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              This service has been deregistered and no longer exists in the catalog.
+            </p>
+          </notice.Body>
+        </Notice>
       {{else if (eq loader.error.status "403")}}
-        <Hds::Toast
-          @color='critical'
+        <Notice
           {{notification
             sticky=true
-          }} as |T|>
-          <T.Title>Error!</T.Title>
-          <T.Description>You no longer have access to this service.</T.Description>
-        </Hds::Toast>
+          }}
+          class="notification-update"
+          @type="error"
+        as |notice|>
+          <notice.Header>
+            <strong>Error!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              You no longer have access to this service
+            </p>
+          </notice.Body>
+        </Notice>
       {{else}}
-        <Hds::Toast
-          @color='warning'
+        <Notice
           {{notification
             sticky=true
-          }} as |T|>
-          <T.Title>Warning!</T.Title>
-          <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
-        </Hds::Toast>
+          }}
+          class="notification-update"
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <strong>Warning!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              An error was returned whilst loading this data, refresh to try again.
+            </p>
+          </notice.Body>
+        </Notice>
       {{/if}}
     </BlockSlot>
 
@@ -68,15 +87,12 @@ as |item|}}
           >
 
             <header>
+              {{compute (fn route.t 'tolerance.link' (hash
+                htmlSafe=true
+              ))}}
               <h2>
                 {{compute (fn route.t 'tolerance.header')}}
               </h2>
-              <Hds::Link::Standalone
-                @icon='docs-link'
-                @iconPosition='trailing'
-                @text={{compute (fn route.t 'tolerance.link-text')}}
-                @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'tolerance.link'))}}'
-              />
             </header>
 
             <section

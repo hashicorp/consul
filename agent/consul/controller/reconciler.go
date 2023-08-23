@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package controller
 
 import (
@@ -18,18 +15,6 @@ type Request struct {
 	Kind string
 	Name string
 	Meta *acl.EnterpriseMeta
-}
-
-// Key satisfies the queue.ItemType interface. It returns a string which will be
-// used to de-duplicate requests in the queue.
-func (r Request) Key() string {
-	return fmt.Sprintf(
-		`kind=%q,name=%q,part=%q,ns=%q`,
-		r.Kind,
-		r.Name,
-		r.Meta.PartitionOrDefault(),
-		r.Meta.NamespaceOrDefault(),
-	)
 }
 
 // RequeueAfterError is an error that allows a Reconciler to override the

@@ -1,4 +1,0 @@
-```release-note:bug
-gateway: Fixes a bug where envoy would silently reject RSA keys that are smaller than 2048 bits,
-we now reject those earlier in the process when we validate the certificate.
-```

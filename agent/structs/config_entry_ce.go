@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
 // +build !consulent
 
@@ -30,8 +27,6 @@ func validateUnusedKeys(unused []string) error {
 			// to exist on the target.
 		case strings.HasSuffix(strings.ToLower(k), "namespace"):
 			err = multierror.Append(err, fmt.Errorf("invalid config key %q, namespaces are a consul enterprise feature", k))
-		case strings.Contains(strings.ToLower(k), "jwt"):
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q, api-gateway jwt validation is a consul enterprise feature", k))
 		default:
 			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
 		}
@@ -47,9 +42,5 @@ func validateExportedServicesName(name string) error {
 	if name != "default" {
 		return fmt.Errorf(`exported-services Name must be "default"`)
 	}
-	return nil
-}
-
-func makeEnterpriseConfigEntry(kind, name string) ConfigEntry {
 	return nil
 }

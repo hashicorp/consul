@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 module.exports = {
   root: true,
   parser: 'babel-eslint',
@@ -49,17 +44,17 @@ module.exports = {
     // node files
     {
       files: [
-        './tailwind.config.js',
-        './.docfy-config.js',
-        './.eslintrc.js',
-        './.prettierrc.js',
-        './.template-lintrc.js',
-        './ember-cli-build.js',
-        './testem.js',
-        './blueprints/*/index.js',
-        './config/**/*.js',
-        './lib/*/index.js',
-        './server/**/*.js',
+        '.eslintrc.js',
+        'tailwind.config.js',
+        '.docfy-config.js',
+        '.prettierrc.js',
+        '.template-lintrc.js',
+        'ember-cli-build.js',
+        'testem.js',
+        'blueprints/*/index.js',
+        'config/**/*.js',
+        'lib/*/index.js',
+        'server/**/*.js',
       ],
       parserOptions: {
         sourceType: 'script',

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default (clickable, confirmation) => (actions, scope) => {
   return actions.reduce(
     (prev, item) => {

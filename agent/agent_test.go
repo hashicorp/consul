@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -52,15 +49,13 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/scada"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -323,7 +318,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					Tokens:          new(token.Store),
 					TLSConfigurator: tlsConf,
 					GRPCConnPool:    &fakeGRPCConnPool{},
-					Registry:        resource.NewRegistry(),
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
@@ -331,24 +325,14 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
-				Cache:  cache.New(cache.Options{}),
-				NetRPC: &LazyNetRPC{},
+				Cache: cache.New(cache.Options{}),
 			}
-
-			bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-				CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-				RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-				Config:      leafcert.Config{},
-			})
 
 			cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 			bd, err = initEnterpriseBaseDeps(bd, &cfg)
 			require.NoError(t, err)
 
 			a, err := New(bd)
-			mockDelegate := delegateMock{}
-			mockDelegate.On("LicenseCheck").Return()
-			a.delegate = &mockDelegate
 			require.NoError(t, err)
 
 			a.startLicenseManager(testutil.TestContext(t))
@@ -460,7 +444,6 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				Tags:           []string{"tag1"},
 				Weights:        nil, // nil weights...
 				Port:           8100,
-				Locality:       &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// ... should be populated to avoid "IsSame" returning true during AE.
@@ -4216,7 +4199,9 @@ func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
 			Data:   cfg + ` enable_debug = true`,
 		},
 	)
+
 	require.NoError(t, a.reloadConfigInternal(c))
+
 	require.Equal(t, true, a.enableDebug.Load())
 
 	c = TestConfig(
@@ -4228,6 +4213,7 @@ func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
 		},
 	)
 	require.NoError(t, a.reloadConfigInternal(c))
+
 	require.Equal(t, false, a.enableDebug.Load())
 }
 
@@ -5482,7 +5468,6 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 			Tokens:          new(token.Store),
 			TLSConfigurator: tlsConf,
 			GRPCConnPool:    &fakeGRPCConnPool{},
-			Registry:        resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{
@@ -5490,24 +5475,14 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
 			},
 		},
-		Cache:  cache.New(cache.Options{}),
-		NetRPC: &LazyNetRPC{},
+		Cache: cache.New(cache.Options{}),
 	}
-
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
 
 	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 	bd, err = initEnterpriseBaseDeps(bd, &cfg)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	agent.startLicenseManager(testutil.TestContext(t))
@@ -6082,28 +6057,17 @@ func TestAgent_startListeners(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
-			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{},
 		},
-		Cache:  cache.New(cache.Options{}),
-		NetRPC: &LazyNetRPC{},
+		Cache: cache.New(cache.Options{}),
 	}
-
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
 
 	bd, err := initEnterpriseBaseDeps(bd, &config.RuntimeConfig{})
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// use up an address
@@ -6226,27 +6190,16 @@ func TestAgent_startListeners_scada(t *testing.T) {
 			HCP: hcp.Deps{
 				Provider: pvd,
 			},
-			Registry: resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
-		NetRPC:        &LazyNetRPC{},
 	}
-
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
 
 	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 	bd, err := initEnterpriseBaseDeps(bd, &cfg)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	_, err = agent.startListeners([]net.Addr{c})
@@ -6290,21 +6243,11 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
-			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
-		NetRPC:        &LazyNetRPC{},
 	}
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// Test that an ErrNotExist OS error is treated as ok.

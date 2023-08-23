@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package extensionruntime
 
 import (
@@ -56,27 +53,19 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 
 		// TODO(peering): consider PeerUpstreamEndpoints in addition to DiscoveryChain
 		// These are the discovery chains for upstreams which have the Envoy Extensions applied to the local service.
-		for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		for uid, dc := range cfgSnap.ConnectProxy.DiscoveryChain {
 			compoundServiceName := upstreamIDToCompoundServiceName(uid)
-			extensionsMap[compoundServiceName] = convertEnvoyExtensions(chain.EnvoyExtensions)
+			extensionsMap[compoundServiceName] = convertEnvoyExtensions(dc.EnvoyExtensions)
 
-			primarySNI := connect.ServiceSNI(uid.Name, "", chain.Namespace, chain.Partition, cfgSnap.Datacenter, trustDomain)
-			snis := make(map[string]struct{})
-			for _, t := range chain.Targets {
-				// SNI isn't set for peered services. We don't support peered services yet.
-				if t.SNI != "" {
-					snis[t.SNI] = struct{}{}
-				}
-			}
-
+			meta := uid.EnterpriseMeta
+			sni := connect.ServiceSNI(uid.Name, "", meta.NamespaceOrDefault(), meta.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
 			outgoingKind, ok := outgoingKindByService[compoundServiceName]
 			if !ok {
 				outgoingKind = api.ServiceKindConnectProxy
 			}
 
 			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
-				PrimarySNI:        primarySNI,
-				SNIs:              snis,
+				SNI:               map[string]struct{}{sni: {}},
 				VIP:               vipForService[compoundServiceName],
 				EnvoyID:           uid.EnvoyID(),
 				OutgoingProxyKind: outgoingKind,
@@ -99,7 +88,6 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 				IsSourcedFromUpstream: false,
 				Upstreams:             upstreamMap,
 				Kind:                  kind,
-				Protocol:              proxyConfigProtocol(cfgSnap.Proxy.Config),
 			}
 			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
 		}
@@ -109,10 +97,10 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 			compoundServiceName := serviceNameToCompoundServiceName(svc)
 			extensionsMap[compoundServiceName] = convertEnvoyExtensions(c.EnvoyExtensions)
 
-			primarySNI := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+			sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
 			envoyID := proxycfg.NewUpstreamIDFromServiceName(svc)
 
-			snis := map[string]struct{}{primarySNI: {}}
+			snis := map[string]struct{}{sni: {}}
 
 			resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 			if hasResolver {
@@ -123,8 +111,7 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 			}
 
 			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
-				PrimarySNI:        primarySNI,
-				SNIs:              snis,
+				SNI:               snis,
 				EnvoyID:           envoyID.EnvoyID(),
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
 			}
@@ -144,7 +131,6 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 					ServiceName:           svc,
 					IsSourcedFromUpstream: true,
 					Upstreams:             upstreamMap,
-					Protocol:              proxyConfigProtocol(cfgSnap.Proxy.Config),
 				}
 				extensionConfigurationsMap[svc] = append(extensionConfigurationsMap[svc], extCfg)
 			}
@@ -172,15 +158,6 @@ func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServic
 
 func convertEnvoyExtensions(structExtensions structs.EnvoyExtensions) []api.EnvoyExtension {
 	return structExtensions.ToAPI()
-}
-
-func proxyConfigProtocol(cfg map[string]any) string {
-	if p, exists := cfg["protocol"]; exists {
-		if protocol, ok := p.(string); ok {
-			return protocol
-		}
-	}
-	return ""
 }
 
 // appliesToRemoteDownstreams returns true if the given extension should be applied to remote downstream proxies of the

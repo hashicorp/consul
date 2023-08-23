@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 // Package cache provides caching features for data from a Consul server.
 //
 // While this is similar in some ways to the "agent/ae" package, a key
@@ -94,7 +91,7 @@ const (
 	// rate limiter settings.
 
 	// DefaultEntryFetchRate is the default rate at which cache entries can
-	// be fetch. This defaults to not being unlimited
+	// be fetch. This defaults to not being limited
 	DefaultEntryFetchRate = rate.Inf
 
 	// DefaultEntryFetchMaxBurst is the number of cache entry fetches that can
@@ -536,7 +533,10 @@ RETRY_GET:
 
 	// Set our timeout channel if we must
 	if r.Info.Timeout > 0 && timeoutCh == nil {
-		timeoutCh = time.After(r.Info.Timeout)
+		timeoutTimer := time.NewTimer(r.Info.Timeout)
+		defer timeoutTimer.Stop()
+
+		timeoutCh = timeoutTimer.C
 	}
 
 	// At this point, we know we either don't have a value at all or the

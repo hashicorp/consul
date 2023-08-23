@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package validateupstream_test
 
 import (
@@ -12,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/troubleshoot/proxy"
+	troubleshoot "github.com/hashicorp/consul/troubleshoot/proxy"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %consul-upstream-instance-list {
   li {
     @extend %composite-row;
@@ -26,7 +21,7 @@
   dl.local-bind-socket-mode dt {
     @extend %horizontal-kv-list-visible-title;
     text-transform: lowercase;
-    font-weight: var(--token-typography-font-weight-semibold);
+    font-weight: var(--typo-weight-semibold);
   }
 }
 .consul-upstream-instance-list {

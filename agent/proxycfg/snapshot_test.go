@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -11,7 +8,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	fuzz "github.com/google/gofuzz"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfigSnapshot_Clone(t *testing.T) {
@@ -51,5 +51,41 @@ func TestConfigSnapshot_Clone(t *testing.T) {
 	if diff != "" {
 		t.Logf("Copied snaspshot is different to the original. You may need to re-run `make deep-copy`.\nDiff:\n%s", diff)
 		t.FailNow()
+	}
+}
+
+func TestAPIGatewaySnapshotToIngressGatewaySnapshot(t *testing.T) {
+	cases := map[string]struct {
+		apiGatewaySnapshot *configSnapshotAPIGateway
+		expected           configSnapshotIngressGateway
+	}{
+		"default": {
+			apiGatewaySnapshot: &configSnapshotAPIGateway{
+				Listeners: map[string]structs.APIGatewayListener{},
+			},
+			expected: configSnapshotIngressGateway{
+				GatewayConfigLoaded: true,
+				ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+					PeerUpstreamEndpoints:    watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
+					WatchedLocalGWEndpoints:  watch.NewMap[string, structs.CheckServiceNodes](),
+					WatchedGatewayEndpoints:  map[UpstreamID]map[string]structs.CheckServiceNodes{},
+					WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{},
+					UpstreamPeerTrustBundles: watch.NewMap[string, *pbpeering.PeeringTrustBundle](),
+					DiscoveryChain:           map[UpstreamID]*structs.CompiledDiscoveryChain{},
+				},
+				Listeners: map[IngressListenerKey]structs.IngressListener{},
+				Defaults:  structs.IngressServiceConfig{},
+				Upstreams: map[IngressListenerKey]structs.Upstreams{},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actual, err := tc.apiGatewaySnapshot.ToIngress("dc1")
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expected, actual)
+		})
 	}
 }

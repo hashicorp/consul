@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package validate
 
 import (
@@ -24,8 +21,6 @@ import (
 // Validate contains input information about which proxy resources to validate and output information about resources it
 // has validated.
 type Validate struct {
-	extensioncommon.BasicExtensionAdapter
-
 	// envoyID is an argument to the Validate plugin and identifies which listener to begin the validation with.
 	envoyID string
 
@@ -92,10 +87,10 @@ func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExten
 	upstream, ok := ext.Upstreams[ext.ServiceName]
 	if ok {
 		vip = upstream.VIP
-		if upstream.SNIs == nil || len(upstream.SNIs) == 0 {
+		if upstream.SNI == nil || len(upstream.SNI) == 0 {
 			return nil, fmt.Errorf("no SNIs were set, unable to validate Envoy clusters")
 		}
-		snis = upstream.SNIs
+		snis = upstream.SNI
 	}
 	if mainEnvoyID == "" && vip == "" {
 		return nil, fmt.Errorf("envoyID or virtual IP is required")
@@ -306,87 +301,84 @@ func (p *Validate) CanApply(config *extensioncommon.RuntimeConfig) bool {
 	return true
 }
 
-func (v *Validate) PatchRoute(p extensioncommon.RoutePayload) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	route := p.Message
+func (p *Validate) PatchRoute(config *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
 	// Route name on connect proxies will be the envoy ID. We are only validating routes for the specific upstream with
 	// the envoyID configured.
-	if route.Name != p.Upstream.EnvoyID {
+	if route.Name != p.envoyID {
 		return route, false, nil
 	}
-	v.route = true
+	p.route = true
 	for sni := range extensioncommon.RouteClusterNames(route) {
-		if _, ok := v.resources[sni]; ok {
+		if _, ok := p.resources[sni]; ok {
 			continue
 		}
-		v.resources[sni] = &resource{required: true}
+		p.resources[sni] = &resource{required: true}
 	}
 	return route, false, nil
 }
 
-func (v *Validate) PatchCluster(p extensioncommon.ClusterPayload) (*envoy_cluster_v3.Cluster, bool, error) {
-	c := p.Message
-	val, ok := v.resources[c.Name]
+func (p *Validate) PatchCluster(config *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
+	v, ok := p.resources[c.Name]
 	if !ok {
-		val = &resource{}
-		v.resources[c.Name] = val
+		v = &resource{}
+		p.resources[c.Name] = v
 	}
-	val.cluster = true
+	v.cluster = true
 
 	// If it's an aggregate cluster, add the child clusters to p.resources if they are not already there.
 	aggregateCluster, ok := isAggregateCluster(c)
 	if ok {
 		// Mark this as an aggregate cluster, so we know we do not need to validate its endpoints directly.
-		val.aggregateCluster = true
+		v.aggregateCluster = true
 		for _, clusterName := range aggregateCluster.Clusters {
-			r, ok := v.resources[clusterName]
+			r, ok := p.resources[clusterName]
 			if !ok {
 				r = &resource{}
-				v.resources[clusterName] = r
+				p.resources[clusterName] = r
 			}
-			if val.aggregateClusterChildren == nil {
-				val.aggregateClusterChildren = []string{}
+			if v.aggregateClusterChildren == nil {
+				v.aggregateClusterChildren = []string{}
 			}
 			// On the parent cluster, add the children.
-			val.aggregateClusterChildren = append(val.aggregateClusterChildren, clusterName)
+			v.aggregateClusterChildren = append(v.aggregateClusterChildren, clusterName)
 			// On the child cluster, set the parent.
 			r.parentCluster = c.Name
 			// The child clusters of an aggregate cluster will be required if the parent cluster is.
-			r.required = val.required
+			r.required = v.required
 		}
 		return c, false, nil
 	}
 
 	if c.EdsClusterConfig != nil {
-		val.usesEDS = true
+		v.usesEDS = true
 	} else {
 		la := c.LoadAssignment
 		if la == nil {
 			return c, false, nil
 		}
-		val.endpoints = len(la.Endpoints) + len(la.NamedEndpoints)
+		v.endpoints = len(la.Endpoints) + len(la.NamedEndpoints)
 	}
 	return c, false, nil
 }
 
-func (v *Validate) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
-	filter := p.Message
+func (p *Validate) PatchFilter(config *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter, _ bool) (*envoy_listener_v3.Filter, bool, error) {
 	// If a single filter exists for a listener we say it exists.
-	v.listener = true
+	p.listener = true
 
 	if httpConfig := envoy_resource_v3.GetHTTPConnectionManager(filter); httpConfig != nil {
 		// If the http filter uses RDS, then the clusters we need to validate exist in the route, and there's nothing
 		// else we need to do with the filter.
 		if httpConfig.GetRds() != nil {
-			v.usesRDS = true
+			p.usesRDS = true
 
 			// Edit the runtime configuration to add an envoy ID based on the route name in the filter. This is because
 			// routes are matched by envoyID and in the transparent proxy case, we only have the VIP set in the
 			// RuntimeConfig.
-			v.envoyID = httpConfig.GetRds().RouteConfigName
+			p.envoyID = httpConfig.GetRds().RouteConfigName
 			emptyServiceKey := api.CompoundServiceName{}
-			upstream, ok := p.RuntimeConfig.Upstreams[emptyServiceKey]
+			upstream, ok := config.Upstreams[emptyServiceKey]
 			if ok {
-				upstream.EnvoyID = v.envoyID
+				upstream.EnvoyID = p.envoyID
 			}
 			return filter, true, nil
 		}
@@ -395,10 +387,10 @@ func (v *Validate) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener
 	// FilterClusterNames handles the filter being an http or tcp filter.
 	for sni := range extensioncommon.FilterClusterNames(filter) {
 		// Mark any clusters we see as required resources.
-		if r, ok := v.resources[sni]; ok {
+		if r, ok := p.resources[sni]; ok {
 			r.required = true
 		} else {
-			v.resources[sni] = &resource{required: true}
+			p.resources[sni] = &resource{required: true}
 		}
 	}
 

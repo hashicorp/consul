@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -14,12 +11,9 @@ import (
 const (
 	tableConfigEntries = "config-entries"
 
-	indexLink                 = "link"
-	indexIntentionLegacyID    = "intention-legacy-id"
-	indexSource               = "intention-source"
-	indexSourceSamenessGroup  = "intention-source-sameness-group"
-	indexSamenessGroupMember  = "sameness-group-member"
-	indexSamenessGroupDefault = "sameness-group-default-for-failover"
+	indexLink              = "link"
+	indexIntentionLegacyID = "intention-legacy-id"
+	indexSource            = "intention-source"
 )
 
 // configTableSchema returns a new table schema used to store global
@@ -56,24 +50,6 @@ func configTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer:      &ServiceIntentionSourceIndex{},
 			},
-			indexSourceSamenessGroup: {
-				Name:         indexSourceSamenessGroup,
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &ServiceIntentionSourceSamenessGroupIndex{},
-			},
-			indexSamenessGroupMember: {
-				Name:         indexSamenessGroupMember,
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &SamenessGroupMemberIndex{},
-			},
-			indexSamenessGroupDefault: {
-				Name:         indexSamenessGroupDefault,
-				AllowMissing: true,
-				Unique:       true,
-				Indexer:      &SamenessGroupDefaultIndex{},
-			},
 		},
 	}
 }
@@ -91,7 +67,6 @@ type configEntryIndexable interface {
 }
 
 var _ configEntryIndexable = (*structs.ExportedServicesConfigEntry)(nil)
-var _ configEntryIndexable = (*structs.SamenessGroupConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.IngressGatewayConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.MeshConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.ProxyConfigEntry)(nil)
@@ -101,7 +76,6 @@ var _ configEntryIndexable = (*structs.ServiceResolverConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.ServiceRouterConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.ServiceSplitterConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.TerminatingGatewayConfigEntry)(nil)
-var _ configEntryIndexable = (*structs.JWTProviderConfigEntry)(nil)
 
 func indexFromConfigEntry(c structs.ConfigEntry) ([]byte, error) {
 	if c.GetName() == "" || c.GetKind() == "" {

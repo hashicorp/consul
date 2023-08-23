@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service from '@ember/service';
 import service from 'consul-ui/sort/comparators/service';
 import serviceInstance from 'consul-ui/sort/comparators/service-instance';

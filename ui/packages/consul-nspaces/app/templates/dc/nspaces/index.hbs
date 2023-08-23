@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <Route
   @name={{routeName}}
 as |route|>
@@ -54,11 +49,7 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="actions">
   {{#if (can "create nspaces")}}
-    <Hds::Button
-      @text='Create'
-      @route='dc.nspaces.create'
-      data-test-create
-    />
+          <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
   {{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">
@@ -126,23 +117,11 @@ as |route|>
                 </p>
               </BlockSlot>
               <BlockSlot @name="actions">
-                <li>
-                  <Hds::Link::Standalone
-                    @text='Documentation on namespaces'
-                    @href="{{env 'CONSUL_DOCS_URL'}}/commands/namespace"
-                    @icon='docs-link'
-                    @iconPosition='trailing'
-                    @size='small'
-                  />
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/namespace" rel="noopener noreferrer" target="_blank">Documentation on namespaces</a>
                 </li>
-                <li>
-                  <Hds::Link::Standalone
-                    @text='Read the guide'
-                    @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/namespaces/secure-namespaces"
-                    @icon='learn-link'
-                    @iconPosition='trailing'
-                    @size='small'
-                  />
+                <li class="learn-link">
+                  <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/namespaces/secure-namespaces" rel="noopener noreferrer" target="_blank">Read the guide</a>
                 </li>
               </BlockSlot>
             </EmptyState>

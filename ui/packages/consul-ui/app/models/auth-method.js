@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Model, { attr } from '@ember-data/model';
 import { or } from '@ember/object/computed';
 import parse from 'parse-duration';

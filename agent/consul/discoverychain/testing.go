@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package discoverychain
 
 import (
@@ -17,11 +14,11 @@ func TestCompileConfigEntries(t testing.T,
 	evaluateInPartition string,
 	evaluateInDatacenter string,
 	evaluateInTrustDomain string,
-	setup func(req *CompileRequest),
-	set *configentry.DiscoveryChainSet) *structs.CompiledDiscoveryChain {
-	if set == nil {
-		set = configentry.NewDiscoveryChainSet()
-	}
+	setup func(req *CompileRequest), entries ...structs.ConfigEntry) *structs.CompiledDiscoveryChain {
+	set := configentry.NewDiscoveryChainSet()
+
+	set.AddEntries(entries...)
+
 	req := CompileRequest{
 		ServiceName:           serviceName,
 		EvaluateInNamespace:   evaluateInNamespace,

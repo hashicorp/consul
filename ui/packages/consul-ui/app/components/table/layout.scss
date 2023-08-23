@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %table {
   width: 100%;
   border-collapse: collapse;
@@ -61,8 +56,8 @@
 %table tbody td em {
   display: block;
   font-style: normal;
-  font-weight: var(--token-typography-font-weight-regular);
+  font-weight: normal;
 }
 %table tbody td em {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-500));
 }

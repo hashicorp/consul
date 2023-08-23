@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
 // +build !consulent
 
@@ -77,8 +74,4 @@ func (ixn *Intention) FillPartitionAndNamespace(entMeta *acl.EnterpriseMeta, fil
 
 	ixn.SourcePartition = ""
 	ixn.DestinationPartition = ""
-}
-
-func (ixn *Intention) SourcePartitionOrDefault() string {
-	return "default"
 }

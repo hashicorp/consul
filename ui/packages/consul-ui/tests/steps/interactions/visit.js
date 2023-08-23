@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { visit } from '@ember/test-helpers';
 
 export default function (scenario, pages, set, reset) {

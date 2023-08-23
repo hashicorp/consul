@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Route from '@ember/routing/route';
 import { get, setProperties, action } from '@ember/object';
 import { inject as service } from '@ember/service';
@@ -143,6 +138,6 @@ export default class BaseRoute extends Route {
     if (typeof obj !== 'undefined' && !Array.isArray(obj) && typeof obj !== 'string') {
       params = Object.values(obj);
     }
-    return this.router.transitionTo(routeName, ...params);
+    return super.transitionTo(routeName, ...params);
   }
 }

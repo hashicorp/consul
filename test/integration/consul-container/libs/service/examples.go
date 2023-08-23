@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package service
 
 import (
@@ -15,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -119,48 +117,12 @@ func (g exampleContainer) Stop() error {
 }
 
 func (c exampleContainer) Terminate() error {
-	return libcluster.TerminateContainer(c.ctx, c.container, true)
+	return cluster.TerminateContainer(c.ctx, c.container, true)
 }
 
 func (c exampleContainer) GetStatus() (string, error) {
 	state, err := c.container.State(c.ctx)
 	return state.Status, err
-}
-
-// NewCustomService creates a new test service from a custom testcontainers.ContainerRequest.
-func NewCustomService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent, request testcontainers.ContainerRequest) (Service, error) {
-	namePrefix := fmt.Sprintf("%s-service-example-%s", node.GetDatacenter(), name)
-	containerName := utils.RandName(namePrefix)
-
-	pod := node.GetPod()
-	if pod == nil {
-		return nil, fmt.Errorf("node Pod is required")
-	}
-
-	var (
-		httpPortStr = strconv.Itoa(httpPort)
-		grpcPortStr = strconv.Itoa(grpcPort)
-	)
-
-	request.Name = containerName
-
-	info, err := libcluster.LaunchContainerOnNode(ctx, node, request, []string{httpPortStr, grpcPortStr})
-	if err != nil {
-		return nil, err
-	}
-
-	out := &exampleContainer{
-		ctx:         ctx,
-		container:   info.Container,
-		ip:          info.IP,
-		httpPort:    info.MappedPorts[httpPortStr].Int(),
-		grpcPort:    info.MappedPorts[grpcPortStr].Int(),
-		serviceName: name,
-	}
-
-	fmt.Printf("Custom service exposed http port %d, gRPC port %d\n", out.httpPort, out.grpcPort)
-
-	return out, nil
 }
 
 func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent, containerArgs ...string) (Service, error) {
@@ -188,14 +150,14 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 
 	req := testcontainers.ContainerRequest{
 		Image:      hashicorpDockerProxy + "/fortio/fortio",
-		WaitingFor: wait.ForLog("").WithStartupTimeout(60 * time.Second),
+		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,
 		Cmd:        command,
 		Env:        map[string]string{"FORTIO_NAME": name},
 	}
 
-	info, err := libcluster.LaunchContainerOnNode(ctx, node, req, []string{httpPortStr, grpcPortStr})
+	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{httpPortStr, grpcPortStr})
 	if err != nil {
 		return nil, err
 	}

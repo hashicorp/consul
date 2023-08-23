@@ -12,7 +12,7 @@ Datacenters can reside in different clouds or runtime environments where general
 
 ## Prerequisites
 
-Mesh gateways can be used with any of the following Consul configurations for managing separate datacenters or partitions.
+Mesh gateways can be used with any of the following Consul configrations for managing separate datacenters or partitions.
 
 1. WAN Federation
   * [Mesh gateways can be used to route service-to-service traffic between datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
@@ -59,7 +59,7 @@ Depending on your network, the proxy's connection to the gateway can operate in 
 
 * `none` - No gateway is used and a service mesh sidecar proxy makes its outbound connections directly
   to the destination services. This is the default for WAN federation. This setting is invalid for peered clusters
-  and will be treated as remote instead.
+  and will be treated as remote instead. 
 
 * `local` - The service mesh sidecar proxy makes an outbound connection to a gateway running in the
   same datacenter. That gateway is responsible for ensuring that the data is forwarded to gateways in the destination datacenter.

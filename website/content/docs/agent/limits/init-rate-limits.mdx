@@ -1,0 +1,32 @@
+---
+layout: docs
+page_title: Initialize Rate Limit Settings
+description: Learn how to determins regular and peak loads in your network so that you can set the initial global rate limit configurations.
+---
+
+# Initialize rate limit settings
+
+In order to set limits for traffic, you must first understand regular and peak loads in your network. We recommend completing the following steps to benchmark request rates in your environment so that you can implement limits appropriate for your applications.
+
+1. Specify a global rate limit with arbitrary values in the agent configuration file based on the following conditions:
+
+    - Environment where Consul servers are running 
+    - Number of servers and the projected load
+    - Existing metrics expressing requests per second
+
+1. Set the `mode` to `permissive`. In the following example, Consul agents are allowed up to 1000 reads and 500 writes per second:
+
+    ```hcl
+    request_limits { 
+	    mode = "permissive"
+	    read_rate = 1000.0
+	    write_rate =500.0
+    }
+    ```
+
+1. Observe the logs and metrics for your application's typical cycle, such as a 24 hour period. Refer to [`log_file`](/consul/docs/agent/config/config-files#log_file) for information about where to retrieve logs. Call the [`/agent/metrics`](/consul/api-docs/agent#view-metrics) HTTP API endpoint and check the data for the following metrics:  
+
+    - `rpc.rate_limit.exceeded` with value `global/read` for label `limit_type`
+    - `rpc.rate_limit.exceeded` with value `global/write` for label `limit_type`
+
+1. If the limits are not reached, set the `mode` configuration to `enforcing`. Otherwise adjust and iterate limits.

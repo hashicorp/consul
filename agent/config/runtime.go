@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
@@ -799,8 +796,6 @@ type RuntimeConfig struct {
 	// hcl: leave_on_terminate = (true|false)
 	LeaveOnTerm bool
 
-	Locality *Locality
-
 	// Logging configuration used to initialize agent logging.
 	Logging logging.Config
 
@@ -1498,9 +1493,6 @@ type RuntimeConfig struct {
 
 	Reporting ReportingConfig
 
-	// List of experiments to enable
-	Experiments []string
-
 	EnterpriseRuntimeConfig
 }
 
@@ -1741,17 +1733,6 @@ func (c *RuntimeConfig) VersionWithMetadata() string {
 		version += "+" + c.VersionMetadata
 	}
 	return version
-}
-
-// StructLocality converts the RuntimeConfig Locality to a struct Locality.
-func (c *RuntimeConfig) StructLocality() *structs.Locality {
-	if c.Locality == nil {
-		return nil
-	}
-	return &structs.Locality{
-		Region: stringVal(c.Locality.Region),
-		Zone:   stringVal(c.Locality.Zone),
-	}
 }
 
 // Sanitized returns a JSON/HCL compatible representation of the runtime

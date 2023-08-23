@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -11,15 +8,13 @@ import (
 	"path"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/mitchellh/mapstructure"
 )
 
 type handlerConnectProxy struct {
@@ -71,7 +66,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	}
 
 	// Watch the leaf cert
-	err = s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
+	err = s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 		Datacenter:     s.source.Datacenter,
 		Token:          s.token,
 		Service:        s.proxyCfg.DestinationServiceName,
@@ -88,20 +83,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
 		ServiceName:    s.proxyCfg.DestinationServiceName,
 	}, intentionsWatchID, s.ch)
-	if err != nil {
-		return snap, err
-	}
-
-	// Watch for JWT provider updates.
-	// While we could optimize by only watching providers referenced by intentions,
-	// this should be okay because we expect few JWT providers and infrequent JWT
-	// provider updates.
-	err = s.dataSources.ConfigEntryList.Notify(ctx, &structs.ConfigEntryQuery{
-		Kind:           structs.JWTProvider,
-		Datacenter:     s.source.Datacenter,
-		QueryOptions:   structs.QueryOptions{Token: s.token},
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
-	}, jwtProviderID, s.ch)
 	if err != nil {
 		return snap, err
 	}
@@ -331,30 +312,13 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.InboundPeerTrustBundlesSet = true
 
 	case u.CorrelationID == intentionsWatchID:
-		resp, ok := u.Result.(structs.SimplifiedIntentions)
+		resp, ok := u.Result.(structs.Intentions)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.ConnectProxy.Intentions = resp
 		snap.ConnectProxy.IntentionsSet = true
 
-	case u.CorrelationID == jwtProviderID:
-		resp, ok := u.Result.(*structs.IndexedConfigEntries)
-
-		if !ok {
-			return fmt.Errorf("invalid type for response: %T", u.Result)
-		}
-
-		providers := make(map[string]*structs.JWTProviderConfigEntry, len(resp.Entries))
-		for _, entry := range resp.Entries {
-			jwtEntry, ok := entry.(*structs.JWTProviderConfigEntry)
-			if !ok {
-				return fmt.Errorf("invalid type for response: %T", entry)
-			}
-			providers[jwtEntry.Name] = jwtEntry
-		}
-
-		snap.JWTProviders = providers
 	case u.CorrelationID == peeredUpstreamsID:
 		resp, ok := u.Result.(*structs.IndexedPeeredServiceList)
 		if !ok {
