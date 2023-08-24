@@ -6,6 +6,8 @@
 
 package xds
 
-func getEnterpriseGoldenTestCases() []goldenTestCase {
+import "testing"
+
+func getEnterpriseGoldenTestCases(t *testing.T) []goldenTestCase {
 	return nil
 }

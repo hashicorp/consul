@@ -1,14 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-//go:build windows && !fips
-// +build windows,!fips
+//go:build fips
+// +build fips
 
 package envoy
 
 import (
 	"errors"
 	"fmt"
-	"github.com/natefinch/npipe"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,50 +13,24 @@ import (
 )
 
 func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
-	pipeFile := filepath.Join(os.TempDir(),
+	tempFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
 
-	binary, args, err := execArgs("connect", "envoy", "pipe-bootstrap", pipeFile)
+	f, err := os.Create(tempFile)
 	if err != nil {
-		return pipeFile, err
+		return tempFile, err
 	}
 
-	// Dial the named pipe
-	pipeConn, err := npipe.Dial(pipeFile)
-	if err != nil {
-		return pipeFile, err
-	}
-	defer pipeConn.Close()
-
-	// Start the command to connect to the named pipe
-	cmd := exec.Command(binary, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = pipeConn
-
-	// Start the command
-	err = cmd.Start()
-	if err != nil {
-		return pipeFile, err
-	}
-
-	// Write the config
-	n, err := pipeConn.Write(bootstrapJSON)
-	if err != nil {
-		return pipeFile, err
-	}
-
-	if n < len(bootstrapJSON) {
-		return pipeFile, fmt.Errorf("failed writing boostrap to child STDIN: %s", err)
-	}
-
+	defer f.Close()
+	f.Write(bootstrapJSON)
+	f.Sync()
 	// We can't wait for the process since we need to exec into Envoy before it
 	// will be able to complete so it will be remain as a zombie until Envoy is
 	// killed then will be reaped by the init process (pid 0). This is all a bit
 	// gross but the cleanest workaround I can think of for Envoy 1.10 not
 	// supporting /dev/fd/<fd> config paths any more. So we are done and leaving
 	// the child to run it's course without reaping it.
-	return pipeFile, nil
+	return tempFile, nil
 }
 
 func startProc(binary string, args []string) (p *os.Process, err error) {

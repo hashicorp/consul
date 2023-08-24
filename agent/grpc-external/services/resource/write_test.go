@@ -297,7 +297,7 @@ func TestWrite_Create_Success(t *testing.T) {
 	}
 }
 
-func TestWrite_Create_Invalid_Tenancy(t *testing.T) {
+func TestWrite_Create_Tenancy_NotFound(t *testing.T) {
 	testCases := map[string]struct {
 		modFn       func(artist, recordLabel *pbresource.Resource) *pbresource.Resource
 		errCode     codes.Code
