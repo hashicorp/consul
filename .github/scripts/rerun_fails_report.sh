@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 #
 # Add a comment on the github PR if there were any rerun tests.

@@ -1,16 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -130,6 +131,20 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 				require.ErrorIs(t, err, resource.ErrEmpty)
 			},
 		},
+		"invalid-health-status": {
+			modify: func(endpoint *pbcatalog.Endpoint) {
+				endpoint.Ports["foo"] = &pbcatalog.WorkloadPort{
+					Port: 42,
+				}
+				endpoint.HealthStatus = 99
+			},
+			validateErr: func(t *testing.T, err error) {
+				rtest.RequireError(t, err, resource.ErrInvalidField{
+					Name:    "health_status",
+					Wrapped: resource.NewConstError("not a supported enum value: 99"),
+				})
+			},
+		},
 		"invalid-port-name": {
 			modify: func(endpoint *pbcatalog.Endpoint) {
 				endpoint.Ports[""] = &pbcatalog.WorkloadPort{
@@ -141,6 +156,24 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 					Map:     "ports",
 					Key:     "",
 					Wrapped: resource.ErrEmpty,
+				})
+			},
+		},
+		"invalid-port-protocol": {
+			modify: func(endpoint *pbcatalog.Endpoint) {
+				endpoint.Ports["foo"] = &pbcatalog.WorkloadPort{
+					Port:     42,
+					Protocol: 99,
+				}
+			},
+			validateErr: func(t *testing.T, err error) {
+				rtest.RequireError(t, err, resource.ErrInvalidMapValue{
+					Map: "ports",
+					Key: "foo",
+					Wrapped: resource.ErrInvalidField{
+						Name:    "protocol",
+						Wrapped: resource.NewConstError("not a supported enum value: 99"),
+					},
 				})
 			},
 		},

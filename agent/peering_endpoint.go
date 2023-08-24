@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -78,7 +78,7 @@ func (s *HTTPHandlers) peeringRead(resp http.ResponseWriter, req *http.Request, 
 	return result.Peering.ToAPI(), nil
 }
 
-// PeeringList fetches all peerings in the datacenter in OSS or in a given partition in Consul Enterprise.
+// PeeringList fetches all peerings in the datacenter in CE or in a given partition in Consul Enterprise.
 func (s *HTTPHandlers) PeeringList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {

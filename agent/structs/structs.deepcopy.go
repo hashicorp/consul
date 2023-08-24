@@ -18,6 +18,20 @@ func (o *APIGatewayListener) DeepCopy() *APIGatewayListener {
 		cp.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.CipherSuites))
 		copy(cp.TLS.CipherSuites, o.TLS.CipherSuites)
 	}
+	if o.Override != nil {
+		cp.Override = new(APIGatewayPolicy)
+		*cp.Override = *o.Override
+		if o.Override.JWT != nil {
+			cp.Override.JWT = o.Override.JWT.DeepCopy()
+		}
+	}
+	if o.Default != nil {
+		cp.Default = new(APIGatewayPolicy)
+		*cp.Default = *o.Default
+		if o.Default.JWT != nil {
+			cp.Default.JWT = o.Default.JWT.DeepCopy()
+		}
+	}
 	return &cp
 }
 
@@ -407,6 +421,9 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 				cp.Rules[i2].Filters.TimeoutFilter = new(TimeoutFilter)
 				*cp.Rules[i2].Filters.TimeoutFilter = *o.Rules[i2].Filters.TimeoutFilter
 			}
+			if o.Rules[i2].Filters.JWT != nil {
+				cp.Rules[i2].Filters.JWT = o.Rules[i2].Filters.JWT.DeepCopy()
+			}
 			if o.Rules[i2].Matches != nil {
 				cp.Rules[i2].Matches = make([]HTTPMatch, len(o.Rules[i2].Matches))
 				copy(cp.Rules[i2].Matches, o.Rules[i2].Matches)
@@ -474,6 +491,9 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					if o.Rules[i2].Services[i4].Filters.TimeoutFilter != nil {
 						cp.Rules[i2].Services[i4].Filters.TimeoutFilter = new(TimeoutFilter)
 						*cp.Rules[i2].Services[i4].Filters.TimeoutFilter = *o.Rules[i2].Services[i4].Filters.TimeoutFilter
+					}
+					if o.Rules[i2].Services[i4].Filters.JWT != nil {
+						cp.Rules[i2].Services[i4].Filters.JWT = o.Rules[i2].Services[i4].Filters.JWT.DeepCopy()
 					}
 				}
 			}

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package proxycfg contains components for sourcing the data required to
 // configure Connect proxies. The Manager provides an API with which proxy

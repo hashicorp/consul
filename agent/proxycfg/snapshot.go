@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -67,7 +67,7 @@ type ConfigSnapshotUpstreams struct {
 	// gateway endpoints.
 	//
 	// Note that the string form of GatewayKey is used as the key so empty
-	// fields can be normalized in OSS.
+	// fields can be normalized in CE.
 	//   GatewayKey.String() -> structs.CheckServiceNodes
 	WatchedLocalGWEndpoints watch.Map[string, structs.CheckServiceNodes]
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package failovermapper
 
@@ -59,7 +59,7 @@ func TestMapper_Tracking(t *testing.T) {
 		}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, fail1)
-	failDec1 := rtest.MustDecode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](t, fail1)
+	failDec1 := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail1)
 
 	fail2 := rtest.Resource(types.FailoverPolicyType, "www").
 		WithData(t, &pbcatalog.FailoverPolicy{
@@ -72,7 +72,7 @@ func TestMapper_Tracking(t *testing.T) {
 		}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, fail2)
-	failDec2 := rtest.MustDecode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](t, fail2)
+	failDec2 := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail2)
 
 	fail1_updated := rtest.Resource(types.FailoverPolicyType, "api").
 		WithData(t, &pbcatalog.FailoverPolicy{
@@ -84,7 +84,7 @@ func TestMapper_Tracking(t *testing.T) {
 		}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, fail1_updated)
-	failDec1_updated := rtest.MustDecode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](t, fail1_updated)
+	failDec1_updated := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail1_updated)
 
 	m := New()
 

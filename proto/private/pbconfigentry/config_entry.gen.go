@@ -53,6 +53,16 @@ func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayLis
 	if s.TLS != nil {
 		APIGatewayTLSConfigurationToStructs(s.TLS, &t.TLS)
 	}
+	if s.Override != nil {
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Override, &x)
+		t.Override = &x
+	}
+	if s.Default != nil {
+		var x structs.APIGatewayPolicy
+		APIGatewayPolicyToStructs(s.Default, &x)
+		t.Default = &x
+	}
 }
 func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayListener) {
 	if s == nil {
@@ -67,6 +77,28 @@ func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayL
 		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
 		s.TLS = &x
 	}
+	if t.Override != nil {
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(t.Override, &x)
+		s.Override = &x
+	}
+	if t.Default != nil {
+		var x APIGatewayPolicy
+		APIGatewayPolicyFromStructs(t.Default, &x)
+		s.Default = &x
+	}
+}
+func APIGatewayPolicyToStructs(s *APIGatewayPolicy, t *structs.APIGatewayPolicy) {
+	if s == nil {
+		return
+	}
+	t.JWT = gwJWTRequirementToStructs(s.JWT)
+}
+func APIGatewayPolicyFromStructs(t *structs.APIGatewayPolicy, s *APIGatewayPolicy) {
+	if s == nil {
+		return
+	}
+	s.JWT = gwJWTRequirementFromStructs(t.JWT)
 }
 func APIGatewayTLSConfigurationToStructs(s *APIGatewayTLSConfiguration, t *structs.APIGatewayTLSConfiguration) {
 	if s == nil {
@@ -379,6 +411,7 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 		TimeoutFilterToStructs(s.TimeoutFilter, &x)
 		t.TimeoutFilter = &x
 	}
+	t.JWT = routeJWTFilterToStructs(s.JWT)
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 	if s == nil {
@@ -409,6 +442,7 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 		TimeoutFilterFromStructs(t.TimeoutFilter, &x)
 		s.TimeoutFilter = &x
 	}
+	s.JWT = routeJWTFilterFromStructs(t.JWT)
 }
 func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {
 	if s == nil {

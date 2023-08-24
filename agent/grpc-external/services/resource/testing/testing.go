@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package testing
 
 import (
@@ -72,6 +75,8 @@ func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, regist
 	mockTenancyBridge := &svc.MockTenancyBridge{}
 	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
+	mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
+	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	svc.NewServer(svc.Config{
 		Backend:         backend,

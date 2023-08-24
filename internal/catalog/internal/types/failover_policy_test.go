@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -31,7 +31,7 @@ func TestMutateFailoverPolicy(t *testing.T) {
 
 		err := MutateFailoverPolicy(res)
 
-		got := resourcetest.MustDecode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](t, res)
+		got := resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, res)
 
 		if tc.expectErr == "" {
 			require.NoError(t, err)
@@ -162,13 +162,13 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		require.NoError(t, MutateFailoverPolicy(res))
 
 		// Verify that mutate didn't actually change the object.
-		got := resourcetest.MustDecode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](t, res)
+		got := resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, res)
 		prototest.AssertDeepEqual(t, tc.failover, got.Data)
 
 		err := ValidateFailoverPolicy(res)
 
 		// Verify that validate didn't actually change the object.
-		got = resourcetest.MustDecode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](t, res)
+		got = resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, res)
 		prototest.AssertDeepEqual(t, tc.failover, got.Data)
 
 		if tc.expectErr == "" {
@@ -199,6 +199,15 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			config: &pbcatalog.FailoverConfig{
 				SamenessGroup: "blah",
 			},
+		},
+		"mode: invalid": {
+			config: &pbcatalog.FailoverConfig{
+				Mode: 99,
+				Destinations: []*pbcatalog.FailoverDestination{
+					{Ref: newRef(ServiceType, "api-backup")},
+				},
+			},
+			expectErr: `invalid "mode" field: not a supported enum value: 99`,
 		},
 		"dest: no ref": {
 			config: &pbcatalog.FailoverConfig{
@@ -359,9 +368,9 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 		resourcetest.ValidateAndNormalize(t, registry, tc.failover)
 		resourcetest.ValidateAndNormalize(t, registry, tc.expect)
 
-		svc := resourcetest.MustDecode[pbcatalog.Service, *pbcatalog.Service](t, tc.svc)
-		failover := resourcetest.MustDecode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](t, tc.failover)
-		expect := resourcetest.MustDecode[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy](t, tc.expect)
+		svc := resourcetest.MustDecode[*pbcatalog.Service](t, tc.svc)
+		failover := resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, tc.failover)
+		expect := resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, tc.expect)
 
 		inputFailoverCopy := proto.Clone(failover.Data).(*pbcatalog.FailoverPolicy)
 

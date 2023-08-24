@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package failovermapper
 
@@ -31,7 +31,7 @@ func New() *Mapper {
 // TrackFailover extracts all Service references from the provided
 // FailoverPolicy and indexes them so that MapService can turn Service events
 // into FailoverPolicy events properly.
-func (m *Mapper) TrackFailover(failover *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy]) {
+func (m *Mapper) TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy]) {
 	destRefs := failover.Data.GetUnderlyingDestinationRefs()
 	destRefs = append(destRefs, &pbresource.Reference{
 		Type:    types.ServiceType,
@@ -42,7 +42,11 @@ func (m *Mapper) TrackFailover(failover *resource.DecodedResource[pbcatalog.Fail
 }
 
 func (m *Mapper) trackFailover(failover *pbresource.ID, services []*pbresource.Reference) {
-	m.b.TrackItem(failover, services)
+	var servicesAsIDsOrRefs []resource.ReferenceOrID
+	for _, s := range services {
+		servicesAsIDsOrRefs = append(servicesAsIDsOrRefs, s)
+	}
+	m.b.TrackItem(failover, servicesAsIDsOrRefs)
 }
 
 // UntrackFailover forgets the links inserted by TrackFailover for the provided

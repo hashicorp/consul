@@ -1,11 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
 	"google.golang.org/protobuf/proto"
@@ -72,12 +73,12 @@ type ACLHooks struct {
 	// Write is used to authorize Write and Delete RPCs.
 	//
 	// If it is omitted, `operator:write` permission is assumed.
-	Write func(acl.Authorizer, *pbresource.Resource) error
+	Write func(acl.Authorizer, *acl.AuthorizerContext, *pbresource.Resource) error
 
 	// List is used to authorize List RPCs.
 	//
 	// If it is omitted, we only filter the results using Read.
-	List func(acl.Authorizer, *pbresource.Tenancy) error
+	List func(acl.Authorizer, *acl.AuthorizerContext) error
 }
 
 // Resource type registry
@@ -138,12 +139,12 @@ func (r *TypeRegistry) Register(registration Registration) {
 		}
 	}
 	if registration.ACLs.Write == nil {
-		registration.ACLs.Write = func(authz acl.Authorizer, id *pbresource.Resource) error {
-			return authz.ToAllowAuthorizer().OperatorWriteAllowed(&acl.AuthorizerContext{})
+		registration.ACLs.Write = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.Resource) error {
+			return authz.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
 		}
 	}
 	if registration.ACLs.List == nil {
-		registration.ACLs.List = func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+		registration.ACLs.List = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
 		}
 	}
@@ -184,4 +185,16 @@ func (r *TypeRegistry) Types() []Registration {
 
 func ToGVK(resourceType *pbresource.Type) string {
 	return fmt.Sprintf("%s.%s.%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
+}
+
+func ParseGVK(gvk string) (*pbresource.Type, error) {
+	parts := strings.Split(gvk, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("GVK string must be in the form <Group>.<GroupVersion>.<Kind>, got: %s", gvk)
+	}
+	return &pbresource.Type{
+		Group:        parts[0],
+		GroupVersion: parts[1],
+		Kind:         parts[2],
+	}, nil
 }

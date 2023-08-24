@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -27,7 +27,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	// pbresource.Tenacy follows rules for V2 resources and the Resource service.
 	// Example:
 	//
-	//    An OSS namespace scoped resource:
+	//    A CE namespace scoped resource:
 	//      V1: EnterpriseMeta{}
 	//      V2: Tenancy {Partition: "default", Namespace: "default"}
 	//
@@ -54,7 +54,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	}
 
 	// Check V1 tenancy exists for the V2 resource.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy); err != nil {
+	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
 		return nil, err
 	}
 

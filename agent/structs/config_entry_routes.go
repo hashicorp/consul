@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -422,6 +422,7 @@ type HTTPFilters struct {
 	URLRewrite    *URLRewrite
 	RetryFilter   *RetryFilter
 	TimeoutFilter *TimeoutFilter
+	JWT           *JWTFilter
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
