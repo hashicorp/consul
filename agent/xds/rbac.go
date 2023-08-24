@@ -23,6 +23,11 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
+const (
+	envoyHTTPRBACFilterKey    = "envoy.filters.http.rbac"
+	envoyNetworkRBACFilterKey = "envoy.filters.network.rbac"
+)
+
 func makeRBACNetworkFilter(
 	intentions structs.SimplifiedIntentions,
 	intentionDefaultAllow bool,
@@ -38,7 +43,7 @@ func makeRBACNetworkFilter(
 		StatPrefix: "connect_authz",
 		Rules:      rules,
 	}
-	return makeFilter("envoy.filters.network.rbac", cfg)
+	return makeFilter(envoyNetworkRBACFilterKey, cfg)
 }
 
 func makeRBACHTTPFilter(
@@ -56,7 +61,7 @@ func makeRBACHTTPFilter(
 	cfg := &envoy_http_rbac_v3.RBAC{
 		Rules: rules,
 	}
-	return makeEnvoyHTTPFilter("envoy.filters.http.rbac", cfg)
+	return makeEnvoyHTTPFilter(envoyHTTPRBACFilterKey, cfg)
 }
 
 func intentionListToIntermediateRBACForm(
@@ -326,6 +331,7 @@ func intentionActionFromBool(v bool) intentionAction {
 		return intentionActionDeny
 	}
 }
+
 func intentionActionFromString(s structs.IntentionAction) intentionAction {
 	if s == structs.IntentionActionAllow {
 		return intentionActionAllow
@@ -809,7 +815,6 @@ func segmentToPermission(segments []*envoy_matcher_v3.MetadataMatcher_PathSegmen
 //		},
 //	},
 func pathToSegments(paths []string, payloadKey string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
-
 	segments := make([]*envoy_matcher_v3.MetadataMatcher_PathSegment, 0, len(paths))
 	segments = append(segments, makeSegment(payloadKey))
 
@@ -1029,8 +1034,10 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 	}
 }
 
-const anyPath = `[^/]+`
-const trustDomain = anyPath + "." + anyPath
+const (
+	anyPath     = `[^/]+`
+	trustDomain = anyPath + "." + anyPath
+)
 
 // downstreamServiceIdentityMatcher needs to match XFCC headers in two cases:
 // 1. Requests to cluster peered services through a mesh gateway. In this case, the XFCC header looks like the following (I added a new line after each ; for readability)
