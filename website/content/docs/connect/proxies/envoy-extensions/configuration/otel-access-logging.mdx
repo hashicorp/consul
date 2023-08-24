@@ -58,7 +58,7 @@ Arguments = {
    ProxyType = "connect-proxy"
    ListenerType = "<inbound or outbound>"
    Config = {
-      LogName = "<The friendly name of the access log>"
+      LogName = "<user-readable name of the access log>"
       GrpcService = {
         Target = {
             Service = {
@@ -134,7 +134,7 @@ Specifies the type of listener the extension applies to. The listener type is ei
 
 #### Values
 
-- Default: inbound
+- Default: `inbound`
 - This field is required.
 - Data type is one of the following string values:
   - `inbound`
@@ -152,11 +152,11 @@ Contains the configuration settings for the extension.
 
 ### `Arguments.Config.LogName`
 
-Specifies the friendly name of the access log to be returned in StreamAccessLogsMessage.Identifier. This allows the access log server to differentiate between different access logs coming from the same Envoy.
+Specifies the user-readable name of the access log to be returned in `StreamAccessLogsMessage.Identifier`. This allows the access log server to differentiate between different access logs coming from the same Envoy. If you leave it empty, it inherits the value from `ListenerType`.
 
 #### Values
 
-- Default: value given to ListenerType
+- Default: None
 - Data type: String
 
 ### `Arguments.Config.GrpcService`
@@ -246,7 +246,7 @@ Specifies additional metadata to include in streams initiated to the `GrpcServic
 
 ### `Arguments.Config.BufferFlushInterval`
 
-Specifies interval for flushing access logs to the gRPC stream. Logger will flush requests every time this interval is elapsed, or when batch size limit is hit, whichever comes first.
+Specifies an interval for flushing access logs to the gRPC stream. The logger flushes requests at the end of every interval or when the log reaches the batch size limit, whichever comes first.
 
 #### Values
 
@@ -255,7 +255,7 @@ Specifies interval for flushing access logs to the gRPC stream. Logger will flus
 
 ### `Arguments.Config.BufferSizeBytes`
 
-Specifies soft size limit in bytes for access log entries buffer. Logger will buffer requests until this limit it hit, or every time flush interval is elapsed, whichever comes first. Setting it to zero effectively disables the batching.
+Specifies the soft size limit in bytes for the access log entries buffer. The logger buffers requests until it reaches this limit or every time the flush interval elapses, whichever comes first. Set this field to `0` to disable batching.
 
 #### Values
 
@@ -264,7 +264,7 @@ Specifies soft size limit in bytes for access log entries buffer. Logger will bu
 
 ### `Arguments.Config.FilterStateObjectsToLog`
 
-Specifies additional filter state objects to log in filter_state_objects. Logger will call FilterState::Object::serializeAsProto to serialize the filter state object.
+Specifies additional filter state objects to log in `filter_state_objects`. The logger calls `FilterState::Object::serializeAsProto` to serialize the filter state object.
 
 #### Values
 
@@ -319,7 +319,7 @@ Specifies OpenTelemetry [LogResource](https://github.com/open-telemetry/opentele
 
 ### `Arguments.Config.Attributes`
 
-Specifies `attributes` in the [LogResource](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto). See ‘attributes’ in the LogResource proto for more details.
+Specifies `attributes` in the [LogResource](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto). Refer to `attributes` in the LogResource proto for more details.
 
 #### Values
 
@@ -328,7 +328,7 @@ Specifies `attributes` in the [LogResource](https://github.com/open-telemetry/op
 
 ### `Arguments.Config.ResourceAttributes`
 
-Specifies OpenTelemetry [Resource](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto#L51) attributes are filled with Envoy node info.
+Specifies OpenTelemetry [Resource](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto#L51) attributes are filled with Envoy node information.
 
 #### Values
 
