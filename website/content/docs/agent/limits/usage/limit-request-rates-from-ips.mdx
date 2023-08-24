@@ -4,9 +4,9 @@ page_title: Limit traffic rates for a source IP address
 description: Learn how to set read and request rate limits on RPC and gRPC traffic from all source IP addresses to a Consul resource.
 ---
 
-# Limit traffic rates from source IP addresses 
+# Limit traffic rates from source IP addresses
 
-This topic describes how to configure RPC and gRPC traffic rate limits for source IP addresses. This enables you to specify a budget for read and write requests to prevent any single source IP from overwhelming the Consul server and negatively affecting the network. For information about setting global traffic rate limits, refer to [Set a global limit on traffic rates](/consul/docs/agent/limits/usage/set-glogal-traffic-rate-limits). For an overview of Consul's server rate limiting capabilities, refer to [Limit traffic rates overview](/consul/docs/agent/limits/overview). 
+This topic describes how to configure RPC and gRPC traffic rate limits for source IP addresses. This enables you to specify a budget for read and write requests to prevent any single source IP from overwhelming the Consul server and negatively affecting the network. For information about setting global traffic rate limits, refer to [Set a global limit on traffic rates](/consul/docs/agent/limits/usage/set-global-traffic-rate-limits). For an overview of Consul's server rate limiting capabilities, refer to [Limit traffic rates overview](/consul/docs/agent/limits).
 
 <EnterpriseAlert>
 
@@ -28,7 +28,7 @@ You should also monitor read and write rate activity and make any necessary adju
 
 ## Define rate limits
 
-Create a control plane request limit configuration entry in the `default` partition. The configuration entry applies to all client requests targeting any partition. Refer to the [control plane request limit configuration entry](/consul/docs/connect/config-entries/control-plane-request-limit) reference documentation for details about the available configuration parameters. 
+Create a control plane request limit configuration entry in the `default` partition. The configuration entry applies to all client requests targeting any partition. Refer to the [control plane request limit configuration entry](/consul/docs/connect/config-entries/control-plane-request-limit) reference documentation for details about the available configuration parameters.
 
 Specify the following parameters:
 
@@ -37,11 +37,11 @@ Specify the following parameters:
 -  `read_rate`: Specify overall number of read operations per second allowed from the service.
 -  `write_rate`: Specify overall number of write operations per second allowed from the service.
 
-You can also configure limits on calls to the key-value store, ACL system, and Consul catalog. 
+You can also configure limits on calls to the key-value store, ACL system, and Consul catalog.
 
-## Apply the configuration entry 
+## Apply the configuration entry
 
-If your network is deployed to virtual machines, use the `consul config write` command and specify the control plane request limit configuration entry to apply the configuration. For Kubernetes-orchestrated networks, use the `kubectl apply` command. 
+If your network is deployed to virtual machines, use the `consul config write` command and specify the control plane request limit configuration entry to apply the configuration. For Kubernetes-orchestrated networks, use the `kubectl apply` command.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -69,4 +69,4 @@ $ kubectl apply control-plane-request-limit.yaml
 
 ## Disable request rate limits
 
-Set the [limits.request_limits.mode](/consul/docs/agent/config/config-files#mode-1) in the agent configuration to `disabled` to allow services to exceed the specified read and write requests limits. The `disabled` mode applies to all request rate limits, even limits specifed in the [control plane request limits configuration entry](/consul/docs/connect/config-entries/control-plane-request-limits).  Note that any other mode specified in the agent configuration only applies to global traffic rate limits.  
+Set the [limits.request_limits.mode](/consul/docs/agent/config/config-files#mode-1) in the agent configuration to `disabled` to allow services to exceed the specified read and write requests limits. The `disabled` mode applies to all request rate limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/connect/config-entries/control-plane-request-limit).  Note that any other mode specified in the agent configuration only applies to global traffic rate limits.

@@ -12,7 +12,7 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 ###
 GOLANGCI_LINT_VERSION='v1.51.1'
 MOCKERY_VERSION='v2.20.0'
-BUF_VERSION='v1.14.0'
+BUF_VERSION='v1.26.0'
 
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.4.0'
