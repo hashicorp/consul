@@ -51,7 +51,6 @@ func (pr *ProxyResources) makeXDSEndpoints() ([]proto.Message, error) {
 	endpoints := make([]proto.Message, 0)
 
 	for clusterName, eps := range pr.proxyState.GetEndpoints() {
-		// TODO(jm):  this does not seem like the best way.
 		if clusterName != xdscommon.LocalAppClusterName {
 			protoEndpoint := makeEnvoyClusterLoadAssignment(clusterName, eps.Endpoints)
 			endpoints = append(endpoints, protoEndpoint)

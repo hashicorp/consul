@@ -134,7 +134,7 @@ const (
 
 	LeaderTransferMinVersion = "1.6.0"
 
-	catalogResourceExperimentName = "resource-apis"
+	CatalogResourceExperimentName = "resource-apis"
 )
 
 const (
@@ -874,7 +874,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 }
 
 func (s *Server) registerControllers(deps Deps) {
-	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
+	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
 			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {

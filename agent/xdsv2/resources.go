@@ -5,7 +5,8 @@ package xdsv2
 
 import (
 	"fmt"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/internal/mesh"
+
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 
@@ -28,11 +29,11 @@ func NewResourceGenerator(
 }
 
 type ProxyResources struct {
-	proxyState     *pbmesh.ProxyState
+	proxyState     *mesh.ProxyState
 	envoyResources map[string][]proto.Message
 }
 
-func (g *ResourceGenerator) AllResourcesFromIR(proxyState *pbmesh.ProxyState) (map[string][]proto.Message, error) {
+func (g *ResourceGenerator) AllResourcesFromIR(proxyState *mesh.ProxyState) (map[string][]proto.Message, error) {
 	pr := &ProxyResources{
 		proxyState:     proxyState,
 		envoyResources: make(map[string][]proto.Message),
@@ -49,7 +50,6 @@ func (pr *ProxyResources) generateXDSResources() error {
 	if err != nil {
 		return err
 	}
-	pr.envoyResources[xdscommon.ListenerType] = listeners
 
 	pr.envoyResources[xdscommon.ListenerType] = listeners
 
