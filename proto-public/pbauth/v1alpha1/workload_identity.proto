@@ -2,4 +2,8 @@
 
 package hashicorp.consul.auth.v1alpha1;
 
-message WorkloadIdentity{}
+message WorkloadIdentity{
+  // TODO: This is just a placeholder for mapping
+  // to and from ComputedTrafficPermissions
+  string Name = 1;
+}
