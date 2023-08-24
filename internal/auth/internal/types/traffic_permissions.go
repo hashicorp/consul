@@ -31,8 +31,6 @@ func RegisterTrafficPermission(r resource.Registry) {
 }
 
 func ValidateTrafficPermission(res *pbresource.Resource) error {
-	// TODO Marshal and validate properties
-
 	var tp pbauth.TrafficPermission
 
 	if err := res.Data.UnmarshalTo(&tp); err != nil {

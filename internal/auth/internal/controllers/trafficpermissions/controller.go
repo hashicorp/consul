@@ -3,9 +3,6 @@ package trafficpermissions
 import (
 	"context"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -53,20 +50,36 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	rt.Logger.Trace("reconciling computed traffic permissions")
 
-	// Read ComputedTrafficPermission by ID
-	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: req.ID})
-	switch {
-	case status.Code(err) == codes.NotFound:
-		rt.Logger.Trace("computed traffic permission has been deleted")
-		r.mapper.UntrackComputedTrafficPermission(req.ID)
-		return nil
-	case err != nil:
-		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
-		return err
-	}
-
-	res := rsp.Resource
-	var ctp pbcatalog.ComputedTrafficPermission
+	/*
+	 * A CTP ID could come in for a variety or reasons.
+	 * 1. workload identity create / delete
+	 * 2. traffic permission create / delete
+	 *
+	 * We need to take the CTP ID and map it back to the relevant
+	 * workloads and traffic permissions.
+	 *
+	 * Mappings must be maintained for
+	 * 1. workloadIdentity -> computedTrafficPermission (CTP which represents that WI as a destination)
+	 * 2. workloadIdentity -> []trafficPermission (TP which affect the CTP for the WI)
+	 * 3. trafficPermissions -> []workloadIdentity (WI which are affected by the TP)
+	 * 4. trafficPermissions -> []computedTrafficPermission (CTP affected by the TP, only one if explicit dest)
+	 * 5. computedTrafficPermission -> workloadIdentity (WI which is the destination for the CTP)
+	 * 6. computedTrafficPermission -> []trafficPermission (TP which affect the CTP)
+	 *
+	 * First, look up the workload identity that maps to the CTP.
+	 * If not found, the WI has been deleted. Untrack the WI and delete the CTP.
+	 * Else, it must have been a traffic permissions update.
+	 * TODO: Except if it is a new WI. Where do we create a new CTP? We can't just ship some non-existent ID so mapper?
+	 *
+	 * Use the WI to grab all the traffic permissions that apply to that WI. We will likely need to store the
+	 * TP as a radix tree based on their destinations. Then we can find all the matching TP to the WI.
+	 *
+	 * Take the list of TP IDs and then look up each one. If its missing, then it was deleted so untrack it.
+	 * Recompute the CTP from the list of TPs. I originally though we would have to recompute all of the CTPs which
+	 * were affected by the deleted TP but I think that the mapper will sort of resolve this naturally. When
+	 * a TP is deleted, the mapper will already add all of the affected CTPs to the reconcile queue so we don't have to
+	 * do the reverse mapping and recalculate all in the reconcile.
+	 */
 
 	return nil
 }
