@@ -439,7 +439,7 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, pro
 	var snapshot *proxycfg.ConfigSnapshot
 	switch proxySnapshot.(type) {
 	//TODO(proxystate): implement envoy extensions for ProxyState
-	case *proxytracker.ProxyState:
+	case *mesh.ProxyState:
 		return resources, nil
 	case *proxycfg.ConfigSnapshot:
 		snapshot = proxySnapshot.(*proxycfg.ConfigSnapshot)
