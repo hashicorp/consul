@@ -58,7 +58,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
-		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false)
+		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false, perRouteFilterBuilder{})
 		if err != nil {
 			return nil, err
 		}
@@ -255,6 +255,7 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			chain,
 			[]string{"*"},
 			true,
+			perRouteFilterBuilder{},
 		)
 		if err != nil {
 			return nil, err
@@ -378,7 +379,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false, perRouteFilterBuilder{})
 			if err != nil {
 				return nil, err
 			}
@@ -476,7 +477,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 
 			domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
 
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false, perRouteFilterBuilder{})
 			if err != nil {
 				return nil, err
 			}
@@ -605,6 +606,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
 	forMeshGateway bool,
+	filterBuilder perRouteFilterBuilder,
 ) (*envoy_route_v3.VirtualHost, error) {
 	routeName := uid.EnvoyID()
 	var routes []*envoy_route_v3.Route
@@ -687,9 +689,13 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 					return nil, fmt.Errorf("failed to apply header manipulation configuration to route: %v", err)
 				}
 			}
-
+			filter, err := filterBuilder.buildFilter(routeMatch)
+			if err != nil {
+				return nil, err
+			}
 			route.Match = routeMatch
 			route.Action = routeAction
+			route.TypedPerFilterConfig = filter
 
 			routes = append(routes, route)
 		}

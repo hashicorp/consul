@@ -48,6 +48,11 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
+	err = watchJWTProviders(h)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch the api-gateway's config entry
 	err = h.subscribeToConfigEntry(ctx, structs.APIGateway, h.service, h.proxyID.EnterpriseMeta, apiGatewayConfigWatchID)
 	if err != nil {
@@ -116,6 +121,11 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 	case u.CorrelationID == routeConfigWatchID:
 		// Handle change in an attached http-route or tcp-route config entry
 		if err := h.handleRouteConfigUpdate(ctx, u, snap); err != nil {
+			return err
+		}
+	case u.CorrelationID == jwtProviderID:
+		err := setJWTProvider(u, snap)
+		if err != nil {
 			return err
 		}
 	default:
