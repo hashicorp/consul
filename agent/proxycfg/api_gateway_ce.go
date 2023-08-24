@@ -6,7 +6,9 @@
 
 package proxycfg
 
-func watchJWTProviders(h *handlerAPIGateway) error {
+import "context"
+
+func watchJWTProviders(cxt context.Context, h *handlerAPIGateway) error {
 	return nil
 }
 
