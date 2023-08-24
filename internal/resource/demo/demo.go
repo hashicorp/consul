@@ -22,13 +22,6 @@ import (
 )
 
 var (
-	// TenancyDefault contains the default values for all tenancy units.
-	TenancyDefault = &pbresource.Tenancy{
-		Partition: resource.DefaultPartitionName,
-		PeerName:  "local",
-		Namespace: resource.DefaultNamespaceName,
-	}
-
 	// TypeV1RecordLabel represents a record label which artists are signed to.
 	// Used specifically as a resource to test partition only scoped resources.
 	TypeV1RecordLabel = &pbresource.Type{
