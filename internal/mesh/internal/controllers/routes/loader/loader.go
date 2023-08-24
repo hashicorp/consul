@@ -157,7 +157,7 @@ func (l *loader) gatherXRoutesAsInput(
 				routeData = route.Data
 			}
 			err = l.gatherSingleXRouteAsInput(ctx, logger, routeID, routeData, func() {
-				l.out.AddResource(route)
+				l.out.AddHTTPRoute(route)
 			})
 			if err != nil {
 				return fmt.Errorf("the resource service has returned an unexpected error loading %s: %w", routeID, err)
@@ -172,7 +172,7 @@ func (l *loader) gatherXRoutesAsInput(
 				routeData = route.Data
 			}
 			err = l.gatherSingleXRouteAsInput(ctx, logger, routeID, routeData, func() {
-				l.out.AddResource(route)
+				l.out.AddGRPCRoute(route)
 			})
 			if err != nil {
 				return fmt.Errorf("the resource service has returned an unexpected error loading %s: %w", routeID, err)
@@ -187,7 +187,7 @@ func (l *loader) gatherXRoutesAsInput(
 				routeData = route.Data
 			}
 			err = l.gatherSingleXRouteAsInput(ctx, logger, routeID, routeData, func() {
-				l.out.AddResource(route)
+				l.out.AddTCPRoute(route)
 			})
 			if err != nil {
 				return fmt.Errorf("the resource service has returned an unexpected error loading %s: %w", routeID, err)
@@ -214,7 +214,7 @@ func (l *loader) loadUpstreamService(
 		return err
 	}
 	if service != nil {
-		l.out.AddResource(service)
+		l.out.AddService(service)
 
 		failoverPolicyID := changeResourceType(svcID, catalog.FailoverPolicyType)
 		failoverPolicy, err := l.mem.GetFailoverPolicy(ctx, failoverPolicyID)
@@ -224,7 +224,7 @@ func (l *loader) loadUpstreamService(
 		}
 		if failoverPolicy != nil {
 			l.mapper.TrackFailoverPolicy(failoverPolicy)
-			l.out.AddResource(failoverPolicy)
+			l.out.AddFailoverPolicy(failoverPolicy)
 
 			destRefs := failoverPolicy.Data.GetUnderlyingDestinationRefs()
 			for _, destRef := range destRefs {
@@ -237,7 +237,7 @@ func (l *loader) loadUpstreamService(
 					return err
 				}
 				if failService != nil {
-					l.out.AddResource(failService)
+					l.out.AddService(failService)
 				}
 			}
 		} else {
@@ -251,7 +251,7 @@ func (l *loader) loadUpstreamService(
 			return err
 		}
 		if destPolicy != nil {
-			l.out.AddResource(destPolicy)
+			l.out.AddDestinationPolicy(destPolicy)
 		}
 	}
 

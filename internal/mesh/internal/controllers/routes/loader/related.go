@@ -52,41 +52,70 @@ func (r *RelatedResources) AddComputedRoutesID(id *pbresource.ID) *RelatedResour
 	return r
 }
 
-func (r *RelatedResources) AddResources(list ...decodedResource) *RelatedResources {
+// AddResources must only be called with valid *resource.DecodedResource[T]
+// types.
+//
+// This is provided as a testing convenience. Non-test code should call the
+// type-specific adder.
+func (r *RelatedResources) AddResources(list ...any) *RelatedResources {
 	for _, res := range list {
-		_ = r.AddResource(res)
+		r.AddResource(res)
 	}
 	return r
 }
 
-type decodedResource interface {
-	GetResource() *pbresource.Resource
-}
-
-func (r *RelatedResources) AddResource(res decodedResource) bool {
+// AddResource must only be called with valid *resource.DecodedResource[T] types.
+//
+// This is provided as a testing convenience. Non-test code should call the
+// type-specific adder.
+func (r *RelatedResources) AddResource(res any) {
 	if res == nil {
-		return false
+		return
 	}
 
 	switch dec := res.(type) {
 	case *types.DecodedHTTPRoute:
-		r.addRouteSetEntries(dec.Resource, dec.Data)
-		return addResource(dec.Resource.Id, dec, r.HTTPRoutes)
+		r.AddHTTPRoute(dec)
 	case *types.DecodedGRPCRoute:
-		r.addRouteSetEntries(dec.Resource, dec.Data)
-		return addResource(dec.Resource.Id, dec, r.GRPCRoutes)
+		r.AddGRPCRoute(dec)
 	case *types.DecodedTCPRoute:
-		r.addRouteSetEntries(dec.Resource, dec.Data)
-		return addResource(dec.Resource.Id, dec, r.TCPRoutes)
-	case *types.DecodedService:
-		return addResource(dec.Resource.Id, dec, r.Services)
-	case *types.DecodedFailoverPolicy:
-		return addResource(dec.Resource.Id, dec, r.FailoverPolicies)
+		r.AddTCPRoute(dec)
 	case *types.DecodedDestinationPolicy:
-		return addResource(dec.Resource.Id, dec, r.DestinationPolicies)
+		r.AddDestinationPolicy(dec)
+	case *types.DecodedService:
+		r.AddService(dec)
+	case *types.DecodedFailoverPolicy:
+		r.AddFailoverPolicy(dec)
 	default:
 		panic(fmt.Sprintf("unknown decoded resource type: %T", res))
 	}
+}
+
+func (r *RelatedResources) AddHTTPRoute(dec *types.DecodedHTTPRoute) {
+	r.addRouteSetEntries(dec.Resource, dec.Data)
+	addResource(dec.Resource.Id, dec, r.HTTPRoutes)
+}
+
+func (r *RelatedResources) AddGRPCRoute(dec *types.DecodedGRPCRoute) {
+	r.addRouteSetEntries(dec.Resource, dec.Data)
+	addResource(dec.Resource.Id, dec, r.GRPCRoutes)
+}
+
+func (r *RelatedResources) AddTCPRoute(dec *types.DecodedTCPRoute) {
+	r.addRouteSetEntries(dec.Resource, dec.Data)
+	addResource(dec.Resource.Id, dec, r.TCPRoutes)
+}
+
+func (r *RelatedResources) AddDestinationPolicy(dec *types.DecodedDestinationPolicy) {
+	addResource(dec.Resource.Id, dec, r.DestinationPolicies)
+}
+
+func (r *RelatedResources) AddService(dec *types.DecodedService) {
+	addResource(dec.Resource.Id, dec, r.Services)
+}
+
+func (r *RelatedResources) AddFailoverPolicy(dec *types.DecodedFailoverPolicy) {
+	addResource(dec.Resource.Id, dec, r.FailoverPolicies)
 }
 
 func (r *RelatedResources) addRouteSetEntries(
@@ -191,15 +220,13 @@ func (r *RelatedResources) GetDestinationPolicyForService(ref resource.Reference
 	return r.GetDestinationPolicy(destRef)
 }
 
-func addResource[V any](id *pbresource.ID, res *V, m map[resource.ReferenceKey]*V) bool {
+func addResource[V any](id *pbresource.ID, res *V, m map[resource.ReferenceKey]*V) {
 	if res == nil {
-		return false
+		return
 	}
 
 	rk := resource.NewReferenceKey(id)
-	if _, ok := m[rk]; ok {
-		return false
+	if _, ok := m[rk]; !ok {
+		m[rk] = res
 	}
-	m[rk] = res
-	return true
 }

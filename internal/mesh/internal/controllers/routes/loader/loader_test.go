@@ -380,7 +380,11 @@ func defaultTenancy() *pbresource.Tenancy {
 	}
 }
 
-func doubleMap(t *testing.T, list ...decodedResource) map[resource.ReferenceKey]map[resource.ReferenceKey]struct{} {
+type resourceGetter interface {
+	GetResource() *pbresource.Resource
+}
+
+func doubleMap(t *testing.T, list ...resourceGetter) map[resource.ReferenceKey]map[resource.ReferenceKey]struct{} {
 	if len(list)%2 != 0 {
 		t.Fatalf("list must have an even number of references")
 	}
