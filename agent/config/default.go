@@ -209,9 +209,7 @@ func DevSource() Source {
 		ports = {
 			grpc = 8502
 		}
-		experiments = [
-			"resource-apis"
-		]
+		experiments = []
 	`,
 	}
 }

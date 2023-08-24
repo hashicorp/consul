@@ -14,6 +14,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	proxytracker "github.com/hashicorp/consul/agent/proxy-tracker"
+	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/proxycfg-sources/local"
+	"github.com/hashicorp/consul/agent/xds"
 	mathrand "math/rand"
 	"net"
 	"net/http"
@@ -22,6 +27,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -6358,6 +6364,73 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 	})
 }
 
+func TestAgent_getProxyWatcher(t *testing.T) {
+	type testcase struct {
+		description    string
+		getExperiments func() []string
+		expectedType   xds.ProxyWatcher
+	}
+	testscases := []testcase{
+		{
+			description:  "config source is returned when api-resources experiment is not configured",
+			expectedType: &local.ConfigSource{},
+			getExperiments: func() []string {
+				return []string{}
+			},
+		},
+		{
+			description:  "proxy tracker is returned when api-resources experiment is configured",
+			expectedType: &proxytracker.ProxyTracker{},
+			getExperiments: func() []string {
+				return []string{consul.CatalogResourceExperimentName}
+			},
+		},
+	}
+	for _, tc := range testscases {
+		caConfig := tlsutil.Config{}
+		tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
+		require.NoError(t, err)
+
+		bd := BaseDeps{
+			Deps: consul.Deps{
+				Logger:          hclog.NewInterceptLogger(nil),
+				Tokens:          new(token.Store),
+				TLSConfigurator: tlsConf,
+				GRPCConnPool:    &fakeGRPCConnPool{},
+				Registry:        resource.NewRegistry(),
+			},
+			RuntimeConfig: &config.RuntimeConfig{
+				HTTPAddrs: []net.Addr{
+					&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.GetOne(t)},
+				},
+			},
+			Cache:  cache.New(cache.Options{}),
+			NetRPC: &LazyNetRPC{},
+		}
+
+		bd.XDSStreamLimiter = limiter.NewSessionLimiter()
+		bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+			CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+			RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+			Config:      leafcert.Config{},
+		})
+
+		cfg := config.RuntimeConfig{
+			BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC),
+		}
+		bd, err = initEnterpriseBaseDeps(bd, &cfg)
+		require.NoError(t, err)
+
+		bd.Experiments = tc.getExperiments()
+
+		agent, err := New(bd)
+		require.NoError(t, err)
+		agent.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{Logger: bd.Logger, Source: &structs.QuerySource{}})
+		require.NoError(t, err)
+		require.IsTypef(t, tc.expectedType, agent.getProxyWatcher(), fmt.Sprintf("Expected proxyWatcher to be of type %s", reflect.TypeOf(tc.expectedType)))
+	}
+
+}
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
 	data, err := os.ReadFile("../test/ca/root.cer")
