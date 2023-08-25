@@ -733,6 +733,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"key_file":                   "KeyFile",
 			"tls_server_name":            "TLSServerName",
 			"tls_skip_verify":            "TLSSkipVerify",
+			"namespace":                  "Namespace",
 
 			// AWS CA config
 			"existing_arn":   "ExistingARN",
