@@ -21,10 +21,10 @@ func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Depend
 	ctx := testutil.TestContext(t)
 
 	// Create the in-mem resource service
-	client := svctest.RunResourceService(t, catalog.RegisterTypes)
+	client, registry := svctest.RunResourceService2(t, catalog.RegisterTypes)
 
 	// Setup/Run the controller manager
-	mgr := controller.NewManager(client, testutil.Logger(t))
+	mgr := controller.NewManager(client, registry, testutil.Logger(t))
 	catalog.RegisterControllers(mgr, deps)
 
 	// We also depend on the reaper to take care of cleaning up owned health statuses and

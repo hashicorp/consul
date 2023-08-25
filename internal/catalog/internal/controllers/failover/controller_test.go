@@ -22,9 +22,10 @@ import (
 type controllerSuite struct {
 	suite.Suite
 
-	ctx    context.Context
-	client *rtest.Client
-	rt     controller.Runtime
+	ctx      context.Context
+	client   *rtest.Client
+	rt       controller.Runtime
+	registry resource.Registry
 
 	failoverMapper FailoverMapper
 
@@ -33,7 +34,8 @@ type controllerSuite struct {
 
 func (suite *controllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	client := svctest.RunResourceService(suite.T(), types.Register)
+	client, registry := svctest.RunResourceService2(suite.T(), types.Register)
+	suite.registry = registry
 	suite.rt = controller.Runtime{
 		Client: client,
 		Logger: testutil.Logger(suite.T()),
@@ -48,7 +50,7 @@ func (suite *controllerSuite) TestController() {
 	// way, verifying the event triggers work in the live code.
 
 	// Run the controller manager
-	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+	mgr := controller.NewManager(suite.client, suite.registry, suite.rt.Logger)
 	mgr.Register(FailoverPolicyController(suite.failoverMapper))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)

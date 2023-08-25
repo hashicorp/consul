@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -343,9 +344,10 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 type controllerSuite struct {
 	suite.Suite
 
-	ctx    context.Context
-	client *rtest.Client
-	rt     controller.Runtime
+	ctx      context.Context
+	client   *rtest.Client
+	rt       controller.Runtime
+	registry resource.Registry
 
 	tracker    *selectiontracker.WorkloadSelectionTracker
 	reconciler *serviceEndpointsReconciler
@@ -353,7 +355,8 @@ type controllerSuite struct {
 
 func (suite *controllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	client := svctest.RunResourceService(suite.T(), types.Register)
+	client, registry := svctest.RunResourceService2(suite.T(), types.Register)
+	suite.registry = registry
 	suite.rt = controller.Runtime{
 		Client: client,
 		Logger: testutil.Logger(suite.T()),
@@ -576,7 +579,7 @@ func (suite *controllerSuite) TestController() {
 	// synthesized as necessary.
 
 	// Run the controller manager
-	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+	mgr := controller.NewManager(suite.client, suite.registry, suite.rt.Logger)
 	mgr.Register(ServiceEndpointsController(suite.tracker))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
