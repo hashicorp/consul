@@ -27,6 +27,10 @@ const (
 
 	// defaultExportTimeout is the time the otelsdk.Reader waits on an export before cancelling it.
 	// At the time of writing this is the same as the otelsdk.Reader's export timeout default.
+	//
+	// note: in practice we are more likely to hit the http.Client.Timeout in telemetry.MetricsClient.
+	// That is set to 15 seconds right now, so we will hit it before we hit this 30 second timeout that
+	// wraps the entire export.
 	defaultExportTimeout = 30 * time.Second
 )
 
