@@ -6,6 +6,8 @@ import (
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/radix"
+	"github.com/hashicorp/consul/internal/resource"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -54,11 +56,26 @@ func (t *TrafficPermissionsMapper) MapTrafficPermission(ctx context.Context, rt 
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	/*
-	 * TODO: Map trafficPermission ID to ComputedTrafficPermission
-	 */
+	tp, err := resource.GetDecodedResource[pbauth.TrafficPermission, *pbauth.TrafficPermission](ctx, rt.Client, res.Id)
+	if err != nil {
+		// TODO wrap error
+		return nil, err
+	}
 
-	return nil, nil
+	dest := tp.Data.Data.Destination.IdentityName
+	var workloadIdentities []controller.Request
+	if isExplicitDestination(dest) {
+		// traverse the explicit tree
+		workloadIdentities, _ = t.workloadIdentityExact.Get(dest)
+	} else {
+		// traverse the wildcard tree
+		t.workloadIdentityPrefixes.WalkPath(dest, func(path string, requests []controller.Request) bool {
+			workloadIdentities = append(workloadIdentities, requests...)
+			return false
+		})
+	}
+
+	return workloadIdentities, nil
 }
 
 func (t *TrafficPermissionsMapper) UntrackComputedTrafficPermission(computedTrafficPermissionID *pbresource.ID) {
@@ -68,4 +85,15 @@ func (t *TrafficPermissionsMapper) UntrackComputedTrafficPermission(computedTraf
 	// TODO
 
 	return
+}
+
+func (t *TrafficPermissionsMapper) WorkloadIdentityFromCTP(ctp *pbresource.Resource, ctpData *pbauth.ComputedTrafficPermission) *pbresource.ID {
+	// TODO: We can probably just give the CTP a name field that is aligned
+	// with its corresponding WorkloadIdentity since that should be a 1:1 mapping
+	return nil
+}
+
+func isExplicitDestination(destination string) bool {
+	// TODO: We are not supporting wildcards unless we have time
+	return true
 }
