@@ -897,6 +897,14 @@ func (o *ServiceConfigEntry) DeepCopy() *ServiceConfigEntry {
 			copy(cp.Destination.Addresses, o.Destination.Addresses)
 		}
 	}
+	if o.RateLimits != nil {
+		cp.RateLimits = new(RateLimits)
+		*cp.RateLimits = *o.RateLimits
+		if o.RateLimits.InstanceLevel.Routes != nil {
+			cp.RateLimits.InstanceLevel.Routes = make([]InstanceLevelRouteRateLimits, len(o.RateLimits.InstanceLevel.Routes))
+			copy(cp.RateLimits.InstanceLevel.Routes, o.RateLimits.InstanceLevel.Routes)
+		}
+	}
 	if o.EnvoyExtensions != nil {
 		cp.EnvoyExtensions = make([]EnvoyExtension, len(o.EnvoyExtensions))
 		copy(cp.EnvoyExtensions, o.EnvoyExtensions)
@@ -946,6 +954,10 @@ func (o *ServiceConfigResponse) DeepCopy() *ServiceConfigResponse {
 	if o.Destination.Addresses != nil {
 		cp.Destination.Addresses = make([]string, len(o.Destination.Addresses))
 		copy(cp.Destination.Addresses, o.Destination.Addresses)
+	}
+	if o.RateLimits.InstanceLevel.Routes != nil {
+		cp.RateLimits.InstanceLevel.Routes = make([]InstanceLevelRouteRateLimits, len(o.RateLimits.InstanceLevel.Routes))
+		copy(cp.RateLimits.InstanceLevel.Routes, o.RateLimits.InstanceLevel.Routes)
 	}
 	if o.Meta != nil {
 		cp.Meta = make(map[string]string, len(o.Meta))
