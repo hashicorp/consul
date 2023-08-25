@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package envoy
 
@@ -1395,6 +1395,83 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 			assert.Equal(t, tc.id, data.ID)
 			assert.Equal(t, tc.service, data.Service)
 			assert.Equal(t, defaultGatewayPort, data.Port)
+		})
+	}
+}
+
+func TestEnvoy_proxyRegistration(t *testing.T) {
+	t.Parallel()
+
+	type args struct {
+		svcForProxy api.AgentService
+		cmdFn       func(*cmd)
+	}
+
+	cases := []struct {
+		name   string
+		args   args
+		testFn func(*testing.T, args, *api.AgentServiceRegistration)
+	}{
+		{
+			"locality is inherited from proxied service if configured and using sidecarFor",
+			args{
+				svcForProxy: api.AgentService{
+					ID: "my-svc",
+					Locality: &api.Locality{
+						Region: "us-east-1",
+						Zone:   "us-east-1a",
+					},
+				},
+				cmdFn: func(c *cmd) {
+					c.sidecarFor = "my-svc"
+				},
+			},
+			func(t *testing.T, args args, r *api.AgentServiceRegistration) {
+				assert.NotNil(t, r.Locality)
+				assert.Equal(t, args.svcForProxy.Locality, r.Locality)
+			},
+		},
+		{
+			"locality is not inherited if not using sidecarFor",
+			args{
+				svcForProxy: api.AgentService{
+					ID: "my-svc",
+					Locality: &api.Locality{
+						Region: "us-east-1",
+						Zone:   "us-east-1a",
+					},
+				},
+			},
+			func(t *testing.T, args args, r *api.AgentServiceRegistration) {
+				assert.Nil(t, r.Locality)
+			},
+		},
+		{
+			"locality is not set if not configured for proxied service",
+			args{
+				svcForProxy: api.AgentService{},
+				cmdFn: func(c *cmd) {
+					c.sidecarFor = "my-svc"
+				},
+			},
+			func(t *testing.T, args args, r *api.AgentServiceRegistration) {
+				assert.Nil(t, r.Locality)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+
+			if tc.args.cmdFn != nil {
+				tc.args.cmdFn(c)
+			}
+
+			result, err := c.proxyRegistration(&tc.args.svcForProxy)
+			assert.NoError(t, err)
+			tc.testFn(t, tc.args, result)
 		})
 	}
 }

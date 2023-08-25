@@ -1,10 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
 import (
 	"encoding/json"
+	"github.com/hashicorp/consul/internal/mesh"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -62,7 +64,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 
 	var (
 		firstTime = true
-		ch        <-chan *proxycfg.ConfigSnapshot
+		ch        <-chan proxycfg.ProxySnapshot
 		stc       limiter.SessionTerminatedChan
 		cancel    proxycfg.CancelFunc
 	)
@@ -85,7 +87,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 			// Prior to fixes in https://github.com/hashicorp/consul/pull/16497
 			// this call to Watch() would deadlock.
 			var err error
-			ch, stc, cancel, err = cfg.Watch(sid, a.config.NodeName, token)
+			ch, stc, cancel, err = cfg.Watch(rtest.Resource(mesh.ProxyConfigurationType, sid.ID).ID(), a.config.NodeName, token)
 			require.NoError(t, err)
 		}
 		select {

@@ -190,7 +190,7 @@ func TestAPI_ACLPolicy_List(t *testing.T) {
 
 	policies, qm, err := acl.PolicyList(nil)
 	require.NoError(t, err)
-	require.Len(t, policies, 4)
+	require.Len(t, policies, 5)
 	require.NotEqual(t, 0, qm.LastIndex)
 	require.True(t, qm.KnownLeader)
 
@@ -233,6 +233,11 @@ func TestAPI_ACLPolicy_List(t *testing.T) {
 	policy4, ok := policyMap["00000000-0000-0000-0000-000000000001"]
 	require.True(t, ok)
 	require.NotNil(t, policy4)
+
+	// make sure the 5th policy is the global read-only
+	policy5, ok := policyMap["00000000-0000-0000-0000-000000000002"]
+	require.True(t, ok)
+	require.NotNil(t, policy5)
 }
 
 func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {

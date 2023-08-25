@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -9,6 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	proxytracker "github.com/hashicorp/consul/agent/proxy-tracker"
+	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"io"
 	"net"
 	"net/http"
@@ -54,7 +57,6 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
-	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
 	"github.com/hashicorp/consul/agent/rpcclient"
 	"github.com/hashicorp/consul/agent/rpcclient/configentry"
@@ -908,13 +910,37 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) listenAndServeGRPC() error {
-	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
-		return nil
+// useV2Resources returns true if "resource-apis" is present in the Experiments
+// array of the agent config.
+func (a *Agent) useV2Resources() bool {
+	if stringslice.Contains(a.baseDeps.Experiments, consul.CatalogResourceExperimentName) {
+		return true
 	}
+	return false
+}
+
+// getProxyWatcher returns the proper implementation of the ProxyWatcher interface.
+// It will return a ProxyTracker if "resource-apis" experiment is active.  Otherwise,
+// it will return a ConfigSource.
+func (a *Agent) getProxyWatcher() xds.ProxyWatcher {
+	if a.useV2Resources() {
+		return proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{
+			Logger:         a.proxyConfig.Logger.Named("proxy-tracker"),
+			SessionLimiter: a.baseDeps.XDSStreamLimiter,
+		})
+	} else {
+		return localproxycfg.NewConfigSource(a.proxyConfig)
+	}
+}
+
+// configureXDSServer configures an XDS server with the proper implementation of
+// the PRoxyWatcher interface and registers the XDS server with Consul's
+// external facing GRPC server.
+func (a *Agent) configureXDSServer() {
+	cfg := a.getProxyWatcher()
+
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
-	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
 	if server, ok := a.delegate.(*consul.Server); ok {
 		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
 			NodeName:          a.config.NodeName,
@@ -941,6 +967,14 @@ func (a *Agent) listenAndServeGRPC() error {
 		a,
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
+}
+
+func (a *Agent) listenAndServeGRPC() error {
+	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
+		return nil
+	}
+
+	a.configureXDSServer()
 
 	// Attempt to spawn listeners
 	var listeners []net.Listener
@@ -3755,7 +3789,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		if acl.EqualPartitions("", p.Service.PartitionOrEmpty()) {
-			// NOTE: in case loading a service with empty partition (e.g., OSS -> ENT),
+			// NOTE: in case loading a service with empty partition (e.g., CE -> ENT),
 			// we always default the service partition to the agent's partition.
 			p.Service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
 		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {

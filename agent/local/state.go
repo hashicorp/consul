@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local
 
@@ -838,6 +838,12 @@ func (l *State) setCheckStateLocked(c *CheckState) {
 	existing := l.checks[id]
 	if existing != nil {
 		c.InSync = c.Check.IsSame(existing.Check)
+		// If the existing check has a Defercheck, it needs to be
+		// assigned to the new check
+		if existing.DeferCheck != nil && c.DeferCheck == nil {
+			c.DeferCheck = existing.DeferCheck
+			c.InSync = false
+		}
 	}
 
 	l.checks[id] = c

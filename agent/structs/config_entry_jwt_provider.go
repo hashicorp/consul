@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -509,7 +509,7 @@ func (e *JWTProviderConfigEntry) Validate() error {
 		return err
 	}
 
-	if err := e.validatePartition(); err != nil {
+	if err := e.validatePartitionAndNamespace(); err != nil {
 		return err
 	}
 
