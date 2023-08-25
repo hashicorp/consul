@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package config
 
@@ -209,7 +209,9 @@ func DevSource() Source {
 		ports = {
 			grpc = 8502
 		}
-		experiments = []
+		experiments = [
+			"resource-apis"
+		]
 	`,
 	}
 }

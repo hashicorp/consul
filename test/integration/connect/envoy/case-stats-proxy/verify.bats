@@ -40,7 +40,7 @@ load helpers
     must_match_in_stats_proxy_response localhost:1239 \
     'stats' '^http.envoy_metrics.downstream_rq_active'
 
-  # Response should include the local cluster request.
+  # Response should include the the local cluster request.
   retry_default \
     must_match_in_stats_proxy_response localhost:1239 \
     'stats' 'cluster.local_agent.upstream_rq_active'

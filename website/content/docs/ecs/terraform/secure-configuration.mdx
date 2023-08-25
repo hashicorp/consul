@@ -53,7 +53,7 @@ the AWS IAM auth method.
 ## ACL controller
 
 1. Create a policy that grants `acl:write` and `operator:write` access for the controller. Refer to the [ACL policies documentation](/consul/docs/security/acl/acl-policies) for instructions.
-1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/consul/docs/security/acl/tokens) for instructions.
+1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/consul/docs/security/acl/acl-tokens) for instructions.
 1. Create a Secrets Manager secret containing the ACL controller's token and a Secrets Manager secret containing the Consul CA cert.
 
 ```hcl

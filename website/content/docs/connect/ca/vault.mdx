@@ -7,27 +7,19 @@ description: >-
 
 # Vault as a Service Mesh Certificate Authority
 
-You can configure Consul to use [Vault](/vault) as the certificate authority (CA) so that Vault can manage and sign certificates distributed to services in the mesh.
-The Vault CA provider uses the [Vault PKI secrets engine](/vault/docs/secrets/pki) to generate and sign certificates.
+You can configure Consul to use [Vault](https://www.vaultproject.io/) as the certificate authority (CA) so that Vault can manage and sign certificates distributed to services in the mesh. 
+The Vault CA provider uses the [Vault PKI secrets engine](/vault/docs/secrets/pki) to generate and sign certificates. 
 This page describes how configure the Vault CA provider.
 
 > **Tutorial:** Complete the [Vault as Consul Service Mesh Certification Authority](/consul/tutorials/vault-secure/vault-pki-consul-connect-ca) tutorial for hands-on guidance on how to configure Vault as the Consul service mesh certification authority.
 
 ## Requirements
 
-- Vault 0.10.3 or higher
-
-~> **Compatibility note:** If you use Vault 1.11.0+ as Consul's service mesh CA, versions of Consul released before Dec 13, 2022 will develop an issue with Consul control plane or service mesh communication ([GH-15525](https://github.com/hashicorp/consul/pull/15525)). Use or upgrade to a [Consul version that includes the fix](https://support.hashicorp.com/hc/en-us/articles/11308460105491#01GMC24E6PPGXMRX8DMT4HZYTW) to avoid this problem.
-
-## Recommendations
-
 - Refer to [Service Mesh Certificate Authority Overview](/consul/docs/connect/ca) for important background information about how Consul manages certificates with configurable CA providers.
 
-- For best performance and resiliency, every datacenter should have a Vault cluster local to its Consul cluster.
+- Vault 0.10.3 to 1.10.x.
 
-- If your Consul datacenters are WAN-federated and the secondary datacenter uses Vault Enterprise
-  [performance secondaries](/vault/docs/enterprise/replication#performance-replication), we recommend
-  configuring [`local`](/vault/docs/enterprise/replication#local) mounts for their [`intermediate_pki_path`](/consul/docs/connect/ca/vault#intermediatepkipath).
+~> **Compatibility note:** If you use Vault 1.11.0+ as Consul's service mesh CA, versions of Consul released before Dec 13, 2022 will develop an issue with Consul control plane or service mesh communication ([GH-15525](https://github.com/hashicorp/consul/pull/15525)). Use or upgrade to a [Consul version that includes the fix](https://support.hashicorp.com/hc/en-us/articles/11308460105491#01GMC24E6PPGXMRX8DMT4HZYTW) to avoid this problem.
 
 ## Enable Vault as the CA
 
@@ -36,7 +28,7 @@ and including the required provider configuration options.
 You can provide the CA configuration in the server agents' configuration file
 or in the body of a `PUT` request to the
 [`/connect/ca/configuration`](/consul/api-docs/connect/ca#update-ca-configuration) API endpoint.
-Refer to the [Configuration Reference](#configuration-reference) for details about configuration options and for example use cases.
+Refer to the [Configuration Reference](#configuration-reference) for details about configuration options and for example use cases. 
 
 The following example shows the required configurations for a default implementation:
 
@@ -83,7 +75,7 @@ connect {
 You can specify the following configuration options.
 Note that a configuration option's name may differ between API calls and the agent configuration file.
 The first key refers to the option name for use in API calls.
-The key after the slash refers to the corresponding option name in the agent configuration file.
+The key after the slash refers to the corresponding option name in the agent configuration file. 
 
 - `Address` / `address` (`string: <required>`) - The address of the Vault
   server.
@@ -107,13 +99,12 @@ The key after the slash refers to the corresponding option name in the agent con
    - `MountPath`/ `mount_path` (`string: <AuthMethod.Type>`) - The mount path of the auth method.
       If not provided the auth method type will be used as the mount path.
 
-   - `Params`/`params` (`map: nil`) - The parameters to configure the auth method. The required configuration parameters depend on which auth type you are using. Refer to the Vault Agent auto-auth method documentation for details on their configuration options: [AppRole](/vault/docs/agent-and-proxy/autoauth/methods/approle#configuration), [AWS](/vault/docs/agent-and-proxy/autoauth/methods/aws#configuration), [Azure](/vault/docs/agent-and-proxy/autoauth/methods/azure#configuration), [GCP](/vault/docs/agent-and-proxy/autoauth/methods/gcp#configuration), [JWT](/vault/docs/agent-and-proxy/autoauth/methods/jwt#configuration), [Kubernetes](/vault/docs/agent-and-proxy/autoauth/methods/kubernetes#configuration).
+   - `Params`/`params` (`map: nil`) - The parameters to configure the auth method. The configuration parameters needed will depend on which auth type you are using. Please refer to the Vault Agent auto-auth method documentation for details on their configuration options: [AppRole](/vault/docs/agent/autoauth/methods/approle#configuration), [AWS](/vault/docs/agent/autoauth/methods/aws#configuration), [Azure](/vault/docs/agent/autoauth/methods/azure#configuration), [GCP](/vault/docs/agent/autoauth/methods/gcp#configuration), [JWT](/vault/docs/agent/autoauth/methods/jwt#configuration), [Kubernetes](/vault/docs/agent/autoauth/methods/kubernetes#configuration).
 
    Only the authentication related fields (for example, JWT's `path` and `role`) are supported. The optional management fields (for example: `remove_jwt_after_reading`) are not supported.
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
-  a PKI secrets engine for the root certificate. Required for primary
-  datacenters. Secondary datacenters do not use this path.
+  a PKI secrets engine for the root certificate.
 
   If the path does not
   exist, Consul will mount a new PKI secrets engine at the specified path with the
@@ -122,6 +113,9 @@ The key after the slash refers to the corresponding option name in the agent con
   of 87600 hours, or 10 years is applied by default as of Consul 1.11 and later. Prior to Consul 1.11,
   the root certificate TTL was set to 8760 hour, or 1 year, and was not configurable.
   The root certificate will expire at the end of the specified period.
+
+  When WAN Federation is enabled, each secondary datacenter must use the same Vault cluster and share the same `root_pki_path`
+  with the primary datacenter.
 
   To use an intermediate certificate as the primary CA in Consul, initialize the
   `RootPKIPath` in Vault with a PEM bundle. The first certificate in the bundle
@@ -139,10 +133,8 @@ The key after the slash refers to the corresponding option name in the agent con
   path does not exist, Consul will attempt to mount and configure this
   automatically.
 
-  When WAN federation is enabled, every secondary datacenter that shares a common Vault cluster
-  must specify a unique `intermediate_pki_path`. If a Vault cluster is not used by more than one Consul datacenter,
-  then you do not need to specify a unique value for the `intermediate_pki_path`. We still recommend using a
-  unique `intermediate_pki_path` for each datacenter, however, to improve operational and diagnostic clarity.
+  When WAN Federation is enabled, every secondary
+  datacenter must specify a unique `intermediate_pki_path`.
 
 - `IntermediatePKINamespace` / `intermediate_pki_namespace` (`string: <optional>`) - The absolute namespace
   that the `IntermediatePKIPath` is in. Setting this parameter overrides the `Namespace` option for the `IntermediatePKIPath`. Introduced in 1.12.3.
@@ -250,7 +242,7 @@ Then, attach the following Vault ACL policy to the CA provider's
   path "/<root_pki_path>/" {
     capabilities = [ "read" ]
   }
-
+  
   path "/<root_pki_path>/root/sign-intermediate" {
     capabilities = [ "update" ]
   }
@@ -276,7 +268,7 @@ Then, attach the following Vault ACL policy to the CA provider's
     capabilities = [ "read" ]
   }
   ```
-
+  
   </CodeBlockConfig>
 
 #### Define a policy for Consul-managed PKI paths ((#consul-managed-pki-paths))
@@ -337,7 +329,7 @@ Then, attach the following Vault ACL policy to the CA provider's
     capabilities = [ "read" ]
   }
   ```
-
+  
   </CodeBlockConfig>
 
 #### Additional Vault ACL policies for sensitive operations
@@ -348,7 +340,7 @@ following CA provider configuration changes:
 - Changing the `RootPKIPath`
 
 Those configuration modifications trigger a root CA change that requires an
-extremely privileged root cross-sign operation.
+extremely privileged root cross-sign operation. 
 For that operation to succeed, the CA provider's [Vault token](#token) or
 [auth method](#authmethod) must contain the following rule:
 

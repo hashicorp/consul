@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package troubleshoot
 
@@ -31,7 +31,7 @@ func TestTroubleshootProxy(t *testing.T) {
 		ApplyDefaultProxySettings: true,
 	})
 
-	serverService, clientService := topology.CreateServices(t, cluster, "http")
+	serverService, clientService := topology.CreateServices(t, cluster)
 
 	clientSidecar, ok := clientService.(*libservice.ConnectContainer)
 	require.True(t, ok)

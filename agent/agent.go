@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -9,9 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	proxytracker "github.com/hashicorp/consul/agent/proxy-tracker"
-	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"io"
 	"net"
 	"net/http"
@@ -57,6 +54,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
+	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
 	"github.com/hashicorp/consul/agent/rpcclient"
 	"github.com/hashicorp/consul/agent/rpcclient/configentry"
@@ -73,7 +71,6 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
@@ -200,9 +197,6 @@ type delegate interface {
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
 	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
-
-	// ResourceServiceClient is a client for the gRPC Resource Service.
-	ResourceServiceClient() pbresource.ResourceServiceClient
 
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
@@ -910,37 +904,13 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-// useV2Resources returns true if "resource-apis" is present in the Experiments
-// array of the agent config.
-func (a *Agent) useV2Resources() bool {
-	if stringslice.Contains(a.baseDeps.Experiments, consul.CatalogResourceExperimentName) {
-		return true
+func (a *Agent) listenAndServeGRPC() error {
+	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
+		return nil
 	}
-	return false
-}
-
-// getProxyWatcher returns the proper implementation of the ProxyWatcher interface.
-// It will return a ProxyTracker if "resource-apis" experiment is active.  Otherwise,
-// it will return a ConfigSource.
-func (a *Agent) getProxyWatcher() xds.ProxyWatcher {
-	if a.useV2Resources() {
-		return proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{
-			Logger:         a.proxyConfig.Logger.Named("proxy-tracker"),
-			SessionLimiter: a.baseDeps.XDSStreamLimiter,
-		})
-	} else {
-		return localproxycfg.NewConfigSource(a.proxyConfig)
-	}
-}
-
-// configureXDSServer configures an XDS server with the proper implementation of
-// the PRoxyWatcher interface and registers the XDS server with Consul's
-// external facing GRPC server.
-func (a *Agent) configureXDSServer() {
-	cfg := a.getProxyWatcher()
-
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
+	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
 	if server, ok := a.delegate.(*consul.Server); ok {
 		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
 			NodeName:          a.config.NodeName,
@@ -967,14 +937,6 @@ func (a *Agent) configureXDSServer() {
 		a,
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
-}
-
-func (a *Agent) listenAndServeGRPC() error {
-	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
-		return nil
-	}
-
-	a.configureXDSServer()
 
 	// Attempt to spawn listeners
 	var listeners []net.Listener

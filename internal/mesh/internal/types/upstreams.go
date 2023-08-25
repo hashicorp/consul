@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
@@ -16,7 +16,7 @@ const (
 var (
 	UpstreamsV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: CurrentVersion,
 		Kind:         UpstreamsKind,
 	}
 

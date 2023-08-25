@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package structs
 
@@ -574,7 +574,7 @@ func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
 // into a concrete type.
 //
 // There is an 'api' variation of this in
-// command/helpers/helpers.go:newDecodeConfigEntry
+// command/config/write/config_write.go:newDecodeConfigEntry
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	var entry ConfigEntry
 

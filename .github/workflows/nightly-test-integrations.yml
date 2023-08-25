@@ -99,7 +99,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
+        envoy-version: ["1.23.12", "1.24.10", "1.25.9", "1.26.4"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -193,7 +193,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.15", "1.16"]
+        consul-version: ["1.14", "1.15", "1.16"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       ENVOY_VERSION: "1.24.6"
@@ -223,13 +223,11 @@ jobs:
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Build consul-envoy:latest-version image
         id: buildConsulEnvoyLatestImage
-        run: |
-          if ${{ endsWith(github.repository, '-enterprise') }} == 'true'
-          then
-            docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }}-ent --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-          else
-            docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }}     --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-          fi
+        continue-on-error: true
+        run: docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }} --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+      - name: Retry Build consul-envoy:latest-version image
+        if: steps.buildConsulEnvoyLatestImage.outcome == 'failure'
+        run: docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }} --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
       - name: Build consul-envoy:target-version image
         id: buildConsulEnvoyTargetImage
         continue-on-error: true
@@ -326,14 +324,3 @@ jobs:
             printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
             exit 1
           fi
-      - name: Notify Slack
-        if: ${{ failure() }}
-        id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
-        with:
-          payload: |
-            {
-              "message": "One or more nightly integration tests have failed. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}

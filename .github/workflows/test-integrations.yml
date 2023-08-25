@@ -51,7 +51,7 @@ jobs:
       compute-xl: ${{ steps.runners.outputs.compute-xl }}
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
@@ -78,13 +78,13 @@ jobs:
         nomad-version: ['v1.3.3', 'v1.2.10', 'v1.1.16']
     steps:
       - name: Checkout Nomad
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
         with:
           repository: hashicorp/nomad
           ref: ${{ matrix.nomad-version }}
 
       - name: Install Go
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
 
@@ -158,14 +158,14 @@ jobs:
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
 
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
 
@@ -248,14 +248,14 @@ jobs:
     outputs:
       envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
+          # envoy-version: ["1.23.12", "1.24.10", "1.25.9", "1.26.4"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -289,7 +289,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.27.0"]
+        envoy-version: ["1.26.4"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -297,8 +297,8 @@ jobs:
       XDS_TARGET: ${{ matrix.xds-target }}
       AWS_LAMBDA_REGION: us-west-2
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
 
@@ -311,7 +311,7 @@ jobs:
         run: chmod +x ./bin/consul
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
+        uses: docker/setup-buildx-action@f03ac48505955848960e80bbb68046aa35c7b9e7 # v2.4.1
 
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
@@ -380,12 +380,8 @@ jobs:
     env:
       ENVOY_VERSION: "1.25.4"
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-      - name: Setup Git
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
       - run: go env
@@ -433,7 +429,7 @@ jobs:
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
-              `go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo` \
+              `go list ./... | grep -v upgrade` \
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
@@ -479,98 +475,6 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
-  peering_commontopo-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
-    needs:
-      - setup
-      - dev-build
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
-    strategy:
-      fail-fast: false
-    env:
-      ENVOY_VERSION: "1.24.6"
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-      - name: Setup Git
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        with:
-          go-version-file: 'go.mod'
-      - run: go env
-
-      # Get go binary from workspace
-      - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
-          path: .
-      - name: restore mode+x
-        run: chmod +x consul
-      - name: Build consul:local image
-        run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
-      - name: Peering commonTopo Integration Tests
-        run: |
-          mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          cd ./test-integ/peering_commontopo
-          docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-            --raw-command \
-            --format=short-verbose \
-            --debug \
-            --packages="./..." \
-            -- \
-            go test \
-            -tags "${{ env.GOTAGS }}" \
-            -timeout=30m \
-            -json . \
-            --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            --target-version local \
-            --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            --latest-version latest
-          ls -lrt
-        env:
-          # this is needed because of incompatibility between RYUK container and GHA
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          # tput complains if this isn't set to something.
-          TERM: ansi
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        id: vault-auth
-        run: vault-auth
-
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        id: secrets
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ steps.vault-auth.outputs.addr }}
-          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
-          token: ${{ steps.vault-auth.outputs.token }}
-          secrets: |
-              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
-
-      - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
-        run: |
-          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
-          chmod +x /usr/local/bin/datadog-ci
-
-      - name: upload coverage
-        # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
-          DD_ENV: ci
-        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-
   test-integrations-success:
     needs: 
     - conditional-skip
@@ -581,7 +485,6 @@ jobs:
     - generate-envoy-job-matrices
     - envoy-integration-test
     - compatibility-integration-test
-    - peering_commontopo-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: always() && needs.conditional-skip.outputs.trigger-ci == 'true'
     steps:

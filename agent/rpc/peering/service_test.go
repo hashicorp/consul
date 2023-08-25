@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package peering_test
 
@@ -14,8 +14,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
@@ -1952,7 +1950,6 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
-		Registry:                 resource.NewRegistry(),
 	}
 }
 

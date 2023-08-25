@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 // Package controller contains a re-implementation of the Kubernetes
 // [controller-runtime](https://github.com/kubernetes-sigs/controller-runtime)
