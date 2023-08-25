@@ -23,10 +23,18 @@ import (
 const (
 	// defaultExportInterval is a default time interval between export of aggregated metrics.
 	// At the time of writing this is the same as the otelsdk.Reader's export interval.
+	//
+	// TODO/NOTE: this can only be set once on start up on the otelsdk.Reader via Options.
+	// We could parameterize this from HCP via a new field in the Agent Telemetry Config,
+	// set them in ConfigProvider, and use these values as defaults.
 	defaultExportInterval = 60 * time.Second
 
 	// defaultExportTimeout is the time the otelsdk.Reader waits on an export before cancelling it.
 	// At the time of writing this is the same as the otelsdk.Reader's export timeout default.
+	//
+	// TODO/NOTE: this can only be set once on start up on the otelsdk.Reader via Options.
+	// We could parameterize this from HCP via a new field in the Agent Telemetry Config,
+	// set them in ConfigProvider, and use these values as defaults.
 	defaultExportTimeout = 30 * time.Second
 )
 
@@ -34,6 +42,7 @@ const (
 type ConfigProvider interface {
 	// GetLabels should return a set of OTEL attributes added by default all metrics.
 	GetLabels() map[string]string
+
 	// GetFilters should return filtesr that are required to enable metric processing.
 	// Filters act as an allowlist to collect only the required metrics.
 	GetFilters() *regexp.Regexp
