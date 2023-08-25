@@ -6,6 +6,7 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v1alpha1;
 
 import "google/protobuf/duration.proto";
+import "pbresource/resource.proto";
 
 // DestinationPolicy is the destination-controlled set of defaults that
 // are used when similar controls defined in an UpstreamConfig are left
@@ -18,6 +19,9 @@ import "google/protobuf/duration.proto";
 //
 // This is a Resource type.
 message DestinationPolicy {
+  // DestinationPolicy is a namespace scoped resource type.
+  option (hashicorp.consul.resource.scope) = NAMESPACE;
+
   map<string, DestinationConfig> port_configs = 1;
 }
 

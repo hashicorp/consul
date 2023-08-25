@@ -109,7 +109,7 @@ func (s *Server) validateListByOwnerRequest(req *pbresource.ListByOwnerRequest) 
 	resource.Normalize(req.Owner.Tenancy)
 
 	// Error when partition scoped and namespace not empty.
-	if reg.Scope == resource.ScopePartition && req.Owner.Tenancy.Namespace != "" {
+	if reg.Scope() == pbresource.Scope_PARTITION && req.Owner.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
 			codes.InvalidArgument,
 			"partition scoped type %s cannot have a namespace. got: %s",

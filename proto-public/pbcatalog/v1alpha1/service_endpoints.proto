@@ -10,6 +10,8 @@ import "pbcatalog/v1alpha1/workload.proto";
 import "pbresource/resource.proto";
 
 message ServiceEndpoints {
+  // ServiceEnpoints is a namespace scoped resource type.
+  option (hashicorp.consul.resource.scope) = NAMESPACE;
   repeated Endpoint endpoints = 1;
 }
 

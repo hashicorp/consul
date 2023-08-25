@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	demov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -23,7 +25,7 @@ func TestRegister(t *testing.T) {
 	// register success
 	reg := resource.Registration{
 		Type:  demo.TypeV2Artist,
-		Scope: resource.ScopeNamespace,
+		Proto: &demov2.Artist{},
 	}
 	r.Register(reg)
 	actual, ok := r.Resolve(demo.TypeV2Artist)
@@ -35,11 +37,6 @@ func TestRegister(t *testing.T) {
 		r.Register(reg)
 	})
 
-	// register should panic when scope is undefined
-	require.PanicsWithValue(t, "Scope required. Got: \"undefined\"", func() {
-		r.Register(resource.Registration{Type: demo.TypeV1Artist})
-	})
-
 	// register success when scope undefined and type exempt from scope
 	// skip: can't test this because tombstone type is registered as part of NewRegistry()
 }
@@ -48,7 +45,7 @@ func TestRegister_Defaults(t *testing.T) {
 	r := resource.NewRegistry()
 	r.Register(resource.Registration{
 		Type:  demo.TypeV2Artist,
-		Scope: resource.ScopeNamespace,
+		Proto: &demov2.Artist{},
 	})
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -86,24 +83,18 @@ func TestNewRegistry(t *testing.T) {
 func TestResolve(t *testing.T) {
 	r := resource.NewRegistry()
 
-	serviceType := &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v1",
-		Kind:         "Service",
-	}
-
 	// not found
-	_, ok := r.Resolve(serviceType)
+	_, ok := r.Resolve(demo.TypeV1Album)
 	assert.False(t, ok)
 
 	// found
 	r.Register(resource.Registration{
-		Type:  serviceType,
-		Scope: resource.ScopeNamespace,
+		Type:  demo.TypeV1Album,
+		Proto: &pbdemov1.Album{},
 	})
-	registration, ok := r.Resolve(serviceType)
+	registration, ok := r.Resolve(demo.TypeV1Album)
 	assert.True(t, ok)
-	assert.Equal(t, registration.Type, serviceType)
+	assert.Equal(t, registration.Type, demo.TypeV1Album)
 }
 
 func TestRegister_TypeValidation(t *testing.T) {
@@ -179,8 +170,9 @@ func TestRegister_TypeValidation(t *testing.T) {
 					tc.fn(typ)
 				}
 				registry.Register(resource.Registration{
-					Type:  typ,
-					Scope: resource.ScopeNamespace,
+					Type: typ,
+					// Just pass anything since proto is a required field.
+					Proto: &pbdemov1.Artist{},
 				})
 			}
 
@@ -191,4 +183,10 @@ func TestRegister_TypeValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetScope(t *testing.T) {
+	require.Equal(t, pbresource.Scope_PARTITION, resource.GetScope(&pbdemov1.RecordLabel{}))
+	require.Equal(t, pbresource.Scope_NAMESPACE, resource.GetScope(&pbdemov1.Artist{}))
+	require.Equal(t, pbresource.Scope_UNKNOWN, resource.GetScope(&pbresource.Tombstone{}))
 }

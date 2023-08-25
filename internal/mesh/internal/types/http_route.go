@@ -36,7 +36,6 @@ func RegisterHTTPRoute(r resource.Registry) {
 		Proto:    &pbmesh.HTTPRoute{},
 		Mutate:   MutateHTTPRoute,
 		Validate: ValidateHTTPRoute,
-		Scope:    resource.ScopeNamespace,
 	})
 }
 

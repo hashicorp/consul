@@ -13,9 +13,13 @@ import "pbmesh/v1alpha1/grpc_route.proto";
 import "pbmesh/v1alpha1/http_route.proto";
 import "pbmesh/v1alpha1/http_route_retries.proto";
 import "pbmesh/v1alpha1/http_route_timeouts.proto";
+import "pbresource/resource.proto";
 
 // This is a Resource type.
 message ComputedRoutes {
+  // ComputedRoutes is a namespace scoped resource type.
+  option (hashicorp.consul.resource.scope) = NAMESPACE;
+
   map<string, ComputedPortRoutes> ported_configs = 1;
 }
 

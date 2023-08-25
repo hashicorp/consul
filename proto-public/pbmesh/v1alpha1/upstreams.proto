@@ -10,6 +10,9 @@ import "pbmesh/v1alpha1/upstreams_configuration.proto";
 import "pbresource/resource.proto";
 
 message Upstreams {
+  // Upstreams is a namespace scoped resource type.
+  option (hashicorp.consul.resource.scope) = NAMESPACE;
+
   // Selection of workloads these upstreams should apply to.
   // These can be prefixes or specific workload names.
   hashicorp.consul.catalog.v1alpha1.WorkloadSelector workloads = 1;

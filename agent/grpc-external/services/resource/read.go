@@ -87,7 +87,7 @@ func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Reg
 	}
 
 	// Check scope
-	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
+	if reg.Scope() == pbresource.Scope_PARTITION && req.Id.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
 			codes.InvalidArgument,
 			"partition scoped resource %s cannot have a namespace. got: %s",

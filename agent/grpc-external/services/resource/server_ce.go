@@ -17,11 +17,11 @@ func v2TenancyToV1EntMeta(tenancy *pbresource.Tenancy) *acl.EnterpriseMeta {
 }
 
 func v1EntMetaToV2Tenancy(reg *resource.Registration, entMeta *acl.EnterpriseMeta, tenancy *pbresource.Tenancy) {
-	if (reg.Scope == resource.ScopeNamespace || reg.Scope == resource.ScopePartition) && tenancy.Partition == "" {
+	if (reg.Scope() == pbresource.Scope_NAMESPACE || reg.Scope() == pbresource.Scope_PARTITION) && tenancy.Partition == "" {
 		tenancy.Partition = entMeta.PartitionOrDefault()
 	}
 
-	if reg.Scope == resource.ScopeNamespace && tenancy.Namespace == "" {
+	if reg.Scope() == pbresource.Scope_NAMESPACE && tenancy.Namespace == "" {
 		tenancy.Namespace = entMeta.NamespaceOrDefault()
 	}
 }

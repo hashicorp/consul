@@ -6,10 +6,13 @@ syntax = "proto3";
 package hashicorp.consul.catalog.v1alpha1;
 
 import "pbcatalog/v1alpha1/protocol.proto";
+import "pbresource/resource.proto";
 
 // Workload is the representation of a unit of addressable work. This could
 // represent a process on a VM, a Kubernetes pod or something else entirely.
 message Workload {
+  // Workload is a namespace scoped resource type.
+  option (hashicorp.consul.resource.scope) = NAMESPACE;
   // addresses has a list of all workload addresses. This should include
   // LAN and WAN addresses as well as any addresses a proxy would need
   // to bind to (if different from the default address).

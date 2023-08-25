@@ -9,6 +9,9 @@ import "pbresource/resource.proto";
 
 // This is a Resource type.
 message FailoverPolicy {
+  // FailoverPolicy is a namespace scoped resource type.
+  option (hashicorp.consul.resource.scope) = NAMESPACE;
+
   // Config defines failover for any named port not present in PortConfigs.
   FailoverConfig config = 1;
 

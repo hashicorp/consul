@@ -31,7 +31,6 @@ func RegisterTCPRoute(r resource.Registry) {
 		Proto: &pbmesh.TCPRoute{},
 		// TODO(rb): normalize parent/backend ref tenancies in a Mutate hook
 		Validate: ValidateTCPRoute,
-		Scope:    resource.ScopeNamespace,
 	})
 }
 

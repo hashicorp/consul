@@ -6,8 +6,11 @@ syntax = "proto3";
 package hashicorp.consul.catalog.v1alpha1;
 
 import "pbcatalog/v1alpha1/selector.proto";
+import "pbresource/resource.proto";
 
 message DNSPolicy {
+  // DNSPolicy is a namespace scoped resource type.
+  option (hashicorp.consul.resource.scope) = NAMESPACE;
   WorkloadSelector workloads = 1;
   Weights weights = 2;
 }

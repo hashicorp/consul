@@ -35,7 +35,6 @@ func RegisterFailoverPolicy(r resource.Registry) {
 		Proto:    &pbcatalog.FailoverPolicy{},
 		Mutate:   MutateFailoverPolicy,
 		Validate: ValidateFailoverPolicy,
-		Scope:    resource.ScopeNamespace,
 	})
 }
 

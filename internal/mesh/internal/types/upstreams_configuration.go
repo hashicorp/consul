@@ -28,6 +28,5 @@ func RegisterUpstreamsConfiguration(r resource.Registry) {
 		Type:     UpstreamsConfigurationV1Alpha1Type,
 		Proto:    &pbmesh.UpstreamsConfiguration{},
 		Validate: nil,
-		Scope:    resource.ScopeNamespace,
 	})
 }

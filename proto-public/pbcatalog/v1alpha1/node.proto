@@ -5,7 +5,11 @@ syntax = "proto3";
 
 package hashicorp.consul.catalog.v1alpha1;
 
+import "pbresource/resource.proto";
+
 message Node {
+  // Node is a partition scoped resource type.
+  option (hashicorp.consul.resource.scope) = PARTITION;
   repeated NodeAddress addresses = 1;
 }
 
