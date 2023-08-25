@@ -1,15 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { runInDebug } from '@ember/debug';
 import require from 'require';
-import assign from 'deepmerge';
+import merge from 'deepmerge';
 
 const doc = document;
 
-export const services = assign.all(
+export const services = merge.all(
   [...doc.querySelectorAll(`script[data-services]`)].map(($item) =>
     JSON.parse($item.dataset[`services`])
   )

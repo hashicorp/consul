@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { modifier } from 'ember-modifier';
 const STYLE_RULE = 1;
 const getCustomProperties = function () {

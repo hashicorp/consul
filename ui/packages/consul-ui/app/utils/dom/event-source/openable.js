@@ -1,9 +1,4 @@
 /**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-/**
  * Wraps an EventSource so that you can `close` and `reopen`
  *
  * @param {Class} eventSource - EventSource class to extend from

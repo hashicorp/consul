@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { validatePresence, validateLength } from 'ember-changeset-validations/validators';
 import validateSometimes from 'consul-ui/validations/sometimes';
 export default {

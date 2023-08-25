@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package extensioncommon
 
 import "github.com/hashicorp/consul/api"
@@ -8,11 +5,8 @@ import "github.com/hashicorp/consul/api"
 // UpstreamData has the SNI, EnvoyID, and OutgoingProxyKind of the upstream services for the local proxy and this data
 // is used to choose which Envoy resources to patch.
 type UpstreamData struct {
-	// This is the SNI for the upstream service without accounting for any discovery chain magic.
-	PrimarySNI string
-
-	// SNIs is the SNIs header used to reach an upstream service.
-	SNIs map[string]struct{}
+	// SNI is the SNI header used to reach an upstream service.
+	SNI map[string]struct{}
 
 	// EnvoyID is the envoy ID of an upstream service, structured <service> or <partition>/<ns>/<service> when using a
 	// non-default namespace or partition.
@@ -26,9 +20,10 @@ type UpstreamData struct {
 	VIP string
 }
 
-// RuntimeConfig is the configuration for an extension attached to a service on the local proxy.
-// It should depend on the API client rather than the structs package because the API client is
-// meant to be public.
+// RuntimeConfig is the configuration for an extension attached to a service on the local proxy. Currently, it
+// is only created for the local proxy's upstream service if the upstream service has an extension configured. In the
+// future it will also include information about the service local to the local proxy as well. It should depend on the
+// API client rather than the structs package because the API client is meant to be public.
 type RuntimeConfig struct {
 	// EnvoyExtension is the extension that will patch Envoy resources.
 	EnvoyExtension api.EnvoyExtension
@@ -61,20 +56,14 @@ type RuntimeConfig struct {
 	// Kind is mode the local Envoy proxy is running in. For now, only connect proxy and
 	// terminating gateways are supported.
 	Kind api.ServiceKind
-
-	// Protocol is the protocol configured for the local service. It may be empty which implies tcp.
-	Protocol string
 }
 
 // MatchesUpstreamServiceSNI indicates if the extension configuration is for an upstream service
 // that matches the given SNI, if the RuntimeConfig corresponds to an upstream of the local service.
 // Only used when IsSourcedFromUpstream is true.
 func (c RuntimeConfig) MatchesUpstreamServiceSNI(sni string) bool {
-	u, ok := c.Upstreams[c.ServiceName]
-	if !ok {
-		return false
-	}
-	_, match := u.SNIs[sni]
+	u := c.Upstreams[c.ServiceName]
+	_, match := u.SNI[sni]
 	return match
 }
 
@@ -82,10 +71,7 @@ func (c RuntimeConfig) MatchesUpstreamServiceSNI(sni string) bool {
 // upstream of the local service. Note that this could be the local service if it targets itself as an upstream.
 // Only used when IsSourcedFromUpstream is true.
 func (c RuntimeConfig) UpstreamEnvoyID() string {
-	u, ok := c.Upstreams[c.ServiceName]
-	if !ok {
-		return ""
-	}
+	u := c.Upstreams[c.ServiceName]
 	return u.EnvoyID
 }
 
@@ -93,9 +79,6 @@ func (c RuntimeConfig) UpstreamEnvoyID() string {
 // RuntimeConfig corresponds to an upstream of the local service.
 // Only used when IsSourcedFromUpstream is true.
 func (c RuntimeConfig) UpstreamOutgoingProxyKind() api.ServiceKind {
-	u, ok := c.Upstreams[c.ServiceName]
-	if !ok {
-		return ""
-	}
+	u := c.Upstreams[c.ServiceName]
 	return u.OutgoingProxyKind
 }

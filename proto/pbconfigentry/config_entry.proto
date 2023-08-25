@@ -1,0 +1,874 @@
+syntax = "proto3";
+
+package hashicorp.consul.internal.configentry;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "proto/pbcommon/common.proto";
+
+enum Kind {
+  KindUnknown = 0;
+  KindMeshConfig = 1;
+  KindServiceResolver = 2;
+  KindIngressGateway = 3;
+  KindServiceIntentions = 4;
+  KindServiceDefaults = 5;
+  KindInlineCertificate = 6;
+  KindAPIGateway = 7;
+  KindBoundAPIGateway = 8;
+  KindHTTPRoute = 9;
+  KindTCPRoute = 10;
+}
+
+message ConfigEntry {
+  Kind Kind = 1;
+  string Name = 2;
+
+  common.EnterpriseMeta EnterpriseMeta = 3;
+  common.RaftIndex RaftIndex = 4;
+
+  oneof Entry {
+    MeshConfig MeshConfig = 5;
+    ServiceResolver ServiceResolver = 6;
+    IngressGateway IngressGateway = 7;
+    ServiceIntentions ServiceIntentions = 8;
+    ServiceDefaults ServiceDefaults = 9;
+    APIGateway APIGateway = 10;
+    BoundAPIGateway BoundAPIGateway = 11;
+    TCPRoute TCPRoute = 12;
+    HTTPRoute HTTPRoute = 13;
+    InlineCertificate InlineCertificate = 14;
+  }
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.MeshConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=RaftIndex,EnterpriseMeta
+message MeshConfig {
+  TransparentProxyMeshConfig TransparentProxy = 1;
+  MeshTLSConfig TLS = 2;
+  MeshHTTPConfig HTTP = 3;
+  map<string, string> Meta = 4;
+  PeeringMeshConfig Peering = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TransparentProxyMeshConfig
+// output=config_entry.gen.go
+// name=Structs
+message TransparentProxyMeshConfig {
+  bool MeshDestinationsOnly = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.MeshTLSConfig
+// output=config_entry.gen.go
+// name=Structs
+message MeshTLSConfig {
+  MeshDirectionalTLSConfig Incoming = 1;
+  MeshDirectionalTLSConfig Outgoing = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.MeshDirectionalTLSConfig
+// output=config_entry.gen.go
+// name=Structs
+message MeshDirectionalTLSConfig {
+  // mog: func-from=tlsVersionFromStructs func-to=tlsVersionToStructs
+  string TLSMinVersion = 1;
+  // mog: func-from=tlsVersionFromStructs func-to=tlsVersionToStructs
+  string TLSMaxVersion = 2;
+  // mog: func-from=cipherSuitesFromStructs func-to=cipherSuitesToStructs
+  repeated string CipherSuites = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.MeshHTTPConfig
+// output=config_entry.gen.go
+// name=Structs
+message MeshHTTPConfig {
+  bool SanitizeXForwardedClientCert = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.PeeringMeshConfig
+// output=config_entry.gen.go
+// name=Structs
+message PeeringMeshConfig {
+  bool PeerThroughMeshGateways = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message ServiceResolver {
+  string DefaultSubset = 1;
+  map<string, ServiceResolverSubset> Subsets = 2;
+  ServiceResolverRedirect Redirect = 3;
+  map<string, ServiceResolverFailover> Failover = 4;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration ConnectTimeout = 5;
+  LoadBalancer LoadBalancer = 6;
+  map<string, string> Meta = 7;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration RequestTimeout = 8;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverSubset
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverSubset {
+  string Filter = 1;
+  bool OnlyPassing = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverRedirect
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverRedirect {
+  string Service = 1;
+  string ServiceSubset = 2;
+  string Namespace = 3;
+  string Partition = 4;
+  string Datacenter = 5;
+  string Peer = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverFailover
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverFailover {
+  string Service = 1;
+  string ServiceSubset = 2;
+  string Namespace = 3;
+  repeated string Datacenters = 4;
+  repeated ServiceResolverFailoverTarget Targets = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverFailoverTarget
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverFailoverTarget {
+  string Service = 1;
+  string ServiceSubset = 2;
+  string Partition = 3;
+  string Namespace = 4;
+  string Datacenter = 5;
+  string Peer = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.LoadBalancer
+// output=config_entry.gen.go
+// name=Structs
+message LoadBalancer {
+  string Policy = 1;
+  RingHashConfig RingHashConfig = 2;
+  LeastRequestConfig LeastRequestConfig = 3;
+  repeated HashPolicy HashPolicies = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RingHashConfig
+// output=config_entry.gen.go
+// name=Structs
+message RingHashConfig {
+  uint64 MinimumRingSize = 1;
+  uint64 MaximumRingSize = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.LeastRequestConfig
+// output=config_entry.gen.go
+// name=Structs
+message LeastRequestConfig {
+  uint32 ChoiceCount = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HashPolicy
+// output=config_entry.gen.go
+// name=Structs
+message HashPolicy {
+  string Field = 1;
+  string FieldValue = 2;
+  CookieConfig CookieConfig = 3;
+  bool SourceIP = 4;
+  bool Terminal = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.CookieConfig
+// output=config_entry.gen.go
+// name=Structs
+message CookieConfig {
+  bool Session = 1;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration TTL = 2;
+  string Path = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IngressGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message IngressGateway {
+  GatewayTLSConfig TLS = 1;
+  repeated IngressListener Listeners = 2;
+  map<string, string> Meta = 3;
+  IngressServiceConfig Defaults = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IngressServiceConfig
+// output=config_entry.gen.go
+// name=Structs
+message IngressServiceConfig {
+  uint32 MaxConnections = 1;
+  uint32 MaxPendingRequests = 2;
+  uint32 MaxConcurrentRequests = 3;
+  PassiveHealthCheck PassiveHealthCheck = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.GatewayTLSConfig
+// output=config_entry.gen.go
+// name=Structs
+message GatewayTLSConfig {
+  bool Enabled = 1;
+  GatewayTLSSDSConfig SDS = 2;
+  // mog: func-from=tlsVersionFromStructs func-to=tlsVersionToStructs
+  string TLSMinVersion = 3;
+  // mog: func-from=tlsVersionFromStructs func-to=tlsVersionToStructs
+  string TLSMaxVersion = 4;
+  // mog: func-from=cipherSuitesFromStructs func-to=cipherSuitesToStructs
+  repeated string CipherSuites = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.GatewayTLSSDSConfig
+// output=config_entry.gen.go
+// name=Structs
+message GatewayTLSSDSConfig {
+  string ClusterName = 1;
+  string CertResource = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IngressListener
+// output=config_entry.gen.go
+// name=Structs
+message IngressListener {
+  // mog: func-to=int func-from=int32
+  int32 Port = 1;
+  string Protocol = 2;
+  repeated IngressService Services = 3;
+  GatewayTLSConfig TLS = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IngressService
+// output=config_entry.gen.go
+// name=Structs
+message IngressService {
+  string Name = 1;
+  repeated string Hosts = 2;
+  GatewayServiceTLSConfig TLS = 3;
+  HTTPHeaderModifiers RequestHeaders = 4;
+  HTTPHeaderModifiers ResponseHeaders = 5;
+  map<string, string> Meta = 6;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 7;
+  uint32 MaxConnections = 8;
+  uint32 MaxPendingRequests = 9;
+  uint32 MaxConcurrentRequests = 10;
+  PassiveHealthCheck PassiveHealthCheck = 11;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.GatewayServiceTLSConfig
+// output=config_entry.gen.go
+// name=Structs
+message GatewayServiceTLSConfig {
+  GatewayTLSSDSConfig SDS = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderModifiers
+// output=config_entry.gen.go
+// name=Structs
+message HTTPHeaderModifiers {
+  map<string, string> Add = 1;
+  map<string, string> Set = 2;
+  repeated string Remove = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceIntentionsConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message ServiceIntentions {
+  repeated SourceIntention Sources = 1;
+  map<string, string> Meta = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.SourceIntention
+// output=config_entry.gen.go
+// name=Structs
+message SourceIntention {
+  string Name = 1;
+  // mog: func-to=intentionActionToStructs func-from=intentionActionFromStructs
+  IntentionAction Action = 2;
+  repeated IntentionPermission Permissions = 3;
+  // mog: func-to=int func-from=int32
+  int32 Precedence = 4;
+  string LegacyID = 5;
+  // mog: func-to=intentionSourceTypeToStructs func-from=intentionSourceTypeFromStructs
+  IntentionSourceType Type = 6;
+  string Description = 7;
+  map<string, string> LegacyMeta = 8;
+  // mog: func-to=timeToStructs func-from=timeFromStructs
+  google.protobuf.Timestamp LegacyCreateTime = 9;
+  // mog: func-to=timeToStructs func-from=timeFromStructs
+  google.protobuf.Timestamp LegacyUpdateTime = 10;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 11;
+  string Peer = 12;
+}
+
+enum IntentionAction {
+  Deny = 0;
+  Allow = 1;
+}
+
+enum IntentionSourceType {
+  Consul = 0;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionPermission
+// output=config_entry.gen.go
+// name=Structs
+message IntentionPermission {
+  // mog: func-to=intentionActionToStructs func-from=intentionActionFromStructs
+  IntentionAction Action = 1;
+  IntentionHTTPPermission HTTP = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionHTTPPermission
+// output=config_entry.gen.go
+// name=Structs
+message IntentionHTTPPermission {
+  string PathExact = 1;
+  string PathPrefix = 2;
+  string PathRegex = 3;
+  repeated IntentionHTTPHeaderPermission Header = 4;
+  repeated string Methods = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionHTTPHeaderPermission
+// output=config_entry.gen.go
+// name=Structs
+message IntentionHTTPHeaderPermission {
+  string Name = 1;
+  bool Present = 2;
+  string Exact = 3;
+  string Prefix = 4;
+  string Suffix = 5;
+  string Regex = 6;
+  bool Invert = 7;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message ServiceDefaults {
+  string Protocol = 1;
+  // mog: func-to=proxyModeToStructs func-from=proxyModeFromStructs
+  ProxyMode Mode = 2;
+  TransparentProxyConfig TransparentProxy = 3;
+  MeshGatewayConfig MeshGateway = 4;
+  ExposeConfig Expose = 5;
+  string ExternalSNI = 6;
+  UpstreamConfiguration UpstreamConfig = 7;
+  DestinationConfig Destination = 8;
+  // mog: func-to=int func-from=int32
+  int32 MaxInboundConnections = 9;
+  // mog: func-to=int func-from=int32
+  int32 LocalConnectTimeoutMs = 10;
+  // mog: func-to=int func-from=int32
+  int32 LocalRequestTimeoutMs = 11;
+  string BalanceInboundConnections = 12;
+  map<string, string> Meta = 13;
+  // mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
+  repeated hashicorp.consul.internal.common.EnvoyExtension EnvoyExtensions = 14;
+}
+
+enum ProxyMode {
+  ProxyModeDefault = 0;
+  ProxyModeTransparent = 1;
+  ProxyModeDirect = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TransparentProxyConfig
+// output=config_entry.gen.go
+// name=Structs
+message TransparentProxyConfig {
+  // mog: func-to=int func-from=int32
+  int32 OutboundListenerPort = 1;
+  bool DialedDirectly = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.MeshGatewayConfig
+// output=config_entry.gen.go
+// name=Structs
+message MeshGatewayConfig {
+  // mog: func-to=meshGatewayModeToStructs func-from=meshGatewayModeFromStructs
+  MeshGatewayMode Mode = 1;
+}
+
+enum MeshGatewayMode {
+  MeshGatewayModeDefault = 0;
+  MeshGatewayModeNone = 1;
+  MeshGatewayModeLocal = 2;
+  MeshGatewayModeRemote = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExposeConfig
+// output=config_entry.gen.go
+// name=Structs
+message ExposeConfig {
+  bool Checks = 1;
+  repeated ExposePath Paths = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExposePath
+// output=config_entry.gen.go
+// name=Structs
+message ExposePath {
+  // mog: func-to=int func-from=int32
+  int32 ListenerPort = 1;
+  string Path = 2;
+  // mog: func-to=int func-from=int32
+  int32 LocalPathPort = 3;
+  string Protocol = 4;
+  bool ParsedFromCheck = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.UpstreamConfiguration
+// output=config_entry.gen.go
+// name=Structs
+message UpstreamConfiguration {
+  repeated UpstreamConfig Overrides = 1;
+  UpstreamConfig Defaults = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.UpstreamConfig
+// output=config_entry.gen.go
+// name=Structs
+message UpstreamConfig {
+  string Name = 1;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 2;
+  string EnvoyListenerJSON = 3;
+  string EnvoyClusterJSON = 4;
+  string Protocol = 5;
+  // mog: func-to=int func-from=int32
+  int32 ConnectTimeoutMs = 6;
+  UpstreamLimits Limits = 7;
+  PassiveHealthCheck PassiveHealthCheck = 8;
+  MeshGatewayConfig MeshGateway = 9;
+  string BalanceOutboundConnections = 10;
+  string Peer = 11;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.UpstreamLimits
+// output=config_entry.gen.go
+// name=Structs
+message UpstreamLimits {
+  // mog: func-to=pointerToIntFromInt32 func-from=int32FromPointerToInt
+  int32 MaxConnections = 1;
+  // mog: func-to=pointerToIntFromInt32 func-from=int32FromPointerToInt
+  int32 MaxPendingRequests = 2;
+  // mog: func-to=pointerToIntFromInt32 func-from=int32FromPointerToInt
+  int32 MaxConcurrentRequests = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.PassiveHealthCheck
+// output=config_entry.gen.go
+// name=Structs
+message PassiveHealthCheck {
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration Interval = 1;
+  uint32 MaxFailures = 2;
+  // mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 EnforcingConsecutive5xx = 3;
+  // mog: func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 MaxEjectionPercent = 4;
+  // mog: func-to=structs.DurationPointerFromProto func-from=structs.DurationPointerToProto
+  google.protobuf.Duration BaseEjectionTime = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.DestinationConfig
+// output=config_entry.gen.go
+// name=Structs
+message DestinationConfig {
+  repeated string Addresses = 1;
+  // mog: func-to=int func-from=int32
+  int32 Port = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message APIGateway {
+  map<string, string> Meta = 1;
+  repeated APIGatewayListener Listeners = 2;
+  Status Status = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.Status
+// output=config_entry.gen.go
+// name=Structs
+message Status {
+  repeated Condition Conditions = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.Condition
+// output=config_entry.gen.go
+// name=Structs
+message Condition {
+  string Type = 1;
+  string Status = 2;
+  string Reason = 3;
+  string Message = 4;
+  ResourceReference Resource = 5;
+  // mog: func-to=timeToStructs func-from=timeFromStructs
+  google.protobuf.Timestamp LastTransitionTime = 6;
+}
+
+enum APIGatewayListenerProtocol {
+  ListenerProtocolHTTP = 0;
+  ListenerProtocolTCP = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayListener
+// output=config_entry.gen.go
+// name=Structs
+message APIGatewayListener {
+  string Name = 1;
+  string Hostname = 2;
+  // mog: func-to=int func-from=int32
+  int32 Port = 3;
+  // mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
+  APIGatewayListenerProtocol Protocol = 4;
+  APIGatewayTLSConfiguration TLS = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayTLSConfiguration
+// output=config_entry.gen.go
+// name=Structs
+message APIGatewayTLSConfiguration {
+  repeated ResourceReference Certificates = 1;
+  // mog: func-from=tlsVersionFromStructs func-to=tlsVersionToStructs
+  string MinVersion = 2;
+  // mog: func-from=tlsVersionFromStructs func-to=tlsVersionToStructs
+  string MaxVersion = 3;
+  // mog: func-from=cipherSuitesFromStructs func-to=cipherSuitesToStructs
+  repeated string CipherSuites = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ResourceReference
+// output=config_entry.gen.go
+// name=Structs
+message ResourceReference {
+  string Kind = 1;
+  string Name = 2;
+  string SectionName = 3;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.BoundAPIGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message BoundAPIGateway {
+  map<string, string> Meta = 1;
+  repeated BoundAPIGatewayListener Listeners = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.BoundAPIGatewayListener
+// output=config_entry.gen.go
+// name=Structs
+message BoundAPIGatewayListener {
+  string Name = 1;
+  repeated ResourceReference Certificates = 2;
+  repeated ResourceReference Routes = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message InlineCertificate {
+  map<string, string> Meta = 1;
+  string Certificate = 2;
+  string PrivateKey = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPRouteConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message HTTPRoute {
+  map<string, string> Meta = 1;
+  repeated ResourceReference Parents = 2;
+  repeated HTTPRouteRule Rules = 3;
+  repeated string Hostnames = 4;
+  Status Status = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPRouteRule
+// output=config_entry.gen.go
+// name=Structs
+message HTTPRouteRule {
+  HTTPFilters Filters = 1;
+  repeated HTTPMatch Matches = 2;
+  repeated HTTPService Services = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPMatch {
+  repeated HTTPHeaderMatch Headers = 1;
+  // mog: func-to=httpMatchMethodToStructs func-from=httpMatchMethodFromStructs
+  HTTPMatchMethod Method = 2;
+  HTTPPathMatch Path = 3;
+  repeated HTTPQueryMatch Query = 4;
+}
+
+enum HTTPMatchMethod {
+  HTTPMatchMethodAll = 0;
+  HTTPMatchMethodConnect = 1;
+  HTTPMatchMethodDelete = 2;
+  HTTPMatchMethodGet = 3;
+  HTTPMatchMethodHead = 4;
+  HTTPMatchMethodOptions = 5;
+  HTTPMatchMethodPatch = 6;
+  HTTPMatchMethodPost = 7;
+  HTTPMatchMethodPut = 8;
+  HTTPMatchMethodTrace = 9;
+}
+
+enum HTTPHeaderMatchType {
+  HTTPHeaderMatchExact = 0;
+  HTTPHeaderMatchPrefix = 1;
+  HTTPHeaderMatchPresent = 2;
+  HTTPHeaderMatchRegularExpression = 3;
+  HTTPHeaderMatchSuffix = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPHeaderMatch {
+  // mog: func-to=httpHeaderMatchToStructs func-from=httpHeaderMatchFromStructs
+  HTTPHeaderMatchType Match = 1;
+  string Name = 2;
+  string Value = 3;
+}
+
+enum HTTPPathMatchType {
+  HTTPPathMatchExact = 0;
+  HTTPPathMatchPrefix = 1;
+  HTTPPathMatchRegularExpression = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPPathMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPPathMatch {
+  // mog: func-to=httpPathMatchToStructs func-from=httpPathMatchFromStructs
+  HTTPPathMatchType Match = 1;
+  string Value = 2;
+}
+
+enum HTTPQueryMatchType {
+  HTTPQueryMatchExact = 0;
+  HTTPQueryMatchPresent = 1;
+  HTTPQueryMatchRegularExpression = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPQueryMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPQueryMatch {
+  // mog: func-to=httpQueryMatchToStructs func-from=httpQueryMatchFromStructs
+  HTTPQueryMatchType Match = 1;
+  string Name = 2;
+  string Value = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPFilters
+// output=config_entry.gen.go
+// name=Structs
+message HTTPFilters {
+  repeated HTTPHeaderFilter Headers = 1;
+  URLRewrite URLRewrite = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.URLRewrite
+// output=config_entry.gen.go
+// name=Structs
+message URLRewrite {
+  string Path = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderFilter
+// output=config_entry.gen.go
+// name=Structs
+message HTTPHeaderFilter {
+  map<string, string> Add = 1;
+  repeated string Remove = 2;
+  map<string, string> Set = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPService
+// output=config_entry.gen.go
+// name=Structs
+message HTTPService {
+  string Name = 1;
+  // mog: func-to=int func-from=int32
+  int32 Weight = 2;
+  HTTPFilters Filters = 3;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TCPRouteConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message TCPRoute {
+  map<string, string> Meta = 1;
+  repeated ResourceReference Parents = 2;
+  repeated TCPService Services = 3;
+  Status Status = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TCPService
+// output=config_entry.gen.go
+// name=Structs
+message TCPService {
+  string Name = 1;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 2;
+}

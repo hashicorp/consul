@@ -1,31 +1,26 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %table th,
 %table td {
   border-bottom: var(--decor-border-100);
 }
-%table th,
-%tbody-th {
-  border-color: var(--token-color-palette-neutral-300);
+%table th {
+  border-color: rgb(var(--tone-gray-300));
 }
 %table td {
-  border-color: var(--token-color-palette-neutral-300);
-  color: var(--token-color-foreground-faint);
+  border-color: rgb(var(--tone-gray-200));
+  color: rgb(var(--tone-gray-500));
 }
 %table th,
 %table td strong {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-600));
 }
 /* TODO: Add to native selector `tbody th` - will involve moving all
  * current th's to `thead th` and changing the templates
  * at whichpoint we can probably remove the %table a selector from here
  */
-%table a {
-  color: var(--token-color-foreground-strong);
+%table a,
+%tbody-th {
+  color: rgb(var(--tone-gray-900));
 }
-%table th {
+%table td:first-child {
   @extend %tbody-th;
 }

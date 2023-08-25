@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peering
 
 import (
@@ -59,8 +56,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 			AcceptingNumClients: 1,
 			DialingNumServers:   1,
 			DialingNumClients:   1,
-		},
-		false)
+		}, false)
 	var (
 		acceptingCluster     = accepting.Cluster
 		dialingCluster       = dialing.Cluster
@@ -104,7 +100,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 	}
 
 	testutil.RunStep(t, "rotate exporting cluster's root CA", func(t *testing.T) {
@@ -154,7 +150,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		// Connectivity should still be contained
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 
 		verifySidecarHasTwoRootCAs(t, clientSidecarService)
 	})
@@ -176,7 +172,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 	})
 }
 

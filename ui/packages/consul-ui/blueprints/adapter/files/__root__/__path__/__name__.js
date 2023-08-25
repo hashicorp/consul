@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Adapter from './application';
 
 export default class <%= classifiedModuleName %>Adapter extends Adapter {

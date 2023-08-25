@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfgglue
 
 import (
@@ -9,6 +6,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/proto/pbpeering"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -21,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 // ServerDataSourceDeps contains the dependencies needed for sourcing data from
@@ -42,7 +40,6 @@ type Store interface {
 	ExportedServicesForAllPeersByName(ws memdb.WatchSet, dc string, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error)
 	FederationStateList(ws memdb.WatchSet) (uint64, []*structs.FederationState, error)
 	GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.EnterpriseMeta) (uint64, structs.GatewayServices, error)
-	IntentionMatchOne(ws memdb.WatchSet, entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionTargetType) (uint64, structs.SimplifiedIntentions, error)
 	IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, structs.ServiceList, error)
 	ReadResolvedServiceConfigEntries(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, upstreamIDs []structs.ServiceID, proxyMode structs.ProxyMode) (uint64, *configentry.ResolvedServiceConfigSet, error)
 	ServiceDiscoveryChain(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, req discoverychain.CompileRequest) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error)
@@ -78,6 +75,17 @@ func CacheDatacenters(c *cache.Cache) proxycfg.Datacenters {
 // sourcing data from the agent cache.
 func CacheServiceGateways(c *cache.Cache) proxycfg.GatewayServices {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.ServiceGatewaysName}
+}
+
+// CacheLeafCertificate satisifies the proxycfg.LeafCertificate interface by
+// sourcing data from the agent cache.
+//
+// Note: there isn't a server-local equivalent of this data source because
+// "agentless" proxies obtain certificates via SDS served by consul-dataplane.
+// If SDS is not supported on consul-dataplane, data is sourced from the server agent cache
+// even for "agentless" proxies.
+func CacheLeafCertificate(c *cache.Cache) proxycfg.LeafCertificate {
+	return &cacheProxyDataSource[*cachetype.ConnectCALeafRequest]{c, cachetype.ConnectCALeafName}
 }
 
 // CachePrepraredQuery satisfies the proxycfg.PreparedQuery interface by

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package upgrade
 
@@ -18,16 +18,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-)
-
-type testcase struct {
-	oldVersion    string
-	targetVersion string
-	expectErr     bool
-}
-
-var (
-	tcs []testcase
 )
 
 // Test upgrade a cluster of latest version to the target version

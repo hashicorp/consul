@@ -5,7 +5,7 @@ description: >-
   Learn how to revert Consul to the BoltDB backend after enabled the WAL (write-ahead log) LogStore backend shipped in Consul 1.15.
 ---
 
-# Revert storage backend to BoltDB from WAL
+# Revert storage backend to BoltDB from WAL 
 
 This topic describes how to revert your Consul storage backend from the experimental WAL LogStore backend to the default BoltDB.
 
@@ -18,14 +18,14 @@ The overall process for reverting to BoltDB consists of the following steps. Rep
 
 ## Stop target server gracefully
 
-Stop the target server gracefully. For example, if you are using `systemd`,
+Stop the target server gracefully. For example, if you are using `systemd`, 
 run the following command:
 
 ```shell-session
 $ systemctl stop consul
 ```
 
-If your environment uses configuration management automation that might interfere with this process, such as Chef or Puppet, you must disable them until you have completely reverted the storage backend.
+If your environment uses configuration management automation that might interfere with this process, such as Chef or Puppet, you must disable them until you have completely revereted the storage backend.
 
 ## Remove data directory from target server
 

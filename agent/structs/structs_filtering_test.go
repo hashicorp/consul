@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
@@ -196,16 +193,6 @@ var expectedFieldConfigEnvoyExtensions bexpr.FieldConfigurations = bexpr.FieldCo
 		StructFieldName:     "Required",
 		CoerceFn:            bexpr.CoerceBool,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-	},
-	"ConsulVersion": &bexpr.FieldConfiguration{
-		StructFieldName:     "ConsulVersion",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
-	},
-	"EnvoyVersion": &bexpr.FieldConfiguration{
-		StructFieldName:     "EnvoyVersion",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 }
 var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigurations{
@@ -751,11 +738,6 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 	},
 	"SourcePeer": &bexpr.FieldConfiguration{
 		StructFieldName:     "SourcePeer",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
-	},
-	"SourceSamenessGroup": &bexpr.FieldConfiguration{
-		StructFieldName:     "SourceSamenessGroup",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},

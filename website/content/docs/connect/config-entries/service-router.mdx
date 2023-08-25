@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Service Router Configuration Entry Reference
-description: >-
+description: >- 
   Service router configuration entries are L7 traffic management tools for redirecting requests for a service to a particular instance or set of instances. Learn how to write `service-router` config entries in HCL or YAML with a specification reference, configuration model, a complete example, and example code by use case.
 ---
 
@@ -23,7 +23,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Name`](#name): string | required
 - [`Namespace`](#namespace): string <EnterpriseAlert inline />
 - [`Partition`](#partition): string | `default` <EnterpriseAlert inline />
-- [`Meta`](#meta): map
+- [`Meta`](#meta): map 
 - [`Routes`](#routes): list
   - [`Match`](#routes-match): map
     - [`HTTP`](#routes-match-http): map
@@ -114,7 +114,7 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`add`](#spec-routes-destination-responseheaders): map
         - [`set`](#spec-routes-destination-responseheaders): map
         - [`remove`](#spec-routes-destination-responseheaders): map
-
+  
 </Tab>
 </Tabs>
 
@@ -169,7 +169,7 @@ Routes = [
         Name   = "<text-to-match-in-query-parameter>"      ## required when specifying Routes.Match.HTTP.Header
         Present = false
         Exact = "<exact-text-to-match-in-query-parameter>"
-        Regex = "<regex-to-match-in-query-parameter>"
+        Regex = "<regex-to-match-in-query-paramater>"
       ]
      }
    },
@@ -181,7 +181,7 @@ Routes = [
        Namespace             = "<namespace-at-destination>"
        Partition             = "<partition-at-destination>"
        PrefixRewrite         = "<new-prefix-after-routing>"   ## required specifying either Routes.Match.HTTP.PathPrefix or Routes.Match.HTTP.PathExact
-       RequestTimeout        = 0
+       RequestTimeout        = 0 
        IdleTimeout           = 0
        NumRetries            = 1
        RetryOnConnectFailure = false
@@ -222,9 +222,9 @@ Routes = [
       "HTTP": {
         "PathExact": "<exact/http/path>"                     // cannot specify with PathPrefix or PathRegex
       },
-      "HTTP": {
+      "HTTP": { 
         "PathPrefix": "<path/prefix>"                        // cannot specify with PathExact or PathRegex
-      },
+      }, 
       "HTTP": {
        "PathRegex": "<regex/path>"                           // cannot specify with PathPrefix or PathExact
       },
@@ -249,7 +249,7 @@ Routes = [
          "Name": "<text-to-match-in-query-parameter>",         // required when specifying Routes.Match.HTTP.Header
          "Present": false,
          "Exact": "<exact-text-to-match-in-query-parameter>",
-         "Regex": "<regex-to-match-in-query-parameter>"
+         "Regex": "<regex-to-match-in-query-paramater>"
        ]
       }
     },
@@ -260,7 +260,7 @@ Routes = [
        "Namespace": "<namespace-at-destination>",
        "Partition": "<partition-at-destination>",
        "PrefixRewrite": "<new-prefix-after-routing>",           // required specifying either Routes.Match.HTTP.PathPrefix or Routes.Match.HTTP.PathExact
-       "RequestTimeout": 0,
+       "RequestTimeout": 0, 
        "IdleTimeout": 0,
        "NumRetries": 1,
        "RetryOnConnectFailure": false,
@@ -288,7 +288,7 @@ Routes = [
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1                  # required
-kind: ServiceRouter                                        # required
+kind: ServiceRouter                                        # required            
 metadata:
   name: <serviceName>
   namespace: <namespace>
@@ -301,7 +301,7 @@ spec:
          pathPrefix: <path/prefix>                         ## cannot specify with pathExact or pathRegex
        http:
          pathRegex: <regex/path>                           ## cannot specify with pathPrefix or pathExact
-       http:
+       http: 
          methods: [GET, POST, PUT]
        http:
          header:                                           ## do not specify present, exact, prefix, suffix, and regex in a single header
@@ -317,7 +317,7 @@ spec:
           - name: <text-to-match-in-query-parameter>        ## required when specifying spec.routes.match.http.header
             present: false
             exact: <exact-text-to-match-in-query-parameter>
-            regex: <regex-to-match-in-query-parameter>
+            regex: <regex-to-match-in-query-paramater>
 
     destination:
        service: <service-name-at-destination>
@@ -325,7 +325,7 @@ spec:
        namespace: <namespace-at-destination>
        partition: <partition-at-destination>
        prefixRewrite: <new-prefix-after-routing>             ## required specifying either spec.routes.match.http.pathPrefix or spec.routes.match.http.pathExact
-       requestTimeout: 0
+       requestTimeout: 0 
        idleTimeout: 0
        numRetries: 1
        retryOnConnectFailure: false
@@ -351,15 +351,15 @@ This section provides details about the fields you can configure in the service 
 
 <Tab heading="HCL" group="hcl">
 
-### `Kind`
+### `Kind` 
 
-Specifies the type of configuration entry to implement.
+Specifies the type of configuration entry to implement. 
 
 #### Values
 
 - Default: none
 - This field is required.
-- Data type: String value that must be set to `service-router`.
+- Data type: String value that must be set to `service-router`. 
 
 ### `Name`
 
@@ -609,7 +609,7 @@ Specifies that a request matches when the query parameter with the given name is
 
 - Default: None
 - Data type: String
-
+  
 ### `Routes[].Match{}.HTTP{}.QueryParam[].Regex`
 
 Specifies that a request matches when the query parameter with the given name matches this regular expression. When using this field, do not configure `Present` or `Exact` in the same map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
@@ -646,7 +646,7 @@ Specifies the target service to route matching requests to, as well as behavior 
 
 Specifies the name of the service to resolve. If this parameter is not specified, the default service name is inherited from the configuration entry’s [`Name` field](#name).
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -655,7 +655,7 @@ Specifies the name of the service to resolve. If this parameter is not specified
 
 Specifies a named subset of the given service to resolve instead of the one defined as that service's `DefaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If this parameter is not specified, the default subset is used.
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -664,7 +664,7 @@ Specifies a named subset of the given service to resolve instead of the one defi
 
 Specifies the Consul namespace to resolve the service from instead of the current namespace. If this parameter is not specified, the current namespace is used.
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -673,7 +673,7 @@ Specifies the Consul namespace to resolve the service from instead of the curren
 
 Specifies the Consul admin partition to resolve the service from instead of the current partition. If this parameter is not specified, the current partition is used.
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -682,7 +682,7 @@ Specifies the Consul admin partition to resolve the service from instead of the 
 
 Specifies rewrites to the HTTP request path before proxying it to its final destination. This field requires that either [`Routes[].Match{}.HTTP{}.PathPrefix`](#routes-match-http-pathprefix) or [`Routes[].Match{}.HTTP{}.PathExact`](#routes-match-http-pathexact) be configured on this route.
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -691,7 +691,7 @@ Specifies rewrites to the HTTP request path before proxying it to its final dest
 
 Specifies the total amount of time permitted for the entire downstream request to be processed, including retry attempts.
 
-#### Values
+#### Values 
 
 - Default: `0`
 - Data type: Integer
@@ -700,7 +700,7 @@ Specifies the total amount of time permitted for the entire downstream request t
 
 Specifies the total amount of time permitted for the request stream to be idle.
 
-#### Values
+#### Values 
 
 - Default: `0`
 - Data type: Integer
@@ -709,7 +709,7 @@ Specifies the total amount of time permitted for the request stream to be idle.
 
 Specifies the number of times to retry the request when a retry condition occurs. Configure this field and other retry fields in `Destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic). You cannot set the value to `0`. To disable retries, unset all other retry settings: `RetryOnConnectFailure`, `RetryOn`, `RetryOnStatusCodes`.
 
-#### Values
+#### Values 
 
 - Default: `1`
 - Data type: Integer
@@ -718,7 +718,7 @@ Specifies the number of times to retry the request when a retry condition occurs
 
 Specifies that connection failure errors that trigger a retry request. Configure this field and other retry fields in `Destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
 
-#### Values
+#### Values 
 
 - Default: `false`
 - Data type: Boolean
@@ -766,7 +766,7 @@ The following retry conditions are supported:
 
 Specifies a list of integers for [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) that trigger a retry request. Configure this field and other retry fields in `Destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic)
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: List of integers
@@ -785,10 +785,10 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 
 The following table describes how to configure values for request headers:
 
-| Rule | Description | Type |
-| ---       | ---         | ---         |
-| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
+| Rule | Description | Type |   
+| ---       | ---         | ---         |  
+| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
 
 #### Use variable placeholders
@@ -797,7 +797,7 @@ For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the
 
 ### `Routes[].Destination{}.ResponseHeaders`
 
-Specifies a set of HTTP-specific header modification rules applied to responses routed with the service router. You cannot configure request headers if the listener protocol is set to `tcp`.
+Specifies a set of HTTP-specific header modification rules applied to responses routed with the service router. You cannot configure request headers if the listener protocol is set to `tcp`. 
 
 #### Values
 
@@ -808,12 +808,12 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
   - `Remove`: Map of one or more string key-value pairs.
 
 The following table describes how to configure values for response headers:
-
-| Rule | Description | Type |
-| ---       | ---         | ---         |
-| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
+  
+| Rule | Description | Type | 
+| ---       | ---         | ---         |  
+| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
 
 #### Use variable placeholders
 
@@ -825,21 +825,21 @@ For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the
 
 ### `apiVersion`
 
-Kubernetes-only parameter that specifies the version of the Consul API that the configuration entry maps to Kubernetes configurations. The value must be `consul.hashicorp.com/v1alpha1`.
+Kubernetes-only parameter that specifies the version of the Consul API that the configuration entry maps to Kubernetes configurations. The value must be `consul.hashicorp.com/v1alpha1`.  
 
-### `kind`
+### `kind` 
 
-Specifies the type of configuration entry to implement.
+Specifies the type of configuration entry to implement. 
 
 #### Values
 
 - Default: None
 - This field is required.
-- Data type: String value that must be set to `ServiceRouter`.
+- Data type: String value that must be set to `ServiceRouter`. 
 
 ### `metadata.name`
 
-Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster. 
 
 #### Values
 
@@ -861,9 +861,9 @@ Map that contains the details about the `ServiceRouter` configuration entry. The
 
 #### Values
 
-- Default: None
+- Default: None 
 - This field is required.
-- Data type: Object containing [`spec.routes`](#spec-routes) configuration
+- Data type: Object containing [`spec.routes`](#spec-routes) configuration 
 
 ### `spec.meta`
 
@@ -871,10 +871,10 @@ Specifies key-value pairs to add to the KV store.
 
 #### Values
 
-- Default: none
-- Data type: Map of one or more key-value pairs
+- Default: none 
+- Data type: Map of one or more key-value pairs 
   - keys: String
-  - values: String, integer, or float
+  - values: String, integer, or float 
 
 ### `spec.routes`
 
@@ -1085,7 +1085,7 @@ Specifies that a request matches when the query parameter with the given name is
 
 - Default: None
 - Data type: String
-
+  
 ### `spec.routes[].match.http.queryParam[].regex`
 
 Specifies that a request matches when the query parameter with the given name matches this regular expression. When using this field, do not configure `present` or `exact` in the same map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
@@ -1122,7 +1122,7 @@ Specifies the target service to route matching requests to, as well as behavior 
 
 Specifies the name of the service to resolve. If this parameter is not specified, the default service name is inherited from the configuration entry’s [`metadata.name` field](#metadata-name).
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -1131,7 +1131,7 @@ Specifies the name of the service to resolve. If this parameter is not specified
 
 Specifies a named subset of the given service to resolve instead of the one defined as that service's `defaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If this parameter is not specified, the default subset is used.
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -1140,7 +1140,7 @@ Specifies a named subset of the given service to resolve instead of the one defi
 
 Specifies the Consul namespace to resolve the service from instead of the current namespace. If this parameter is not specified, the current namespace is used.
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -1149,7 +1149,7 @@ Specifies the Consul namespace to resolve the service from instead of the curren
 
 Specifies the Consul admin partition to resolve the service from instead of the current partition. If this parameter is not specified, the current partition is used.
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -1158,7 +1158,7 @@ Specifies the Consul admin partition to resolve the service from instead of the 
 
 Specifies rewrites to the HTTP request path before proxying it to its final destination. This field requires that either [`spec.routes[].match.http.pathPrefix`](#spec-routes-match-http-pathprefix) or [`spec.routes[].match.http.pathExact`](#spec-routes-match-http-pathexact) be configured on this route.
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: String
@@ -1167,7 +1167,7 @@ Specifies rewrites to the HTTP request path before proxying it to its final dest
 
 Specifies the total amount of time permitted for the entire downstream request to be processed, including retry attempts.
 
-#### Values
+#### Values 
 
 - Default: `0`
 - Data type: Integer
@@ -1176,7 +1176,7 @@ Specifies the total amount of time permitted for the entire downstream request t
 
 Specifies the total amount of time permitted for the request stream to be idle.
 
-#### Values
+#### Values 
 
 - Default: `0`
 - Data type: Integer
@@ -1185,7 +1185,7 @@ Specifies the total amount of time permitted for the request stream to be idle.
 
 Specifies the number of times to retry the request when a retry condition occurs. Configure this field and other retry fields in `spec.routes.destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic). You cannot set the value to `0`. To disable retries, unset all other retry settings: `retryOnConnectFailure`, `retryOn`, `retryOnStatusCodes`.
 
-#### Values
+#### Values 
 
 - Default: `1`
 - Data type: Integer
@@ -1194,7 +1194,7 @@ Specifies the number of times to retry the request when a retry condition occurs
 
 Specifies that connection failure errors that trigger a retry request. Configure this field and other retry fields in `spec.routes[].destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
 
-#### Values
+#### Values 
 
 - Default: `false`
 - Data type: Boolean
@@ -1242,7 +1242,7 @@ The following retry conditions are supported:
 
 Specifies a list of integers for [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) that trigger a retry request. Configure this field and other retry fields in `spec.routes[].destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic)
 
-#### Values
+#### Values 
 
 - Default: None
 - Data type: List of integers
@@ -1261,10 +1261,10 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 
 The following table describes how to configure values for request headers:
 
-| Rule | Description | Type |
-| --- 	    | ---	       | ---         |
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
+| Rule | Description | Type |   
+| --- 	    | ---	       | ---         |  
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
 
 #### Use variable placeholders
@@ -1284,12 +1284,12 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
   - `remove`: Map of one or more string key-value pairs.
 
 The following table describes how to configure values for response headers:
-
-| Rule | Description | Type |
-| --- 	    | ---	       | ---         |
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
+  
+| Rule | Description | Type | 
+| --- 	    | ---	       | ---         |  
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
 
 #### Use variable placeholders
 
@@ -1301,7 +1301,7 @@ For `add` and `set`, if the service is configured to use Envoy as the proxy, the
 
 ## Examples
 
-The following examples demonstrate common service router configuration patterns for specific use cases.
+The following examples demonstrate common service router configuration patterns for specific use cases. 
 
 ### Path prefix matching
 
@@ -1568,7 +1568,7 @@ spec:
 
 The following example configures Consul so that when a request for the `orders` service passes through the service mesh, Consul routes the traffic to the `products` service or the `procurement` service based on the HTTP path that originated the request:
 
-- If it originates from the `/coffees` path, the request routes to the `products` service, times out after 15 seconds, and attempts 5 retries.
+- If it originates from the `/coffees` path, the request routes to the `products` service, times out after 15 seconds, and attempts 5 retries. 
 - If it originates from the `/orders` path, the request routes to the `procurement` services, times out after 10 seconds, and attempts 3 retries.
 
 <Tabs>

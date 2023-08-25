@@ -26,6 +26,6 @@ Feature: dc / peers / establish: Peer Establish Peering
         PeerName: new-peer
         PeeringToken: an-encoded-token
     ---
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
     And the url should be /dc-1/peers/new-peer/imported-services

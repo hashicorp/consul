@@ -1,3 +1,0 @@
-```release-note:bug
-Fix a race condition where an event is published before the data associated is commited to memdb.
-```

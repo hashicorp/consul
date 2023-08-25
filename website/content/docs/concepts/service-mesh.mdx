@@ -53,13 +53,13 @@ The API gateway will route the incoming requests to the respective service. The 
 
 A service mesh specializes in the network management of services and the communication between services.
 The mesh is responsible for keeping track of services and their health status, IP address, and traffic routing and ensuring all traffic between services is authenticated and encrypted.
-Unlike some API gateways, a service mesh will track all registered services' lifecycle and ensure requests are routed to healthy instances of the service.
+Unlike API gateways, a service mesh will track all registered services' lifecycle and ensure requests are routed to healthy instances of the service.
 API gateways are frequently deployed alongside a load balancer to ensure traffic is directed to healthy and available instances of the service.
 The mesh reduces the load balancer footprint as routing responsibilities are handled in a decentralized manner.
 
 API gateways can be used with a service mesh to bridge external networks (non-mesh) with a service mesh.
 
--> **API gateways and traffic direction:** API gateways are often used to accept north-south traffic. North-south traffic is networking traffic that either enters or exits a datacenter or a virtual private network (VPC). You can connect API gateways to a service mesh and provide access to it from outside the mesh.
+-> **API gateways and traffic direction:** API gateways are often used to accept north-south traffic. North-south traffic is networking traffic that either enters or exits a data center or a virtual private network (VPC).
 A service mesh is primarily used for handling east-west traffic. East-west traffic traditionally remains inside a data center or a VPC.
 A service mesh can be connected to another service mesh in another data center or VPC to form a federated mesh.
 

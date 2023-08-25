@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: **(Enterprise Only)** Add support for specifying "Partition" and "Namespace" in Prepared Queries failover rules.
-```

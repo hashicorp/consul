@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 @import './skin';
 @import './layout';
 %main-content table {
@@ -26,7 +21,7 @@ table.consul-metadata-list tbody tr:hover {
 
 %table th span::after {
   @extend %with-info-circle-outline-mask, %as-pseudo;
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-500));
   margin-left: 4px;
 }
 %table tbody tr {
@@ -36,12 +31,12 @@ table.consul-metadata-list tbody tr:hover {
   padding: 0;
 }
 %table tbody tr:hover {
-  box-shadow: var(--token-elevation-high-box-shadow);
+  box-shadow: var(--decor-elevation-300);
 }
 
 %table td.folder::before {
   @extend %with-folder-outline-mask, %as-pseudo;
-  background-color: var(--token-color-palette-neutral-300);
+  background-color: rgb(var(--tone-gray-300));
   margin-top: 1px;
   margin-right: 5px;
 }

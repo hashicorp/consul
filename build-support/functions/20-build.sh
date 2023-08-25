@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 function supported_osarch {
    # Arguments:
    #   $1 - osarch - example, linux/amd64

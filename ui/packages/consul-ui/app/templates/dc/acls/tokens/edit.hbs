@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <Route
   @name={{routeName}}
 as |route|>
@@ -57,58 +52,39 @@ as |dc partition nspace item create|}}
       </BlockSlot>
       <BlockSlot @name="actions">
   {{#if (not create)}}
-    <Hds::ButtonSet>
     {{#if (not-eq item.AccessorID token.AccessorID)}}
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
           <BlockSlot @name="action" as |confirm|>
-            <Hds::Button
-              @text='Use'
-              @color='secondary'
-              data-test-use
-              {{ action confirm 'use' item }}
-            />
+              <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
             <p>
                 {{message}}
             </p>
-            <Hds::ButtonSet>
-              <Hds::Button
-                @text='Confirm Use'
-                @color='critical'
-                data-test-confirm-use
-                {{action execute}}
-              />
-              <Hds::Button
-                @text='Cancel'
-                @color='secondary'
-                {{action cancel}}
-              />
-            </Hds::ButtonSet>
+            <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
+            <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
           </BlockSlot>
         </ConfirmationDialog>
     {{/if}}
     {{#if (can "duplicate token" item=item)}}
-      <Hds::Button
-        @text='Duplicate'
-        @color='secondary'
-        data-test-clone
-        {{ action "clone" item }}
-      />
+        <button data-test-clone type="button" {{ action "clone" item }}>Duplicate</button>
     {{/if}}
-    </Hds::ButtonSet>
   {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
           {{#if (token/is-legacy item)}}
-            <Hds::Alert @type='inline' class='mb-6' as |A|>
-              <A.Title>Update</A.Title>
-              <A.Description>We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style.</A.Description>
-              <A.Link::Standalone @text='Learn more'
-                                  @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html"
-                                  @icon='docs-link'
-                                  @iconPosition='trailing' />
-            </Hds::Alert>
+            <Notice
+              @type="info"
+            as |notice|>
+              <notice.Header>
+                <h2>Update</h2>
+              </notice.Header>
+              <notice.Body>
+                <p>
+                  We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.
+                </p>
+              </notice.Body>
+            </Notice>
           {{/if}}
   {{#if (not create) }}
         <div class="definition-table">

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 type Usage struct {
@@ -10,7 +7,6 @@ type Usage struct {
 
 // ServiceUsage contains information about the number of services and service instances for a datacenter.
 type ServiceUsage struct {
-	Nodes                   int
 	Services                int
 	ServiceInstances        int
 	ConnectServiceInstances map[string]int

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package gateways
 
 import (
@@ -859,8 +856,8 @@ func gatewayAccepted() structs.Condition {
 	)
 }
 
-// invalidCertificate returns a condition used when a gateway references a
-// certificate that does not exist. It takes a ref used to scope the condition
+// validCertificate returns a condition used when a gateway references a
+// certificate that does exist. It takes a ref used to scope the condition
 // to a given APIGateway listener.
 func validCertificate(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(

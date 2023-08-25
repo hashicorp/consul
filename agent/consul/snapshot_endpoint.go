@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 // The snapshot endpoint is a special non-RPC endpoint that supports streaming
 // for taking and restoring snapshots for disaster recovery. This gets wired
 // directly into Consul's stream handler, and a new TCP connection is made for

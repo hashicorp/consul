@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
 // +build !consulent
 
@@ -24,19 +21,6 @@ func TestServiceResolverConfigEntry_CE(t *testing.T) {
 	}
 
 	cases := []testcase{
-		{
-			name: "failover with a sameness group on CE",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {
-						SamenessGroup: "ns1",
-					},
-				},
-			},
-			validateErr: `Bad Failover["*"]: Setting SamenessGroup requires Consul Enterprise`,
-		},
 		{
 			name: "failover with a namespace on CE",
 			entry: &ServiceResolverConfigEntry{
@@ -87,28 +71,6 @@ func TestServiceResolverConfigEntry_CE(t *testing.T) {
 				},
 			},
 			validateErr: `Bad Failover["*"]: Setting Namespace requires Consul Enterprise`,
-		},
-		{
-			name: "setting failover Namespace on CE",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": {Service: "s1", Policy: &ServiceResolverFailoverPolicy{Mode: "something"}},
-				},
-			},
-			validateErr: `Bad Failover["*"]: Setting failover policies requires Consul Enterprise`,
-		},
-		{
-			name: "setting redirect SamenessGroup on CE",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Redirect: &ServiceResolverRedirect{
-					SamenessGroup: "group",
-				},
-			},
-			validateErr: `Redirect: Setting SamenessGroup requires Consul Enterprise`,
 		},
 		{
 			name: "setting redirect Namespace on CE",

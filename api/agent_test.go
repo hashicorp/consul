@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -165,21 +162,6 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 	}
 
 	require.Equal(t, 1, len(members))
-
-	members, err = agent.MembersOpts(MembersOpts{
-		WAN:    true,
-		Filter: `Tags["dc"] == "not-Exist"`,
-	})
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	require.Equal(t, 0, len(members))
-
-	_, err = agent.MembersOpts(MembersOpts{
-		WAN:    true,
-		Filter: `Tags["dc"] == invalid-bexpr-value`,
-	})
-	require.ErrorContains(t, err, "Failed to create boolean expression evaluator")
 }
 
 func TestAPI_AgentMembers(t *testing.T) {
@@ -206,7 +188,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
-	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
+
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo",
@@ -221,7 +203,6 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
-		Locality: locality,
 	}
 
 	regupdate := &AgentServiceRegistration{
@@ -234,8 +215,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 				Port:    80,
 			},
 		},
-		Port:     9000,
-		Locality: locality,
+		Port: 9000,
 	}
 
 	if err := agent.ServiceRegister(reg); err != nil {
@@ -271,14 +251,12 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, out.Service.Port)
-	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, outs[0].Service.Port)
-	require.Equal(t, locality, outs[0].Service.Locality)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -362,7 +340,6 @@ func TestAPI_AgentServices(t *testing.T) {
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
 
-	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo",
@@ -377,7 +354,6 @@ func TestAPI_AgentServices(t *testing.T) {
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
-		Locality: locality,
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
@@ -414,7 +390,6 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthCritical, state)
 	require.Equal(t, 8000, out.Service.Port)
-	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
@@ -1385,20 +1360,6 @@ func TestAPI_AgentForceLeavePrune(t *testing.T) {
 
 	// Eject somebody
 	err := agent.ForceLeavePrune(s.Config.NodeName)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-}
-
-func TestAPI_AgentForceLeaveOptions(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	agent := c.Agent()
-
-	// Eject somebody with token
-	err := agent.ForceLeaveOptions(s.Config.NodeName, ForceLeaveOpts{Prune: true}, &QueryOptions{Token: "testToken"})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

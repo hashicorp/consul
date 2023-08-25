@@ -1,40 +1,47 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 {{#if (eq @type 'remove')}}
   {{#if @error}}
-    <Hds::Toast
-      @color='critical'
+    <Notice
+      class="notification-delete"
+      @type="error"
       ...attributes
-      as |T|>
-      <T.Title>Error!</T.Title>
-      <T.Description>
-        There was an error invalidating the Lock Session.
-        {{#if (and @error.status @error.detail)}}
+    as |notice|>
+      <notice.Header>
+        <strong>Error!</strong>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          There was an error invalidating the Lock Session.
+      {{#if (and @error.status @error.detail)}}
           <br />{{@error.status}}: {{@error.detail}}
-        {{/if}}
-      </T.Description>
-    </Hds::Toast>
+      {{/if}}
+        </p>
+      </notice.Body>
+    </Notice>
   {{else}}
-    <Hds::Toast
-      @color='success'
+    <Notice
+      class="notification-delete"
+      @type="success"
       ...attributes
-      as |T|>
-      <T.Title>Success!</T.Title>
-      <T.Description>
-        Your Lock Session has been invalidated.
-      </T.Description>
-    </Hds::Toast>
+    as |notice|>
+      <notice.Header>
+        <strong>Success!</strong>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          Your Lock Session has been invalidated.
+        </p>
+      </notice.Body>
+    </Notice>
   {{/if}}
 {{else if (eq @type 'kv')}}
-  <Hds::Alert @type='inline' @color='warning' class='mb-3' data-test-session-warning as |A|>
-    <A.Title>Warning</A.Title>
-    <A.Description>This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session.</A.Description>
-    <A.Link::Standalone @text='Learn more'
-                        @href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html"
-                        @icon='docs-link'
-                        @iconPosition='trailing' />
-  </Hds::Alert>
+  <Notice
+    @type="warning"
+    data-test-session-warning
+  as |notice|>
+    <notice.Body>
+      <p>
+        <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
+      </p>
+    </notice.Body>
+  </Notice>
 {{/if}}

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 // QueryFailoverOptions sets options about how we fail over if there are no
@@ -29,14 +26,6 @@ type QueryFailoverTarget struct {
 
 	// Datacenter specifies a datacenter to try during failover.
 	Datacenter string
-
-	// Partition specifies a partition to try during failover
-	// Note: Partition are available only in Consul Enterprise
-	Partition string `json:",omitempty"`
-
-	// Namespace specifies a namespace to try during failover
-	// Note: Namespaces are available only in Consul Enterprise
-	Namespace string `json:",omitempty"`
 }
 
 // QueryDNSOptions controls settings when query results are served over DNS.
@@ -51,16 +40,8 @@ type ServiceQuery struct {
 	// Service is the service to query.
 	Service string
 
-	// SamenessGroup specifies a sameness group to query. The first member of the Sameness Group will
-	// be targeted first on PQ execution and subsequent members will be targeted during failover scenarios.
-	// This field is mutually exclusive with Failover.
-	SamenessGroup string `json:",omitempty"`
-
 	// Namespace of the service to query
 	Namespace string `json:",omitempty"`
-
-	// Partition of the service to query
-	Partition string `json:",omitempty"`
 
 	// Near allows baking in the name of a node to automatically distance-
 	// sort from. The magic "_agent" value is supported, which sorts near
@@ -69,7 +50,7 @@ type ServiceQuery struct {
 
 	// Failover controls what we do if there are no healthy nodes in the
 	// local datacenter.
-	Failover QueryFailoverOptions `json:",omitempty"`
+	Failover QueryFailoverOptions
 
 	// IgnoreCheckIDs is an optional list of health check IDs to ignore when
 	// considering which nodes are healthy. It is useful as an emergency measure

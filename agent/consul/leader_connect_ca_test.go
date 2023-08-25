@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -259,8 +256,8 @@ type mockCAProvider struct {
 
 func (m *mockCAProvider) Configure(cfg ca.ProviderConfig) error { return nil }
 func (m *mockCAProvider) State() (map[string]string, error)     { return nil, nil }
-func (m *mockCAProvider) GenerateCAChain() (string, error) {
-	return m.rootPEM, nil
+func (m *mockCAProvider) GenerateRoot() (ca.RootResult, error) {
+	return ca.RootResult{PEM: m.rootPEM}, nil
 }
 func (m *mockCAProvider) GenerateIntermediateCSR() (string, string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
@@ -270,13 +267,13 @@ func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) err
 	m.callbackCh <- "provider/SetIntermediate"
 	return nil
 }
-func (m *mockCAProvider) ActiveLeafSigningCert() (string, error) {
+func (m *mockCAProvider) ActiveIntermediate() (string, error) {
 	if m.intermediatePem == "" {
 		return m.rootPEM, nil
 	}
 	return m.intermediatePem, nil
 }
-
+func (m *mockCAProvider) GenerateIntermediate() (string, error)                     { return "", nil }
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
 func (m *mockCAProvider) SignIntermediate(*x509.CertificateRequest) (string, error) { return "", nil }
 func (m *mockCAProvider) CrossSignCA(*x509.Certificate) (string, error)             { return "", nil }
@@ -624,7 +621,7 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 	require.Equal(t, connect.HexString(cert.SubjectKeyId), origRoot.SigningKeyID)
 
 	t.Run("update config without changing root", func(t *testing.T) {
-		require.NoError(t, s1.caManager.UpdateConfiguration(&structs.CARequest{
+		err = s1.caManager.UpdateConfiguration(&structs.CARequest{
 			Config: &structs.CAConfiguration{
 				Provider: "vault",
 				Config: map[string]interface{}{
@@ -635,81 +632,26 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 					"CSRMaxPerSecond":     100,
 				},
 			},
-		}))
-
-		_, newRoot, err := s1.fsm.State().CARootActive(nil)
+		})
 		require.NoError(t, err)
-		require.Len(t, newRoot.IntermediateCerts, 1)
-		newRoot.CreateIndex = s1.caManager.providerRoot.CreateIndex
-		newRoot.ModifyIndex = s1.caManager.providerRoot.ModifyIndex
-
-		orig, err := connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
+		_, sameRoot, err := s1.fsm.State().CARootActive(nil)
 		require.NoError(t, err)
-		require.Equal(t, connect.HexString(orig.SubjectKeyId), newRoot.SigningKeyID)
+		require.Len(t, sameRoot.IntermediateCerts, 1)
+		sameRoot.CreateIndex = s1.caManager.providerRoot.CreateIndex
+		sameRoot.ModifyIndex = s1.caManager.providerRoot.ModifyIndex
 
-		require.Equal(t, origRoot, newRoot)
-		require.Equal(t, newRoot, s1.caManager.providerRoot)
+		cert, err := connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(sameRoot))
+		require.NoError(t, err)
+		require.Equal(t, connect.HexString(cert.SubjectKeyId), sameRoot.SigningKeyID)
+
+		require.Equal(t, origRoot, sameRoot)
+		require.Equal(t, sameRoot, s1.caManager.providerRoot)
 	})
 
-	t.Run("update config and change root only", func(t *testing.T) {
-		// Read the active leaf CA
-		provider, _ := s1.caManager.getCAProvider()
-
-		before, err := provider.ActiveLeafSigningCert()
-		require.NoError(t, err)
-
+	t.Run("update config and change root", func(t *testing.T) {
 		vaultToken2 := ca.CreateVaultTokenWithAttrs(t, vault.Client(), &ca.VaultTokenAttributes{
 			RootPath:         "pki-root-2",
-			IntermediatePath: "pki-intermediate",
-			ConsulManaged:    true,
-			WithSudo:         true,
-		})
-
-		require.NoError(t, s1.caManager.UpdateConfiguration(&structs.CARequest{
-			Config: &structs.CAConfiguration{
-				Provider: "vault",
-				Config: map[string]interface{}{
-					"Address":             vault.Addr,
-					"Token":               vaultToken2,
-					"RootPKIPath":         "pki-root-2/",
-					"IntermediatePKIPath": "pki-intermediate/",
-				},
-			},
-		}))
-
-		// fetch the new root from the state store to check that
-		// raft apply has occurred.
-		_, newRoot, err := s1.fsm.State().CARootActive(nil)
-		require.NoError(t, err)
-		require.Len(t, newRoot.IntermediateCerts, 2,
-			"expected one cross-sign cert and one local leaf sign cert")
-
-		// Refresh provider
-		provider, _ = s1.caManager.getCAProvider()
-
-		// Leaf signing cert should have been updated
-		after, err := provider.ActiveLeafSigningCert()
-		require.NoError(t, err)
-
-		require.NotEqual(t, before, after,
-			"expected leaf signing cert to be changed after RootPKIPath was changed")
-
-		cert, err = connect.ParseCert(after)
-		require.NoError(t, err)
-
-		require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
-	})
-
-	t.Run("update config, change root and intermediate", func(t *testing.T) {
-		// Read the active leaf CA
-		provider, _ := s1.caManager.getCAProvider()
-
-		before, err := provider.ActiveLeafSigningCert()
-		require.NoError(t, err)
-
-		vaultToken3 := ca.CreateVaultTokenWithAttrs(t, vault.Client(), &ca.VaultTokenAttributes{
-			RootPath:         "pki-root-3",
-			IntermediatePath: "pki-intermediate-3",
+			IntermediatePath: "pki-intermediate-2",
 			ConsulManaged:    true,
 		})
 
@@ -718,34 +660,22 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 				Provider: "vault",
 				Config: map[string]interface{}{
 					"Address":             vault.Addr,
-					"Token":               vaultToken3,
-					"RootPKIPath":         "pki-root-3/",
-					"IntermediatePKIPath": "pki-intermediate-3/",
+					"Token":               vaultToken2,
+					"RootPKIPath":         "pki-root-2/",
+					"IntermediatePKIPath": "pki-intermediate-2/",
 				},
 			},
 		})
 		require.NoError(t, err)
 
-		// fetch the new root from the state store to check that
-		// raft apply has occurred.
 		_, newRoot, err := s1.fsm.State().CARootActive(nil)
 		require.NoError(t, err)
 		require.Len(t, newRoot.IntermediateCerts, 2,
 			"expected one cross-sign cert and one local leaf sign cert")
+		require.NotEqual(t, origRoot.ID, newRoot.ID)
 
-		// Refresh provider
-		provider, _ = s1.caManager.getCAProvider()
-
-		// Leaf signing cert should have been updated
-		after, err := provider.ActiveLeafSigningCert()
+		cert, err = connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
 		require.NoError(t, err)
-
-		require.NotEqual(t, before, after,
-			"expected leaf signing cert to be changed after RootPKIPath and IntermediatePKIPath were changed")
-
-		cert, err = connect.ParseCert(after)
-		require.NoError(t, err)
-
 		require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
 	})
 }

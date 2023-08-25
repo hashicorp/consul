@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package ca
 
 import (
@@ -79,14 +76,13 @@ func toMapStringString(in map[string]interface{}) (map[string]string, error) {
 	return out, nil
 }
 
-// legacyCheck is used to see if all the parameters needed to /login have been
-// hardcoded in the auth-method's config Parameters field.
-// Note it returns true if any /login specific fields are found (vs. all). This
-// is because the AWS client has multiple possible ways to call /login with
-// different parameters.
-func legacyCheck(params map[string]any, expectedKeys ...string) bool {
-	for _, key := range expectedKeys {
-		if v, ok := params[key]; ok && v != "" {
+// containsVaultLoginParams indicates if the provided auth method contains the
+// config parameters needed to call the auth/<method>/login API directly.
+// It compares the keys in the authMethod.Params struct to the provided slice of
+// keys and if any of the keys match it returns true.
+func containsVaultLoginParams(authMethod *structs.VaultAuthMethod, keys ...string) bool {
+	for _, key := range keys {
+		if _, exists := authMethod.Params[key]; exists {
 			return true
 		}
 	}

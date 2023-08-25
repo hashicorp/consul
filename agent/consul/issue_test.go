@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -33,7 +30,6 @@ func TestHealthCheckRace(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStore(nil)
 		},
-		StorageBackend: consulfsm.NullStorageBackend,
 	})
 	state := fsm.State()
 

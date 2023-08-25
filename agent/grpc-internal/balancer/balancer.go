@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 // package balancer implements a custom gRPC load balancer.
 //
 // Similarly to gRPC's built-in "pick_first" balancer, our balancer will pin the

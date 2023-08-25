@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 func init() {
@@ -29,7 +26,6 @@ func init() {
 	registerEndpoint("/v1/agent/token/", []string{"PUT"}, (*HTTPHandlers).AgentToken)
 	registerEndpoint("/v1/agent/self", []string{"GET"}, (*HTTPHandlers).AgentSelf)
 	registerEndpoint("/v1/agent/host", []string{"GET"}, (*HTTPHandlers).AgentHost)
-	registerEndpoint("/v1/agent/version", []string{"GET"}, (*HTTPHandlers).AgentVersion)
 	registerEndpoint("/v1/agent/maintenance", []string{"PUT"}, (*HTTPHandlers).AgentNodeMaintenance)
 	registerEndpoint("/v1/agent/reload", []string{"PUT"}, (*HTTPHandlers).AgentReload)
 	registerEndpoint("/v1/agent/monitor", []string{"GET"}, (*HTTPHandlers).AgentMonitor)
@@ -101,7 +97,6 @@ func init() {
 	registerEndpoint("/v1/internal/ui/gateway-intentions/", []string{"GET"}, (*HTTPHandlers).UIGatewayIntentions)
 	registerEndpoint("/v1/internal/ui/service-topology/", []string{"GET"}, (*HTTPHandlers).UIServiceTopology)
 	registerEndpoint("/v1/internal/acl/authorize", []string{"POST"}, (*HTTPHandlers).ACLAuthorize)
-	registerEndpoint("/v1/internal/service-virtual-ip", []string{"PUT"}, (*HTTPHandlers).AssignManualServiceVIPs)
 	registerEndpoint("/v1/kv/", []string{"GET", "PUT", "DELETE"}, (*HTTPHandlers).KVSEndpoint)
 	registerEndpoint("/v1/operator/raft/configuration", []string{"GET"}, (*HTTPHandlers).OperatorRaftConfiguration)
 	registerEndpoint("/v1/operator/raft/transfer-leader", []string{"POST"}, (*HTTPHandlers).OperatorRaftTransferLeader)

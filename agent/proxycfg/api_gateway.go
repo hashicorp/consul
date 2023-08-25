@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -8,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/leafcert"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 var _ kindHandler = (*handlerAPIGateway)(nil)
@@ -119,12 +116,10 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 			return err
 		}
 	default:
-		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
-			return err
-		}
+		return (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap)
 	}
 
-	return h.recompileDiscoveryChains(snap)
+	return nil
 }
 
 // handleRootCAUpdate responds to changes in the watched root CA for a gateway
@@ -321,6 +316,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						DestinationNamespace: service.NamespaceOrDefault(),
 						DestinationPartition: service.PartitionOrDefault(),
 						LocalBindPort:        listener.Port,
+						// TODO IngressHosts:         g.Hosts,
 						// Pass the protocol that was configured on the listener in order
 						// to force that protocol on the Envoy listener.
 						Config: map[string]interface{}{
@@ -328,7 +324,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						},
 					}
 
-					listenerKey := APIGatewayListenerKeyFromListener(listener)
+					listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
 					upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 				}
 
@@ -382,7 +378,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					},
 				}
 
-				listenerKey := APIGatewayListenerKeyFromListener(listener)
+				listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
 				upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 			}
 
@@ -407,6 +403,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		snap.APIGateway.Upstreams.set(ref, listener, set)
 	}
 	snap.APIGateway.UpstreamsSet.set(ref, seenUpstreamIDs)
+	// snap.APIGateway.Hosts = TODO
+	snap.APIGateway.AreHostsSet = true
 
 	// Stop watching any upstreams and discovery chains that have become irrelevant
 	for upstreamID, cancelDiscoChain := range snap.APIGateway.WatchedDiscoveryChains {
@@ -427,46 +425,6 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 		cancelDiscoChain()
 		delete(snap.APIGateway.WatchedDiscoveryChains, upstreamID)
-	}
-
-	return nil
-}
-
-func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error {
-	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
-
-	for name, listener := range snap.APIGateway.Listeners {
-		boundListener, ok := snap.APIGateway.BoundListeners[name]
-		if !(ok && snap.APIGateway.GatewayConfig.ListenerIsReady(name)) {
-			// Skip any listeners that don't have a bound listener. Once the bound listener is created, this will be run again.
-			// skip any listeners that might be in an invalid state
-			continue
-		}
-
-		// Create a synthesized discovery chain for each service.
-		services, upstreams, compiled, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, listener, boundListener)
-		if err != nil {
-			return err
-		}
-
-		if len(upstreams) == 0 {
-			// skip if we can't construct any upstreams
-			continue
-		}
-
-		for i, service := range services {
-			id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
-
-			if compiled[i].ServiceName != service.Name {
-				return fmt.Errorf("Compiled Discovery chain for %s does not match service %s", compiled[i].ServiceName, id)
-			}
-			synthesizedChains[id] = compiled[i]
-		}
-	}
-
-	// Merge in additional discovery chains
-	for id, chain := range synthesizedChains {
-		snap.APIGateway.DiscoveryChain[id] = chain
 	}
 
 	return nil
@@ -501,7 +459,7 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		snap.APIGateway.LeafCertWatchCancel()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	err := h.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
+	err := h.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 		Datacenter:     h.source.Datacenter,
 		Token:          h.token,
 		Service:        h.service,

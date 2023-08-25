@@ -1,15 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
-	"sync"
+	"fmt"
 
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // ReadTxn is implemented by memdb.Txn to perform read operations.
@@ -93,13 +90,21 @@ func (c *changeTrackerDB) ReadTxn() *memdb.Txn {
 // data directly into the DB. These cases may use WriteTxnRestore.
 func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	t := &txn{
-		Txn:        c.db.Txn(true),
-		Index:      idx,
-		publish:    c.publisher.Publish,
-		prePublish: c.processChanges,
+		Txn:     c.db.Txn(true),
+		Index:   idx,
+		publish: c.publish,
 	}
 	t.Txn.TrackChanges()
 	return t
+}
+
+func (c *changeTrackerDB) publish(tx ReadTxn, changes Changes) error {
+	events, err := c.processChanges(tx, changes)
+	if err != nil {
+		return fmt.Errorf("failed generating events from changes: %v", err)
+	}
+	c.publisher.Publish(events)
+	return nil
 }
 
 // WriteTxnRestore returns a wrapped RW transaction that should only be used in
@@ -119,11 +124,6 @@ func (c *changeTrackerDB) WriteTxnRestore() *txn {
 	return t
 }
 
-type prePublishFuncType func(tx ReadTxn, changes Changes) ([]stream.Event, error)
-
-//go:generate mockery --name publishFuncType --inpackage
-type publishFuncType func(events []stream.Event)
-
 // txn wraps a memdb.Txn to capture changes and send them to the EventPublisher.
 //
 // This can not be done with txn.Defer because the callback passed to Defer is
@@ -137,11 +137,7 @@ type txn struct {
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
 	Index   uint64
-	publish publishFuncType
-
-	prePublish prePublishFuncType
-
-	commitLock sync.Mutex
+	publish func(tx ReadTxn, changes Changes) error
 }
 
 // Commit first pushes changes to EventPublisher, then calls Commit on the
@@ -162,30 +158,16 @@ func (tx *txn) Commit() error {
 		}
 	}
 
-	// This lock prevents events from concurrent transactions getting published out of order.
-	tx.commitLock.Lock()
-	defer tx.commitLock.Unlock()
-
-	var events []stream.Event
-	var err error
-
-	// prePublish need to generate a list of events before the transaction is commited,
-	// as we loose the changes in the transaction after the call to Commit().
-	if tx.prePublish != nil {
-		events, err = tx.prePublish(tx.Txn, changes)
-		if err != nil {
+	// publish may be nil if this is a read-only or WriteTxnRestore transaction.
+	// In those cases changes should also be empty, and there will be nothing
+	// to publish.
+	if tx.publish != nil {
+		if err := tx.publish(tx.Txn, changes); err != nil {
 			return err
 		}
 	}
 
 	tx.Txn.Commit()
-
-	// publish may be nil if this is a read-only or WriteTxnRestore transaction.
-	// In those cases events should also be empty, and there will be nothing
-	// to publish.
-	if tx.publish != nil {
-		tx.publish(events)
-	}
 	return nil
 }
 
@@ -209,9 +191,6 @@ var (
 	EventTopicHTTPRoute            = pbsubscribe.Topic_HTTPRoute
 	EventTopicInlineCertificate    = pbsubscribe.Topic_InlineCertificate
 	EventTopicBoundAPIGateway      = pbsubscribe.Topic_BoundAPIGateway
-	EventTopicIPRateLimit          = pbsubscribe.Topic_IPRateLimit
-	EventTopicSamenessGroup        = pbsubscribe.Topic_SamenessGroup
-	EventTopicJWTProvider          = pbsubscribe.Topic_JWTProvider
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

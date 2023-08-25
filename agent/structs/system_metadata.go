@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 // SystemMetadataOp is the operation for a request related to system metadata.

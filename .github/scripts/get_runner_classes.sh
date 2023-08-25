@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 #
 # This script generates tag-sets that can be used as runs-on: values to select runners.
 
