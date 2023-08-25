@@ -20,8 +20,15 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 )
 
-// DefaultExportInterval is a default time interval between export of aggregated metrics.
-const DefaultExportInterval = 10 * time.Second
+const (
+	// defaultExportInterval is a default time interval between export of aggregated metrics.
+	// At the time of writing this is the same as the otelsdk.Reader's export interval.
+	defaultExportInterval = 60 * time.Second
+
+	// defaultExportTimeout is the time the otelsdk.Reader waits on an export before cancelling it.
+	// At the time of writing this is the same as the otelsdk.Reader's export timeout default.
+	defaultExportTimeout = 30 * time.Second
+)
 
 // ConfigProvider is required to provide custom metrics processing.
 type ConfigProvider interface {
@@ -75,9 +82,12 @@ type OTELSink struct {
 // NewOTELReader returns a configured OTEL PeriodicReader to export metrics every X seconds.
 // It configures the reader with a custom OTELExporter with a MetricsClient to transform and export
 // metrics in OTLP format to an external url.
-func NewOTELReader(client MetricsClient, endpointProvider EndpointProvider, exportInterval time.Duration) otelsdk.Reader {
-	exporter := NewOTELExporter(client, endpointProvider)
-	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
+func NewOTELReader(client MetricsClient, endpointProvider EndpointProvider) otelsdk.Reader {
+	return otelsdk.NewPeriodicReader(
+		newOTELExporter(client, endpointProvider),
+		otelsdk.WithInterval(defaultExportInterval),
+		otelsdk.WithTimeout(defaultExportTimeout),
+	)
 }
 
 // NewOTELSink returns a sink which fits the Go Metrics MetricsSink interface.
