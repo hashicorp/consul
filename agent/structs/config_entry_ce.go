@@ -53,3 +53,12 @@ func validateExportedServicesName(name string) error {
 func makeEnterpriseConfigEntry(kind, name string) ConfigEntry {
 	return nil
 }
+
+func validateRatelimit(rl *RateLimits) error {
+	if rl != nil {
+		return fmt.Errorf("invalid rate_limit config. Rate limiting is a consul enterprise feature")
+	}
+	return nil
+}
+
+func (rl RateLimits) ToEnvoyExtension() *EnvoyExtension { return nil }
