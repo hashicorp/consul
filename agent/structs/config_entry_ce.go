@@ -56,7 +56,7 @@ func makeEnterpriseConfigEntry(kind, name string) ConfigEntry {
 
 func validateRatelimit(rl *RateLimits) error {
 	if rl != nil {
-		return fmt.Errorf("invalid rate_limit config. Rate limiting is a consul enterprise feature")
+		return fmt.Errorf("invalid rate_limits config. Rate limiting is a consul enterprise feature")
 	}
 	return nil
 }
