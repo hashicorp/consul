@@ -23,7 +23,7 @@ func TestController_API(t *testing.T) {
 	t.Parallel()
 
 	rec := newTestReconciler()
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+	client, registry := svctest.RunResourceService2(t, demo.RegisterTypes)
 
 	concertsChan := make(chan controller.Event)
 	defer close(concertsChan)
@@ -42,7 +42,7 @@ func TestController_API(t *testing.T) {
 		WithBackoff(10*time.Millisecond, 100*time.Millisecond).
 		WithReconciler(rec)
 
-	mgr := controller.NewManager(client, testutil.Logger(t))
+	mgr := controller.NewManager(client, registry, testutil.Logger(t))
 	mgr.Register(ctrl)
 	mgr.SetRaftLeader(true)
 	go mgr.Run(testContext(t))
@@ -164,7 +164,7 @@ func TestController_Placement(t *testing.T) {
 
 	t.Run("singleton", func(t *testing.T) {
 		rec := newTestReconciler()
-		client := svctest.RunResourceService(t, demo.RegisterTypes)
+		client, registry := svctest.RunResourceService2(t, demo.RegisterTypes)
 
 		ctrl := controller.
 			ForType(demo.TypeV2Artist).
@@ -172,7 +172,7 @@ func TestController_Placement(t *testing.T) {
 			WithPlacement(controller.PlacementSingleton).
 			WithReconciler(rec)
 
-		mgr := controller.NewManager(client, testutil.Logger(t))
+		mgr := controller.NewManager(client, registry, testutil.Logger(t))
 		mgr.Register(ctrl)
 		go mgr.Run(testContext(t))
 
@@ -197,7 +197,7 @@ func TestController_Placement(t *testing.T) {
 
 	t.Run("each server", func(t *testing.T) {
 		rec := newTestReconciler()
-		client := svctest.RunResourceService(t, demo.RegisterTypes)
+		client, registry := svctest.RunResourceService2(t, demo.RegisterTypes)
 
 		ctrl := controller.
 			ForType(demo.TypeV2Artist).
@@ -205,7 +205,7 @@ func TestController_Placement(t *testing.T) {
 			WithPlacement(controller.PlacementEachServer).
 			WithReconciler(rec)
 
-		mgr := controller.NewManager(client, testutil.Logger(t))
+		mgr := controller.NewManager(client, registry, testutil.Logger(t))
 		mgr.Register(ctrl)
 		go mgr.Run(testContext(t))
 
@@ -233,8 +233,8 @@ func TestController_String(t *testing.T) {
 }
 
 func TestController_NoReconciler(t *testing.T) {
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
-	mgr := controller.NewManager(client, testutil.Logger(t))
+	client, registry := svctest.RunResourceService2(t, demo.RegisterTypes)
+	mgr := controller.NewManager(client, registry, testutil.Logger(t))
 
 	ctrl := controller.ForType(demo.TypeV2Artist)
 	require.PanicsWithValue(t,

@@ -30,9 +30,10 @@ import (
 type xdsControllerTestSuite struct {
 	suite.Suite
 
-	ctx     context.Context
-	client  *resourcetest.Client
-	runtime controller.Runtime
+	ctx      context.Context
+	client   *resourcetest.Client
+	runtime  controller.Runtime
+	registry resource.Registry
 
 	ctl     *xdsReconciler
 	mapper  *bimapper.Mapper
@@ -54,7 +55,8 @@ type xdsControllerTestSuite struct {
 
 func (suite *xdsControllerTestSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	resourceClient := svctest.RunResourceService(suite.T(), types.Register, catalog.RegisterTypes)
+	resourceClient, registry := svctest.RunResourceService2(suite.T(), types.Register, catalog.RegisterTypes)
+	suite.registry = registry
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.fetcher = mockFetcher
@@ -288,7 +290,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_MultipleProxyStateTemplatesCo
 // Sets up a full controller, and tests that reconciles are getting triggered for the events it should.
 func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() {
 	// Run the controller manager.
-	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
+	mgr := controller.NewManager(suite.client, suite.registry, suite.runtime.Logger)
 	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)

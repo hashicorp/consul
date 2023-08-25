@@ -17,9 +17,9 @@ import (
 
 // Manager is responsible for scheduling the execution of controllers.
 type Manager struct {
-	client pbresource.ResourceServiceClient
-	logger hclog.Logger
-
+	client     pbresource.ResourceServiceClient
+	registry   resource.Registry
+	logger     hclog.Logger
 	raftLeader atomic.Bool
 
 	mu          sync.Mutex
@@ -30,10 +30,11 @@ type Manager struct {
 
 // NewManager creates a Manager. logger will be used by the Manager, and as the
 // base logger for controllers when one is not specified using WithLogger.
-func NewManager(client pbresource.ResourceServiceClient, logger hclog.Logger) *Manager {
+func NewManager(client pbresource.ResourceServiceClient, registry resource.Registry, logger hclog.Logger) *Manager {
 	return &Manager{
-		client: client,
-		logger: logger,
+		client:   client,
+		registry: registry,
+		logger:   logger,
 	}
 }
 
@@ -72,9 +73,10 @@ func (m *Manager) Run(ctx context.Context) {
 		}
 
 		runner := &controllerRunner{
-			ctrl:   desc,
-			client: m.client,
-			logger: logger,
+			ctrl:     desc,
+			client:   m.client,
+			registry: m.registry,
+			logger:   logger,
 		}
 		go newSupervisor(runner.run, m.newLeaseLocked(desc)).run(ctx)
 	}

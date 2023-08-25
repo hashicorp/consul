@@ -4,8 +4,10 @@
 package resource
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -47,5 +49,47 @@ func DefaultNamespacedTenancy() *pbresource.Tenancy {
 		Namespace: DefaultNamespaceName,
 		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
 		PeerName: "local",
+	}
+}
+
+// WildCardTenancyFor returns a valid tenancy with tenancy units set to wildcard for
+// the passed in scope.
+func WildCardTenacyFor(scope pbresource.Scope) *pbresource.Tenancy {
+	switch scope {
+	case pbresource.Scope_PARTITION:
+		return &pbresource.Tenancy{
+			Partition: storage.Wildcard,
+			// TODO(spatel): Remove PeerName once peer tenancy introduced
+			PeerName: storage.Wildcard,
+		}
+	case pbresource.Scope_NAMESPACE:
+		return &pbresource.Tenancy{
+			Partition: storage.Wildcard,
+			Namespace: storage.Wildcard,
+			// TODO(spatel): Remove PeerName once peer tenancy introduced
+			PeerName: storage.Wildcard,
+		}
+	default:
+		panic(fmt.Sprintf("unsupported scope: %v", scope))
+	}
+}
+
+// NamespaceToPartitionTenancy creates a partition scoped tenancy from an existing
+// namespace scoped tenancy.
+func NamespaceToPartitionTenancy(nt *pbresource.Tenancy) *pbresource.Tenancy {
+	pt := DefaultPartitionedTenancy()
+	pt.Partition = nt.Partition
+	return pt
+}
+
+// DefaultTenancyFor returns the default tenancy for the passed in scope.
+func DefaultTenancyFor(scope pbresource.Scope) *pbresource.Tenancy {
+	switch scope {
+	case pbresource.Scope_PARTITION:
+		return DefaultPartitionedTenancy()
+	case pbresource.Scope_NAMESPACE:
+		return DefaultNamespacedTenancy()
+	default:
+		panic(fmt.Sprintf("unsupported scope: %v", scope))
 	}
 }

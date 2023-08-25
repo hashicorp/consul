@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -42,14 +43,18 @@ var (
 )
 
 func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
+	// TODO: inject registration to get scope and properly build default tenancy
+	var tenancy *pbresource.Tenancy
+	if rtype.Kind == types.NodeKind {
+		tenancy = resource.DefaultPartitionedTenancy()
+	} else {
+		tenancy = resource.DefaultNamespacedTenancy()
+	}
+
 	return &pbresource.ID{
-		Type: rtype,
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
-		Name: name,
+		Type:    rtype,
+		Tenancy: tenancy,
+		Name:    name,
 	}
 }
 
@@ -77,12 +82,13 @@ func workloadData(nodeName string) *pbcatalog.Workload {
 // anming of the various data bits this holds on to.
 type controllerSuite struct {
 	suite.Suite
-	client  pbresource.ResourceServiceClient
-	runtime controller.Runtime
+	client   pbresource.ResourceServiceClient
+	runtime  controller.Runtime
+	registry resource.Registry
 }
 
 func (suite *controllerSuite) SetupTest() {
-	suite.client = svctest.RunResourceService(suite.T(), types.Register)
+	suite.client, suite.registry = svctest.RunResourceService2(suite.T(), types.Register)
 	suite.runtime = controller.Runtime{Client: suite.client, Logger: testutil.Logger(suite.T())}
 }
 
@@ -485,7 +491,7 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 	// controller lifecycle test.
 
 	// create the controller manager
-	mgr := controller.NewManager(suite.client, testutil.Logger(suite.T()))
+	mgr := controller.NewManager(suite.client, suite.registry, testutil.Logger(suite.T()))
 
 	// register our controller
 	mgr.Register(WorkloadHealthController(suite.mapper))

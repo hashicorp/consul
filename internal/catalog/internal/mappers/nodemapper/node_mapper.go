@@ -32,7 +32,7 @@ func New() *NodeMapper {
 func (m *NodeMapper) NodeIDFromWorkload(workload *pbresource.Resource, workloadData *pbcatalog.Workload) *pbresource.ID {
 	return &pbresource.ID{
 		Type:    types.NodeType,
-		Tenancy: workload.Id.Tenancy,
+		Tenancy: resource.NamespaceToPartitionTenancy(workload.Id.Tenancy),
 		Name:    workloadData.NodeName,
 	}
 }

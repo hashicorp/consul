@@ -14,16 +14,16 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // controllerRunner contains the actual implementation of running a controller
 // including creating watches, calling the reconciler, handling retries, etc.
 type controllerRunner struct {
-	ctrl   Controller
-	client pbresource.ResourceServiceClient
-	logger hclog.Logger
+	ctrl     Controller
+	client   pbresource.ResourceServiceClient
+	registry resource.Registry
+	logger   hclog.Logger
 }
 
 func (c *controllerRunner) run(ctx context.Context) error {
@@ -90,13 +90,14 @@ func runQueue[T queue.ItemType](ctx context.Context, ctrl Controller) queue.Work
 }
 
 func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {
+	reg, ok := c.registry.Resolve(typ)
+	if !ok {
+		return fmt.Errorf("failed to resolve type: %v", typ)
+	}
+
 	wl, err := c.client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type: typ,
-		Tenancy: &pbresource.Tenancy{
-			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
-			Namespace: storage.Wildcard,
-		},
+		Type:    typ,
+		Tenancy: resource.WildCardTenacyFor(reg.Scope()),
 	})
 	if err != nil {
 		c.logger.Error("failed to create watch", "error", err)

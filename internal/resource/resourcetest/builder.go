@@ -36,12 +36,10 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					GroupVersion: rtype.GroupVersion,
 					Kind:         rtype.Kind,
 				},
-				Tenancy: &pbresource.Tenancy{
-					Partition: resource.DefaultPartitionName,
-					Namespace: resource.DefaultNamespaceName,
-					PeerName:  "local",
-				},
-				Name: name,
+				// TODO(spatel): This will be incorrect for partition scoped types unless
+				// you subsequently call WithData(...).
+				Tenancy: resource.DefaultNamespacedTenancy(),
+				Name:    name,
 			},
 		},
 	}
@@ -66,6 +64,8 @@ func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourc
 	anyData, err := anypb.New(data)
 	require.NoError(t, err)
 	b.resource.Data = anyData
+	// Use scope annotation to set proper default tenancy for type.
+	b.resource.Id.Tenancy = resource.DefaultTenancyFor(resource.GetScope(data))
 	return b
 }
 

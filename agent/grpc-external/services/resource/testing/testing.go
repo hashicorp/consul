@@ -55,7 +55,13 @@ func RunResourceService(t *testing.T, registerFns ...func(resource.Registry)) pb
 	return RunResourceServiceWithACL(t, resolver.DANGER_NO_AUTH{}, registerFns...)
 }
 
-func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
+// Variant that also returns the registry
+func RunResourceService2(t *testing.T, registerFns ...func(resource.Registry)) (pbresource.ResourceServiceClient, resource.Registry) {
+	return RunResourceServiceWithACL2(t, resolver.DANGER_NO_AUTH{}, registerFns...)
+}
+
+// Variant that also returns the registry
+func RunResourceServiceWithACL2(t *testing.T, aclResolver svc.ACLResolver, registerFns ...func(resource.Registry)) (pbresource.ResourceServiceClient, resource.Registry) {
 	t.Helper()
 
 	backend, err := inmem.NewBackend()
@@ -98,5 +104,10 @@ func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, regist
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 
-	return pbresource.NewResourceServiceClient(conn)
+	return pbresource.NewResourceServiceClient(conn), registry
+}
+
+func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
+	client, _ := RunResourceServiceWithACL2(t, aclResolver, registerFns...)
+	return client
 }

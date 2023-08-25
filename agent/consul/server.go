@@ -820,6 +820,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 	s.controllerManager = controller.NewManager(
 		s.insecureResourceServiceClient,
+		flat.Registry,
 		logger.Named(logging.ControllerRuntime),
 	)
 	s.registerControllers(flat)

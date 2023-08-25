@@ -11,6 +11,7 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -45,14 +46,18 @@ var (
 )
 
 func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
+	// TODO: inject registration to get at scope or deal with the if stmt
+	var tenancy *pbresource.Tenancy
+	if rtype.Kind == types.NodeKind {
+		tenancy = resource.DefaultPartitionedTenancy()
+	} else {
+		tenancy = resource.DefaultNamespacedTenancy()
+	}
+
 	return &pbresource.ID{
-		Type: rtype,
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
-		Name: name,
+		Type:    rtype,
+		Tenancy: tenancy,
+		Name:    name,
 	}
 }
 
@@ -61,6 +66,7 @@ type nodeHealthControllerTestSuite struct {
 
 	resourceClient pbresource.ResourceServiceClient
 	runtime        controller.Runtime
+	registry       resource.Registry
 
 	ctl nodeHealthReconciler
 
@@ -72,7 +78,7 @@ type nodeHealthControllerTestSuite struct {
 }
 
 func (suite *nodeHealthControllerTestSuite) SetupTest() {
-	suite.resourceClient = svctest.RunResourceService(suite.T(), types.Register)
+	suite.resourceClient, suite.registry = svctest.RunResourceService2(suite.T(), types.Register)
 	suite.runtime = controller.Runtime{Client: suite.resourceClient, Logger: testutil.Logger(suite.T())}
 
 	// The rest of the setup will be to prime the resource service with some data
@@ -323,7 +329,7 @@ func (suite *nodeHealthControllerTestSuite) waitForReconciliation(id *pbresource
 }
 func (suite *nodeHealthControllerTestSuite) TestController() {
 	// create the controller manager
-	mgr := controller.NewManager(suite.resourceClient, testutil.Logger(suite.T()))
+	mgr := controller.NewManager(suite.resourceClient, suite.registry, testutil.Logger(suite.T()))
 
 	// register our controller
 	mgr.Register(NodeHealthController())
