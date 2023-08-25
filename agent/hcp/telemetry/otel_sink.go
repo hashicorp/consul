@@ -23,18 +23,10 @@ import (
 const (
 	// defaultExportInterval is a default time interval between export of aggregated metrics.
 	// At the time of writing this is the same as the otelsdk.Reader's export interval.
-	//
-	// TODO/NOTE: this can only be set once on start up on the otelsdk.Reader via Options.
-	// We could parameterize this from HCP via a new field in the Agent Telemetry Config,
-	// set them in ConfigProvider, and use these values as defaults.
 	defaultExportInterval = 60 * time.Second
 
 	// defaultExportTimeout is the time the otelsdk.Reader waits on an export before cancelling it.
 	// At the time of writing this is the same as the otelsdk.Reader's export timeout default.
-	//
-	// TODO/NOTE: this can only be set once on start up on the otelsdk.Reader via Options.
-	// We could parameterize this from HCP via a new field in the Agent Telemetry Config,
-	// set them in ConfigProvider, and use these values as defaults.
 	defaultExportTimeout = 30 * time.Second
 )
 
