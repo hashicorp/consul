@@ -86,7 +86,7 @@ jobs:
           docker build -t envoy-tcpdump -f Dockerfile-tcpdump-windows .
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
+        uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
 
       - name: Docker build consul
         run: docker build -t windows/consul -f Dockerfile-windows .
