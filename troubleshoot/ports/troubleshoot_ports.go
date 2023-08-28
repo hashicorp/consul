@@ -22,11 +22,10 @@ func TroubleshootRun(ports []string, host string) {
 
 	var counter = 0
 
-	tcpTroubleShoot := TroubleShootTcp{}
-
 	for _, port := range ports {
 		counter += 1
-		go tcpTroubleShoot.test(&hostPort{host: host, port: port}, resultsChannel)
+		tcpTroubleShoot := troubleShootTcp{}
+		go tcpTroubleShoot.dailPort(&hostPort{host: host, port: port}, resultsChannel)
 	}
 	for itr := 0; itr < counter; itr++ {
 		fmt.Print(<-resultsChannel)

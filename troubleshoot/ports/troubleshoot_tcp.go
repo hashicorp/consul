@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-type TroubleShootTcp struct {
+type troubleShootTcp struct {
 }
 
-func (tcp *TroubleShootTcp) test(hostPort *hostPort, ch chan string) {
+func (tcp *troubleShootTcp) dailPort(hostPort *hostPort, ch chan string) {
 	address := net.JoinHostPort(hostPort.host, hostPort.port)
 
 	// Attempt to establish a TCP connection with a timeout.
