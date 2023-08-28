@@ -2,9 +2,10 @@ package ports
 
 import (
 	"fmt"
+	"strings"
 )
 
-func Troubleshoot(host string) {
+func TroubleshootDefaultPorts(host string) {
 	ports := make(map[string][]string)
 	// Source - https://developer.hashicorp.com/consul/docs/install/ports
 	ports["8600"] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
@@ -15,6 +16,19 @@ func Troubleshoot(host string) {
 	ports["8301"] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
 	ports["8302"] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
 	ports["8300"] = []string{TCP_PROTOCOL}
+	TroubleshootRun(ports, host)
+}
+
+func TroubleShootCustomPorts(host string, ports string) {
+	portsArr := strings.Split(ports, ",")
+	portsMap := make(map[string][]string)
+	for _, val := range portsArr {
+		portsMap[val] = []string{TCP_PROTOCOL, UDP_PROTOCOL, GRPC_PROTOCOL}
+	}
+	TroubleshootRun(portsMap, host)
+}
+
+func TroubleshootRun(ports map[string][]string, host string) {
 
 	resultsChannel := make(chan string)
 

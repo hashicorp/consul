@@ -25,13 +25,16 @@ type cmd struct {
 	help  string
 
 	// flags
-	host string
+	host  string
+	ports string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
 	c.flags.StringVar(&c.host, "host", os.Getenv("CONSUL_HTTP_ADDR"), "The consul server host")
+
+	c.flags.StringVar(&c.ports, "ports", "", "Custom ports to troubleshoot")
 
 	c.help = flags.Usage(help, c.flags)
 }
@@ -47,7 +50,13 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("-host is required.")
 		return 1
 	}
-	ports.Troubleshoot(c.host)
+
+	if c.ports == "" {
+		ports.TroubleshootDefaultPorts(c.host)
+	} else {
+		ports.TroubleShootCustomPorts(c.host, c.ports)
+	}
+
 	return 0
 }
 
@@ -62,6 +71,16 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Troubleshoots ports of consul server"
 	help     = `
-Usage: consul troubleshoot ports
+Usage: consul troubleshoot ports [options]
+	Checks for default ports of consul in case -ports is not passes as arguments
+	Default ports are listed here - https://developer.hashicorp.com/consul/docs/install/ports
+	consul troubleshoot ports -host localhost
+
+	or 
+	export CONSUL_HTTP_ADDR=localhost
+	consul troubleshoot ports 
+	
+	If you want to check for other ports use -ports flag
+	consul troubleshoot ports -host localhost -ports 1023,1024
 `
 )
