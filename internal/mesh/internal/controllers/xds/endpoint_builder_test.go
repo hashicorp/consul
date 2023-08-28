@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
@@ -16,6 +18,10 @@ import (
 )
 
 func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
+	registry := resource.NewRegistry()
+	catalog.RegisterTypes(registry)
+	types.Register(registry)
+
 	type test struct {
 		name                        string
 		serviceEndpointsData        *ServiceEndpointsData
@@ -26,7 +32,7 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 	cases := []test{
 		{
 			name:                 "endpoints with passing health",
-			serviceEndpointsData: serviceEndpointsData("passing"),
+			serviceEndpointsData: serviceEndpointsData("passing", registry),
 			portName:             "mesh",
 			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
 				Endpoints: []*pbproxystate.Endpoint{
@@ -62,7 +68,7 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 		},
 		{
 			name:                 "endpoints with critical health",
-			serviceEndpointsData: serviceEndpointsData("critical"),
+			serviceEndpointsData: serviceEndpointsData("critical", registry),
 			portName:             "mesh",
 			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
 				Endpoints: []*pbproxystate.Endpoint{
@@ -98,7 +104,7 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 		},
 		{
 			name:                 "endpoints with any health are considered healthy",
-			serviceEndpointsData: serviceEndpointsData("any"),
+			serviceEndpointsData: serviceEndpointsData("any", registry),
 			portName:             "mesh",
 			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
 				Endpoints: []*pbproxystate.Endpoint{
@@ -134,25 +140,25 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 		},
 		{
 			name:                 "endpoints with missing ports returns an error",
-			serviceEndpointsData: serviceEndpointsData("missing port lookup"),
+			serviceEndpointsData: serviceEndpointsData("missing port lookup", registry),
 			portName:             "mesh",
 			expErr:               "could not find portName",
 		},
 		{
 			name:                 "nil endpoints returns an error",
-			serviceEndpointsData: serviceEndpointsData("nil endpoints"),
+			serviceEndpointsData: serviceEndpointsData("nil endpoints", registry),
 			portName:             "mesh",
 			expErr:               "service endpoints requires both endpoints and resource",
 		},
 		{
 			name:                 "nil resource returns an error",
-			serviceEndpointsData: serviceEndpointsData("nil resource"),
+			serviceEndpointsData: serviceEndpointsData("nil resource", registry),
 			portName:             "mesh",
 			expErr:               "service endpoints requires both endpoints and resource",
 		},
 		{
 			name:                 "portName doesn't exist in endpoints results in empty endpoints",
-			serviceEndpointsData: serviceEndpointsData("passing"),
+			serviceEndpointsData: serviceEndpointsData("passing", registry),
 			portName:             "does-not-exist",
 			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
 				Endpoints: []*pbproxystate.Endpoint{},
@@ -172,8 +178,8 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 	}
 }
 
-func serviceEndpointsData(variation string) *ServiceEndpointsData {
-	r := resourcetest.Resource(catalog.ServiceEndpointsType, "test").Build()
+func serviceEndpointsData(variation string, registry resource.Registry) *ServiceEndpointsData {
+	r := resourcetest.Resource(catalog.ServiceEndpointsType, "test", registry).Build()
 	eps := &pbcatalog.ServiceEndpoints{
 		Endpoints: []*pbcatalog.Endpoint{
 			{

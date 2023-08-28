@@ -149,7 +149,7 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 
 // v1TenancyExists return an error with the passed in gRPC status code when tenancy partition or namespace do not exist.
 func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy, errCode codes.Code) error {
-	if reg.Scope() == pbresource.Scope_PARTITION || reg.Scope() == pbresource.Scope_NAMESPACE {
+	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
 		exists, err := v1Bridge.PartitionExists(tenancy.Partition)
 		switch {
 		case err != nil:
@@ -159,7 +159,7 @@ func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy
 		}
 	}
 
-	if reg.Scope() == pbresource.Scope_NAMESPACE {
+	if reg.Scope == resource.ScopeNamespace {
 		exists, err := v1Bridge.NamespaceExists(tenancy.Partition, tenancy.Namespace)
 		switch {
 		case err != nil:
@@ -173,7 +173,7 @@ func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy
 
 // v1TenancyMarkedForDeletion returns a gRPC InvalidArgument when either partition or namespace is marked for deletion.
 func v1TenancyMarkedForDeletion(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy) error {
-	if reg.Scope() == pbresource.Scope_PARTITION || reg.Scope() == pbresource.Scope_NAMESPACE {
+	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
 		marked, err := v1Bridge.IsPartitionMarkedForDeletion(tenancy.Partition)
 		switch {
 		case err != nil:
@@ -183,7 +183,7 @@ func v1TenancyMarkedForDeletion(reg *resource.Registration, v1Bridge TenancyBrid
 		}
 	}
 
-	if reg.Scope() == pbresource.Scope_NAMESPACE {
+	if reg.Scope == resource.ScopeNamespace {
 		marked, err := v1Bridge.IsNamespaceMarkedForDeletion(tenancy.Partition, tenancy.Namespace)
 		switch {
 		case err != nil:

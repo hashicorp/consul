@@ -4,6 +4,7 @@
 package resourcetest
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/oklog/ulid/v2"
@@ -27,7 +28,12 @@ type resourceBuilder struct {
 	dontCleanup bool
 }
 
-func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
+func Resource(rtype *pbresource.Type, name string, registry resource.Registry) *resourceBuilder {
+	reg, ok := registry.Resolve(rtype)
+	if !ok {
+		panic(fmt.Sprintf("You forgot to register type %v in the registry", rtype))
+	}
+
 	return &resourceBuilder{
 		resource: &pbresource.Resource{
 			Id: &pbresource.ID{
@@ -36,9 +42,7 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					GroupVersion: rtype.GroupVersion,
 					Kind:         rtype.Kind,
 				},
-				// TODO(spatel): This will be incorrect for partition scoped types unless
-				// you subsequently call WithData(...).
-				Tenancy: resource.DefaultNamespacedTenancy(),
+				Tenancy: resource.DefaultTenancyFor(reg.Scope),
 				Name:    name,
 			},
 		},
@@ -64,8 +68,6 @@ func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourc
 	anyData, err := anypb.New(data)
 	require.NoError(t, err)
 	b.resource.Data = anyData
-	// Use scope annotation to set proper default tenancy for type.
-	b.resource.Id.Tenancy = resource.DefaultTenancyFor(resource.GetScope(data))
 	return b
 }
 

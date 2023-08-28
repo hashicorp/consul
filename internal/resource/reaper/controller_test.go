@@ -20,7 +20,7 @@ import (
 )
 
 func TestReconcile_ResourceWithNoChildren(t *testing.T) {
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+	client, _ := svctest.RunResourceService(t, demo.RegisterTypes)
 
 	// Seed the database with an artist.
 	res, err := demo.GenerateV2Artist()
@@ -72,7 +72,7 @@ func TestReconcile_ResourceWithNoChildren(t *testing.T) {
 }
 
 func TestReconcile_ResourceWithChildren(t *testing.T) {
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+	client, _ := svctest.RunResourceService(t, demo.RegisterTypes)
 
 	// Seed the database with an artist
 	res, err := demo.GenerateV2Artist()
@@ -149,7 +149,7 @@ func TestReconcile_ResourceWithChildren(t *testing.T) {
 }
 
 func TestReconcile_RequeueWithDelayWhenSecondPassDelayNotElapsed(t *testing.T) {
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+	client, _ := svctest.RunResourceService(t, demo.RegisterTypes)
 
 	// Seed the database with an artist.
 	res, err := demo.GenerateV2Artist()

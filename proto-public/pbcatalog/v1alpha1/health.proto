@@ -7,12 +7,9 @@ package hashicorp.consul.catalog.v1alpha1;
 
 import "google/protobuf/duration.proto";
 import "pbcatalog/v1alpha1/selector.proto";
-import "pbresource/resource.proto";
 
 // This resource will belong to a workload or a node and will have an ownership relationship.
 message HealthStatus {
-  // HealthStatus is a namespace scoped resource type.
-  option (hashicorp.consul.resource.scope) = NAMESPACE;
   // Type is the type of this health check, such as http, tcp, or kubernetes-readiness
   string type = 1;
   // Health is the status. This maps to existing health check statuses.
@@ -33,8 +30,6 @@ enum Health {
 }
 
 message HealthChecks {
-  // HealthChecks is a namespace scoped resource type.
-  option (hashicorp.consul.resource.scope) = NAMESPACE;
   WorkloadSelector workloads = 1;
   repeated HealthCheck health_checks = 2;
 }

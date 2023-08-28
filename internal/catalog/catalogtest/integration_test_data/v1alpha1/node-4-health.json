@@ -20,7 +20,6 @@
       },
       "tenancy": {
          "partition": "default",
-         "namespace": "default",
          "peer_name": "local"
       },
       "name": "node-4"

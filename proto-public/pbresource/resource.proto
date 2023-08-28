@@ -8,8 +8,8 @@ package hashicorp.consul.resource;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/any.proto";
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/descriptor.proto";
+import "google/protobuf/timestamp.proto";
 
 // Type describes a resource's type. It follows the GVK (Group Version Kind)
 // [pattern](https://book.kubebuilder.io/cronjob-tutorial/gvks.html) established
@@ -487,17 +487,4 @@ message WatchEvent {
 
   // Resource the event relates to.
   Resource resource = 2;
-}
-
-enum Scope {
-  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
-  UNKNOWN = 0;
-  CLUSTER = 1;
-  PARTITION = 2;
-  NAMESPACE = 3;
-}
-
-extend google.protobuf.MessageOptions {
-  // The field number is arbitrary.
-  Scope scope = 8301;
 }

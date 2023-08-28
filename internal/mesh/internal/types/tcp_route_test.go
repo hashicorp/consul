@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -16,13 +17,17 @@ import (
 )
 
 func TestValidateTCPRoute(t *testing.T) {
+	registry := resource.NewRegistry()
+	catalog.RegisterTypes(registry)
+	Register(registry)
+
 	type testcase struct {
 		route     *pbmesh.TCPRoute
 		expectErr string
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(TCPRouteType, "api").
+		res := resourcetest.Resource(TCPRouteType, "api", registry).
 			WithData(t, tc.route).
 			Build()
 
@@ -42,7 +47,7 @@ func TestValidateTCPRoute(t *testing.T) {
 	cases := map[string]testcase{}
 
 	// Add common parent refs test cases.
-	for name, parentTC := range getXRouteParentRefTestCases() {
+	for name, parentTC := range getXRouteParentRefTestCases(registry) {
 		cases["parent-ref: "+name] = testcase{
 			route: &pbmesh.TCPRoute{
 				ParentRefs: parentTC.refs,
@@ -51,7 +56,7 @@ func TestValidateTCPRoute(t *testing.T) {
 		}
 	}
 	// add common backend ref test cases.
-	for name, backendTC := range getXRouteBackendRefTestCases() {
+	for name, backendTC := range getXRouteBackendRefTestCases(registry) {
 		var refs []*pbmesh.TCPBackendRef
 		for _, br := range backendTC.refs {
 			refs = append(refs, &pbmesh.TCPBackendRef{
@@ -61,7 +66,7 @@ func TestValidateTCPRoute(t *testing.T) {
 		cases["backend-ref: "+name] = testcase{
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{BackendRefs: refs},

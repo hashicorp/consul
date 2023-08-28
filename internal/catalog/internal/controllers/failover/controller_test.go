@@ -34,7 +34,7 @@ type controllerSuite struct {
 
 func (suite *controllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	client, registry := svctest.RunResourceService2(suite.T(), types.Register)
+	client, registry := svctest.RunResourceService(suite.T(), types.Register)
 	suite.registry = registry
 	suite.rt = controller.Runtime{
 		Client: client,
@@ -56,8 +56,8 @@ func (suite *controllerSuite) TestController() {
 	go mgr.Run(suite.ctx)
 
 	// Create an advance pointer to some services.
-	apiServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "api").ID(), "")
-	otherServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "other").ID(), "")
+	apiServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "api", suite.registry).ID(), "")
+	otherServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "other", suite.registry).ID(), "")
 
 	// create a failover without any services
 	failoverData := &pbcatalog.FailoverPolicy{
@@ -67,7 +67,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		},
 	}
-	failover := rtest.Resource(types.FailoverPolicyType, "api").
+	failover := rtest.Resource(types.FailoverPolicyType, "api", suite.registry).
 		WithData(suite.T(), failoverData).
 		Write(suite.T(), suite.client)
 
@@ -81,7 +81,7 @@ func (suite *controllerSuite) TestController() {
 			Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
 		}},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(types.ServiceType, "api", suite.registry).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
@@ -103,7 +103,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.FailoverPolicyType, "api").
+	_ = rtest.Resource(types.FailoverPolicyType, "api", suite.registry).
 		WithData(suite.T(), failoverData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownPort("admin"))
@@ -122,7 +122,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(types.ServiceType, "api", suite.registry).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUsingMeshDestinationPort(apiServiceRef, "admin"))
@@ -141,7 +141,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(types.ServiceType, "api", suite.registry).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
@@ -163,7 +163,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.FailoverPolicyType, "api").
+	_ = rtest.Resource(types.FailoverPolicyType, "api", suite.registry).
 		WithData(suite.T(), failoverData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionMissingDestinationService(otherServiceRef))
@@ -176,7 +176,7 @@ func (suite *controllerSuite) TestController() {
 			Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
 		}},
 	}
-	_ = rtest.Resource(types.ServiceType, "other").
+	_ = rtest.Resource(types.ServiceType, "other", suite.registry).
 		WithData(suite.T(), otherServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownDestinationPort(otherServiceRef, "admin"))
@@ -195,7 +195,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "other").
+	_ = rtest.Resource(types.ServiceType, "other", suite.registry).
 		WithData(suite.T(), otherServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
@@ -214,7 +214,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(types.ServiceType, "api", suite.registry).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 
@@ -231,7 +231,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "other").
+	_ = rtest.Resource(types.ServiceType, "other", suite.registry).
 		WithData(suite.T(), otherServiceData).
 		Write(suite.T(), suite.client)
 
@@ -242,7 +242,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		},
 	}
-	failover = rtest.Resource(types.FailoverPolicyType, "api").
+	failover = rtest.Resource(types.FailoverPolicyType, "api", suite.registry).
 		WithData(suite.T(), failoverData).
 		Write(suite.T(), suite.client)
 
@@ -258,7 +258,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(types.ServiceType, "api", suite.registry).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 

@@ -18,6 +18,9 @@ import (
 )
 
 func TestMutateFailoverPolicy(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	type testcase struct {
 		failover  *pbcatalog.FailoverPolicy
 		expect    *pbcatalog.FailoverPolicy
@@ -25,7 +28,7 @@ func TestMutateFailoverPolicy(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(FailoverPolicyType, "api").
+		res := resourcetest.Resource(FailoverPolicyType, "api", registry).
 			WithData(t, tc.failover).
 			Build()
 
@@ -90,21 +93,21 @@ func TestMutateFailoverPolicy(t *testing.T) {
 					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
 					Regions: []string{"foo", "bar"},
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(ServiceType, "a")},
-						{Ref: newRef(ServiceType, "b")},
+						{Ref: newRef(ServiceType, "a", registry)},
+						{Ref: newRef(ServiceType, "b", registry)},
 					},
 				},
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "foo")},
-							{Ref: newRef(ServiceType, "bar")},
+							{Ref: newRef(ServiceType, "foo", registry)},
+							{Ref: newRef(ServiceType, "bar", registry)},
 						},
 					},
 					"admin": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "y")},
-							{Ref: newRef(ServiceType, "z")},
+							{Ref: newRef(ServiceType, "y", registry)},
+							{Ref: newRef(ServiceType, "z", registry)},
 						},
 					},
 				},
@@ -114,21 +117,21 @@ func TestMutateFailoverPolicy(t *testing.T) {
 					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
 					Regions: []string{"foo", "bar"},
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(ServiceType, "a")},
-						{Ref: newRef(ServiceType, "b")},
+						{Ref: newRef(ServiceType, "a", registry)},
+						{Ref: newRef(ServiceType, "b", registry)},
 					},
 				},
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "foo")},
-							{Ref: newRef(ServiceType, "bar")},
+							{Ref: newRef(ServiceType, "foo", registry)},
+							{Ref: newRef(ServiceType, "bar", registry)},
 						},
 					},
 					"admin": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "y")},
-							{Ref: newRef(ServiceType, "z")},
+							{Ref: newRef(ServiceType, "y", registry)},
+							{Ref: newRef(ServiceType, "z", registry)},
 						},
 					},
 				},
@@ -144,6 +147,9 @@ func TestMutateFailoverPolicy(t *testing.T) {
 }
 
 func TestValidateFailoverPolicy(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	type configTestcase struct {
 		config    *pbcatalog.FailoverConfig
 		expectErr string
@@ -155,7 +161,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(FailoverPolicyType, "api").
+		res := resourcetest.Resource(FailoverPolicyType, "api", registry).
 			WithData(t, tc.failover).
 			Build()
 
@@ -182,7 +188,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest with sameness": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(ServiceType, "api-backup")},
+					{Ref: newRef(ServiceType, "api-backup", registry)},
 				},
 				SamenessGroup: "blah",
 			},
@@ -191,7 +197,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest without sameness": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(ServiceType, "api-backup")},
+					{Ref: newRef(ServiceType, "api-backup", registry)},
 				},
 			},
 		},
@@ -204,7 +210,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			config: &pbcatalog.FailoverConfig{
 				Mode: 99,
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(ServiceType, "api-backup")},
+					{Ref: newRef(ServiceType, "api-backup", registry)},
 				},
 			},
 			expectErr: `invalid "mode" field: not a supported enum value: 99`,
@@ -220,7 +226,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest: non-service ref": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(WorkloadType, "api-backup")},
+					{Ref: newRef(WorkloadType, "api-backup", registry)},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: reference must have type catalog.v1alpha1.Service`,
@@ -228,7 +234,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest: ref with section": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: resourcetest.Resource(ServiceType, "api").Reference("blah")},
+					{Ref: resourcetest.Resource(ServiceType, "api", registry).Reference("blah")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: invalid "section" field: section not supported for failover policy dest refs`,
@@ -236,7 +242,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest: ref peer and datacenter": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRefWithPeer(ServiceType, "api", "peer1"), Datacenter: "dc2"},
+					{Ref: newRefWithPeer(ServiceType, "api", "peer1", registry), Datacenter: "dc2"},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "destinations": invalid "datacenter" field: ref.tenancy.peer_name and datacenter are mutually exclusive fields`,
@@ -244,14 +250,14 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest: ref peer without datacenter": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRefWithPeer(ServiceType, "api", "peer1")},
+					{Ref: newRefWithPeer(ServiceType, "api", "peer1", registry)},
 				},
 			},
 		},
 		"dest: ref datacenter without peer": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(ServiceType, "api"), Datacenter: "dc2"},
+					{Ref: newRef(ServiceType, "api", registry), Datacenter: "dc2"},
 				},
 			},
 		},
@@ -268,7 +274,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "api-backup")},
+							{Ref: newRef(ServiceType, "api-backup", registry)},
 						},
 					},
 				},
@@ -278,7 +284,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			failover: &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(ServiceType, "api-backup")},
+						{Ref: newRef(ServiceType, "api-backup", registry)},
 					},
 				},
 			},
@@ -288,7 +294,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			failover: &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(ServiceType, "api-backup"), Port: "web"},
+						{Ref: newRef(ServiceType, "api-backup", registry), Port: "web"},
 					},
 				},
 			},
@@ -300,7 +306,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "api-backup"), Port: "$bad$"},
+							{Ref: newRef(ServiceType, "api-backup", registry), Port: "$bad$"},
 						},
 					},
 				},
@@ -312,7 +318,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"$bad$": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "api-backup"), Port: "http"},
+							{Ref: newRef(ServiceType, "api-backup", registry), Port: "http"},
 						},
 					},
 				},
@@ -391,7 +397,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 
 	cases := map[string]testcase{
 		"implicit with mesh port skipping": {
-			svc: resourcetest.Resource(ServiceType, "api").
+			svc: resourcetest.Resource(ServiceType, "api", registry).
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
 						newPort("mesh", 21001, pbcatalog.Protocol_PROTOCOL_MESH),
@@ -399,24 +405,24 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			failover: resourcetest.Resource(FailoverPolicyType, "api").
+			failover: resourcetest.Resource(FailoverPolicyType, "api", registry).
 				WithData(t, &pbcatalog.FailoverPolicy{
 					Config: &pbcatalog.FailoverConfig{
 						Destinations: []*pbcatalog.FailoverDestination{
 							{
-								Ref: newRef(ServiceType, "api-backup"),
+								Ref: newRef(ServiceType, "api-backup", registry),
 							},
 						},
 					},
 				}).
 				Build(),
-			expect: resourcetest.Resource(FailoverPolicyType, "api").
+			expect: resourcetest.Resource(FailoverPolicyType, "api", registry).
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(ServiceType, "api-backup", registry),
 									Port: "http", // port defaulted
 								},
 							},
@@ -426,7 +432,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 				Build(),
 		},
 		"explicit with port aligned defaulting": {
-			svc: resourcetest.Resource(ServiceType, "api").
+			svc: resourcetest.Resource(ServiceType, "api", registry).
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
 						newPort("mesh", 9999, pbcatalog.Protocol_PROTOCOL_MESH),
@@ -435,34 +441,34 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			failover: resourcetest.Resource(FailoverPolicyType, "api").
+			failover: resourcetest.Resource(FailoverPolicyType, "api", registry).
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(ServiceType, "api-backup", registry),
 									Port: "www",
 								},
 								{
-									Ref: newRef(ServiceType, "api-double-backup"),
+									Ref: newRef(ServiceType, "api-double-backup", registry),
 								},
 							},
 						},
 					},
 				}).
 				Build(),
-			expect: resourcetest.Resource(FailoverPolicyType, "api").
+			expect: resourcetest.Resource(FailoverPolicyType, "api", registry).
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(ServiceType, "api-backup", registry),
 									Port: "www",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(ServiceType, "api-double-backup", registry),
 									Port: "http", // port defaulted
 								},
 							},
@@ -472,7 +478,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 				Build(),
 		},
 		"implicit port explosion": {
-			svc: resourcetest.Resource(ServiceType, "api").
+			svc: resourcetest.Resource(ServiceType, "api", registry).
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
 						newPort("http", 8080, pbcatalog.Protocol_PROTOCOL_HTTP),
@@ -480,31 +486,31 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			failover: resourcetest.Resource(FailoverPolicyType, "api").
+			failover: resourcetest.Resource(FailoverPolicyType, "api", registry).
 				WithData(t, &pbcatalog.FailoverPolicy{
 					Config: &pbcatalog.FailoverConfig{
 						Destinations: []*pbcatalog.FailoverDestination{
 							{
-								Ref: newRef(ServiceType, "api-backup"),
+								Ref: newRef(ServiceType, "api-backup", registry),
 							},
 							{
-								Ref: newRef(ServiceType, "api-double-backup"),
+								Ref: newRef(ServiceType, "api-double-backup", registry),
 							},
 						},
 					},
 				}).
 				Build(),
-			expect: resourcetest.Resource(FailoverPolicyType, "api").
+			expect: resourcetest.Resource(FailoverPolicyType, "api", registry).
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(ServiceType, "api-backup", registry),
 									Port: "http",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(ServiceType, "api-double-backup", registry),
 									Port: "http",
 								},
 							},
@@ -512,11 +518,11 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 						"rest": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(ServiceType, "api-backup", registry),
 									Port: "rest",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(ServiceType, "api-double-backup", registry),
 									Port: "rest",
 								},
 							},
@@ -526,7 +532,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 				Build(),
 		},
 		"mixed port explosion with skip": {
-			svc: resourcetest.Resource(ServiceType, "api").
+			svc: resourcetest.Resource(ServiceType, "api", registry).
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
 						newPort("http", 8080, pbcatalog.Protocol_PROTOCOL_HTTP),
@@ -534,15 +540,15 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			failover: resourcetest.Resource(FailoverPolicyType, "api").
+			failover: resourcetest.Resource(FailoverPolicyType, "api", registry).
 				WithData(t, &pbcatalog.FailoverPolicy{
 					Config: &pbcatalog.FailoverConfig{
 						Destinations: []*pbcatalog.FailoverDestination{
 							{
-								Ref: newRef(ServiceType, "api-backup"),
+								Ref: newRef(ServiceType, "api-backup", registry),
 							},
 							{
-								Ref: newRef(ServiceType, "api-double-backup"),
+								Ref: newRef(ServiceType, "api-double-backup", registry),
 							},
 						},
 					},
@@ -555,17 +561,17 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			expect: resourcetest.Resource(FailoverPolicyType, "api").
+			expect: resourcetest.Resource(FailoverPolicyType, "api", registry).
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(ServiceType, "api-backup", registry),
 									Port: "http",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(ServiceType, "api-double-backup", registry),
 									Port: "http",
 								},
 							},
@@ -588,12 +594,12 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 	}
 }
 
-func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return resourcetest.Resource(typ, name).Reference("")
+func newRef(typ *pbresource.Type, name string, registry resource.Registry) *pbresource.Reference {
+	return resourcetest.Resource(typ, name, registry).Reference("")
 }
 
-func newRefWithPeer(typ *pbresource.Type, name string, peer string) *pbresource.Reference {
-	ref := newRef(typ, name)
+func newRefWithPeer(typ *pbresource.Type, name string, peer string, registry resource.Registry) *pbresource.Reference {
+	ref := newRef(typ, name, registry)
 	ref.Tenancy.PeerName = peer
 	return ref
 }

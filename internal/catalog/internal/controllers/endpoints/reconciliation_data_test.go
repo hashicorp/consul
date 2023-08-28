@@ -25,9 +25,10 @@ import (
 type reconciliationDataSuite struct {
 	suite.Suite
 
-	ctx    context.Context
-	client pbresource.ResourceServiceClient
-	rt     controller.Runtime
+	ctx      context.Context
+	client   pbresource.ResourceServiceClient
+	rt       controller.Runtime
+	registry resource.Registry
 
 	apiServiceData *pbcatalog.Service
 	apiService     *pbresource.Resource
@@ -41,7 +42,7 @@ type reconciliationDataSuite struct {
 
 func (suite *reconciliationDataSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	suite.client = svctest.RunResourceService(suite.T(), types.Register)
+	suite.client, suite.registry = svctest.RunResourceService(suite.T(), types.Register)
 	suite.rt = controller.Runtime{
 		Client: suite.client,
 		Logger: testutil.Logger(suite.T()),
@@ -62,11 +63,11 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		},
 	}
 
-	suite.apiService = rtest.Resource(types.ServiceType, "api").
+	suite.apiService = rtest.Resource(types.ServiceType, "api", suite.registry).
 		WithData(suite.T(), suite.apiServiceData).
 		Write(suite.T(), suite.client)
 
-	suite.api1Workload = rtest.Resource(types.WorkloadType, "api-1").
+	suite.api1Workload = rtest.Resource(types.WorkloadType, "api-1", suite.registry).
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -78,7 +79,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.api2Workload = rtest.Resource(types.WorkloadType, "api-2").
+	suite.api2Workload = rtest.Resource(types.WorkloadType, "api-2", suite.registry).
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -90,7 +91,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.api123Workload = rtest.Resource(types.WorkloadType, "api-123").
+	suite.api123Workload = rtest.Resource(types.WorkloadType, "api-123", suite.registry).
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -102,7 +103,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.web1Workload = rtest.Resource(types.WorkloadType, "web-1").
+	suite.web1Workload = rtest.Resource(types.WorkloadType, "web-1", suite.registry).
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -114,7 +115,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.web2Workload = rtest.Resource(types.WorkloadType, "web-2").
+	suite.web2Workload = rtest.Resource(types.WorkloadType, "web-2", suite.registry).
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -126,11 +127,11 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.apiEndpoints = rtest.Resource(types.ServiceEndpointsType, "api").
+	suite.apiEndpoints = rtest.Resource(types.ServiceEndpointsType, "api", suite.registry).
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
 				{
-					TargetRef: rtest.Resource(types.WorkloadType, "api-1").ID(),
+					TargetRef: rtest.Resource(types.WorkloadType, "api-1", suite.registry).ID(),
 					Addresses: []*pbcatalog.WorkloadAddress{
 						{
 							Host:  "127.0.0.1",
@@ -150,7 +151,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 func (suite *reconciliationDataSuite) TestGetServiceData_NotFound() {
 	// This test's purposes is to ensure that NotFound errors when retrieving
 	// the service data are ignored properly.
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(types.ServiceType, "not-found").ID())
+	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(types.ServiceType, "not-found", suite.registry).ID())
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), data)
 }
@@ -159,12 +160,18 @@ func (suite *reconciliationDataSuite) TestGetServiceData_ReadError() {
 	// This test's purpose is to ensure that Read errors other than NotFound
 	// are propagated back to the caller. Specifying a resource ID with an
 	// unregistered type is the easiest way to force a resource service error.
-	badType := &pbresource.Type{
-		Group:        "not",
-		Kind:         "found",
-		GroupVersion: "vfake",
+	badResource := &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type: &pbresource.Type{
+				Group:        "not",
+				Kind:         "found",
+				GroupVersion: "vfake",
+			},
+			Tenancy: resource.DefaultTenancyFor(resource.ScopeNamespace),
+			Name:    "foo",
+		},
 	}
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(badType, "foo").ID())
+	data, err := getServiceData(suite.ctx, suite.rt, badResource.Id)
 	require.Error(suite.T(), err)
 	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
 	require.Nil(suite.T(), data)
@@ -174,7 +181,7 @@ func (suite *reconciliationDataSuite) TestGetServiceData_UnmarshalError() {
 	// This test's purpose is to ensure that unmarshlling errors are returned
 	// to the caller. We are using a resource id that points to an endpoints
 	// object instead of a service to ensure that the data will be unmarshallable.
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(types.ServiceEndpointsType, "api").ID())
+	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(types.ServiceEndpointsType, "api", suite.registry).ID())
 	require.Error(suite.T(), err)
 	var parseErr resource.ErrDataParse
 	require.ErrorAs(suite.T(), err, &parseErr)
@@ -195,7 +202,7 @@ func (suite *reconciliationDataSuite) TestGetServiceData_Ok() {
 func (suite *reconciliationDataSuite) TestGetEndpointsData_NotFound() {
 	// This test's purposes is to ensure that NotFound errors when retrieving
 	// the endpoint data are ignored properly.
-	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(types.ServiceEndpointsType, "not-found").ID())
+	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(types.ServiceEndpointsType, "not-found", suite.registry).ID())
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), data)
 }
@@ -204,12 +211,18 @@ func (suite *reconciliationDataSuite) TestGetEndpointsData_ReadError() {
 	// This test's purpose is to ensure that Read errors other than NotFound
 	// are propagated back to the caller. Specifying a resource ID with an
 	// unregistered type is the easiest way to force a resource service error.
-	badType := &pbresource.Type{
-		Group:        "not",
-		Kind:         "found",
-		GroupVersion: "vfake",
+	badResource := &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type: &pbresource.Type{
+				Group:        "not",
+				Kind:         "found",
+				GroupVersion: "vfake",
+			},
+			Tenancy: resource.DefaultTenancyFor(resource.ScopeNamespace),
+			Name:    "foo",
+		},
 	}
-	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(badType, "foo").ID())
+	data, err := getEndpointsData(suite.ctx, suite.rt, badResource.Id)
 	require.Error(suite.T(), err)
 	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
 	require.Nil(suite.T(), data)
@@ -219,7 +232,7 @@ func (suite *reconciliationDataSuite) TestGetEndpointsData_UnmarshalError() {
 	// This test's purpose is to ensure that unmarshlling errors are returned
 	// to the caller. We are using a resource id that points to a service object
 	// instead of an endpoints object to ensure that the data will be unmarshallable.
-	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(types.ServiceType, "api").ID())
+	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(types.ServiceType, "api", suite.registry).ID())
 	require.Error(suite.T(), err)
 	var parseErr resource.ErrDataParse
 	require.ErrorAs(suite.T(), err, &parseErr)

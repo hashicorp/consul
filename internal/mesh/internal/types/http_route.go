@@ -34,6 +34,7 @@ func RegisterHTTPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     HTTPRouteV1Alpha1Type,
 		Proto:    &pbmesh.HTTPRoute{},
+		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateHTTPRoute,
 		Validate: ValidateHTTPRoute,
 	})

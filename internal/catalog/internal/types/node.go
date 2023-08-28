@@ -28,6 +28,7 @@ func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     NodeV1Alpha1Type,
 		Proto:    &pbcatalog.Node{},
+		Scope:    resource.ScopePartition,
 		Validate: ValidateNode,
 	})
 }

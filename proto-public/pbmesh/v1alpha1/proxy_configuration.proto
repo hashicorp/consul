@@ -10,12 +10,9 @@ import "pbcatalog/v1alpha1/selector.proto";
 import "pbmesh/v1alpha1/connection.proto";
 import "pbmesh/v1alpha1/expose.proto";
 import "pbmesh/v1alpha1/routing.proto";
-import "pbresource/resource.proto";
 
 // This is a Resource type.
 message ProxyConfiguration {
-  // ProxyConfiguration is a namespace scoped resource type.
-  option (hashicorp.consul.resource.scope) = NAMESPACE;
   // Selection of workloads this proxy configuration should apply to.
   // These can be prefixes or specific workload names.
   hashicorp.consul.catalog.v1alpha1.WorkloadSelector workloads = 1;

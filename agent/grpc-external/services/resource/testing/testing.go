@@ -51,17 +51,11 @@ func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
 // RunResourceService runs a Resource Service for the duration of the test and
 // returns a client to interact with it. ACLs will be disabled and only the
 // default partition and namespace are available.
-func RunResourceService(t *testing.T, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
+func RunResourceService(t *testing.T, registerFns ...func(resource.Registry)) (pbresource.ResourceServiceClient, resource.Registry) {
 	return RunResourceServiceWithACL(t, resolver.DANGER_NO_AUTH{}, registerFns...)
 }
 
-// Variant that also returns the registry
-func RunResourceService2(t *testing.T, registerFns ...func(resource.Registry)) (pbresource.ResourceServiceClient, resource.Registry) {
-	return RunResourceServiceWithACL2(t, resolver.DANGER_NO_AUTH{}, registerFns...)
-}
-
-// Variant that also returns the registry
-func RunResourceServiceWithACL2(t *testing.T, aclResolver svc.ACLResolver, registerFns ...func(resource.Registry)) (pbresource.ResourceServiceClient, resource.Registry) {
+func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, registerFns ...func(resource.Registry)) (pbresource.ResourceServiceClient, resource.Registry) {
 	t.Helper()
 
 	backend, err := inmem.NewBackend()
@@ -105,9 +99,4 @@ func RunResourceServiceWithACL2(t *testing.T, aclResolver svc.ACLResolver, regis
 	t.Cleanup(func() { _ = conn.Close() })
 
 	return pbresource.NewResourceServiceClient(conn), registry
-}
-
-func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
-	client, _ := RunResourceServiceWithACL2(t, aclResolver, registerFns...)
-	return client
 }

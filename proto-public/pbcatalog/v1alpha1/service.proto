@@ -7,11 +7,8 @@ package hashicorp.consul.catalog.v1alpha1;
 
 import "pbcatalog/v1alpha1/protocol.proto";
 import "pbcatalog/v1alpha1/selector.proto";
-import "pbresource/resource.proto";
 
 message Service {
-  // Service is a namespace scoped resource type.
-  option (hashicorp.consul.resource.scope) = NAMESPACE;
   // workloads is a selector for the workloads this service should represent.
   WorkloadSelector workloads = 1;
   // ports is the list of mappings of workload ports that this service

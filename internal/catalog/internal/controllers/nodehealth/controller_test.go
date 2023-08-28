@@ -78,27 +78,27 @@ type nodeHealthControllerTestSuite struct {
 }
 
 func (suite *nodeHealthControllerTestSuite) SetupTest() {
-	suite.resourceClient, suite.registry = svctest.RunResourceService2(suite.T(), types.Register)
+	suite.resourceClient, suite.registry = svctest.RunResourceService(suite.T(), types.Register)
 	suite.runtime = controller.Runtime{Client: suite.resourceClient, Logger: testutil.Logger(suite.T())}
 
 	// The rest of the setup will be to prime the resource service with some data
-	suite.nodeNoHealth = resourcetest.Resource(types.NodeType, "test-node-no-health").
+	suite.nodeNoHealth = resourcetest.Resource(types.NodeType, "test-node-no-health", suite.registry).
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
-	suite.nodePassing = resourcetest.Resource(types.NodeType, "test-node-passing").
+	suite.nodePassing = resourcetest.Resource(types.NodeType, "test-node-passing", suite.registry).
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
-	suite.nodeWarning = resourcetest.Resource(types.NodeType, "test-node-warning").
+	suite.nodeWarning = resourcetest.Resource(types.NodeType, "test-node-warning", suite.registry).
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
-	suite.nodeCritical = resourcetest.Resource(types.NodeType, "test-node-critical").
+	suite.nodeCritical = resourcetest.Resource(types.NodeType, "test-node-critical", suite.registry).
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
-	suite.nodeMaintenance = resourcetest.Resource(types.NodeType, "test-node-maintenance").
+	suite.nodeMaintenance = resourcetest.Resource(types.NodeType, "test-node-maintenance", suite.registry).
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
@@ -127,7 +127,7 @@ func (suite *nodeHealthControllerTestSuite) SetupTest() {
 	for _, node := range []*pbresource.ID{suite.nodePassing, suite.nodeWarning, suite.nodeCritical, suite.nodeMaintenance} {
 		for idx, health := range precedenceHealth {
 			if nodeHealthDesiredStatus[node.Name] >= health {
-				resourcetest.Resource(types.HealthStatusType, fmt.Sprintf("test-check-%s-%d", node.Name, idx)).
+				resourcetest.Resource(types.HealthStatusType, fmt.Sprintf("test-check-%s-%d", node.Name, idx), suite.registry).
 					WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: health}).
 					WithOwner(node).
 					Write(suite.T(), suite.resourceClient)
@@ -138,7 +138,7 @@ func (suite *nodeHealthControllerTestSuite) SetupTest() {
 	// create a DNSPolicy to be owned by the node. The type doesn't really matter it just needs
 	// to be something that doesn't care about its owner. All we want to prove is that we are
 	// filtering out non-HealthStatus types appropriately.
-	resourcetest.Resource(types.DNSPolicyType, "test-policy").
+	resourcetest.Resource(types.DNSPolicyType, "test-policy", suite.registry).
 		WithData(suite.T(), dnsPolicyData).
 		WithOwner(suite.nodeNoHealth).
 		Write(suite.T(), suite.resourceClient)
@@ -345,7 +345,7 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 
 	// rewrite the resource - this will cause the nodes health
 	// to be rereconciled but wont result in any health change
-	resourcetest.Resource(types.NodeType, suite.nodePassing.Name).
+	resourcetest.Resource(types.NodeType, suite.nodePassing.Name, suite.registry).
 		WithData(suite.T(), &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{
 				{
@@ -358,7 +358,7 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 	// wait for rereconciliation to happen
 	suite.waitForReconciliation(suite.nodePassing, "HEALTH_PASSING")
 
-	resourcetest.Resource(types.HealthStatusType, "failure").
+	resourcetest.Resource(types.HealthStatusType, "failure", suite.registry).
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "fake", Status: pbcatalog.Health_HEALTH_CRITICAL}).
 		WithOwner(suite.nodePassing).
 		Write(suite.T(), suite.resourceClient)

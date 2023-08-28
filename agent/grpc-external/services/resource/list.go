@@ -104,7 +104,7 @@ func (s *Server) validateListRequest(req *pbresource.ListRequest) (*resource.Reg
 	resource.Normalize(req.Tenancy)
 
 	// Error when partition scoped and namespace not empty.
-	if reg.Scope() == pbresource.Scope_PARTITION && req.Tenancy.Namespace != "" {
+	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
 			codes.InvalidArgument,
 			"partition scoped type %s cannot have a namespace. got: %s",

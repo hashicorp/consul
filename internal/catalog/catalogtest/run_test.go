@@ -10,18 +10,19 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Dependencies) pbresource.ResourceServiceClient {
+func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Dependencies) (pbresource.ResourceServiceClient, resource.Registry) {
 	t.Helper()
 
 	ctx := testutil.TestContext(t)
 
 	// Create the in-mem resource service
-	client, registry := svctest.RunResourceService2(t, catalog.RegisterTypes)
+	client, registry := svctest.RunResourceService(t, catalog.RegisterTypes)
 
 	// Setup/Run the controller manager
 	mgr := controller.NewManager(client, registry, testutil.Logger(t))
@@ -33,15 +34,15 @@ func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Depend
 	mgr.SetRaftLeader(true)
 	go mgr.Run(ctx)
 
-	return client
+	return client, registry
 }
 
 func TestControllers_Integration(t *testing.T) {
-	client := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
-	RunCatalogV1Alpha1IntegrationTest(t, client)
+	client, registry := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
+	RunCatalogV1Alpha1IntegrationTest(t, client, registry)
 }
 
 func TestControllers_Lifecycle(t *testing.T) {
-	client := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
-	RunCatalogV1Alpha1LifecycleIntegrationTest(t, client)
+	client, registry := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
+	RunCatalogV1Alpha1LifecycleIntegrationTest(t, client, registry)
 }

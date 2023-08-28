@@ -29,6 +29,9 @@ var (
 )
 
 func TestValidateServiceEndpoints_Ok(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	data := &pbcatalog.ServiceEndpoints{
 		Endpoints: []*pbcatalog.Endpoint{
 			{
@@ -53,7 +56,7 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 		},
 	}
 
-	res := rtest.Resource(ServiceEndpointsType, "test-service").
+	res := rtest.Resource(ServiceEndpointsType, "test-service", registry).
 		WithData(t, data).
 		Build()
 
@@ -66,11 +69,14 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 }
 
 func TestValidateServiceEndpoints_ParseError(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	// Any type other than the ServiceEndpoints type would work
 	// to cause the error we are expecting
 	data := &pbcatalog.IP{Address: "198.18.0.1"}
 
-	res := rtest.Resource(ServiceEndpointsType, "test-service").WithData(t, data).Build()
+	res := rtest.Resource(ServiceEndpointsType, "test-service", registry).WithData(t, data).Build()
 
 	err := ValidateServiceEndpoints(res)
 	require.Error(t, err)
@@ -78,6 +84,9 @@ func TestValidateServiceEndpoints_ParseError(t *testing.T) {
 }
 
 func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	genData := func() *pbcatalog.Endpoint {
 		return &pbcatalog.Endpoint{
 			TargetRef: &pbresource.ID{
@@ -230,7 +239,7 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 					endpoint,
 				},
 			}
-			res := rtest.Resource(ServiceEndpointsType, "test-service").
+			res := rtest.Resource(ServiceEndpointsType, "test-service", registry).
 				WithOwner(tcase.owner).
 				WithData(t, data).
 				Build()
@@ -246,7 +255,10 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 }
 
 func TestMutateServiceEndpoints_PopulateOwner(t *testing.T) {
-	res := rtest.Resource(ServiceEndpointsType, "test-service").Build()
+	registry := resource.NewRegistry()
+	Register(registry)
+
+	res := rtest.Resource(ServiceEndpointsType, "test-service", registry).Build()
 
 	require.NoError(t, MutateServiceEndpoints(res))
 	require.NotNil(t, res.Owner)

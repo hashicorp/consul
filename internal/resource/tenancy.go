@@ -16,6 +16,34 @@ const (
 	DefaultNamespaceName = "default"
 )
 
+// Scope describes the tenancy scope of a resource.
+type Scope int
+
+const (
+	// There is no default scope, it must be set explicitly.
+	ScopeUndefined Scope = iota
+	// ScopeCluster describes a resource that is scoped to a cluster.
+	ScopeCluster
+	// ScopePartition describes a resource that is scoped to a partition.
+	ScopePartition
+	// ScopeNamespace applies to a resource that is scoped to a partition and namespace.
+	ScopeNamespace
+)
+
+func (s Scope) String() string {
+	switch s {
+	case ScopeUndefined:
+		return "undefined"
+	case ScopeCluster:
+		return "cluster"
+	case ScopePartition:
+		return "partition"
+	case ScopeNamespace:
+		return "namespace"
+	}
+	panic(fmt.Sprintf("string mapping missing for scope %v", int(s)))
+}
+
 // Normalize lowercases the partition and namespace.
 func Normalize(tenancy *pbresource.Tenancy) {
 	if tenancy == nil {
@@ -54,15 +82,15 @@ func DefaultNamespacedTenancy() *pbresource.Tenancy {
 
 // WildCardTenancyFor returns a valid tenancy with tenancy units set to wildcard for
 // the passed in scope.
-func WildCardTenacyFor(scope pbresource.Scope) *pbresource.Tenancy {
+func WildCardTenacyFor(scope Scope) *pbresource.Tenancy {
 	switch scope {
-	case pbresource.Scope_PARTITION:
+	case ScopePartition:
 		return &pbresource.Tenancy{
 			Partition: storage.Wildcard,
 			// TODO(spatel): Remove PeerName once peer tenancy introduced
 			PeerName: storage.Wildcard,
 		}
-	case pbresource.Scope_NAMESPACE:
+	case ScopeNamespace:
 		return &pbresource.Tenancy{
 			Partition: storage.Wildcard,
 			Namespace: storage.Wildcard,
@@ -70,7 +98,14 @@ func WildCardTenacyFor(scope pbresource.Scope) *pbresource.Tenancy {
 			PeerName: storage.Wildcard,
 		}
 	default:
-		panic(fmt.Sprintf("unsupported scope: %v", scope))
+		// Resouces like tombstones which have undefined scope should return
+		// same wildcard tenancy as namespaced resources for now.
+		return &pbresource.Tenancy{
+			Partition: storage.Wildcard,
+			Namespace: storage.Wildcard,
+			// TODO(spatel): Remove PeerName once peer tenancy introduced
+			PeerName: storage.Wildcard,
+		}
 	}
 }
 
@@ -83,11 +118,11 @@ func NamespaceToPartitionTenancy(nt *pbresource.Tenancy) *pbresource.Tenancy {
 }
 
 // DefaultTenancyFor returns the default tenancy for the passed in scope.
-func DefaultTenancyFor(scope pbresource.Scope) *pbresource.Tenancy {
+func DefaultTenancyFor(scope Scope) *pbresource.Tenancy {
 	switch scope {
-	case pbresource.Scope_PARTITION:
+	case ScopePartition:
 		return DefaultPartitionedTenancy()
-	case pbresource.Scope_NAMESPACE:
+	case ScopeNamespace:
 		return DefaultNamespacedTenancy()
 	default:
 		panic(fmt.Sprintf("unsupported scope: %v", scope))

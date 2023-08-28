@@ -22,9 +22,9 @@ import (
 
 func TestGetDecodedResource(t *testing.T) {
 	var (
-		baseClient = svctest.RunResourceService(t, demo.RegisterTypes)
-		client     = rtest.NewClient(baseClient)
-		ctx        = testutil.TestContext(t)
+		baseClient, registry = svctest.RunResourceService(t, demo.RegisterTypes)
+		client               = rtest.NewClient(baseClient)
+		ctx                  = testutil.TestContext(t)
 	)
 
 	babypantsID := &pbresource.ID{
@@ -43,7 +43,7 @@ func TestGetDecodedResource(t *testing.T) {
 		data := &pbdemo.Artist{
 			Name: "caspar babypants",
 		}
-		res := rtest.Resource(demo.TypeV2Artist, "babypants").
+		res := rtest.Resource(demo.TypeV2Artist, "babypants", registry).
 			WithData(t, data).
 			Write(t, client)
 

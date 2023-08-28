@@ -16,9 +16,6 @@ import "pbmesh/v1alpha1/pbproxystate/transport_socket.proto";
 import "pbresource/resource.proto";
 
 message ProxyStateTemplate {
-  // ProxyStateTemplate is a namespace scoped resource type.
-  option (hashicorp.consul.resource.scope) = NAMESPACE;
-
   // proxy_state is the partially filled out ProxyState resource. The Endpoints, LeafCertificates and TrustBundles fields will need filling in after the resource is stored.
   ProxyState proxy_state = 1;
 

@@ -42,7 +42,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		response             *httptest.ResponseRecorder
 		expectedResponseCode int
 	}
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+	client, _ := svctest.RunResourceService(t, demo.RegisterTypes)
 	resourceHandler := resourceHandler{
 		resource.Registration{
 			Type:  demo.TypeV2Artist,
@@ -110,10 +110,7 @@ func TestResourceWriteHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1WritePolicy, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
-
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
+	client, r := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
 	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
@@ -338,10 +335,7 @@ func TestResourceReadHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", fakeToken, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, ""), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
-
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
+	client, r := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
 	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
 
 	createdResource := createResource(t, handler, nil)
@@ -391,11 +385,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
-
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
-
+	client, r := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
 	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should surface PermissionDenied error from resource service", func(t *testing.T) {
@@ -468,11 +458,7 @@ func TestResourceListHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
-
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
-
+	client, r := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
 	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should return MethodNotAllowed", func(t *testing.T) {

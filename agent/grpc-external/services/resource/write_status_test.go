@@ -207,47 +207,47 @@ func TestWriteStatus_Success(t *testing.T) {
 
 func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 	for desc, tc := range map[string]struct {
-		scope pbresource.Scope
+		scope resource.Scope
 		modFn func(req *pbresource.WriteStatusRequest)
 	}{
 		"namespaced resource provides nonempty partition and namespace": {
-			scope: pbresource.Scope_NAMESPACE,
+			scope: resource.ScopeNamespace,
 			modFn: func(req *pbresource.WriteStatusRequest) {},
 		},
 		"namespaced resource provides uppercase partition and namespace": {
-			scope: pbresource.Scope_NAMESPACE,
+			scope: resource.ScopeNamespace,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Id.Tenancy.Partition = strings.ToUpper(req.Id.Tenancy.Partition)
 				req.Id.Tenancy.Namespace = strings.ToUpper(req.Id.Tenancy.Namespace)
 			},
 		},
 		"namespaced resource inherits tokens partition when empty": {
-			scope: pbresource.Scope_NAMESPACE,
+			scope: resource.ScopeNamespace,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "" },
 		},
 		"namespaced resource inherits tokens namespace when empty": {
-			scope: pbresource.Scope_NAMESPACE,
+			scope: resource.ScopeNamespace,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Namespace = "" },
 		},
 		"namespaced resource inherits tokens partition and namespace when empty": {
-			scope: pbresource.Scope_NAMESPACE,
+			scope: resource.ScopeNamespace,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Id.Tenancy.Partition = ""
 				req.Id.Tenancy.Namespace = ""
 			},
 		},
 		"partitioned resource provides nonempty partition": {
-			scope: pbresource.Scope_NAMESPACE,
+			scope: resource.ScopeNamespace,
 			modFn: func(req *pbresource.WriteStatusRequest) {},
 		},
 		"partitioned resource provides uppercase partition": {
-			scope: pbresource.Scope_NAMESPACE,
+			scope: resource.ScopeNamespace,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Id.Tenancy.Partition = strings.ToUpper(req.Id.Tenancy.Partition)
 			},
 		},
 		"partitioned resource inherits tokens partition when empty": {
-			scope: pbresource.Scope_PARTITION,
+			scope: resource.ScopePartition,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "" },
 		},
 	} {
@@ -260,9 +260,9 @@ func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 			var res *pbresource.Resource
 			var err error
 			switch tc.scope {
-			case pbresource.Scope_NAMESPACE:
+			case resource.ScopeNamespace:
 				res, err = demo.GenerateV2Artist()
-			case pbresource.Scope_PARTITION:
+			case resource.ScopePartition:
 				res, err = demo.GenerateV1RecordLabel("Looney Tunes")
 			}
 			require.NoError(t, err)
@@ -291,25 +291,25 @@ func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 
 func TestWriteStatus_Tenancy_NotFound(t *testing.T) {
 	for desc, tc := range map[string]struct {
-		scope       pbresource.Scope
+		scope       resource.Scope
 		modFn       func(req *pbresource.WriteStatusRequest)
 		errCode     codes.Code
 		errContains string
 	}{
 		"namespaced resource provides nonexistant partition": {
-			scope:       pbresource.Scope_NAMESPACE,
+			scope:       resource.ScopeNamespace,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "bad" },
 			errCode:     codes.InvalidArgument,
 			errContains: "partition",
 		},
 		"namespaced resource provides nonexistant namespace": {
-			scope:       pbresource.Scope_NAMESPACE,
+			scope:       resource.ScopeNamespace,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Namespace = "bad" },
 			errCode:     codes.InvalidArgument,
 			errContains: "namespace",
 		},
 		"partitioned resource provides nonexistant partition": {
-			scope:       pbresource.Scope_NAMESPACE,
+			scope:       resource.ScopeNamespace,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "bad" },
 			errCode:     codes.InvalidArgument,
 			errContains: "partition",
@@ -324,9 +324,9 @@ func TestWriteStatus_Tenancy_NotFound(t *testing.T) {
 			var res *pbresource.Resource
 			var err error
 			switch tc.scope {
-			case pbresource.Scope_NAMESPACE:
+			case resource.ScopeNamespace:
 				res, err = demo.GenerateV2Artist()
-			case pbresource.Scope_PARTITION:
+			case resource.ScopePartition:
 				res, err = demo.GenerateV1RecordLabel("Looney Tunes")
 			}
 			require.NoError(t, err)

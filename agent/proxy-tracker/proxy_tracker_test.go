@@ -6,6 +6,8 @@ package proxytracker
 import (
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh"
@@ -15,11 +17,13 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestProxyTracker_Watch(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -69,7 +73,10 @@ func TestProxyTracker_Watch(t *testing.T) {
 }
 
 func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -84,7 +91,7 @@ func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
 
 	//fill up buffered channel while the consumer is not ready to simulate the error
 	for i := 0; i < 1000; i++ {
-		event := controller.Event{Obj: &ProxyConnection{ProxyID: resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, fmt.Sprintf("test%d", i)).ID()}}
+		event := controller.Event{Obj: &ProxyConnection{ProxyID: resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, fmt.Sprintf("test%d", i), registry).ID()}}
 		pt.newProxyConnectionCh <- event
 	}
 
@@ -103,6 +110,9 @@ func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
 }
 
 func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
 	type testcase struct {
 		description   string
 		proxyID       *pbresource.ID
@@ -120,21 +130,21 @@ func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
 		},
 		{
 			description:   "Empty nodeName",
-			proxyID:       resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID(),
+			proxyID:       resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID(),
 			nodeName:      "",
 			token:         "something",
 			expectedError: errors.New("nodeName is required"),
 		},
 		{
 			description:   "Empty token",
-			proxyID:       resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID(),
+			proxyID:       resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID(),
 			nodeName:      "something",
 			token:         "",
 			expectedError: errors.New("token is required"),
 		},
 		{
 			description:   "resource is not ProxyStateTemplate",
-			proxyID:       resourcetest.Resource(mesh.ProxyConfigurationType, "test").ID(),
+			proxyID:       resourcetest.Resource(mesh.ProxyConfigurationType, "test", registry).ID(),
 			nodeName:      "something",
 			token:         "something else",
 			expectedError: errors.New("proxyID must be a ProxyStateTemplate"),
@@ -162,7 +172,10 @@ func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
 }
 
 func TestProxyTracker_Watch_SessionLimiterError(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	lim := NewMockSessionLimiter(t)
 	lim.On("BeginSession").Return(nil, errors.New("kaboom"))
 	logger := NewMockLogger(t)
@@ -183,7 +196,10 @@ func TestProxyTracker_Watch_SessionLimiterError(t *testing.T) {
 }
 
 func TestProxyTracker_PushChange(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -225,7 +241,10 @@ func TestProxyTracker_PushChange(t *testing.T) {
 }
 
 func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	lim := NewMockSessionLimiter(t)
 	logger := NewMockLogger(t)
 
@@ -245,6 +264,9 @@ func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
 }
 
 func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
 	type testcase struct {
 		name              string
 		shouldExist       bool
@@ -282,14 +304,17 @@ func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
 			Logger:         logger,
 			SessionLimiter: lim,
 		})
-		resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+		resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 		tc.preProcessingFunc(pt, resourceID, lim, session1, session1TermCh)
 		require.Equal(t, tc.shouldExist, pt.ProxyConnectedToServer(resourceID))
 	}
 }
 
 func TestProxyTracker_Shutdown(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)

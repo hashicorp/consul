@@ -31,6 +31,7 @@ func RegisterService(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     ServiceV1Alpha1Type,
 		Proto:    &pbcatalog.Service{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateService,
 	})
 }

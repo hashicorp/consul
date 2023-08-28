@@ -34,28 +34,47 @@ var (
 	}
 )
 
+func testRegistry() resource.Registry {
+	registry := resource.NewRegistry()
+	registry.Register(resource.Registration{
+		Type: fakeFooType,
+		// Ignore values for required fields proto and scope.
+		Proto: &pbresource.ID{},
+		Scope: resource.ScopeNamespace,
+	})
+	registry.Register(resource.Registration{
+		Type: fakeBarType,
+		// Ignore values for required fields proto and scope.
+		Proto: &pbresource.ID{},
+		Scope: resource.ScopeNamespace,
+	})
+
+	return registry
+}
+
 func TestMapper(t *testing.T) {
 	// Create an advance pointer to some services.
+	registry := testRegistry()
 
-	randoSvc := rtest.Resource(fakeBarType, "rando").Build()
-	apiSvc := rtest.Resource(fakeBarType, "api").Build()
-	fooSvc := rtest.Resource(fakeBarType, "foo").Build()
-	barSvc := rtest.Resource(fakeBarType, "bar").Build()
-	wwwSvc := rtest.Resource(fakeBarType, "www").Build()
+	randoSvc := rtest.Resource(fakeBarType, "rando", registry).Build()
+	apiSvc := rtest.Resource(fakeBarType, "api", registry).Build()
+	fooSvc := rtest.Resource(fakeBarType, "foo", registry).Build()
+	barSvc := rtest.Resource(fakeBarType, "bar", registry).Build()
+	wwwSvc := rtest.Resource(fakeBarType, "www", registry).Build()
 
-	apiRef := newRef(fakeBarType, "api")
-	fooRef := newRef(fakeBarType, "foo")
-	barRef := newRef(fakeBarType, "bar")
-	wwwRef := newRef(fakeBarType, "www")
+	apiRef := newRef(fakeBarType, "api", registry)
+	fooRef := newRef(fakeBarType, "foo", registry)
+	barRef := newRef(fakeBarType, "bar", registry)
+	wwwRef := newRef(fakeBarType, "www", registry)
 
-	fail1 := rtest.Resource(fakeFooType, "api").Build()
+	fail1 := rtest.Resource(fakeFooType, "api", registry).Build()
 	fail1Refs := []resource.ReferenceOrID{
 		apiRef,
 		fooRef,
 		barRef,
 	}
 
-	fail2 := rtest.Resource(fakeFooType, "www").Build()
+	fail2 := rtest.Resource(fakeFooType, "www", registry).Build()
 	fail2Refs := []resource.ReferenceOrID{
 		wwwRef,
 		fooRef,
@@ -182,11 +201,11 @@ func TestMapper(t *testing.T) {
 	requireServicesTracked(t, m, wwwSvc, fail2.Id)
 
 	// delete the link
-	m.UntrackLink(newRef(fakeBarType, "www"))
+	m.UntrackLink(newRef(fakeBarType, "www", registry))
 
-	requireLinksForItem(t, m, fail2.Id, newRef(fakeBarType, "foo"))
+	requireLinksForItem(t, m, fail2.Id, newRef(fakeBarType, "foo", registry))
 
-	m.UntrackLink(newRef(fakeBarType, "foo"))
+	m.UntrackLink(newRef(fakeBarType, "foo", registry))
 
 	requireLinksForItem(t, m, fail2.Id)
 
@@ -212,6 +231,8 @@ func TestMapper(t *testing.T) {
 }
 
 func TestPanics(t *testing.T) {
+	registry := testRegistry()
+
 	t.Run("new mapper without types", func(t *testing.T) {
 		require.PanicsWithValue(t, "itemType is required", func() {
 			New(nil, nil)
@@ -230,7 +251,7 @@ func TestPanics(t *testing.T) {
 		m := New(fakeFooType, fakeBarType)
 		require.PanicsWithValue(t, "expected item type \"catalog.v1.Foo\" got \"catalog.v1.Bar\"", func() {
 			// Calling UntrackItem with link type instead of item type
-			m.UntrackItem(rtest.Resource(fakeBarType, "test").ID())
+			m.UntrackItem(rtest.Resource(fakeBarType, "test", registry).ID())
 		})
 	})
 
@@ -238,7 +259,7 @@ func TestPanics(t *testing.T) {
 		m := New(fakeFooType, fakeBarType)
 		require.PanicsWithValue(t, "expected item type \"catalog.v1.Foo\" got \"catalog.v1.Bar\"", func() {
 			// Calling UntrackItem with link type instead of item type
-			m.TrackItem(rtest.Resource(fakeBarType, "test").ID(), nil)
+			m.TrackItem(rtest.Resource(fakeBarType, "test", registry).ID(), nil)
 		})
 	})
 
@@ -247,44 +268,44 @@ func TestPanics(t *testing.T) {
 		require.PanicsWithValue(t, "expected link type \"catalog.v1.Bar\" got \"catalog.v1.Foo\"", func() {
 			// Calling UntrackItem with link type instead of item type
 			links := []resource.ReferenceOrID{
-				rtest.Resource(fakeFooType, "link").ID(),
+				rtest.Resource(fakeFooType, "link", registry).ID(),
 			}
-			m.TrackItem(rtest.Resource(fakeFooType, "test").ID(), links)
+			m.TrackItem(rtest.Resource(fakeFooType, "test", registry).ID(), links)
 		})
 	})
 
 	t.Run("UntrackLink: mismatched type", func(t *testing.T) {
 		m := New(fakeFooType, fakeBarType)
 		require.PanicsWithValue(t, "expected link type \"catalog.v1.Bar\" got \"catalog.v1.Foo\"", func() {
-			m.UntrackLink(rtest.Resource(fakeFooType, "test").ID())
+			m.UntrackLink(rtest.Resource(fakeFooType, "test", registry).ID())
 		})
 	})
 
 	t.Run("LinkRefsForItem: mismatched type", func(t *testing.T) {
 		m := New(fakeFooType, fakeBarType)
 		require.PanicsWithValue(t, "expected item type \"catalog.v1.Foo\" got \"catalog.v1.Bar\"", func() {
-			m.LinkRefsForItem(rtest.Resource(fakeBarType, "test").ID())
+			m.LinkRefsForItem(rtest.Resource(fakeBarType, "test", registry).ID())
 		})
 	})
 
 	t.Run("LinkRefsForItem: mismatched type", func(t *testing.T) {
 		m := New(fakeFooType, fakeBarType)
 		require.PanicsWithValue(t, "expected item type \"catalog.v1.Foo\" got \"catalog.v1.Bar\"", func() {
-			m.LinkIDsForItem(rtest.Resource(fakeBarType, "test").ID())
+			m.LinkIDsForItem(rtest.Resource(fakeBarType, "test", registry).ID())
 		})
 	})
 
 	t.Run("ItemRefsForLink: mismatched type", func(t *testing.T) {
 		m := New(fakeFooType, fakeBarType)
 		require.PanicsWithValue(t, "expected link type \"catalog.v1.Bar\" got \"catalog.v1.Foo\"", func() {
-			m.ItemRefsForLink(rtest.Resource(fakeFooType, "test").ID())
+			m.ItemRefsForLink(rtest.Resource(fakeFooType, "test", registry).ID())
 		})
 	})
 
 	t.Run("ItemIDsForLink: mismatched type", func(t *testing.T) {
 		m := New(fakeFooType, fakeBarType)
 		require.PanicsWithValue(t, "expected link type \"catalog.v1.Bar\" got \"catalog.v1.Foo\"", func() {
-			m.ItemIDsForLink(rtest.Resource(fakeFooType, "test").ID())
+			m.ItemIDsForLink(rtest.Resource(fakeFooType, "test", registry).ID())
 		})
 	})
 }
@@ -351,6 +372,6 @@ func requireLinksForItem(t *testing.T, mapper *Mapper, item *pbresource.ID, link
 	prototest.AssertElementsMatch(t, expLinkIDs, ids)
 }
 
-func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).Reference("")
+func newRef(typ *pbresource.Type, name string, registry resource.Registry) *pbresource.Reference {
+	return rtest.Resource(typ, name, registry).Reference("")
 }

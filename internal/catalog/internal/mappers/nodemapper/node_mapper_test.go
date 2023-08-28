@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -17,6 +18,9 @@ import (
 )
 
 func TestNodeMapper_NodeIDFromWorkload(t *testing.T) {
+	registry := resource.NewRegistry()
+	types.Register(registry)
+
 	mapper := New()
 
 	data := &pbcatalog.Workload{
@@ -24,13 +28,13 @@ func TestNodeMapper_NodeIDFromWorkload(t *testing.T) {
 		// the other fields should be irrelevant
 	}
 
-	workload := resourcetest.Resource(types.WorkloadType, "test-workload").
+	workload := resourcetest.Resource(types.WorkloadType, "test-workload", registry).
 		WithData(t, data).Build()
 
 	actual := mapper.NodeIDFromWorkload(workload, data)
 	expected := &pbresource.ID{
 		Type:    types.NodeType,
-		Tenancy: workload.Id.Tenancy,
+		Tenancy: resource.NamespaceToPartitionTenancy(workload.Id.Tenancy),
 		Name:    "test-node",
 	}
 
@@ -52,13 +56,16 @@ func requireWorkloadsTracked(t *testing.T, mapper *NodeMapper, node *pbresource.
 }
 
 func TestNodeMapper_WorkloadTracking(t *testing.T) {
+	registry := resource.NewRegistry()
+	types.Register(registry)
+
 	mapper := New()
 
-	node1 := resourcetest.Resource(types.NodeType, "node1").
+	node1 := resourcetest.Resource(types.NodeType, "node1", registry).
 		WithData(t, &pbcatalog.Node{Addresses: []*pbcatalog.NodeAddress{{Host: "198.18.0.1"}}}).
 		Build()
 
-	node2 := resourcetest.Resource(types.NodeType, "node2").
+	node2 := resourcetest.Resource(types.NodeType, "node2", registry).
 		WithData(t, &pbcatalog.Node{Addresses: []*pbcatalog.NodeAddress{{Host: "198.18.0.2"}}}).
 		Build()
 

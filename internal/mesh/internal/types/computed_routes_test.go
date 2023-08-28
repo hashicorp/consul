@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -15,13 +16,16 @@ import (
 )
 
 func TestValidateComputedRoutes(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	type testcase struct {
 		routes    *pbmesh.ComputedRoutes
 		expectErr string
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(ComputedRoutesType, "api").
+		res := resourcetest.Resource(ComputedRoutesType, "api", registry).
 			WithData(t, tc.routes).
 			Build()
 

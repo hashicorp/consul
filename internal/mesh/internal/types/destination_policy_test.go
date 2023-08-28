@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -17,6 +18,9 @@ import (
 )
 
 func TestValidateDestinationPolicy(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	type testcase struct {
 		policy     *pbmesh.DestinationPolicy
 		expectErr  string
@@ -24,7 +28,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(DestinationPolicyType, "api").
+		res := resourcetest.Resource(DestinationPolicyType, "api", registry).
 			WithData(t, tc.policy).
 			Build()
 

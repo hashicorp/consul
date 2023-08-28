@@ -97,7 +97,7 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 
 	wl, err := c.client.WatchList(ctx, &pbresource.WatchListRequest{
 		Type:    typ,
-		Tenancy: resource.WildCardTenacyFor(reg.Scope()),
+		Tenancy: resource.WildCardTenacyFor(reg.Scope),
 	})
 	if err != nil {
 		c.logger.Error("failed to create watch", "error", err)

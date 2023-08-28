@@ -7,10 +7,7 @@ syntax = "proto3";
 // Consul's generic storage APIs.
 package hashicorp.consul.internal.demo.v2;
 
-import "pbresource/resource.proto";
-
 message Artist {
-  option (hashicorp.consul.resource.scope) = NAMESPACE;
   string name = 1;
   Genre genre = 2;
   map<string, string> group_members = 3;
@@ -33,7 +30,6 @@ enum Genre {
 }
 
 message Album {
-  option (hashicorp.consul.resource.scope) = NAMESPACE;
   string title = 1;
   int32 year_of_release = 2;
   bool critically_aclaimed = 3;

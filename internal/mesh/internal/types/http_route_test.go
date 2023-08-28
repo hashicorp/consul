@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -20,6 +21,9 @@ import (
 )
 
 func TestMutateHTTPRoute(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	type testcase struct {
 		route     *pbmesh.HTTPRoute
 		expect    *pbmesh.HTTPRoute
@@ -27,7 +31,7 @@ func TestMutateHTTPRoute(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(HTTPRouteType, "api").
+		res := resourcetest.Resource(HTTPRouteType, "api", registry).
 			WithData(t, tc.route).
 			Build()
 
@@ -145,13 +149,17 @@ func TestMutateHTTPRoute(t *testing.T) {
 }
 
 func TestValidateHTTPRoute(t *testing.T) {
+	registry := resource.NewRegistry()
+	catalog.RegisterTypes(registry)
+	Register(registry)
+
 	type testcase struct {
 		route     *pbmesh.HTTPRoute
 		expectErr string
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(HTTPRouteType, "api").
+		res := resourcetest.Resource(HTTPRouteType, "api", registry).
 			WithData(t, tc.route).
 			Build()
 
@@ -175,7 +183,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"hostnames not supported for services": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Hostnames: []string{"foo.local"},
 			},
@@ -184,18 +192,18 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"no rules": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 			},
 		},
 		"rules with no matches": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -203,14 +211,14 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"rules with matches that are empty": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
 						// none
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -218,7 +226,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"path match with no type is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -227,7 +235,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -236,7 +244,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"path match with unknown type is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -246,7 +254,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -255,7 +263,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"exact path match with no leading slash is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -265,7 +273,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -274,7 +282,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"prefix path match with no leading slash is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -284,7 +292,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -293,7 +301,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"exact path match with leading slash is good": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -303,7 +311,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -311,7 +319,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"prefix path match with leading slash is good": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -321,7 +329,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -329,7 +337,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"header match with no type is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -338,7 +346,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -347,7 +355,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"header match with unknown type is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -357,7 +365,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -366,7 +374,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"header match with no name is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -375,7 +383,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -384,7 +392,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"header match is good": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -394,7 +402,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -402,7 +410,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"queryparam match with no type is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -411,7 +419,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -420,7 +428,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"queryparam match with unknown type is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -430,7 +438,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -439,7 +447,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"queryparam match with no name is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -448,7 +456,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -457,7 +465,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"queryparam match is good": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
@@ -467,7 +475,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -475,14 +483,14 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"method match is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
 						Method: "BOB",
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -491,14 +499,14 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"method match is good": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Matches: []*pbmesh.HTTPRouteMatch{{
 						Method: "DELETE",
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -506,14 +514,14 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter empty is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
 						// none
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -522,14 +530,14 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter req header mod is ok": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
 						RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -537,14 +545,14 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter resp header mod is ok": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
 						ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -552,14 +560,14 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter rewrite header mod missing path prefix": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
 						UrlRewrite: &pbmesh.HTTPURLRewriteFilter{},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -568,7 +576,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter rewrite header mod is ok": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
@@ -577,7 +585,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -585,7 +593,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter req+resp header mod is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
@@ -593,7 +601,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -602,7 +610,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter req+rewrite header mod is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
@@ -612,7 +620,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -621,7 +629,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter resp+rewrite header mod is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
@@ -631,7 +639,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -640,7 +648,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"filter req+resp+rewrite header mod is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Filters: []*pbmesh.HTTPRouteFilter{{
@@ -651,7 +659,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -660,11 +668,11 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"backend ref with filters is unsupported": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 						Filters: []*pbmesh.HTTPRouteFilter{{
 							RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{},
 						}},
@@ -676,7 +684,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		"nil backend ref": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					BackendRefs: []*pbmesh.HTTPBackendRef{nil},
@@ -691,12 +699,12 @@ func TestValidateHTTPRoute(t *testing.T) {
 		cases["timeouts: "+name] = testcase{
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Timeouts: timeoutsTC.timeouts,
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -709,12 +717,12 @@ func TestValidateHTTPRoute(t *testing.T) {
 		cases["retries: "+name] = testcase{
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					Retries: retriesTC.retries,
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
-						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						BackendRef: newBackendRef(catalog.ServiceType, "api", "", registry),
 					}},
 				}},
 			},
@@ -723,7 +731,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 	}
 
 	// Add common parent refs test cases.
-	for name, parentTC := range getXRouteParentRefTestCases() {
+	for name, parentTC := range getXRouteParentRefTestCases(registry) {
 		cases["parent-ref: "+name] = testcase{
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: parentTC.refs,
@@ -732,7 +740,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		}
 	}
 	// add common backend ref test cases.
-	for name, backendTC := range getXRouteBackendRefTestCases() {
+	for name, backendTC := range getXRouteBackendRefTestCases(registry) {
 		var refs []*pbmesh.HTTPBackendRef
 		for _, br := range backendTC.refs {
 			refs = append(refs, &pbmesh.HTTPBackendRef{
@@ -742,7 +750,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 		cases["backend-ref: "+name] = testcase{
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(catalog.ServiceType, "web", "", registry),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{
 					{BackendRefs: refs},
@@ -764,14 +772,14 @@ type xRouteParentRefTestcase struct {
 	expectErr string
 }
 
-func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
+func getXRouteParentRefTestCases(registry resource.Registry) map[string]xRouteParentRefTestcase {
 	return map[string]xRouteParentRefTestcase{
 		"no parent refs": {
 			expectErr: `invalid "parent_refs" field: cannot be empty`,
 		},
 		"parent ref with nil ref": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", ""),
+				newParentRef(catalog.ServiceType, "api", "", registry),
 				{
 					Ref:  nil,
 					Port: "http",
@@ -781,16 +789,16 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 		},
 		"parent ref with bad type ref": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", ""),
-				newParentRef(catalog.WorkloadType, "api", ""),
+				newParentRef(catalog.ServiceType, "api", "", registry),
+				newParentRef(catalog.WorkloadType, "api", "", registry),
 			},
 			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: reference must have type catalog.v1alpha1.Service`,
 		},
 		"parent ref with section": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", ""),
+				newParentRef(catalog.ServiceType, "api", "", registry),
 				{
-					Ref:  resourcetest.Resource(catalog.ServiceType, "web").Reference("section2"),
+					Ref:  resourcetest.Resource(catalog.ServiceType, "web", registry).Reference("section2"),
 					Port: "http",
 				},
 			},
@@ -798,41 +806,41 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 		},
 		"duplicate exact parents": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", "http"),
-				newParentRef(catalog.ServiceType, "api", "http"),
+				newParentRef(catalog.ServiceType, "api", "http", registry),
+				newParentRef(catalog.ServiceType, "api", "http", registry),
 			},
 			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for port "http" exists twice`,
 		},
 		"duplicate wild parents": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", ""),
-				newParentRef(catalog.ServiceType, "api", ""),
+				newParentRef(catalog.ServiceType, "api", "", registry),
+				newParentRef(catalog.ServiceType, "api", "", registry),
 			},
 			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for wildcard port exists twice`,
 		},
 		"duplicate parents via exact+wild overlap": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", "http"),
-				newParentRef(catalog.ServiceType, "api", ""),
+				newParentRef(catalog.ServiceType, "api", "http", registry),
+				newParentRef(catalog.ServiceType, "api", "", registry),
 			},
 			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for ports [http] covered by wildcard port already`,
 		},
 		"duplicate parents via exact+wild overlap (reversed)": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", ""),
-				newParentRef(catalog.ServiceType, "api", "http"),
+				newParentRef(catalog.ServiceType, "api", "", registry),
+				newParentRef(catalog.ServiceType, "api", "http", registry),
 			},
 			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for port "http" covered by wildcard port already`,
 		},
 		"good single parent ref": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", "http"),
+				newParentRef(catalog.ServiceType, "api", "http", registry),
 			},
 		},
 		"good muliple parent refs": {
 			refs: []*pbmesh.ParentReference{
-				newParentRef(catalog.ServiceType, "api", "http"),
-				newParentRef(catalog.ServiceType, "web", ""),
+				newParentRef(catalog.ServiceType, "api", "http", registry),
+				newParentRef(catalog.ServiceType, "web", "", registry),
 			},
 		},
 	}
@@ -843,14 +851,14 @@ type xRouteBackendRefTestcase struct {
 	expectErr string
 }
 
-func getXRouteBackendRefTestCases() map[string]xRouteBackendRefTestcase {
+func getXRouteBackendRefTestCases(registry resource.Registry) map[string]xRouteBackendRefTestcase {
 	return map[string]xRouteBackendRefTestcase{
 		"no backend refs": {
 			expectErr: `invalid "backend_refs" field: cannot be empty`,
 		},
 		"backend ref with nil ref": {
 			refs: []*pbmesh.BackendReference{
-				newBackendRef(catalog.ServiceType, "api", ""),
+				newBackendRef(catalog.ServiceType, "api", "", registry),
 				{
 					Ref:  nil,
 					Port: "http",
@@ -860,16 +868,16 @@ func getXRouteBackendRefTestCases() map[string]xRouteBackendRefTestcase {
 		},
 		"backend ref with bad type ref": {
 			refs: []*pbmesh.BackendReference{
-				newBackendRef(catalog.ServiceType, "api", ""),
-				newBackendRef(catalog.WorkloadType, "api", ""),
+				newBackendRef(catalog.ServiceType, "api", "", registry),
+				newBackendRef(catalog.WorkloadType, "api", "", registry),
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid element at index 1 of list "backend_refs": invalid "backend_ref" field: invalid "ref" field: reference must have type catalog.v1alpha1.Service`,
 		},
 		"backend ref with section": {
 			refs: []*pbmesh.BackendReference{
-				newBackendRef(catalog.ServiceType, "api", ""),
+				newBackendRef(catalog.ServiceType, "api", "", registry),
 				{
-					Ref:  resourcetest.Resource(catalog.ServiceType, "web").Reference("section2"),
+					Ref:  resourcetest.Resource(catalog.ServiceType, "web", registry).Reference("section2"),
 					Port: "http",
 				},
 			},
@@ -877,9 +885,9 @@ func getXRouteBackendRefTestCases() map[string]xRouteBackendRefTestcase {
 		},
 		"backend ref with datacenter": {
 			refs: []*pbmesh.BackendReference{
-				newBackendRef(catalog.ServiceType, "api", ""),
+				newBackendRef(catalog.ServiceType, "api", "", registry),
 				{
-					Ref:        newRef(catalog.ServiceType, "db"),
+					Ref:        newRef(catalog.ServiceType, "db", registry),
 					Port:       "http",
 					Datacenter: "dc2",
 				},
@@ -888,9 +896,9 @@ func getXRouteBackendRefTestCases() map[string]xRouteBackendRefTestcase {
 		},
 		"good backend ref": {
 			refs: []*pbmesh.BackendReference{
-				newBackendRef(catalog.ServiceType, "api", ""),
+				newBackendRef(catalog.ServiceType, "api", "", registry),
 				{
-					Ref:  newRef(catalog.ServiceType, "db"),
+					Ref:  newRef(catalog.ServiceType, "db", registry),
 					Port: "http",
 				},
 			},
@@ -961,20 +969,20 @@ func getXRouteRetriesTestCases() map[string]xRouteRetriesTestcase {
 	}
 }
 
-func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return resourcetest.Resource(typ, name).Reference("")
+func newRef(typ *pbresource.Type, name string, registry resource.Registry) *pbresource.Reference {
+	return resourcetest.Resource(typ, name, registry).Reference("")
 }
 
-func newBackendRef(typ *pbresource.Type, name, port string) *pbmesh.BackendReference {
+func newBackendRef(typ *pbresource.Type, name, port string, registry resource.Registry) *pbmesh.BackendReference {
 	return &pbmesh.BackendReference{
-		Ref:  newRef(typ, name),
+		Ref:  newRef(typ, name, registry),
 		Port: port,
 	}
 }
 
-func newParentRef(typ *pbresource.Type, name, port string) *pbmesh.ParentReference {
+func newParentRef(typ *pbresource.Type, name, port string, registry resource.Registry) *pbmesh.ParentReference {
 	return &pbmesh.ParentReference{
-		Ref:  newRef(typ, name),
+		Ref:  newRef(typ, name, registry),
 		Port: port,
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -16,19 +17,19 @@ import (
 // RunCatalogV1Alpha1LifecycleIntegrationTest intends to excercise functionality of
 // managing catalog resources over their normal lifecycle where they will be modified
 // several times, change state etc.
-func RunCatalogV1Alpha1LifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunCatalogV1Alpha1LifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, registry resource.Registry) {
 	t.Helper()
 
 	testutil.RunStep(t, "node-lifecycle", func(t *testing.T) {
-		RunCatalogV1Alpha1NodeLifecycleIntegrationTest(t, client)
+		RunCatalogV1Alpha1NodeLifecycleIntegrationTest(t, client, registry)
 	})
 
 	testutil.RunStep(t, "workload-lifecycle", func(t *testing.T) {
-		RunCatalogV1Alpha1WorkloadLifecycleIntegrationTest(t, client)
+		RunCatalogV1Alpha1WorkloadLifecycleIntegrationTest(t, client, registry)
 	})
 
 	testutil.RunStep(t, "endpoints-lifecycle", func(t *testing.T) {
-		RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t, client)
+		RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t, client, registry)
 	})
 }
 
@@ -41,14 +42,14 @@ func RunCatalogV1Alpha1LifecycleIntegrationTest(t *testing.T, client pbresource.
 // * Changing HealthStatus to a better health will cause recomputation of the Health
 // * Deletion of associated HealthStatuses will recompute the Health (back to passing)
 // * Deletion of the node will cause deletion of associated health statuses
-func RunCatalogV1Alpha1NodeLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunCatalogV1Alpha1NodeLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, registry resource.Registry) {
 	c := rtest.NewClient(client)
 
 	nodeName := "test-lifecycle"
 	nodeHealthName := "test-lifecycle-node-status"
 
 	// initial node creation
-	node := rtest.Resource(catalog.NodeV1Alpha1Type, nodeName).
+	node := rtest.Resource(catalog.NodeV1Alpha1Type, nodeName, registry).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{
 				{Host: "172.16.2.3"},
@@ -86,7 +87,7 @@ func RunCatalogV1Alpha1NodeLifecycleIntegrationTest(t *testing.T, client pbresou
 	// reconciliation at each point
 	for _, health := range healthChanges {
 		// update the health check
-		nodeHealth = setHealthStatus(t, c, node.Id, nodeHealthName, health)
+		nodeHealth = setHealthStatus(t, c, node.Id, nodeHealthName, health, registry)
 
 		// wait for reconciliation to kick in and put the node into the right
 		// health status.
@@ -106,7 +107,7 @@ func RunCatalogV1Alpha1NodeLifecycleIntegrationTest(t *testing.T, client pbresou
 	// Add the health status back once more, the actual status doesn't matter.
 	// It just must be owned by the node so that we can show cascading
 	// deletions of owned health statuses working.
-	healthStatus := setHealthStatus(t, c, node.Id, nodeHealthName, pbcatalog.Health_HEALTH_CRITICAL)
+	healthStatus := setHealthStatus(t, c, node.Id, nodeHealthName, pbcatalog.Health_HEALTH_CRITICAL, registry)
 
 	// Delete the node and wait for the health status to be deleted.
 	c.MustDelete(t, node.Id)
@@ -131,14 +132,14 @@ func RunCatalogV1Alpha1NodeLifecycleIntegrationTest(t *testing.T, client pbresou
 //   - Overall health is computed as the worst health amongst the nodes health and all
 //     of the workloads associated HealthStatuses
 //   - Deletion of the workload will cause deletion of all associated health statuses.
-func RunCatalogV1Alpha1WorkloadLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunCatalogV1Alpha1WorkloadLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, registry resource.Registry) {
 	c := rtest.NewClient(client)
 	testutil.RunStep(t, "nodeless-workload", func(t *testing.T) {
-		runV1Alpha1NodelessWorkloadLifecycleIntegrationTest(t, c)
+		runV1Alpha1NodelessWorkloadLifecycleIntegrationTest(t, c, registry)
 	})
 
 	testutil.RunStep(t, "node-associated-workload", func(t *testing.T) {
-		runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t, c)
+		runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t, c, registry)
 	})
 }
 
@@ -152,12 +153,12 @@ func RunCatalogV1Alpha1WorkloadLifecycleIntegrationTest(t *testing.T, client pbr
 //   - Changing HealthStatus to a better health will cause recompuation of the Health
 //   - Deletion of associated HealthStatus for a nodeless workload will be set back to passing
 //   - Deletion of the workload will cause deletion of all associated health statuses.
-func runV1Alpha1NodelessWorkloadLifecycleIntegrationTest(t *testing.T, c *rtest.Client) {
+func runV1Alpha1NodelessWorkloadLifecycleIntegrationTest(t *testing.T, c *rtest.Client, registry resource.Registry) {
 	workloadName := "test-lifecycle-workload"
 	workloadHealthName := "test-lifecycle-workload-status"
 
 	// create a workload without a node association or health statuses yet
-	workload := rtest.Resource(catalog.WorkloadV1Alpha1Type, workloadName).
+	workload := rtest.Resource(catalog.WorkloadV1Alpha1Type, workloadName, registry).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "198.18.9.8"},
@@ -196,7 +197,7 @@ func runV1Alpha1NodelessWorkloadLifecycleIntegrationTest(t *testing.T, c *rtest.
 	// reconciliation at each point
 	for _, health := range healthChanges {
 		// update the health status
-		workloadHealth = setHealthStatus(t, c, workload.Id, workloadHealthName, health)
+		workloadHealth = setHealthStatus(t, c, workload.Id, workloadHealthName, health, registry)
 
 		// wait for reconciliation to kick in and put the workload into
 		// the right health status.
@@ -216,7 +217,7 @@ func runV1Alpha1NodelessWorkloadLifecycleIntegrationTest(t *testing.T, c *rtest.
 	// Reset the workload health. The actual health is irrelevant, we just want it
 	// to exist to provde that Health Statuses get deleted along with the workload
 	// when its deleted.
-	workloadHealth = setHealthStatus(t, c, workload.Id, workloadHealthName, pbcatalog.Health_HEALTH_WARNING)
+	workloadHealth = setHealthStatus(t, c, workload.Id, workloadHealthName, pbcatalog.Health_HEALTH_WARNING, registry)
 
 	// Delete the workload and wait for the HealthStatus to also be deleted
 	c.MustDelete(t, workload.Id)
@@ -236,7 +237,7 @@ func runV1Alpha1NodelessWorkloadLifecycleIntegrationTest(t *testing.T, c *rtest.
 //     inherit its health from the node.
 //   - Overall health is computed as the worst health amongst the nodes health and all
 //     of the workloads associated HealthStatuses
-func runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *rtest.Client) {
+func runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *rtest.Client, registry resource.Registry) {
 	workloadName := "test-lifecycle"
 	workloadHealthName := "test-lifecycle"
 	nodeName1 := "test-lifecycle-1"
@@ -245,12 +246,12 @@ func runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *
 	nodeHealthName2 := "test-lifecycle-node-2"
 
 	// Insert a some nodes to link the workloads to at various points throughout the test
-	node1 := rtest.Resource(catalog.NodeV1Alpha1Type, nodeName1).
+	node1 := rtest.Resource(catalog.NodeV1Alpha1Type, nodeName1, registry).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{{Host: "172.17.9.10"}},
 		}).
 		Write(t, c)
-	node2 := rtest.Resource(catalog.NodeV1Alpha1Type, nodeName2).
+	node2 := rtest.Resource(catalog.NodeV1Alpha1Type, nodeName2, registry).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{{Host: "172.17.9.11"}},
 		}).
@@ -259,11 +260,11 @@ func runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *
 	// Set some non-passing health statuses for those nodes. Using non-passing will make
 	// it easy to see that changing a passing workloads node association appropriately
 	// impacts the overall workload health.
-	setHealthStatus(t, c, node1.Id, nodeHealthName1, pbcatalog.Health_HEALTH_CRITICAL)
-	setHealthStatus(t, c, node2.Id, nodeHealthName2, pbcatalog.Health_HEALTH_WARNING)
+	setHealthStatus(t, c, node1.Id, nodeHealthName1, pbcatalog.Health_HEALTH_CRITICAL, registry)
+	setHealthStatus(t, c, node2.Id, nodeHealthName2, pbcatalog.Health_HEALTH_WARNING, registry)
 
 	// Add the workload but don't immediately associate with any node.
-	workload := rtest.Resource(catalog.WorkloadV1Alpha1Type, workloadName).
+	workload := rtest.Resource(catalog.WorkloadV1Alpha1Type, workloadName, registry).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "198.18.9.8"},
@@ -333,7 +334,7 @@ func runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *
 		Write(t, c)
 
 	// Also set node 1 health down to WARNING
-	setHealthStatus(t, c, node1.Id, nodeHealthName1, pbcatalog.Health_HEALTH_WARNING)
+	setHealthStatus(t, c, node1.Id, nodeHealthName1, pbcatalog.Health_HEALTH_WARNING, registry)
 
 	// Wait for the workload health controller to mark the workload as warning (due to node 1 having warning health now)
 	c.WaitForStatusCondition(t, workload.Id,
@@ -341,7 +342,7 @@ func runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *
 		catalog.WorkloadAndNodeHealthConditions[pbcatalog.Health_HEALTH_PASSING][pbcatalog.Health_HEALTH_WARNING])
 
 	// Now add a critical workload health check to ensure that both node and workload health are accounted for.
-	setHealthStatus(t, c, workload.Id, workloadHealthName, pbcatalog.Health_HEALTH_CRITICAL)
+	setHealthStatus(t, c, workload.Id, workloadHealthName, pbcatalog.Health_HEALTH_CRITICAL, registry)
 
 	// Wait for the workload health to be recomputed and put into the critical status.
 	c.WaitForStatusCondition(t, workload.Id,
@@ -349,7 +350,7 @@ func runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *
 		catalog.WorkloadAndNodeHealthConditions[pbcatalog.Health_HEALTH_CRITICAL][pbcatalog.Health_HEALTH_WARNING])
 
 	// Reset the workloads health to passing. We expect the overall health to go back to warning
-	setHealthStatus(t, c, workload.Id, workloadHealthName, pbcatalog.Health_HEALTH_PASSING)
+	setHealthStatus(t, c, workload.Id, workloadHealthName, pbcatalog.Health_HEALTH_PASSING, registry)
 	c.WaitForStatusCondition(t, workload.Id,
 		catalog.WorkloadHealthStatusKey,
 		catalog.WorkloadAndNodeHealthConditions[pbcatalog.Health_HEALTH_PASSING][pbcatalog.Health_HEALTH_WARNING])
@@ -379,13 +380,13 @@ func runV1Alpha1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *
 // * Adding ports to a service will recalculate the endpoints
 // * Removing ports from a service will recalculate the endpoints
 // * Changing the workload will recalculate the endpoints (ports, addresses, or health)
-func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, registry resource.Registry) {
 	c := rtest.NewClient(client)
 	serviceName := "test-lifecycle"
 
 	// Create the service without a selector. We should not see endpoints generated but we should see the
 	// status updated to note endpoints are not being managed.
-	service := rtest.Resource(catalog.ServiceV1Alpha1Type, serviceName).
+	service := rtest.Resource(catalog.ServiceV1Alpha1Type, serviceName, registry).
 		WithData(t, &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP}},
 		}).
@@ -395,7 +396,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 	c.WaitForStatusCondition(t, service.Id, catalog.EndpointsStatusKey, catalog.EndpointsStatusConditionUnmanaged)
 
 	// Verify that no endpoints were created.
-	endpointsID := rtest.Resource(catalog.ServiceEndpointsV1Alpha1Type, serviceName).ID()
+	endpointsID := rtest.Resource(catalog.ServiceEndpointsV1Alpha1Type, serviceName, registry).ID()
 	c.RequireResourceNotFound(t, endpointsID)
 
 	// Add some empty endpoints (type validations enforce that they are owned by the service)
@@ -412,7 +413,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 
 	// api-1 has all ports (http, grpc and mesh). It also has a mixture of Addresses
 	// that select individual ports and one that selects all ports implicitly
-	api1 := rtest.Resource(catalog.WorkloadV1Alpha1Type, "api-1").
+	api1 := rtest.Resource(catalog.WorkloadV1Alpha1Type, "api-1", registry).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -431,7 +432,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 
 	// api-2 has only grpc and mesh ports. It also has a mixture of Addresses that
 	// select individual ports and one that selects all ports implicitly
-	api2 := rtest.Resource(catalog.WorkloadV1Alpha1Type, "api-2").
+	api2 := rtest.Resource(catalog.WorkloadV1Alpha1Type, "api-2", registry).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -448,7 +449,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 
 	// api-3 has the mesh and HTTP ports. It also has a mixture of Addresses that
 	// select individual ports and one that selects all ports.
-	api3 := rtest.Resource(catalog.WorkloadV1Alpha1Type, "api-3").
+	api3 := rtest.Resource(catalog.WorkloadV1Alpha1Type, "api-3", registry).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -463,7 +464,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 		Write(t, c)
 
 	// Now create a service with unmanaged endpoints again
-	service = rtest.Resource(catalog.ServiceV1Alpha1Type, serviceName).
+	service = rtest.Resource(catalog.ServiceV1Alpha1Type, serviceName, registry).
 		WithData(t, &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP}},
 		}).
@@ -650,7 +651,7 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 	})
 
 	// Add a failing health status to the api1 workload to force recomputation of endpoints
-	setHealthStatus(t, c, api1.Id, "api-failed", pbcatalog.Health_HEALTH_CRITICAL)
+	setHealthStatus(t, c, api1.Id, "api-failed", pbcatalog.Health_HEALTH_CRITICAL, registry)
 
 	// Verify that api-1 within the endpoints has the expected health
 	verifyServiceEndpoints(t, c, endpointsID, &pbcatalog.ServiceEndpoints{
@@ -698,8 +699,8 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 
 }
 
-func setHealthStatus(t *testing.T, client *rtest.Client, owner *pbresource.ID, name string, health pbcatalog.Health) *pbresource.Resource {
-	return rtest.Resource(catalog.HealthStatusV1Alpha1Type, name).
+func setHealthStatus(t *testing.T, client *rtest.Client, owner *pbresource.ID, name string, health pbcatalog.Health, registry resource.Registry) *pbresource.Resource {
+	return rtest.Resource(catalog.HealthStatusV1Alpha1Type, name, registry).
 		WithData(t, &pbcatalog.HealthStatus{
 			Type:   "synthetic",
 			Status: health,

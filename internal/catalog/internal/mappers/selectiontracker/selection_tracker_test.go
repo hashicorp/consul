@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/radix"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -35,11 +36,14 @@ var (
 )
 
 func TestRemoveIDFromTreeAtPaths(t *testing.T) {
+	registry := resource.NewRegistry()
+	types.Register(registry)
+
 	tree := radix.New[[]controller.Request]()
 
-	toRemove := rtest.Resource(types.ServiceEndpointsType, "blah").ID()
-	other1 := rtest.Resource(types.ServiceEndpointsType, "other1").ID()
-	other2 := rtest.Resource(types.ServiceEndpointsType, "other1").ID()
+	toRemove := rtest.Resource(types.ServiceEndpointsType, "blah", registry).ID()
+	other1 := rtest.Resource(types.ServiceEndpointsType, "other1", registry).ID()
+	other2 := rtest.Resource(types.ServiceEndpointsType, "other1", registry).ID()
 
 	// we are trying to create a tree such that removal of the toRemove id causes a
 	// few things to happen.
@@ -116,8 +120,9 @@ func TestRemoveIDFromTreeAtPaths(t *testing.T) {
 type selectionTrackerSuite struct {
 	suite.Suite
 
-	rt      controller.Runtime
-	tracker *WorkloadSelectionTracker
+	rt       controller.Runtime
+	registry resource.Registry
+	tracker  *WorkloadSelectionTracker
 
 	workloadAPI1 *pbresource.Resource
 	workloadWeb1 *pbresource.Resource
@@ -127,11 +132,13 @@ type selectionTrackerSuite struct {
 
 func (suite *selectionTrackerSuite) SetupTest() {
 	suite.tracker = New()
+	suite.registry = resource.NewRegistry()
+	types.Register(suite.registry)
 
-	suite.workloadAPI1 = rtest.Resource(types.WorkloadType, "api-1").WithData(suite.T(), workloadData).Build()
-	suite.workloadWeb1 = rtest.Resource(types.WorkloadType, "web-1").WithData(suite.T(), workloadData).Build()
-	suite.endpointsFoo = rtest.Resource(types.ServiceEndpointsType, "foo").ID()
-	suite.endpointsBar = rtest.Resource(types.ServiceEndpointsType, "bar").ID()
+	suite.workloadAPI1 = rtest.Resource(types.WorkloadType, "api-1", suite.registry).WithData(suite.T(), workloadData).Build()
+	suite.workloadWeb1 = rtest.Resource(types.WorkloadType, "web-1", suite.registry).WithData(suite.T(), workloadData).Build()
+	suite.endpointsFoo = rtest.Resource(types.ServiceEndpointsType, "foo", suite.registry).ID()
+	suite.endpointsBar = rtest.Resource(types.ServiceEndpointsType, "bar", suite.registry).ID()
 }
 
 func (suite *selectionTrackerSuite) requireMappedIDs(workload *pbresource.Resource, ids ...*pbresource.ID) {

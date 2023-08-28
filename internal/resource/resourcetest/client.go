@@ -115,7 +115,7 @@ func (client *Client) RequireResourceNotFound(t T, id *pbresource.ID) {
 	t.Helper()
 
 	rsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{Id: id})
-	require.Error(t, err)
+	require.Error(t, err, id)
 	require.Equal(t, codes.NotFound, status.Code(err))
 	require.Nil(t, rsp)
 }

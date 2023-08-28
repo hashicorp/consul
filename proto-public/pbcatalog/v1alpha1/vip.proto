@@ -5,11 +5,7 @@ syntax = "proto3";
 
 package hashicorp.consul.catalog.v1alpha1;
 
-import "pbresource/resource.proto";
-
 message VirtualIPs {
-  // VirtualIPs is a namespace scoped resource type.
-  option (hashicorp.consul.resource.scope) = NAMESPACE;
   repeated IP ips = 1;
 }
 

@@ -26,6 +26,7 @@ func TestRegister(t *testing.T) {
 	reg := resource.Registration{
 		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
+		Scope: resource.ScopeNamespace,
 	}
 	r.Register(reg)
 	actual, ok := r.Resolve(demo.TypeV2Artist)
@@ -46,6 +47,7 @@ func TestRegister_Defaults(t *testing.T) {
 	r.Register(resource.Registration{
 		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
+		Scope: resource.ScopeNamespace,
 	})
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -91,6 +93,7 @@ func TestResolve(t *testing.T) {
 	r.Register(resource.Registration{
 		Type:  demo.TypeV1Album,
 		Proto: &pbdemov1.Album{},
+		Scope: resource.ScopeNamespace,
 	})
 	registration, ok := r.Resolve(demo.TypeV1Album)
 	assert.True(t, ok)
@@ -173,6 +176,8 @@ func TestRegister_TypeValidation(t *testing.T) {
 					Type: typ,
 					// Just pass anything since proto is a required field.
 					Proto: &pbdemov1.Artist{},
+					// Scope is also required
+					Scope: resource.ScopeNamespace,
 				})
 			}
 
@@ -183,10 +188,4 @@ func TestRegister_TypeValidation(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestGetScope(t *testing.T) {
-	require.Equal(t, pbresource.Scope_PARTITION, resource.GetScope(&pbdemov1.RecordLabel{}))
-	require.Equal(t, pbresource.Scope_NAMESPACE, resource.GetScope(&pbdemov1.Artist{}))
-	require.Equal(t, pbresource.Scope_UNKNOWN, resource.GetScope(&pbresource.Tombstone{}))
 }
