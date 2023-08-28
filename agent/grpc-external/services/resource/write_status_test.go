@@ -237,11 +237,11 @@ func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 			},
 		},
 		"partitioned resource provides nonempty partition": {
-			scope: resource.ScopeNamespace,
+			scope: resource.ScopePartition,
 			modFn: func(req *pbresource.WriteStatusRequest) {},
 		},
 		"partitioned resource provides uppercase partition": {
-			scope: resource.ScopeNamespace,
+			scope: resource.ScopePartition,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Id.Tenancy.Partition = strings.ToUpper(req.Id.Tenancy.Partition)
 			},
