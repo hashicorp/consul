@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxy
 
@@ -215,40 +215,42 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func (c *cmd) lookupProxyIDForSidecar(client *api.Client) (string, error) {
-	return LookupProxyIDForSidecar(client, c.sidecarFor)
+func (c *cmd) lookupServiceForSidecar(client *api.Client) (*api.AgentService, error) {
+	return LookupServiceForSidecar(client, c.sidecarFor)
 }
 
-// LookupProxyIDForSidecar finds candidate local proxy registrations that are a
-// sidecar for the given service. It will return an ID if and only if there is
-// exactly one registered connect proxy with `Proxy.DestinationServiceID` set to
+// LookupServiceForSidecar finds candidate local proxy registrations that are a
+// sidecar for the given service. It will return that service if and only if there
+// is exactly one registered connect proxy with `Proxy.DestinationServiceID` set to
 // the specified service ID.
 //
 // This is exported to share it with the connect envoy command.
-func LookupProxyIDForSidecar(client *api.Client, sidecarFor string) (string, error) {
+func LookupServiceForSidecar(client *api.Client, sidecarFor string) (*api.AgentService, error) {
 	svcs, err := client.Agent().Services()
 	if err != nil {
-		return "", fmt.Errorf("Failed looking up sidecar proxy info for %s: %s",
+		return nil, fmt.Errorf("Failed looking up sidecar proxy info for %s: %s",
 			sidecarFor, err)
 	}
 
-	var proxyIDs []string
+	var matched []*api.AgentService
+	var matchedProxyIDs []string
 	for _, svc := range svcs {
 		if svc.Kind == api.ServiceKindConnectProxy && svc.Proxy != nil &&
 			strings.EqualFold(svc.Proxy.DestinationServiceID, sidecarFor) {
-			proxyIDs = append(proxyIDs, svc.ID)
+			matched = append(matched, svc)
+			matchedProxyIDs = append(matchedProxyIDs, svc.ID)
 		}
 	}
 
-	if len(proxyIDs) == 0 {
-		return "", fmt.Errorf("No sidecar proxy registered for %s", sidecarFor)
+	if len(matched) == 0 {
+		return nil, fmt.Errorf("No sidecar proxy registered for %s", sidecarFor)
 	}
-	if len(proxyIDs) > 1 {
-		return "", fmt.Errorf("More than one sidecar proxy registered for %s.\n"+
+	if len(matched) > 1 {
+		return nil, fmt.Errorf("More than one sidecar proxy registered for %s.\n"+
 			"    Start proxy with -proxy-id and one of the following IDs: %s",
-			sidecarFor, strings.Join(proxyIDs, ", "))
+			sidecarFor, strings.Join(matchedProxyIDs, ", "))
 	}
-	return proxyIDs[0], nil
+	return matched[0], nil
 }
 
 // LookupGatewayProxy finds the gateway service registered with the local
@@ -285,10 +287,11 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 		// Running as a sidecar, we need to find the proxy-id for the requested
 		// service
 		var err error
-		c.proxyID, err = c.lookupProxyIDForSidecar(client)
+		svc, err := c.lookupServiceForSidecar(client)
 		if err != nil {
 			return nil, err
 		}
+		c.proxyID = svc.ID
 
 		c.UI.Info("Configuration mode: Agent API")
 		c.UI.Info(fmt.Sprintf("    Sidecar for ID: %s", c.sidecarFor))

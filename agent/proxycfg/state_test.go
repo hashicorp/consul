@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -465,7 +465,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	indexedRoots, issuedCert := TestCerts(t)
 	peerTrustBundles := TestPeerTrustBundles(t)
 
-	// Used to account for differences in OSS/ent implementations of ServiceID.String()
+	// Used to account for differences in ce/ent implementations of ServiceID.String()
 	var (
 		db                 = structs.NewServiceName("db", nil)
 		billing            = structs.NewServiceName("billing", nil)

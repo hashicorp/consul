@@ -57,7 +57,7 @@ For Consul Enterprise clusters, mesh gateways must be registered in the "default
 <Tabs>
 <Tab heading="Consul OSS">
 
-In addition to the [ACL Configuration](/consul/docs/connect/cluster-peering/tech-specs#acl-specifications) necessary for service-to-service traffic, mesh gateways that route peering control plane traffic must be granted `peering:read` access to all peerings. 
+In addition to the [ACL Configuration](/consul/docs/connect/cluster-peering/tech-specs#acl-specifications) necessary for service-to-service traffic, mesh gateways that route peering control plane traffic must be granted `peering:read` access to all peerings.
 
 This access allows the mesh gateway to list all peerings in a Consul cluster and generate unique routing per peered datacenter.
 
@@ -79,7 +79,7 @@ peering = "read"
 
 <Tab heading="Consul Enterprise">
 
-In addition to the [ACL Configuration](/consul/docs/connect/cluster-peering/tech-specs#acl-specifications) necessary for service-to-service traffic, mesh gateways that route peering control plane traffic must be granted `peering:read` access to all peerings in all partitions. 
+In addition to the [ACL Configuration](/consul/docs/connect/cluster-peering/tech-specs#acl-specifications) necessary for service-to-service traffic, mesh gateways that route peering control plane traffic must be granted `peering:read` access to all peerings in all partitions.
 
 This access allows the mesh gateway to list all peerings in a Consul cluster and generate unique routing per peered partition.
 
@@ -108,7 +108,7 @@ partition_prefix "" {
 
 ### Modes
 
-Connect proxy configuration [Modes](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration#modes) are not applicable to peering control plane traffic. 
+Connect proxy configuration [Modes](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration#modes) are not applicable to peering control plane traffic.
 The flow of control plane traffic through the gateway is implied by the presence of a [Mesh config entry](/consul/docs/connect/config-entries/mesh#peer-through-mesh-gateways) with `PeerThroughMeshGateways = true`.
 
 <CodeTabs heading="Example: Enabling Peering Control Plane Traffic for Mesh Gateways">
@@ -122,12 +122,12 @@ Peering {
 
 ```yaml
 Kind: mesh
-Peeering:
+Peering:
   PeerThroughMeshGateways: true
 ```
 </CodeTabs>
 
-By setting this mesh config on a cluster before [creating a peering token](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#create-a-peering-token), inbound control plane traffic will be sent through the mesh gateway registered this cluster, also known the accepting cluster. 
+By setting this mesh config on a cluster before [creating a peering token](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#create-a-peering-token), inbound control plane traffic will be sent through the mesh gateway registered this cluster, also known the accepting cluster.
 As mesh gateway instances are registered at the accepting cluster, their addresses will be exposed to the dialing cluster over the bi-directional peering stream.
 
 Setting this mesh config on a cluster before [establishing a connection](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#establish-a-connection-between-clusters) will cause the outbound control plane traffic to flow through the mesh gateway.

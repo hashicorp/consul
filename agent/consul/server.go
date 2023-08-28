@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -19,9 +19,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/internal/resource"
-
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -36,8 +35,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -74,6 +72,8 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
@@ -81,6 +81,7 @@ import (
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
@@ -133,7 +134,7 @@ const (
 
 	LeaderTransferMinVersion = "1.6.0"
 
-	catalogResourceExperimentName = "resource-apis"
+	CatalogResourceExperimentName = "resource-apis"
 )
 
 const (
@@ -873,8 +874,22 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 }
 
 func (s *Server) registerControllers(deps Deps) {
-	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
+	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
+			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
+				var bundle pbproxystate.TrustBundle
+				roots, err := s.getCARoots(nil, s.GetState())
+				if err != nil {
+					return nil, err
+				}
+				bundle.TrustDomain = roots.TrustDomain
+				for _, root := range roots.Roots {
+					bundle.Roots = append(bundle.Roots, root.RootCert)
+				}
+				return &bundle, nil
+			},
+		})
 	}
 
 	reaper.RegisterControllers(s.controllerManager)
@@ -1343,20 +1358,24 @@ func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registr
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    typeRegistry,
-		Backend:     s.raftStorageBackend,
-		ACLResolver: s.ACLResolver,
-		Logger:      logger.Named("grpc-api.resource"),
+		Registry:        typeRegistry,
+		Backend:         s.raftStorageBackend,
+		ACLResolver:     s.ACLResolver,
+		Logger:          logger.Named("grpc-api.resource"),
+		V1TenancyBridge: NewV1TenancyBridge(s),
 	})
 	s.resourceServiceServer.Register(s.externalGRPCServer)
+
+	reflection.Register(s.externalGRPCServer)
 }
 
 func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    typeRegistry,
-		Backend:     s.raftStorageBackend,
-		ACLResolver: resolver.DANGER_NO_AUTH{},
-		Logger:      logger.Named("grpc-api.resource"),
+		Registry:        typeRegistry,
+		Backend:         s.raftStorageBackend,
+		ACLResolver:     resolver.DANGER_NO_AUTH{},
+		Logger:          logger.Named("grpc-api.resource"),
+		V1TenancyBridge: NewV1TenancyBridge(s),
 	})
 
 	conn, err := s.runInProcessGRPCServer(server.Register)

@@ -1,11 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
@@ -145,6 +146,12 @@ func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID, policyName string) (interface{}, error) {
+	// policy name needs to be unescaped in case there were `/` characters
+	policyName, err := url.QueryUnescape(policyName)
+	if err != nil {
+		return nil, err
+	}
+
 	args := structs.ACLPolicyGetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		PolicyID:   policyID,
