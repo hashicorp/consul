@@ -45,22 +45,6 @@ var (
 	}
 )
 
-func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
-	// TODO: inject registration to get at scope or deal with the if stmt
-	var tenancy *pbresource.Tenancy
-	if rtype.Kind == types.NodeKind {
-		tenancy = resource.DefaultPartitionedTenancy()
-	} else {
-		tenancy = resource.DefaultNamespacedTenancy()
-	}
-
-	return &pbresource.ID{
-		Type:    rtype,
-		Tenancy: tenancy,
-		Name:    name,
-	}
-}
-
 type nodeHealthControllerTestSuite struct {
 	suite.Suite
 
@@ -150,10 +134,11 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthListError() {
 	// should produce an InvalidArgument error. This test is meant
 	// to validate how that error is handled (its propagated back
 	// to the caller)
-	ref := resourceID(
-		&pbresource.Type{Group: "not", GroupVersion: "v1", Kind: "found"},
-		"irrelevant",
-	)
+	ref := &pbresource.ID{
+		Type:    &pbresource.Type{Group: "not", GroupVersion: "v1", Kind: "found"},
+		Name:    "irrelevant",
+		Tenancy: resource.DefaultNamespacedTenancy(),
+	}
 	health, err := getNodeHealth(context.Background(), suite.runtime, ref)
 	require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
 	require.Error(suite.T(), err)
@@ -165,7 +150,11 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoNode() {
 	// no error is returned but also no data is. The default passing
 	// status should then be returned in the same manner as the node
 	// existing but with no associated HealthStatus resources.
-	ref := resourceID(types.NodeType, "foo")
+	ref := &pbresource.ID{
+		Type:    types.NodeType,
+		Name:    "foo",
+		Tenancy: resource.DefaultPartitionedTenancy(),
+	}
 	ref.Uid = ulid.Make().String()
 	health, err := getNodeHealth(context.Background(), suite.runtime, ref)
 
@@ -207,7 +196,11 @@ func (suite *nodeHealthControllerTestSuite) TestReconcileNodeNotFound() {
 	// This test ensures that removed nodes are ignored. In particular we don't
 	// want to propagate the error and indefinitely keep re-reconciling in this case.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: resourceID(types.NodeType, "not-found"),
+		ID: &pbresource.ID{
+			Type:    types.NodeType,
+			Name:    "not-found",
+			Tenancy: resource.DefaultPartitionedTenancy(),
+		},
 	})
 	require.NoError(suite.T(), err)
 }
@@ -218,11 +211,11 @@ func (suite *nodeHealthControllerTestSuite) TestReconcilePropagateReadError() {
 	// as the controller should not have given us a request ID for a resource type
 	// that doesn't exist but this was the easiest way I could think of to synthesize
 	// a Read error.
-	ref := resourceID(
-		&pbresource.Type{Group: "not", GroupVersion: "v1", Kind: "found"},
-		"irrelevant",
-	)
-
+	ref := &pbresource.ID{
+		Type:    &pbresource.Type{Group: "not", GroupVersion: "v1", Kind: "found"},
+		Name:    "irrelevant",
+		Tenancy: resource.DefaultNamespacedTenancy(),
+	}
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 		ID: ref,
 	})

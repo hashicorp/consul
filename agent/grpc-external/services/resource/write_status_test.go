@@ -309,7 +309,7 @@ func TestWriteStatus_Tenancy_NotFound(t *testing.T) {
 			errContains: "namespace",
 		},
 		"partitioned resource provides nonexistant partition": {
-			scope:       resource.ScopeNamespace,
+			scope:       resource.ScopePartition,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "bad" },
 			errCode:     codes.InvalidArgument,
 			errContains: "partition",

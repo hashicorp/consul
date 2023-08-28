@@ -42,22 +42,6 @@ var (
 	}
 )
 
-func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
-	// TODO: inject registration to get scope and properly build default tenancy
-	var tenancy *pbresource.Tenancy
-	if rtype.Kind == types.NodeKind {
-		tenancy = resource.DefaultPartitionedTenancy()
-	} else {
-		tenancy = resource.DefaultNamespacedTenancy()
-	}
-
-	return &pbresource.ID{
-		Type:    rtype,
-		Tenancy: tenancy,
-		Name:    name,
-	}
-}
-
 func workloadData(nodeName string) *pbcatalog.Workload {
 	return &pbcatalog.Workload{
 		Addresses: []*pbcatalog.WorkloadAddress{
@@ -376,9 +360,12 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileReadError() {
 	//
 	// Passing a resource with an unknown type isn't particularly realistic as the controller
 	// manager running our reconciliation will ensure all resource ids used are valid. However
-	// its a really easy way right not to force the error.
-	id := resourceID(fakeType, "blah")
-
+	// its a really easy way right now to force the error.
+	id := &pbresource.ID{
+		Type:    fakeType,
+		Name:    "blah",
+		Tenancy: resource.DefaultNamespacedTenancy(),
+	}
 	err := suite.reconciler.Reconcile(context.Background(), suite.runtime, controller.Request{ID: id})
 	require.Error(suite.T(), err)
 	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
@@ -604,7 +591,12 @@ func (suite *getWorkloadHealthTestSuite) TestListError() {
 	// getWorkloadHealth. When the resource listing fails, we want to
 	// propagate the error which should eventually result in retrying
 	// the operation.
-	health, err := getWorkloadHealth(context.Background(), suite.runtime, resourceID(fakeType, "foo"))
+	id := &pbresource.ID{
+		Type:    fakeType,
+		Name:    "foo",
+		Tenancy: resource.DefaultNamespacedTenancy(),
+	}
+	health, err := getWorkloadHealth(context.Background(), suite.runtime, id)
 
 	require.Error(suite.T(), err)
 	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
@@ -662,7 +654,7 @@ func (suite *getNodeHealthTestSuite) TestNotfound() {
 	// present in the system results in a the critical health but no error. This situation
 	// could occur when a linked node gets removed without the workloads being modified/removed.
 	// When that occurs we want to steer traffic away from the linked node as soon as possible.
-	health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(types.NodeType, "not-found"))
+	health, err := getNodeHealth(context.Background(), suite.runtime, resourcetest.Resource(types.NodeType, "not-found", suite.registry).ID())
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
 
@@ -671,7 +663,12 @@ func (suite *getNodeHealthTestSuite) TestNotfound() {
 func (suite *getNodeHealthTestSuite) TestReadError() {
 	// This test's goal is to ensure the getNodeHealth propagates unexpected errors from
 	// its resource read call back to the caller.
-	health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(fakeType, "not-found"))
+	id := &pbresource.ID{
+		Type:    fakeType,
+		Name:    "not-found",
+		Tenancy: resource.DefaultNamespacedTenancy(),
+	}
+	health, err := getNodeHealth(context.Background(), suite.runtime, id)
 	require.Error(suite.T(), err)
 	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
 	require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
