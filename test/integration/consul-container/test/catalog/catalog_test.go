@@ -11,12 +11,17 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/catalog/catalogtest"
+	"github.com/hashicorp/consul/internal/resource"
 	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestCatalog(t *testing.T) {
 	t.Parallel()
+
+	registry := resource.NewRegistry()
+	catalog.RegisterTypes(registry)
 
 	cluster, _, _ := libtopology.NewCluster(t, &libtopology.ClusterConfig{
 		NumServers: 3,
@@ -29,10 +34,10 @@ func TestCatalog(t *testing.T) {
 	client := pbresource.NewResourceServiceClient(followers[0].GetGRPCConn())
 
 	t.Run("one-shot", func(t *testing.T) {
-		catalogtest.RunCatalogV1Alpha1IntegrationTest(t, client)
+		catalogtest.RunCatalogV1Alpha1IntegrationTest(t, client, registry)
 	})
 
 	t.Run("lifecycle", func(t *testing.T) {
-		catalogtest.RunCatalogV1Alpha1LifecycleIntegrationTest(t, client)
+		catalogtest.RunCatalogV1Alpha1LifecycleIntegrationTest(t, client, registry)
 	})
 }

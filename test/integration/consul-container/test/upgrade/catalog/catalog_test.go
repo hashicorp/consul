@@ -9,7 +9,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/catalog/catalogtest"
+	"github.com/hashicorp/consul/internal/resource"
+
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
@@ -48,6 +51,9 @@ func TestCatalogUpgrade(t *testing.T) {
 	maybeSkipUpgradeTest(t, minCatalogResourceVersion)
 	t.Parallel()
 
+	registry := resource.NewRegistry()
+	catalog.RegisterTypes(registry)
+
 	const numServers = 1
 	buildOpts := &libcluster.BuildOptions{
 		ConsulImageName:      utils.GetLatestImageName(),
@@ -83,5 +89,5 @@ func TestCatalogUpgrade(t *testing.T) {
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, numServers)
 
-	catalogtest.VerifyCatalogV1Alpha1IntegrationTestResults(t, rscClient)
+	catalogtest.VerifyCatalogV1Alpha1IntegrationTestResults(t, rscClient, registry)
 }
