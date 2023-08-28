@@ -13,20 +13,21 @@ import (
 	"time"
 
 	gometrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	otelsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
 	// defaultExportInterval is a default time interval between export of aggregated metrics.
-	// At the time of writing this is the same as the otelsdk.Reader's export interval.
+	// At the time of writing this is the same as the otelsdk.Reader's default export interval.
 	defaultExportInterval = 60 * time.Second
 
 	// defaultExportTimeout is the time the otelsdk.Reader waits on an export before cancelling it.
-	// At the time of writing this is the same as the otelsdk.Reader's export timeout default.
+	// At the time of writing this is the same as the otelsdk.Reader's default export timeout default.
 	//
 	// note: in practice we are more likely to hit the http.Client Timeout in telemetry.MetricsClient.
 	// That http.Client Timeout is 15 seconds (at the time of writing). The otelsdk.Reader will use
