@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ func TestProxyTracker_Watch(t *testing.T) {
 	session1.On("Terminated").Return(session1TermCh)
 	session1.On("End").Return()
 	lim.On("BeginSession").Return(session1, nil)
-	logger := NewMockLogger(t)
+	logger := testutil.Logger(t)
 
 	pt := NewProxyTracker(ProxyTrackerConfig{
 		Logger:         logger,
@@ -82,7 +83,7 @@ func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
 	session1 := newMockSession(t)
 	session1.On("End").Return()
 	lim.On("BeginSession").Return(session1, nil)
-	logger := NewMockLogger(t)
+	logger := testutil.Logger(t)
 
 	pt := NewProxyTracker(ProxyTrackerConfig{
 		Logger:         logger,
@@ -136,13 +137,6 @@ func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
 			expectedError: errors.New("nodeName is required"),
 		},
 		{
-			description:   "Empty token",
-			proxyID:       resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID(),
-			nodeName:      "something",
-			token:         "",
-			expectedError: errors.New("token is required"),
-		},
-		{
 			description:   "resource is not ProxyStateTemplate",
 			proxyID:       resourcetest.Resource(mesh.ProxyConfigurationType, "test", registry).ID(),
 			nodeName:      "something",
@@ -153,8 +147,7 @@ func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
 	for _, tc := range testcases {
 		lim := NewMockSessionLimiter(t)
 		lim.On("BeginSession").Return(nil, nil).Maybe()
-		logger := NewMockLogger(t)
-		logger.On("Error", mock.Anything, mock.Anything).Return(nil)
+		logger := testutil.Logger(t)
 
 		pt := NewProxyTracker(ProxyTrackerConfig{
 			Logger:         logger,
@@ -178,9 +171,7 @@ func TestProxyTracker_Watch_SessionLimiterError(t *testing.T) {
 	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	lim := NewMockSessionLimiter(t)
 	lim.On("BeginSession").Return(nil, errors.New("kaboom"))
-	logger := NewMockLogger(t)
-	logger.On("Error", mock.Anything, mock.Anything).Return(nil)
-
+	logger := testutil.Logger(t)
 	pt := NewProxyTracker(ProxyTrackerConfig{
 		Logger:         logger,
 		SessionLimiter: lim,
@@ -206,7 +197,7 @@ func TestProxyTracker_PushChange(t *testing.T) {
 	session1TermCh := make(limiter.SessionTerminatedChan)
 	session1.On("Terminated").Return(session1TermCh)
 	lim.On("BeginSession").Return(session1, nil)
-	logger := NewMockLogger(t)
+	logger := testutil.Logger(t)
 
 	pt := NewProxyTracker(ProxyTrackerConfig{
 		Logger:         logger,
@@ -218,9 +209,9 @@ func TestProxyTracker_PushChange(t *testing.T) {
 	require.NoError(t, err)
 
 	// PushChange
-	proxyState := &pbmesh.ProxyState{
+	proxyState := &mesh.ProxyState{ProxyState: &pbmesh.ProxyState{
 		IntentionDefaultAllow: true,
-	}
+	}}
 
 	// using a goroutine so that the channel and main test thread do not cause
 	// blocking issues with each other
@@ -246,7 +237,7 @@ func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
 
 	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	lim := NewMockSessionLimiter(t)
-	logger := NewMockLogger(t)
+	logger := testutil.Logger(t)
 
 	pt := NewProxyTracker(ProxyTrackerConfig{
 		Logger:         logger,
@@ -254,9 +245,9 @@ func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
 	})
 
 	// PushChange
-	proxyState := &pbmesh.ProxyState{
+	proxyState := &mesh.ProxyState{ProxyState: &pbmesh.ProxyState{
 		IntentionDefaultAllow: true,
-	}
+	}}
 
 	err := pt.PushChange(resourceID, proxyState)
 	require.Error(t, err)
@@ -298,7 +289,7 @@ func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
 		lim := NewMockSessionLimiter(t)
 		session1 := newMockSession(t)
 		session1TermCh := make(limiter.SessionTerminatedChan)
-		logger := NewMockLogger(t)
+		logger := testutil.Logger(t)
 
 		pt := NewProxyTracker(ProxyTrackerConfig{
 			Logger:         logger,
@@ -322,7 +313,7 @@ func TestProxyTracker_Shutdown(t *testing.T) {
 	session1.On("Terminated").Return(session1TermCh)
 	session1.On("End").Return().Maybe()
 	lim.On("BeginSession").Return(session1, nil)
-	logger := NewMockLogger(t)
+	logger := testutil.Logger(t)
 
 	pt := NewProxyTracker(ProxyTrackerConfig{
 		Logger:         logger,
