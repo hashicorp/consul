@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xds
 
 import (
@@ -75,6 +78,16 @@ func (p *mockUpdater) GetEndpoints(name string) map[string]*pbproxystate.Endpoin
 	ps, ok := p.latestPs[name]
 	if ok {
 		return ps.Endpoints
+	}
+	return nil
+}
+
+func (p *mockUpdater) GetTrustBundle(name string) map[string]*pbproxystate.TrustBundle {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	ps, ok := p.latestPs[name]
+	if ok {
+		return ps.TrustBundles
 	}
 	return nil
 }

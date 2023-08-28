@@ -165,7 +165,7 @@ func TestResourceWriteHandler(t *testing.T) {
 		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "keith-urban",
 			},
 		})
@@ -264,7 +264,7 @@ func TestResourceWriteHandler(t *testing.T) {
 		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV1Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "keith-urban-v1",
 			},
 		})
@@ -430,7 +430,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 		_, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "keith-urban",
 			},
 		})
@@ -453,7 +453,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 		_, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "keith-urban",
 			},
 		})

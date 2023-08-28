@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xds
 
 import (
@@ -16,21 +19,25 @@ import (
 
 const ControllerName = "consul.io/xds-controller"
 
-func Controller(mapper *bimapper.Mapper, updater ProxyUpdater) controller.Controller {
-	if mapper == nil || updater == nil {
-		panic("mapper and updater are required")
+func Controller(mapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher) controller.Controller {
+	//if mapper == nil || updater == nil || fetcher == nil {
+	if mapper == nil || fetcher == nil {
+		panic("mapper, updater and fetcher are required")
 	}
 
 	return controller.ForType(types.ProxyStateTemplateType).
 		WithWatch(catalog.ServiceEndpointsType, mapper.MapLink).
 		WithPlacement(controller.PlacementEachServer).
-		WithReconciler(&xdsReconciler{bimapper: mapper, updater: updater})
+		WithReconciler(&xdsReconciler{bimapper: mapper, updater: updater, fetchTrustBundle: fetcher})
 }
 
 type xdsReconciler struct {
-	bimapper *bimapper.Mapper
-	updater  ProxyUpdater
+	bimapper         *bimapper.Mapper
+	updater          ProxyUpdater
+	fetchTrustBundle TrustBundleFetcher
 }
+
+type TrustBundleFetcher func() (*pbproxystate.TrustBundle, error)
 
 // ProxyUpdater is an interface that defines the ability to push proxy updates to the updater
 // and also check its connectivity to the server.
@@ -78,6 +85,23 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 
 		return err
 	}
+
+	// TODO: Fetch trust bundles for all peers when peering is supported.
+	trustBundle, err := r.fetchTrustBundle()
+	if err != nil {
+		rt.Logger.Error("error fetching root trust bundle", "error", err)
+		// Set the status.
+		statusCondition = status.ConditionRejectedTrustBundleFetchFailed(status.KeyFromID(req.ID))
+		status.WriteStatusIfChanged(ctx, rt, pstResource, statusCondition)
+		return err
+	}
+
+	if proxyStateTemplate.Template.ProxyState.TrustBundles == nil {
+		proxyStateTemplate.Template.ProxyState.TrustBundles = make(map[string]*pbproxystate.TrustBundle)
+	}
+	// TODO: Figure out the correct key for the default trust bundle.
+	proxyStateTemplate.Template.ProxyState.TrustBundles["local"] = trustBundle
+
 	if proxyStateTemplate.Template.ProxyState.Endpoints == nil {
 		proxyStateTemplate.Template.ProxyState.Endpoints = make(map[string]*pbproxystate.Endpoints)
 	}

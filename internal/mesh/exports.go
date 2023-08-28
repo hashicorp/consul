@@ -4,6 +4,8 @@
 package mesh
 
 import (
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )
@@ -57,3 +59,11 @@ var (
 func RegisterTypes(r resource.Registry) {
 	types.Register(r)
 }
+
+// RegisterControllers registers controllers for the mesh types with
+// the given controller Manager.
+func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
+	controllers.Register(mgr, deps)
+}
+
+type ControllerDependencies = controllers.Dependencies
