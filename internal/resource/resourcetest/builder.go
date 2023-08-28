@@ -1,12 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package resourcetest
 
 import (
 	"strings"
 
-	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -14,6 +13,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type resourceBuilder struct {
@@ -32,8 +37,8 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					Kind:         rtype.Kind,
 				},
 				Tenancy: &pbresource.Tenancy{
-					Partition: "default",
-					Namespace: "default",
+					Partition: resource.DefaultPartitionName,
+					Namespace: resource.DefaultNamespaceName,
 					PeerName:  "local",
 				},
 				Name: name,
@@ -48,6 +53,11 @@ func ResourceID(id *pbresource.ID) *resourceBuilder {
 			Id: id,
 		},
 	}
+}
+
+func (b *resourceBuilder) WithTenancy(tenant *pbresource.Tenancy) *resourceBuilder {
+	b.resource.Id.Tenancy = tenant
+	return b
 }
 
 func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourceBuilder {
@@ -118,6 +128,10 @@ func (b *resourceBuilder) ID() *pbresource.ID {
 	return b.resource.Id
 }
 
+func (b *resourceBuilder) Reference(section string) *pbresource.Reference {
+	return resource.Reference(b.ID(), section)
+}
+
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 
@@ -136,6 +150,9 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		})
 
 		if err == nil || res.Id.Uid != "" || status.Code(err) != codes.FailedPrecondition {
+			if err != nil {
+				t.Logf("write saw error: %v", err)
+			}
 			return
 		}
 

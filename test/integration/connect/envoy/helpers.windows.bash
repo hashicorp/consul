@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 CONSUL_HOSTNAME=""
 MOD_ARG=""
@@ -252,7 +255,7 @@ function assert_envoy_expose_checks_listener_count {
   RANGES=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filter_chain_match.source_prefix_ranges | length')
   echo "RANGES = $RANGES (expect 3)"
   # note: if IPv6 is not supported in the kernel per
-  # agent/xds:kernelSupportsIPv6() then this will only be 2
+  # agent/xds/platform:SupportsIPv6() then this will only be 2
   [ "${RANGES:-0}" -eq 3 ]
 
   HCM=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filters[0]')

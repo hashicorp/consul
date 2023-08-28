@@ -548,9 +548,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `https_handshake_timeout` - Configures the limit for how long the HTTPS server in both client and server agents will wait for a client to complete a TLS handshake. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). Default value is `5s`.
   - `request_limits` - This object specifies configurations that limit the rate of RPC and gRPC requests on the Consul server. Limiting the rate of gRPC and RPC requests also limits HTTP requests to the Consul server.
     - `mode` - String value that specifies an action to take if the rate of requests exceeds the limit. You can specify the following values:
-      - `permissive`: The server continues to allow requests and records an error in the logs. 
-      - `enforcing`: The server stops accepting requests and records an error in the logs. 
-      - `disabled`: Limits are not enforced or tracked. This is the default value for `mode`.    
+      - `permissive`: The server continues to allow requests and records an error in the logs.
+      - `enforcing`: The server stops accepting requests and records an error in the logs.
+      - `disabled`: Limits are not enforced or tracked. This is the default value for `mode`.
     - `read_rate` - Integer value that specifies the number of read requests per second. Default is `-1` which represents infinity.
     - `write_rate` - Integer value that specifies the number of write requests per second. Default is `-1` which represents infinity.
   - `rpc_handshake_timeout` - Configures the limit for how long servers will wait after a client TCP connection is established before they complete the connection handshake. When TLS is used, the same timeout applies to the TLS handshake separately from the initial protocol negotiation. All Consul clients should perform this immediately on establishing a new connection. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). When `verify_incoming` is true on servers, this limits how long the connection socket and associated goroutines will be held open before the client successfully authenticates. Default value is `5s`.
@@ -740,8 +740,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `server` Equivalent to the [`-server` command-line flag](/consul/docs/agent/config/cli-flags#_server).
 
 - `server_rejoin_age_max` - controls the allowed maximum age of a stale server attempting to rejoin a cluster.
-  If a server is not running for this period, then it will refuse to start up again until an operator intervenes. This is to protect
-  clusters from instability caused by decommissioned servers accidentally being started again.
+  If the server has not ran during this period, it will refuse to start up again until an operator intervenes by manually deleting the `server_metadata.json`
+  file located in the data dir.
+  This is to protect clusters from instability caused by decommissioned servers accidentally being started again.
   Note: the default value is 168h (equal to 7d) and the minimum value is 6h.
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
@@ -907,7 +908,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `default` ((#acl_tokens_default)) - When provided, this agent will
       use this token by default when making requests to the Consul servers
-      instead of the [anonymous token](/consul/docs/security/acl/acl-tokens#anonymous-token).
+      instead of the [anonymous token](/consul/docs/security/acl/tokens#anonymous-token).
       Consul HTTP API requests can provide an alternate token in their authorization header
       to override the `default` or anonymous token on a per-request basis,
       as described in [HTTP API Authentication](/consul/api-docs/api-structure#authentication).
@@ -948,7 +949,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       `service:write` permissions for service "B", the agent will successfully register service "A"
       and fail to register service "B". Failed registration requests are eventually retried as part
       of [anti-entropy enforcement](/consul/docs/architecture/anti-entropy). If a registration request is
-      failing due to missing permissions, the the token for this agent can be updated with
+      failing due to missing permissions, the token for this agent can be updated with
       additional policy rules or the `config_file_service_registration` token can be replaced using
       the [Set Agent Token](/consul/commands/acl/set-agent-token) CLI command.
 
@@ -2094,11 +2095,11 @@ specially crafted certificate signed by the CA can be used to gain full access t
       * `TLSv1_2` (default)
       * `TLSv1_3`
 
-    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When 
-      set to true, Consul verifies the TLS certificate presented by the servers 
-      match the hostname `server.<datacenter>.<domain>`. By default this is false, 
-      and Consul does not verify the hostname of the certificate, only that it 
-      is signed by a trusted CA. 
+    - `verify_server_hostname` ((#tls_internal_rpc_verify_server_hostname)) When
+      set to true, Consul verifies the TLS certificate presented by the servers
+      match the hostname `server.<datacenter>.<domain>`. By default this is false,
+      and Consul does not verify the hostname of the certificate, only that it
+      is signed by a trusted CA.
 
       **WARNING: TLS 1.1 and lower are generally considered less secure and
       should not be used if possible.**

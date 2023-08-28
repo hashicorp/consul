@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package state
 
@@ -645,7 +645,7 @@ func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNod
 }
 
 // newServiceHealthEventsForNode returns health events for all services on the
-// given node. This mirrors some of the the logic in the oddly-named
+// given node. This mirrors some of the logic in the oddly-named
 // parseCheckServiceNodes but is more efficient since we know they are all on
 // the same node.
 func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta *acl.EnterpriseMeta, peerName string) ([]stream.Event, error) {

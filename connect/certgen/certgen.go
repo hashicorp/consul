@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // certgen: a tool for generating test certificates on disk for use as
 // test-fixtures and for end-to-end testing and local development.

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -8,18 +8,20 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/go-hclog"
+
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/hashicorp/go-bexpr"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 )
 
 const (
@@ -136,6 +138,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		endpoints, ok := cfgSnap.ConnectProxy.PreparedQueryEndpoints[uid]
 		if ok {
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -161,6 +164,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
 			if ok {
 				la := makeLoadAssignment(
+					s.Logger,
 					cfgSnap,
 					name,
 					nil,
@@ -229,6 +233,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
 
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -246,6 +251,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 
 			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -273,7 +279,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			lbEndpoint := &envoy_endpoint_v3.LbEndpoint{
 				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 					Endpoint: &envoy_endpoint_v3.Endpoint{
-						Address: makeAddress(addr, port),
+						Address: response.MakeAddress(addr, port),
 					},
 				},
 				HealthStatus: envoy_core_v3.HealthStatus_UNKNOWN,
@@ -330,7 +336,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			serverEndpoints = append(serverEndpoints, &envoy_endpoint_v3.LbEndpoint{
 				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 					Endpoint: &envoy_endpoint_v3.Endpoint{
-						Address: makeAddress(addr, port),
+						Address: response.MakeAddress(addr, port),
 					},
 				},
 			})
@@ -418,6 +424,7 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 		for subsetName, groups := range clusterEndpoints {
 			clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -455,6 +462,7 @@ func (s *ResourceGenerator) makeEndpointsForOutgoingPeeredServices(
 			groups := []loadAssignmentEndpointGroup{{Endpoints: serviceGroup.Nodes, OnlyPassing: false}}
 
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				nil,
@@ -577,7 +585,7 @@ func makeEndpoint(host string, port int) *envoy_endpoint_v3.LbEndpoint {
 	return &envoy_endpoint_v3.LbEndpoint{
 		HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 			Endpoint: &envoy_endpoint_v3.Endpoint{
-				Address: makeAddress(host, port),
+				Address: response.MakeAddress(host, port),
 			},
 		},
 	}
@@ -587,7 +595,7 @@ func makePipeEndpoint(path string) *envoy_endpoint_v3.LbEndpoint {
 	return &envoy_endpoint_v3.LbEndpoint{
 		HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 			Endpoint: &envoy_endpoint_v3.Endpoint{
-				Address: makePipeAddress(path, 0),
+				Address: response.MakePipeAddress(path, 0),
 			},
 		},
 	}
@@ -619,6 +627,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 			return la, nil
 		}
 		la = makeLoadAssignment(
+			s.Logger,
 			cfgSnap,
 			clusterName,
 			nil,
@@ -641,6 +650,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 		return nil, nil
 	}
 	la = makeLoadAssignment(
+		s.Logger,
 		cfgSnap,
 		clusterName,
 		nil,
@@ -773,6 +783,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			}
 
 			la := makeLoadAssignment(
+				s.Logger,
 				cfgSnap,
 				clusterName,
 				ti.PrioritizeByLocality,
@@ -861,7 +872,7 @@ type loadAssignmentEndpointGroup struct {
 	OverrideHealth envoy_core_v3.HealthStatus
 }
 
-func makeLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, policy *structs.DiscoveryPrioritizeByLocality, endpointGroups []loadAssignmentEndpointGroup, localKey proxycfg.GatewayKey) *envoy_endpoint_v3.ClusterLoadAssignment {
+func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, clusterName string, policy *structs.DiscoveryPrioritizeByLocality, endpointGroups []loadAssignmentEndpointGroup, localKey proxycfg.GatewayKey) *envoy_endpoint_v3.ClusterLoadAssignment {
 	cla := &envoy_endpoint_v3.ClusterLoadAssignment{
 		ClusterName: clusterName,
 		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(endpointGroups)),
@@ -871,14 +882,14 @@ func makeLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, po
 		cla.Policy = &envoy_endpoint_v3.ClusterLoadAssignment_Policy{
 			// We choose such a large value here that the failover math should
 			// in effect not happen until zero instances are healthy.
-			OverprovisioningFactor: makeUint32Value(100000),
+			OverprovisioningFactor: response.MakeUint32Value(100000),
 		}
 	}
 
 	var priority uint32
 
 	for _, endpointGroup := range endpointGroups {
-		endpointsByLocality, err := groupedEndpoints(cfgSnap.ServiceLocality, policy, endpointGroup.Endpoints)
+		endpointsByLocality, err := groupedEndpoints(logger, cfgSnap.ServiceLocality, policy, endpointGroup.Endpoints)
 
 		if err != nil {
 			continue
@@ -897,14 +908,14 @@ func makeLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, po
 				}
 
 				endpoint := &envoy_endpoint_v3.Endpoint{
-					Address: makeAddress(addr, port),
+					Address: response.MakeAddress(addr, port),
 				}
 				es = append(es, &envoy_endpoint_v3.LbEndpoint{
 					HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 						Endpoint: endpoint,
 					},
 					HealthStatus:        healthStatus,
-					LoadBalancingWeight: makeUint32Value(weight),
+					LoadBalancingWeight: response.MakeUint32Value(weight),
 				})
 			}
 
