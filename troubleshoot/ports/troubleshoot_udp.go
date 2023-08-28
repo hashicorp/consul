@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const UDP_PROTOCOL = "udp"
+const UdpProtocol = "udp"
 
 type TroubleShootUdp struct {
 }

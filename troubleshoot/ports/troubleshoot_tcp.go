@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const TCP_PROTOCOL = "tcp"
+const TcpProtocol = "tcp"
 
 type TroubleShootTcp struct {
 }
