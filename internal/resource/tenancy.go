@@ -80,9 +80,9 @@ func DefaultNamespacedTenancy() *pbresource.Tenancy {
 	}
 }
 
-// WildCardTenancyFor returns a valid tenancy with tenancy units set to wildcard for
+// WildcardTenancyFor returns a valid tenancy with tenancy units set to wildcard for
 // the passed in scope.
-func WildCardTenacyFor(scope Scope) *pbresource.Tenancy {
+func WildcardTenacyFor(scope Scope) *pbresource.Tenancy {
 	switch scope {
 	case ScopePartition:
 		return &pbresource.Tenancy{
