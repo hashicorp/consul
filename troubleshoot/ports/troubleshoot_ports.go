@@ -26,7 +26,7 @@ func TroubleshootRun(ports []string, host string) {
 
 	for _, port := range ports {
 		counter += 1
-		go tcpTroubleShoot.test(&HostPort{host: host, port: port}, resultsChannel)
+		go tcpTroubleShoot.test(&hostPort{host: host, port: port}, resultsChannel)
 	}
 	for itr := 0; itr < counter; itr++ {
 		fmt.Print(<-resultsChannel)

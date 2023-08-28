@@ -9,7 +9,7 @@ import (
 type TroubleShootTcp struct {
 }
 
-func (tcp *TroubleShootTcp) test(hostPort *HostPort, ch chan string) {
+func (tcp *TroubleShootTcp) test(hostPort *hostPort, ch chan string) {
 	address := net.JoinHostPort(hostPort.host, hostPort.port)
 
 	// Attempt to establish a TCP connection with a timeout.

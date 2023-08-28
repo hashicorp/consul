@@ -1,4 +1,4 @@
 ```release-note:improvement
-cli: Added cli support for checking TCP connection for ports. If -ports flag is not given, it will check for
+cli: Adds cli support for checking TCP connection for ports. If -ports flag is not given, it will check for
 default ports of consul listed here - https://developer.hashicorp.com/consul/docs/install/ports
 ```

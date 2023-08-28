@@ -1,6 +1,6 @@
 package ports
 
-type HostPort struct {
+type hostPort struct {
 	host string
 	port string
 }

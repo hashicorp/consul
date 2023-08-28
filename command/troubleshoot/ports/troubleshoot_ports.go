@@ -47,7 +47,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.host == "" {
-		c.UI.Error("-host is required.")
+		c.UI.Error("-host is required. or set environment variable CONSUL_HTTP_ADDR")
 		return 1
 	}
 
