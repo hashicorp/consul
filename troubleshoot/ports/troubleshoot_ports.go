@@ -19,6 +19,7 @@ func TroubleShootCustomPorts(host string, ports string) []string {
 func troubleshootRun(ports []string, host string) []string {
 
 	resultsChannel := make(chan string)
+	defer close(resultsChannel)
 
 	var counter = 0
 
