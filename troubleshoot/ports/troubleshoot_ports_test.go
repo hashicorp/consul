@@ -40,7 +40,6 @@ func TestTroubleShootCustom_Ports(t *testing.T) {
 }
 
 func TestTroubleShootCustom_Ports_Not_Reachable(t *testing.T) {
-	// Create a test Consul server
 	results := TroubleShootCustomPorts("127.0.0.1", strings.Join([]string{"8777", "8888"}, ","))
 
 	expectedResults := []string{
