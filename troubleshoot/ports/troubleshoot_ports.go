@@ -11,8 +11,8 @@ func TroubleshootDefaultPorts(host string) {
 	ports["8600"] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
 	ports["8500"] = []string{TCP_PROTOCOL}
 	ports["8501"] = []string{TCP_PROTOCOL}
-	ports["8502"] = []string{GRPC_PROTOCOL}
-	ports["8503"] = []string{GRPC_PROTOCOL}
+	ports["8502"] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
+	ports["8503"] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
 	ports["8301"] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
 	ports["8302"] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
 	ports["8300"] = []string{TCP_PROTOCOL}
@@ -23,7 +23,7 @@ func TroubleShootCustomPorts(host string, ports string) {
 	portsArr := strings.Split(ports, ",")
 	portsMap := make(map[string][]string)
 	for _, val := range portsArr {
-		portsMap[val] = []string{TCP_PROTOCOL, UDP_PROTOCOL, GRPC_PROTOCOL}
+		portsMap[val] = []string{TCP_PROTOCOL, UDP_PROTOCOL}
 	}
 	TroubleshootRun(portsMap, host)
 }
@@ -41,15 +41,9 @@ func TroubleshootRun(ports map[string][]string, host string) {
 			case TCP_PROTOCOL:
 				tcpTroubleShoot := TroubleShootTcp{}
 				go tcpTroubleShoot.test(&HostPort{host: host, port: port}, resultsChannel)
-				break
 			case UDP_PROTOCOL:
 				udpTroubleShoot := TroubleShootUdp{}
 				go udpTroubleShoot.test(&HostPort{host: host, port: port}, resultsChannel)
-				break
-			case GRPC_PROTOCOL:
-				grpcTroubleShoot := TroubleShootGrpc{}
-				go grpcTroubleShoot.test(&HostPort{host: host, port: port}, resultsChannel)
-				break
 			}
 		}
 	}
