@@ -24,7 +24,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	}
 
 	// acl.EnterpriseMeta acl.AuthorizerContext follow rules for V1 resources since they integrate with the V1 acl subsystem.
-	// pbresource.Tenacy follows rules for V2 resources and the Resource service.
+	// pbresource.Tenancy follows rules for V2 resources and the Resource service.
 	// Example:
 	//
 	//    A CE namespace scoped resource:
