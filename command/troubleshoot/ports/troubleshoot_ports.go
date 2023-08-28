@@ -72,8 +72,9 @@ const (
 	synopsis = "Troubleshoots ports of consul server"
 	help     = `
 Usage: consul troubleshoot ports [options]
-	Checks for default ports of consul in case -ports is not passes as arguments
+	Checks for TCP connectivity of default ports of consul in case -ports is not passed as arguments
 	Default ports are listed here - https://developer.hashicorp.com/consul/docs/install/ports
+
 	consul troubleshoot ports -host localhost
 
 	or 
@@ -82,5 +83,8 @@ Usage: consul troubleshoot ports [options]
 	
 	If you want to check for other ports use -ports flag
 	consul troubleshoot ports -host localhost -ports 1023,1024
+	or 
+	export CONSUL_HTTP_ADDR=localhost
+	consul troubleshoot ports -ports 1234,8500 
 `
 )
