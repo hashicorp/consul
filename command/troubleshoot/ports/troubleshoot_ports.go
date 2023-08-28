@@ -56,7 +56,6 @@ func (c *cmd) Run(args []string) int {
 	} else {
 		ports.TroubleShootCustomPorts(c.host, c.ports)
 	}
-
 	return 0
 }
 

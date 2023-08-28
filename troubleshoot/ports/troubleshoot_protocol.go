@@ -1,5 +1,5 @@
 package ports
 
 type troubleShootProtocol interface {
-	dailPort(hostPort *hostPort, ch chan string)
+	dailPort(hostPort *hostPort) string
 }

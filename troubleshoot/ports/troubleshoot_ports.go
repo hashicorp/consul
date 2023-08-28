@@ -5,18 +5,18 @@ import (
 	"strings"
 )
 
-func TroubleshootDefaultPorts(host string) {
+func TroubleshootDefaultPorts(host string) []string {
 	// Source - https://developer.hashicorp.com/consul/docs/install/ports
 	ports := []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"}
-	TroubleshootRun(ports, host)
+	return troubleshootRun(ports, host)
 }
 
-func TroubleShootCustomPorts(host string, ports string) {
+func TroubleShootCustomPorts(host string, ports string) []string {
 	portsArr := strings.Split(ports, ",")
-	TroubleshootRun(portsArr, host)
+	return troubleshootRun(portsArr, host)
 }
 
-func TroubleshootRun(ports []string, host string) {
+func troubleshootRun(ports []string, host string) []string {
 
 	resultsChannel := make(chan string)
 
@@ -25,9 +25,18 @@ func TroubleshootRun(ports []string, host string) {
 	for _, port := range ports {
 		counter += 1
 		tcpTroubleShoot := troubleShootTcp{}
-		go tcpTroubleShoot.dailPort(&hostPort{host: host, port: port}, resultsChannel)
+		port := port
+		go func() {
+			res := tcpTroubleShoot.dailPort(&hostPort{host: host, port: port})
+			resultsChannel <- res
+		}()
 	}
+
+	resultsArr := make([]string, counter)
 	for itr := 0; itr < counter; itr++ {
-		fmt.Print(<-resultsChannel)
+		res := <-resultsChannel
+		fmt.Print(res)
+		resultsArr[itr] = res
 	}
+	return resultsArr
 }
