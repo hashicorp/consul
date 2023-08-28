@@ -55,7 +55,7 @@ type Manager struct {
 
 	mu         sync.Mutex
 	proxies    map[ProxyID]*state
-	watchers   map[ProxyID]map[uint64]chan *ConfigSnapshot
+	watchers   map[ProxyID]map[uint64]chan ProxySnapshot
 	maxWatchID uint64
 }
 
@@ -106,7 +106,7 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 	m := &Manager{
 		ManagerConfig: cfg,
 		proxies:       make(map[ProxyID]*state),
-		watchers:      make(map[ProxyID]map[uint64]chan *ConfigSnapshot),
+		watchers:      make(map[ProxyID]map[uint64]chan ProxySnapshot),
 		rateLimiter:   rate.NewLimiter(cfg.UpdateRateLimit, 1),
 	}
 	return m, nil
@@ -262,7 +262,7 @@ func (m *Manager) notify(snap *ConfigSnapshot) {
 // it will drain the chan and then re-attempt delivery so that a slow consumer
 // gets the latest config earlier. This MUST be called from a method where m.mu
 // is held to be safe since it assumes we are the only goroutine sending on ch.
-func (m *Manager) deliverLatest(snap *ConfigSnapshot, ch chan *ConfigSnapshot) {
+func (m *Manager) deliverLatest(snap *ConfigSnapshot, ch chan ProxySnapshot) {
 	// Send if chan is empty
 	select {
 	case ch <- snap:
@@ -299,16 +299,16 @@ OUTER:
 // will not fail, but no updates will be delivered until the proxy is
 // registered. If there is already a valid snapshot in memory, it will be
 // delivered immediately.
-func (m *Manager) Watch(id ProxyID) (<-chan *ConfigSnapshot, CancelFunc) {
+func (m *Manager) Watch(id ProxyID) (<-chan ProxySnapshot, CancelFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	// This buffering is crucial otherwise we'd block immediately trying to
 	// deliver the current snapshot below if we already have one.
-	ch := make(chan *ConfigSnapshot, 1)
+	ch := make(chan ProxySnapshot, 1)
 	watchers, ok := m.watchers[id]
 	if !ok {
-		watchers = make(map[uint64]chan *ConfigSnapshot)
+		watchers = make(map[uint64]chan ProxySnapshot)
 	}
 	watchID := m.maxWatchID
 	m.maxWatchID++
