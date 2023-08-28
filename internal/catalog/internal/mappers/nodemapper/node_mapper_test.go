@@ -18,9 +18,6 @@ import (
 )
 
 func TestNodeMapper_NodeIDFromWorkload(t *testing.T) {
-	registry := resource.NewRegistry()
-	types.Register(registry)
-
 	mapper := New()
 
 	data := &pbcatalog.Workload{
@@ -28,7 +25,7 @@ func TestNodeMapper_NodeIDFromWorkload(t *testing.T) {
 		// the other fields should be irrelevant
 	}
 
-	workload := resourcetest.Resource(types.WorkloadType, "test-workload", registry).
+	workload := resourcetest.Resource(types.WorkloadType, "test-workload", testRegistry()).
 		WithData(t, data).Build()
 
 	actual := mapper.NodeIDFromWorkload(workload, data)
@@ -56,9 +53,7 @@ func requireWorkloadsTracked(t *testing.T, mapper *NodeMapper, node *pbresource.
 }
 
 func TestNodeMapper_WorkloadTracking(t *testing.T) {
-	registry := resource.NewRegistry()
-	types.Register(registry)
-
+	registry := testRegistry()
 	mapper := New()
 
 	node1 := resourcetest.Resource(types.NodeType, "node1", registry).
@@ -153,4 +148,10 @@ func TestNodeMapper_WorkloadTracking(t *testing.T) {
 	// remove the last element
 	mapper.UntrackWorkload(third)
 	requireWorkloadsTracked(t, mapper, node2)
+}
+
+func testRegistry() resource.Registry {
+	registry := resource.NewRegistry()
+	types.Register(registry)
+	return registry
 }

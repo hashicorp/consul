@@ -21,10 +21,7 @@ import (
 )
 
 func TestProxyTracker_Watch(t *testing.T) {
-	registry := resource.NewRegistry()
-	mesh.RegisterTypes(registry)
-
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", testRegistry()).ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -74,9 +71,7 @@ func TestProxyTracker_Watch(t *testing.T) {
 }
 
 func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
-	registry := resource.NewRegistry()
-	mesh.RegisterTypes(registry)
-
+	registry := testRegistry()
 	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
@@ -111,8 +106,7 @@ func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
 }
 
 func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
-	registry := resource.NewRegistry()
-	mesh.RegisterTypes(registry)
+	registry := testRegistry()
 
 	type testcase struct {
 		description   string
@@ -165,10 +159,7 @@ func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
 }
 
 func TestProxyTracker_Watch_SessionLimiterError(t *testing.T) {
-	registry := resource.NewRegistry()
-	mesh.RegisterTypes(registry)
-
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", testRegistry()).ID()
 	lim := NewMockSessionLimiter(t)
 	lim.On("BeginSession").Return(nil, errors.New("kaboom"))
 	logger := testutil.Logger(t)
@@ -187,10 +178,7 @@ func TestProxyTracker_Watch_SessionLimiterError(t *testing.T) {
 }
 
 func TestProxyTracker_PushChange(t *testing.T) {
-	registry := resource.NewRegistry()
-	mesh.RegisterTypes(registry)
-
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", testRegistry()).ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -232,10 +220,7 @@ func TestProxyTracker_PushChange(t *testing.T) {
 }
 
 func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
-	registry := resource.NewRegistry()
-	mesh.RegisterTypes(registry)
-
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", testRegistry()).ID()
 	lim := NewMockSessionLimiter(t)
 	logger := testutil.Logger(t)
 
@@ -255,9 +240,6 @@ func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
 }
 
 func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
-	registry := resource.NewRegistry()
-	mesh.RegisterTypes(registry)
-
 	type testcase struct {
 		name              string
 		shouldExist       bool
@@ -295,17 +277,14 @@ func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
 			Logger:         logger,
 			SessionLimiter: lim,
 		})
-		resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
+		resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", testRegistry()).ID()
 		tc.preProcessingFunc(pt, resourceID, lim, session1, session1TermCh)
 		require.Equal(t, tc.shouldExist, pt.ProxyConnectedToServer(resourceID))
 	}
 }
 
 func TestProxyTracker_Shutdown(t *testing.T) {
-	registry := resource.NewRegistry()
-	mesh.RegisterTypes(registry)
-
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", registry).ID()
+	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test", testRegistry()).ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -345,6 +324,12 @@ func TestProxyTracker_Shutdown(t *testing.T) {
 	default:
 		t.Fatalf("shutdown channel should be closed")
 	}
+}
+
+func testRegistry() resource.Registry {
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+	return registry
 }
 
 type mockSession struct {
