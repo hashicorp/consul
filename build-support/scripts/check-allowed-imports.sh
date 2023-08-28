@@ -46,14 +46,14 @@ function main {
          then
             module_root="$1"
          else
-            allowed_packages+="$1"
+            allowed_packages+="$1 "
          fi
          shift     
       esac
    done
    
    # If we could guarantee this ran with bash 4.2+ then the final argument could
-   # be just ${allowed_packages[@]}. However that with older versions of bash
+   # be just ${allowed_packages[@]}. However with older versions of bash
    # in combination with set -u causes bash to emit errors about using unbound
    # variables when no allowed packages have been specified (i.e. the module should
    # generally be disallowed with no exceptions). This syntax is very strange
