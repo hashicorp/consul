@@ -5,12 +5,14 @@ package agent
 
 import (
 	"encoding/json"
-	"github.com/hashicorp/consul/internal/mesh"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/resource"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 
 	"github.com/stretchr/testify/require"
 
@@ -22,6 +24,9 @@ import (
 )
 
 func TestAgent_local_proxycfg(t *testing.T) {
+	registry := resource.NewRegistry()
+	mesh.RegisterTypes(registry)
+
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
@@ -87,7 +92,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 			// Prior to fixes in https://github.com/hashicorp/consul/pull/16497
 			// this call to Watch() would deadlock.
 			var err error
-			ch, stc, cancel, err = cfg.Watch(rtest.Resource(mesh.ProxyConfigurationType, sid.ID).ID(), a.config.NodeName, token)
+			ch, stc, cancel, err = cfg.Watch(rtest.Resource(mesh.ProxyConfigurationType, sid.ID, registry).ID(), a.config.NodeName, token)
 			require.NoError(t, err)
 		}
 		select {
