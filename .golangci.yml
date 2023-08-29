@@ -51,11 +51,11 @@ issues:
     - linters: [unparam]
       text: "`(t|resp|req|entMeta)` is unused"
 
-    # Temp ignore everything in _oss(_test).go and _ent(_test).go. Many of these
+    # Temp ignore everything in _ce(_test).go and _ent(_test).go. Many of these
     # could use underscore to ignore the unused arguments, but the "always returns"
-    # issue will likely remain in oss, and will need to be excluded.
+    # issue will likely remain in CE, and will need to be excluded.
     - linters: [unparam]
-      path: "(_oss.go|_oss_test.go|_ent.go|_ent_test.go)"
+      path: "(_ce.go|_ce_test.go|_ent.go|_ent_test.go)"
 
 linters-settings:
   govet:

@@ -43,10 +43,10 @@ func (id SpiffeIDService) uriPath() string {
 		id.Service,
 	)
 
-	// Although OSS has no support for partitions, it still needs to be able to
+	// Although CE has no support for partitions, it still needs to be able to
 	// handle exportedPartition from peered Consul Enterprise clusters in order
 	// to generate the correct SpiffeID.
-	// We intentionally avoid using pbpartition.DefaultName here to be OSS friendly.
+	// We intentionally avoid using pbpartition.DefaultName here to be CE friendly.
 	if ap := id.PartitionOrDefault(); ap != "" && ap != "default" {
 		return "/ap/" + ap + path
 	}
