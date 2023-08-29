@@ -95,6 +95,10 @@ var Gauges = []prometheus.GaugeDefinition{
 		Name: []string{"state", "billable_service_instances"},
 		Help: "Total number of billable service instances in the local datacenter.",
 	},
+	{
+		Name: []string{"consul", "version"},
+		Help: "Sujata Testing Version in usagemetrics",
+	},
 }
 
 type getMembersFunc func() []serf.Member
@@ -244,6 +248,8 @@ func (u *UsageMetricsReporter) runOnce() {
 	}
 
 	u.emitConfigEntryUsage(configUsage)
+
+	u.emitVersionUsage()
 }
 
 func (u *UsageMetricsReporter) memberUsage() []serf.Member {

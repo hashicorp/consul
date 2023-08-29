@@ -147,3 +147,13 @@ func (u *UsageMetricsReporter) emitConfigEntryUsage(configUsage state.ConfigEntr
 		)
 	}
 }
+
+func (u *UsageMetricsReporter) emitVersionUsage() {
+
+	// consul version metric with labels
+	metrics.SetGaugeWithLabels(
+		[]string{"version"},
+		1,
+		append(u.metricLabels, metrics.Label{Name: "version", Value: "1.16.0"}),
+	)
+}
