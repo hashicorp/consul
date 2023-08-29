@@ -14,8 +14,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	ext_cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/go-multierror"
 	v1 "go.opentelemetry.io/proto/otlp/common/v1"
@@ -28,8 +26,6 @@ type otelAccessLogging struct {
 	// The extension will only be configured for proxies that match this type and
 	// will be ignored for all other proxy types.
 	ProxyType api.ServiceKind
-	// InsertOptions controls how the extension inserts the filter.
-	InsertOptions ext_cmn.InsertOptions
 	// ListenerType controls which listener the extension applies to. It supports "inbound" or "outbound" listeners.
 	ListenerType string
 	// Config holds the extension configuration.
@@ -70,7 +66,7 @@ func (a *otelAccessLogging) PatchClusters(cfg *ext_cmn.RuntimeConfig, c ext_cmn.
 	return c, nil
 }
 
-func (a *otelAccessLogging) matchesListenerDirection(p extensioncommon.FilterPayload) bool {
+func (a *otelAccessLogging) matchesListenerDirection(p ext_cmn.FilterPayload) bool {
 	isInboundListener := p.IsInbound()
 	return (!isInboundListener && a.ListenerType == "outbound") || (isInboundListener && a.ListenerType == "inbound")
 }
@@ -85,7 +81,7 @@ func (a *otelAccessLogging) PatchFilter(p ext_cmn.FilterPayload) (*envoy_listene
 
 	httpConnectionManager, _, err := ext_cmn.GetHTTPConnectionManager(filter)
 	if err != nil {
-		return filter, false, nil
+		return filter, false, err
 	}
 
 	accessLog, err := a.toEnvoyAccessLog(p.RuntimeConfig)
@@ -118,13 +114,11 @@ func (a *otelAccessLogging) fromArguments(args map[string]any) error {
 	if err := mapstructure.Decode(args, a); err != nil {
 		return err
 	}
-	if err := a.normalize(); err != nil {
-		return err
-	}
+	a.normalize()
 	return a.validate()
 }
 
-func (a *otelAccessLogging) toEnvoyAccessLog(cfg *cmn.RuntimeConfig) (*envoy_extensions_access_loggers_v3.AccessLog, error) {
+func (a *otelAccessLogging) toEnvoyAccessLog(cfg *ext_cmn.RuntimeConfig) (*envoy_extensions_access_loggers_v3.AccessLog, error) {
 	commonConfig, err := a.Config.toEnvoyCommonGrpcAccessLogConfig(cfg)
 	if err != nil {
 		return nil, err
@@ -169,7 +163,7 @@ func (a *otelAccessLogging) toEnvoyAccessLog(cfg *cmn.RuntimeConfig) (*envoy_ext
 	}, nil
 }
 
-func (a *otelAccessLogging) normalize() error {
+func (a *otelAccessLogging) normalize() {
 	if a.ProxyType == "" {
 		a.ProxyType = api.ServiceKindConnectProxy
 	}
@@ -182,7 +176,7 @@ func (a *otelAccessLogging) normalize() error {
 		a.Config.LogName = a.ListenerType
 	}
 
-	return a.Config.normalize()
+	a.Config.normalize()
 }
 
 func (a *otelAccessLogging) validate() error {

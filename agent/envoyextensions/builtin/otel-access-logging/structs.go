@@ -43,26 +43,22 @@ type AccessLog struct {
 	ResourceAttributes      map[string]interface{}
 }
 
-func (a *AccessLog) normalize() error {
+func (a *AccessLog) normalize() {
 	if a.GrpcService != nil {
 		a.GrpcService.normalize()
-	} else {
-		return fmt.Errorf("missing GrpcService")
 	}
 
 	if a.RetryPolicy != nil {
 		a.RetryPolicy.normalize()
 	}
-
-	return nil
 }
 
 func (a *AccessLog) validate() error {
-	if a == nil {
-		return nil
-	}
-
 	a.normalize()
+
+	if a.GrpcService == nil {
+		return fmt.Errorf("missing GrpcService")
+	}
 
 	var resultErr error
 
@@ -117,10 +113,6 @@ func (a *AccessLog) getClusterName(cfg *cmn.RuntimeConfig, target *Target) (stri
 	return clusterName, nil
 }
 
-func (a *AccessLog) isGRPC() bool {
-	return a.GrpcService != nil
-}
-
 // toEnvoyCluster returns an Envoy cluster for connecting to the OpenTelemetry access logging service.
 // If the extension is configured with the OpenTelemetry access logging service locally via the URI set to localhost,
 // this func will return a new cluster definition that will allow the proxy to connect to the OpenTelemetry access logging
@@ -148,22 +140,20 @@ func (a *AccessLog) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3.Clus
 	}
 
 	var typedExtProtoOpts map[string]*anypb.Any
-	if a.isGRPC() {
-		// By default HTTP/1.1 is used for the transport protocol. gRPC requires that we explicitly configure HTTP/2
-		httpProtoOpts := &envoy_upstreams_http_v3.HttpProtocolOptions{
-			UpstreamProtocolOptions: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig_{
-				ExplicitHttpConfig: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig{
-					ProtocolConfig: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
-				},
+
+	httpProtoOpts := &envoy_upstreams_http_v3.HttpProtocolOptions{
+		UpstreamProtocolOptions: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
 			},
-		}
-		httpProtoOptsAny, err := anypb.New(httpProtoOpts)
-		if err != nil {
-			return nil, err
-		}
-		typedExtProtoOpts = make(map[string]*anypb.Any)
-		typedExtProtoOpts["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] = httpProtoOptsAny
+		},
 	}
+	httpProtoOptsAny, err := anypb.New(httpProtoOpts)
+	if err != nil {
+		return nil, err
+	}
+	typedExtProtoOpts = make(map[string]*anypb.Any)
+	typedExtProtoOpts["envoy.extensions.upstreams.http.v3.HttpProtocolOptions"] = httpProtoOptsAny
 
 	return &envoy_cluster_v3.Cluster{
 		Name:                 LocalAccessLogClusterName,
