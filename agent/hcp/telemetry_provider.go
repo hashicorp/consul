@@ -111,7 +111,7 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 		// Only disable metrics on 404 or 401 to handle the case of an unlinked cluster.
 		// For other errors such as 5XX ones, we continue metrics collection, as these are potentially transient server-side errors.
 		apiErr, ok := err.(*runtime.APIError)
-		if ok && (apiErr.IsCode(404) || apiErr.IsCode(401)) {
+		if ok && apiErr.IsClientError() {
 			disabledMetricsCfg := defaultDisabledCfg()
 			h.modifyDynamicCfg(disabledMetricsCfg)
 			return disabledMetricsCfg.refreshInterval

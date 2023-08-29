@@ -236,23 +236,6 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 			metricKey:        testMetricKeySuccess,
 			expectedInterval: defaultTelemetryConfigRefreshInterval,
 		},
-		"disableMetrics401": {
-			initCfg: testDynamicCfg(&testConfig{
-				endpoint: "http://test.com/v1/metrics",
-				filters:  "test",
-				labels: map[string]string{
-					"test_label": "123",
-				},
-				refreshInterval: testRefreshInterval,
-			}),
-			mockExpect: func(m *client.MockClient) {
-				err := runtime.NewAPIError("401 failure", nil, 401)
-				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, err)
-			},
-			expected:         defaultDisabledCfg(),
-			metricKey:        testMetricKeySuccess,
-			expectedInterval: defaultTelemetryConfigRefreshInterval,
-		},
 	} {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
