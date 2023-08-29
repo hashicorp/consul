@@ -5,7 +5,6 @@ package proxycfg
 
 import (
 	"errors"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"runtime/debug"
 	"sync"
 
@@ -13,6 +12,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/structs"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/tlsutil"
 )
 

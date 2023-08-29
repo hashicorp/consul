@@ -6,26 +6,26 @@ package proxytracker
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/go-hclog"
 	"sync"
 
-	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// Proxy implements the queue.ItemType interface so that it can be used in a controller.Event.
+// ProxyConnection implements the queue.ItemType interface so that it can be used in a controller.Event.
 // It is sent on the newProxyConnectionCh channel.
 // TODO(ProxyState): needs to support tenancy in the future.
-// Key() is current resourceID.Name.
 type ProxyConnection struct {
 	ProxyID *pbresource.ID
 }
 
+// Key is current resourceID.Name.
 func (e *ProxyConnection) Key() string {
 	return e.ProxyID.GetName()
 }
