@@ -5,14 +5,14 @@ package xds
 
 import (
 	"context"
-
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -43,7 +43,7 @@ type TrustBundleFetcher func() (*pbproxystate.TrustBundle, error)
 // and also check its connectivity to the server.
 type ProxyUpdater interface {
 	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
-	PushChange(id *pbresource.ID, snapshot *pbmesh.ProxyState) error
+	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
 
 	// ProxyConnectedToServer returns whether this id is connected to this server.
 	ProxyConnectedToServer(id *pbresource.ID) bool
@@ -156,7 +156,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 
 	computedProxyState := proxyStateTemplate.Template.ProxyState
 
-	err = r.updater.PushChange(req.ID, computedProxyState)
+	err = r.updater.PushChange(req.ID, &proxytracker.ProxyState{ProxyState: computedProxyState})
 	if err != nil {
 		// Set the status.
 		statusCondition = status.ConditionRejectedPushChangeFailed(status.KeyFromID(req.ID))

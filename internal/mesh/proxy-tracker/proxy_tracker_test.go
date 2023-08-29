@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
@@ -20,7 +20,7 @@ import (
 )
 
 func TestProxyTracker_Watch(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -70,7 +70,7 @@ func TestProxyTracker_Watch(t *testing.T) {
 }
 
 func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -85,7 +85,7 @@ func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
 
 	//fill up buffered channel while the consumer is not ready to simulate the error
 	for i := 0; i < 1000; i++ {
-		event := controller.Event{Obj: &ProxyConnection{ProxyID: resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, fmt.Sprintf("test%d", i)).ID()}}
+		event := controller.Event{Obj: &ProxyConnection{ProxyID: resourcetest.Resource(types.ProxyStateTemplateType, fmt.Sprintf("test%d", i)).ID()}}
 		pt.newProxyConnectionCh <- event
 	}
 
@@ -121,14 +121,14 @@ func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
 		},
 		{
 			description:   "Empty nodeName",
-			proxyID:       resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID(),
+			proxyID:       resourcetest.Resource(types.ProxyStateTemplateType, "test").ID(),
 			nodeName:      "",
 			token:         "something",
 			expectedError: errors.New("nodeName is required"),
 		},
 		{
 			description:   "resource is not ProxyStateTemplate",
-			proxyID:       resourcetest.Resource(mesh.ProxyConfigurationType, "test").ID(),
+			proxyID:       resourcetest.Resource(types.ProxyConfigurationType, "test").ID(),
 			nodeName:      "something",
 			token:         "something else",
 			expectedError: errors.New("proxyID must be a ProxyStateTemplate"),
@@ -155,7 +155,7 @@ func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
 }
 
 func TestProxyTracker_Watch_SessionLimiterError(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 	lim := NewMockSessionLimiter(t)
 	lim.On("BeginSession").Return(nil, errors.New("kaboom"))
 	logger := testutil.Logger(t)
@@ -174,7 +174,7 @@ func TestProxyTracker_Watch_SessionLimiterError(t *testing.T) {
 }
 
 func TestProxyTracker_PushChange(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)
@@ -193,7 +193,7 @@ func TestProxyTracker_PushChange(t *testing.T) {
 	require.NoError(t, err)
 
 	// PushChange
-	proxyState := &mesh.ProxyState{ProxyState: &pbmesh.ProxyState{
+	proxyState := &ProxyState{ProxyState: &pbmesh.ProxyState{
 		IntentionDefaultAllow: true,
 	}}
 
@@ -216,7 +216,7 @@ func TestProxyTracker_PushChange(t *testing.T) {
 }
 
 func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 	lim := NewMockSessionLimiter(t)
 	logger := testutil.Logger(t)
 
@@ -226,7 +226,7 @@ func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
 	})
 
 	// PushChange
-	proxyState := &mesh.ProxyState{ProxyState: &pbmesh.ProxyState{
+	proxyState := &ProxyState{ProxyState: &pbmesh.ProxyState{
 		IntentionDefaultAllow: true,
 	}}
 
@@ -273,14 +273,14 @@ func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
 			Logger:         logger,
 			SessionLimiter: lim,
 		})
-		resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+		resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 		tc.preProcessingFunc(pt, resourceID, lim, session1, session1TermCh)
 		require.Equal(t, tc.shouldExist, pt.ProxyConnectedToServer(resourceID))
 	}
 }
 
 func TestProxyTracker_Shutdown(t *testing.T) {
-	resourceID := resourcetest.Resource(mesh.ProxyStateTemplateConfigurationType, "test").ID()
+	resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 	proxyReferenceKey := resource.NewReferenceKey(resourceID)
 	lim := NewMockSessionLimiter(t)
 	session1 := newMockSession(t)

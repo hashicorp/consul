@@ -1820,7 +1820,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	deps := newDefaultDeps(t, conf)
 	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator, rate.NullRequestLimitsHandler())
 
-	server, err := consul.NewServer(conf, deps, externalGRPCServer, nil, deps.Logger)
+	server, err := consul.NewServer(conf, deps, externalGRPCServer, nil, deps.Logger, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		require.NoError(t, server.Shutdown())

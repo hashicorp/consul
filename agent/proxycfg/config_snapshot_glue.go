@@ -8,16 +8,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ProxySnapshot is an abstraction that allows interchangeability between
-// Catalog V1 ConfigSnapshot and Catalog V2 ProxyState.
-type ProxySnapshot interface {
-	AllowEmptyListeners() bool
-	AllowEmptyRoutes() bool
-	AllowEmptyClusters() bool
-	Authorize(authz acl.Authorizer) error
-	LoggerName() string
-}
-
 // The below functions are added to ConfigSnapshot to allow it to conform to
 // the ProxySnapshot interface.
 func (s *ConfigSnapshot) AllowEmptyListeners() bool {
