@@ -5,10 +5,6 @@ package agent
 
 import (
 	"encoding/json"
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/internal/mesh"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,8 +12,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/mesh"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/testrpc"
 )
 

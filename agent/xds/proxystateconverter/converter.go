@@ -5,13 +5,15 @@ package proxystateconverter
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
-	"github.com/hashicorp/go-hclog"
 )
 
 // Converter converts a single snapshot into a ProxyState.
