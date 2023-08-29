@@ -447,7 +447,7 @@ func vetDeregisterWithACL(
 	}
 
 	// This order must match the code in applyDeregister() in
-	// fsm/commands_oss.go since it also evaluates things in this order,
+	// fsm/commands_ce.go since it also evaluates things in this order,
 	// and will ignore fields based on this precedence. This lets us also
 	// ignore them from an ACL perspective.
 	if subj.ServiceID != "" {
