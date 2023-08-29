@@ -63,7 +63,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hcl/v2 v2.6.0
 	github.com/hashicorp/hcp-scada-provider v0.2.3
-	github.com/hashicorp/hcp-sdk-go v0.55.0
+	github.com/hashicorp/hcp-sdk-go v0.61.0
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 	github.com/hashicorp/memberlist v0.5.0
 	github.com/hashicorp/raft v1.5.0
@@ -244,6 +244,7 @@ require (
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
 	github.com/vmware/govmomi v0.18.0 // indirect
+	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.mongodb.org/mongo-driver v1.11.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
