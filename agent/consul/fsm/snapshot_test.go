@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestFSM_SnapshotRestore_OSS(t *testing.T) {
+func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	t.Parallel()
 
 	logger := testutil.Logger(t)
@@ -901,7 +901,7 @@ func convertACLTokenToLegacy(tok *structs.ACLToken) (*LegacyACL, error) {
 	return compat, nil
 }
 
-func TestFSM_BadRestore_OSS(t *testing.T) {
+func TestFSM_BadRestore_CE(t *testing.T) {
 	t.Parallel()
 	// Create an FSM with some state.
 	logger := testutil.Logger(t)

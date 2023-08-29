@@ -10,6 +10,7 @@ on:
 
 env:
   PKG_NAME: consul
+  # TODO(spatel): CE refactor
   METADATA: oss
 
 jobs:
