@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/go-openapi/runtime"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
@@ -55,17 +56,22 @@ type dynamicConfig struct {
 	refreshInterval time.Duration
 }
 
+// defaultDisabledCfg disables metric collection and contains default config values.
+func defaultDisabledCfg() *dynamicConfig {
+	return &dynamicConfig{
+		labels:          map[string]string{},
+		filters:         client.DefaultMetricFilters,
+		refreshInterval: defaultTelemetryConfigRefreshInterval,
+		endpoint:        nil,
+		disabled:        true,
+	}
+}
+
 // NewHCPProvider initializes and starts a HCP Telemetry provider.
 func NewHCPProvider(ctx context.Context, hcpClient client.Client) *hcpProviderImpl {
 	h := &hcpProviderImpl{
 		// Initialize with default config values.
-		cfg: &dynamicConfig{
-			labels:          map[string]string{},
-			filters:         client.DefaultMetricFilters,
-			refreshInterval: defaultTelemetryConfigRefreshInterval,
-			endpoint:        nil,
-			disabled:        true,
-		},
+		cfg:       defaultDisabledCfg(),
 		hcpClient: hcpClient,
 	}
 
@@ -102,6 +108,15 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 
 	telemetryCfg, err := h.hcpClient.FetchTelemetryConfig(ctx)
 	if err != nil {
+		// Only disable metrics on 404 or 401 to handle the case of an unlinked cluster.
+		// For other errors such as 5XX ones, we continue metrics collection, as these are potentially transient server-side errors.
+		apiErr, ok := err.(*runtime.APIError)
+		if ok && (apiErr.IsCode(404) || apiErr.IsCode(401)) {
+			disabledMetricsCfg := defaultDisabledCfg()
+			h.modifyDynamicCfg(disabledMetricsCfg)
+			return disabledMetricsCfg.refreshInterval
+		}
+
 		logger.Error("failed to fetch telemetry config from HCP", "error", err)
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
 		return 0
@@ -115,7 +130,7 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 		return 0
 	}
 
-	newDynamicConfig := &dynamicConfig{
+	newCfg := &dynamicConfig{
 		filters:         telemetryCfg.MetricsConfig.Filters,
 		endpoint:        telemetryCfg.MetricsConfig.Endpoint,
 		labels:          telemetryCfg.MetricsConfig.Labels,
@@ -123,14 +138,18 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 		disabled:        telemetryCfg.MetricsConfig.Disabled,
 	}
 
-	// Acquire write lock to update new configuration.
+	h.modifyDynamicCfg(newCfg)
+
+	return newCfg.refreshInterval
+}
+
+// modifyDynamicCfg acquires a write lock to update new configuration and emits a success metric.
+func (h *hcpProviderImpl) modifyDynamicCfg(newCfg *dynamicConfig) {
 	h.rw.Lock()
-	h.cfg = newDynamicConfig
+	h.cfg = newCfg
 	h.rw.Unlock()
 
 	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
-
-	return newDynamicConfig.refreshInterval
 }
 
 // GetEndpoint acquires a read lock to return endpoint configuration for consumers.

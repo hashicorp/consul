@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/go-openapi/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -70,19 +71,19 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 	for name, tc := range map[string]struct {
 		mockExpect       func(*client.MockClient)
 		metricKey        string
-		optsInputs       *testConfig
-		expected         *testConfig
+		initCfg          *dynamicConfig
+		expected         *dynamicConfig
 		expectedInterval time.Duration
 	}{
 		"noChanges": {
-			optsInputs: &testConfig{
+			initCfg: testDynamicCfg(&testConfig{
 				endpoint: "http://test.com/v1/metrics",
 				filters:  "test",
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				refreshInterval: testRefreshInterval,
-			},
+			}),
 			mockExpect: func(m *client.MockClient) {
 				mockCfg, _ := testTelemetryCfg(&testConfig{
 					endpoint: "http://test.com/v1/metrics",
@@ -94,26 +95,26 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 				})
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
 			},
-			expected: &testConfig{
+			expected: testDynamicCfg(&testConfig{
 				endpoint: "http://test.com/v1/metrics",
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				filters:         "test",
 				refreshInterval: testRefreshInterval,
-			},
+			}),
 			metricKey:        testMetricKeySuccess,
 			expectedInterval: testRefreshInterval,
 		},
 		"newConfig": {
-			optsInputs: &testConfig{
+			initCfg: testDynamicCfg(&testConfig{
 				endpoint: "http://test.com/v1/metrics",
 				filters:  "test",
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				refreshInterval: 2 * time.Second,
-			},
+			}),
 			mockExpect: func(m *client.MockClient) {
 				mockCfg, _ := testTelemetryCfg(&testConfig{
 					endpoint: "http://newendpoint/v1/metrics",
@@ -125,26 +126,26 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 				})
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
 			},
-			expected: &testConfig{
+			expected: testDynamicCfg(&testConfig{
 				endpoint: "http://newendpoint/v1/metrics",
 				filters:  "consul",
 				labels: map[string]string{
 					"new_label": "1234",
 				},
 				refreshInterval: 2 * time.Second,
-			},
+			}),
 			expectedInterval: 2 * time.Second,
 			metricKey:        testMetricKeySuccess,
 		},
 		"newConfigMetricsDisabled": {
-			optsInputs: &testConfig{
+			initCfg: testDynamicCfg(&testConfig{
 				endpoint: "http://test.com/v1/metrics",
 				filters:  "test",
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				refreshInterval: 2 * time.Second,
-			},
+			}),
 			mockExpect: func(m *client.MockClient) {
 				mockCfg, _ := testTelemetryCfg(&testConfig{
 					endpoint: "",
@@ -157,7 +158,7 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 				})
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
 			},
-			expected: &testConfig{
+			expected: testDynamicCfg(&testConfig{
 				endpoint: "",
 				filters:  "consul",
 				labels: map[string]string{
@@ -165,58 +166,92 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 				},
 				refreshInterval: 2 * time.Second,
 				disabled:        true,
-			},
+			}),
 			metricKey:        testMetricKeySuccess,
 			expectedInterval: 2 * time.Second,
 		},
 		"sameConfigInvalidRefreshInterval": {
-			optsInputs: &testConfig{
+			initCfg: testDynamicCfg(&testConfig{
 				endpoint: "http://test.com/v1/metrics",
 				filters:  "test",
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				refreshInterval: testRefreshInterval,
-			},
+			}),
 			mockExpect: func(m *client.MockClient) {
 				mockCfg, _ := testTelemetryCfg(&testConfig{
 					refreshInterval: 0 * time.Second,
 				})
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mockCfg, nil)
 			},
-			expected: &testConfig{
+			expected: testDynamicCfg(&testConfig{
 				endpoint: "http://test.com/v1/metrics",
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				filters:         "test",
 				refreshInterval: testRefreshInterval,
-			},
+			}),
 			metricKey:        testMetricKeyFailure,
 			expectedInterval: 0,
 		},
 		"sameConfigHCPClientFailure": {
-			optsInputs: &testConfig{
+			initCfg: testDynamicCfg(&testConfig{
 				endpoint: "http://test.com/v1/metrics",
 				filters:  "test",
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				refreshInterval: testRefreshInterval,
-			},
+			}),
 			mockExpect: func(m *client.MockClient) {
 				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("failure"))
 			},
-			expected: &testConfig{
+			expected: testDynamicCfg(&testConfig{
 				endpoint: "http://test.com/v1/metrics",
 				filters:  "test",
 				labels: map[string]string{
 					"test_label": "123",
 				},
 				refreshInterval: testRefreshInterval,
-			},
+			}),
 			metricKey:        testMetricKeyFailure,
 			expectedInterval: 0,
+		},
+		"disableMetrics404": {
+			initCfg: testDynamicCfg(&testConfig{
+				endpoint: "http://test.com/v1/metrics",
+				filters:  "test",
+				labels: map[string]string{
+					"test_label": "123",
+				},
+				refreshInterval: testRefreshInterval,
+			}),
+			mockExpect: func(m *client.MockClient) {
+				err := runtime.NewAPIError("404 failure", nil, 404)
+				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, err)
+			},
+			expected:         defaultDisabledCfg(),
+			metricKey:        testMetricKeySuccess,
+			expectedInterval: defaultTelemetryConfigRefreshInterval,
+		},
+		"disableMetrics401": {
+			initCfg: testDynamicCfg(&testConfig{
+				endpoint: "http://test.com/v1/metrics",
+				filters:  "test",
+				labels: map[string]string{
+					"test_label": "123",
+				},
+				refreshInterval: testRefreshInterval,
+			}),
+			mockExpect: func(m *client.MockClient) {
+				err := runtime.NewAPIError("401 failure", nil, 401)
+				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, err)
+			},
+			expected:         defaultDisabledCfg(),
+			metricKey:        testMetricKeySuccess,
+			expectedInterval: defaultTelemetryConfigRefreshInterval,
 		},
 	} {
 		tc := tc
@@ -225,25 +260,19 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 			mockClient := client.NewMockClient(t)
 			tc.mockExpect(mockClient)
 
-			dynamicCfg, err := testDynamicCfg(tc.optsInputs)
-			require.NoError(t, err)
-
 			provider := &hcpProviderImpl{
 				hcpClient: mockClient,
-				cfg:       dynamicCfg,
+				cfg:       tc.initCfg,
 			}
 
 			newInterval := provider.updateConfig(context.Background())
 			require.Equal(t, tc.expectedInterval, newInterval)
 
 			// Verify endpoint provider returns correct config values.
-			expectedCfg, err := testDynamicCfg(tc.expected)
-			require.NoError(t, err)
-
-			require.Equal(t, expectedCfg.endpoint, provider.GetEndpoint())
-			require.Equal(t, expectedCfg.filters, provider.GetFilters())
-			require.Equal(t, expectedCfg.labels, provider.GetLabels())
-			require.Equal(t, expectedCfg.disabled, provider.IsDisabled())
+			require.Equal(t, tc.expected.endpoint, provider.GetEndpoint())
+			require.Equal(t, tc.expected.filters, provider.GetFilters())
+			require.Equal(t, tc.expected.labels, provider.GetLabels())
+			require.Equal(t, tc.expected.disabled, provider.IsDisabled())
 
 			// Verify count for transform success metric.
 			interval := sink.Data()[0]
@@ -373,19 +402,12 @@ func initGlobalSink() *metrics.InmemSink {
 }
 
 // testDynamicCfg converts testConfig inputs to a dynamicConfig to be used in tests.
-func testDynamicCfg(testCfg *testConfig) (*dynamicConfig, error) {
-	filters, err := regexp.Compile(testCfg.filters)
-	if err != nil {
-		return nil, err
-	}
+func testDynamicCfg(testCfg *testConfig) *dynamicConfig {
+	filters, _ := regexp.Compile(testCfg.filters)
 
 	var endpoint *url.URL
 	if testCfg.endpoint != "" {
-		u, err := url.Parse(testCfg.endpoint)
-		if err != nil {
-			return nil, err
-		}
-		endpoint = u
+		endpoint, _ = url.Parse(testCfg.endpoint)
 	}
 	return &dynamicConfig{
 		endpoint:        endpoint,
@@ -393,7 +415,7 @@ func testDynamicCfg(testCfg *testConfig) (*dynamicConfig, error) {
 		labels:          testCfg.labels,
 		refreshInterval: testCfg.refreshInterval,
 		disabled:        testCfg.disabled,
-	}, nil
+	}
 }
 
 // testTelemetryCfg converts testConfig inputs to a TelemetryConfig to be used in tests.
