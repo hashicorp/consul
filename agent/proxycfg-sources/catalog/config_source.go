@@ -6,6 +6,8 @@ package catalog
 import (
 	"context"
 	"errors"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"sync"
 
@@ -14,7 +16,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -49,7 +50,7 @@ func NewConfigSource(cfg Config) *ConfigSource {
 
 // Watch wraps the underlying proxycfg.Manager and dynamically registers
 // services from the catalog with it when requested by the xDS server.
-func (m *ConfigSource) Watch(id *pbresource.ID, nodeName string, token string) (<-chan proxycfg.ProxySnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
+func (m *ConfigSource) Watch(id *pbresource.ID, nodeName string, token string) (<-chan proxysnapshot.ProxySnapshot, limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error) {
 	// Create service ID
 	serviceID := structs.NewServiceID(id.Name, GetEnterpriseMetaFromResourceID(id))
 	// If the service is registered to the local agent, use the LocalConfigSource
@@ -279,7 +280,7 @@ type Config struct {
 
 //go:generate mockery --name ConfigManager --inpackage
 type ConfigManager interface {
-	Watch(req proxycfg.ProxyID) (<-chan proxycfg.ProxySnapshot, proxycfg.CancelFunc)
+	Watch(req proxycfg.ProxyID) (<-chan proxysnapshot.ProxySnapshot, proxysnapshot.CancelFunc)
 	Register(proxyID proxycfg.ProxyID, service *structs.NodeService, source proxycfg.ProxySource, token string, overwrite bool) error
 	Deregister(proxyID proxycfg.ProxyID, source proxycfg.ProxySource)
 }
@@ -292,10 +293,11 @@ type Store interface {
 
 //go:generate mockery --name Watcher --inpackage
 type Watcher interface {
-	Watch(proxyID *pbresource.ID, nodeName string, token string) (<-chan proxycfg.ProxySnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error)
+	Watch(proxyID *pbresource.ID, nodeName string, token string) (<-chan proxysnapshot.ProxySnapshot, limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error)
 }
 
 //go:generate mockery --name SessionLimiter --inpackage
 type SessionLimiter interface {
 	BeginSession() (limiter.Session, error)
+	Run(ctx context.Context)
 }

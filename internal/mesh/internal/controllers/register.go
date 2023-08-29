@@ -13,10 +13,10 @@ import (
 
 type Dependencies struct {
 	TrustBundleFetcher xds.TrustBundleFetcher
+	ProxyUpdater       xds.ProxyUpdater
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
 	mapper := bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
-	// TODO: Pass in a "real" updater once proxy tracker work has completed.
-	mgr.Register(xds.Controller(mapper, nil, deps.TrustBundleFetcher))
+	mgr.Register(xds.Controller(mapper, deps.ProxyUpdater, deps.TrustBundleFetcher))
 }
