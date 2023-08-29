@@ -84,6 +84,7 @@ func NewCommonTopo(t *testing.T) *commonTopo {
 	peerings = append(peerings, addPeerings(dc1, dc3)...)
 	peerings = append(peerings, addPeerings(dc2, dc3)...)
 
+	// TODO: NodeKindDataplane for mesh gateways
 	addMeshGateways(dc1, topology.NodeKindClient)
 	addMeshGateways(dc2, topology.NodeKindClient)
 	addMeshGateways(dc3, topology.NodeKindClient)
@@ -191,9 +192,6 @@ func LocalPeerName(clu *topology.Cluster, partition string) string {
 type serviceExt struct {
 	*topology.Service
 
-	// default NodeKindClient
-	NodeKind topology.NodeKind
-
 	Exports    []api.ServiceConsumer
 	Config     *api.ServiceConfigEntry
 	Intentions *api.ServiceIntentionsConfigEntry
@@ -227,8 +225,14 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 		return n
 	}
 
+	nodeKind := topology.NodeKindClient
+	if clu.Datacenter == "dc2" {
+		nodeKind = topology.NodeKindDataplane
+
+	}
+
 	node := &topology.Node{
-		Kind:      topology.NodeKindClient,
+		Kind:      nodeKind,
 		Name:      serviceHostnameString(clu.Datacenter, svc.ID),
 		Partition: svc.ID.Partition,
 		Addresses: []*topology.Address{
@@ -238,9 +242,6 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 			svc.Service,
 		},
 		Cluster: clusterName,
-	}
-	if svc.NodeKind != "" {
-		node.Kind = svc.NodeKind
 	}
 	clu.Nodes = append(clu.Nodes, node)
 

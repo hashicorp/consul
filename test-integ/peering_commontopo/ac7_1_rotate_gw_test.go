@@ -142,6 +142,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 	// add a second mesh gateway "new"
 	s.newMGWNodeName = fmt.Sprintf("new-%s-default-mgw", clu.Name)
 	clu.Nodes = append(clu.Nodes, newTopologyMeshGatewaySet(
+		// TODO: Dataplane
 		topology.NodeKindClient,
 		"default",
 		s.newMGWNodeName,
