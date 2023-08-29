@@ -6,12 +6,12 @@ syntax = "proto3";
 package hashicorp.consul.catalog.v1alpha1;
 
 enum Protocol {
-  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
-  PROTOCOL_TCP = 0;
-  PROTOCOL_HTTP = 1;
-  PROTOCOL_HTTP2 = 2;
-  PROTOCOL_GRPC = 3;
+  PROTOCOL_UNSPECIFIED = 0;
+  PROTOCOL_TCP = 1;
+  PROTOCOL_HTTP = 2;
+  PROTOCOL_HTTP2 = 3;
+  PROTOCOL_GRPC = 4;
 
   // Protocol Mesh indicates that this port can speak Consul's mTLS based mesh protocol.
-  PROTOCOL_MESH = 4;
+  PROTOCOL_MESH = 5;
 }
