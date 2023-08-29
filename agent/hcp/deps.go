@@ -43,7 +43,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 		return Deps{}, fmt.Errorf("failed to init metrics client: %w", err)
 	}
 
-	sink, err := sink(ctx, hcpClient, metricsClient)
+	sink, err := sink(ctx, metricsClient, NewHCPProvider(ctx, hcpClient))
 	if err != nil {
 		// Do not prevent server start if sink init fails, only log error.
 		logger.Error("failed to init sink", "error", err)
@@ -60,12 +60,10 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 // This step should not block server initialization, errors are returned, only to be logged.
 func sink(
 	ctx context.Context,
-	hcpClient client.Client,
 	metricsClient telemetry.MetricsClient,
+	cfgProvider *hcpProviderImpl,
 ) (metrics.MetricSink, error) {
 	logger := hclog.FromContext(ctx)
-
-	cfgProvider := NewHCPProvider(ctx, hcpClient)
 
 	reader := telemetry.NewOTELReader(metricsClient, cfgProvider)
 	sinkOpts := &telemetry.OTELSinkOpts{
