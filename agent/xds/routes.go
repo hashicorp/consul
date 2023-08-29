@@ -15,6 +15,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -58,7 +59,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
-		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false)
+		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false, perRouteFilterBuilder{})
 		if err != nil {
 			return nil, err
 		}
@@ -94,12 +95,12 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 				addressesMap[routeName] = make(map[string]string)
 			}
 			// cluster name is unique per address/port so we should not be doing any override here
+
 			clusterName := clusterNameForDestination(cfgSnap, svcConfig.Name, address, svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			addressesMap[routeName][clusterName] = address
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +120,6 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 }
 
 func (s *ResourceGenerator) makeRoutesForAddresses(routeName string, addresses map[string]string) ([]proto.Message, error) {
-
 	var resources []proto.Message
 
 	route, err := makeNamedAddressesRoute(routeName, addresses)
@@ -201,7 +201,8 @@ func (s *ResourceGenerator) makeRoutes(
 	cfgSnap *proxycfg.ConfigSnapshot,
 	svc structs.ServiceName,
 	clusterName string,
-	autoHostRewrite bool) ([]proto.Message, error) {
+	autoHostRewrite bool,
+) ([]proto.Message, error) {
 	resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 
 	if !hasResolver {
@@ -255,6 +256,7 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			chain,
 			[]string{"*"},
 			true,
+			perRouteFilterBuilder{},
 		)
 		if err != nil {
 			return nil, err
@@ -378,7 +380,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false, perRouteFilterBuilder{})
 			if err != nil {
 				return nil, err
 			}
@@ -435,6 +437,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 	readyUpstreamsList := getReadyListeners(cfgSnap)
 
 	for _, readyUpstreams := range readyUpstreamsList {
+		readyUpstreams := readyUpstreams
 		listenerCfg := readyUpstreams.listenerCfg
 		// Do not create any route configuration for TCP listeners
 		if listenerCfg.Protocol != structs.ListenerProtocolHTTP {
@@ -443,6 +446,8 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 
 		routeRef := readyUpstreams.routeReference
 		listenerKey := readyUpstreams.listenerKey
+
+		// TODO: might have to add the JWT Authentication the the Route Configuration here
 
 		defaultRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
@@ -461,12 +466,13 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 		// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
 		// convert our route to use the same naming convention, we won't find any chains below.
 		reformatedRoutes := discoverychain.ReformatHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
-
+		filterBuilder := perRouteFilterBuilder{providerMap: cfgSnap.JWTProviders, listener: &listenerCfg, route: route}
 		for _, reformatedRoute := range reformatedRoutes {
 			reformatedRoute := reformatedRoute
 
 			upstream := buildHTTPRouteUpstream(reformatedRoute, listenerCfg)
 			uid := proxycfg.NewUpstreamID(&upstream)
+
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
 				// Note that if we continue here we must also do this in the cluster generation
@@ -476,7 +482,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 
 			domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
 
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false, filterBuilder)
 			if err != nil {
 				return nil, err
 			}
@@ -605,6 +611,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
 	forMeshGateway bool,
+	filterBuilder perRouteFilterBuilder,
 ) (*envoy_route_v3.VirtualHost, error) {
 	routeName := uid.EnvoyID()
 	var routes []*envoy_route_v3.Route
@@ -624,6 +631,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 		routes = make([]*envoy_route_v3.Route, 0, len(startNode.Routes))
 
 		for _, discoveryRoute := range startNode.Routes {
+			discoveryRoute := discoveryRoute
 			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute)
 
 			var (
@@ -688,8 +696,13 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 				}
 			}
 
+			filter, err := filterBuilder.buildTypedPerFilterConfig(routeMatch, routeAction)
+			if err != nil {
+				return nil, err
+			}
 			route.Match = routeMatch
 			route.Action = routeAction
+			route.TypedPerFilterConfig = filter
 
 			routes = append(routes, route)
 		}
