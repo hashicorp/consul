@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package resourcetest
 
 import (
@@ -5,14 +8,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type Client struct {
@@ -157,6 +161,16 @@ func (client *Client) RequireStatusConditionForCurrentGen(t T, id *pbresource.ID
 	return res
 }
 
+func (client *Client) RequireStatusConditionsForCurrentGen(t T, id *pbresource.ID, statusKey string, conditions []*pbresource.Condition) *pbresource.Resource {
+	t.Helper()
+
+	res := client.RequireResourceExists(t, id)
+	for _, condition := range conditions {
+		RequireStatusConditionForCurrentGen(t, res, statusKey, condition)
+	}
+	return res
+}
+
 func (client *Client) RequireResourceMeta(t T, id *pbresource.ID, key string, value string) *pbresource.Resource {
 	t.Helper()
 
@@ -191,6 +205,17 @@ func (client *Client) WaitForStatusCondition(t T, id *pbresource.ID, statusKey s
 	var res *pbresource.Resource
 	client.retry(t, func(r *retry.R) {
 		res = client.RequireStatusConditionForCurrentGen(r, id, statusKey, condition)
+	})
+
+	return res
+}
+
+func (client *Client) WaitForStatusConditions(t T, id *pbresource.ID, statusKey string, conditions ...*pbresource.Condition) *pbresource.Resource {
+	t.Helper()
+
+	var res *pbresource.Resource
+	client.retry(t, func(r *retry.R) {
+		res = client.RequireStatusConditionsForCurrentGen(r, id, statusKey, conditions)
 	})
 
 	return res

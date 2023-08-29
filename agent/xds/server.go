@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -9,12 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -23,8 +20,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/configfetcher"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (
@@ -70,13 +69,6 @@ const (
 	// services named "local_agent" in the future.
 	LocalAgentClusterName = "local_agent"
 
-	// OriginalDestinationClusterName is the name we give to the passthrough
-	// cluster which redirects transparently-proxied requests to their original
-	// destination outside the mesh. This cluster prevents Consul from blocking
-	// connections to destinations outside of the catalog when in transparent
-	// proxy mode.
-	OriginalDestinationClusterName = "original-destination"
-
 	// DefaultAuthCheckFrequency is the default value for
 	// Server.AuthCheckFrequency to use when the zero value is provided.
 	DefaultAuthCheckFrequency = 5 * time.Minute
@@ -88,16 +80,10 @@ const (
 // coupling this to the agent.
 type ACLResolverFunc func(id string) (acl.Authorizer, error)
 
-// ConfigFetcher is the interface the agent needs to expose
-// for the xDS server to fetch agent config, currently only one field is fetched
-type ConfigFetcher interface {
-	AdvertiseAddrLAN() string
-}
-
 // ProxyConfigSource is the interface xds.Server requires to consume proxy
 // config updates.
-type ProxyConfigSource interface {
-	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error)
+type ProxyWatcher interface {
+	Watch(proxyID *pbresource.ID, nodeName string, token string) (<-chan proxysnapshot.ProxySnapshot, limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error)
 }
 
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
@@ -108,9 +94,9 @@ type ProxyConfigSource interface {
 type Server struct {
 	NodeName     string
 	Logger       hclog.Logger
-	CfgSrc       ProxyConfigSource
+	ProxyWatcher ProxyWatcher
 	ResolveToken ACLResolverFunc
-	CfgFetcher   ConfigFetcher
+	CfgFetcher   configfetcher.ConfigFetcher
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -159,14 +145,14 @@ func (c *activeStreamCounters) Increment(ctx context.Context) func() {
 func NewServer(
 	nodeName string,
 	logger hclog.Logger,
-	cfgMgr ProxyConfigSource,
+	proxyWatcher ProxyWatcher,
 	resolveTokenSecret ACLResolverFunc,
-	cfgFetcher ConfigFetcher,
+	cfgFetcher configfetcher.ConfigFetcher,
 ) *Server {
 	return &Server{
 		NodeName:           nodeName,
 		Logger:             logger,
-		CfgSrc:             cfgMgr,
+		ProxyWatcher:       proxyWatcher,
 		ResolveToken:       resolveTokenSecret,
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
@@ -214,9 +200,9 @@ func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
 // using a token with the same permissions, and that it stores the data by
 // proxy ID. We assume that any data in the snapshot was already filtered,
 // which allows this authorization to be a shallow authorization check
-// for all the data in a ConfigSnapshot.
-func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
-	if cfgSnap == nil {
+// for all the data in a ProxySnapshot.
+func (s *Server) authorize(ctx context.Context, proxySnapshot proxysnapshot.ProxySnapshot) error {
+	if proxySnapshot == nil {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
@@ -225,22 +211,5 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 		return err
 	}
 
-	var authzContext acl.AuthorizerContext
-	switch cfgSnap.Kind {
-	case structs.ServiceKindConnectProxy:
-		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Proxy.DestinationServiceName, &authzContext); err != nil {
-			return status.Errorf(codes.PermissionDenied, err.Error())
-		}
-	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway:
-		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Service, &authzContext); err != nil {
-			return status.Errorf(codes.PermissionDenied, err.Error())
-		}
-	default:
-		return status.Errorf(codes.Internal, "Invalid service kind")
-	}
-
-	// Authed OK!
-	return nil
+	return proxySnapshot.Authorize(authz)
 }

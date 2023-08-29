@@ -100,7 +100,7 @@ To end a peering connection in Kubernetes deployments, delete both the `PeeringA
   $ kubectl --context $CLUSTER1_CONTEXT delete --filename acceptor.yaml
   ````
 
-To confirm that you deleted your peering connection in `cluster-01`, query the the `/health` HTTP endpoint:
+To confirm that you deleted your peering connection in `cluster-01`, query the `/health` HTTP endpoint:
 
 1. Exec into the server pod for the first cluster.
 
@@ -114,7 +114,7 @@ To confirm that you deleted your peering connection in `cluster-01`, query the t
   $ export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
   ```
 
-1. Query the the `/health` HTTP endpoint. Peered services with deleted connections should no longe appear.
+1. Query the `/health` HTTP endpoint. Peered services with deleted connections should no longe appear.
 
   ```shell-session
   $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"

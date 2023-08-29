@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configentry
 
@@ -36,6 +36,7 @@ func ComputeResolvedServiceConfig(
 	// blocking query, this function will be rerun and these state store lookups will both be current.
 	// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
 
+	var proxyConfGlobalProtocol string
 	proxyConf := entries.GetProxyDefaults(args.PartitionOrDefault())
 	if proxyConf != nil {
 		// Apply the proxy defaults to the sidecar's proxy config
@@ -63,9 +64,30 @@ func ComputeResolvedServiceConfig(
 		if !proxyConf.MeshGateway.IsZero() {
 			wildcardUpstreamDefaults["mesh_gateway"] = proxyConf.MeshGateway
 		}
-		if protocol, ok := thisReply.ProxyConfig["protocol"]; ok {
-			wildcardUpstreamDefaults["protocol"] = protocol
+
+		// We explicitly DO NOT merge the protocol from proxy-defaults into the wildcard upstream here.
+		// TProxy will try to use the data from the `wildcardUpstreamDefaults` as a source of truth, which is
+		// normally correct to inherit from proxy-defaults. However, it is NOT correct for protocol.
+		//
+		// This edge-case is different for `protocol` from other fields, since the protocol can be
+		// set on both the local `ServiceDefaults.UpstreamOverrides` and upstream `ServiceDefaults.Protocol`.
+		// This means that when proxy-defaults is set, it would always be treated as an explicit override,
+		// and take precedence over the protocol that is set on the discovery chain (which comes from the
+		// service's preference in its service-defaults), which is wrong.
+		//
+		// When the upstream is not explicitly defined, we should only get the protocol from one of these locations:
+		//   1. For tproxy non-peering services, it can be fetched via the discovery chain.
+		//      The chain compiler merges the proxy-defaults protocol with the upstream's preferred service-defaults protocol.
+		//   2. For tproxy non-peering services with default upstream overrides, it will come from the wildcard upstream overrides.
+		//   3. For tproxy non-peering services with specific upstream overrides, it will come from the specific upstream override defined.
+		//   4. For tproxy peering services, they do not honor the proxy-defaults, since they reside in a different cluster.
+		//      The data will come from a separate peerMeta field.
+		// In all of these cases, it is not necessary for the proxy-defaults to exist in the wildcard upstream.
+		parsed, err := structs.ParseUpstreamConfigNoDefaults(mapCopy.(map[string]interface{}))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse upstream config map for proxy-defaults: %v", err)
 		}
+		proxyConfGlobalProtocol = parsed.Protocol
 	}
 
 	serviceConf := entries.GetServiceDefaults(
@@ -94,6 +116,9 @@ func ComputeResolvedServiceConfig(
 		}
 		if serviceConf.Destination != nil {
 			thisReply.Destination = *serviceConf.Destination
+		}
+		if serviceConf.RateLimits != nil {
+			thisReply.RateLimits = *serviceConf.RateLimits
 		}
 
 		// Populate values for the proxy config map
@@ -210,6 +235,10 @@ func ComputeResolvedServiceConfig(
 		// 2. Protocol for upstream service defined in its service-defaults (how the upstream wants to be addressed)
 		// 3. Protocol defined for the upstream in the service-defaults.(upstream_config.defaults|upstream_config.overrides) of the downstream
 		// 	  (how the downstream wants to address it)
+		if proxyConfGlobalProtocol != "" {
+			resolvedCfg["protocol"] = proxyConfGlobalProtocol
+		}
+
 		if err := mergo.MergeWithOverwrite(&resolvedCfg, wildcardUpstreamDefaults); err != nil {
 			return nil, fmt.Errorf("failed to merge wildcard defaults into upstream: %v", err)
 		}

@@ -28,6 +28,18 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`RequestTimeoutMs`](#jsonwebkeyset-remote-requesttimeoutms): integer
     - [`CacheDuration`](#jsonwebkeyset-remote-cacheduration): string | `5m`
     - [`FetchAsynchronously`](#jsonwebkeyset-remote-fetchasynchronously): boolean | `false`
+    - [`JWKSCluster`](#jsonwebkeyset-remote-jwkscluster): map
+      - [`DiscoveryType`](#jsonwebkeyset-remote-jwkscluster-discoverytype): string | `STRICT_DNS`
+      - [`ConnectTimeout`](#jsonwebkeyset-remote-jwkscluster-connecttimeout): string | `5s`
+      - [`TLSCertificates`](#jsonwebkeyset-remote-jwkscluster-tlscertificates): map
+        - [`CaCertificateProviderInstance`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance): map
+          - [`InstanceName`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance): string | `default`
+          - [`CertificateName`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance): string
+        - [`TrustedCA`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): map
+          - [`Filename`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): string
+          - [`EnvironmentVariable`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): string
+          - [`InlineString`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): string
+          - [`InlineBytes`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): string
     - [`RetryPolicy`](#jsonwebkeyset-remote-retrypolicy): map
       - [`NumRetries`](#jsonwebkeyset-remote-retrypolicy-numretries): integer | `0`
       - [`RetryPolicyBackoff`](#jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): map
@@ -55,7 +67,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 <Tab heading="YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string | required | must be set to `jwtProvider`
+- [`kind`](#kind): string | required | must be set to `JWTProvider`
 - [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string
@@ -68,13 +80,25 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`remote`](#spec-jsonwebkeyset-remote): map
       - [`uri`](#spec-jsonwebkeyset-remote-uri): string
       - [`requestTimeoutMs`](#spec-jsonwebkeyset-remote-requesttimeoutms): integer
-      - [`cacheDuration`](#spec-jsonwebkeyset-remote-cacheduration): string | `5m` 
+      - [`cacheDuration`](#spec-jsonwebkeyset-remote-cacheduration): string | `5m`
       - [`fetchAsynchronously`](#spec-jsonwebkeyset-remote-fetchasynchronously): boolean | `false`
       - [`retryPolicy`](#spec-jsonwebkeyset-remote-retrypolicy): map
         - [`numRetries`](#spec-jsonwebkeyset-remote-retrypolicy-numretries): integer | `0`
         - [`retryPolicyBackoff`](#spec-jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): map
           - [`baseInterval`](#spec-jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): string
           - [`maxInterval`](#spec-jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): string
+      - [`jwksCluster`](#spec-jsonwebkeyset-remote-jwkscluster): map
+        - [`discoveryType`](#spec-jsonwebkeyset-remote-jwkscluster-discoverytype): string | `STRICT_DNS`
+        - [`connectTimeout`](#spec-jsonwebkeyset-remote-jwkscluster-connecttimeout): string | `5s`
+        - [`tlsCertificates`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates): map
+          - [`caCertificateProviderInstance`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance): map
+            - [`instanceName`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance): string | `default`
+            - [`certificateName`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance): string
+          - [`trustedCA`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): map
+            - [`filename`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): string
+            - [`environmentVariable`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): string
+            - [`inlineString`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): string
+            - [`inlineBytes`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca): string
   - [`audiences`](#spec-audiences): list of strings
   - [`locations`](#spec-locations): list of maps
     - [`header`](#spec-locations-header): map
@@ -126,8 +150,29 @@ JSONWebKeySet = {
               MaxInterval = "10s"
             }
           }
+          JWKSCluster = {
+            DiscoveryType = "STATIC"
+            ConnectTimeout = "10s"
+            # specify only one child: TrustedCA or CaCertificateProviderInstance
+            TLSCertificates = {
+              # specify only one child: Filename, EnvironmentVariable, InlineString or InlineBytes
+              TrustedCA = {
+                Filename = "<path/to/cert/file>"
+                EnvironmentVariable = "<env-variable>"
+                InlineString = "<inline-string>"
+                InlineBytes = "\302\000\302\302\302\302"
+              }
+            }
+            TLSCertificates = {
+              CaCertificateProviderInstance = {
+                InstanceName = "<instance-name>"
+                CertificateName = "<certificate-name>"
+              }
+            }
+          }
         }
       }
+
 Audiences = ["<aud-claims>"]
 Locations = [
     {
@@ -185,6 +230,25 @@ CacheConfig = {
               "BaseInterval": "1s",
               "MaxInterval": "10s"
             }
+          },
+          "JWKSCluster": {
+            "DiscoveryType": "STATIC",
+            "ConnectTimeout": "10s",
+            // specify only one child: TrustedCA or CaCertificateProviderInstance
+            "TLSCertificates": {
+              // specify only one child: Filename, EnvironmentVariable, InlineString or InlineBytes
+              "TrustedCA": {
+                "Filename": "<path/to/cert/file>",
+                "EnvironmentVariable": "<env-variable>",
+                "InlineString": "<inline-string>",
+                "InlineBytes": "\302\000\302\302\302\302"
+            },
+            "TLSCertificates": {
+              "CaCertificateProviderInstance": {
+                "InstanceName": "<instance-name>",
+                "CertificateName": "<certificate-name>"
+              }
+            }
           }
         }
 },
@@ -225,8 +289,8 @@ CacheConfig = {
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1         # required
-kind: jwtProvider                                 # required            
-metadata:                                         # required    
+kind: JWTProvider                                 # required
+metadata:                                         # required
   name: <name-of-provider-configuration-entry>    # required
   namespace: <namespace>
 spec:                                             # required
@@ -246,9 +310,24 @@ spec:                                             # required
         retryPolicyBackoff:
           baseInterval: 1s
           maxInterval: 10s
+      jwksCluster:
+        discoveryType: STATIC
+        connectTimeout: 10s
+        # specify only one child: trustedCA or caCertificateProviderInstance
+        tlsCertificates:
+          # specify only one child: filename, environmentVariable, inlineString or inlineBytes
+          trustedCA:
+            filename: <path/to/cert/file>
+            environmentVariable: <env-variable>
+            inlineString: <inline-string>
+            inlineBytes: \302\000\302\302\302\302
+        tlsCertificates:
+          caCertificateProviderInstance:
+            instanceName: <instance-name>
+            certificateName: <certificate-name>
   audiences: [<aud-claims>]
-  locations: 
-    header: 
+  locations:
+    header:
       name: <name-of-header-with-token>
       valuePrefix: "<prefix-in-header-before-token>"
       forward: false
@@ -256,7 +335,7 @@ spec:                                             # required
       name: "<name-of-query-parameter-with-token>"
     cookie:
       name: "<name-of-cookie-with-token>"
-  forwarding: 
+  forwarding:
     headerName: "<name-appended-to-forwarding-header>"
     padForwardPayloadHeader: false
   clockSkewSeconds: 30
@@ -356,10 +435,11 @@ Specifies a remote source for the JSON Web Key Set and configures behavior when 
 - Data type: Map that can contain the following parameters:
 
   - [`URI`](#jsonwebkeyset-remote-uri)
-  - [`RequestTimeoutMs`](#jsonwebkeyset-remote-requesttimeoutms) 
-  - [`CacheDuration`](#jsonwebkeyset-remote-cacheduration) 
+  - [`RequestTimeoutMs`](#jsonwebkeyset-remote-requesttimeoutms)
+  - [`CacheDuration`](#jsonwebkeyset-remote-cacheduration)
   - [`FetchAsynchronously`](#jsonwebkeyset-remote-fetchasynchronously)
   - [`RetryPolicy`](#jsonwebkeyset-remote-retrypolicy)
+  - [`JWKSCluster`](#jsonwebkeyset-remote-jwkscluster)
 
 ### `JSONWebKeySet{}.Remote{}.URI`
 
@@ -424,7 +504,7 @@ Specifies the number of times to attempt to fetch the JSON Web Key Set when the 
 
 ### `JSONWebKeySet{}.Remote{}.RetryPolicy{}.RetryPolicyBackoff`
 
-Specifies a jittered exponential backoff strategy. When this field is empty, Envoy's default policy is used. This policy has a 1 second base interval and a 10 second max interval. 
+Specifies a jittered exponential backoff strategy. When this field is empty, Envoy's default policy is used. This policy has a 1 second base interval and a 10 second max interval.
 
 #### Values
 
@@ -435,6 +515,93 @@ Specifies a jittered exponential backoff strategy. When this field is empty, Env
 | :-------- | :------------------------------------------------- | :-------- | :------------ |
 | `BaseInterval`| Specifies the base interval to use for the next back off computation. | String | `1s` |
 | `MaxInterval` | Specifies the maximum interval between retries. By default, this value is 10 times `BaseInterval`. | String | `10s` |
+
+### `JSONWebKeySet{}.Remote{}.JWKSCluster`
+
+Defines how Envoy fetches the remote JSON Web Key Set URI.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`DiscoveryType`](#jsonwebkeyset-remote-jwkscluster-discoverytype)
+  - [`ConnectTimeout`](#jsonwebkeyset-remote-jwkscluster-connecttimeout)
+  - [`TLSCertificates`](#jsonwebkeyset-remote-jwkscluster-tlscertificates)
+
+
+### `JSONWebKeySet{}.Remote{}.JWKSCluster{}.DiscoveryType`
+
+Specifies the service discovery type to use for resolving the cluster.
+You can specify the following discovery types:
+- `STRICT_DNS`
+- `STATIC`
+- `LOGICAL_DNS`
+- `EDS`
+- `ORIGINAL_DST`
+
+#### Values
+
+- Default: `STRICT_DNS`
+- Data type: String
+
+### `JSONWebKeySet{}.Remote{}.JWKSCluster{}.ConnectTimeout`
+
+Specifies the duration of time new network connections attempt to connect to hosts in the cluster before they timeout.
+
+#### Values
+
+- Default: `5s`
+- Data type: String
+
+### `JSONWebKeySet{}.Remote{}.JWKSCluster{}.TLSCertificates`
+
+Specifies the data containing certificate authority certificates to use for verifying a presented peer certificate.
+Envoy does not verify certificates that peers present if this field is not configured.
+
+You cannot specify [`TLSCertificates{}.CaCertificateProviderInstance`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance) and [`TLSCertificates{}.TrustedCA`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca) in the same map.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`CaCertificateProviderInstance`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance)
+  - [`TrustedCA`](#jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca)
+
+### `JSONWebKeySet{}.Remote{}.JWKSCluster{}.TLSCertificates{}.CaCertificateProviderInstance`
+
+Specifies the certificate provider instance for fetching TLS certificates.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `InstanceName`| Refers to the certificate provider instance name. | String | `default` |
+| `CertificateName` | Specifies the certificate instances or types. For example, use `ROOTCA` to specify a root-certificate. | String | None |
+
+### `JSONWebKeySet{}.Remote{}.JWKSCluster{}.TLSCertificates{}.TrustedCA`
+
+Specifies TLS certificate data containing certificate authority certificates. Specify exactly one of the following data holders:
+- `Filename`
+- `EnvironmentVariable`
+- `InlineString`
+- `InlineBytes`
+
+#### Values
+
+- Default: None
+- Data type: Map containing one of the following parameters:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `Filename`| The name of the file on the local system to use a data source for trusted CA certificates. | String | None |
+| `EnvironmentVariable` | The environment variable on the local system to use a data source for trusted CA certificates. | String | None |
+| `InlineString` | A string to inline in the configuration for use as a data source for trusted CA certificates. | String    | None |
+| `InlineBytes` | A sequence of bytes to inline in the configuration for use as a data source for trusted CA certificates. | String | None |
 
 ### `Audiences`
 
@@ -447,7 +614,7 @@ Specifies a set of audiences that the JWT is allowed to access, formatted as a l
 
 ### `Locations`
 
-Specifies the locations in requests where the JWT can be found. Envoy checks all of these locations to extract a JWT. 
+Specifies the locations in requests where the JWT can be found. Envoy checks all of these locations to extract a JWT.
 
 This field can specify token locations in a header, a query parameter, or a cookie. When no locations are specified, Envoy defaults to the following locations:
 
@@ -558,7 +725,7 @@ The header value is base64 URL encoded. It is not padded by default.
 
 ### `Forwarding{}.PadForwardPayloadHeader`
 
-Determines whether to add padding to the base64 encoded token specified in [`Forwarding{}.HeaderName`](#forwarding-header-name). 
+Determines whether to add padding to the base64 encoded token specified in [`Forwarding{}.HeaderName`](#forwarding-header-name).
 
 By default, this field is set to `false`.
 
@@ -569,7 +736,7 @@ By default, this field is set to `false`.
 
 ### `ClockSkewSeconds`
 
-Specifies the maximum allowable time difference from clock skew when validating the JSON web token’s `exp` (expiration) and `nbf`  (not before) claims, measured in seconds. 
+Specifies the maximum allowable time difference from clock skew when validating the JSON web token’s `exp` (expiration) and `nbf`  (not before) claims, measured in seconds.
 
 By default, this parameter is configured to 30 seconds.
 
@@ -782,7 +949,7 @@ Specifies the number of times to attempt to fetch the JSON Web Key Set when the 
 
 ### `spec.jsonWebKeySet.remote.retryPolicy.retryPolicyBackoff`
 
-Specifies a jittered exponential backoff strategy. When this field is empty, Envoy's default policy is used. This policy has a 1 second base interval and a 10 second max interval. 
+Specifies a jittered exponential backoff strategy. When this field is empty, Envoy's default policy is used. This policy has a 1 second base interval and a 10 second max interval.
 
 #### Values
 
@@ -793,6 +960,94 @@ Specifies a jittered exponential backoff strategy. When this field is empty, Env
 | :-------- | :------------------------------------------------- | :-------- | :------------ |
 | `baseInterval`| Specifies the base interval to use for the next back off computation. | String | `1s` |
 | `maxInterval` | Specifies the maximum interval between retries. By default, this value is 10 times `BaseInterval`. | String | `10s` |
+
+### `spec.jsonWebKeySet.remote.jwksCluster`
+
+Defines how Envoy fetches the remote JSON Web Key Set URI.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`discoveryType`](#spec-jsonwebkeyset-remote-jwkscluster-discoverytype)
+  - [`connectTimeout`](#spec-jsonwebkeyset-remote-jwkscluster-connecttimeout)
+  - [`tlsCertificates`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates)
+
+### `spec.jsonWebKeySet.remote.jwksCluster.discoveryType`
+
+Specifies the service discovery type to use for resolving the cluster.
+You can specify the following discovery types:
+- `STRICT_DNS`
+- `STATIC`
+- `LOGICAL_DNS`
+- `EDS`
+- `ORIGINAL_DST`
+
+String values must be a valid [Cluster DiscoveryType](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/cluster.proto#envoy-v3-api-enum-config-cluster-v3-cluster-discoverytype).
+
+#### Values
+
+- Default: `STRICT_DNS`
+- Data type: String
+
+### `spec.jsonWebKeySet.remote.jwksCluster.connectTimeout`
+
+Specifies the timeout for new network connections to hosts in the cluster.
+
+#### Values
+
+- Default: `5s`
+- Data type: String
+
+### `spec.jsonWebKeySet.remote.jwksCluster.tlsCertificates`
+
+Specifies the data containing certificate authority certificates to use for verifying a presented peer certificate.
+Envoy does not verify certificates that peers present if this field is not configured.
+
+You cannot specify [`spec.tlsCertificates.caCertificateProviderInstance`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance) and [`spec.tlsCertificates.trustedCA`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca) in the same map.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`caCertificateProviderInstance`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-cacertificateproviderinstance)
+  - [`trustedCA`](#spec-jsonwebkeyset-remote-jwkscluster-tlscertificates-trustedca)
+
+### `spec.jsonWebKeySet.remote.jwksCluster.tlsCertificates.caCertificateProviderInstance`
+
+Specifies the certificate provider instance for fetching TLS certificates.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `instanceName`| Refers to the certificate provider instance name. | String | `default` |
+| `certificateName` | Specifies the certificate instances or types. For example, use `ROOTCA` to specify a root-certificate. | String | None |
+
+### `spec.jsonWebKeySet.remote.jwksCluster.tlsCertificates.trustedCA`
+
+Specifies TLS certificate data containing certificate authority certificates. Specify exactly one of the following data holders:
+- `Filename`
+- `EnvironmentVariable`
+- `InlineString`
+- `InlineBytes`
+
+#### Values
+
+- Default: None
+- Data type: Map containing one of the following parameters:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `filename`| The name of the file on the local system to use a data source for trusted CA certificates. | String | None  |
+| `environmentVariable` | The environment variable on the local system to use a data source for trusted CA certificates. | String | None |
+| `inlineString` | A string to inline in the configuration for use as a data source for trusted CA certificates. | String | None |
+| `inlineBytes` | A sequence of bytes to inline in the configuration for use as a data source for trusted CA certificates. | String | None |
 
 ### `spec.audiences`
 
@@ -916,7 +1171,7 @@ The header value is base64 URL encoded. It is not padded by default.
 
 ### `spec.forwarding.padForwardPayloadHeader`
 
-Determines whether to add padding to the base64 encoded token specified in [spec.forwarding.headerName`](#spec-forwarding-header-name). 
+Determines whether to add padding to the base64 encoded token specified in [spec.forwarding.headerName`](#spec-forwarding-header-name).
 
 By default, this field is set to `false`.
 
@@ -927,7 +1182,7 @@ By default, this field is set to `false`.
 
 ### `spec.clockSkewSeconds`
 
-Specifies the maximum allowable time difference from clock skew when validating the JSON web token’s `exp` (expiration) and `nbf`  (not before) claims, measured in seconds. 
+Specifies the maximum allowable time difference from clock skew when validating the JSON web token’s `exp` (expiration) and `nbf`  (not before) claims, measured in seconds.
 
 By default, this parameter is configured to 30 seconds.
 

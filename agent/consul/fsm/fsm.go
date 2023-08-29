@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package fsm
 
@@ -264,7 +264,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 			}
 		default:
 			if msg >= 64 {
-				return fmt.Errorf("msg type <%d> is a Consul Enterprise log entry. Consul OSS cannot restore it", msg)
+				return fmt.Errorf("msg type <%d> is a Consul Enterprise log entry. Consul CE cannot restore it", msg)
 			} else {
 				return fmt.Errorf("Unrecognized msg type %d", msg)
 			}

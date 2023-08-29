@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -167,7 +167,7 @@ func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
 				Datacenter: "dc1",
 				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
-			Service: structs.TestNodeServiceWithName(t, service),
+			Service: structs.TestNodeServiceWithName(service),
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -177,7 +177,47 @@ func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
 				Datacenter: "dc1",
 				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
-			Service: structs.TestNodeServiceWithName(t, service),
+			Service: structs.TestNodeServiceWithName(service),
+		},
+	}
+}
+
+// TestUpstreamNodesWithServiceSubset returns a sample service discovery result with one instance tagged v1
+// and the other tagged v2
+func TestUpstreamNodesWithServiceSubset(t testing.T, service string) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "test1",
+				Node:       "test1",
+				Address:    "10.10.1.3",
+				Datacenter: "dc1",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: service,
+				Port:    8080,
+				Meta:    map[string]string{"Version": "1"},
+				Weights: &structs.Weights{
+					Passing: 300, // Check that this gets normalized to 128
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "test2",
+				Node:       "test2",
+				Address:    "10.10.1.4",
+				Datacenter: "dc1",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: service,
+				Port:    8080,
+				Meta:    map[string]string{"Version": "2"},
+			},
 		},
 	}
 }
@@ -231,7 +271,7 @@ func TestUpstreamNodesInStatus(t testing.T, status string) structs.CheckServiceN
 				Address:    "10.10.1.1",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeService(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "test1",
@@ -248,7 +288,7 @@ func TestUpstreamNodesInStatus(t testing.T, status string) structs.CheckServiceN
 				Address:    "10.10.1.2",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeService(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "test2",
@@ -270,7 +310,7 @@ func TestUpstreamNodesDC2(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.20.1.1",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeService(),
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -279,7 +319,7 @@ func TestUpstreamNodesDC2(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.20.1.2",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeService(),
 		},
 	}
 }
@@ -293,7 +333,7 @@ func TestUpstreamNodesInStatusDC2(t testing.T, status string) structs.CheckServi
 				Address:    "10.20.1.1",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeService(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "test1",
@@ -310,7 +350,7 @@ func TestUpstreamNodesInStatusDC2(t testing.T, status string) structs.CheckServi
 				Address:    "10.20.1.2",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeService(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "test2",
@@ -332,7 +372,7 @@ func TestUpstreamNodesAlternate(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.20.1.1",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeService(),
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -341,7 +381,7 @@ func TestUpstreamNodesAlternate(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.20.1.2",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeService(),
 		},
 	}
 }

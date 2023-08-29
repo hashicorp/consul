@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package telemetry
 
 import (
@@ -15,8 +18,10 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
+)
 
-	"github.com/hashicorp/consul/agent/hcp/client"
+const (
+	testExportEndpoint = "https://test.com/v1/metrics"
 )
 
 type mockMetricsClient struct {
@@ -27,9 +32,15 @@ func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *met
 	return m.exportErr
 }
 
+type mockEndpointProvider struct {
+	endpoint *url.URL
+}
+
+func (m *mockEndpointProvider) GetEndpoint() *url.URL { return m.endpoint }
+
 func TestTemporality(t *testing.T) {
 	t.Parallel()
-	exp := &OTELExporter{}
+	exp := &otelExporter{}
 	require.Equal(t, metricdata.CumulativeTemporality, exp.Temporality(metric.InstrumentKindCounter))
 }
 
@@ -55,7 +66,7 @@ func TestAggregation(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			exp := &OTELExporter{}
+			exp := &otelExporter{}
 			require.Equal(t, test.expAgg, exp.Aggregation(test.kind))
 		})
 	}
@@ -64,10 +75,15 @@ func TestAggregation(t *testing.T) {
 func TestExport(t *testing.T) {
 	t.Parallel()
 	for name, test := range map[string]struct {
-		wantErr string
-		metrics *metricdata.ResourceMetrics
-		client  client.MetricsClient
+		wantErr  string
+		metrics  *metricdata.ResourceMetrics
+		client   MetricsClient
+		provider EndpointProvider
 	}{
+		"earlyReturnWithoutEndpoint": {
+			client:   &mockMetricsClient{},
+			provider: &mockEndpointProvider{},
+		},
 		"earlyReturnWithoutScopeMetrics": {
 			client:  &mockMetricsClient{},
 			metrics: mutateMetrics(nil),
@@ -100,7 +116,16 @@ func TestExport(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			exp := NewOTELExporter(test.client, &url.URL{})
+			provider := test.provider
+			if provider == nil {
+				u, err := url.Parse(testExportEndpoint)
+				require.NoError(t, err)
+				provider = &mockEndpointProvider{
+					endpoint: u,
+				}
+			}
+
+			exp := newOTELExporter(test.client, provider)
 
 			err := exp.Export(context.Background(), test.metrics)
 			if test.wantErr != "" {
@@ -119,7 +144,7 @@ func TestExport(t *testing.T) {
 // sets a shared global sink.
 func TestExport_CustomMetrics(t *testing.T) {
 	for name, tc := range map[string]struct {
-		client    client.MetricsClient
+		client    MetricsClient
 		metricKey []string
 		operation string
 	}{
@@ -154,7 +179,12 @@ func TestExport_CustomMetrics(t *testing.T) {
 			metrics.NewGlobal(cfg, sink)
 
 			// Perform operation that emits metric.
-			exp := NewOTELExporter(tc.client, &url.URL{})
+			u, err := url.Parse(testExportEndpoint)
+			require.NoError(t, err)
+
+			exp := newOTELExporter(tc.client, &mockEndpointProvider{
+				endpoint: u,
+			})
 
 			ctx := context.Background()
 			switch tc.operation {
@@ -182,7 +212,7 @@ func TestExport_CustomMetrics(t *testing.T) {
 
 func TestForceFlush(t *testing.T) {
 	t.Parallel()
-	exp := &OTELExporter{}
+	exp := &otelExporter{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -192,7 +222,7 @@ func TestForceFlush(t *testing.T) {
 
 func TestShutdown(t *testing.T) {
 	t.Parallel()
-	exp := &OTELExporter{}
+	exp := &otelExporter{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 

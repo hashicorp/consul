@@ -130,6 +130,8 @@ type TestServerConfig struct {
 	Args                []string               `json:"-"`
 	ReturnPorts         func()                 `json:"-"`
 	Audit               *TestAuditConfig       `json:"audit,omitempty"`
+	Version             string                 `json:"version,omitempty"`
+	Experiments         []string               `json:"experiments,omitempty"`
 }
 
 type TestACLs struct {
@@ -212,6 +214,7 @@ func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServe
 		Stdout:  logBuffer,
 		Stderr:  logBuffer,
 		Peering: &TestPeeringConfig{Enabled: true},
+		Version: consulVersion.String(),
 	}
 
 	// Add version-specific tweaks

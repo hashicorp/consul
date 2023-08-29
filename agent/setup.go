@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -260,6 +260,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	d.XDSStreamLimiter = limiter.NewSessionLimiter()
 
+	d.Registry = consul.NewTypeRegistry()
+
 	return d, nil
 }
 
@@ -504,7 +506,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		consul.LeaderSummaries,
 		consul.PreparedQuerySummaries,
 		consul.RPCSummaries,
-		consul.SegmentOSSSummaries,
+		consul.SegmentCESummaries,
 		consul.SessionSummaries,
 		consul.SessionEndpointSummaries,
 		consul.TxnSummaries,

@@ -20,9 +20,7 @@
                 "statPrefix": "ingress_upstream_8080",
                 "rds": {
                   "configSource": {
-                    "ads": {
-
-                    },
+                    "ads": {},
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "8080"
@@ -36,10 +34,13 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
-
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
                   }
-                }
+                ]
               }
             }
           ],
@@ -48,9 +49,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -96,9 +95,7 @@
                 "statPrefix": "ingress_upstream_9090",
                 "rds": {
                   "configSource": {
-                    "ads": {
-
-                    },
+                    "ads": {},
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "9090"
@@ -112,10 +109,13 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
-
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
                   }
-                }
+                ]
               }
             }
           ]

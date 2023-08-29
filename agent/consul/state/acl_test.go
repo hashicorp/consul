@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package state
 
@@ -30,14 +30,15 @@ const (
 )
 
 func setupGlobalManagement(t *testing.T, s *Store) {
-	policy := structs.ACLPolicy{
-		ID:          structs.ACLPolicyGlobalManagementID,
-		Name:        "global-management",
-		Description: "Builtin Policy that grants unlimited access",
-		Rules:       structs.ACLPolicyGlobalManagement,
-	}
+	policy := structs.ACLBuiltinPolicies[structs.ACLPolicyGlobalManagementID]
 	policy.SetHash(true)
 	require.NoError(t, s.ACLPolicySet(1, &policy))
+}
+
+func setupBuiltinGlobalReadOnly(t *testing.T, s *Store) {
+	policy := structs.ACLBuiltinPolicies[structs.ACLPolicyGlobalReadOnlyID]
+	policy.SetHash(true)
+	require.NoError(t, s.ACLPolicySet(2, &policy))
 }
 
 func setupAnonymous(t *testing.T, s *Store) {
@@ -53,6 +54,7 @@ func setupAnonymous(t *testing.T, s *Store) {
 func testACLStateStore(t *testing.T) *Store {
 	s := testStateStore(t)
 	setupGlobalManagement(t, s)
+	setupBuiltinGlobalReadOnly(t, s)
 	setupAnonymous(t, s)
 	return s
 }
@@ -184,6 +186,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 
 	s := testStateStore(t)
 	setupGlobalManagement(t, s)
+	setupBuiltinGlobalReadOnly(t, s)
 
 	canBootstrap, index, err := s.CanBootstrapACLToken()
 	require.NoError(t, err)
@@ -1430,7 +1433,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 				ID:          structs.ACLPolicyGlobalManagementID,
 				Name:        "global-management",
 				Description: "Global Management",
-				Rules:       structs.ACLPolicyGlobalManagement,
+				Rules:       structs.ACLPolicyGlobalManagementRules,
 				Datacenters: []string{"dc1"},
 			}
 
@@ -1444,7 +1447,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 				ID:          structs.ACLPolicyGlobalManagementID,
 				Name:        "management",
 				Description: "Modified",
-				Rules:       structs.ACLPolicyGlobalManagement,
+				Rules:       structs.ACLPolicyGlobalManagementRules,
 			}
 
 			require.NoError(t, s.ACLPolicySet(3, &policy))
@@ -1494,7 +1497,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.NotNil(t, rpolicy)
 		require.Equal(t, "global-management", rpolicy.Name)
 		require.Equal(t, "Builtin Policy that grants unlimited access", rpolicy.Description)
-		require.Equal(t, structs.ACLPolicyGlobalManagement, rpolicy.Rules)
+		require.Equal(t, structs.ACLPolicyGlobalManagementRules, rpolicy.Rules)
 		require.Len(t, rpolicy.Datacenters, 0)
 		require.Equal(t, uint64(1), rpolicy.CreateIndex)
 		require.Equal(t, uint64(1), rpolicy.ModifyIndex)
@@ -1664,31 +1667,39 @@ func TestStateStore_ACLPolicy_List(t *testing.T) {
 
 	_, policies, err := s.ACLPolicyList(nil, nil)
 	require.NoError(t, err)
-	require.Len(t, policies, 3)
+	require.Len(t, policies, 4)
 	policies.Sort()
 	require.Equal(t, structs.ACLPolicyGlobalManagementID, policies[0].ID)
-	require.Equal(t, "global-management", policies[0].Name)
-	require.Equal(t, "Builtin Policy that grants unlimited access", policies[0].Description)
+	require.Equal(t, structs.ACLPolicyGlobalManagementName, policies[0].Name)
+	require.Equal(t, structs.ACLPolicyGlobalManagementDesc, policies[0].Description)
 	require.Empty(t, policies[0].Datacenters)
 	require.NotEqual(t, []byte{}, policies[0].Hash)
 	require.Equal(t, uint64(1), policies[0].CreateIndex)
 	require.Equal(t, uint64(1), policies[0].ModifyIndex)
 
-	require.Equal(t, "a2719052-40b3-4a4b-baeb-f3df1831a217", policies[1].ID)
-	require.Equal(t, "acl-write-dc3", policies[1].Name)
-	require.Equal(t, "Can manage ACLs in dc3", policies[1].Description)
-	require.ElementsMatch(t, []string{"dc3"}, policies[1].Datacenters)
-	require.Nil(t, policies[1].Hash)
+	require.Equal(t, structs.ACLPolicyGlobalReadOnlyID, policies[1].ID)
+	require.Equal(t, structs.ACLPolicyGlobalReadOnlyName, policies[1].Name)
+	require.Equal(t, structs.ACLPolicyGlobalReadOnlyDesc, policies[1].Description)
+	require.Empty(t, policies[1].Datacenters)
+	require.NotEqual(t, []byte{}, policies[1].Hash)
 	require.Equal(t, uint64(2), policies[1].CreateIndex)
 	require.Equal(t, uint64(2), policies[1].ModifyIndex)
 
-	require.Equal(t, "a4f68bd6-3af5-4f56-b764-3c6f20247879", policies[2].ID)
-	require.Equal(t, "service-read", policies[2].Name)
-	require.Equal(t, "", policies[2].Description)
-	require.Empty(t, policies[2].Datacenters)
+	require.Equal(t, "a2719052-40b3-4a4b-baeb-f3df1831a217", policies[2].ID)
+	require.Equal(t, "acl-write-dc3", policies[2].Name)
+	require.Equal(t, "Can manage ACLs in dc3", policies[2].Description)
+	require.ElementsMatch(t, []string{"dc3"}, policies[2].Datacenters)
 	require.Nil(t, policies[2].Hash)
 	require.Equal(t, uint64(2), policies[2].CreateIndex)
 	require.Equal(t, uint64(2), policies[2].ModifyIndex)
+
+	require.Equal(t, "a4f68bd6-3af5-4f56-b764-3c6f20247879", policies[3].ID)
+	require.Equal(t, "service-read", policies[3].Name)
+	require.Equal(t, "", policies[3].Description)
+	require.Empty(t, policies[3].Datacenters)
+	require.Nil(t, policies[3].Hash)
+	require.Equal(t, uint64(2), policies[3].CreateIndex)
+	require.Equal(t, uint64(2), policies[3].ModifyIndex)
 }
 
 func TestStateStore_ACLPolicy_Delete(t *testing.T) {

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local_test
 
@@ -189,7 +189,8 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	id := services.NodeServices.Node.ID
 	addrs := services.NodeServices.Node.TaggedAddresses
 	meta := services.NodeServices.Node.Meta
-	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+	delete(meta, structs.MetaSegmentKey)    // Added later, not in config.
+	delete(meta, structs.MetaConsulVersion) // Added later, not in config.
 	assert.Equal(t, a.Config.NodeID, id)
 	assert.Equal(t, a.Config.TaggedAddresses, addrs)
 	assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
@@ -1355,7 +1356,8 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			id := services.NodeServices.Node.ID
 			addrs := services.NodeServices.Node.TaggedAddresses
 			meta := services.NodeServices.Node.Meta
-			delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+			delete(meta, structs.MetaSegmentKey)    // Added later, not in config.
+			delete(meta, structs.MetaConsulVersion) // Added later, not in config.
 			assert.Equal(r, a.Config.NodeID, id)
 			assert.Equal(r, a.Config.TaggedAddresses, addrs)
 			assert.Equal(r, unNilMap(a.Config.NodeMeta), meta)
@@ -2016,7 +2018,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	addrs := services.NodeServices.Node.TaggedAddresses
 	meta := services.NodeServices.Node.Meta
 	nodeLocality := services.NodeServices.Node.Locality
-	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+	delete(meta, structs.MetaSegmentKey)    // Added later, not in config.
+	delete(meta, structs.MetaConsulVersion) // Added later, not in config.
 	require.Equal(t, a.Config.NodeID, id)
 	require.Equal(t, a.Config.TaggedAddresses, addrs)
 	require.Equal(t, a.Config.StructLocality(), nodeLocality)
@@ -2041,7 +2044,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
 		nodeLocality := services.NodeServices.Node.Locality
-		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+		delete(meta, structs.MetaSegmentKey)    // Added later, not in config.
+		delete(meta, structs.MetaConsulVersion) // Added later, not in config.
 		require.Equal(t, nodeID, id)
 		require.Equal(t, a.Config.TaggedAddresses, addrs)
 		require.Equal(t, a.Config.StructLocality(), nodeLocality)

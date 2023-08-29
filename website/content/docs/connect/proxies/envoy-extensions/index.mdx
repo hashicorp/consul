@@ -2,7 +2,7 @@
 layout: docs
 page_title: Envoy Extensions
 description: >-
-  Learn how Envoy extensions enables you to add support for additional Envoy features without modifying the Consul codebase. 
+  Learn how Envoy extensions enables you to add support for additional Envoy features without modifying the Consul codebase.
 ---
 
 # Envoy extensions overview
@@ -24,7 +24,7 @@ Envoy extensions enable additional service mesh functionality in Consul by chang
 - Lua
 - Lambda
 - Property override
-- WebAssembly (Wasm) 
+- WebAssembly (Wasm)
 
 ### External authorization
 
@@ -40,8 +40,8 @@ The `lua` Envoy extension enables HTTP Lua filters in your Consul Envoy proxies.
 
 ### Property override
 
-The `property-override` extension lets you set and unset individual properties pm the Envoy resources that Consul generates. Use the extension instead of [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) to enable advanced Envoy configuration. Refer to the [property override documentation](/consul/docs/connect/proxies/envoy-extensions/usage/property-override) for more information.
+The `property-override` extension lets you set and unset individual properties on the Envoy resources that Consul generates. Use the extension instead of [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) to enable advanced Envoy configuration. Refer to the [property override documentation](/consul/docs/connect/proxies/envoy-extensions/usage/property-override) for more information.
 
 ### WebAssembly
 
-The `wasm` extension enables you to configure TCP and HTTP filters that invoke custom WebAssembly (Wasm) plugins. Refer to the [WebAssembly extenstion documentation](/consul/docs/connect/proxies/envoy-extensions/usage/wasm) for more information.
+The `wasm` extension enables you to configure TCP and HTTP filters that invoke custom WebAssembly (Wasm) plugins. Refer to the [WebAssembly extension documentation](/consul/docs/connect/proxies/envoy-extensions/usage/wasm) for more information.

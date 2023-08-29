@@ -25,9 +25,7 @@
                 "statPrefix": "mesh_gateway_local_peered.bar.default.default.dc1",
                 "rds": {
                   "configSource": {
-                    "ads": {
-
-                    },
+                    "ads": {},
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "bar"
@@ -41,9 +39,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
-
-                  }
+                  "randomSampling": {}
                 },
                 "forwardClientCertDetails": "SANITIZE_SET",
                 "setCurrentClientCertDetails": {
@@ -52,7 +48,12 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],
@@ -61,9 +62,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -115,9 +114,7 @@
                 "statPrefix": "mesh_gateway_local_peered.foo.default.default.dc1",
                 "rds": {
                   "configSource": {
-                    "ads": {
-
-                    },
+                    "ads": {},
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "foo"
@@ -131,9 +128,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
-
-                  }
+                  "randomSampling": {}
                 },
                 "forwardClientCertDetails": "SANITIZE_SET",
                 "setCurrentClientCertDetails": {
@@ -142,7 +137,12 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],
@@ -151,9 +151,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -205,9 +203,7 @@
                 "statPrefix": "mesh_gateway_local_peered.gir.default.default.dc1",
                 "rds": {
                   "configSource": {
-                    "ads": {
-
-                    },
+                    "ads": {},
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "gir"
@@ -221,9 +217,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
-
-                  }
+                  "randomSampling": {}
                 },
                 "forwardClientCertDetails": "SANITIZE_SET",
                 "setCurrentClientCertDetails": {
@@ -232,7 +226,12 @@
                   "chain": true,
                   "dns": true,
                   "uri": true
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],
@@ -241,9 +240,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {

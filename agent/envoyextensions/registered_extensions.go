@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package envoyextensions
 
@@ -11,7 +11,6 @@ import (
 
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
 	extauthz "github.com/hashicorp/consul/agent/envoyextensions/builtin/ext-authz"
-	"github.com/hashicorp/consul/agent/envoyextensions/builtin/http/localratelimit"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/wasm"
@@ -24,7 +23,6 @@ type extensionConstructor func(api.EnvoyExtension) (extensioncommon.EnvoyExtende
 var extensionConstructors = map[string]extensionConstructor{
 	api.BuiltinLuaExtension:              lua.Constructor,
 	api.BuiltinAWSLambdaExtension:        awslambda.Constructor,
-	api.BuiltinLocalRatelimitExtension:   localratelimit.Constructor,
 	api.BuiltinPropertyOverrideExtension: propertyoverride.Constructor,
 	api.BuiltinWasmExtension:             wasm.Constructor,
 	api.BuiltinExtAuthzExtension:         extauthz.Constructor,
@@ -34,11 +32,13 @@ var extensionConstructors = map[string]extensionConstructor{
 // given config. Returns an error if the extension does not exist, or if the extension fails
 // to be constructed properly.
 func ConstructExtension(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) {
-	constructor, ok := extensionConstructors[ext.Name]
-	if !ok {
-		return nil, fmt.Errorf("name %q is not a built-in extension", ext.Name)
+	if constructor, ok := extensionConstructors[ext.Name]; ok {
+		return constructor(ext)
 	}
-	return constructor(ext)
+	if constructor, ok := enterpriseExtensionConstructors[ext.Name]; ok {
+		return constructor(ext)
+	}
+	return nil, fmt.Errorf("name %q is not a built-in extension", ext.Name)
 }
 
 // ValidateExtensions will attempt to construct each instance of the given envoy extension configurations

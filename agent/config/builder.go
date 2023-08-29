@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
@@ -2653,10 +2653,10 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		return c, errors.New("verify_outgoing is not valid in the tls.grpc stanza")
 	}
 
-	// Similarly, only the internal RPC configuration honors VerifyServerHostname
+	// Similarly, only the internal RPC and defaults configuration honor VerifyServerHostname
 	// so we call it out here too.
-	if t.Defaults.VerifyServerHostname != nil || t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
-		return c, errors.New("verify_server_hostname is only valid in the tls.internal_rpc stanza")
+	if t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
+		return c, errors.New("verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanzas")
 	}
 
 	// And UseAutoCert right now only applies to external gRPC interface.
@@ -2706,8 +2706,11 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	}
 
 	mapCommon("internal_rpc", t.InternalRPC, &c.InternalRPC)
-	c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
 
+	c.InternalRPC.VerifyServerHostname = boolVal(t.Defaults.VerifyServerHostname)
+	if t.InternalRPC.VerifyServerHostname != nil {
+		c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
+	}
 	// Setting only verify_server_hostname is documented to imply verify_outgoing.
 	// If it doesn't then we risk sending communication over plain TCP when we
 	// documented it as forcing TLS for RPCs. Enforce this here rather than in

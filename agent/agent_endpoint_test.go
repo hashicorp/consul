@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -1506,7 +1506,8 @@ func TestAgent_Self(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, cs[a.config.SegmentName], val.Coord)
 
-			delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
+			delete(val.Meta, structs.MetaSegmentKey)    // Added later, not in config.
+			delete(val.Meta, structs.MetaConsulVersion) // Added later, not in config.
 			require.Equal(t, a.config.NodeMeta, val.Meta)
 
 			if tc.expectXDS {
@@ -1600,14 +1601,37 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	})
 }
 
+func newDefaultBaseDeps(t *testing.T) BaseDeps {
+	dataDir := testutil.TempDir(t, "acl-agent")
+	logBuffer := testutil.NewLogBuffer(t)
+	logger := hclog.NewInterceptLogger(nil)
+	loader := func(source config.Source) (config.LoadResult, error) {
+		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
+		opts := config.LoadOpts{
+			HCL:           []string{TestConfigHCL(NodeID()), "", dataDir},
+			DefaultConfig: source,
+		}
+		result, err := config.Load(opts)
+		if result.RuntimeConfig != nil {
+			result.RuntimeConfig.Telemetry.Disable = true
+		}
+		return result, err
+	}
+	bd, err := NewBaseDeps(loader, logBuffer, logger)
+	require.NoError(t, err)
+	return bd
+}
+
 func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
-	bd := BaseDeps{}
+	bd := newDefaultBaseDeps(t)
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.DenyAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1623,20 +1647,22 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
 	require.NoError(t, err)
-	handle := h.handler(false)
+	handle := h.handler()
 	handle.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusForbidden, resp.Code)
 	require.Contains(t, resp.Body.String(), "Permission denied")
 }
 
 func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
-	bd := BaseDeps{}
+	bd := newDefaultBaseDeps(t)
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.ManageAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1660,7 +1686,7 @@ func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
 	require.NoError(t, err)
-	handle := h.handler(false)
+	handle := h.handler()
 	handle.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
@@ -6008,8 +6034,10 @@ func TestAgent_Monitor(t *testing.T) {
 			cancelCtx, cancelFunc := context.WithCancel(context.Background())
 			req = req.WithContext(cancelCtx)
 
+			a.enableDebug.Store(true)
+
 			resp := httptest.NewRecorder()
-			handler := a.srv.handler(true)
+			handler := a.srv.handler()
 			go handler.ServeHTTP(resp, req)
 
 			args := &structs.ServiceDefinition{

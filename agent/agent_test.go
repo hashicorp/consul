@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -14,6 +14,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/proxycfg-sources/local"
+	"github.com/hashicorp/consul/agent/xds"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	mathrand "math/rand"
 	"net"
 	"net/http"
@@ -22,6 +27,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -57,6 +63,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbautoconf"
@@ -322,6 +329,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					Tokens:          new(token.Store),
 					TLSConfigurator: tlsConf,
 					GRPCConnPool:    &fakeGRPCConnPool{},
+					Registry:        resource.NewRegistry(),
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
@@ -344,6 +352,9 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 			require.NoError(t, err)
 
 			a, err := New(bd)
+			mockDelegate := delegateMock{}
+			mockDelegate.On("LicenseCheck").Return()
+			a.delegate = &mockDelegate
 			require.NoError(t, err)
 
 			a.startLicenseManager(testutil.TestContext(t))
@@ -4193,6 +4204,39 @@ func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
 	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
 }
 
+func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
+
+	a := NewTestAgent(t, cfg)
+	defer a.Shutdown()
+
+	c := TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` enable_debug = true`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, true, a.enableDebug.Load())
+
+	c = TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` enable_debug = false`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, false, a.enableDebug.Load())
+}
+
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -5444,6 +5488,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 			Tokens:          new(token.Store),
 			TLSConfigurator: tlsConf,
 			GRPCConnPool:    &fakeGRPCConnPool{},
+			Registry:        resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{
@@ -5466,6 +5511,9 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	agent.startLicenseManager(testutil.TestContext(t))
@@ -6040,6 +6088,7 @@ func TestAgent_startListeners(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
+			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{},
@@ -6058,6 +6107,9 @@ func TestAgent_startListeners(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// use up an address
@@ -6180,6 +6232,7 @@ func TestAgent_startListeners_scada(t *testing.T) {
 			HCP: hcp.Deps{
 				Provider: pvd,
 			},
+			Registry: resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
@@ -6197,6 +6250,9 @@ func TestAgent_startListeners_scada(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	_, err = agent.startListeners([]net.Addr{c})
@@ -6240,6 +6296,7 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
+			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
@@ -6251,6 +6308,9 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 		Config:      leafcert.Config{},
 	})
 	agent, err := New(bd)
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// Test that an ErrNotExist OS error is treated as ok.
@@ -6304,6 +6364,73 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 	})
 }
 
+func TestAgent_getProxyWatcher(t *testing.T) {
+	type testcase struct {
+		description    string
+		getExperiments func() []string
+		expectedType   xds.ProxyWatcher
+	}
+	testscases := []testcase{
+		{
+			description:  "config source is returned when api-resources experiment is not configured",
+			expectedType: &local.ConfigSource{},
+			getExperiments: func() []string {
+				return []string{}
+			},
+		},
+		{
+			description:  "proxy tracker is returned when api-resources experiment is configured",
+			expectedType: &proxytracker.ProxyTracker{},
+			getExperiments: func() []string {
+				return []string{consul.CatalogResourceExperimentName}
+			},
+		},
+	}
+	for _, tc := range testscases {
+		caConfig := tlsutil.Config{}
+		tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
+		require.NoError(t, err)
+
+		bd := BaseDeps{
+			Deps: consul.Deps{
+				Logger:          hclog.NewInterceptLogger(nil),
+				Tokens:          new(token.Store),
+				TLSConfigurator: tlsConf,
+				GRPCConnPool:    &fakeGRPCConnPool{},
+				Registry:        resource.NewRegistry(),
+			},
+			RuntimeConfig: &config.RuntimeConfig{
+				HTTPAddrs: []net.Addr{
+					&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.GetOne(t)},
+				},
+			},
+			Cache:  cache.New(cache.Options{}),
+			NetRPC: &LazyNetRPC{},
+		}
+
+		bd.XDSStreamLimiter = limiter.NewSessionLimiter()
+		bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+			CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+			RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+			Config:      leafcert.Config{},
+		})
+
+		cfg := config.RuntimeConfig{
+			BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC),
+		}
+		bd, err = initEnterpriseBaseDeps(bd, &cfg)
+		require.NoError(t, err)
+
+		bd.Experiments = tc.getExperiments()
+
+		agent, err := New(bd)
+		require.NoError(t, err)
+		agent.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{Logger: bd.Logger, Source: &structs.QuerySource{}})
+		require.NoError(t, err)
+		require.IsTypef(t, tc.expectedType, agent.getProxyWatcher(), fmt.Sprintf("Expected proxyWatcher to be of type %s", reflect.TypeOf(tc.expectedType)))
+	}
+
+}
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
 	data, err := os.ReadFile("../test/ca/root.cer")

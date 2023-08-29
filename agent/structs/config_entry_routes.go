@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/miekg/dns"
 
@@ -417,8 +418,11 @@ type HTTPQueryMatch struct {
 // HTTPFilters specifies a list of filters used to modify a request
 // before it is routed to an upstream.
 type HTTPFilters struct {
-	Headers    []HTTPHeaderFilter
-	URLRewrite *URLRewrite
+	Headers       []HTTPHeaderFilter
+	URLRewrite    *URLRewrite
+	RetryFilter   *RetryFilter
+	TimeoutFilter *TimeoutFilter
+	JWT           *JWTFilter
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
@@ -430,6 +434,18 @@ type HTTPHeaderFilter struct {
 
 type URLRewrite struct {
 	Path string
+}
+
+type RetryFilter struct {
+	NumRetries            *uint32
+	RetryOn               []string
+	RetryOnStatusCodes    []uint32
+	RetryOnConnectFailure *bool
+}
+
+type TimeoutFilter struct {
+	RequestTimeout time.Duration
+	IdleTimeout    time.Duration
 }
 
 // HTTPRouteRule specifies the routing rules used to determine what upstream
