@@ -566,7 +566,7 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	deps := newDefaultDeps(t, conf1)
 	deps.Logger = logger
 
-	s1, err := NewServer(conf1, deps, grpc.NewServer(), nil, logger)
+	s1, err := NewServer(conf1, deps, grpc.NewServer(), nil, logger, nil)
 	require.NoError(t, err)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
