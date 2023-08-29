@@ -196,7 +196,8 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 func rotateLeader(t *testing.T, cl *api.Client) {
 	t.Helper()
 	oldLeader := findLeader(t, cl)
-	cl.Operator().RaftLeaderTransfer(nil)
+	_, err := cl.Operator().RaftLeaderTransfer(nil)
+	require.NoError(t, err)
 	retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: time.Second}, t, func(r *retry.R) {
 		newLeader := findLeader(r, cl)
 		require.NotEqual(r, oldLeader.ID, newLeader.ID)

@@ -57,12 +57,14 @@ func NewCommonTopo(t *testing.T) *commonTopo {
 
 	ct := commonTopo{}
 
+	const nServers = 3
+
 	// Make 3-server clusters in dc1 and dc2
 	// For simplicity, the Name and Datacenter of the clusters are the same.
 	// dc1 and dc2 should be symmetric.
-	dc1 := clusterWithJustServers("dc1", 3)
+	dc1 := clusterWithJustServers("dc1", nServers)
 	ct.DC1 = dc1
-	dc2 := clusterWithJustServers("dc2", 3)
+	dc2 := clusterWithJustServers("dc2", nServers)
 	ct.DC2 = dc2
 	// dc3 is a failover cluster for both dc1 and dc2
 	dc3 := clusterWithJustServers("dc3", 1)
@@ -366,6 +368,11 @@ func setupGlobals(clu *topology.Cluster) {
 					Mode: api.MeshGatewayModeLocal,
 				},
 			},
+			&api.MeshConfigEntry{
+				Peering: &api.PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
+				},
+			},
 		)
 	}
 }
@@ -393,7 +400,7 @@ func clusterWithJustServers(name string, numServers int) *topology.Cluster {
 		Nodes: newTopologyServerSet(
 			name+"-server",
 			numServers,
-			[]string{name, "wan"},
+			[]string{name},
 			nil,
 		),
 	}
