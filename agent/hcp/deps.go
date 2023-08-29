@@ -67,7 +67,7 @@ func sink(
 
 	cfgProvider := NewHCPProvider(ctx, hcpClient)
 
-	reader := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
+	reader := telemetry.NewOTELReader(metricsClient, cfgProvider)
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Reader:         reader,
 		ConfigProvider: cfgProvider,
