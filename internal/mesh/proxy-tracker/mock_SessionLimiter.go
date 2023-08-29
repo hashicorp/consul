@@ -3,7 +3,7 @@
 package proxytracker
 
 import (
-	limiter "github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	mock "github.com/stretchr/testify/mock"
 )
 

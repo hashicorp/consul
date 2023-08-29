@@ -6,6 +6,7 @@ package xds
 import (
 	"github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"sort"
 	"sync"
@@ -74,14 +75,14 @@ func newTestSnapshot(
 // testing. It also implements ConnectAuthz to allow control over authorization.
 type testManager struct {
 	sync.Mutex
-	stateChans map[structs.ServiceID]chan proxycfg.ProxySnapshot
+	stateChans map[structs.ServiceID]chan proxysnapshot.ProxySnapshot
 	drainChans map[structs.ServiceID]chan struct{}
 	cancels    chan structs.ServiceID
 }
 
 func newTestManager(t *testing.T) *testManager {
 	return &testManager{
-		stateChans: map[structs.ServiceID]chan proxycfg.ProxySnapshot{},
+		stateChans: map[structs.ServiceID]chan proxysnapshot.ProxySnapshot{},
 		drainChans: map[structs.ServiceID]chan struct{}{},
 		cancels:    make(chan structs.ServiceID, 10),
 	}
@@ -91,12 +92,12 @@ func newTestManager(t *testing.T) *testManager {
 func (m *testManager) RegisterProxy(t *testing.T, proxyID structs.ServiceID) {
 	m.Lock()
 	defer m.Unlock()
-	m.stateChans[proxyID] = make(chan proxycfg.ProxySnapshot, 1)
+	m.stateChans[proxyID] = make(chan proxysnapshot.ProxySnapshot, 1)
 	m.drainChans[proxyID] = make(chan struct{})
 }
 
 // Deliver simulates a proxy registration
-func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg proxycfg.ProxySnapshot) {
+func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg proxysnapshot.ProxySnapshot) {
 	t.Helper()
 	m.Lock()
 	defer m.Unlock()
@@ -123,8 +124,8 @@ func (m *testManager) DrainStreams(proxyID structs.ServiceID) {
 }
 
 // Watch implements ConfigManager
-func (m *testManager) Watch(id *pbresource.ID, _ string, _ string) (<-chan proxycfg.ProxySnapshot,
-	limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
+func (m *testManager) Watch(id *pbresource.ID, _ string, _ string) (<-chan proxysnapshot.ProxySnapshot,
+	limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error) {
 	// Create service ID
 	proxyID := structs.NewServiceID(id.Name, catalog.GetEnterpriseMetaFromResourceID(id))
 	m.Lock()

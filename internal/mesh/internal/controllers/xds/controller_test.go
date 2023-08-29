@@ -60,7 +60,7 @@ func (suite *xdsControllerTestSuite) SetupTest() {
 	suite.fetcher = mockFetcher
 
 	suite.mapper = bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
-	suite.updater = NewMockUpdater()
+	suite.updater = newMockUpdater()
 
 	suite.ctl = &xdsReconciler{
 		bimapper:         suite.mapper,
