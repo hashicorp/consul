@@ -115,33 +115,6 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 				},
 			},
 		},
-		"successNoEndpoint": {
-			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
-				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{
-					TelemetryConfig: &models.HashicorpCloudConsulTelemetry20230414TelemetryConfig{
-						Endpoint: "",
-						Labels:   map[string]string{"test": "test"},
-						Metrics: &models.HashicorpCloudConsulTelemetry20230414TelemetryMetricsConfig{
-							IncludeList: []string{"test", "consul"},
-						},
-					},
-					RefreshConfig: &models.HashicorpCloudConsulTelemetry20230414RefreshConfig{
-						RefreshInterval: "2s",
-					},
-				},
-			},
-			expectedTelemetryCfg: &TelemetryConfig{
-				MetricsConfig: &MetricsConfig{
-					Endpoint: nil,
-					Labels:   map[string]string{"test": "test"},
-					Filters:  validTestFilters,
-					Disabled: true,
-				},
-				RefreshConfig: &RefreshConfig{
-					RefreshInterval: 2 * time.Second,
-				},
-			},
-		},
 		"successBadFilters": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
 				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{
@@ -227,10 +200,10 @@ func TestConvertMetricEndpoint(t *testing.T) {
 			override: "https://override.com",
 			expected: "https://override.com/v1/metrics",
 		},
-		"noErrorWithEmptyEndpoints": {
+		"errorWithEmptyEndpoints": {
 			endpoint: "",
 			override: "",
-			expected: "",
+			wantErr:  errEmptyEndpoint,
 		},
 		"errorWithInvalidURL": {
 			endpoint: "     ",
@@ -245,12 +218,6 @@ func TestConvertMetricEndpoint(t *testing.T) {
 			if tc.wantErr != nil {
 				require.ErrorIs(t, err, tc.wantErr)
 				require.Empty(t, u)
-				return
-			}
-
-			if tc.expected == "" {
-				require.Nil(t, u)
-				require.NoError(t, err)
 				return
 			}
 

@@ -29,6 +29,7 @@ var (
 	errMissingMetricsConfig   = errors.New("missing metrics config")
 	errInvalidRefreshInterval = errors.New("invalid refresh interval")
 	errInvalidEndpoint        = errors.New("invalid metrics endpoint")
+	errEmptyEndpoint          = errors.New("empty metrics endpoint")
 )
 
 // TelemetryConfig contains configuration for telemetry data forwarded by Consul servers
@@ -82,12 +83,7 @@ func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.Agent
 	telemetryConfig := resp.Payload.TelemetryConfig
 	metricsEndpoint, err := convertMetricEndpoint(telemetryConfig.Endpoint, telemetryConfig.Metrics.Endpoint)
 	if err != nil {
-		return nil, errInvalidEndpoint
-	}
-
-	var disabled bool
-	if metricsEndpoint == nil {
-		disabled = true
+		return nil, err
 	}
 
 	metricsFilters := convertMetricFilters(ctx, telemetryConfig.Metrics.IncludeList)
@@ -98,7 +94,7 @@ func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.Agent
 			Endpoint: metricsEndpoint,
 			Labels:   metricLabels,
 			Filters:  metricsFilters,
-			Disabled: disabled,
+			Disabled: telemetryConfig.Metrics.Disabled,
 		},
 		RefreshConfig: &RefreshConfig{
 			RefreshInterval: refreshInterval,
@@ -116,9 +112,8 @@ func convertMetricEndpoint(telemetryEndpoint string, metricsEndpoint string) (*u
 		endpoint = metricsEndpoint
 	}
 
-	// If endpoint is empty, server not registered with CCM, no error returned.
 	if endpoint == "" {
-		return nil, nil
+		return nil, errEmptyEndpoint
 	}
 
 	// Endpoint from CTW has no metrics path, so it must be added.
