@@ -52,7 +52,7 @@ jobs:
     - check-go-mod
     env:
       XC_OS: "freebsd linux windows"
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
@@ -76,7 +76,7 @@ jobs:
     - check-go-mod
     env:
       XC_OS: "darwin freebsd linux solaris windows"
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
@@ -98,7 +98,7 @@ jobs:
     needs:
     - setup
     - check-go-mod
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     env:
       CGO_ENABLED: 1
       GOOS: linux
@@ -127,7 +127,7 @@ jobs:
     needs:
     - setup
     - check-go-mod
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 

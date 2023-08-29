@@ -38,7 +38,7 @@ jobs:
   dev-build:
     uses: ./.github/workflows/reusable-dev-build-windows.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul.exe'
     secrets:
