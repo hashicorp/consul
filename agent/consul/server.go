@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package consul
 
@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -35,7 +34,8 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -73,7 +73,6 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
@@ -82,7 +81,6 @@ import (
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
@@ -135,7 +133,7 @@ const (
 
 	LeaderTransferMinVersion = "1.6.0"
 
-	CatalogResourceExperimentName = "resource-apis"
+	catalogResourceExperimentName = "resource-apis"
 )
 
 const (
@@ -244,7 +242,7 @@ type Server struct {
 	// serf cluster that spans datacenters
 	eventChWAN chan serf.Event
 
-	// wanMembershipNotifyCh is used to receive notifications that the
+	// wanMembershipNotifyCh is used to receive notifications that the the
 	// serfWAN wan pool may have changed.
 	//
 	// If this is nil, notification is skipped.
@@ -441,20 +439,13 @@ type Server struct {
 	// run by the Server
 	routineManager *routine.Manager
 
-	// resourceServiceServer implements the Resource Service.
-	resourceServiceServer *resourcegrpc.Server
+	// typeRegistry contains Consul's registered resource types.
+	typeRegistry resource.Registry
 
-	// insecureResourceServiceClient is a client that can be used to communicate
-	// with the Resource Service in-process (i.e. not via the network) *without*
-	// auth. It should only be used for purely-internal workloads, such as
-	// controllers.
-	insecureResourceServiceClient pbresource.ResourceServiceClient
-
-	// secureResourceServiceClient is a client that can be used to communicate
-	// with the Resource Service in-process (i.e. not via the network) *with* auth.
-	// It can be used to make requests to the Resource Service on behalf of the user
-	// (e.g. from the HTTP API).
-	secureResourceServiceClient pbresource.ResourceServiceClient
+	// internalResourceServiceClient is a client that can be used to communicate
+	// with the Resource Service in-process (i.e. not via the network) without auth.
+	// It should only be used for purely-internal workloads, such as controllers.
+	internalResourceServiceClient pbresource.ResourceServiceClient
 
 	// controllerManager schedules the execution of controllers.
 	controllerManager *controller.Manager
@@ -481,21 +472,9 @@ type connHandler interface {
 	Shutdown() error
 }
 
-// ProxyUpdater is an interface for ProxyTracker.
-type ProxyUpdater interface {
-	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
-	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
-
-	// ProxyConnectedToServer returns whether this id is connected to this server.
-	ProxyConnectedToServer(id *pbresource.ID) bool
-
-	EventChannel() chan controller.Event
-}
-
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
-	incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, proxyUpdater ProxyUpdater) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -547,6 +526,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
+		typeRegistry:            resource.NewRegistry(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -814,7 +794,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize external gRPC server
-	s.setupExternalGRPC(config, flat.Registry, logger)
+	s.setupExternalGRPC(config, logger)
 
 	// Initialize internal gRPC server.
 	//
@@ -823,19 +803,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 
-	if err := s.setupSecureResourceServiceClient(); err != nil {
+	if err := s.setupInternalResourceService(logger); err != nil {
 		return nil, err
 	}
-
-	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
-		return nil, err
-	}
-
 	s.controllerManager = controller.NewManager(
-		s.insecureResourceServiceClient,
+		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerControllers(flat, proxyUpdater)
+	s.registerResources(flat)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -886,29 +861,18 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	return s, nil
 }
 
-func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
-	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
+func (s *Server) registerResources(deps Deps) {
+	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
+		catalog.RegisterTypes(s.typeRegistry)
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
-			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
-				var bundle pbproxystate.TrustBundle
-				roots, err := s.getCARoots(nil, s.GetState())
-				if err != nil {
-					return nil, err
-				}
-				bundle.TrustDomain = roots.TrustDomain
-				for _, root := range roots.Roots {
-					bundle.Roots = append(bundle.Roots, root.RootCert)
-				}
-				return &bundle, nil
-			},
-			ProxyUpdater: proxyUpdater,
-		})
+
+		mesh.RegisterTypes(s.typeRegistry)
 	}
 
 	reaper.RegisterControllers(s.controllerManager)
 
 	if s.config.DevMode {
+		demo.RegisterTypes(s.typeRegistry)
 		demo.RegisterControllers(s.controllerManager)
 	}
 }
@@ -965,7 +929,6 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.peerStreamServer.Register(srv)
 		s.externalACLServer.Register(srv)
 		s.externalConnectCAServer.Register(srv)
-		s.resourceServiceServer.Register(srv)
 	}
 
 	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil, s.incomingRPCLimiter)
@@ -1306,7 +1269,7 @@ func (s *Server) setupRPC() error {
 }
 
 // Initialize and register services on external gRPC server.
-func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registry, logger hclog.Logger) {
+func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger) {
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1371,54 +1334,23 @@ func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registr
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
-	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:        typeRegistry,
-		Backend:         s.raftStorageBackend,
-		ACLResolver:     s.ACLResolver,
-		Logger:          logger.Named("grpc-api.resource"),
-		V1TenancyBridge: NewV1TenancyBridge(s),
-	})
-	s.resourceServiceServer.Register(s.externalGRPCServer)
-
-	reflection.Register(s.externalGRPCServer)
+	resourcegrpc.NewServer(resourcegrpc.Config{
+		Registry:    s.typeRegistry,
+		Backend:     s.raftStorageBackend,
+		ACLResolver: s.ACLResolver,
+		Logger:      logger.Named("grpc-api.resource"),
+	}).Register(s.externalGRPCServer)
 }
 
-func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
-	server := resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:        typeRegistry,
-		Backend:         s.raftStorageBackend,
-		ACLResolver:     resolver.DANGER_NO_AUTH{},
-		Logger:          logger.Named("grpc-api.resource"),
-		V1TenancyBridge: NewV1TenancyBridge(s),
-	})
-
-	conn, err := s.runInProcessGRPCServer(server.Register)
-	if err != nil {
-		return err
-	}
-	s.insecureResourceServiceClient = pbresource.NewResourceServiceClient(conn)
-
-	return nil
-}
-
-func (s *Server) setupSecureResourceServiceClient() error {
-	conn, err := s.runInProcessGRPCServer(s.resourceServiceServer.Register)
-	if err != nil {
-		return err
-	}
-	s.secureResourceServiceClient = pbresource.NewResourceServiceClient(conn)
-
-	return nil
-}
-
-// runInProcessGRPCServer runs a gRPC server that can only be accessed in the
-// same process, rather than over the network, using a pipe listener.
-func (s *Server) runInProcessGRPCServer(registerFn ...func(*grpc.Server)) (*grpc.ClientConn, error) {
+func (s *Server) setupInternalResourceService(logger hclog.Logger) error {
 	server := grpc.NewServer()
 
-	for _, fn := range registerFn {
-		fn(server)
-	}
+	resourcegrpc.NewServer(resourcegrpc.Config{
+		Registry:    s.typeRegistry,
+		Backend:     s.raftStorageBackend,
+		ACLResolver: resolver.DANGER_NO_AUTH{},
+		Logger:      logger.Named("grpc-api.resource"),
+	}).Register(server)
 
 	pipe := agentgrpc.NewPipeListener()
 	go server.Serve(pipe)
@@ -1435,14 +1367,15 @@ func (s *Server) runInProcessGRPCServer(registerFn ...func(*grpc.Server)) (*grpc
 	)
 	if err != nil {
 		server.Stop()
-		return nil, err
+		return err
 	}
 	go func() {
 		<-s.shutdownCh
 		conn.Close()
 	}()
+	s.internalResourceServiceClient = pbresource.NewResourceServiceClient(conn)
 
-	return conn, nil
+	return nil
 }
 
 // Shutdown is used to shutdown the server
@@ -2160,10 +2093,6 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 
 		return status, nil
 	}
-}
-
-func (s *Server) ResourceServiceClient() pbresource.ResourceServiceClient {
-	return s.secureResourceServiceClient
 }
 
 func fileExists(name string) (bool, error) {

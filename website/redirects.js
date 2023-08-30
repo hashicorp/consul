@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 // REDIRECTS FILE
@@ -61,8 +61,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source:
-      '/consul/docs/enterprise/sentinel',
+    source: '/consul/docs/enterprise/sentinel',
     destination:
       '/consul/docs/dynamic-app-config/kv#using-sentinel-to-apply-policies-for-consul-kv',
     permanent: true,

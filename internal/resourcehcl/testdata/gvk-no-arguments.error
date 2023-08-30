@@ -1,1 +1,0 @@
-gvk-no-arguments.hcl:2,14-15: Not enough function arguments; Function "gvk" expects 1 argument(s). Missing value for "GVK String".

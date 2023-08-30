@@ -1,20 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
-	"fmt"
 	"net"
 	"regexp"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -137,19 +135,6 @@ func validatePortName(name string) error {
 	return nil
 }
 
-func validateProtocol(protocol pbcatalog.Protocol) error {
-	switch protocol {
-	case pbcatalog.Protocol_PROTOCOL_TCP,
-		pbcatalog.Protocol_PROTOCOL_HTTP,
-		pbcatalog.Protocol_PROTOCOL_HTTP2,
-		pbcatalog.Protocol_PROTOCOL_GRPC,
-		pbcatalog.Protocol_PROTOCOL_MESH:
-		return nil
-	default:
-		return resource.NewConstError(fmt.Sprintf("not a supported enum value: %v", protocol))
-	}
-}
-
 // validateWorkloadAddress will validate the WorkloadAddress type. This involves validating
 // the Host within the workload address and the ports references. For ports references we
 // ensure that values in the addresses ports array are present in the set of map keys.
@@ -221,17 +206,4 @@ func validateReference(allowedType *pbresource.Type, allowedTenancy *pbresource.
 	}
 
 	return err
-}
-
-func validateHealth(health pbcatalog.Health) error {
-	switch health {
-	case pbcatalog.Health_HEALTH_ANY,
-		pbcatalog.Health_HEALTH_PASSING,
-		pbcatalog.Health_HEALTH_WARNING,
-		pbcatalog.Health_HEALTH_CRITICAL,
-		pbcatalog.Health_HEALTH_MAINTENANCE:
-		return nil
-	default:
-		return resource.NewConstError(fmt.Sprintf("not a supported enum value: %v", health))
-	}
 }

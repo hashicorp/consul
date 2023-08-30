@@ -1,165 +1,139 @@
 {{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
+Copyright (c) HashiCorp, Inc.
+SPDX-License-Identifier: MPL-2.0
 }}
 
-<SearchBar
-  class="consul-node-search-bar"
-  ...attributes
-  @filter={{@filter}}
->
-    <:status as |search|>
+<SearchBar class="consul-node-search-bar" ...attributes @filter={{@filter}}>
+  <:status as |search|>
 
-{{#let
+    {{#let
 
-  (t (concat "components.consul.node.search-bar." search.status.key)
-      default=(array
-        (concat "common.search." search.status.key)
-        (concat "common.consul." search.status.key)
-      )
-  )
+    (t (concat "components.consul.node.search-bar." search.status.key)
+    default=(array
+    (concat "common.search." search.status.key)
+    (concat "common.consul." search.status.key)
+    )
+    )
 
-  (if search.status.value 
-    search.status.value 
+    (if search.status.value
+    search.status.value
     (t (concat "components.consul.node.search-bar." search.status.value)
-        default=(array
-          (concat "common.search." search.status.value)
-          (concat "common.consul." search.status.value)
-          (concat "common.brand." search.status.value)
-        ))
-  )
+    default=(array
+    (concat "common.search." search.status.value)
+    (concat "common.consul." search.status.value)
+    (concat "common.brand." search.status.value)
+    ))
+    )
 
-as |key value|}}
-      <search.RemoveFilter
-        aria-label={{t "common.ui.remove" item=(concat key " " value)}}
-      >
-        <dl>
-          <dt>{{key}}</dt>
-          <dd>{{value}}</dd>
-        </dl>
-      </search.RemoveFilter>
-{{/let}}
-
-    </:status>
-    <:search as |search|>
-      <search.Search
-        @onsearch={{action @onsearch}}
-        @value={{@search}}
-        @placeholder={{t "common.search.search"}}
-      >
-        <search.Select
-          class="type-search-properties"
-          @position="right"
-          @onchange={{action @filter.searchproperty.change}}
-          @multiple={{true}}
-          @required={{true}}
-        as |components|>
-          <BlockSlot @name="selected">
-            <span>
-              {{t "common.search.searchproperty"}}
-            </span>
-          </BlockSlot>
-          <BlockSlot @name="options">
-    {{#let components.Optgroup components.Option as |Optgroup Option|}}
-            {{#each @filter.searchproperty.default as |prop|}}
-              <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
-                {{t (concat "common.consul." (lowercase prop))}}
-              </Option>
-            {{/each}}
+    as |key value|}}
+    <search.RemoveFilter aria-label={{t "common.ui.remove" item=(concat key " " value)}}>
+      <dl>
+        <dt>{{key}}</dt>
+        <dd>{{value}}</dd>
+      </dl>
+    </search.RemoveFilter>
     {{/let}}
-          </BlockSlot>
-        </search.Select>
-      </search.Search>
-    </:search>
-    <:filter as |search|>
-      <search.Select
-        class="type-status"
-        @position="left"
-        @onchange={{action @filter.status.change}}
-        @multiple={{true}}
-      as |components|>
+
+  </:status>
+  <:search as |search|>
+    <search.Search @onsearch={{action @onsearch}} @value={{@search}} @placeholder={{t "common.search.search" }}>
+      <search.Select class="type-search-properties" @position="right" @onchange={{action @filter.searchproperty.change}}
+        @multiple={{true}} @required={{true}} as |components|>
         <BlockSlot @name="selected">
           <span>
-            {{t "common.consul.status"}}
+            {{t "common.search.searchproperty"}}
           </span>
         </BlockSlot>
         <BlockSlot @name="options">
-  {{#let components.Optgroup components.Option as |Optgroup Option|}}
-    {{#each (array "passing" "warning" "critical") as |state|}}
-          <Option class="value-{{state}}" @value={{state}} @selected={{includes state @filter.status.value}}>
-            {{t (concat "common.consul." state)
-                default=(array
-                  (concat "common.search." state)
-                )
-            }}
+          {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          {{#each @filter.searchproperty.default as |prop|}}
+          <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
+            {{t (concat "common.consul." (lowercase prop))}}
           </Option>
-    {{/each}}
-  {{/let}}
+          {{/each}}
+          {{/let}}
         </BlockSlot>
       </search.Select>
-      <search.Select
-        class="type-version"
-        @position="left"
-        @onchange={{action @filter.version.change}}
-        @multiple={{true}}
-      as |components|>
-        <BlockSlot @name="selected">
-          <span>
-            {{t "common.consul.version"}}
-          </span>
-        </BlockSlot>
-        <BlockSlot @name="options">
+    </search.Search>
+  </:search>
+  <:filter as |search|>
+    <search.Select class="type-status" @position="left" @onchange={{action @filter.status.change}} @multiple={{true}} as
+      |components|>
+      <BlockSlot @name="selected">
+        <span>
+          {{t "common.consul.status"}}
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
-        {{#each @versions as |version|}}
-          <Option @value={{version}} @selected={{includes version @filter.version.value}}>
-            {{concat version ".x" }}
-          </Option>
+        {{#each (array "passing" "warning" "critical") as |state|}}
+        <Option class="value-{{state}}" @value={{state}} @selected={{includes state @filter.status.value}}>
+          {{t (concat "common.consul." state)
+          default=(array
+          (concat "common.search." state)
+          )
+          }}
+        </Option>
         {{/each}}
         {{/let}}
-        </BlockSlot>
-      </search.Select>
-    </:filter>
-    <:sort as |search|>
-      <search.Select
-        class="type-sort"
-        data-test-sort-control
-        @position="right"
-        @onchange={{action @sort.change}}
-        @multiple={{false}}
-        @required={{true}}
+      </BlockSlot>
+    </search.Select>
+    <search.Select class="type-version" @position="left" @onchange={{action @filter.version.change}} @multiple={{false}}
       as |components|>
-        <BlockSlot @name="selected">
-          <span>
-            {{#let (from-entries (array
-                  (array "Node:asc" (t "common.sort.alpha.asc"))
-                  (array "Node:desc" (t "common.sort.alpha.desc"))
-                  (array "Status:asc" (t "common.sort.status.asc"))
-                  (array "Status:desc" (t "common.sort.status.desc"))
-                  (array "Version:asc" (t "common.sort.version.asc"))
-                  (array "Version:desc" (t "common.sort.version.desc"))
-                ))
-              as |selectable|
-            }}
-              {{get selectable @sort.value}}
-            {{/let}}
-          </span>
-        </BlockSlot>
-        <BlockSlot @name="options">
-  {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Optgroup @label={{t "common.consul.status"}}>
-            <Option @value="Status:asc" @selected={{eq "Status:asc" @sort.value}}>{{t "common.sort.status.asc"}}</Option>
-            <Option @value="Status:desc" @selected={{eq "Status:desc" @sort.value}}>{{t "common.sort.status.desc"}}</Option>
-          </Optgroup>
-          <Optgroup @label={{t "common.consul.node-name"}}>
-            <Option @value="Node:asc" @selected={{eq "Node:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
-            <Option @value="Node:desc" @selected={{eq "Node:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
-          </Optgroup>
-          <Optgroup @label={{t "common.consul.version"}}>
-            <Option @value="Version:asc" @selected={{eq "Version:asc" @sort.value}}>{{t "common.sort.version.asc"}}</Option>
-            <Option @value="Version:desc" @selected={{eq "Version:desc" @sort.value}}>{{t "common.sort.version.desc"}}</Option>
-          </Optgroup>
-  {{/let}}
-        </BlockSlot>
-      </search.Select>
-    </:sort>
+      <BlockSlot @name="selected">
+        <span>
+          {{t "common.consul.version"}}
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+        {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        {{#each @versions as |version|}}
+        <Option @value={{version}} @selected={{includes version @filter.version.value}}>
+          {{concat version ".x" }}
+        </Option>
+        {{/each}}
+        {{/let}}
+      </BlockSlot>
+    </search.Select>
+  </:filter>
+  <:sort as |search|>
+    <search.Select class="type-sort" data-test-sort-control @position="right" @onchange={{action @sort.change}}
+      @multiple={{false}} @required={{true}} as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          {{#let (from-entries (array
+          (array "Node:asc" (t "common.sort.alpha.asc"))
+          (array "Node:desc" (t "common.sort.alpha.desc"))
+          (array "Status:asc" (t "common.sort.status.asc"))
+          (array "Status:desc" (t "common.sort.status.desc"))
+          (array "Version:asc" (t "common.sort.version.asc"))
+          (array "Version:desc" (t "common.sort.version.desc"))
+          ))
+          as |selectable|
+          }}
+          {{get selectable @sort.value}}
+          {{/let}}
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+        {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Optgroup @label={{t "common.consul.status" }}>
+          <Option @value="Status:asc" @selected={{eq "Status:asc" @sort.value}}>{{t "common.sort.status.asc"}}</Option>
+          <Option @value="Status:desc" @selected={{eq "Status:desc" @sort.value}}>{{t "common.sort.status.desc"}}
+          </Option>
+        </Optgroup>
+        <Optgroup @label={{t "common.consul.node-name" }}>
+          <Option @value="Node:asc" @selected={{eq "Node:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+          <Option @value="Node:desc" @selected={{eq "Node:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
+        </Optgroup>
+        <Optgroup @label={{t "common.consul.version" }}>
+          <Option @value="Version:asc" @selected={{eq "Version:asc" @sort.value}}>{{t "common.sort.version.asc"}}
+          </Option>
+          <Option @value="Version:desc" @selected={{eq "Version:desc" @sort.value}}>{{t "common.sort.version.desc"}}
+          </Option>
+        </Optgroup>
+        {{/let}}
+      </BlockSlot>
+    </search.Select>
+  </:sort>
 </SearchBar>

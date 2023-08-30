@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 // Package proxycfg contains components for sourcing the data required to
 // configure Connect proxies. The Manager provides an API with which proxy
@@ -45,7 +45,7 @@
 //	   ConfigSource - on a client agent this would be a local config source, on a
 //	   server it would be a catalog config source.
 //	4. On server, the catalog config source will check if service is registered locally.
-//	   4a. If the service *is* registered locally it hands off the local config
+//	   4a. If the service *is* registered locally it hands off the the local config
 //	      source, which calls Watch on the proxycfg manager (and serves the pre-
 //	      fetched data).
 //	5. Otherwise, it fetches the service from the state store.

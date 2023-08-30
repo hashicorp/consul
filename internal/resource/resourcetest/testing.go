@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package resourcetest
 
 // T represents the subset of testing.T methods that will be used
@@ -12,5 +9,9 @@ type T interface {
 	Errorf(format string, args ...interface{})
 	Fatalf(format string, args ...interface{})
 	FailNow()
+}
+
+type CleanupT interface {
+	T
 	Cleanup(func())
 }
