@@ -17,7 +17,7 @@ import (
 
 var (
 	// defaultMetricFilters is a regex that matches all metric names.
-	defaultMetricFilters = regexp.MustCompile(".+")
+	DefaultMetricFilters = regexp.MustCompile(".+")
 
 	// Validation errors for AgentTelemetryConfigOK response.
 	errMissingPayload         = errors.New("missing payload")
@@ -26,6 +26,7 @@ var (
 	errMissingMetricsConfig   = errors.New("missing metrics config")
 	errInvalidRefreshInterval = errors.New("invalid refresh interval")
 	errInvalidEndpoint        = errors.New("invalid metrics endpoint")
+	errEmptyEndpoint          = errors.New("empty metrics endpoint")
 )
 
 // TelemetryConfig contains configuration for telemetry data forwarded by Consul servers
@@ -40,16 +41,12 @@ type MetricsConfig struct {
 	Labels   map[string]string
 	Filters  *regexp.Regexp
 	Endpoint *url.URL
+	Disabled bool
 }
 
 // RefreshConfig contains configuration for the periodic fetch of configuration from HCP.
 type RefreshConfig struct {
 	RefreshInterval time.Duration
-}
-
-// MetricsEnabled returns true if metrics export is enabled, i.e. a valid metrics endpoint exists.
-func (t *TelemetryConfig) MetricsEnabled() bool {
-	return t.MetricsConfig.Endpoint != nil
 }
 
 // validateAgentTelemetryConfigPayload ensures the returned payload from HCP is valid.
@@ -83,7 +80,7 @@ func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.Agent
 	telemetryConfig := resp.Payload.TelemetryConfig
 	metricsEndpoint, err := convertMetricEndpoint(telemetryConfig.Endpoint, telemetryConfig.Metrics.Endpoint)
 	if err != nil {
-		return nil, errInvalidEndpoint
+		return nil, err
 	}
 
 	metricsFilters := convertMetricFilters(ctx, telemetryConfig.Metrics.IncludeList)
@@ -94,6 +91,7 @@ func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.Agent
 			Endpoint: metricsEndpoint,
 			Labels:   metricLabels,
 			Filters:  metricsFilters,
+			Disabled: telemetryConfig.Metrics.Disabled,
 		},
 		RefreshConfig: &RefreshConfig{
 			RefreshInterval: refreshInterval,
@@ -111,9 +109,8 @@ func convertMetricEndpoint(telemetryEndpoint string, metricsEndpoint string) (*u
 		endpoint = metricsEndpoint
 	}
 
-	// If endpoint is empty, server not registered with CCM, no error returned.
 	if endpoint == "" {
-		return nil, nil
+		return nil, errEmptyEndpoint
 	}
 
 	// Endpoint from CTW has no metrics path, so it must be added.
@@ -142,7 +139,7 @@ func convertMetricFilters(ctx context.Context, payloadFilters []string) *regexp.
 
 	if len(validFilters) == 0 {
 		logger.Error("no valid filters")
-		return defaultMetricFilters
+		return DefaultMetricFilters
 	}
 
 	// Combine the valid regex strings with OR.
@@ -150,7 +147,7 @@ func convertMetricFilters(ctx context.Context, payloadFilters []string) *regexp.
 	composedRegex, err := regexp.Compile(finalRegex)
 	if err != nil {
 		logger.Error("failed to compile final regex", "error", err)
-		return defaultMetricFilters
+		return DefaultMetricFilters
 	}
 
 	return composedRegex
