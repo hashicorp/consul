@@ -1,0 +1,4 @@
+```release-note:improvement
+log: Currently consul logs files like this consul-{timestamp}.log. This change makes sure that there is always
+consul.log file with the latest logs in it.
+```
