@@ -44,9 +44,9 @@ The following list describes the configuration hierarchy, language-specific data
    - [`PassiveHealthCheck`](#defaults-passivehealthcheck): map
       - [`Interval`](#defaults-passivehealthcheck): number
       - [`MaxFailures`](#defaults-passivehealthcheck): number
-      - [`EnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): number
-      - [`MaxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): number
-      - [`BaseEjectionTime`](#upstreamconfig-overrides-passivehealthcheck): string
+      - [`EnforcingConsecutive5xx`](#defaults-passivehealthcheck): number
+      - [`MaxEjectionPercent`](#defaults-passivehealthcheck): number
+      - [`BaseEjectionTime`](#defaults-passivehealthcheck): string
 - [`Listeners`](#listeners): list of maps
    - [`Port`](#listeners-port): number | `0`
    - [`Protocol`](#listeners-protocol): number | `tcp`
@@ -71,11 +71,11 @@ The following list describes the configuration hierarchy, language-specific data
       - [`MaxPendingRequests`](#listeners-services-maxconnections): number | `0`
       - [`MaxConcurrentRequests`](#listeners-services-maxconnections): number | `0`
       - [`PassiveHealthCheck`](#listeners-services-passivehealthcheck): map
-        - [`Interval`](#defaults-passivehealthcheck): number
-        - [`MaxFailures`](#defaults-passivehealthcheck): number
-        - [`EnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): number
-        - [`MaxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): number
-        - [`BaseEjectionTime`](#upstreamconfig-overrides-passivehealthcheck): string
+        - [`Interval`](#listeners-services-passivehealthcheck): number
+        - [`MaxFailures`](#listeners-services-passivehealthcheck): number
+        - [`EnforcingConsecutive5xx`](#listeners-services-passivehealthcheck): number
+        - [`MaxEjectionPercent`](#listeners-services-passivehealthcheck): number
+        - [`BaseEjectionTime`](#listeners-services-passivehealthcheck): string
    - [`TLS`](#listeners-tls): map
       - [`Enabled`](#listeners-tls-enabled): boolean | `false`
       - [`TLSMinVersion`](#listeners-tls-tlsminversion): string | `TLSv1_2`
@@ -184,15 +184,15 @@ TLS = {
   }
 }
 Defaults = {
-  MaxConnections        = 0
-  MaxPendingRequests    = 0
-  MaxConcurrentRequests = 0
+  MaxConnections        = <number>
+  MaxPendingRequests    = <number>
+  MaxConcurrentRequests = <number>
   PassiveHealthCheck = {
-    Interval                = "5s"
-    MaxFailures             = 5
-    EnforcingConsecutive5xx = 99
-    MaxEjectionPercent      = 10
-    BaseEjectionTime        = "30s"
+    Interval                = "<the time between checks>"
+    MaxFailures             = <number>
+    EnforcingConsecutive5xx = <number>
+    MaxEjectionPercent      = <number>
+    BaseEjectionTime        = "<the base time that a host is ejected for>"
   }
 }
 Listeners = [
@@ -239,11 +239,11 @@ Listeners = [
         MaxPendingRequests    = <number>
         MaxConcurrentRequests = <number>
         PassiveHealthCheck = {
-          Interval                = "1s"
-          MaxFailures             = 1
-          EnforcingConsecutive5xx = 89
-          MaxEjectionPercent      = 10
-          BaseEjectionTime        = "30s"
+          Interval                = "<the time between checks>"
+          MaxFailures             = <number>
+          EnforcingConsecutive5xx = <number>
+          MaxEjectionPercent      = <number>
+          BaseEjectionTime        = "<the base time that a host is ejected for>"
         }
     }]
     TLS = {
@@ -283,15 +283,15 @@ spec:
       clusterName: <name of SDS cluster>
       certResource: <SDS resource name>
   defaults:
-    maxConnections: 0
-    maxPendingRequests: 0
-    maxConcurrentRequests: 0
+    maxConnections: <number>
+    maxPendingRequests: <number>
+    maxConcurrentRequests: <number>
     passiveHealthCheck:
-      interval: "10s"
-      maxFailures: 0
-      enforcingConsecutive5xx: 100
-      maxEjectionPercent: 10
-      baseEjectionTime: "30s"
+      interval: "<the time between checks>"
+      maxFailures: <number>
+      enforcingConsecutive5xx:<number>
+      maxEjectionPercent: <number>
+      baseEjectionTime: "<the base time that a host is ejected for>"
   listeners:
     - port: 0
       protocol: tcp
@@ -323,11 +323,11 @@ spec:
             maxPendingRequests: <number>
             maxConcurrentRequests: <number>
             passiveHealthCheck:
-              interval: "0s"
-              maxFailures: 0
-              enforcingConsecutive5xx: 100
-              maxEjectionPercent: 10
-              baseEjectionTime: "30s"
+              interval: "<the time between checks>"
+              maxFailures: <number>
+                enforcingConsecutive5xx:<number>
+                maxEjectionPercent: <number>
+                baseEjectionTime: "<the base time that a host is ejected for>"
       tls:
         enabled: false
         tlsMinVersion: TLSv1_2
@@ -365,15 +365,15 @@ spec:
     }
   },
   "Defaults" : {
-    "MaxConnections" : 0,
-    "MaxPendingRequests" : 0,
-    "MaxConcurrentRequests": 0,
+    "MaxConnections" : <number>,
+    "MaxPendingRequests" : <number>,
+    "MaxConcurrentRequests": <number>,
     "PassiveHealthCheck" : {
-      "interval": "0s",
-      "maxFailures": 0,
-      "enforcingConsecutive5xx": 100,
-      "maxEjectionPercent": 10,
-      "baseEjectionTime": "30s",
+      "interval": <the time between checks>",
+      "maxFailures": <number>,
+      "enforcingConsecutive5xx":<number>,
+      "maxEjectionPercent": <number>,
+      "baseEjectionTime": "<the base time that a host is ejected for>"
     }
   },
   "Listeners" : [
@@ -420,12 +420,11 @@ spec:
           "MaxPendingRequests" : <number>,
           "MaxConcurrentRequests" : <number>,
           "PassiveHealthCheck" : {
-            "interval": "0s",
-            "maxFailures": 0,
-            "enforcingConsecutive5xx": 100,
-            "maxEjectionPercent": 10,
-            "baseEjectionTime": "30s",
-          }
+            "interval": <the time between checks>",
+            "maxFailures": <number>,
+            "enforcingConsecutive5xx":<number>,
+            "maxEjectionPercent": <number>,
+            "baseEjectionTime": "<the base time that a host is ejected for>"
         }
       ],
       "TLS" : {
