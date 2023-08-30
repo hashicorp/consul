@@ -87,26 +87,29 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	cases := map[string]struct {
 		destinations []*intermediate.Destination
 	}{
-		"l4-single-destination-ip-port-bind-address": {
+		"destination/l4-single-destination-ip-port-bind-address": {
 			destinations: []*intermediate.Destination{destinationIpPort},
 		},
-		"l4-single-destination-unix-socket-bind-address": {
+		"destination/l4-single-destination-unix-socket-bind-address": {
 			destinations: []*intermediate.Destination{destinationUnix},
 		},
-		"l4-multi-destination": {
+		"destination/l4-multi-destination": {
 			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix},
 		},
 	}
 
 	for name, c := range cases {
-		proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
-			BuildDestinations(c.destinations).
-			Build()
+		t.Run(name, func(t *testing.T) {
 
-		actual := protoToJSON(t, proxyTmpl)
-		expected := golden.Get(t, actual, name)
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
+				BuildDestinations(c.destinations).
+				Build()
 
-		require.JSONEq(t, expected, actual)
+			actual := protoToJSON(t, proxyTmpl)
+			expected := golden.Get(t, actual, name+".golden")
+
+			require.JSONEq(t, expected, actual)
+		})
 	}
 }
 
@@ -180,13 +183,13 @@ func TestBuildImplicitDestinations(t *testing.T) {
 	cases := map[string]struct {
 		destinations []*intermediate.Destination
 	}{
-		"l4-single-implicit-destination-tproxy": {
+		"destination/l4-single-implicit-destination-tproxy": {
 			destinations: []*intermediate.Destination{destination1},
 		},
-		"l4-multiple-implicit-destinations-tproxy": {
+		"destination/l4-multiple-implicit-destinations-tproxy": {
 			destinations: []*intermediate.Destination{destination1, destination2},
 		},
-		"l4-implicit-and-explicit-destinations-tproxy": {
+		"destination/l4-implicit-and-explicit-destinations-tproxy": {
 			destinations: []*intermediate.Destination{destination2, destination3},
 		},
 	}

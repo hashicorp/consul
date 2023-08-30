@@ -20,7 +20,7 @@ func TestBuildLocalApp(t *testing.T) {
 	cases := map[string]struct {
 		workload *pbcatalog.Workload
 	}{
-		"l4-single-workload-address-without-ports": {
+		"source/l4-single-workload-address-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -33,7 +33,7 @@ func TestBuildLocalApp(t *testing.T) {
 				},
 			},
 		},
-		"l4-multiple-workload-addresses-without-ports": {
+		"source/l4-multiple-workload-addresses-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -49,7 +49,7 @@ func TestBuildLocalApp(t *testing.T) {
 				},
 			},
 		},
-		"l4-multiple-workload-addresses-with-specific-ports": {
+		"source/l4-multiple-workload-addresses-with-specific-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
