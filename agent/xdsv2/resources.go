@@ -5,11 +5,12 @@ package xdsv2
 
 import (
 	"fmt"
-	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
+
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 )
 
 // ResourceGenerator is associated with a single gRPC stream and creates xDS
