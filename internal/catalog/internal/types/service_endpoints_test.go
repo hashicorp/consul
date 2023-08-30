@@ -1,17 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/internal/resource"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -20,13 +20,22 @@ var (
 		Namespace: "default",
 		PeerName:  "local",
 	}
-
-	badEndpointTenancy = &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "bad",
-		PeerName:  "local",
-	}
 )
+
+func createServiceEndpointsResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
+	res := &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type:    ServiceEndpointsType,
+			Tenancy: defaultEndpointTenancy,
+			Name:    "test-service",
+		},
+	}
+
+	var err error
+	res.Data, err = anypb.New(data)
+	require.NoError(t, err)
+	return res
+}
 
 func TestValidateServiceEndpoints_Ok(t *testing.T) {
 	data := &pbcatalog.ServiceEndpoints{
@@ -53,14 +62,8 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 		},
 	}
 
-	res := rtest.Resource(ServiceEndpointsType, "test-service").
-		WithData(t, data).
-		Build()
+	res := createServiceEndpointsResource(t, data)
 
-	// fill in owner automatically
-	require.NoError(t, MutateServiceEndpoints(res))
-
-	// Now validate that everything is good.
 	err := ValidateServiceEndpoints(res)
 	require.NoError(t, err)
 }
@@ -70,7 +73,7 @@ func TestValidateServiceEndpoints_ParseError(t *testing.T) {
 	// to cause the error we are expecting
 	data := &pbcatalog.IP{Address: "198.18.0.1"}
 
-	res := rtest.Resource(ServiceEndpointsType, "test-service").WithData(t, data).Build()
+	res := createServiceEndpointsResource(t, data)
 
 	err := ValidateServiceEndpoints(res)
 	require.Error(t, err)
@@ -101,7 +104,6 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 	}
 
 	type testCase struct {
-		owner       *pbresource.ID
 		modify      func(*pbcatalog.Endpoint)
 		validateErr func(t *testing.T, err error)
 	}
@@ -131,20 +133,6 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 				require.ErrorIs(t, err, resource.ErrEmpty)
 			},
 		},
-		"invalid-health-status": {
-			modify: func(endpoint *pbcatalog.Endpoint) {
-				endpoint.Ports["foo"] = &pbcatalog.WorkloadPort{
-					Port: 42,
-				}
-				endpoint.HealthStatus = 99
-			},
-			validateErr: func(t *testing.T, err error) {
-				rtest.RequireError(t, err, resource.ErrInvalidField{
-					Name:    "health_status",
-					Wrapped: resource.NewConstError("not a supported enum value: 99"),
-				})
-			},
-		},
 		"invalid-port-name": {
 			modify: func(endpoint *pbcatalog.Endpoint) {
 				endpoint.Ports[""] = &pbcatalog.WorkloadPort{
@@ -152,29 +140,11 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 				}
 			},
 			validateErr: func(t *testing.T, err error) {
-				rtest.RequireError(t, err, resource.ErrInvalidMapKey{
-					Map:     "ports",
-					Key:     "",
-					Wrapped: resource.ErrEmpty,
-				})
-			},
-		},
-		"invalid-port-protocol": {
-			modify: func(endpoint *pbcatalog.Endpoint) {
-				endpoint.Ports["foo"] = &pbcatalog.WorkloadPort{
-					Port:     42,
-					Protocol: 99,
-				}
-			},
-			validateErr: func(t *testing.T, err error) {
-				rtest.RequireError(t, err, resource.ErrInvalidMapValue{
-					Map: "ports",
-					Key: "foo",
-					Wrapped: resource.ErrInvalidField{
-						Name:    "protocol",
-						Wrapped: resource.NewConstError("not a supported enum value: 99"),
-					},
-				})
+				var mapErr resource.ErrInvalidMapKey
+				require.ErrorAs(t, err, &mapErr)
+				require.Equal(t, "ports", mapErr.Map)
+				require.Equal(t, "", mapErr.Key)
+				require.Equal(t, resource.ErrEmpty, mapErr.Wrapped)
 			},
 		},
 		"port-0": {
@@ -193,64 +163,22 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 				require.ErrorIs(t, err, errInvalidPhysicalPort)
 			},
 		},
-		"invalid-owner": {
-			owner: &pbresource.ID{
-				Type:    DNSPolicyType,
-				Tenancy: badEndpointTenancy,
-				Name:    "wrong",
-			},
-			validateErr: func(t *testing.T, err error) {
-				rtest.RequireError(t, err, resource.ErrOwnerTypeInvalid{
-					ResourceType: ServiceEndpointsType,
-					OwnerType:    DNSPolicyType})
-				rtest.RequireError(t, err, resource.ErrOwnerTenantInvalid{
-					ResourceType:    ServiceEndpointsType,
-					ResourceTenancy: defaultEndpointTenancy,
-					OwnerTenancy:    badEndpointTenancy,
-				})
-				rtest.RequireError(t, err, resource.ErrInvalidField{
-					Name: "name",
-					Wrapped: errInvalidEndpointsOwnerName{
-						Name:      "test-service",
-						OwnerName: "wrong"},
-				})
-			},
-		},
 	}
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			endpoint := genData()
-			if tcase.modify != nil {
-				tcase.modify(endpoint)
-			}
+			data := genData()
+			tcase.modify(data)
 
-			data := &pbcatalog.ServiceEndpoints{
+			res := createServiceEndpointsResource(t, &pbcatalog.ServiceEndpoints{
 				Endpoints: []*pbcatalog.Endpoint{
-					endpoint,
+					data,
 				},
-			}
-			res := rtest.Resource(ServiceEndpointsType, "test-service").
-				WithOwner(tcase.owner).
-				WithData(t, data).
-				Build()
-
-			// Run the mututation to setup defaults
-			require.NoError(t, MutateServiceEndpoints(res))
+			})
 
 			err := ValidateServiceEndpoints(res)
 			require.Error(t, err)
 			tcase.validateErr(t, err)
 		})
 	}
-}
-
-func TestMutateServiceEndpoints_PopulateOwner(t *testing.T) {
-	res := rtest.Resource(ServiceEndpointsType, "test-service").Build()
-
-	require.NoError(t, MutateServiceEndpoints(res))
-	require.NotNil(t, res.Owner)
-	require.True(t, resource.EqualType(res.Owner.Type, ServiceType))
-	require.True(t, resource.EqualTenancy(res.Owner.Tenancy, defaultEndpointTenancy))
-	require.Equal(t, res.Owner.Name, res.Id.Name)
 }

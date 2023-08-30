@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package controller
 
@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -44,21 +43,6 @@ func (c Controller) WithWatch(watchedType *pbresource.Type, mapper DependencyMap
 	}
 
 	c.watches = append(c.watches, watch{watchedType, mapper})
-	return c
-}
-
-// WithCustomWatch adds a custom watch on the given dependency to the controller. Custom mapper
-// will be called to map events produced by source to the controller's watched type.
-func (c Controller) WithCustomWatch(source *Source, mapper CustomDependencyMapper) Controller {
-	if source == nil {
-		panic("source must not be nil")
-	}
-
-	if mapper == nil {
-		panic("mapper must not be nil")
-	}
-
-	c.customWatches = append(c.customWatches, customWatch{source, mapper})
 	return c
 }
 
@@ -123,58 +107,18 @@ func (c Controller) backoff() (time.Duration, time.Duration) {
 // Use the builder methods in this package (starting with ForType) to construct
 // a controller, and then pass it to a Manager to be executed.
 type Controller struct {
-	managedType   *pbresource.Type
-	reconciler    Reconciler
-	logger        hclog.Logger
-	watches       []watch
-	customWatches []customWatch
-	baseBackoff   time.Duration
-	maxBackoff    time.Duration
-	placement     Placement
+	managedType *pbresource.Type
+	reconciler  Reconciler
+	logger      hclog.Logger
+	watches     []watch
+	baseBackoff time.Duration
+	maxBackoff  time.Duration
+	placement   Placement
 }
 
 type watch struct {
 	watchedType *pbresource.Type
 	mapper      DependencyMapper
-}
-
-// Watch is responsible for watching for custom events from source and adding them to
-// the event queue.
-func (s *Source) Watch(ctx context.Context, add func(e Event)) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case evt, ok := <-s.Source:
-			if !ok {
-				return nil
-			}
-			add(evt)
-		}
-	}
-}
-
-// Source is used as a generic source of events. This can be used when events aren't coming from resources
-// stored by the resource API.
-type Source struct {
-	Source <-chan Event
-}
-
-// Event captures an event in the system which the API can choose to respond to.
-type Event struct {
-	Obj queue.ItemType
-}
-
-// Key returns a string that will be used to de-duplicate items in the queue.
-func (e Event) Key() string {
-	return e.Obj.Key()
-}
-
-// customWatch represent a Watch on a custom Event source and a Mapper to map said
-// Events into Requests that the controller can respond to.
-type customWatch struct {
-	source *Source
-	mapper CustomDependencyMapper
 }
 
 // Request represents a request to reconcile the resource with the given ID.

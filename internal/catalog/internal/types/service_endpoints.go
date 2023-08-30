@@ -1,16 +1,15 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"math"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -45,16 +44,6 @@ func MutateServiceEndpoints(res *pbresource.Resource) error {
 		}
 	}
 
-	return nil
-}
-
-func ValidateServiceEndpoints(res *pbresource.Resource) error {
-	var svcEndpoints pbcatalog.ServiceEndpoints
-
-	if err := res.Data.UnmarshalTo(&svcEndpoints); err != nil {
-		return resource.NewErrDataParse(&svcEndpoints, err)
-	}
-
 	var err error
 	if !resource.EqualType(res.Owner.Type, ServiceV1Alpha1Type) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{
@@ -65,7 +54,6 @@ func ValidateServiceEndpoints(res *pbresource.Resource) error {
 
 	if !resource.EqualTenancy(res.Owner.Tenancy, res.Id.Tenancy) {
 		err = multierror.Append(err, resource.ErrOwnerTenantInvalid{
-			ResourceType:    ServiceEndpointsV1Alpha1Type,
 			ResourceTenancy: res.Id.Tenancy,
 			OwnerTenancy:    res.Owner.Tenancy,
 		})
@@ -81,6 +69,17 @@ func ValidateServiceEndpoints(res *pbresource.Resource) error {
 		})
 	}
 
+	return err
+}
+
+func ValidateServiceEndpoints(res *pbresource.Resource) error {
+	var svcEndpoints pbcatalog.ServiceEndpoints
+
+	if err := res.Data.UnmarshalTo(&svcEndpoints); err != nil {
+		return resource.NewErrDataParse(&svcEndpoints, err)
+	}
+
+	var err error
 	for idx, endpoint := range svcEndpoints.Endpoints {
 		if endpointErr := validateEndpoint(endpoint, res); endpointErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
@@ -129,13 +128,6 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 		})
 	}
 
-	if healthErr := validateHealth(endpoint.HealthStatus); healthErr != nil {
-		err = multierror.Append(err, resource.ErrInvalidField{
-			Name:    "health_status",
-			Wrapped: healthErr,
-		})
-	}
-
 	// Validate the endpoints ports
 	for portName, port := range endpoint.Ports {
 		// Port names must be DNS labels
@@ -147,17 +139,6 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 			})
 		}
 
-		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
-			err = multierror.Append(err, resource.ErrInvalidMapValue{
-				Map: "ports",
-				Key: portName,
-				Wrapped: resource.ErrInvalidField{
-					Name:    "protocol",
-					Wrapped: protoErr,
-				},
-			})
-		}
-
 		// As the physical port is the real port the endpoint will be bound to
 		// it must be in the standard 1-65535 range.
 		if port.Port < 1 || port.Port > math.MaxUint16 {
@@ -165,7 +146,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 				Map: "ports",
 				Key: portName,
 				Wrapped: resource.ErrInvalidField{
-					Name:    "physical_port",
+					Name:    "phsical_port",
 					Wrapped: errInvalidPhysicalPort,
 				},
 			})

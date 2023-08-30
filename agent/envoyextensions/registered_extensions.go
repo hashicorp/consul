@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package envoyextensions
 
@@ -32,13 +32,11 @@ var extensionConstructors = map[string]extensionConstructor{
 // given config. Returns an error if the extension does not exist, or if the extension fails
 // to be constructed properly.
 func ConstructExtension(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) {
-	if constructor, ok := extensionConstructors[ext.Name]; ok {
-		return constructor(ext)
+	constructor, ok := extensionConstructors[ext.Name]
+	if !ok {
+		return nil, fmt.Errorf("name %q is not a built-in extension", ext.Name)
 	}
-	if constructor, ok := enterpriseExtensionConstructors[ext.Name]; ok {
-		return constructor(ext)
-	}
-	return nil, fmt.Errorf("name %q is not a built-in extension", ext.Name)
+	return constructor(ext)
 }
 
 // ValidateExtensions will attempt to construct each instance of the given envoy extension configurations

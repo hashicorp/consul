@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Use Community verbiage
-```

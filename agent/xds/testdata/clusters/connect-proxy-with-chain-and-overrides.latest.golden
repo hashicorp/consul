@@ -8,30 +8,42 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {},
+          "ads": {
+
+          },
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "66s",
-      "circuitBreakers": {},
+      "circuitBreakers": {
+
+      },
       "typedExtensionProtocolOptions": {
         "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
           "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
           "explicitHttpConfig": {
-            "http2ProtocolOptions": {}
+            "http2ProtocolOptions": {
+
+            }
           }
         }
       },
-      "outlierDetection": {},
+      "outlierDetection": {
+
+      },
       "commonLbConfig": {
-        "healthyPanicThreshold": {}
+        "healthyPanicThreshold": {
+
+        }
       },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
+            "tlsParams": {
+
+            },
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -63,19 +75,27 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {},
+          "ads": {
+
+          },
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",
-      "circuitBreakers": {},
-      "outlierDetection": {},
+      "circuitBreakers": {
+
+      },
+      "outlierDetection": {
+
+      },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
+            "tlsParams": {
+
+            },
             "tlsCertificates": [
               {
                 "certificateChain": {

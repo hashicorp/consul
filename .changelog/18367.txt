@@ -1,3 +1,0 @@
-```release-note:bug
-dev-mode: Fix dev mode has new line in responses. Now new line is added only when url has pretty query parameter.
-```

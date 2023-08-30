@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package xds
 
@@ -27,8 +27,6 @@ type targetInfo struct {
 	// Region is the region from the failover target's Locality. nil means the
 	// target is in the local Consul cluster.
 	Region *string
-
-	PrioritizeByLocality *structs.DiscoveryPrioritizeByLocality
 }
 
 type discoChainTargetGroup struct {
@@ -70,7 +68,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 		return discoChainTargets{}, err
 	}
 
-	failoverTargets.baseClusterName = s.getTargetClusterName(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway)
+	failoverTargets.baseClusterName = s.getTargetClusterName(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway, false)
 
 	tids := []string{primaryTargetID}
 	failover := node.Resolver.Failover
@@ -89,7 +87,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 		var sni, rootPEMs string
 		var spiffeIDs []string
 		targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
-		ti := targetInfo{TargetID: tid, PrioritizeByLocality: target.PrioritizeByLocality}
+		ti := targetInfo{TargetID: tid}
 
 		configureTLS := true
 		if forMeshGateway {

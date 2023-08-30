@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package controller
 
 // Lease is used to ensure controllers are run as singletons (i.e. one leader-

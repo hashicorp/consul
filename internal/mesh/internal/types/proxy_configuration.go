@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
@@ -16,7 +16,7 @@ const (
 var (
 	ProxyConfigurationV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: CurrentVersion,
 		Kind:         ProxyConfigurationKind,
 	}
 
@@ -25,9 +25,8 @@ var (
 
 func RegisterProxyConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  ProxyConfigurationV1Alpha1Type,
-		Proto: &pbmesh.ProxyConfiguration{},
-		// TODO(rb): add validation for proxy configuration
+		Type:     ProxyConfigurationV1Alpha1Type,
+		Proto:    &pbmesh.ProxyConfiguration{},
 		Validate: nil,
 	})
 }

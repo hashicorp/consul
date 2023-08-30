@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 acl_agent_master_token = "furuQD0b"
 acl_agent_token = "cOshLOQ2"
