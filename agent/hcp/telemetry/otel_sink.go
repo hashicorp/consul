@@ -36,8 +36,15 @@ const (
 	defaultExportTimeout = 30 * time.Second
 )
 
+// Disabled should be implemented to turn on/off metrics processing
+type Disabled interface {
+	// IsDisabled() can return true disallow the sink from accepting metrics.
+	IsDisabled() bool
+}
+
 // ConfigProvider is required to provide custom metrics processing.
 type ConfigProvider interface {
+	Disabled
 	// GetLabels should return a set of OTEL attributes added by default all metrics.
 	GetLabels() map[string]string
 
@@ -147,8 +154,11 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 // AddSampleWithLabels emits a Consul gauge metric that gets
 // registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	if o.cfgProvider.IsDisabled() {
+		return
+	}
 
+	k := o.flattenKey(key)
 	if !o.allowedMetric(k) {
 		return
 	}
@@ -175,8 +185,11 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 
 // AddSampleWithLabels emits a Consul sample metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	if o.cfgProvider.IsDisabled() {
+		return
+	}
 
+	k := o.flattenKey(key)
 	if !o.allowedMetric(k) {
 		return
 	}
@@ -201,8 +214,11 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	if o.cfgProvider.IsDisabled() {
+		return
+	}
 
+	k := o.flattenKey(key)
 	if !o.allowedMetric(k) {
 		return
 	}
