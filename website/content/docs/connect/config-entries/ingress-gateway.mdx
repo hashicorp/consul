@@ -110,8 +110,8 @@ The following list describes the configuration hierarchy, language-specific data
       - [`passiveHealthCheck`](#spec-defaults-passivehealthcheck): map
         - [`interval`](#spec-defaults-passivehealthcheck): string
         - [`maxFailures`](#spec-defaults-passivehealthcheck): integer
-        - [`enforcingConsecutive5xx`](#spec-defaults-passivehealthcheck): integer
-        - [`maxEjectionPercent`](#spec-defaults-passivehealthcheck): integer
+        - [`enforcingConsecutive5xx`](#spec-defaults-passivehealthcheck): number
+        - [`maxEjectionPercent`](#spec-defaults-passivehealthcheck): number
         - [`baseEjectionTime`](#spec-defaults-passivehealthcheck): string
    - [`listeners`](#spec-listeners): list of maps
       - [`port`](#spec-listeners-port): number | `0`
@@ -138,8 +138,8 @@ The following list describes the configuration hierarchy, language-specific data
          - [`maxConcurrentRequests`](#spec-listeners-services-maxconnections): number | `0`
          - [`passiveHealthCheck`](#spec-listeners-services-passivehealthcheck): map
             - [`interval`](#spec-listeners-services-passivehealthcheck): string
-            - [`maxFailures`](#spec-listeners-services-passivehealthcheck): integer
-            - [`enforcingConsecutive5xx`](#spec-listeners-services-passivehealthcheck): integer
+            - [`maxFailures`](#spec-listeners-services-passivehealthcheck): number
+            - [`enforcingConsecutive5xx`](#spec-listeners-services-passivehealthcheck): number
             - [`maxEjectionPercent`](#spec-listeners-services-passivehealthcheck): integer
             - [`baseEjectionTime`](#spec-listeners-services-passivehealthcheck): string
       - [`tls`](#spec-listeners-tls): map
