@@ -96,8 +96,8 @@ var Gauges = []prometheus.GaugeDefinition{
 		Help: "Total number of billable service instances in the local datacenter.",
 	},
 	{
-		Name: []string{"consul", "version"},
-		Help: "Sujata Testing Version in usagemetrics",
+		Name: []string{"version"},
+		Help: "Represents the Consul version.",
 	},
 }
 

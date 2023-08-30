@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	consulversion "github.com/hashicorp/consul/version"
 )
 
 func (u *UsageMetricsReporter) emitNodeUsage(nodeUsage state.NodeUsage) {
@@ -154,6 +155,6 @@ func (u *UsageMetricsReporter) emitVersionUsage() {
 	metrics.SetGaugeWithLabels(
 		[]string{"version"},
 		1,
-		append(u.metricLabels, metrics.Label{Name: "version", Value: "1.16.0"}),
+		append(u.metricLabels, metrics.Label{Name: "version", Value: consulversion.GetHumanVersion()}),
 	)
 }
