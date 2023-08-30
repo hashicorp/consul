@@ -25,10 +25,29 @@ env:
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  conditional-skip:
+    runs-on: ubuntu-latest 
+    name: Get files changed and conditionally skip CI
+    outputs:
+      trigger-ci: ${{ steps.read-files.outputs.trigger-ci }}
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          fetch-depth: 0  
+      - name: Get changed files
+        id: read-files
+        run: ./.github/scripts/filter_changed_files_go_test.sh
+
   setup:
+    needs: [conditional-skip]
     runs-on: ubuntu-latest
     name: Setup
+    if: needs.conditional-skip.outputs.trigger-ci == 'true'
     outputs:
       compute-small: ${{ steps.runners.outputs.compute-small }}
       compute-medium: ${{ steps.runners.outputs.compute-medium }}
@@ -139,7 +158,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        vault-version: ["1.13.1", "1.12.5", "1.11.9", "1.10.11"]
+        vault-version: ["1.14.1", "1.13.5", "1.12.9", "1.11.12"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
@@ -558,6 +577,7 @@ jobs:
 
   test-integrations-success:
     needs: 
+    - conditional-skip
     - setup
     - dev-build
     - nomad-integration-test
@@ -567,7 +587,7 @@ jobs:
     - compatibility-integration-test
     - peering_commontopo-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: ${{ always() }}
+    if: always() && needs.conditional-skip.outputs.trigger-ci == 'true'
     steps:
       - name: evaluate upstream job results
         run: |

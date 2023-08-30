@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configfetcher
 
 // ConfigFetcher is the interface the agent needs to expose

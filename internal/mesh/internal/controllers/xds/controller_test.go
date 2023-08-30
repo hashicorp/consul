@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -37,6 +38,7 @@ type xdsControllerTestSuite struct {
 	ctl     *xdsReconciler
 	mapper  *bimapper.Mapper
 	updater *mockUpdater
+	fetcher TrustBundleFetcher
 
 	fooProxyStateTemplate          *pbresource.Resource
 	barProxyStateTemplate          *pbresource.Resource
@@ -48,6 +50,7 @@ type xdsControllerTestSuite struct {
 	fooBarService                  *pbresource.Resource
 	expectedFooProxyStateEndpoints map[string]*pbproxystate.Endpoints
 	expectedBarProxyStateEndpoints map[string]*pbproxystate.Endpoints
+	expectedTrustBundle            map[string]*pbproxystate.TrustBundle
 }
 
 func (suite *xdsControllerTestSuite) SetupTest() {
@@ -55,14 +58,25 @@ func (suite *xdsControllerTestSuite) SetupTest() {
 	resourceClient := svctest.RunResourceService(suite.T(), types.Register, catalog.RegisterTypes)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.client = resourcetest.NewClient(resourceClient)
+	suite.fetcher = mockFetcher
 
 	suite.mapper = bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
-	suite.updater = NewMockUpdater()
+	suite.updater = newMockUpdater()
 
 	suite.ctl = &xdsReconciler{
-		bimapper: suite.mapper,
-		updater:  suite.updater,
+		bimapper:         suite.mapper,
+		updater:          suite.updater,
+		fetchTrustBundle: suite.fetcher,
 	}
+}
+
+func mockFetcher() (*pbproxystate.TrustBundle, error) {
+	var bundle pbproxystate.TrustBundle
+	bundle = pbproxystate.TrustBundle{
+		TrustDomain: "some-trust-domain",
+		Roots:       []string{"some-root", "some-other-root"},
+	}
+	return &bundle, nil
 }
 
 // This test ensures when a ProxyState is deleted, it is no longer tracked in the mapper.
@@ -217,6 +231,25 @@ func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateComputesEnd
 	prototest.AssertDeepEqual(suite.T(), suite.expectedFooProxyStateEndpoints, actualEndpoints)
 }
 
+func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateSetsTrustBundles() {
+	// This test is a happy path creation test to make sure pbproxystate.Template.TrustBundles are created in the computed
+	// pbmesh.ProxyState from the TrustBundleFetcher.
+	suite.setupFooProxyStateTemplateAndEndpoints()
+
+	// Run the reconcile.
+	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+		ID: suite.fooProxyStateTemplate.Id,
+	})
+	require.NoError(suite.T(), err)
+
+	// Assert on the status.
+	suite.client.RequireStatusCondition(suite.T(), suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
+
+	// Assert that the endpoints computed in the controller matches the expected endpoints.
+	actualTrustBundle := suite.updater.GetTrustBundle(suite.fooProxyStateTemplate.Id.Name)
+	prototest.AssertDeepEqual(suite.T(), suite.expectedTrustBundle, actualTrustBundle)
+}
+
 // This test is a happy path creation test that calls reconcile multiple times with a more complex setup. This
 // scenario is trickier to test in the controller test because the end computation of the xds controller is not
 // stored in the state store. So this test ensures that between multiple reconciles the correct ProxyStates are
@@ -257,7 +290,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_MultipleProxyStateTemplatesCo
 func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() {
 	// Run the controller manager.
 	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
-	mgr.Register(Controller(suite.mapper, suite.updater))
+	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -400,6 +433,37 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() 
 
 }
 
+// Sets up a full controller, and tests that reconciles are getting triggered for the events it should.
+func (suite *xdsControllerTestSuite) TestController_ComputeEndpointForProxyConnections() {
+	// Run the controller manager.
+	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
+
+	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	// Set up fooEndpoints and fooProxyStateTemplate with a reference to fooEndpoints. These need to be stored
+	// because the controller reconcile looks them up.
+	suite.setupFooProxyStateTemplateAndEndpoints()
+
+	// Assert that the expected ProxyState matches the actual ProxyState that PushChange was called with. This needs to
+	// be in a retry block unlike the Reconcile tests because the controller triggers asynchronously.
+	retry.Run(suite.T(), func(r *retry.R) {
+		actualEndpoints := suite.updater.GetEndpoints(suite.fooProxyStateTemplate.Id.Name)
+		// Assert on the status.
+		suite.client.RequireStatusCondition(r, suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
+		// Assert that the endpoints computed in the controller matches the expected endpoints.
+		prototest.AssertDeepEqual(r, suite.expectedFooProxyStateEndpoints, actualEndpoints)
+	})
+
+	eventChannel := suite.updater.EventChannel()
+	eventChannel <- controller.Event{Obj: &proxytracker.ProxyConnection{ProxyID: suite.fooProxyStateTemplate.Id}}
+
+	// Wait for the proxy state template to be re-evaluated.
+	proxyStateTemp := suite.client.WaitForNewVersion(suite.T(), suite.fooProxyStateTemplate.Id, suite.fooProxyStateTemplate.Version)
+	require.NotNil(suite.T(), proxyStateTemp)
+}
+
 // Setup: fooProxyStateTemplate with an EndpointsRef to fooEndpoints
 // Saves all related resources to the suite so they can be modified if needed.
 func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateAndEndpoints() {
@@ -470,12 +534,20 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateAndEndpoints() {
 			},
 		}},
 	}
+
+	expectedTrustBundle := map[string]*pbproxystate.TrustBundle{
+		"local": {
+			TrustDomain: "some-trust-domain",
+			Roots:       []string{"some-root", "some-other-root"},
+		},
+	}
+
 	suite.fooService = fooService
 	suite.fooEndpoints = fooEndpoints
 	suite.fooEndpointRefs = fooRequiredEndpoints
 	suite.fooProxyStateTemplate = fooProxyStateTemplate
 	suite.expectedFooProxyStateEndpoints = expectedFooProxyStateEndpoints
-
+	suite.expectedTrustBundle = expectedTrustBundle
 }
 
 // Setup:

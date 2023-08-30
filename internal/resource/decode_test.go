@@ -29,7 +29,7 @@ func TestGetDecodedResource(t *testing.T) {
 
 	babypantsID := &pbresource.ID{
 		Type:    demo.TypeV2Artist,
-		Tenancy: demo.TenancyDefault,
+		Tenancy: resource.DefaultNamespacedTenancy(),
 		Name:    "babypants",
 	}
 
@@ -75,7 +75,7 @@ func TestDecode(t *testing.T) {
 		foo := &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "babypants",
 			},
 			Data: any,
@@ -95,7 +95,7 @@ func TestDecode(t *testing.T) {
 		foo := &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "babypants",
 			},
 			Data: &anypb.Any{

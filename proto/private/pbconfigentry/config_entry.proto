@@ -507,6 +507,7 @@ message ServiceDefaults {
   // mog: func-to=int func-from=int32
   int32 LocalRequestTimeoutMs = 11;
   string BalanceInboundConnections = 12;
+  RateLimits RateLimits = 16;
   map<string, string> Meta = 13;
   // mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
   repeated hashicorp.consul.internal.common.EnvoyExtension EnvoyExtensions = 14;
@@ -650,6 +651,43 @@ message DestinationConfig {
   repeated string Addresses = 1;
   // mog: func-to=int func-from=int32
   int32 Port = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RateLimits
+// output=config_entry.gen.go
+// name=Structs
+message RateLimits {
+  InstanceLevelRateLimits InstanceLevel = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InstanceLevelRateLimits
+// output=config_entry.gen.go
+// name=Structs
+message InstanceLevelRateLimits {
+  // mog: func-to=int func-from=uint32
+  uint32 RequestsPerSecond = 1;
+  // mog: func-to=int func-from=uint32
+  uint32 RequestsMaxBurst = 2;
+  repeated InstanceLevelRouteRateLimits Routes = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InstanceLevelRouteRateLimits
+// output=config_entry.gen.go
+// name=Structs
+message InstanceLevelRouteRateLimits {
+  string PathExact = 1;
+  string PathPrefix = 2;
+  string PathRegex = 3;
+  // mog: func-to=int func-from=uint32
+  uint32 RequestsPerSecond = 4;
+  // mog: func-to=int func-from=uint32
+  uint32 RequestsMaxBurst = 5;
 }
 
 // mog annotation:

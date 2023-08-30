@@ -23,9 +23,29 @@ env:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
+# concurrency
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  conditional-skip:
+    runs-on: ubuntu-latest 
+    name: Get files changed and conditionally skip CI
+    outputs:
+      trigger-ci: ${{ steps.read-files.outputs.trigger-ci }}
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          fetch-depth: 0  
+      - name: Get changed files
+        id: read-files
+        run: ./.github/scripts/filter_changed_files_go_test.sh
+
   setup:
+    needs: [conditional-skip]
     name: Setup
+    if: needs.conditional-skip.outputs.trigger-ci == 'true'
     runs-on: ubuntu-latest
     outputs:
       compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
@@ -464,6 +484,7 @@ jobs:
 
   go-tests-success:
     needs:
+    - conditional-skip
     - setup
     # Reenable later
     #- check-generated-deep-copy
@@ -487,7 +508,7 @@ jobs:
     - go-test-32bit
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: ${{ always() }}
+    if: always() && needs.conditional-skip.outputs.trigger-ci == 'true'
     steps:
       - name: evaluate upstream job results
         run: |

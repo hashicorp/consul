@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xds
 
 import (
@@ -7,39 +10,47 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const ControllerName = "consul.io/xds-controller"
 
-func Controller(mapper *bimapper.Mapper, updater ProxyUpdater) controller.Controller {
-	if mapper == nil || updater == nil {
-		panic("mapper and updater are required")
+func Controller(mapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher) controller.Controller {
+	if mapper == nil || updater == nil || fetcher == nil {
+		panic("mapper, updater and fetcher are required")
 	}
 
 	return controller.ForType(types.ProxyStateTemplateType).
 		WithWatch(catalog.ServiceEndpointsType, mapper.MapLink).
+		WithCustomWatch(proxySource(updater), proxyMapper).
 		WithPlacement(controller.PlacementEachServer).
-		WithReconciler(&xdsReconciler{bimapper: mapper, updater: updater})
+		WithReconciler(&xdsReconciler{bimapper: mapper, updater: updater, fetchTrustBundle: fetcher})
 }
 
 type xdsReconciler struct {
-	bimapper *bimapper.Mapper
-	updater  ProxyUpdater
+	bimapper         *bimapper.Mapper
+	updater          ProxyUpdater
+	fetchTrustBundle TrustBundleFetcher
 }
+
+type TrustBundleFetcher func() (*pbproxystate.TrustBundle, error)
 
 // ProxyUpdater is an interface that defines the ability to push proxy updates to the updater
 // and also check its connectivity to the server.
 type ProxyUpdater interface {
 	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
-	PushChange(id *pbresource.ID, snapshot *pbmesh.ProxyState) error
+	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
 
 	// ProxyConnectedToServer returns whether this id is connected to this server.
 	ProxyConnectedToServer(id *pbresource.ID) bool
+
+	// EventChannel returns a channel of events that are consumed by the Custom Watcher.
+	EventChannel() chan controller.Event
 }
 
 func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -78,6 +89,23 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 
 		return err
 	}
+
+	// TODO: Fetch trust bundles for all peers when peering is supported.
+	trustBundle, err := r.fetchTrustBundle()
+	if err != nil {
+		rt.Logger.Error("error fetching root trust bundle", "error", err)
+		// Set the status.
+		statusCondition = status.ConditionRejectedTrustBundleFetchFailed(status.KeyFromID(req.ID))
+		status.WriteStatusIfChanged(ctx, rt, pstResource, statusCondition)
+		return err
+	}
+
+	if proxyStateTemplate.Template.ProxyState.TrustBundles == nil {
+		proxyStateTemplate.Template.ProxyState.TrustBundles = make(map[string]*pbproxystate.TrustBundle)
+	}
+	// TODO: Figure out the correct key for the default trust bundle.
+	proxyStateTemplate.Template.ProxyState.TrustBundles["local"] = trustBundle
+
 	if proxyStateTemplate.Template.ProxyState.Endpoints == nil {
 		proxyStateTemplate.Template.ProxyState.Endpoints = make(map[string]*pbproxystate.Endpoints)
 	}
@@ -132,7 +160,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 
 	computedProxyState := proxyStateTemplate.Template.ProxyState
 
-	err = r.updater.PushChange(req.ID, computedProxyState)
+	err = r.updater.PushChange(req.ID, &proxytracker.ProxyState{ProxyState: computedProxyState})
 	if err != nil {
 		// Set the status.
 		statusCondition = status.ConditionRejectedPushChangeFailed(status.KeyFromID(req.ID))
