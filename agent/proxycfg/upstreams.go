@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -14,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerUpstreams struct {
@@ -66,14 +63,6 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		uid := UpstreamIDFromString(uidString)
 
 		switch snap.Kind {
-		case structs.ServiceKindAPIGateway:
-			if !snap.APIGateway.UpstreamsSet.hasUpstream(uid) {
-				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
-				// The associated watch was likely cancelled.
-				delete(upstreamsSnapshot.DiscoveryChain, uid)
-				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", uid)
-				return nil
-			}
 		case structs.ServiceKindIngressGateway:
 			if _, ok := snap.IngressGateway.UpstreamsSet[uid]; !ok {
 				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
@@ -529,8 +518,6 @@ type discoveryChainWatchOpts struct {
 func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *ConfigSnapshot, opts discoveryChainWatchOpts) error {
 	var watchedDiscoveryChains map[UpstreamID]context.CancelFunc
 	switch s.kind {
-	case structs.ServiceKindAPIGateway:
-		watchedDiscoveryChains = snap.APIGateway.WatchedDiscoveryChains
 	case structs.ServiceKindIngressGateway:
 		watchedDiscoveryChains = snap.IngressGateway.WatchedDiscoveryChains
 	case structs.ServiceKindConnectProxy:

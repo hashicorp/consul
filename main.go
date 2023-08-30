@@ -1,11 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package main
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -22,7 +19,7 @@ func main() {
 }
 
 func realMain() int {
-	log.SetOutput(io.Discard)
+	log.SetOutput(ioutil.Discard)
 
 	ui := &cli.BasicUI{
 		BasicUi: mcli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr},

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package version
 
 import (
@@ -48,10 +45,6 @@ func (_ *prettyFormatter) Format(info *VersionInfo) (string, error) {
 	}
 
 	buffer.WriteString(fmt.Sprintf("Build Date %s\n", info.BuildDate.Format(time.RFC3339)))
-
-	if info.FIPS != "" {
-		buffer.WriteString(fmt.Sprintf("FIPS: %s\n", info.FIPS))
-	}
 
 	var supplement string
 	if info.RPC.Default < info.RPC.Max {

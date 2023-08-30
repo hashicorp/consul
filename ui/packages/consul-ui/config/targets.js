@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 'use strict';
 
 // Technically this file configures babel transpilation support but we also

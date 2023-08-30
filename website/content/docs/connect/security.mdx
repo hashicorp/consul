@@ -7,20 +7,20 @@ description: >-
 
 # Best Practices for Service Mesh Security
 
-Consul service mesh enables secure service-to-service communication over mutual TLS. This
+Connect enables secure service-to-service communication over mutual TLS. This
 provides both in-transit data encryption as well as authorization. This page
-will document how to secure the service mesh. To try service mesh locally, complete the
-[Getting Started guide](/consul/tutorials/kubernetes-deploy/service-mesh?utm_source=docs) or for a full security model reference,
-see the dedicated [Consul security model](/consul/docs/security) page. When
-setting up service mesh in production, review this [tutorial](/consul/tutorials/developer-mesh/service-mesh-production-checklist?utm_source=consul.io&utm_medium=docs).
+will document how to secure Connect. To try Connect locally, complete the
+[Getting Started guide](https://learn.hashicorp.com/tutorials/consul/service-mesh?utm_source=docs) or for a full security model reference,
+see the dedicated [Consul security model](/docs/security) page. When
+setting up Connect in production, review this [tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-production-checklist?utm_source=consul.io&utm_medium=docs).
 
-Consul service mesh will function in any Consul configuration. However, unless the checklist
-below is satisfied, the service mesh is not providing the security guarantees it was
+Connect will function in any Consul configuration. However, unless the checklist
+below is satisfied, Connect is not providing the security guarantees it was
 built for. The checklist below can be incrementally adopted towards full
 security if you prefer to operate in less secure models initially.
 
 ~> **Warning**: The checklist below should not be considered exhaustive. Please
-read and understand the [Consul security model](/consul/docs/security)
+read and understand the [Consul security model](/docs/security)
 in depth to assess whether your deployment satisfies the security requirements
 of Consul.
 
@@ -31,10 +31,10 @@ of Consul.
 Consul must be configured to use ACLs with a default deny policy. This forces
 all requests to have explicit anonymous access or provide an ACL token. The
 configuration also forces all service-to-service communication to be explicitly
-allowed via an allow [intention](/consul/docs/connect/intentions).
+allowed via an allow [intention](/docs/connect/intentions).
 
 To learn how to enable ACLs, please see the
-[tutorial on ACLs](/consul/tutorials/security/access-control-setup-production).
+[tutorial on ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 **If ACLs are enabled but are in default allow mode**, then services will be
 able to communicate by default. Additionally, if a proper anonymous token
@@ -49,10 +49,10 @@ TCP and UDP encryption must be enabled to prevent plaintext communication
 between Consul agents. At a minimum, `verify_outgoing` should be enabled
 to verify server authenticity with each server having a unique TLS certificate.
 `verify_incoming` provides additional agent verification, but doesn't directly
-affect service mesh since requests must also always contain a valid ACL token.
+affect Connect since requests must also always contain a valid ACL token.
 Clients calling Consul APIs should be forced over encrypted connections.
 
-See the [Consul agent encryption page](/consul/docs/security/encryption) to
+See the [Consul agent encryption page](/docs/security/encryption) to
 learn more about configuring agent encryption.
 
 **If encryption is not enabled**, a malicious actor can sniff network
@@ -66,17 +66,17 @@ clients and servers should be protected from unauthorized access. This
 protection must be done outside of Consul via access control systems provided
 by your target operating system.
 
-The [full Consul security model](/consul/docs/security) explains the
+The [full Consul security model](/docs/security) explains the
 risk of unauthorized access for both client agents and server agents. In
 general, the blast radius of unauthorized access for client agent directories
 is much smaller than servers. However, both must be protected against
 unauthorized access.
 
-### Prevent Non-Mesh Traffic to Services
+### Prevent Non-Connect Traffic to Services
 
 For services that are using
-[proxies](/consul/docs/connect/proxies)
-(are not [natively integrated](/consul/docs/connect/native)),
+[proxies](/docs/connect/proxies)
+(are not [natively integrated](/docs/connect/native)),
 network access via their unencrypted listeners must be restricted
 to only the proxy. This requires at a minimum restricting the listener
 to bind to loopback only. More complex solutions may involve using
@@ -85,16 +85,16 @@ network namespacing techniques provided by the underlying operating system.
 For scenarios where multiple services are running on the same machine
 without isolation, these services must all be trusted. We call this the
 **trusted multi-tenancy** deployment model. Any service could theoretically
-connect to any other service via the loopback listener, bypassing the service mesh
+connect to any other service via the loopback listener, bypassing Connect
 completely. In this scenario, all services must be trusted _or_ isolation
 mechanisms must be used.
 
 For developer or operator access to a service, we recommend
-using a local service mesh proxy. This is documented in the
-[development and debugging guide](/consul/docs/connect/dev).
+using a local Connect proxy. This is documented in the
+[development and debugging guide](/docs/connect/dev).
 
 **If non-proxy traffic can communicate with the service**, this traffic
-will not be encrypted or authorized via service mesh.
+will not be encrypted or authorized via Connect.
 
 ### Restrict Access to Envoy's Administration Interface
 
@@ -111,6 +111,6 @@ We **strongly advise** only exposing the administration interface on a loopback
 address (default configuration) and restricting access to a subset of users.
 
 **If the administration interface is exposed externally**, for
-example by specifying a routable [`-admin-bind`](/consul/commands/connect/envoy#admin-bind)
+example by specifying a routable [`-admin-bind`](/commands/connect/envoy#admin-bind)
 address, it may be possible for a malicious actor to gain access to Envoy's
 configuration, or impact the service's availability within the cluster.

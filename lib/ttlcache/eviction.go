@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 /*
 Package ttlcache provides an ExpiryHeap that can be used by a cache to track the
 expiration time of its entries. When an expiry is reached the Timer will fire

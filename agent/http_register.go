@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 func init() {
@@ -29,7 +26,6 @@ func init() {
 	registerEndpoint("/v1/agent/token/", []string{"PUT"}, (*HTTPHandlers).AgentToken)
 	registerEndpoint("/v1/agent/self", []string{"GET"}, (*HTTPHandlers).AgentSelf)
 	registerEndpoint("/v1/agent/host", []string{"GET"}, (*HTTPHandlers).AgentHost)
-	registerEndpoint("/v1/agent/version", []string{"GET"}, (*HTTPHandlers).AgentVersion)
 	registerEndpoint("/v1/agent/maintenance", []string{"PUT"}, (*HTTPHandlers).AgentNodeMaintenance)
 	registerEndpoint("/v1/agent/reload", []string{"PUT"}, (*HTTPHandlers).AgentReload)
 	registerEndpoint("/v1/agent/monitor", []string{"GET"}, (*HTTPHandlers).AgentMonitor)
@@ -101,13 +97,10 @@ func init() {
 	registerEndpoint("/v1/internal/ui/gateway-intentions/", []string{"GET"}, (*HTTPHandlers).UIGatewayIntentions)
 	registerEndpoint("/v1/internal/ui/service-topology/", []string{"GET"}, (*HTTPHandlers).UIServiceTopology)
 	registerEndpoint("/v1/internal/acl/authorize", []string{"POST"}, (*HTTPHandlers).ACLAuthorize)
-	registerEndpoint("/v1/internal/service-virtual-ip", []string{"PUT"}, (*HTTPHandlers).AssignManualServiceVIPs)
 	registerEndpoint("/v1/kv/", []string{"GET", "PUT", "DELETE"}, (*HTTPHandlers).KVSEndpoint)
 	registerEndpoint("/v1/operator/raft/configuration", []string{"GET"}, (*HTTPHandlers).OperatorRaftConfiguration)
-	registerEndpoint("/v1/operator/raft/transfer-leader", []string{"POST"}, (*HTTPHandlers).OperatorRaftTransferLeader)
 	registerEndpoint("/v1/operator/raft/peer", []string{"DELETE"}, (*HTTPHandlers).OperatorRaftPeer)
 	registerEndpoint("/v1/operator/keyring", []string{"GET", "POST", "PUT", "DELETE"}, (*HTTPHandlers).OperatorKeyringEndpoint)
-	registerEndpoint("/v1/operator/usage", []string{"GET"}, (*HTTPHandlers).OperatorUsage)
 	registerEndpoint("/v1/operator/autopilot/configuration", []string{"GET", "PUT"}, (*HTTPHandlers).OperatorAutopilotConfiguration)
 	registerEndpoint("/v1/operator/autopilot/health", []string{"GET"}, (*HTTPHandlers).OperatorServerHealth)
 	registerEndpoint("/v1/operator/autopilot/state", []string{"GET"}, (*HTTPHandlers).OperatorAutopilotState)
@@ -129,4 +122,14 @@ func init() {
 	registerEndpoint("/v1/status/peers", []string{"GET"}, (*HTTPHandlers).StatusPeers)
 	registerEndpoint("/v1/snapshot", []string{"GET", "PUT"}, (*HTTPHandlers).Snapshot)
 	registerEndpoint("/v1/txn", []string{"PUT"}, (*HTTPHandlers).Txn)
+
+	// Deprecated ACL endpoints, they do nothing but return an error
+	registerEndpoint("/v1/acl/create", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/update", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/destroy/", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/info/", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/clone/", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/list", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/rules/translate", []string{"POST"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/rules/translate/", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
 }

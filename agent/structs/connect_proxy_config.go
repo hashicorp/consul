@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 
@@ -38,15 +34,6 @@ const (
 	// MeshGatewayModeRemote represents that the Upstream Connect connections
 	// should be made to a mesh gateway in a remote datacenter.
 	MeshGatewayModeRemote MeshGatewayMode = "remote"
-)
-
-type LogSinkType string
-
-const (
-	DefaultLogSinkType LogSinkType = ""
-	FileLogSinkType    LogSinkType = "file"
-	StdErrLogSinkType  LogSinkType = "stderr"
-	StdOutLogSinkType  LogSinkType = "stdout"
 )
 
 const (
@@ -152,83 +139,8 @@ func (c TransparentProxyConfig) ToAPI() *api.TransparentProxyConfig {
 }
 
 func (c *TransparentProxyConfig) IsZero() bool {
-	if c == nil {
-		return true
-	}
 	zeroVal := TransparentProxyConfig{}
 	return *c == zeroVal
-}
-
-// AccessLogsConfig contains the associated default settings for all Envoy instances within the datacenter or partition
-type AccessLogsConfig struct {
-	// Enabled turns off all access logging
-	Enabled bool `json:",omitempty" alias:"enabled"`
-
-	// DisableListenerLogs turns off just listener logs for connections rejected by Envoy because they don't
-	// have a matching listener filter.
-	DisableListenerLogs bool `json:",omitempty" alias:"disable_listener_logs"`
-
-	// Type selects the output for logs: "file", "stderr". "stdout"
-	Type LogSinkType `json:",omitempty" alias:"type"`
-
-	// Path is the output file to write logs
-	Path string `json:",omitempty" alias:"path"`
-
-	// The presence of one format string or the other implies the access log string encoding.
-	// Defining Both is invalid.
-	JSONFormat string `json:",omitempty" alias:"json_format"`
-	TextFormat string `json:",omitempty" alias:"text_format"`
-}
-
-func (c *AccessLogsConfig) IsZero() bool {
-	if c == nil {
-		return true
-	}
-	zeroVal := AccessLogsConfig{}
-	return *c == zeroVal
-}
-
-func (c *AccessLogsConfig) ToAPI() *api.AccessLogsConfig {
-	if c.IsZero() {
-		return nil
-	}
-	return &api.AccessLogsConfig{
-		Enabled:             c.Enabled,
-		DisableListenerLogs: c.DisableListenerLogs,
-		Type:                api.LogSinkType(c.Type),
-		Path:                c.Path,
-		JSONFormat:          c.JSONFormat,
-		TextFormat:          c.TextFormat,
-	}
-}
-
-func (c *AccessLogsConfig) Validate() error {
-	switch c.Type {
-	case DefaultLogSinkType, StdErrLogSinkType, StdOutLogSinkType:
-		// OK
-	case FileLogSinkType:
-		if c.Path == "" {
-			return errors.New("path must be specified when using file type access logs")
-		}
-	default:
-		return fmt.Errorf("invalid access log type: %s", c.Type)
-	}
-
-	if c.JSONFormat != "" && c.TextFormat != "" {
-		return errors.New("cannot specify both access log JSONFormat and TextFormat")
-	}
-
-	if c.Type != FileLogSinkType && c.Path != "" {
-		return errors.New("path is only valid for file type access logs")
-	}
-
-	if c.JSONFormat != "" {
-		msg := json.RawMessage{}
-		if err := json.Unmarshal([]byte(c.JSONFormat), &msg); err != nil {
-			return fmt.Errorf("invalid access log json for JSON format: %w", err)
-		}
-	}
-	return nil
 }
 
 // ConnectProxyConfig describes the configuration needed for any proxy managed
@@ -237,9 +149,6 @@ func (c *AccessLogsConfig) Validate() error {
 // centralized proxy that routed traffic for multiple services, a different one
 // of these would be needed for each, sharing the same LogicalProxyID.
 type ConnectProxyConfig struct {
-	// EnvoyExtensions are the list of Envoy extensions configured for the local service.
-	EnvoyExtensions []EnvoyExtension `json:",omitempty" alias:"envoy_extensions"`
-
 	// DestinationServiceName is required and is the name of the service to accept
 	// traffic for.
 	DestinationServiceName string `json:",omitempty" alias:"destination_service_name"`
@@ -288,12 +197,6 @@ type ConnectProxyConfig struct {
 	// TransparentProxy defines configuration for when the proxy is in
 	// transparent mode.
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-
-	// MutualTLSMode allows configuring the proxy to allow non-mTLS traffic.
-	MutualTLSMode MutualTLSMode `json:"-" bexpr:"-"`
-
-	// AccessLogs configures the output and format of Envoy access logs
-	AccessLogs AccessLogsConfig `json:",omitempty" alias:"access_logs"`
 }
 
 func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
@@ -306,7 +209,6 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 		LocalServiceSocketPathSnake string                 `json:"local_service_socket_path"`
 		MeshGatewaySnake            MeshGatewayConfig      `json:"mesh_gateway"`
 		TransparentProxySnake       TransparentProxyConfig `json:"transparent_proxy"`
-		AccessLogsSnake             AccessLogsConfig       `json:"access_logs"`
 		*Alias
 	}{
 		Alias: (*Alias)(t),
@@ -338,24 +240,7 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	if !t.TransparentProxy.DialedDirectly {
 		t.TransparentProxy.DialedDirectly = aux.TransparentProxySnake.DialedDirectly
 	}
-	if !t.AccessLogs.Enabled {
-		t.AccessLogs.Enabled = aux.AccessLogsSnake.Enabled
-	}
-	if !t.AccessLogs.DisableListenerLogs {
-		t.AccessLogs.DisableListenerLogs = aux.AccessLogsSnake.DisableListenerLogs
-	}
-	if t.AccessLogs.Type == "" {
-		t.AccessLogs.Type = aux.AccessLogsSnake.Type
-	}
-	if t.AccessLogs.Path == "" {
-		t.AccessLogs.Path = aux.AccessLogsSnake.Path
-	}
-	if t.AccessLogs.JSONFormat == "" {
-		t.AccessLogs.JSONFormat = aux.AccessLogsSnake.JSONFormat
-	}
-	if t.AccessLogs.TextFormat == "" {
-		t.AccessLogs.TextFormat = aux.AccessLogsSnake.TextFormat
-	}
+
 	return nil
 }
 
@@ -363,7 +248,6 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 	type Alias ConnectProxyConfig
 	out := struct {
 		TransparentProxy *TransparentProxyConfig `json:",omitempty"`
-		AccessLogs       *AccessLogsConfig       `json:",omitempty"`
 		Alias
 	}{
 		Alias: (Alias)(*c),
@@ -377,10 +261,6 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 
 	if !c.TransparentProxy.IsZero() {
 		out.TransparentProxy = &out.Alias.TransparentProxy
-	}
-
-	if !c.AccessLogs.IsZero() {
-		out.AccessLogs = &out.Alias.AccessLogs
 	}
 
 	return json.Marshal(&out)
@@ -403,7 +283,6 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		Upstreams:              c.Upstreams.ToAPI(),
 		MeshGateway:            c.MeshGateway.ToAPI(),
 		Expose:                 c.Expose.ToAPI(),
-		AccessLogs:             c.AccessLogs.ToAPI(),
 	}
 }
 

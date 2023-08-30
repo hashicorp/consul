@@ -1,12 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package autoconf
 
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"sync"
 	"time"
 
@@ -17,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbautoconf"
 )
 
 // AutoConfig is all the state necessary for being able to parse a configuration
@@ -211,7 +208,7 @@ func (ac *AutoConfig) introToken() (string, error) {
 	token := conf.IntroToken
 	if token == "" {
 		// load the intro token from the file
-		content, err := os.ReadFile(conf.IntroTokenFile)
+		content, err := ioutil.ReadFile(conf.IntroTokenFile)
 		if err != nil {
 			return "", fmt.Errorf("Failed to read intro token from file: %w", err)
 		}

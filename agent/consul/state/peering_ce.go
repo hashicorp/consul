@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
 // +build !consulent
 
@@ -10,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func indexPeeringFromQuery(q Query) ([]byte, error) {

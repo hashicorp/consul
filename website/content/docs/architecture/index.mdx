@@ -7,29 +7,29 @@ description: >-
 
 # Consul Architecture
 
-This topic provides an overview of the Consul architecture. We recommend reviewing the Consul [glossary](/consul/docs/install/glossary) as a companion to this topic to help you become familiar with HashiCorp terms.
+This topic provides an overview of the Consul architecture. We recommend reviewing the Consul [glossary](/docs/install/glossary) as a companion to this topic to help you become familiar with HashiCorp terms.
 
-> Refer to the [Reference Architecture tutorial](/consul/tutorials/production-deploy/reference-architecture) for hands-on guidance about deploying Consul in production.
+> Refer to the [Reference Architecture tutorial](https://learn.hashicorp.com/tutorials/consul/reference-architecture) for hands-on guidance about deploying Consul in production.
 
 ## Introduction
 
 Consul provides a control plane that enables you to register, access, and secure services deployed across your network. The _control plane_ is the part of the network infrastructure that maintains a central registry to track services and their respective IP addresses. 
 
-When using Consul’s service mesh capabilities, Consul dynamically configures sidecar and gateway proxies in the request path, which enables you to authorize service-to-service connections, route requests to healthy service instances, and enforce mTLS encryption without modifying your service’s code. This ensures that communication remains performant and reliable. Refer to [Service Mesh Proxy Overview](/consul/docs/connect/proxies) for an overview of sidecar proxies.
+When using Consul’s service mesh capabilities, Consul dynamically configures sidecar and gateway proxies in the request path, which enables you to authorize service-to-service connections, route requests to healthy service instances, and enforce mTLS encryption without modifying your service’s code. This ensures that communication remains performant and reliable. Refer to [Service Mesh Proxy Overview](/docs/connect/proxies) for an overview of sidecar proxies.
 
 ![Diagram of the Consul control plane](/img/consul-arch/consul-arch-overview-control-plane.svg)
 
 ## Datacenters
 
-The Consul control plane contains one or more _datacenters_. A datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations. A datacenter contains at least one [Consul server agent](#server-agents), but a real-world deployment contains three or five server agents and several [Consul client agents](#client-agents). You can create multiple datacenters and allow nodes in different datacenters to interact with each other. Refer to [Bootstrap a Datacenter](/consul/docs/install/bootstrapping) for information about how to create a datacenter.
+The Consul control plane contains one or more _datacenters_. A datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations. A datacenter contains at least one [Consul server agent](#server-agents), but a real-world deployment contains three or five server agents and several [Consul client agents](#client-agents). You can create multiple datacenters and allow nodes in different datacenters to interact with each other. Refer to [Bootstrap a Datacenter](/docs/install/bootstrapping) for information about how to create a datacenter.
 
 ### Clusters
 
-A collection of Consul agents that are aware of each other is called a _cluster_. The terms _datacenter_ and _cluster_ are often used interchangeably. In some cases, however, _cluster_ refers only to Consul server agents, such as in [HCP Consul](https://cloud.hashicorp.com/products/consul). In other contexts, such as the [_admin partitions_](/consul/docs/enterprise/admin-partitions) feature included with Consul Enterprise, a cluster may refer to collection of client agents.
+A collection of Consul agents that are aware of each other is called a _cluster_. The terms _datacenter_ and _cluster_ are often used interchangeably. In some cases, however, _cluster_ refers only to Consul server agents, such as in [HCP Consul](https://cloud.hashicorp.com/products/consul). In other contexts, such as the [_admin partitions_](/docs/enterprise/admin-partitions) feature included with Consul Enterprise, a cluster may refer to collection of client agents.
 
 ## Agents
 
-You can run the Consul binary to start Consul _agents_, which are daemons that implement Consul control plane functionality. You can start agents as servers or clients. Refer to [Consul Agent](/consul/docs/agent) for additional information.
+You can run the Consul binary to start Consul _agents_, which are daemons that implement Consul control plane functionality. You can start agents as servers or clients. Refer to [Consul Agent](/docs/agent) for additional information.
 
 ### Server agents
 
@@ -41,7 +41,7 @@ Consul clusters elect a single server to be the _leader_ through a process calle
 
 Servers that are not currently acting as the cluster leader are called _followers_. Followers forward requests from client agents to the cluster leader. The leader replicates the requests to all other servers in the cluster. Replication ensures that if the leader is unavailable, other servers in the cluster can elect another leader without losing any data. 
 
-Consul servers establish consensus using the Raft algorithm on port `8300`. Refer to [Consensus Protocol](/consul/docs/architecture/consensus) for additional information.
+Consul servers establish consensus using the Raft algorithm on port `8300`. Refer to [Consensus Protocol](/docs/architecture/consensus) for additional information.
 
 ![Diagram of the Consul control plane consensus traffic](/img/consul-arch/consul-arch-overview-consensus.svg)
 
@@ -51,7 +51,7 @@ Consul clients report node and service health status to the Consul cluster. In a
 
 There are no limits to the number of client agents or services you can use with Consul, but production deployments should distribute services across multiple Consul datacenters. Using a multi-datacenter deployment enhances infrastructure resilience and limits control plane issues. We recommend deploying a maximum of 5,000 client agents per datacenter. Some large organizations have deployed tens of thousands of client agents and hundreds of thousands of service instances across a multi-datacenter deployment. Refer to [Cross-datacenter requests](#cross-datacenter-requests) for additional information.
 
-You can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified Service Mesh with Consul Dataplanes](/consul/docs/connect/dataplane) for more information.
+You can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified Service Mesh with Consul Dataplanes](/docs/connect/dataplane) for more information.
 
 ## LAN gossip pool
 
@@ -85,13 +85,13 @@ In this model, when a client agent requests a resource in a remote secondary dat
 
 You can configure control plane and data plane traffic to go through mesh gateways, which simplifies networking requirements.
 
-> **Hands-on**: To enable services to communicate across datacenters when the ACL system is enabled, refer to the [ACL Replication for Multiple Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters) tutorial. 
+> **Hands-on**: To enable services to communicate across datacenters when the ACL system is enabled, refer to the [ACL Replication for Multiple Datacenters](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters) tutorial. 
 
 #### WAN gossip pool
 
 Servers may also participate in a WAN gossip pool, which is optimized for greater latency imposed by the Internet. The pool enables servers to exchange information, such as their addresses and health, and gracefully handle loss of connectivity in the event of a failure.
 
-In the following diagram, the servers in each data center participate in a WAN gossip pool by sending data over TCP/UDP on port `8302`. Refer to [Gossip Protocol](/consul/docs/architecture/gossip) for additional information. 
+In the following diagram, the servers in each data center participate in a WAN gossip pool by sending data over TCP/UDP on port `8302`. Refer to [Gossip Protocol](/docs/architecture/gossip) for additional information. 
 
 <Tabs>
 
@@ -109,6 +109,6 @@ In the following diagram, the servers in each data center participate in a WAN g
 
 ### Cluster peering
 
-You can create peering connections between two or more independent clusters so that services deployed to different datacenters or admin partitions can communicate. An [admin partition](/consul/docs/enterprise/admin-partitions) is a feature in Consul Enterprise that enables you to define isolated network regions that use the same Consul servers. In the cluster peering model, you create a token in one of the datacenters or partitions and configure another datacenter or partition to present the token to establish the connection. 
+You can create peering connections between two or more independent clusters so that services deployed to different datacenters or admin partitions can communicate. An [admin partition](/docs/enterprise/admin-partitions) is a feature in Consul Enterprise that enables you to define isolated network regions that use the same Consul servers. In the cluster peering model, you create a token in one of the datacenters or partitions and configure another datacenter or partition to present the token to establish the connection. 
  
-Refer to [What is Cluster Peering?](/consul/docs/connect/cluster-peering) for additional information.
+Refer to [What is Cluster Peering?](/docs/connect/cluster-peering) for additional information.

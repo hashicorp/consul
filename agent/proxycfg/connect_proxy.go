@@ -1,25 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/base64"
 	"fmt"
-	"path"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
-
-	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerConnectProxy struct {
@@ -71,7 +60,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	}
 
 	// Watch the leaf cert
-	err = s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
+	err = s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 		Datacenter:     s.source.Datacenter,
 		Token:          s.token,
 		Service:        s.proxyCfg.DestinationServiceName,
@@ -88,20 +77,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
 		ServiceName:    s.proxyCfg.DestinationServiceName,
 	}, intentionsWatchID, s.ch)
-	if err != nil {
-		return snap, err
-	}
-
-	// Watch for JWT provider updates.
-	// While we could optimize by only watching providers referenced by intentions,
-	// this should be okay because we expect few JWT providers and infrequent JWT
-	// provider updates.
-	err = s.dataSources.ConfigEntryList.Notify(ctx, &structs.ConfigEntryQuery{
-		Kind:           structs.JWTProvider,
-		Datacenter:     s.source.Datacenter,
-		QueryOptions:   structs.QueryOptions{Token: s.token},
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
-	}, jwtProviderID, s.ch)
 	if err != nil {
 		return snap, err
 	}
@@ -126,10 +101,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	}, svcChecksWatchIDPrefix+structs.ServiceIDString(s.proxyCfg.DestinationServiceID, &s.proxyID.EnterpriseMeta), s.ch)
 	if err != nil {
 		return snap, err
-	}
-
-	if err := s.maybeInitializeTelemetryCollectorWatches(ctx, snap); err != nil {
-		return snap, fmt.Errorf("failed to initialize telemetry collector watches: %w", err)
 	}
 
 	if s.proxyCfg.Mode == structs.ProxyModeTransparent {
@@ -331,30 +302,13 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.InboundPeerTrustBundlesSet = true
 
 	case u.CorrelationID == intentionsWatchID:
-		resp, ok := u.Result.(structs.SimplifiedIntentions)
+		resp, ok := u.Result.(structs.Intentions)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.ConnectProxy.Intentions = resp
 		snap.ConnectProxy.IntentionsSet = true
 
-	case u.CorrelationID == jwtProviderID:
-		resp, ok := u.Result.(*structs.IndexedConfigEntries)
-
-		if !ok {
-			return fmt.Errorf("invalid type for response: %T", u.Result)
-		}
-
-		providers := make(map[string]*structs.JWTProviderConfigEntry, len(resp.Entries))
-		for _, entry := range resp.Entries {
-			jwtEntry, ok := entry.(*structs.JWTProviderConfigEntry)
-			if !ok {
-				return fmt.Errorf("invalid type for response: %T", entry)
-			}
-			providers[jwtEntry.Name] = jwtEntry
-		}
-
-		snap.JWTProviders = providers
 	case u.CorrelationID == peeredUpstreamsID:
 		resp, ok := u.Result.(*structs.IndexedPeeredServiceList)
 		if !ok {
@@ -657,76 +611,6 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 
 	default:
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)
-	}
-	return nil
-}
-
-// telemetryCollectorConfig represents the basic opaque config values for pushing telemetry to
-// a consul telemetry collector.
-type telemetryCollectorConfig struct {
-	// TelemetryCollectorBindSocketDir is a string that configures the directory for a
-	// unix socket where Envoy will forward metrics. These metrics get pushed to
-	// the Consul Telemetry collector.
-	TelemetryCollectorBindSocketDir string `mapstructure:"envoy_telemetry_collector_bind_socket_dir"`
-}
-
-func parseTelemetryCollectorConfig(m map[string]interface{}) (telemetryCollectorConfig, error) {
-	var cfg telemetryCollectorConfig
-	err := mapstructure.WeakDecode(m, &cfg)
-
-	if err != nil {
-		return cfg, fmt.Errorf("failed to decode: %w", err)
-	}
-
-	return cfg, nil
-}
-
-// maybeInitializeTelemetryCollectorWatches will initialize a synthetic upstream and discovery chain
-// watch for the consul telemetry collector, if telemetry data collection is enabled on the proxy registration.
-func (s *handlerConnectProxy) maybeInitializeTelemetryCollectorWatches(ctx context.Context, snap ConfigSnapshot) error {
-	cfg, err := parseTelemetryCollectorConfig(s.proxyCfg.Config)
-	if err != nil {
-		s.logger.Error("failed to parse connect.proxy.config", "error", err)
-	}
-
-	if cfg.TelemetryCollectorBindSocketDir == "" {
-		// telemetry collection is not enabled, return early.
-		return nil
-	}
-
-	// The path includes the proxy ID so that when multiple proxies are on the same host
-	// they each have a distinct path to send their telemetry data.
-	id := s.proxyID.NamespaceOrDefault() + "_" + s.proxyID.ID
-
-	// UNIX domain sockets paths have a max length of 108, so we take a hash of the compound ID
-	// to limit the length of the socket path.
-	h := sha1.New()
-	h.Write([]byte(id))
-	hash := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
-	path := path.Join(cfg.TelemetryCollectorBindSocketDir, hash+".sock")
-
-	upstream := structs.Upstream{
-		DestinationNamespace: acl.DefaultNamespaceName,
-		DestinationPartition: s.proxyID.PartitionOrDefault(),
-		DestinationName:      api.TelemetryCollectorName,
-		LocalBindSocketPath:  path,
-		Config: map[string]interface{}{
-			"protocol": "grpc",
-		},
-	}
-	uid := NewUpstreamID(&upstream)
-	snap.ConnectProxy.UpstreamConfig[uid] = &upstream
-
-	err = s.dataSources.CompiledDiscoveryChain.Notify(ctx, &structs.DiscoveryChainRequest{
-		Datacenter:           s.source.Datacenter,
-		QueryOptions:         structs.QueryOptions{Token: s.token},
-		Name:                 upstream.DestinationName,
-		EvaluateInDatacenter: s.source.Datacenter,
-		EvaluateInNamespace:  uid.NamespaceOrDefault(),
-		EvaluateInPartition:  uid.PartitionOrDefault(),
-	}, "discovery-chain:"+uid.String(), s.ch)
-	if err != nil {
-		return fmt.Errorf("failed to watch discovery chain for %s: %v", uid.String(), err)
 	}
 	return nil
 }

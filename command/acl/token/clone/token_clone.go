@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package tokenclone
 
 import (
@@ -27,16 +24,14 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenAccessorID string
-	description     string
-	format          string
-
-	tokenID string // DEPRECATED
+	tokenID     string
+	description string
+	format      string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.StringVar(&c.tokenAccessorID, "accessor-id", "", "The Accessor ID of the token to clone. "+
+	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to clone. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs. The special value of 'anonymous' may "+
 		"be provided instead of the anonymous tokens accessor ID")
@@ -52,10 +47,6 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
-
-	// Deprecations
-	c.flags.StringVar(&c.tokenID, "id", "",
-		"DEPRECATED. Use -accessor-id instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -63,15 +54,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tokenAccessor := c.tokenAccessorID
-	if tokenAccessor == "" {
-		if c.tokenID == "" {
-			c.UI.Error("Cannot update a token without specifying the -accessor-id parameter")
-			return 1
-		} else {
-			tokenAccessor = c.tokenID
-			c.UI.Warn("The -id parameter is deprecated. Use the -accessor-id parameter instead.")
-		}
+	if c.tokenID == "" {
+		c.UI.Error(fmt.Sprintf("Cannot update a token without specifying the -id parameter"))
+		return 1
 	}
 
 	client, err := c.http.APIClient()
@@ -80,13 +65,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tok, err := acl.GetTokenAccessorIDFromPartial(client, tokenAccessor)
+	tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error determining token Accessor ID: %v", err))
+		c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
 		return 1
 	}
 
-	t, _, err := client.ACL().TokenClone(tok, c.description, nil)
+	t, _, err := client.ACL().TokenClone(tokenID, c.description, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error cloning token: %v", err))
 		return 1
@@ -127,6 +112,6 @@ Usage: consul acl token clone [options]
 
     Example:
 
-        $ consul acl token clone -accessor-id abcd -description "replication"
+        $ consul acl token clone -id abcd -description "replication"
 `
 )

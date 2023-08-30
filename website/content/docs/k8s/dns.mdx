@@ -17,12 +17,12 @@ Once configured, DNS requests in the form `<consul-service-name>.service.consul`
 resolve for services in Consul. This will work from all Kubernetes namespaces.
 
 -> **Note:** If you want requests to just `<consul-service-name>` (without the `.service.consul`) to resolve, then you'll need
-to turn on [Consul to Kubernetes Service Sync](/consul/docs/k8s/service-sync#consul-to-kubernetes).
+to turn on [Consul to Kubernetes Service Sync](/docs/k8s/service-sync#consul-to-kubernetes).
 
 ## Consul DNS Cluster IP
 
 To configure KubeDNS or CoreDNS you'll first need the `ClusterIP` of the Consul
-DNS service created by the [Helm chart](/consul/docs/k8s/helm).
+DNS service created by the [Helm chart](/docs/k8s/helm).
 
 The default name of the Consul DNS service will be `consul-dns`. Use
 that name to get the `ClusterIP`:

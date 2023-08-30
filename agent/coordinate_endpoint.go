@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -50,7 +47,7 @@ func (s *HTTPHandlers) CoordinateDatacenters(resp http.ResponseWriter, req *http
 	}
 
 	var out []structs.DatacenterMap
-	if err := s.agent.RPC(req.Context(), "Coordinate.ListDatacenters", struct{}{}, &out); err != nil {
+	if err := s.agent.RPC("Coordinate.ListDatacenters", struct{}{}, &out); err != nil {
 		for i := range out {
 			sort.Sort(&sorter{out[i].Coordinates})
 		}
@@ -88,7 +85,7 @@ func (s *HTTPHandlers) CoordinateNodes(resp http.ResponseWriter, req *http.Reque
 
 	var out structs.IndexedCoordinates
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC(req.Context(), "Coordinate.ListNodes", &args, &out); err != nil {
+	if err := s.agent.RPC("Coordinate.ListNodes", &args, &out); err != nil {
 		sort.Sort(&sorter{out.Coordinates})
 		return nil, err
 	}
@@ -114,7 +111,7 @@ func (s *HTTPHandlers) CoordinateNode(resp http.ResponseWriter, req *http.Reques
 
 	var out structs.IndexedCoordinates
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC(req.Context(), "Coordinate.Node", &args, &out); err != nil {
+	if err := s.agent.RPC("Coordinate.Node", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -167,7 +164,7 @@ func (s *HTTPHandlers) CoordinateUpdate(resp http.ResponseWriter, req *http.Requ
 	}
 
 	var reply struct{}
-	if err := s.agent.RPC(req.Context(), "Coordinate.Update", &args, &reply); err != nil {
+	if err := s.agent.RPC("Coordinate.Update", &args, &reply); err != nil {
 		return nil, err
 	}
 

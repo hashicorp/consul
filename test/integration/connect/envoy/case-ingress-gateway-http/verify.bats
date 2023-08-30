@@ -23,11 +23,11 @@ load helpers
 }
 
 @test "ingress-gateway should have healthy endpoints for s1" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
+   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
 
 @test "ingress-gateway should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s2 HEALTHY 1
+   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s2 HEALTHY 1
 }
 
 @test "ingress should be able to connect to s1 via configured path" {

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default function (visitable, attribute, present, submitable, deletable, cancelable) {
   return {
     visit: visitable(['/:dc/kv/:kv/edit', '/:dc/kv/create'], function (str) {

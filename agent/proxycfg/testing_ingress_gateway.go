@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -10,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -88,11 +84,11 @@ func TestConfigSnapshotIngressGateway(
 			},
 		}})
 
-		upstreams := structs.TestUpstreams(t, false)
+		upstreams := structs.TestUpstreams(t)
 		upstreams = structs.Upstreams{upstreams[0]} // just keep 'db'
 
 		baseEvents = testSpliceEvents(baseEvents, setupTestVariationConfigEntriesAndSnapshot(
-			t, variation, false, upstreams, additionalEntries...,
+			t, variation, upstreams, additionalEntries...,
 		))
 	}
 
@@ -106,47 +102,6 @@ func TestConfigSnapshotIngressGateway(
 	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
 }
 
-// TestConfigSnapshotIngressGateway_NilConfigEntry is used to test when
-// the update event for the config entry returns nil
-// since this always happens on the first watch if it doesn't exist.
-func TestConfigSnapshotIngressGateway_NilConfigEntry(
-	t testing.T,
-) *ConfigSnapshot {
-	roots, placeholderLeaf := TestCerts(t)
-
-	baseEvents := []UpdateEvent{
-		{
-			CorrelationID: rootsWatchID,
-			Result:        roots,
-		},
-		{
-			CorrelationID: gatewayConfigWatchID,
-			Result: &structs.ConfigEntryResponse{
-				Entry: nil, // The first watch on a config entry will return nil if the config entry doesn't exist.
-			},
-		},
-		{
-			CorrelationID: leafWatchID,
-			Result:        placeholderLeaf,
-		},
-		{
-			CorrelationID: gatewayServicesWatchID,
-			Result: &structs.IndexedGatewayServices{
-				Services: nil,
-			},
-		},
-	}
-
-	return testConfigSnapshotFixture(t, &structs.NodeService{
-		Kind:            structs.ServiceKindIngressGateway,
-		Service:         "ingress-gateway",
-		Port:            9999,
-		Address:         "1.2.3.4",
-		Meta:            nil,
-		TaggedAddresses: nil,
-	}, nil, nil, testSpliceEvents(baseEvents, nil))
-}
-
 func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *ConfigSnapshot {
 	secureUID := UpstreamIDFromString("secure")
 	secureChain := discoverychain.TestCompileConfigEntries(
@@ -156,7 +111,6 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *Con
 		"default",
 		"dc1",
 		connect.TestClusterID+".consul",
-		nil,
 		nil,
 	)
 
@@ -168,7 +122,6 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *Con
 		"default",
 		"dc1",
 		connect.TestClusterID+".consul",
-		nil,
 		nil,
 	)
 
@@ -279,16 +232,15 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayAndListenerLevel(t testing.T) *C
 }
 
 func TestConfigSnapshotIngressGatewaySDS_GatewayAndListenerLevel_HTTP(t testing.T) *ConfigSnapshot {
-	set := configentry.NewDiscoveryChainSet()
-	set.AddEntries(&structs.ServiceConfigEntry{
-		Kind:     structs.ServiceDefaults,
-		Name:     "http",
-		Protocol: "http",
-	})
 	var (
 		http      = structs.NewServiceName("http", nil)
 		httpUID   = NewUpstreamIDFromServiceName(http)
-		httpChain = discoverychain.TestCompileConfigEntries(t, "http", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+		httpChain = discoverychain.TestCompileConfigEntries(t, "http", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
+			&structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "http",
+				Protocol: "http",
+			})
 	)
 
 	return TestConfigSnapshotIngressGateway(t, false, "http", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
@@ -349,11 +301,11 @@ func TestConfigSnapshotIngressGatewaySDS_ServiceLevel(t testing.T) *ConfigSnapsh
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 
 	return TestConfigSnapshotIngressGateway(t, false, "tcp", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
@@ -440,11 +392,11 @@ func TestConfigSnapshotIngressGatewaySDS_ListenerAndServiceLevel(t testing.T) *C
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 
 	return TestConfigSnapshotIngressGateway(t, false, "tcp", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
@@ -530,11 +482,11 @@ func TestConfigSnapshotIngressGatewaySDS_MixedNoTLS(t testing.T) *ConfigSnapshot
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 
 	return TestConfigSnapshotIngressGateway(t, false, "tcp", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
@@ -615,11 +567,11 @@ func TestConfigSnapshotIngressGateway_MixedListeners(t testing.T) *ConfigSnapsho
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 
 	return TestConfigSnapshotIngressGateway(t, false, "tcp", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
@@ -717,25 +669,22 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 		},
 	}
 
-	set := configentry.NewDiscoveryChainSet()
-	set.AddEntries(entries...)
-
 	var (
 		foo      = structs.NewServiceName("foo", nil)
 		fooUID   = NewUpstreamIDFromServiceName(foo)
-		fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+		fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 
 		bar      = structs.NewServiceName("bar", nil)
 		barUID   = NewUpstreamIDFromServiceName(bar)
-		barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+		barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 
 		baz      = structs.NewServiceName("baz", nil)
 		bazUID   = NewUpstreamIDFromServiceName(baz)
-		bazChain = discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+		bazChain = discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 
 		qux      = structs.NewServiceName("qux", nil)
 		quxUID   = NewUpstreamIDFromServiceName(qux)
-		quxChain = discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+		quxChain = discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 	)
 
 	require.False(t, fooChain.Default)
@@ -877,17 +826,14 @@ func TestConfigSnapshotIngress_GRPCMultipleServices(t testing.T) *ConfigSnapshot
 		},
 	}
 
-	set := configentry.NewDiscoveryChainSet()
-	set.AddEntries(entries...)
-
 	var (
 		foo      = structs.NewServiceName("foo", nil)
 		fooUID   = NewUpstreamIDFromServiceName(foo)
-		fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+		fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 
 		bar      = structs.NewServiceName("bar", nil)
 		barUID   = NewUpstreamIDFromServiceName(bar)
-		barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+		barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 	)
 
 	require.False(t, fooChain.Default)
@@ -965,11 +911,11 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 	var (
 		foo      = structs.NewServiceName("foo", nil)
 		fooUID   = NewUpstreamIDFromServiceName(foo)
-		fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		bar      = structs.NewServiceName("bar", nil)
 		barUID   = NewUpstreamIDFromServiceName(bar)
-		barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 
 	return TestConfigSnapshotIngressGateway(t, false, "http", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
@@ -1241,17 +1187,14 @@ func TestConfigSnapshotIngressGatewayWithChain(
 			},
 		}
 
-		set := configentry.NewDiscoveryChainSet()
-		set.AddEntries(entries...)
-
 		webChain := discoverychain.TestCompileConfigEntries(t, "web",
 			webEntMeta.NamespaceOrDefault(),
 			webEntMeta.PartitionOrDefault(), "dc1",
-			connect.TestClusterID+".consul", nil, set)
+			connect.TestClusterID+".consul", nil, entries...)
 		fooChain := discoverychain.TestCompileConfigEntries(t, "foo",
 			fooEntMeta.NamespaceOrDefault(),
 			fooEntMeta.PartitionOrDefault(), "dc1",
-			connect.TestClusterID+".consul", nil, set)
+			connect.TestClusterID+".consul", nil, entries...)
 
 		updates = []UpdateEvent{
 			{
@@ -1307,19 +1250,19 @@ func TestConfigSnapshotIngressGateway_TLSMinVersionListenersGatewayDefaults(t te
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s3      = structs.NewServiceName("s3", nil)
 		s3UID   = NewUpstreamIDFromServiceName(s3)
-		s3Chain = discoverychain.TestCompileConfigEntries(t, "s3", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s3Chain = discoverychain.TestCompileConfigEntries(t, "s3", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s4      = structs.NewServiceName("s4", nil)
 		s4UID   = NewUpstreamIDFromServiceName(s4)
-		s4Chain = discoverychain.TestCompileConfigEntries(t, "s4", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s4Chain = discoverychain.TestCompileConfigEntries(t, "s4", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 
 	return TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
@@ -1473,11 +1416,11 @@ func TestConfigSnapshotIngressGateway_SingleTLSListener(t testing.T) *ConfigSnap
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 	return TestConfigSnapshotIngressGateway(t, true, "tcp", "simple", nil,
 		func(entry *structs.IngressGatewayConfigEntry) {
@@ -1552,11 +1495,11 @@ func TestConfigSnapshotIngressGateway_SingleTLSListener_GRPC(t testing.T) *Confi
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 	return TestConfigSnapshotIngressGateway(t, true, "grpc", "simple", nil,
 		func(entry *structs.IngressGatewayConfigEntry) {
@@ -1631,11 +1574,11 @@ func TestConfigSnapshotIngressGateway_SingleTLSListener_HTTP2(t testing.T) *Conf
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 	return TestConfigSnapshotIngressGateway(t, true, "http2", "simple", nil,
 		func(entry *structs.IngressGatewayConfigEntry) {
@@ -1710,11 +1653,11 @@ func TestConfigSnapshotIngressGateway_MultiTLSListener_MixedHTTP2gRPC(t testing.
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 	return TestConfigSnapshotIngressGateway(t, true, "tcp", "simple", nil,
 		func(entry *structs.IngressGatewayConfigEntry) {
@@ -1793,11 +1736,11 @@ func TestConfigSnapshotIngressGateway_GWTLSListener_MixedHTTP2gRPC(t testing.T) 
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 	return TestConfigSnapshotIngressGateway(t, true, "tcp", "simple", nil,
 		func(entry *structs.IngressGatewayConfigEntry) {
@@ -1872,15 +1815,15 @@ func TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners(t testing.T) *
 	var (
 		s1      = structs.NewServiceName("s1", nil)
 		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s2      = structs.NewServiceName("s2", nil)
 		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		s3      = structs.NewServiceName("s3", nil)
 		s3UID   = NewUpstreamIDFromServiceName(s3)
-		s3Chain = discoverychain.TestCompileConfigEntries(t, "s3", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		s3Chain = discoverychain.TestCompileConfigEntries(t, "s3", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 
 	return TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
@@ -1888,8 +1831,8 @@ func TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners(t testing.T) *
 			entry.TLS.Enabled = true
 			entry.TLS.TLSMinVersion = types.TLSv1_2
 
-			// One listener should inherit TLS minimum version from the gateway config,
-			// two others each set explicit TLS minimum versions
+			// One listener disables TLS, one inherits TLS minimum version from the gateway
+			// config, two others set different versions
 			entry.Listeners = []structs.IngressListener{
 				{
 					Port:     8080,
@@ -1925,226 +1868,6 @@ func TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners(t testing.T) *
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
-					Services: []*structs.GatewayService{
-						{
-							Service:  s1,
-							Port:     8080,
-							Protocol: "http",
-						},
-						{
-							Service:  s2,
-							Port:     8081,
-							Protocol: "http",
-						},
-						{
-							Service:  s3,
-							Port:     8082,
-							Protocol: "http",
-						},
-					},
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s1UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s1Chain,
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s2UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s2Chain,
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s3UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s3Chain,
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s1"),
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s2"),
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s3Chain.ID() + ":" + s3UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s3"),
-				},
-			},
-		})
-}
-
-func TestConfigSnapshotIngressGateway_TLSMixedMaxVersionListeners(t testing.T) *ConfigSnapshot {
-	var (
-		s1      = structs.NewServiceName("s1", nil)
-		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-
-		s2      = structs.NewServiceName("s2", nil)
-		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-
-		s3      = structs.NewServiceName("s3", nil)
-		s3UID   = NewUpstreamIDFromServiceName(s3)
-		s3Chain = discoverychain.TestCompileConfigEntries(t, "s3", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-	)
-
-	return TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
-		func(entry *structs.IngressGatewayConfigEntry) {
-			entry.TLS.Enabled = true
-			entry.TLS.TLSMaxVersion = types.TLSv1_2
-
-			// One listener should inherit TLS maximum version from the gateway config,
-			// two others each set explicit TLS maximum versions
-			entry.Listeners = []structs.IngressListener{
-				{
-					Port:     8080,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s1"},
-					},
-				},
-				{
-					Port:     8081,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s2"},
-					},
-					TLS: &structs.GatewayTLSConfig{
-						Enabled:       true,
-						TLSMaxVersion: types.TLSv1_0,
-					},
-				},
-				{
-					Port:     8082,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s3"},
-					},
-					TLS: &structs.GatewayTLSConfig{
-						Enabled:       true,
-						TLSMaxVersion: types.TLSv1_3,
-					},
-				},
-			}
-		}, []UpdateEvent{
-			{
-				CorrelationID: gatewayServicesWatchID,
-				Result: &structs.IndexedGatewayServices{
-					Services: []*structs.GatewayService{
-						{
-							Service:  s1,
-							Port:     8080,
-							Protocol: "http",
-						},
-						{
-							Service:  s2,
-							Port:     8081,
-							Protocol: "http",
-						},
-						{
-							Service:  s3,
-							Port:     8082,
-							Protocol: "http",
-						},
-					},
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s1UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s1Chain,
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s2UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s2Chain,
-				},
-			},
-			{
-				CorrelationID: "discovery-chain:" + s3UID.String(),
-				Result: &structs.DiscoveryChainResponse{
-					Chain: s3Chain,
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s1"),
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s2"),
-				},
-			},
-			{
-				CorrelationID: "upstream-target:" + s3Chain.ID() + ":" + s3UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s3"),
-				},
-			},
-		})
-}
-
-func TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners(t testing.T) *ConfigSnapshot {
-	var (
-		s1      = structs.NewServiceName("s1", nil)
-		s1UID   = NewUpstreamIDFromServiceName(s1)
-		s1Chain = discoverychain.TestCompileConfigEntries(t, "s1", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-
-		s2      = structs.NewServiceName("s2", nil)
-		s2UID   = NewUpstreamIDFromServiceName(s2)
-		s2Chain = discoverychain.TestCompileConfigEntries(t, "s2", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-	)
-
-	return TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
-		func(entry *structs.IngressGatewayConfigEntry) {
-			entry.TLS.Enabled = true
-			entry.TLS.CipherSuites = []types.TLSCipherSuite{
-				types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			}
-
-			// One listener should inherit TLS Ciphers from the gateway config,
-			// the other should be set explicitly from the listener config
-			entry.Listeners = []structs.IngressListener{
-				{
-					Port:     8080,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s1"},
-					},
-				},
-				{
-					Port:     8081,
-					Protocol: "http",
-					Services: []structs.IngressService{
-						{Name: "s2"},
-					},
-					TLS: &structs.GatewayTLSConfig{
-						Enabled: true,
-						CipherSuites: []types.TLSCipherSuite{
-							types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-							types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-						},
-					},
-				},
-			}
-		}, []UpdateEvent{
-			{
-				CorrelationID: gatewayServicesWatchID,
-				Result: &structs.IndexedGatewayServices{
 					// One listener should inherit TLS minimum version from the gateway config,
 					// two others each set explicit TLS minimum versions
 					Services: []*structs.GatewayService{
@@ -2158,6 +1881,11 @@ func TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners(t testing.T
 							Port:     8081,
 							Protocol: "http",
 						},
+						{
+							Service:  s3,
+							Port:     8082,
+							Protocol: "http",
+						},
 					},
 				},
 			},
@@ -2174,6 +1902,12 @@ func TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners(t testing.T
 				},
 			},
 			{
+				CorrelationID: "discovery-chain:" + s3UID.String(),
+				Result: &structs.DiscoveryChainResponse{
+					Chain: s3Chain,
+				},
+			},
+			{
 				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodes(t, "s1"),
@@ -2183,6 +1917,12 @@ func TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners(t testing.T
 				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodes(t, "s2"),
+				},
+			},
+			{
+				CorrelationID: "upstream-target:" + s3Chain.ID() + ":" + s3UID.String(),
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: TestUpstreamNodes(t, "s3"),
 				},
 			},
 		})

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { skip, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import Yadda from 'yadda';

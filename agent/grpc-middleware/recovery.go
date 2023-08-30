@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package middleware
 
 import (
@@ -35,5 +32,4 @@ func NewPanicHandler(logger Logger) recovery.RecoveryHandlerFunc {
 
 type Logger interface {
 	Error(string, ...interface{})
-	Warn(string, ...interface{})
 }

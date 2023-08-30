@@ -7,50 +7,48 @@ description: >-
 
 # Configuration Entry Overview
 
-Configuration entries can be used to configure the behavior of Consul service mesh.
+Configuration entries can be used to configure the behavior of Consul Connect.
 
 The following configuration entries are supported:
 
-- [Ingress Gateway](/consul/docs/connect/config-entries/ingress-gateway) - defines the
+- [Ingress Gateway](/docs/connect/config-entries/ingress-gateway) - defines the
   configuration for an ingress gateway
 
-- [Mesh](/consul/docs/connect/config-entries/mesh) - controls
+- [Mesh](/docs/connect/config-entries/mesh) - controls
   mesh-wide configuration that applies across namespaces and federated datacenters.
   
-- [Exported Services](/consul/docs/connect/config-entries/exported-services) - enables 
+- [Exported Services](/docs/connect/config-entries/exported-services) - enables 
   Consul to export service instances to other peers or to other admin partitions local or remote to the datacenter. 
 
-- [Proxy Defaults](/consul/docs/connect/config-entries/proxy-defaults) - controls
+- [Proxy Defaults](/docs/connect/config-entries/proxy-defaults) - controls
   proxy configuration
 
-- [Sameness Group](/consul/docs/connect/config-entries/sameness-group) - defines partitions and cluster peers with identical services
-
-- [Service Defaults](/consul/docs/connect/config-entries/service-defaults) - configures
+- [Service Defaults](/docs/connect/config-entries/service-defaults) - configures
   defaults for all the instances of a given service
 
-- [Service Intentions](/consul/docs/connect/config-entries/service-intentions) - defines
-  the [intentions](/consul/docs/connect/intentions) for a destination service
+- [Service Intentions](/docs/connect/config-entries/service-intentions) - defines
+  the [intentions](/docs/connect/intentions) for a destination service
 
-- [Service Resolver](/consul/docs/connect/config-entries/service-resolver) - matches
+- [Service Resolver](/docs/connect/config-entries/service-resolver) - matches
   service instances with a specific Connect upstream discovery requests
 
-- [Service Router](/consul/docs/connect/config-entries/service-router) - defines
+- [Service Router](/docs/connect/config-entries/service-router) - defines
   where to send layer 7 traffic based on the HTTP route
 
-- [Service Splitter](/consul/docs/connect/config-entries/service-splitter) - defines
+- [Service Splitter](/docs/connect/config-entries/service-splitter) - defines
   how to divide requests for a single HTTP route based on percentages
 
-- [Terminating Gateway](/consul/docs/connect/config-entries/terminating-gateway) - defines the
+- [Terminating Gateway](/docs/connect/config-entries/terminating-gateway) - defines the
   services associated with terminating gateway
 
 ## Managing Configuration Entries
 
-See [Agent - Config Entries](/consul/docs/agent/config-entries).
+See [Agent - Config Entries](/docs/agent/config-entries).
 
 ## Using Configuration Entries For Service Defaults
 
 Outside of Kubernetes, when the agent is
-[configured](/consul/docs/agent/config/config-files#enable_central_service_config) to enable
+[configured](/docs/agent/config/config-files#enable_central_service_config) to enable
 central service configurations, it will look for service configuration defaults
 that match a registering service instance. If it finds any, the agent will merge
 those defaults with the service instance configuration. This allows for things

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import Route from '@ember/routing/route';
@@ -62,8 +57,6 @@ module('Unit | Mixin | with blocking actions', function (hooks) {
     assert.ok(refresh.calledOnce);
   });
   test('the error hooks return type', function (assert) {
-    assert.expect(3);
-
     const subject = this.subject();
     const expected = 'success';
     ['errorCreate', 'errorUpdate', 'errorDelete'].forEach(function (item) {

@@ -12,7 +12,7 @@ Services running on non-Kubernetes nodes can join a Consul cluster running withi
 ## Auto-join
 
 The recommended way to join a cluster running within Kubernetes is to
-use the ["k8s" cloud auto-join provider](/consul/docs/install/cloud-auto-join#kubernetes-k8s).
+use the ["k8s" cloud auto-join provider](/docs/install/cloud-auto-join#kubernetes-k8s).
 
 The auto-join provider dynamically discovers IP addresses to join using
 the Kubernetes API. It authenticates with Kubernetes using a standard
@@ -21,7 +21,7 @@ as well as self-hosted installations. The token in the `kubeconfig` file
 needs to have permissions to list pods in the namespace where Consul servers
 are deployed.
 
-The auto-join string below joins a Consul server agent to a cluster using the [official Helm chart](/consul/docs/k8s/helm):
+The auto-join string below joins a Consul server agent to a cluster using the [official Helm chart](/docs/k8s/helm):
 
 ```shell-session
 $ consul agent -retry-join 'provider=k8s label_selector="app=consul,component=server"'
@@ -46,7 +46,7 @@ For more information, refer to [Azure AKS CNI](https://docs.microsoft.com/en-us/
 [AWS EKS CNI](https://docs.aws.amazon.com/eks/latest/userguide/pod-networking.html) and
 [GKE VPC-native clusters](https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips).
 
-To join external agents with Consul on Kubernetes deployments installed with default values through the [official Helm chart](/consul/docs/k8s/helm):
+To join external agents with Consul on Kubernetes deployments installed with default values through the [official Helm chart](/docs/k8s/helm):
 
   1. Make sure the pod IPs of the servers in Kubernetes are
   routable from the VM and that the VM can access port 8301 (for gossip) and
@@ -88,7 +88,7 @@ To join external agents with Consul on Kubernetes deployments installed with def
 If your external VMs cannot connect to Kubernetes pod IPs but they can connect
 to the internal host IPs of the nodes in the Kubernetes cluster, you can join the two by exposing ports on the host IP instead.
 
-  1. Install the [official Helm chart](/consul/docs/k8s/helm) with the following values:
+  1. Install the [official Helm chart](/docs/k8s/helm) with the following values:
   ```yaml
   client:
     exposeGossipPorts: true # exposes client gossip ports as hostPorts

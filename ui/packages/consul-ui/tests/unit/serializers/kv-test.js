@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, skip, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { run } from '@ember/runloop';
@@ -32,8 +27,6 @@ module('Unit | Serializer | kv', function (hooks) {
     'what should respondForCreate/UpdateRecord return when createRecord is called with a `false` payload'
   );
   test('respondForCreate/UpdateRecord returns a KV uid object when receiving a `true` payload', function (assert) {
-    assert.expect(2);
-
     const uid = 'key/name';
     const dc = 'dc1';
     const nspace = 'default';
@@ -68,8 +61,6 @@ module('Unit | Serializer | kv', function (hooks) {
     });
   });
   test("respondForCreate/UpdateRecord returns the original object if it's not a Boolean", function (assert) {
-    assert.expect(1);
-
     const uid = 'key/name';
     const dc = 'dc1';
     const nspace = 'default';

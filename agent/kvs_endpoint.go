@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -72,7 +69,7 @@ func (s *HTTPHandlers) KVSGet(resp http.ResponseWriter, req *http.Request, args 
 
 	// Make the RPC
 	var out structs.IndexedDirEntries
-	if err := s.agent.RPC(req.Context(), method, args, &out); err != nil {
+	if err := s.agent.RPC(method, args, &out); err != nil {
 		return nil, err
 	}
 	setMeta(resp, &out.QueryMeta)
@@ -132,7 +129,7 @@ func (s *HTTPHandlers) KVSGetKeys(resp http.ResponseWriter, req *http.Request, a
 
 	// Make the RPC
 	var out structs.IndexedKeyList
-	if err := s.agent.RPC(req.Context(), "KVS.ListKeys", &listArgs, &out); err != nil {
+	if err := s.agent.RPC("KVS.ListKeys", &listArgs, &out); err != nil {
 		return nil, err
 	}
 	setMeta(resp, &out.QueryMeta)
@@ -224,7 +221,7 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 
 	// Make the RPC
 	var out bool
-	if err := s.agent.RPC(req.Context(), "KVS.Apply", &applyReq, &out); err != nil {
+	if err := s.agent.RPC("KVS.Apply", &applyReq, &out); err != nil {
 		return nil, err
 	}
 
@@ -273,7 +270,7 @@ func (s *HTTPHandlers) KVSDelete(resp http.ResponseWriter, req *http.Request, ar
 
 	// Make the RPC
 	var out bool
-	if err := s.agent.RPC(req.Context(), "KVS.Apply", &applyReq, &out); err != nil {
+	if err := s.agent.RPC("KVS.Apply", &applyReq, &out); err != nil {
 		return nil, err
 	}
 

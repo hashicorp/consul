@@ -1,10 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package main
 
 import (
 	"context"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -19,7 +17,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -68,7 +65,7 @@ func run(log hclog.Logger) error {
 
 	xdsServer := xds.NewServer(ctx, cache, callbacks)
 	grpcServer := grpc.NewServer()
-	grpclog.SetLoggerV2(logging.NewGRPCLogger("DEBUG", log))
+	grpclog.SetLogger(log.StandardLogger(nil))
 
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, xdsServer)
 
@@ -103,12 +100,12 @@ func loadCertsFromPath(cache *cache.LinearCache, log hclog.Logger, dir string) e
 		}
 
 		certName := strings.TrimSuffix(entry.Name(), ".crt")
-		cert, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		cert, err := ioutil.ReadFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
 			return err
 		}
 		keyFile := certName + ".key"
-		key, err := os.ReadFile(filepath.Join(dir, keyFile))
+		key, err := ioutil.ReadFile(filepath.Join(dir, keyFile))
 		if err != nil {
 			return err
 		}
@@ -144,7 +141,7 @@ func makeLoggerCallbacks(log hclog.Logger) *xds.CallbackFuncs {
 			log.Trace("gRPC stream opened", "id", id, "addr", addr)
 			return nil
 		},
-		StreamClosedFunc: func(id int64, _ *core.Node) {
+		StreamClosedFunc: func(id int64) {
 			log.Trace("gRPC stream closed", "id", id)
 		},
 		StreamRequestFunc: func(id int64, req *discovery.DiscoveryRequest) error {
@@ -155,7 +152,7 @@ func makeLoggerCallbacks(log hclog.Logger) *xds.CallbackFuncs {
 			)
 			return nil
 		},
-		StreamResponseFunc: func(_ context.Context, id int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
+		StreamResponseFunc: func(id int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
 			log.Trace("gRPC stream response", "id", id,
 				"resp.typeURL", resp.TypeUrl,
 				"resp.version", resp.VersionInfo,

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Serializer from './application';
 import { inject as service } from '@ember/service';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/kv';

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { get as httpGet } from 'consul-ui/tests/helpers/api';
 import { getProperties, set } from '@ember/object';
 import measure from 'consul-ui/tests/helpers/measure';

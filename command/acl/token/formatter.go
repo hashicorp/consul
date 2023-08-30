@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package token
 
 import (
@@ -108,6 +105,10 @@ func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 		for _, nodeid := range token.NodeIdentities {
 			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
 		}
+	}
+	if token.Rules != "" {
+		buffer.WriteString(fmt.Sprintln("Rules:"))
+		buffer.WriteString(fmt.Sprintln(token.Rules))
 	}
 
 	return buffer.String(), nil
@@ -302,6 +303,7 @@ func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) str
 	if token.ExpirationTime != nil && !token.ExpirationTime.IsZero() {
 		buffer.WriteString(fmt.Sprintf("Expiration Time:  %v\n", *token.ExpirationTime))
 	}
+	buffer.WriteString(fmt.Sprintf("Legacy:           %t\n", token.Legacy))
 	if f.showMeta {
 		buffer.WriteString(fmt.Sprintf("Hash:             %x\n", token.Hash))
 		buffer.WriteString(fmt.Sprintf("Create Index:     %d\n", token.CreateIndex))

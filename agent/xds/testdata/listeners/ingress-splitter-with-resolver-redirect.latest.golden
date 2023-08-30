@@ -20,7 +20,9 @@
                 "statPrefix": "ingress_upstream_8080",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "8080"
@@ -34,7 +36,9 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
+                  "randomSampling": {
+
+                  }
                 },
                 "upgradeConfigs": [
                   {

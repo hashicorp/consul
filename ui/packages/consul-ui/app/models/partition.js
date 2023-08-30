@@ -1,9 +1,5 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-import Model, { attr } from '@ember-data/model';
+import Model from 'ember-data/model';
+import attr from 'ember-data/attr';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';

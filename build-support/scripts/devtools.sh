@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 
 readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
@@ -124,8 +124,6 @@ function proto_tools_install {
         "${mog_version}" \
         'github.com/hashicorp/mog'
 
-    install_protoc_gen_consul_rate_limit
-
     return 0
 }
 
@@ -246,13 +244,6 @@ function install_versioned_tool {
         echo "skipping tool: ${install} (installed)"
     fi
     return 0
-}
-
-function install_protoc_gen_consul_rate_limit {
-    echo "installing tool protoc-gen-consul-rate-limit from local source"
-    pushd -- "${SOURCE_DIR}/internal/tools/protoc-gen-consul-rate-limit" > /dev/null
-    go install
-    popd > /dev/null
 }
 
 main "$@"

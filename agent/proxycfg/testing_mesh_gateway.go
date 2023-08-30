@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -11,22 +8,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
 	roots, _ := TestCertsForMeshGateway(t)
 
 	var (
-		populateServices      = true
-		useFederationStates   = false
-		deleteCrossDCEntry    = false
-		meshGatewayFederation = false
+		populateServices    = true
+		useFederationStates = false
+		deleteCrossDCEntry  = false
 	)
 
 	switch variant {
@@ -35,11 +29,6 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		populateServices = true
 		useFederationStates = true
 		deleteCrossDCEntry = true
-	case "mesh-gateway-federation":
-		populateServices = true
-		useFederationStates = true
-		deleteCrossDCEntry = true
-		meshGatewayFederation = true
 	case "newer-info-in-federation-states":
 		populateServices = true
 		useFederationStates = true
@@ -453,63 +442,6 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		})
 	}
 
-	var serverSNIFn ServerSNIFunc
-	if meshGatewayFederation {
-
-		// reproduced from tlsutil/config.go
-		serverSNIFn = func(dc, nodeName string) string {
-			// Strip the trailing '.' from the domain if any
-			domain := "consul"
-
-			if nodeName == "" || nodeName == "*" {
-				return "server." + dc + "." + domain
-			}
-
-			return nodeName + ".server." + dc + "." + domain
-		}
-
-		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
-			{
-				CorrelationID: consulServerListWatchID,
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: structs.CheckServiceNodes{
-						{
-							Node: &structs.Node{
-								Datacenter: "dc1",
-								Node:       "node1",
-								Address:    "127.0.0.1",
-							},
-							Service: &structs.NodeService{
-								ID:      structs.ConsulServiceID,
-								Service: structs.ConsulServiceName,
-								Meta: map[string]string{
-									"grpc_port":     "8502",
-									"grpc_tls_port": "8503",
-								},
-							},
-						},
-						{
-							Node: &structs.Node{
-								Datacenter: "dc1",
-								Node:       "node2",
-								Address:    "127.0.0.2",
-							},
-							Service: &structs.NodeService{
-								ID:      structs.ConsulServiceID,
-								Service: structs.ConsulServiceName,
-								Meta: map[string]string{
-									"grpc_port":     "8502",
-									"grpc_tls_port": "8503",
-								},
-							},
-						},
-					},
-				},
-			},
-		})
-
-	}
-
 	return testConfigSnapshotFixture(t, &structs.NodeService{
 		Kind:    structs.ServiceKindMeshGateway,
 		Service: "mesh-gateway",
@@ -529,7 +461,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 				Port:    443,
 			},
 		},
-	}, nsFn, serverSNIFn, testSpliceEvents(baseEvents, extraUpdates))
+	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
 }
 
 func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -542,8 +474,6 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		discoChains = make(map[structs.ServiceName]*structs.CompiledDiscoveryChain)
 		endpoints   = make(map[structs.ServiceName]structs.CheckServiceNodes)
 		entries     []structs.ConfigEntry
-		// This portion of the test is not currently enterprise-aware, but we need this to satisfy a function call.
-		entMeta = *acl.DefaultEnterpriseMeta()
 	)
 
 	switch variant {
@@ -658,16 +588,14 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		entries = append(entries, proxyDefaults)
 		fallthrough // to-case: "default-services-tcp"
 	case "default-services-tcp":
-		set := configentry.NewDiscoveryChainSet()
-		set.AddEntries(entries...)
 		var (
 			fooSN = structs.NewServiceName("foo", nil)
 			barSN = structs.NewServiceName("bar", nil)
 			girSN = structs.NewServiceName("gir", nil)
 
-			fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
-			barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
-			girChain = discoverychain.TestCompileConfigEntries(t, "gir", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+			fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+			barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+			girChain = discoverychain.TestCompileConfigEntries(t, "gir", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 		)
 
 		assert.True(t, fooChain.Default)
@@ -732,8 +660,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: "peering-connect-service:peer-a:db",
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: structs.CheckServiceNodes{
-						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.1", false, entMeta),
-						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.2", false, entMeta),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.1", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.2", false),
 					},
 				},
 			},
@@ -741,79 +669,12 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: "peering-connect-service:peer-b:alt",
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: structs.CheckServiceNodes{
-						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.1", false, entMeta),
-						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.2", true, entMeta),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.1", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.2", true),
 					},
 				},
 			},
 		)
-	case "mgw-peered-upstream":
-		// This is a modified version of "chain-and-l7-stuff" that adds a peer field to the resolver
-		// and removes some of the extraneous disco-chain testing.
-		entries = []structs.ConfigEntry{
-			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
-				Config: map[string]interface{}{
-					"protocol": "http",
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind: structs.ServiceResolver,
-				Name: "db",
-				Redirect: &structs.ServiceResolverRedirect{
-					Service: "alt",
-					Peer:    "peer-b",
-				},
-				ConnectTimeout: 33 * time.Second,
-				RequestTimeout: 33 * time.Second,
-			},
-		}
-		for _, entry := range entries {
-			require.NoError(t, entry.Normalize())
-			require.NoError(t, entry.Validate())
-		}
-
-		set := configentry.NewDiscoveryChainSet()
-		set.AddEntries(entries...)
-
-		var (
-			dbSN  = structs.NewServiceName("db", nil)
-			altSN = structs.NewServiceName("alt", nil)
-
-			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
-		)
-
-		needPeerA = true
-		needLeaf = true
-		discoChains[dbSN] = dbChain
-		endpoints[dbSN] = TestUpstreamNodes(t, "db")
-		endpoints[altSN] = TestUpstreamNodes(t, "alt")
-
-		extraUpdates = append(extraUpdates,
-			UpdateEvent{
-				CorrelationID: datacentersWatchID,
-				Result:        &[]string{"dc1"},
-			},
-			UpdateEvent{
-				CorrelationID: exportedServiceListWatchID,
-				Result: &structs.IndexedExportedServiceList{
-					Services: map[string]structs.ServiceList{
-						"peer-a": []structs.ServiceName{dbSN},
-					},
-				},
-			},
-			UpdateEvent{
-				CorrelationID: serviceListWatchID,
-				Result: &structs.IndexedServiceList{
-					Services: []structs.ServiceName{
-						dbSN,
-						altSN,
-					},
-				},
-			},
-		)
-
 	case "chain-and-l7-stuff":
 		entries = []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{
@@ -833,12 +694,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				Kind: structs.ServiceResolver,
 				Name: "api",
 				Subsets: map[string]structs.ServiceResolverSubset{
-					"v1": {
-						Filter: "Service.Meta.Version == 1",
-					},
 					"v2": {
-						Filter:      "Service.Meta.Version == 2",
-						OnlyPassing: true,
+						Filter: "Service.Meta.version == v2",
 					},
 				},
 			},
@@ -882,15 +739,11 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 			require.NoError(t, entry.Validate())
 		}
 
-		set := configentry.NewDiscoveryChainSet()
-		set.AddEntries(entries...)
-
 		var (
 			dbSN  = structs.NewServiceName("db", nil)
 			altSN = structs.NewServiceName("alt", nil)
-			apiSN = structs.NewServiceName("api", nil)
 
-			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
+			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 		)
 
 		needPeerA = true
@@ -898,7 +751,6 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		discoChains[dbSN] = dbChain
 		endpoints[dbSN] = TestUpstreamNodes(t, "db")
 		endpoints[altSN] = TestUpstreamNodes(t, "alt")
-		endpoints[apiSN] = TestUpstreamNodesWithServiceSubset(t, "api")
 
 		extraUpdates = append(extraUpdates,
 			UpdateEvent{
@@ -922,29 +774,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 					},
 				},
 			},
-			UpdateEvent{
-				CorrelationID: serviceResolversWatchID,
-				Result: &structs.IndexedConfigEntries{
-					Kind: structs.ServiceResolver,
-					Entries: []structs.ConfigEntry{
-						&structs.ServiceResolverConfigEntry{
-							Kind: structs.ServiceResolver,
-							Name: "api",
-							Subsets: map[string]structs.ServiceResolverSubset{
-								"v1": {
-									Filter: "Service.Meta.Version == 1",
-								},
-								"v2": {
-									Filter:      "Service.Meta.Version == 2",
-									OnlyPassing: true,
-								},
-							},
-						},
-					},
-				},
-			},
 		)
-
 	case "peer-through-mesh-gateway":
 
 		extraUpdates = append(extraUpdates,

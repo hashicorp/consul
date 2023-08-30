@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peering_test
 
 import (
@@ -8,14 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
-	"os"
 	"path"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
@@ -30,13 +25,11 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
-	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/pool"
@@ -46,8 +39,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -79,7 +72,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	signer, _, _ := tlsutil.GeneratePrivateKey()
 	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
 	cafile := path.Join(dir, "cacert.pem")
-	require.NoError(t, os.WriteFile(cafile, []byte(ca), 0600))
+	require.NoError(t, ioutil.WriteFile(cafile, []byte(ca), 0600))
 
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, func(c *consul.Config) {
@@ -191,7 +184,7 @@ func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
 	signer, _, _ := tlsutil.GeneratePrivateKey()
 	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
 	cafile := path.Join(dir, "cacert.pem")
-	require.NoError(t, os.WriteFile(cafile, []byte(ca), 0600))
+	require.NoError(t, ioutil.WriteFile(cafile, []byte(ca), 0600))
 
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, func(c *consul.Config) {
@@ -1818,9 +1811,9 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.ACLResolverSettings.EnterpriseMeta = *conf.AgentEnterpriseMeta()
 
 	deps := newDefaultDeps(t, conf)
-	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator, rate.NullRequestLimitsHandler())
+	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator)
 
-	server, err := consul.NewServer(conf, deps, externalGRPCServer, nil, deps.Logger, nil)
+	server, err := consul.NewServer(conf, deps, externalGRPCServer)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		require.NoError(t, server.Shutdown())
@@ -1929,10 +1922,6 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		Datacenter:      c.Datacenter,
 	}
 
-	balancerBuilder := balancer.NewBuilder(builder.Authority(), testutil.Logger(t))
-	balancerBuilder.Register()
-	t.Cleanup(balancerBuilder.Deregister)
-
 	return consul.Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
@@ -1952,7 +1941,6 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
-		Registry:                 resource.NewRegistry(),
 	}
 }
 
@@ -1966,24 +1954,28 @@ func upsertTestACLs(t *testing.T, store *state.Store) {
 	)
 	policies := structs.ACLPolicies{
 		{
-			ID:    testPolicyPeeringReadID,
-			Name:  "peering-read",
-			Rules: `peering = "read"`,
+			ID:     testPolicyPeeringReadID,
+			Name:   "peering-read",
+			Rules:  `peering = "read"`,
+			Syntax: acl.SyntaxCurrent,
 		},
 		{
-			ID:    testPolicyPeeringWriteID,
-			Name:  "peering-write",
-			Rules: `peering = "write"`,
+			ID:     testPolicyPeeringWriteID,
+			Name:   "peering-write",
+			Rules:  `peering = "write"`,
+			Syntax: acl.SyntaxCurrent,
 		},
 		{
-			ID:    testPolicyServiceReadID,
-			Name:  "service-read",
-			Rules: `service "api" { policy = "read" }`,
+			ID:     testPolicyServiceReadID,
+			Name:   "service-read",
+			Rules:  `service "api" { policy = "read" }`,
+			Syntax: acl.SyntaxCurrent,
 		},
 		{
-			ID:    testPolicyServiceWriteID,
-			Name:  "service-write",
-			Rules: `service "api" { policy = "write" }`,
+			ID:     testPolicyServiceWriteID,
+			Name:   "service-write",
+			Rules:  `service "api" { policy = "write" }`,
+			Syntax: acl.SyntaxCurrent,
 		},
 	}
 	require.NoError(t, store.ACLPolicyBatchSet(100, policies))

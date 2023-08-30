@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -58,7 +55,7 @@ func (r *FederationStateReplicator) fetchRemote(lastRemoteIndex uint64) (int, in
 	}
 
 	var response structs.IndexedFederationStates
-	if err := r.srv.RPC(context.Background(), "FederationState.List", &req, &response); err != nil {
+	if err := r.srv.RPC("FederationState.List", &req, &response); err != nil {
 		return 0, nil, 0, err
 	}
 

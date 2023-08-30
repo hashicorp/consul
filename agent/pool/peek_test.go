@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package pool
 
 import (
@@ -8,7 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net"
 	"testing"
 	"time"
@@ -58,7 +55,7 @@ func TestPeekForTLS_not_TLS(t *testing.T) {
 			require.NoError(t, err)
 			require.False(t, isTLS)
 
-			all, err := io.ReadAll(wrapped)
+			all, err := ioutil.ReadAll(wrapped)
 			require.NoError(t, err)
 			require.Equal(t, tc.connData, all)
 		})
@@ -163,7 +160,7 @@ func testPeekForTLS_withTLS(t *testing.T, connData []byte) {
 			return
 		}
 
-		all, err := io.ReadAll(tlsConn)
+		all, err := ioutil.ReadAll(tlsConn)
 		if err != nil {
 			serverErrCh <- err
 			return

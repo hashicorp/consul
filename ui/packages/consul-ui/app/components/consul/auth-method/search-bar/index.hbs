@@ -1,181 +1,148 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
+<SearchBar
+  class="consul-auth-method-search-bar"
+  ...attributes
+  @filter={{@filter}}
+>
+    <:status as |search|>
 
-<SearchBar class='consul-auth-method-search-bar' ...attributes @filter={{@filter}}>
-  <:status as |search|>
+{{#let
 
-    {{#let
-      (t
-        (concat 'components.consul.auth-method.search-bar.' search.status.key '.name')
-        default=(array
-          (concat 'common.search.' search.status.key) (concat 'common.consul.' search.status.key)
-        )
+  (t (concat "components.consul.auth-method.search-bar." search.status.key ".name")
+      default=(array
+        (concat "common.search." search.status.key)
+        (concat "common.consul." search.status.key)
       )
-      (t
-        (concat
-          'components.consul.auth-method.search-bar.'
-          search.status.key
-          '.options.'
-          search.status.value
-        )
-        default=(array
-          (concat 'common.search.' search.status.value)
-          (concat 'common.consul.' search.status.value)
-          (concat 'common.brand.' search.status.value)
-        )
+  )
+
+  (t (concat "components.consul.auth-method.search-bar." search.status.key ".options." search.status.value)
+      default=(array
+        (concat "common.search." search.status.value)
+        (concat "common.consul." search.status.value)
+        (concat "common.brand." search.status.value)
       )
-      as |key value|
-    }}
-      <search.RemoveFilter aria-label={{t 'common.ui.remove' item=(concat key ' ' value)}}>
+  )
+
+as |key value|}}
+      <search.RemoveFilter
+        aria-label={{t "common.ui.remove" item=(concat key " " value)}}
+      >
         <dl>
           <dt>{{key}}</dt>
           <dd>{{value}}</dd>
         </dl>
       </search.RemoveFilter>
-    {{/let}}
+{{/let}}
 
-  </:status>
-  <:search as |search|>
-    <search.Search
-      @onsearch={{action @onsearch}}
-      @value={{@search}}
-      @placeholder={{t 'common.search.search'}}
-    >
-      <search.Select
-        class='type-search-properties'
-        @position='right'
-        @onchange={{action @filter.searchproperty.change}}
-        @multiple={{true}}
-        @required={{true}}
-        as |components|
+    </:status>
+    <:search as |search|>
+      <search.Search
+        @onsearch={{action @onsearch}}
+        @value={{@search}}
+        @placeholder={{t "common.search.search"}}
       >
-        <BlockSlot @name='selected'>
-          <span>
-            {{t 'common.search.searchproperty'}}
-          </span>
-        </BlockSlot>
-        <BlockSlot @name='options'>
-          {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <search.Select
+          class="type-search-properties"
+          @position="right"
+          @onchange={{action @filter.searchproperty.change}}
+          @multiple={{true}}
+          @required={{true}}
+        as |components|>
+          <BlockSlot @name="selected">
+            <span>
+              {{t "common.search.searchproperty"}}
+            </span>
+          </BlockSlot>
+          <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
               <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
-                {{t (concat 'common.consul.' (lowercase prop))}}
+                {{t (concat "common.consul." (lowercase prop))}}
               </Option>
             {{/each}}
-          {{/let}}
+    {{/let}}
+          </BlockSlot>
+        </search.Select>
+      </search.Search>
+    </:search>
+    <:filter as |search|>
+      <search.Select
+        class="type-kind"
+        @position="left"
+        @onchange={{action @filter.kind.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{t "components.consul.auth-method.search-bar.kind.name"}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+        {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option class="kubernetes" @value="kubernetes" @selected={{includes 'kubernetes' @filter.kind.value}}>Kubernetes</Option>
+          <Option class="jwt" @value="jwt" @selected={{includes 'jwt' @filter.kind.value}}>JWT</Option>
+        {{#if (env 'CONSUL_SSO_ENABLED')}}
+          <Option class="oidc" @value="oidc" @selected={{includes 'oidc' @filter.kind.value}}>OIDC</Option>
+        {{/if}}
+        {{/let}}
         </BlockSlot>
       </search.Select>
-    </search.Search>
-  </:search>
-  <:filter as |search|>
-    <search.Select
-      class='type-kind'
-      @position='left'
-      @onchange={{action @filter.kind.change}}
-      @multiple={{true}}
-      as |components|
-    >
-      <BlockSlot @name='selected'>
-        <span>
-          {{t 'components.consul.auth-method.search-bar.kind.name'}}
-        </span>
-      </BlockSlot>
-      <BlockSlot @name='options'>
-        {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option @value='kubernetes' @selected={{includes 'kubernetes' @filter.kind.value}}>
-            <FlightIcon @name='kubernetes-color' class='mr-2.5' />
-            Kubernetes
+      <search.Select
+        class="type-locality"
+        @position="left"
+        @onchange={{action @filter.source.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{t "components.consul.auth-method.search-bar.locality.name"}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+      {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        {{#each (array "local" "global") as |option|}}
+          <Option class="{{option}}" @value={{option}} @selected={{includes option @filter.types}}>
+            {{t (concat "components.consul.auth-method.search-bar.locality.options." option)}}
           </Option>
-          <Option
-            class='jwt'
-            @value='jwt'
-            @selected={{includes 'jwt' @filter.kind.value}}
-          >JWT</Option>
-          {{#if (env 'CONSUL_SSO_ENABLED')}}
-            <Option
-              class='oidc'
-              @value='oidc'
-              @selected={{includes 'oidc' @filter.kind.value}}
-            >OIDC</Option>
-          {{/if}}
-        {{/let}}
-      </BlockSlot>
-    </search.Select>
-    <search.Select
-      class='type-locality'
-      @position='left'
-      @onchange={{action @filter.source.change}}
-      @multiple={{true}}
-      as |components|
-    >
-      <BlockSlot @name='selected'>
-        <span>
-          {{t 'components.consul.auth-method.search-bar.locality.name'}}
-        </span>
-      </BlockSlot>
-      <BlockSlot @name='options'>
-        {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          {{#each (array 'local' 'global') as |option|}}
-            <Option
-              class='{{option}}'
-              @value={{option}}
-              @selected={{includes option @filter.types}}
-            >
-              {{t (concat 'components.consul.auth-method.search-bar.locality.options.' option)}}
-            </Option>
-          {{/each}}
-        {{/let}}
-      </BlockSlot>
-    </search.Select>
-  </:filter>
-  <:sort as |search|>
-    <search.Select
-      class='type-sort'
-      data-test-sort-control
-      @position='right'
-      @onchange={{action @sort.change}}
-      @multiple={{false}}
-      @required={{true}}
-      as |components|
-    >
-      <BlockSlot @name='selected'>
-        <span>
-          {{#let
-            (from-entries
-              (array
-                (array 'MethodName:asc' (t 'common.sort.alpha.asc'))
-                (array 'MethodName:desc' (t 'common.sort.alpha.desc'))
-                (array 'TokenTTL:desc' (t 'common.sort.duration.asc'))
-                (array 'TokenTTL:asc' (t 'common.sort.duration.desc'))
-              )
-            )
-            as |selectable|
-          }}
-            {{get selectable @sort.value}}
-          {{/let}}
-        </span>
-      </BlockSlot>
-      <BlockSlot @name='options'>
-        {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Optgroup @label={{t 'common.ui.name'}}>
-            <Option @value='MethodName:asc' @selected={{eq 'MethodName:asc' @sort.value}}>{{t
-                'common.sort.alpha.asc'
-              }}</Option>
-            <Option @value='MethodName:desc' @selected={{eq 'MethodName:desc' @sort.value}}>{{t
-                'common.sort.alpha.desc'
-              }}</Option>
-          </Optgroup>
-          <Optgroup @label={{t 'common.ui.maxttl'}}>
-            <Option @value='TokenTTL:desc' @selected={{eq 'TokenTTL:desc' @sort.value}}>{{t
-                'common.sort.duration.asc'
-              }}</Option>
-            <Option @value='TokenTTL:asc' @selected={{eq 'TokenTTL:asc' @sort.value}}>{{t
-                'common.sort.duration.desc'
-              }}</Option>
-          </Optgroup>
-        {{/let}}
-      </BlockSlot>
-    </search.Select>
-  </:sort>
+        {{/each}}
+      {{/let}}
+        </BlockSlot>
+      </search.Select>
+    </:filter>
+    <:sort as |search|>
+      <search.Select
+        class="type-sort"
+        data-test-sort-control
+        @position="right"
+        @onchange={{action @sort.change}}
+        @multiple={{false}}
+        @required={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{#let (from-entries (array
+                  (array "MethodName:asc" (t "common.sort.alpha.asc"))
+                  (array "MethodName:desc" (t "common.sort.alpha.desc"))
+                  (array "TokenTTL:desc" (t "common.sort.duration.asc"))
+                  (array "TokenTTL:asc" (t "common.sort.duration.desc"))
+                ))
+              as |selectable|
+            }}
+              {{get selectable @sort.value}}
+            {{/let}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Optgroup @label={{t "common.ui.name"}}>
+          <Option @value="MethodName:asc" @selected={{eq "MethodName:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+          <Option @value="MethodName:desc" @selected={{eq "MethodName:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
+        </Optgroup>
+        <Optgroup @label={{t "common.ui.maxttl"}}>
+          <Option @value="TokenTTL:desc" @selected={{eq "TokenTTL:desc" @sort.value}}>{{t "common.sort.duration.asc"}}</Option>
+          <Option @value="TokenTTL:asc" @selected={{eq "TokenTTL:asc" @sort.value}}>{{t "common.sort.duration.desc"}}</Option>
+        </Optgroup>
+  {{/let}}
+        </BlockSlot>
+      </search.Select>
+    </:sort>
 </SearchBar>

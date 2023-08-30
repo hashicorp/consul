@@ -14,8 +14,8 @@ descriptions.
 
 Configuration precedence is evaluated in the following order:
 
-1. [Command line arguments](/consul/docs/agent/config/cli-flags)
-2. [Configuration files](/consul/docs/agent/config/config-files)
+1. [Command line arguments](/docs/agent/config/cli-flags)
+2. [Configuration files](/docs/agent/config/config-files)
 
 When loading configuration, the Consul agent loads the configuration from files and
 directories in lexical order. For example, configuration file
@@ -34,11 +34,11 @@ The Consul agent also supports reloading configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
 documented below in the
 [Reloadable Configuration](#reloadable-configuration) section. The
-[reload command](/consul/commands/reload) can also be used to trigger a
+[reload command](/commands/reload) can also be used to trigger a
 configuration reload.
 
 You can test the following configuration options by following the
-[Get Started](/consul/tutorials/get-started-vms?utm_source=docs)
+[Getting Started](https://learn.hashicorp.com/collections/consul/get-started-vms?utm_source=docs)
 tutorials to install an agent in a VM.
 
 ## Ports Used
@@ -46,50 +46,49 @@ tutorials to install an agent in a VM.
 Consul requires up to 6 different ports to work properly, some on
 TCP, UDP, or both protocols.
 
-Review the [required ports](/consul/docs/install/ports) table for a list of
+Review the [required ports](/docs/install/ports) table for a list of
 required ports and their default settings.
 
 ## Reloadable Configuration
 
 Some agent configuration options are reloadable at runtime.
-You can run the [`consul reload` command](/consul/commands/reload) to manually reload supported options from configuration files in the configuration directory.
+You can run the [`consul reload` command](/commands/reload) to manually reload supported options from configuration files in the configuration directory.
 To configure the agent to automatically reload configuration files updated on disk,
 set the [`auto_reload_config` configuration option](/consul/docs/agent/config/config-files#auto_reload_config) parameter to `true`.
 
 The following agent configuration options are reloadable at runtime: 
 - ACL Tokens
-- [Configuration Entry Bootstrap](/consul/docs/agent/config/config-files#config_entries_bootstrap)
+- [Configuration Entry Bootstrap](/docs/agent/config/config-files#config_entries_bootstrap)
 - Checks
-- [Discard Check Output](/consul/docs/agent/config/config-files#discard_check_output)
+- [Discard Check Output](/docs/agent/config/config-files#discard_check_output)
 - HTTP Client Address
 - Log level
-- [Metric Prefix Filter](/consul/docs/agent/config/config-files#telemetry-prefix_filter)
-- [Node Metadata](/consul/docs/agent/config/config-files#node_meta)
+- [Metric Prefix Filter](/docs/agent/config/config-files#telemetry-prefix_filter)
+- [Node Metadata](/docs/agent/config/config-files#node_meta)
 - Some Raft options (since Consul 1.10.0)
-  - [`raft_snapshot_threshold`](/consul/docs/agent/config/config-files#_raft_snapshot_threshold)
-  - [`raft_snapshot_interval`](/consul/docs/agent/config/config-files#_raft_snapshot_interval)
-  - [`raft_trailing_logs`](/consul/docs/agent/config/config-files#_raft_trailing_logs)
+  - [`raft_snapshot_threshold`](/docs/agent/config/config-files#_raft_snapshot_threshold)
+  - [`raft_snapshot_interval`](/docs/agent/config/config-files#_raft_snapshot_interval)
+  - [`raft_trailing_logs`](/docs/agent/config/config-files#_raft_trailing_logs)
   - These can be important in certain outage situations so being able to control
     them without a restart provides a recovery path that doesn't involve
     downtime. They generally shouldn't be changed otherwise.
-- [RPC rate limits](/consul/docs/agent/config/config-files#limits)
-- [Reporting](/consul/docs/agent/config/config-files#reporting)
-- [HTTP Maximum Connections per Client](/consul/docs/agent/config/config-files#http_max_conns_per_client)
+- [RPC rate limiting](/docs/agent/config/config-files#limits)
+- [HTTP Maximum Connections per Client](/docs/agent/config/config-files#http_max_conns_per_client)
 - Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
-  - To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](/consul/docs/agent/config/cli-flags#_auto_reload_config) is enabled:
-    - [encrypt_verify_incoming](/consul/docs/agent/config/config-files#encrypt_verify_incoming)
-    - [verify_incoming](/consul/docs/agent/config/config-files#verify_incoming)
-    - [verify_incoming_rpc](/consul/docs/agent/config/config-files#verify_incoming_rpc)
-    - [verify_incoming_https](/consul/docs/agent/config/config-files#verify_incoming_https)
-    - [verify_outgoing](/consul/docs/agent/config/config-files#verify_outgoing)
-    - [verify_server_hostname](/consul/docs/agent/config/config-files#verify_server_hostname)
-    - [ca_file](/consul/docs/agent/config/config-files#ca_file)
-    - [ca_path](/consul/docs/agent/config/config-files#ca_path)
+  - To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](/docs/agent/config/cli-flags#_auto_reload_config) is enabled:
+    - [encrypt_verify_incoming](/docs/agent/config/config-files#encrypt_verify_incoming)
+    - [verify_incoming](/docs/agent/config/config-files#verify_incoming)
+    - [verify_incoming_rpc](/docs/agent/config/config-files#verify_incoming_rpc)
+    - [verify_incoming_https](/docs/agent/config/config-files#verify_incoming_https)
+    - [verify_outgoing](/docs/agent/config/config-files#verify_outgoing)
+    - [verify_server_hostname](/docs/agent/config/config-files#verify_server_hostname)
+    - [ca_file](/docs/agent/config/config-files#ca_file)
+    - [ca_path](/docs/agent/config/config-files#ca_path)
 
-    If any of those configurations are changed while [-auto-reload-config](/consul/docs/agent/config/cli-flags#_auto_reload_config) is enabled,
+    If any of those configurations are changed while [-auto-reload-config](/docs/agent/config/cli-flags#_auto_reload_config) is enabled,
     Consul will issue the following warning, `Static Runtime config has changed and need a manual config reload to be applied`.
     You must manually issue the `consul reload` command or send a `SIGHUP` to the Consul process to reload the new values.
 - Watches
-- [License](/consul/docs/enterprise/license/overview)
+- [License](/docs/enterprise/license/overview)

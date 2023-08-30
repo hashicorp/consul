@@ -1,13 +1,10 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
-import { computed, get, action, defineProperty } from '@ember/object';
-import { alias, sort } from '@ember/object/computed';
+import { computed, get, action } from '@ember/object';
+import { alias } from '@ember/object/computed';
 import { tracked } from '@glimmer/tracking';
+import { sort } from '@ember/object/computed';
+import { defineProperty } from '@ember/object';
 
 export default class DataCollectionComponent extends Component {
   @service('filter') filter;

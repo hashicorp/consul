@@ -16,9 +16,9 @@ Adding a terminating gateway is a multi-step process:
 
 ## Requirements
 
-- [Consul](/consul/docs/install#install-consul)
-- [Consul on Kubernetes CLI](/consul/docs/k8s/k8s-cli)
-- Familiarity with [Terminating Gateways](/consul/docs/connect/gateways/terminating-gateway)
+- [Consul](/docs/install#install-consul)
+- [Consul on Kubernetes CLI](/docs/k8s/k8s-cli)
+- Familiarity with [Terminating Gateways](/docs/connect/gateways/terminating-gateway)
 
 ## Update the Helm chart with terminating gateway configuration options
 
@@ -37,7 +37,7 @@ terminatingGateways:
 
 ## Deploying the Helm chart
 
-The Helm chart may be deployed using the [Consul on Kubernetes CLI](/consul/docs/k8s/k8s-cli).
+The Helm chart may be deployed using the [Consul on Kubernetes CLI](/docs/k8s/k8s-cli).
 
 ```shell-session
 $ consul-k8s install --config-file values.yaml
@@ -88,20 +88,20 @@ Registering the external services with Consul is a multi-step process:
 
 - Register external services with Consul
 - Update the terminating gateway ACL token if ACLs are enabled
-- Create a [`TerminatingGateway`](/consul/docs/connect/config-entries/terminating-gateway) resource to configure the terminating gateway
-- Create a [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to external service
+- Create a [`TerminatingGateway`](/docs/connect/config-entries/terminating-gateway) resource to configure the terminating gateway
+- Create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to external service
 - Define upstream annotations for any services that need to talk to the external services
 
 ### Register external services with Consul
 
 You may register an external service with Consul using `ServiceDefaults` if
-[`TransparentProxy`](/consul/docs/connect/transparent-proxy) is enabled. Otherwise,
+[`TransparentProxy`](/docs/connect/transparent-proxy) is enabled. Otherwise,
 you may register the service as a node in the Consul catalog.
 
 <Tabs>
 <Tab heading="Using ServiceDefaults and TransparentProxy">
 
-The [`destination`](/consul/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial an external service directly. For this method to work, [`TransparentProxy`](/consul/docs/connect/transparent-proxy) must be enabled.
+The [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial an external service directly. For this method to work, [`TransparentProxy`](/docs/connect/transparent-proxy) must be enabled.
 
 The following table describes traffic behaviors when using the `destination` field to route traffic through a terminating gateway:
 
@@ -119,7 +119,7 @@ The following table describes traffic behaviors when using the `destination` fie
 You can provide a `caFile` to secure traffic that connect to external services through the terminating gateway.
 Refer to [Create the configuration entry for the terminating gateway](#create-the-configuration-entry-for-the-terminating-gateway) for details.
 
--> **Note:** Regardless of the `protocol` specified in the `ServiceDefaults`, [L7 intentions](/consul/docs/connect/config-entries/service-intentions#permissions) are not currently supported with `ServiceDefaults` destinations.
+-> **Note:** Regardless of the `protocol` specified in the `ServiceDefaults`, [L7 intentions](/docs/connect/config-entries/service-intentions#permissions) are not currently supported with `ServiceDefaults` destinations.
 
 Create a `ServiceDefaults` custom resource for the external service:
 
@@ -256,7 +256,7 @@ Policies:
 
 ### Create the configuration entry for the terminating gateway
 
-Once the roles have been updated, create the [TerminatingGateway](/consul/docs/connect/config-entries/terminating-gateway)
+Once the roles have been updated, create the [TerminatingGateway](/docs/connect/config-entries/terminating-gateway)
 resource to configure the terminating gateway:
 
 <CodeBlockConfig filename="terminating-gateway.yaml">
@@ -273,9 +273,9 @@ spec:
 
 </CodeBlockConfig>
 
-If TLS is enabled for external services registered through the Consul catalog and you are not using [transparent proxy `destination`](#register-an-external-service-as-a-destination), you must include the [`caFile`](/consul/docs/connect/config-entries/terminating-gateway#cafile) parameter that points to the system trust store of the terminating gateway container.
+If TLS is enabled for external services registered through the Consul catalog and you are not using [transparent proxy `destination`](#register-an-external-service-as-a-destination), you must include the [`caFile`](/docs/connect/config-entries/terminating-gateway#cafile) parameter that points to the system trust store of the terminating gateway container.
 By default, the trust store is located in the `/etc/ssl/certs/ca-certificates.crt` directory.
-Configure the [`caFile`](/consul/docs/connect/config-entries/terminating-gateway#cafile) parameter in the `TerminatingGateway` config entry to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
+Configure the [`caFile`](/docs/connect/config-entries/terminating-gateway#cafile) parameter in the `TerminatingGateway` config entry to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
 - Consul Helm chart 0.43 or older
 - An Envoy image with an alpine base image
 
@@ -285,7 +285,7 @@ Apply the `TerminatingGateway` resource with `kubectl apply`:
 $ kubectl apply --filename terminating-gateway.yaml
 ```
 
-If using ACLs and TLS, create a [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service:
+If using ACLs and TLS, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service:
 
 <CodeBlockConfig filename="service-intentions.yaml">
 
@@ -304,7 +304,7 @@ spec:
 
 </CodeBlockConfig>
 
--> **NOTE**: [L7 Intentions](/consul/docs/connect/config-entries/service-intentions#permissions) are not currently supported for `ServiceDefaults` destinations.
+-> **NOTE**: [L7 Intentions](/docs/connect/config-entries/service-intentions#permissions) are not currently supported for `ServiceDefaults` destinations.
 
 Apply the `ServiceIntentions` resource with `kubectl apply`:
 

@@ -1,8 +1,6 @@
 ---
 layout: commands
 page_title: 'Commands: Snapshot Agent'
-description: |
-  The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers in Consul Enterprise. It can capture server state once or it can run as daemon that captures snapshots at defined intervals.
 ---
 
 # Consul Snapshot Agent
@@ -11,9 +9,9 @@ Command: `consul snapshot agent`
 
 <EnterpriseAlert />
 
-~> The [`agent`](/consul/commands/snapshot/agent) subcommand described here is
+~> The [`agent`](/commands/snapshot/agent) subcommand described here is
 available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
-version 0.7.1 and later. All other [snapshot subcommands](/consul/commands/snapshot)
+version 0.7.1 and later. All other [snapshot subcommands](/commands/snapshot)
 are available in the open source version of Consul.
 
 The `snapshot agent` subcommand starts a process that takes snapshots of the
@@ -50,8 +48,8 @@ in the file name when using local storage, or in the object key when using
 remote storage.
 
 Snapshots can be restored using the
-[`consul snapshot restore`](/consul/commands/snapshot/restore) command, or
-the [HTTP API](/consul/api-docs/snapshot).
+[`consul snapshot restore`](/commands/snapshot/restore) command, or
+the [HTTP API](/api-docs/snapshot).
 
 ## ACL permissions
 
@@ -339,7 +337,7 @@ no `aws-s3-static-snapshot-name` configured.
 | `ListBucket`         | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
 | `ListBucketVersions` | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
 
-Within the table `<key>` refers to the key used to store the snapshot. When `aws-s3-static-snapshot-name` is configured the `<key>` is simply the value of that configuration. Otherwise the `<key>` will be the `<aws-s3-key-prefix configuration>/consul-*.snap`.
+Within the table `<key>` refers to the the key used to store the snapshot. When `aws-s3-static-snapshot-name` is configured the `<key>` is simply the value of that configuration. Otherwise the `<key>` will be the `<aws-s3-key-prefix configuration>/consul-*.snap`.
 
 The following example IAM policy document assumes that the `aws-s3-bucket` is `consul-data` with defaults for `aws-s3-key-prefix`, `aws-s3-static-snapshot-name` and `retain`:
 
@@ -415,7 +413,7 @@ leader election or service registration:
 $ consul snapshot agent -interval=0
 ```
 
-Please see the [HTTP API](/consul/api-docs/snapshot) documentation for
+Please see the [HTTP API](/api-docs/snapshot) documentation for
 more details about snapshot internals.
 
 ## Licensing
@@ -433,5 +431,5 @@ then the order of precedence is as follows:
 3. `license_path` configuration.
 
 The ability to load licenses from the configuration or environment was added in v1.10.0,
-v1.9.7 and v1.8.13. See the [licensing documentation](/consul/docs/enterprise/license/overview) for
+v1.9.7 and v1.8.13. See the [licensing documentation](/docs/enterprise/license/overview) for
 more information about Consul Enterprise license management.

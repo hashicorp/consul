@@ -1,10 +1,5 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %loader circle {
-  fill: var(--token-color-consul-gradient-faint-stop);
+  fill: rgb(var(--tone-brand-100));
 }
 %loader circle {
   animation: loader-animation 1.5s infinite ease-in-out;

@@ -9,16 +9,16 @@ description: |
 
 Command: `consul rtt`
 
-Corresponding HTTP API Endpoints: [\[GET\] /v1/coordinate/datacenters](/consul/api-docs/coordinate#read-wan-coordinates), [\[GET\] /v1/coordinate/nodes](/consul/api-docs/coordinate#read-lan-coordinates-for-all-nodes)
+Corresponding HTTP API Endpoints: [\[GET\] /v1/coordinate/datacenters](/api-docs/coordinate#read-wan-coordinates), [\[GET\] /v1/coordinate/nodes](/api-docs/coordinate#read-lan-coordinates-for-all-nodes)
 
 The `rtt` command estimates the network round trip time between two nodes using
 Consul's network coordinate model of the cluster.
 
-See the [Network Coordinates](/consul/docs/architecture/coordinates) internals guide
+See the [Network Coordinates](/docs/architecture/coordinates) internals guide
 for more information on how these coordinates are computed.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required            |

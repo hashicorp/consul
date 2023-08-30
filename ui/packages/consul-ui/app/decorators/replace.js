@@ -1,9 +1,4 @@
 /**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-/**
  * Simple replacing decorator, with the primary usecase for avoiding null API
  * errors by decorating model attributes: @replace(null, []) @attr() Tags;
  */

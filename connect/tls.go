@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -8,9 +5,9 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 
@@ -92,7 +89,7 @@ func devTLSConfigFromFiles(caFile, certFile,
 
 	roots := x509.NewCertPool()
 
-	bs, err := os.ReadFile(caFile)
+	bs, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		return nil, err
 	}
@@ -425,7 +422,7 @@ func (cfg *dynamicTLSConfig) Ready() bool {
 	return cfg.VerifyLeafWithRoots() == nil
 }
 
-// ReadyWait returns a chan that is closed when the Service becomes ready
+// ReadyWait returns a chan that is closed when the the Service becomes ready
 // for use for the first time. Note that if the Service is ready when it is
 // called it returns a nil chan. Ready means that it has root and leaf
 // certificates configured but not that the combination is valid nor that

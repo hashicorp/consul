@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package checks
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -154,7 +150,7 @@ func (c *CheckAlias) checkServiceExistsOnRemoteServer(serviceID *structs.Service
 RETRY_CALL:
 	var out structs.IndexedNodeServices
 	attempts++
-	if err := c.RPC.RPC(context.Background(), "Catalog.NodeServices", &args, &out); err != nil {
+	if err := c.RPC.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		if attempts <= 3 {
 			time.Sleep(time.Duration(attempts) * time.Second)
 			goto RETRY_CALL
@@ -211,7 +207,7 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 		// index is global to the cluster.
 		var out structs.IndexedHealthChecks
 
-		if err := c.RPC.RPC(context.Background(), "Health.NodeChecks", &args, &out); err != nil {
+		if err := c.RPC.RPC("Health.NodeChecks", &args, &out); err != nil {
 			attempt++
 			if attempt > 1 {
 				c.Notify.UpdateCheck(c.CheckID, api.HealthCritical,

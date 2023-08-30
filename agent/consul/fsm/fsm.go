@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package fsm
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -19,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -74,11 +69,7 @@ func New(gc *state.TombstoneGC, logger hclog.Logger) (*FSM, error) {
 	newStateStore := func() *state.Store {
 		return state.NewStateStore(gc)
 	}
-	return NewFromDeps(Deps{
-		Logger:         logger,
-		NewStateStore:  newStateStore,
-		StorageBackend: NullStorageBackend,
-	}), nil
+	return NewFromDeps(Deps{Logger: logger, NewStateStore: newStateStore}), nil
 }
 
 // Deps are dependencies used to construct the FSM.
@@ -92,42 +83,12 @@ type Deps struct {
 	NewStateStore func() *state.Store
 
 	Publisher *stream.EventPublisher
-
-	// StorageBackend is the storage backend used by the resource service, it
-	// manages its own state and has methods for handling Raft logs, snapshotting,
-	// and restoring snapshots.
-	StorageBackend StorageBackend
-}
-
-// StorageBackend contains the methods on the Raft resource storage backend that
-// are used by the FSM. See the internal/storage/raft package docs for more info.
-type StorageBackend interface {
-	Apply(buf []byte, idx uint64) any
-	Snapshot() (*raftstorage.Snapshot, error)
-	Restore() (*raftstorage.Restoration, error)
-}
-
-// NullStorageBackend can be used as the StorageBackend dependency in tests
-// that won't exercize resource storage or snapshotting.
-var NullStorageBackend StorageBackend = nullStorageBackend{}
-
-type nullStorageBackend struct{}
-
-func (nullStorageBackend) Apply([]byte, uint64) any { return errors.New("NullStorageBackend in use") }
-func (nullStorageBackend) Snapshot() (*raftstorage.Snapshot, error) {
-	return nil, errors.New("NullStorageBackend in use")
-}
-func (nullStorageBackend) Restore() (*raftstorage.Restoration, error) {
-	return nil, errors.New("NullStorageBackend in use")
 }
 
 // NewFromDeps creates a new FSM from its dependencies.
 func NewFromDeps(deps Deps) *FSM {
 	if deps.Logger == nil {
 		deps.Logger = hclog.New(&hclog.LoggerOptions{})
-	}
-	if deps.StorageBackend == nil {
-		panic("StorageBackend is required")
 	}
 
 	fsm := &FSM{
@@ -153,10 +114,8 @@ func NewFromDeps(deps Deps) *FSM {
 	return fsm
 }
 
-func (c *FSM) ChunkingFSM() raft.FSM {
-	// Wrap the chunker in a shim. This is not a ChunkingFSM any more but the only
-	// caller of this passes it directly to Raft as a raft.FSM.
-	return &logVerificationChunkingShim{chunker: c.chunker}
+func (c *FSM) ChunkingFSM() *raftchunking.ChunkingFSM {
+	return c.chunker
 }
 
 // State is used to return a handle to the current state
@@ -169,11 +128,6 @@ func (c *FSM) State() *state.Store {
 func (c *FSM) Apply(log *raft.Log) interface{} {
 	buf := log.Data
 	msgType := structs.MessageType(buf[0])
-
-	// This is tricky stuff. We no longer let the ChunkingFSM wrap us completely
-	// because Chunking FSM doesn't know how to handle raft log verification
-	// checkpoints properly. So instead we have to be extra careful to correctly
-	// call into the chunking FSM when we need it.
 
 	// Check if this message type should be ignored when unknown. This is
 	// used so that new commands can be added with developer control if older
@@ -208,15 +162,9 @@ func (c *FSM) Snapshot() (raft.FSMSnapshot, error) {
 		return nil, err
 	}
 
-	storageSnapshot, err := c.deps.StorageBackend.Snapshot()
-	if err != nil {
-		return nil, err
-	}
-
 	return &snapshot{
-		state:           c.state.Snapshot(),
-		chunkState:      chunkState,
-		storageSnapshot: storageSnapshot,
+		state:      c.state.Snapshot(),
+		chunkState: chunkState,
 	}, nil
 }
 
@@ -231,12 +179,6 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	restore := stateNew.Restore()
 	defer restore.Abort()
 
-	storageRestoration, err := c.deps.StorageBackend.Restore()
-	if err != nil {
-		return err
-	}
-	defer storageRestoration.Abort()
-
 	handler := func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		switch {
 		case msg == structs.ChunkingStateType:
@@ -247,14 +189,6 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 			if err := c.chunker.RestoreState(chunkState); err != nil {
-				return err
-			}
-		case msg == structs.ResourceOperationType:
-			var b []byte
-			if err := dec.Decode(&b); err != nil {
-				return err
-			}
-			if err := storageRestoration.Apply(b); err != nil {
 				return err
 			}
 		case restorers[msg] != nil:
@@ -278,7 +212,6 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	if err := restore.Commit(); err != nil {
 		return err
 	}
-	storageRestoration.Commit()
 
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.
@@ -350,91 +283,62 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 	err := c.deps.Publisher.RegisterHandler(state.EventTopicServiceHealth, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceHealthSnapshot(req, buf)
 	}, false)
-	panicIfErr(err)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceHealthConnect, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceHealthSnapshot(req, buf)
 	}, false)
-	panicIfErr(err)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicCARoots, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().CARootsSnapshot(req, buf)
 	}, false)
-	panicIfErr(err)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicMeshConfig, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().MeshConfigSnapshot(req, buf)
 	}, true)
-	panicIfErr(err)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceResolver, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceResolverSnapshot(req, buf)
 	}, true)
-	panicIfErr(err)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicIngressGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().IngressGatewaySnapshot(req, buf)
 	}, true)
-	panicIfErr(err)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceIntentions, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceIntentionsSnapshot(req, buf)
 	}, true)
-	panicIfErr(err)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceList, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceListSnapshot(req, buf)
 	}, true)
-	panicIfErr(err)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceDefaults, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().ServiceDefaultsSnapshot(req, buf)
 	}, true)
-	panicIfErr(err)
-
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		return c.State().APIGatewaySnapshot(req, buf)
-	}, true)
-	panicIfErr(err)
-
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicInlineCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		return c.State().InlineCertificateSnapshot(req, buf)
-	}, true)
-	panicIfErr(err)
-
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicHTTPRoute, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		return c.State().HTTPRouteSnapshot(req, buf)
-	}, true)
-	panicIfErr(err)
-
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicTCPRoute, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		return c.State().TCPRouteSnapshot(req, buf)
-	}, true)
-	panicIfErr(err)
-
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicBoundAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		return c.State().BoundAPIGatewaySnapshot(req, buf)
-	}, true)
-	panicIfErr(err)
-
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicIPRateLimit, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		return c.State().IPRateLimiterSnapshot(req, buf)
-	}, true)
-	panicIfErr(err)
-
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicSamenessGroup, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		return c.State().SamenessGroupSnapshot(req, buf)
-	}, true)
-	panicIfErr(err)
-
-	err = c.deps.Publisher.RegisterHandler(state.EventTopicJWTProvider, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		return c.State().JWTProviderSnapshot(req, buf)
-	}, true)
-
-	panicIfErr(err)
-}
-
-func panicIfErr(err error) {
 	if err != nil {
 		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
 	}

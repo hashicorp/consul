@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package catalog
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -20,9 +16,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/mesh"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 )
 
 func TestConfigSource_Success(t *testing.T) {
@@ -79,15 +72,15 @@ func TestConfigSource_Success(t *testing.T) {
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	snapCh, termCh, cancelWatch1, err := mgr.Watch(rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
+	snapCh, termCh, cancelWatch1, err := mgr.Watch(serviceID, nodeName, token)
 	require.NoError(t, err)
 	require.Equal(t, session1TermCh, termCh)
 
 	// Expect Register to have been called with the proxy's inital port.
 	select {
 	case snap := <-snapCh:
-		require.Equal(t, 9999, snap.(*proxycfg.ConfigSnapshot).Port)
-		require.Equal(t, token, snap.(*proxycfg.ConfigSnapshot).ProxyID.Token)
+		require.Equal(t, 9999, snap.Port)
+		require.Equal(t, token, snap.ProxyID.Token)
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("timeout waiting for snapshot")
 	}
@@ -111,7 +104,7 @@ func TestConfigSource_Success(t *testing.T) {
 	// Expect Register to have been called again with the proxy's new port.
 	select {
 	case snap := <-snapCh:
-		require.Equal(t, 8888, snap.(*proxycfg.ConfigSnapshot).Port)
+		require.Equal(t, 8888, snap.Port)
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("timeout waiting for snapshot")
 	}
@@ -130,13 +123,13 @@ func TestConfigSource_Success(t *testing.T) {
 		require.Equal(t, map[string]any{
 			"local_connect_timeout_ms": 123,
 			"max_inbound_connections":  321,
-		}, snap.(*proxycfg.ConfigSnapshot).Proxy.Config)
+		}, snap.Proxy.Config)
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("timeout waiting for snapshot")
 	}
 
 	// Start another watch.
-	_, termCh2, cancelWatch2, err := mgr.Watch(rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
+	_, termCh2, cancelWatch2, err := mgr.Watch(serviceID, nodeName, token)
 	require.NoError(t, err)
 	require.Equal(t, session2TermCh, termCh2)
 
@@ -170,16 +163,15 @@ func TestConfigSource_Success(t *testing.T) {
 
 func TestConfigSource_LocallyManagedService(t *testing.T) {
 	serviceID := structs.NewServiceID("web-sidecar-proxy-1", nil)
-	proxyID := rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID()
 	nodeName := "node-1"
 	token := "token"
 
 	localState := testLocalState(t)
-	localState.AddServiceWithChecks(&structs.NodeService{ID: serviceID.ID}, nil, "", false)
+	localState.AddServiceWithChecks(&structs.NodeService{ID: serviceID.ID}, nil, "")
 
 	localWatcher := NewMockWatcher(t)
-	localWatcher.On("Watch", proxyID, nodeName, token).
-		Return(make(<-chan proxysnapshot.ProxySnapshot), nil, proxysnapshot.CancelFunc(func() {}), nil)
+	localWatcher.On("Watch", serviceID, nodeName, token).
+		Return(make(<-chan *proxycfg.ConfigSnapshot), nil, proxycfg.CancelFunc(func() {}), nil)
 
 	mgr := NewConfigSource(Config{
 		NodeName:          nodeName,
@@ -191,7 +183,7 @@ func TestConfigSource_LocallyManagedService(t *testing.T) {
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	_, _, _, err := mgr.Watch(proxyID, nodeName, token)
+	_, _, _, err := mgr.Watch(serviceID, nodeName, token)
 	require.NoError(t, err)
 }
 
@@ -213,12 +205,12 @@ func TestConfigSource_ErrorRegisteringService(t *testing.T) {
 	}))
 
 	var canceledWatch bool
-	cancel := proxysnapshot.CancelFunc(func() { canceledWatch = true })
+	cancel := proxycfg.CancelFunc(func() { canceledWatch = true })
 
 	cfgMgr := NewMockConfigManager(t)
 
 	cfgMgr.On("Watch", mock.Anything).
-		Return(make(<-chan proxysnapshot.ProxySnapshot), cancel)
+		Return(make(<-chan *proxycfg.ConfigSnapshot), cancel)
 
 	cfgMgr.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errors.New("KABOOM"))
@@ -238,7 +230,7 @@ func TestConfigSource_ErrorRegisteringService(t *testing.T) {
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	_, _, _, err := mgr.Watch(rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
+	_, _, _, err := mgr.Watch(serviceID, nodeName, token)
 	require.Error(t, err)
 	require.True(t, canceledWatch, "watch should've been canceled")
 
@@ -263,12 +255,12 @@ func TestConfigSource_NotProxyService(t *testing.T) {
 	}))
 
 	var canceledWatch bool
-	cancel := proxysnapshot.CancelFunc(func() { canceledWatch = true })
+	cancel := proxycfg.CancelFunc(func() { canceledWatch = true })
 
 	cfgMgr := NewMockConfigManager(t)
 
 	cfgMgr.On("Watch", mock.Anything).
-		Return(make(<-chan proxysnapshot.ProxySnapshot), cancel)
+		Return(make(<-chan *proxycfg.ConfigSnapshot), cancel)
 
 	mgr := NewConfigSource(Config{
 		Manager:        cfgMgr,
@@ -279,7 +271,7 @@ func TestConfigSource_NotProxyService(t *testing.T) {
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	_, _, _, err := mgr.Watch(rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
+	_, _, _, err := mgr.Watch(serviceID, nodeName, token)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "must be a sidecar proxy or gateway")
 	require.True(t, canceledWatch, "watch should've been canceled")
@@ -296,7 +288,7 @@ func TestConfigSource_SessionLimiterError(t *testing.T) {
 	t.Cleanup(src.Shutdown)
 
 	_, _, _, err := src.Watch(
-		rtest.Resource(mesh.ProxyConfigurationType, "web-sidecar-proxy-1").ID(),
+		structs.NewServiceID("web-sidecar-proxy-1", nil),
 		"node-name",
 		"token",
 	)
@@ -314,9 +306,9 @@ func testConfigManager(t *testing.T, serviceID structs.ServiceID, nodeName strin
 		Token:     token,
 	}
 
-	snapCh := make(chan proxysnapshot.ProxySnapshot, 1)
+	snapCh := make(chan *proxycfg.ConfigSnapshot, 1)
 	cfgMgr.On("Watch", proxyID).
-		Return((<-chan proxysnapshot.ProxySnapshot)(snapCh), proxysnapshot.CancelFunc(func() {}), nil)
+		Return((<-chan *proxycfg.ConfigSnapshot)(snapCh), proxycfg.CancelFunc(func() {}), nil)
 
 	cfgMgr.On("Register", mock.Anything, mock.Anything, source, token, false).
 		Run(func(args mock.Arguments) {
@@ -359,8 +351,6 @@ type nullSessionLimiter struct{}
 func (nullSessionLimiter) BeginSession() (limiter.Session, error) {
 	return nullSession{}, nil
 }
-
-func (nullSessionLimiter) Run(ctx context.Context) {}
 
 type nullSession struct{}
 

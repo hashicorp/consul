@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 @import 'prism-coldark-dark';
 
 // temporary component debugging setup
@@ -10,12 +5,16 @@
 @import 'consul-ui/components/badge/debug';
 @import 'consul-ui/components/panel/debug';
 @import 'consul-ui/components/tile/debug';
+@import 'consul-ui/components/shadow-template/debug';
 @import 'consul-ui/components/csv-list/debug';
 @import 'consul-ui/components/horizontal-kv-list/debug';
 @import 'consul-ui/components/icon-definition/debug';
 @import 'consul-ui/components/inline-alert/debug';
 @import 'consul-ui/components/definition-table/debug';
 
+.theme-dark {
+  @extend %theme-dark;
+}
 %debug-grid {
   display: flex;
   flex-wrap: wrap;
@@ -33,7 +32,7 @@
   width: 140px;
 }
 %debug-grid figcaption {
-  @extend %body-100-regular;
+  @extend %p3;
   text-align: center;
 }
 [id^='docfy-demo-preview-color'] ul,
@@ -45,7 +44,7 @@
 [id^='docfy-demo-preview-typography'] figure,
 [id^='docfy-demo-preview-icons'] figure {
   border: var(--decor-border-100);
-  border-color: var(--token-color-palette-neutral-300);
+  border-color: rgb(var(--tone-gray-300));
   height: 80px;
 }
 
@@ -57,43 +56,47 @@
   height: 40px;
 }
 #docfy-demo-preview-color0 {
-  background-color: var(--token-color-surface-primary);
+  @extend %theme-light;
+  background-color: rgb(var(--white));
 }
 #docfy-demo-preview-color1 {
-  background-color: var(--token-color-hashicorp-brand);
+  background-color: rgb(var(--black));
+  @extend %theme-dark;
 }
 
 [id^='docfy-demo-preview-typography'] {
-  .debug-h000,
+  .debug-h000 {
+    @extend %h000;
+  }
   .debug-h100 {
-    @extend %display-500-bold;
+    @extend %h100;
   }
   .debug-h200 {
-    @extend %display-400-semibold;
+    @extend %h200;
   }
   .debug-h300 {
-    @extend %display-300-semibold;
+    @extend %h300;
   }
   .debug-h400 {
-    @extend %display-100-semibold;
+    @extend %h400;
   }
   .debug-h500 {
-    @extend %display-100-medium;
+    @extend %h500;
   }
   .debug-h600 {
-    @extend %display-100-medium;
+    @extend %h600;
   }
   .debug-p {
-    @extend %body-200-regular;
+    @extend %p;
   }
   .debug-p1 {
-    @extend %body-200-regular;
+    @extend %p1;
   }
   .debug-p2 {
-    @extend %body-100-regular;
+    @extend %p2;
   }
   .debug-p3 {
-    @extend %body-100-regular;
+    @extend %p3;
   }
 }
 
@@ -118,7 +121,7 @@ html:not(.with-data-source) .data-source-debug {
 }
 html.with-href-to [href^='console://']::before
 {
-  @extend %body-100-regular;
+  @extend %p3;
   @extend %debug-box;
   content: attr(href);
   display: inline;
@@ -138,7 +141,7 @@ html.with-route-announcer .route-title {
 }
 .docs {
   & {
-    background-color: var(--token-color-surface-primary);
+    background-color: rgb(var(--tone-gray-000));
   }
   .tabular-collection,
   .list-collection {
@@ -190,25 +193,25 @@ html.with-route-announcer .route-title {
     }
     > h1 {
       padding-top: 20px;
-      @extend %display-500-bold;
+      @extend %h100;
     }
     > h2 {
-      @extend %display-400-semibold;
+      @extend %h200;
     }
     > h3 {
-      @extend %display-300-semibold;
+      @extend %h300;
     }
     > h4 {
-      @extend %display-100-semibold;
+      @extend %h400;
     }
     > p {
-      @extend %body-200-regular;
+      @extend %p1;
     }
     > table {
       margin-bottom: 3em;
     }
     > table td {
-      font-weight: var(--token-typography-font-weight-regular) !important;
+      font-weight: normal !important;
       cursor: default !important;
     }
     > table td code {
@@ -233,7 +236,7 @@ html.with-route-announcer .route-title {
         border-top: 1px solid;
         border-left: 1px solid;
         border-right: 1px solid;
-        border-color: var(--token-color-surface-interactive-active);
+        border-color: rgb(var(--tone-gray-200));
         padding: 1rem;
         margin-bottom: 0;
       }
@@ -246,19 +249,19 @@ html.with-route-announcer .route-title {
       }
       figcaption {
         margin-bottom: 0.5rem;
-        color: var(--token-color-foreground-disabled);
+        color: rgb(var(--tone-gray-400));
         font-style: italic;
       }
       figcaption code {
         @extend %inline-code;
       }
       figure > [type='text'] {
-        border: 1px solid var(--token-color-hashicorp-brand);
+        border: 1px solid rgb(var(--tone-gray-999));
         width: 100%;
         padding: 0.5rem;
       }
       figure > select {
-        border: 1px solid var(--token-color-hashicorp-brand);
+        border: 1px solid rgb(var(--tone-gray-999));
         padding: 0.5rem;
       }
     }

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -220,7 +217,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logOutput, logger)
+	bd, err := NewBaseDeps(loader, logOutput)
 	if err != nil {
 		return fmt.Errorf("failed to create base deps: %w", err)
 	}
@@ -294,7 +291,7 @@ func (a *TestAgent) waitForUp() error {
 					MaxQueryTime:  25 * time.Millisecond,
 				},
 			}
-			if err := a.RPC(context.Background(), "Catalog.ListNodes", args, &out); err != nil {
+			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
 				retErr = fmt.Errorf("Catalog.ListNodes failed: %v", err)
 				continue // fail, try again
 			}

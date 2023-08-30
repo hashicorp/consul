@@ -15,7 +15,7 @@ The `GatewayClass` specification includes the name of the controller (`controlle
 
 When gateways are created from a `GatewayClass`, they use the parameters specified in the `GatewayClass` at the time of instantiation.
 
-The `GatewayClass` resource is a generic Kubernetes gateway object. For configuration specific to Consul API Gateway, see [GatewayClassConfig](/consul/docs/api-gateway/configuration/gatewayclassconfig).
+The `GatewayClass` resource is a generic Kubernetes gateway object. For configuration specific to Consul API Gateway, see [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig).
 
 ## Configuration model
 The following outline shows how to format the configurations in the `GatewayClass` object. Click on a property name to view details about the configuration.
@@ -58,22 +58,22 @@ Specifies a human-readable description of the gateway class. We recommend using 
 * Required: optional
 
 ## Example Configuration
-The following example creates a gateway class called `example-gateway-class`:
+The following example creates a gateway class called `test-gateway-class`:
 
 <CodeBlockConfig filename="gateway.yaml">
 
-```yaml
-apiVersion: gateway.networking.k8s.io/v1alpha2
-kind: GatewayClass
-metadata:
-  name: example-gateway-class
-spec:
-  controllerName: 'hashicorp.com/consul-api-gateway-controller'
-  parametersRef:
-    group: api-gateway.consul.hashicorp.com
-    kind: GatewayClassConfig
-    name: example-gateway-class-config
-  description: The gateway class is for creating test gateways class configurations
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: GatewayClass
+  metadata:
+    name: test-gateway-class
+  spec:
+    controllerName: 'hashicorp.com/consul-api-gateway-controller'
+    parametersRef:
+      group: api-gateway.consul.hashicorp.com
+      kind: GatewayClassConfig
+      name: test-gateway-class-config
+    description: The gateway class is for creating test gateways class configurations
 ```
 </CodeBlockConfig>
 

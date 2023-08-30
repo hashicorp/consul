@@ -20,7 +20,9 @@
                 "statPrefix": "ingress_upstream_8080",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "8080"
@@ -34,7 +36,9 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
+                  "randomSampling": {
+
+                  }
                 },
                 "upgradeConfigs": [
                   {
@@ -97,7 +101,9 @@
                 "statPrefix": "ingress_upstream_8081",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "8081"
@@ -111,7 +117,9 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
+                  "randomSampling": {
+
+                  }
                 },
                 "upgradeConfigs": [
                   {
@@ -174,7 +182,9 @@
                 "statPrefix": "ingress_upstream_8082",
                 "rds": {
                   "configSource": {
-                    "ads": {},
+                    "ads": {
+
+                    },
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "8082"
@@ -188,7 +198,9 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {}
+                  "randomSampling": {
+
+                  }
                 },
                 "upgradeConfigs": [
                   {

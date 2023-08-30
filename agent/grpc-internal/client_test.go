@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package internal
 
 import (
@@ -17,13 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -97,6 +92,13 @@ func TestNewDialer_WithALPNWrapper(t *testing.T) {
 		Addr:       lis1.Addr(),
 		UseTLS:     true,
 	})
+	builder.AddServer(types.AreaLAN, &metadata.Server{
+		Name:       "server-1",
+		ID:         "ID1",
+		Datacenter: "dc1",
+		Addr:       lis1.Addr(),
+		UseTLS:     true,
+	})
 	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-2",
 		ID:         "ID2",
@@ -145,8 +147,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
-	registerWithGRPC(t, res, bb)
+	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		InternalRPC: tlsutil.ProtocolConfig{
@@ -201,8 +202,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.GetOne(t))
 
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc2", "server"))
-	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
-	registerWithGRPC(t, res, bb)
+	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		InternalRPC: tlsutil.ProtocolConfig{
@@ -277,8 +277,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
-	registerWithGRPC(t, res, bb)
+	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
@@ -322,8 +321,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	count := 3
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
-	registerWithGRPC(t, res, bb)
+	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
@@ -384,13 +382,69 @@ func newConfig(t *testing.T, dc, agentType string) resolver.Config {
 	}
 }
 
+func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
+	count := 5
+	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
+	registerWithGRPC(t, res)
+	pool := NewClientConnPool(ClientConnPoolConfig{
+		Servers:               res,
+		UseTLSForDC:           useTLSForDcAlwaysTrue,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc1",
+	})
+
+	for i := 0; i < count; i++ {
+		name := fmt.Sprintf("server-%d", i)
+		srv := newSimpleTestServer(t, name, "dc1", nil)
+		res.AddServer(types.AreaLAN, srv.Metadata())
+		t.Cleanup(srv.shutdown)
+		// Put a duplicate instance of this on the WAN that will
+		// fail if we accidentally use it.
+		srvBad := newPanicTestServer(t, hclog.Default(), name, "dc1", nil)
+		res.AddServer(types.AreaWAN, srvBad.Metadata())
+		t.Cleanup(srvBad.shutdown)
+	}
+
+	conn, err := pool.ClientConn("dc1")
+	require.NoError(t, err)
+	client := testservice.NewSimpleClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	t.Cleanup(cancel)
+
+	first, err := client.Something(ctx, &testservice.Req{})
+	require.NoError(t, err)
+
+	t.Run("rebalance a different DC, does nothing", func(t *testing.T) {
+		res.NewRebalancer("dc-other")()
+
+		resp, err := client.Something(ctx, &testservice.Req{})
+		require.NoError(t, err)
+		require.Equal(t, resp.ServerName, first.ServerName)
+	})
+
+	t.Run("rebalance the dc", func(t *testing.T) {
+		// Rebalance is random, but if we repeat it a few times it should give us a
+		// new server.
+		attempts := 100
+		for i := 0; i < attempts; i++ {
+			res.NewRebalancer("dc1")()
+
+			resp, err := client.Something(ctx, &testservice.Req{})
+			require.NoError(t, err)
+			if resp.ServerName != first.ServerName {
+				return
+			}
+		}
+		t.Fatalf("server was not rebalanced after %v attempts", attempts)
+	})
+}
+
 func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	dcs := []string{"dc1", "dc2", "dc3"}
 
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
-	registerWithGRPC(t, res, bb)
-
+	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
@@ -428,11 +482,9 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	}
 }
 
-func registerWithGRPC(t *testing.T, rb *resolver.ServerResolverBuilder, bb *balancer.Builder) {
-	resolver.Register(rb)
-	bb.Register()
+func registerWithGRPC(t *testing.T, b *resolver.ServerResolverBuilder) {
+	resolver.Register(b)
 	t.Cleanup(func() {
-		resolver.Deregister(rb.Authority())
-		bb.Deregister()
+		resolver.Deregister(b.Authority())
 	})
 }

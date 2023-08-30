@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: update typography to styles from hds
-```

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package autoconf
 
 import (
@@ -11,10 +8,9 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
-	"github.com/hashicorp/consul/proto/private/pbconnect"
+	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconnect"
 )
 
 const (
@@ -107,14 +103,12 @@ func (ac *AutoConfig) populateCertificateCache(certs *structs.SignedResponse) er
 	leafReq := ac.leafCertRequest()
 
 	// prepolutate leaf cache
-	err = ac.acConfig.LeafCertManager.Prepopulate(
-		context.Background(),
-		leafReq.Key(),
-		certs.IssuedCert.RaftIndex.ModifyIndex,
-		&certs.IssuedCert,
-		connect.EncodeSigningKeyID(cert.AuthorityKeyId),
-	)
-	if err != nil {
+	certRes := cache.FetchResult{
+		Value: &certs.IssuedCert,
+		Index: certs.IssuedCert.RaftIndex.ModifyIndex,
+		State: cachetype.ConnectCALeafSuccess(connect.EncodeSigningKeyID(cert.AuthorityKeyId)),
+	}
+	if err := ac.acConfig.Cache.Prepopulate(cachetype.ConnectCALeafName, certRes, leafReq.Datacenter, structs.DefaultPeerKeyword, leafReq.Token, leafReq.Key()); err != nil {
 		return err
 	}
 
@@ -132,7 +126,7 @@ func (ac *AutoConfig) setupCertificateCacheWatches(ctx context.Context) (context
 	}
 
 	leafReq := ac.leafCertRequest()
-	err = ac.acConfig.LeafCertManager.Notify(notificationCtx, &leafReq, leafWatchID, ac.cacheUpdates)
+	err = ac.acConfig.Cache.Notify(notificationCtx, cachetype.ConnectCALeafName, &leafReq, leafWatchID, ac.cacheUpdates)
 	if err != nil {
 		cancel()
 		return nil, err
@@ -197,8 +191,8 @@ func (ac *AutoConfig) caRootsRequest() structs.DCSpecificRequest {
 	return structs.DCSpecificRequest{Datacenter: ac.config.Datacenter}
 }
 
-func (ac *AutoConfig) leafCertRequest() leafcert.ConnectCALeafRequest {
-	return leafcert.ConnectCALeafRequest{
+func (ac *AutoConfig) leafCertRequest() cachetype.ConnectCALeafRequest {
+	return cachetype.ConnectCALeafRequest{
 		Datacenter:     ac.config.Datacenter,
 		Agent:          ac.config.NodeName,
 		DNSSAN:         ac.getDNSSANs(),

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package lib
 
 import (
@@ -46,11 +43,6 @@ func RandomStagger(intv time.Duration) time.Duration {
 		return 0
 	}
 	return time.Duration(uint64(rand.Int63()) % uint64(intv))
-}
-
-// RandomStaggerWithRange returns an interval between min and the max duration
-func RandomStaggerWithRange(min time.Duration, max time.Duration) time.Duration {
-	return RandomStagger(max-min) + min
 }
 
 // RateScaledInterval is used to choose an interval to perform an action in

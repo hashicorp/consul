@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package maps
 
 func SliceOfKeys[K comparable, V any](m map[K]V) []K {

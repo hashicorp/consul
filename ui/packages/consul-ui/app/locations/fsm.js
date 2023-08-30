@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // a simple state machine that the History API happens to more or less implement
 // it should really be an EventTarget but what we need here is simple enough
 export class FSM {
