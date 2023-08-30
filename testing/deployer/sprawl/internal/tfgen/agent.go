@@ -13,14 +13,14 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
-func (g *Generator) generateAgentHCL(node *topology.Node) (string, error) {
+func (g *Generator) generateAgentHCL(node *topology.Node) string {
 	if !node.IsAgent() {
-		return "", fmt.Errorf("not an agent")
+		panic("generateAgentHCL only applies to agents")
 	}
 
 	cluster, ok := g.topology.Clusters[node.Cluster]
 	if !ok {
-		return "", fmt.Errorf("no such cluster: %s", node.Cluster)
+		panic(fmt.Sprintf("no such cluster: %s", node.Cluster))
 	}
 
 	var b HCLBuilder
@@ -167,7 +167,7 @@ func (g *Generator) generateAgentHCL(node *topology.Node) (string, error) {
 		}
 	}
 
-	return b.String(), nil
+	return b.String()
 }
 
 type HCLBuilder struct {

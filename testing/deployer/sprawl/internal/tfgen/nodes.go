@@ -5,8 +5,6 @@ package tfgen
 
 import (
 	"fmt"
-	"sort"
-	"strconv"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
@@ -19,40 +17,6 @@ type terraformPod struct {
 	TLSVolumeName     string
 	DNSAddress        string
 	DockerNetworkName string
-}
-
-type terraformConsulAgent struct {
-	terraformPod
-	ImageResource     string
-	HCL               string
-	EnterpriseLicense string
-	Env               []string
-}
-
-type terraformMeshGatewayService struct {
-	terraformPod
-	EnvoyImageResource string
-	Service            *topology.Service
-	Command            []string
-}
-
-type terraformAgentfulService struct {
-	terraformPod
-	AppImageResource   string
-	EnvoyImageResource string
-	Service            *topology.Service
-	Env                []string
-	Command            []string
-	EnvoyCommand       []string
-}
-
-type terraformAgentlessService struct {
-	terraformPod
-	AppImageResource       string
-	DataplaneImageResource string // agentless
-	Service                *topology.Service
-	Env                    []string
-	Command                []string
 }
 
 func (g *Generator) generateNodeContainers(
@@ -89,161 +53,100 @@ func (g *Generator) generateNodeContainers(
 	}
 	pod.DockerNetworkName = net.DockerName
 
-	var (
-		containers []Resource
-	)
+	containers := []Resource{}
 
 	if node.IsAgent() {
-		agentHCL, err := g.generateAgentHCL(node)
-		if err != nil {
-			return nil, err
-		}
-
-		agent := terraformConsulAgent{
-			terraformPod:      pod,
-			ImageResource:     DockerImageResourceName(node.Images.Consul),
-			HCL:               agentHCL,
-			EnterpriseLicense: g.license,
-			Env:               node.AgentEnv,
-		}
-
 		switch {
 		case node.IsServer() && step.StartServers(),
 			!node.IsServer() && step.StartAgents():
-			containers = append(containers, Eval(tfConsulT, &agent))
+			containers = append(containers, Eval(tfConsulT, struct {
+				terraformPod
+				ImageResource     string
+				HCL               string
+				EnterpriseLicense string
+			}{
+				terraformPod:      pod,
+				ImageResource:     DockerImageResourceName(node.Images.Consul),
+				HCL:               g.generateAgentHCL(node),
+				EnterpriseLicense: g.license,
+			}))
 		}
 	}
 
+	svcContainers := []Resource{}
 	for _, svc := range node.SortedServices() {
+		token := g.sec.ReadServiceToken(node.Cluster, svc.ID)
 		switch {
-
 		case svc.IsMeshGateway && node.IsDataplane():
 			panic("NOT READY YET")
+
 		case svc.IsMeshGateway && !node.IsDataplane():
-			gw := terraformMeshGatewayService{
-				terraformPod:       pod,
-				EnvoyImageResource: DockerImageResourceName(node.Images.EnvoyConsulImage()),
-				Service:            svc,
-				Command: []string{
-					"consul", "connect", "envoy",
-					"-register",
-					"-mesh-gateway",
-				},
+			tfin := struct {
+				terraformPod
+				ImageResource string
+				Enterprise    bool
+				Service       *topology.Service
+				Token         string
+			}{
+				terraformPod:  pod,
+				Enterprise:    cluster.Enterprise,
+				ImageResource: DockerImageResourceName(node.Images.EnvoyConsulImage()),
+				Service:       svc,
+				Token:         token,
 			}
-			if token := g.sec.ReadServiceToken(node.Cluster, svc.ID); token != "" {
-				gw.Command = append(gw.Command, "-token", token)
-			}
-			if cluster.Enterprise {
-				gw.Command = append(gw.Command,
-					"-partition",
-					svc.ID.Partition,
-				)
-			}
-			gw.Command = append(gw.Command,
-				"-address",
-				`{{ GetInterfaceIP \"eth0\" }}:`+strconv.Itoa(svc.Port),
-				"-wan-address",
-				`{{ GetInterfaceIP \"eth1\" }}:`+strconv.Itoa(svc.Port),
-				"-grpc-addr", "http://127.0.0.1:8502",
-				"-admin-bind",
-				// for demo purposes
-				"0.0.0.0:"+strconv.Itoa(svc.EnvoyAdminPort),
-				"--",
-				"-l",
-				"trace",
-			)
-			if step.StartServices() {
-				containers = append(containers, Eval(tfMeshGatewayT, &gw))
-			}
+			svcContainers = append(svcContainers, Eval(tfMeshGatewayT, &tfin))
 
-		case !svc.IsMeshGateway && !node.IsDataplane():
-			tfsvc := terraformAgentfulService{
-				terraformPod:     pod,
-				AppImageResource: DockerImageResourceName(svc.Image),
-				Service:          svc,
-				Command:          svc.Command,
-			}
-			tfsvc.Env = append(tfsvc.Env, svc.Env...)
-			if step.StartServices() {
-				containers = append(containers, Eval(tfAppT, &tfsvc))
-			}
+		case !svc.IsMeshGateway:
+			svcContainers = append(svcContainers, Eval(tfAppT, struct {
+				terraformPod
+				ImageResource string
+				Service       *topology.Service
+			}{
+				terraformPod:  pod,
+				ImageResource: DockerImageResourceName(svc.Image),
+				Service:       svc,
+			}))
 
-			if svc.DisableServiceMesh {
+			if !svc.DisableServiceMesh {
 				break
 			}
 
-			tfsvc.EnvoyImageResource = DockerImageResourceName(node.Images.EnvoyConsulImage())
-			tfsvc.EnvoyCommand = []string{
-				"consul", "connect", "envoy",
-				"-sidecar-for", svc.ID.Name,
-			}
-			if cluster.Enterprise {
-				tfsvc.EnvoyCommand = append(tfsvc.EnvoyCommand,
-					"-partition",
-					svc.ID.Partition,
-					"-namespace",
-					svc.ID.Namespace,
-				)
-			}
-			if token := g.sec.ReadServiceToken(node.Cluster, svc.ID); token != "" {
-				tfsvc.EnvoyCommand = append(tfsvc.EnvoyCommand, "-token", token)
-			}
-			tfsvc.EnvoyCommand = append(tfsvc.EnvoyCommand,
-				"-grpc-addr", "http://127.0.0.1:8502",
-				"-admin-bind",
-				// for demo purposes
-				"0.0.0.0:"+strconv.Itoa(svc.EnvoyAdminPort),
-				"--",
-				"-l",
-				"trace",
-			)
-			if step.StartServices() {
-				sort.Strings(tfsvc.Env)
-				containers = append(containers, Eval(tfAppSidecarT, &tfsvc))
+			switch node.IsDataplane() {
+			case false:
+				svcContainers = append(svcContainers, Eval(tfAppSidecarT, struct {
+					terraformPod
+					ImageResource string
+					Service       *topology.Service
+					Token         string
+					Enterprise    bool
+					// TODO: we used to use the env from the app container, doubt we need it, seems leaky
+					// Env                []string
+				}{
+					terraformPod:  pod,
+					ImageResource: DockerImageResourceName(node.Images.EnvoyConsulImage()),
+					Service:       svc,
+					Token:         token,
+					Enterprise:    cluster.Enterprise,
+				}))
+
+			case true:
+				svcContainers = append(svcContainers, Eval(tfAppDataplaneT, &struct {
+					terraformPod
+					ImageResource string
+					Token         string
+				}{
+					terraformPod:  pod,
+					ImageResource: DockerImageResourceName(node.Images.LocalDataplaneImage()),
+					Token:         token,
+				}))
 			}
 
-		case !svc.IsMeshGateway && node.IsDataplane():
-			tfsvc := terraformAgentlessService{
-				terraformPod:     pod,
-				AppImageResource: DockerImageResourceName(svc.Image),
-				Service:          svc,
-				Command:          svc.Command,
-			}
-			tfsvc.Env = append(tfsvc.Env, svc.Env...)
-			if step.StartServices() {
-				containers = append(containers, Eval(tfAppT, &tfsvc))
-			}
+		default:
+			panic(fmt.Sprintf("unhandled node kind/dataplane type: %#v", svc))
+		}
 
-			setenv := func(k, v string) {
-				tfsvc.Env = append(tfsvc.Env, k+"="+v)
-			}
-
-			if svc.DisableServiceMesh {
-				break
-			}
-
-			tfsvc.DataplaneImageResource = DockerImageResourceName(node.Images.LocalDataplaneImage())
-			setenv("DP_CONSUL_ADDRESSES", "server."+node.Cluster+"-consulcluster.lan")
-			setenv("DP_SERVICE_NODE_NAME", node.PodName())
-			setenv("DP_PROXY_SERVICE_ID", svc.ID.Name+"-sidecar-proxy")
-			if cluster.Enterprise {
-				setenv("DP_SERVICE_NAMESPACE", svc.ID.Namespace)
-				setenv("DP_SERVICE_PARTITION", svc.ID.Partition)
-			}
-			if token := g.sec.ReadServiceToken(node.Cluster, svc.ID); token != "" {
-				setenv("DP_CREDENTIAL_TYPE", "static")
-				setenv("DP_CREDENTIAL_STATIC_TOKEN", token)
-			}
-			setenv("DP_ENVOY_ADMIN_BIND_ADDRESS", "0.0.0.0") // for demo purposes
-			setenv("DP_ENVOY_ADMIN_BIND_PORT", "19000")
-			setenv("DP_LOG_LEVEL", "trace")
-			setenv("DP_CA_CERTS", "/consul/config/certs/consul-agent-ca.pem")
-			setenv("DP_CONSUL_GRPC_PORT", "8503")
-			setenv("DP_TLS_SERVER_NAME", "server."+node.Datacenter+".consul")
-			if step.StartServices() {
-				sort.Strings(tfsvc.Env)
-				containers = append(containers, Eval(tfAppDataplaneT, &tfsvc))
-			}
+		if step.StartServices() {
+			containers = append(containers, svcContainers...)
 		}
 	}
 

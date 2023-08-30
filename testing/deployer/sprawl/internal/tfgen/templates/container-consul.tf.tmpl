@@ -8,9 +8,6 @@ resource "docker_container" "{{.Node.DockerName}}" {
       "CONSUL_UID=0",
       "CONSUL_GID=0",
       "CONSUL_LICENSE={{.EnterpriseLicense}}",
-{{- range .Env }}
-      "{{.}}",
-{{- end}}
   ]
 
 {{- range $k, $v := .Labels }}

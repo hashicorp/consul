@@ -1,7 +1,7 @@
 resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
 	name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}"
     network_mode = "container:${docker_container.{{.PodName}}.id}"
-    image        = docker_image.{{.AppImageResource}}.latest
+    image        = docker_image.{{.ImageResource}}.latest
     restart  = "on-failure"
 
 {{- range $k, $v := .Labels }}
@@ -12,13 +12,13 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
 {{- end }}
 
   env = [
-{{- range .Env }}
+{{- range .Service.Env }}
       "{{.}}",
 {{- end}}
   ]
 
   command = [
-{{- range .Command }}
+{{- range .Service.Command }}
     "{{.}}",
 {{- end }}
   ]

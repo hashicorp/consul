@@ -1,8 +1,8 @@
 resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidecar" {
 	name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidecar"
     network_mode = "container:${docker_container.{{.PodName}}.id}"
-    image        = docker_image.{{.DataplaneImageResource}}.latest
-    restart  = "on-failure"
+    image        = docker_image.{{.ImageResource}}.latest
+    restart      = "on-failure"
 
 {{- range $k, $v := .Labels }}
   labels {
@@ -18,9 +18,24 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
   }
 
   env = [
-{{- range .Env }}
-      "{{.}}",
-{{- end}}
+			"DP_CONSUL_ADDRESSES=server.{{.Node.Cluster}}-consulcluster.lan",
+			"DP_SERVICE_NODE_NAME", {{.Node.PodName}}",
+			"DP_PROXY_SERVICE_ID", svc.ID.Name+"-sidecar-proxy"),
+    {{ if .Enterprise }}
+      "DP_SERVICE_NAMESPACE={{.Service.ID.Namespace}}",
+      "DP_SERVICE_PARTITION={{.Service.ID.Partition}}",
+    {{ end }}
+    {{ if .Token }}
+      "DP_CREDENTIAL_TYPE", "static"),
+      "DP_CREDENTIAL_STATIC_TOKEN", token),
+    {{ end }}
+      // for demo purposes
+			"DP_ENVOY_ADMIN_BIND_ADDRESS=0.0.0.0",
+			"DP_ENVOY_ADMIN_BIND_PORT=19000",
+			"DP_LOG_LEVEL=trace",
+			"DP_CA_CERTS=/consul/config/certs/consul-agent-ca.pem",
+			"DP_CONSUL_GRPC_PORT=8503",
+			"DP_TLS_SERVER_NAME=server.{{.Node.Datacenter}}.consul",
   ]
 
   command = [

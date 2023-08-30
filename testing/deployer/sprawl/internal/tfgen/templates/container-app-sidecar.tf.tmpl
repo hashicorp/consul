@@ -17,15 +17,21 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
     read_only      = true
   }
 
-  env = [
-{{- range .Env }}
-      "{{.}}",
-{{- end}}
-  ]
-
   command = [
-{{- range .EnvoyCommand }}
-    "{{.}}",
-{{- end }}
+    "consul", "connect", "envoy",
+    "-sidecar-for={{.Service.ID.Name}}",
+    "-grpc-addr=http://127.0.0.1:8502",
+    // for demo purposes (TODO: huh?)
+    "-admin-bind=0.0.0.0:{{ .Service.EnvoyAdminPort}},
+  {{if .Enterprise}} 
+    "-partition", svc.ID.Partition,
+    "-namespace", svc.ID.Namespace,
+  {{end}}
+  {{if .Token }}
+    "-token={{.Token}}
+  {{end}}
+    "--",
+    "-l",
+    "trace",
   ]
 }

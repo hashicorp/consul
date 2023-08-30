@@ -1,7 +1,7 @@
 resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
     name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}"
     network_mode = "container:${docker_container.{{.PodName}}.id}"
-    image        = docker_image.{{.EnvoyImageResource}}.latest
+    image        = docker_image.{{.ImageResource}}.latest
     restart  = "on-failure"
 
 {{- range $k, $v := .Labels }}
@@ -18,8 +18,22 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
   }
 
   command = [
-{{- range .Command }}
-    "{{.}}",
-{{- end }}
+    "consul", "connect", "envoy",
+    "-register",
+    "-mesh-gateway",
+    "-address={{`{{ GetInterfaceIP \"eth0\" }}`}}:{{.Service.Port}}",
+    "-wan-address={{`{{ GetInterfaceIP \"eth1\" }}`}}:{{.Service.Port}}",
+    "-grpc-addr=http://127.0.0.1:8502",
+    // for demo purposes (TODO: huh?)
+    "-admin-bind=0.0.0.0:{{.Service.EnvoyAdminPort}}",
+  {{ if .Enterprise }} 
+    "-partition={{.Service.ID.Partition}}",
+  {{end}}
+  {{ if .Token }}
+    "-token={{.Token}}",
+  {{end}}
+    "--",
+    "-l",
+    "trace",
   ]
 }

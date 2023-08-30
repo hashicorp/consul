@@ -432,9 +432,6 @@ type Node struct {
 	// the enclosing Cluster.
 	Images Images
 
-	// AgentEnv contains optional environment variables to attach to Consul agents.
-	AgentEnv []string
-
 	Disabled bool `json:",omitempty"`
 
 	Addresses []*Address
