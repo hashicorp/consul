@@ -5,12 +5,12 @@ package xds
 
 import (
 	"fmt"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"sync"
 
+	"github.com/hashicorp/consul/internal/controller"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
-
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -23,6 +23,7 @@ type mockUpdater struct {
 	latestPs        map[string]proxysnapshot.ProxySnapshot
 	notConnected    bool
 	pushChangeError bool
+	eventChan       chan controller.Event
 }
 
 func newMockUpdater() *mockUpdater {
@@ -61,6 +62,13 @@ func (m *mockUpdater) ProxyConnectedToServer(_ *pbresource.ID) bool {
 		return false
 	}
 	return true
+}
+
+func (m *mockUpdater) EventChannel() chan controller.Event {
+	if m.eventChan == nil {
+		m.eventChan = make(chan controller.Event)
+	}
+	return m.eventChan
 }
 
 func (p *mockUpdater) Get(name string) *proxytracker.ProxyState {

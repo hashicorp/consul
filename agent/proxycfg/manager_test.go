@@ -4,7 +4,6 @@
 package proxycfg
 
 import (
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )

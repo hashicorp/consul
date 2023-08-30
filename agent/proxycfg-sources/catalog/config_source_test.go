@@ -6,8 +6,6 @@ package catalog
 import (
 	"context"
 	"errors"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"testing"
 	"time"
 
@@ -23,6 +21,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/mesh"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 )
 
 func TestConfigSource_Success(t *testing.T) {

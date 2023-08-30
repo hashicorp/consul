@@ -6,9 +6,6 @@ package catalog
 import (
 	"context"
 	"errors"
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -16,9 +13,12 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const source proxycfg.ProxySource = "catalog"
