@@ -461,6 +461,8 @@ type Server struct {
 
 	// handles metrics reporting to HashiCorp
 	reportingManager *reporting.ReportingManager
+
+	registry resource.Registry
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -547,6 +549,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
+		registry:                flat.Registry,
 	}
 	incomingRPCLimiter.Register(s)
 

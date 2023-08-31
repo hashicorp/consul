@@ -42,10 +42,6 @@ func TestWrite_InputValidation(t *testing.T) {
 			artist.Id.Type = nil
 			return artist
 		},
-		"no tenancy": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Id.Tenancy = nil
-			return artist
-		},
 		"no name": func(artist, _ *pbresource.Resource) *pbresource.Resource {
 			artist.Id.Name = ""
 			return artist
@@ -106,7 +102,7 @@ func TestWrite_OwnerValidation(t *testing.T) {
 		},
 		"no owner tenancy": {
 			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Tenancy = nil },
-			errorContains: "resource.owner.tenancy",
+			errorContains: "resource.owner",
 		},
 		"no owner name": {
 			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Name = "" },
@@ -253,6 +249,13 @@ func TestWrite_Create_Success(t *testing.T) {
 			},
 			expectedTenancy: resource.DefaultNamespacedTenancy(),
 		},
+		"namespaced resource inherits tokens partition and namespace when tenancy nil": {
+			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
+				artist.Id.Tenancy = nil
+				return artist
+			},
+			expectedTenancy: resource.DefaultNamespacedTenancy(),
+		},
 		"partitioned resource provides nonempty partition": {
 			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
 				return recordLabel
@@ -269,6 +272,13 @@ func TestWrite_Create_Success(t *testing.T) {
 		"partitioned resource inherits tokens partition when empty": {
 			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
 				recordLabel.Id.Tenancy.Partition = ""
+				return recordLabel
+			},
+			expectedTenancy: resource.DefaultPartitionedTenancy(),
+		},
+		"partitioned resource inherits tokens partition when tenancy nil": {
+			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
+				recordLabel.Id.Tenancy = nil
 				return recordLabel
 			},
 			expectedTenancy: resource.DefaultPartitionedTenancy(),
