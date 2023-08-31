@@ -85,10 +85,6 @@ func TestWriteStatus_InputValidation(t *testing.T) {
 			typ:   demo.TypeV2Artist,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Type = nil },
 		},
-		"no tenancy": {
-			typ:   demo.TypeV2Artist,
-			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy = nil },
-		},
 		"no name": {
 			typ:   demo.TypeV2Artist,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Name = "" },
@@ -235,6 +231,10 @@ func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 				req.Id.Tenancy.Partition = ""
 				req.Id.Tenancy.Namespace = ""
 			},
+		},
+		"namespaced resource inherits tokens partition and namespace when tenancy nil": {
+			scope: resource.ScopeNamespace,
+			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy = nil },
 		},
 		"partitioned resource provides nonempty partition": {
 			scope: resource.ScopePartition,
