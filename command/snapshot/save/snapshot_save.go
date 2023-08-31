@@ -3,9 +3,9 @@ package save
 import (
 	"flag"
 	"fmt"
-	"github.com/hashicorp/consul/version"
 	"golang.org/x/exp/slices"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/mitchellh/cli"
@@ -23,16 +23,16 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI             cli.Ui
-	flags          *flag.FlagSet
-	http           *flags.HTTPFlags
-	help           string
-	appendFileName flags.StringValue
+	UI                 cli.Ui
+	flags              *flag.FlagSet
+	http               *flags.HTTPFlags
+	help               string
+	appendFileNameFlag flags.StringValue
 }
 
 func (c *cmd) getAppendFileNameFlag() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	fs.Var(&c.appendFileName, "append-filename", "Append filename flag takes two possible values. "+
+	fs.Var(&c.appendFileNameFlag, "append-filename", "Append filename flag takes two possible values. "+
 		"1. version, 2. dc. It appends consul version and datacenter to filename given in command")
 	return fs
 }
@@ -68,23 +68,38 @@ func (c *cmd) Run(args []string) int {
 	// Create and test the HTTP client
 	client, err := c.http.APIClient()
 
-	appendFileNameFlags := strings.Split(c.appendFileName.String(), ",")
+	appendFileNameFlags := strings.Split(c.appendFileNameFlag.String(), ",")
 
-	if slices.Contains(appendFileNameFlags, "version") {
-		file = file + "-" + version.GetHumanVersion()
-	}
+	var agentSelfResponse map[string]map[string]interface{}
 
-	if slices.Contains(appendFileNameFlags, "dc") {
-		agentSelfResponse, err := client.Agent().Self()
+	if len(appendFileNameFlags) != 0 {
+		agentSelfResponse, err = client.Agent().Self()
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent and fetching datacenter: %s", err))
+			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent and fetching datacenter/version: %s", err))
 			return 1
 		}
-		if config, ok := agentSelfResponse["Config"]; ok {
-			if datacenter, ok := config["Datacenter"]; ok {
-				file = file + "-" + datacenter.(string)
+
+		fileExt := filepath.Ext(file)
+		fileNameWithoutExt := strings.TrimSuffix(file, fileExt)
+
+		if slices.Contains(appendFileNameFlags, "version") {
+			if config, ok := agentSelfResponse["Config"]; ok {
+				if version, ok := config["Version"]; ok {
+					fileNameWithoutExt = fileNameWithoutExt + "-" + version.(string)
+				}
 			}
 		}
+
+		if slices.Contains(appendFileNameFlags, "dc") {
+			if config, ok := agentSelfResponse["Config"]; ok {
+				if datacenter, ok := config["Datacenter"]; ok {
+					fileNameWithoutExt = fileNameWithoutExt + "-" + datacenter.(string)
+				}
+			}
+		}
+
+		//adding extension back
+		file = fileNameWithoutExt + fileExt
 	}
 
 	if err != nil {
