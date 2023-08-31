@@ -5,6 +5,7 @@ package read
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"strings"
@@ -49,9 +50,13 @@ func (c *cmd) Run(args []string) int {
 	var resourceName string
 	var opts *api.QueryOptions
 
+	if len(args) == 0 {
+		c.UI.Error("Please provide subcommands or flags")
+		return 1
+	}
 	if args[0] == "-f" {
 		if err := c.flags.Parse(args); err != nil {
-			if err == flag.ErrHelp {
+			if errors.Is(err, flag.ErrHelp) {
 				return 0
 			}
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
@@ -82,7 +87,7 @@ func (c *cmd) Run(args []string) int {
 				Token:     c.http.Token(),
 			}
 		} else {
-			c.UI.Error("Please input file path")
+			c.UI.Error("Please provide the HCL file path")
 			return 1
 		}
 	} else {
@@ -95,7 +100,7 @@ func (c *cmd) Run(args []string) int {
 
 		inputArgs := args[2:]
 		if err := c.flags.Parse(inputArgs); err != nil {
-			if err == flag.ErrHelp {
+			if errors.Is(err, flag.ErrHelp) {
 				return 0
 			}
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
@@ -110,7 +115,7 @@ func (c *cmd) Run(args []string) int {
 			Partition:         c.http.Partition(),
 			Peer:              c.http.PeerName(),
 			Token:             c.http.Token(),
-			RequireConsistent: c.http.Stale(),
+			RequireConsistent: !c.http.Stale(),
 		}
 	}
 
@@ -165,12 +170,27 @@ func (c *cmd) Help() string {
 
 const synopsis = "Read resource information"
 const help = `
-Usage: consul resource read [type] [name] -partition=<default> -namespace=<default> -peer=<local>
+Usage: You have two options to read the resource specified by the given
+type, name, partition, namespace and peer and outputs its JSON representation.
 
-Reads the resource specified by the given type, name, partition, namespace and peer
-and outputs its JSON representation.
+consul resource read [type] [name] -partition=<default> -namespace=<default> -peer=<local>
+consul resource read -f [resource_file_path]
+
+But you could only use one of the approaches.
 
 Example:
 
 $ consul resource read catalog.v1alpha1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource read -f resource.hcl
+
+In resource.hcl, it could be:
+ID {
+  Type = gvk("catalog.v1alpha1.Service")
+  Name = "card-processor"
+  Tenancy {
+    Namespace = "payments"
+    Partition = "billing"
+    PeerName = "eu"
+  }
+}
 `
