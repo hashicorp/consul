@@ -63,6 +63,8 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 		return reconcileEntry(r.fsm.State(), r.logger, ctx, req, r.reconcileTCPRoute, r.cleanupRoute)
 	case structs.InlineCertificate:
 		return r.enqueueCertificateReferencedGateways(r.fsm.State(), ctx, req)
+	case structs.JWTProvider:
+		return r.enqueueJWTProviderReferencedGatewaysAndHTTPRoutes(r.fsm.State(), ctx, req)
 	default:
 		return nil
 	}
@@ -233,11 +235,18 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		logger.Warn("error retrieving bound api gateway", "error", err)
 		return err
 	}
+
 	meta := newGatewayMeta(gateway, bound)
 
 	certificateErrors, err := meta.checkCertificates(store)
 	if err != nil {
 		logger.Warn("error checking gateway certificates", "error", err)
+		return err
+	}
+
+	jwtErrors, err := meta.checkJWTProviders(store)
+	if err != nil {
+		logger.Warn("error checking gateway JWT Providers", "error", err)
 		return err
 	}
 
@@ -260,7 +269,12 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 
 	if len(certificateErrors) > 0 {
 		updater.SetCondition(invalidCertificates())
-	} else {
+	}
+	if len(jwtErrors) > 0 {
+		updater.SetCondition(invalidJWTProviders())
+	}
+
+	if len(certificateErrors) == 0 && len(jwtErrors) == 0 {
 		updater.SetCondition(gatewayAccepted())
 	}
 
@@ -463,6 +477,13 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 		updater.SetCondition(routeNoUpstreams())
 	}
 
+	if httpRoute, ok := route.(*structs.HTTPRouteConfigEntry); ok {
+		err := validateJWTForRoute(store, updater, httpRoute)
+		if err != nil {
+			return err
+		}
+	}
+
 	// the route is valid, attempt to bind it to all gateways
 	r.logger.Trace("binding routes to gateway")
 	modifiedGateways, boundRefs, bindErrors := bindRoutesToGateways(route, meta...)
@@ -535,6 +556,11 @@ func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, updat
 	).Subscribe(
 		&stream.SubscribeRequest{
 			Topic:   state.EventTopicInlineCertificate,
+			Subject: stream.SubjectWildcard,
+		},
+	).Subscribe(
+		&stream.SubscribeRequest{
+			Topic:   state.EventTopicJWTProvider,
 			Subject: stream.SubjectWildcard,
 		})
 }
@@ -897,6 +923,31 @@ func invalidCertificates() structs.Condition {
 	)
 }
 
+// invalidJWTProvider returns a condition used when a gateway listener referecnes
+// a JWTProvider that does not exist. It takes a ref used to scope the condition
+// to a given APIGateway listener.
+func invalidJWTProvider(ref structs.ResourceReference, err error) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionResolvedRefs,
+		api.ConditionStatusFalse,
+		api.GatewayListenerReasonInvalidJWTProviderRef,
+		err.Error(),
+		ref,
+	)
+}
+
+// invalidJWTProviders is used to set the overall condition of the APIGateway
+// to invalid due to missing JWT providers that it references.
+func invalidJWTProviders() structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionAccepted,
+		api.ConditionStatusFalse,
+		api.GatewayReasonInvalidJWTProviders,
+		"gateway references invalid JWT Providers",
+		structs.ResourceReference{},
+	)
+}
+
 // gatewayListenerNoConflicts marks an APIGateway listener as having no conflicts within its
 // bound routes
 func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
@@ -940,6 +991,18 @@ func gatewayNotFound(ref structs.ResourceReference) structs.Condition {
 		api.ConditionStatusFalse,
 		api.RouteReasonGatewayNotFound,
 		"gateway was not found",
+		ref,
+	)
+}
+
+// jwtProvderNotFound marks a Route as having failed to bind to a referenced APIGateway due to
+// one or more of the referenced JWT providers not existing (or having not been reconciled yet)
+func jwtProviderNotFound(ref structs.ResourceReference, err error) structs.Condition {
+	return structs.NewRouteCondition(
+		api.RouteConditionBound,
+		api.ConditionStatusFalse,
+		api.RouteReasonGatewayNotFound,
+		err.Error(),
 		ref,
 	)
 }
