@@ -778,7 +778,7 @@ Specifies the TLS server name indication (SNI) when federating with an external 
 
 ### `Expose`
 
-Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on localhost only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference) for additional information and example configurations.
+Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on localhost only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information and example configurations.
 
 - Default: none
 - Data type: map
@@ -1198,7 +1198,7 @@ Specifies the TLS server name indication (SNI) when federating with an external 
 
 ### `spec.expose`
 
-Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on localhost only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference) for additional information and example configurations.
+Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on localhost only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information and example configurations.
 
 #### Values
 
@@ -2053,7 +2053,7 @@ represents a location outside the Consul cluster. Services can dial destinations
       name: 'Expose',
       type: 'ExposeConfig: <optional>',
       description: `Controls the default
-                      [expose path configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
+                      [expose path configuration](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference)
                       for Envoy. Added in v1.6.2.<br><br>
                       Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
                       non-mesh-enabled applications to contact an HTTP endpoint.

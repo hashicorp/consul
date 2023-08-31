@@ -48,7 +48,7 @@ Sidecar proxies that do not send upstream traffic through a gateway are not affe
 Configure the following settings to register the mesh gateway as a service in Consul.
 
 * Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
-* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/consul/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
+* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
 * Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
 * If ACLs are enabled, a token granting `service:write` for the gateway's service name and `service:read` for all services in the datacenter or partition must be added to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services, but does not allow decrypting any of their communications.
 
@@ -127,8 +127,8 @@ Name: web
 
 ### Enabling Gateways for a Service Instance
 
-The following [Proxy Service Registration](/consul/docs/connect/registration/service-registration)
-definition will enable gateways for the service instance in the `remote` mode.
+The following [proxy service configuration](/consul/docs/connect/proxies/deploy-service-mesh-proxies)
+ enables gateways for the service instance in the `remote` mode.
 
 <CodeTabs heading="Example: Enabling gateways for a service instance.">
 

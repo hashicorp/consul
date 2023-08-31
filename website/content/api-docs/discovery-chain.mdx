@@ -57,10 +57,8 @@ The table below shows this endpoint's support for
 - `compile-dc` `(string: "")` - Specifies the datacenter to use as the basis of
   compilation. This will default to the datacenter of the agent being queried.
 
-  This value comes from an [upstream
-  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
-  [`datacenter`](/consul/docs/connect/registration/service-registration#datacenter)
-  parameter.
+  This value comes from the `datacenter` parameter in an [upstream
+  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the source namespace you use as the basis of compilation.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
@@ -71,11 +69,8 @@ The table below shows this endpoint's support for
   timeout](/consul/docs/connect/config-entries/service-resolver#connecttimeout) for
   any service resolved in the compiled chain.
 
-  This value comes from the `connect_timeout_ms` key in an [upstream
-  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
-  opaque
-  [`config`](/consul/docs/connect/registration/service-registration#config-1)
-  parameter.
+  This value comes from the `connect_timeout_ms` key in the opaque `config` field of the [upstream
+  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
 
 - `OverrideProtocol` `(string: "")` - Overrides the final
   [protocol](/consul/docs/connect/config-entries/service-defaults#protocol) used in
@@ -86,23 +81,17 @@ The table below shows this endpoint's support for
   would be L7 and TCP is passed here the chain will not include Routers or
   Splitters.
 
-  This value comes from the `protocol` key in an [upstream
-  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
-  opaque
-  [`config`](/consul/docs/connect/registration/service-registration#config-1)
-  parameter.
+  This value comes from the `protocol` key in an opaque `config` field of the [upstream
+  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
 
 - `OverrideMeshGateway` `(MeshGatewayConfig: <optional>)` - Overrides the final
   [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
   for this any service resolved in the compiled chain.
 
-  This value comes from either the [proxy
-  configuration](/consul/docs/connect/registration/service-registration#complete-configuration-example)
-  [`mesh_gateway`](/consul/docs/connect/registration/service-registration#mesh_gateway)
-  parameter or an [upstream
-  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
-  [`mesh_gateway`](/consul/docs/connect/registration/service-registration#mesh_gateway-1)
-  parameter. If both are present the value defined on the upstream is used.
+  This value comes from the `mesh_gateway` parameter in either the [proxy
+  configuration](/consul/docs/connect/proxies/proxy-config-reference#proxy-parameters) or [upstream
+  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
+  If both parameters are configured, Consul uses the value defined on the upstream.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
 

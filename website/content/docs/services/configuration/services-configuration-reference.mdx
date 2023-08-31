@@ -320,7 +320,7 @@ String value that identifies the service as a proxy and determines its role in t
 
 You can specify the following values:
 
-- `connect-proxy`: Defines the configuration for a service mesh proxy. Refer to [Register a Service Mesh Proxy Outside of a Service Registration](/consul/docs/connect/registration/service-registration) for details about registering a service as a service mesh proxy.
+- `connect-proxy`: Defines the configuration for a service mesh proxy. Refer to [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies) for details about registering a service as a service mesh proxy.
 - `ingress-gateway`: Defines the configuration for an [ingress gateway](/consul/docs/connect/config-entries/ingress-gateway)
 - `mesh-gateway`: Defines the configuration for a [mesh gateway](/consul/docs/connect/gateways/mesh-gateway)
 - `terminating-gateway`: Defines the configuration for a [terminating gateway](/consul/docs/connect/gateways/terminating-gateway)
@@ -328,7 +328,7 @@ You can specify the following values:
 For non-service registration roles, the `kind` field has a different context when used to define configuration entries, such as `service-defaults`. Refer to the documentation for the configuration entry you want to implement for additional information. 
 
 ### proxy
-Object that specifies proxy configurations when the service is configured to operate as a proxy in a service mesh. Do not configure the `proxy` parameter for non-proxy service instances. Refer to [Register a Service Mesh Proxy Outside of a Service Registration](/consul/docs/connect/registration/service-registration) for details about registering your service as a service mesh proxy. Refer to [`kind`](#kind) for information about the types of proxies you can define. Services that you assign proxy roles to are registered as services in the catalog. 
+Object that specifies proxy configurations when the service is configured to operate as a proxy in a service mesh. Do not configure the `proxy` parameter for non-proxy service instances. Refer to [Service mesh proxies overview](/consul/docs/connect/proxies) for details about registering your service as a service mesh proxy. Refer to [`kind`](#kind) for information about the types of proxies you can define. Services that you assign proxy roles to are registered as services in the catalog. 
 
 ### connect
 Object that configures a Consul service mesh connection. You should only configure the `connect` block of parameters if you are using Consul service mesh. Refer to [Consul Service Mesh](/consul/docs/connect) for additional information. 

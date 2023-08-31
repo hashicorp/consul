@@ -24,7 +24,7 @@ Consul can configure Envoy sidecars to proxy traffic over the following protocol
 
 On Consul 1.5.0 and older, Envoy proxies can only proxy TCP traffic at L4.
 
-Some [L7 features](/consul/docs/connect/l7-traffic) can be configured using [configuration entries](/consul/docs/agent/config-entries). You can add [custom Envoy configurations](#advanced-configuration) to the [proxy service definition](/consul/docs/connect/registration/service-registration) to use Envoy features that are not currently exposed through configuration entries. Adding custom Envoy configurations to the service definition is an interim solution that enables you to use the more powerful features of Envoy.
+You can configure some [L7 features](/consul/docs/connect/l7-traffic) in [configuration entries](/consul/docs/agent/config-entries). You can add [custom Envoy configurations](#advanced-configuration) to the [proxy service definition](/consul/docs/connect/proxies/proxy-config-reference), which enables you to leverage Envoy features that are not exposed through configuration entries. You can also use the [Consul Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) to implement Envoy features.
 
 ~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/consul/commands/connect/envoy)
 Envoy must be run with the `--max-obj-name-len` option set to `256` or greater for Envoy versions prior to 1.11.0.
@@ -77,7 +77,7 @@ The dynamic configuration Consul service mesh provides to each Envoy instance in
 - Service-discovery results for upstreams to enable each sidecar proxy to load-balance
   outgoing connections.
 - L7 configuration including timeouts and protocol-specific options.
-- Configuration to [expose specific HTTP paths](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference).
+- Configuration to [expose specific HTTP paths](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
 
 For more information on the parts of the Envoy proxy runtime configuration
 that are currently controllable via Consul service mesh, refer to [Dynamic
@@ -139,9 +139,9 @@ Consul service mesh can control some parts of the bootstrap configuration by spe
 
 Add the following configuration items to the [global `proxy-defaults` configuration
 entry](/consul/docs/connect/config-entries/proxy-defaults) or override them directly in the `proxy.config`
-field of a [proxy service definition](/consul/docs/connect/registration/service-registration). When
+field of a [proxy service definition](/consul/docs/proxies/proxy-config-reference). When
 connected to a Consul client agent, you can place the configuration in the `proxy.config` field of
-the [`sidecar_service`](/consul/docs/connect/registration/sidecar-service) block.
+the [`sidecar_service`](/consul/docs/connect/proxies/deploy-sidecar-services) block.
 
 - `envoy_statsd_url` - A URL in the form `udp://ip:port` identifying a UDP
   StatsD listener that Envoy should deliver metrics to. For example, this may be
@@ -278,7 +278,7 @@ automatically configure its upstream listeners appropriately too as below.
 
 This automated discovery results in Consul auto-populating the `proxy.config`
 and `proxy.upstreams[*].config` fields of the [proxy service
-definition](/consul/docs/connect/registration/service-registration) that is
+definition](/consul/docs/connect/proxies/proxy-config-reference) that is
 actually registered.
 
 To learn about other options that can be configured centrally see the
@@ -287,7 +287,7 @@ To learn about other options that can be configured centrally see the
 ### Proxy Config Options
 
 These fields may also be overridden explicitly in `proxy.config` of the [proxy service
-definition](/consul/docs/connect/registration/service-registration), or defined in
+definition](/consul/docs/connect/proxies/proxy-config-reference), or defined in
 the [global `proxy-defaults` configuration
 entry](/consul/docs/connect/config-entries/proxy-defaults) to act as
 defaults that are inherited by all services.
@@ -359,8 +359,8 @@ defaults that are inherited by all services.
 
 The following configuration items may be overridden directly in the
 `proxy.upstreams[].config` field of a [proxy service
-definition](/consul/docs/connect/registration/service-registration) or
-[`sidecar_service`](/consul/docs/connect/registration/sidecar-service) block.
+definition](/consul/docs/connect/proxies/proxy-config-reference) or
+[`sidecar_service`](/consul/docs/connect/proxies/deploy-sidecar-services) block.
 
 - `protocol` - Same as above in main config but affects the listener setup for
   the upstream.
@@ -436,7 +436,7 @@ definition](/consul/docs/connect/registration/service-registration) or
 ### Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
-definition](/consul/docs/connect/registration/service-registration), or defined in
+definition](/consul/docs/connect/proxies/proxy-config-reference), or defined in
 the [global `proxy-defaults` configuration
 entry](/consul/docs/connect/config-entries/proxy-defaults) to act as
 defaults that are inherited by all services.
@@ -610,8 +610,8 @@ Users may add the following configuration items to the [global `proxy-defaults`
 configuration
 entry](/consul/docs/connect/config-entries/proxy-defaults) or
 override them directly in the `proxy.config` field of a [proxy service
-definition](/consul/docs/connect/registration/service-registration) or
-[`sidecar_service`](/consul/docs/connect/registration/sidecar-service) block.
+definition](/consul/docs/connect/proxies/proxy-config-reference) or
+[`sidecar_service`](/consul/docs/connect/proxies/deploy-sidecar-services) block.
 
 - `envoy_extra_static_clusters_json` - Specifies one or more [Envoy clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto)
   that will be appended to the array of [static
@@ -791,8 +791,8 @@ Users may add the following configuration items to the [global `proxy-defaults`
 configuration
 entry](/consul/docs/connect/config-entries/proxy-defaults) or
 override them directly in the `proxy.config` field of a [proxy service
-definition](/consul/docs/connect/registration/service-registration) or
-[`sidecar_service`](/consul/docs/connect/registration/sidecar-service) block.
+definition](/consul/docs/connect/proxies/proxy-config-reference) or
+[`sidecar_service`](/consul/docs/connect/proxies/deploy-sidecar-services) block.
 
 - `envoy_bootstrap_json_tpl` - Specifies a template in Go template syntax that
   is used in place of [the default
@@ -988,8 +988,8 @@ definition](/consul/docs/connect/registration/service-registration) or
 
 The following configuration items may be overridden directly in the
 `proxy.upstreams[].config` field of a [proxy service
-definition](/consul/docs/connect/registration/service-registration) or
-[`sidecar_service`](/consul/docs/connect/registration/sidecar-service) block.
+definition](/consul/docs/connect/proxies/proxy-config-reference) or
+[`sidecar_service`](/consul/docs/connect/deploy/deploy-sidecar-services) block.
 
 ~> **Note:** - When a
 [`service-router`](/consul/docs/connect/config-entries/service-router),

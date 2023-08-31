@@ -44,7 +44,7 @@ Find other possible metrics syncs in the [Envoy documentation](/consul/docs/conn
 ### Service protocol
 
 You can specify the [`protocol`](/consul/docs/connect/config-entries/service-defaults#protocol)
-for all service instances in the `service-defaults` configuration entry. You can also override the default protocol when defining and registering proxies in a service definition file. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference) for additional information. 
+for all service instances in the `service-defaults` configuration entry. You can also override the default protocol when defining and registering proxies in a service definition file. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information. 
 
 By default, proxies only provide L4 metrics. 
 Defining the protocol allows proxies to handle requests at the L7
@@ -54,5 +54,5 @@ load balancing and routing decisions.
 ### Service upstreams
 
 You can set the upstream for each service using the proxy's
-[`upstreams`](/consul/docs/connect/registration/service-registration#upstreams)
-sidecar parameter, which can be defined in a service's [sidecar registration](/consul/docs/connect/registration/sidecar-service).
+[`upstreams`](/consul/docs/connect/proxies/proxy-config-reference#upstreams)
+sidecar parameter, which can be defined in a service's [sidecar registration](/consul/docs/connect/proxies/deploy-sidecar-services).
