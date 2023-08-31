@@ -494,10 +494,6 @@
             "path": "connect/proxies/deploy-sidecar-services"
           },
           {
-            "title": "Envoy proxies reference",
-            "path": "connect/proxies/envoy"
-          },
-          {
             "title": "Envoy Extensions",
             "routes": [
               {
@@ -557,21 +553,24 @@
             ]
           },
           {
-            "title": "Built-in Proxy",
+            "title": "Proxy integration",
+            "path": "connect/proxies/integrate"
+          },
+          {
+            "title": "Proxy defaults configuration reference",
+            "href": "/consul/docs/connect/config-entries/proxy-defaults"
+          },
+          {
+            "title": "Envoy proxies reference",
+            "path": "connect/proxies/envoy"
+          },
+          {
+            "title": "Built-in proxy reference",
             "path": "connect/proxies/built-in"
           },
           {
-            "title": "Proxy Integration",
-            "path": "connect/proxies/integrate"
-          }
-        ]
-      },
-      {
-        "title": "Registering Proxies",
-        "routes": [
-          {
-            "title": "Proxy Service Registration",
-            "path": "connect/registration/service-registration"
+            "title": "Service mesh proxy configuration reference",
+            "path": "connect/proxies/proxy-config-reference"
           }
         ]
       },
