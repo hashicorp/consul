@@ -6,6 +6,8 @@ replace github.com/hashicorp/consul/api => ../api
 
 replace github.com/hashicorp/consul/envoyextensions => ../envoyextensions
 
+replace github.com/hashicorp/consul/proto-public => ../proto-public
+
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
@@ -28,6 +30,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.10.0 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/hashicorp/consul/proto-public v0.4.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
