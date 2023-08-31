@@ -923,7 +923,7 @@ func invalidCertificates() structs.Condition {
 	)
 }
 
-// invalidJWTProvider returns a condition used when a gateway listener referecnes
+// invalidJWTProvider returns a condition used when a gateway listener references
 // a JWTProvider that does not exist. It takes a ref used to scope the condition
 // to a given APIGateway listener.
 func invalidJWTProvider(ref structs.ResourceReference, err error) structs.Condition {
@@ -995,7 +995,7 @@ func gatewayNotFound(ref structs.ResourceReference) structs.Condition {
 	)
 }
 
-// jwtProvderNotFound marks a Route as having failed to bind to a referenced APIGateway due to
+// jwtProviderNotFound marks a Route as having failed to bind to a referenced APIGateway due to
 // one or more of the referenced JWT providers not existing (or having not been reconciled yet)
 func jwtProviderNotFound(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.NewRouteCondition(
