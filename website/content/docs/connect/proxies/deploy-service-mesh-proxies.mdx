@@ -1,0 +1,62 @@
+--- 
+layout: docs
+page_title: Deploy service mesh proxies
+description: Envoy and other proxies in Consul service mesh enable service-to-service communication across your network. Learn how to deploy service mesh proxies in this topic.
+---
+
+# Deploy service mesh proxies services
+
+This topic describes how to create, register, and start service mesh proxies in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxies) for additional information about how proxies enable Consul functionalities. For information about deployed sidecar proxies, refer to [Deploy sidecar proxy services](/consul/docs/connect/proxies/sidecar-services).
+
+## Overview
+
+Complete the following steps to deploy a service mesh proxy:
+
+1. It is not required, but you can create a proxy defaults configuration entry that contains global  passthrough settings for all Envoy proxies. Refer to [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for additional information.
+1. Create a service definition file and specify the proxy configurations in the `proxy` block.
+1. Register the service using the API or CLI.
+1. Start the proxy service. 
+
+## Requirements
+
+If [ACLs](/consul/docs/security/acl) are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token) for additional information.
+
+## Define service mesh proxy 
+
+Create a service definition file and configure the following fields to define a service mesh proxy:
+
+1. Set the `kind` field to `connect-proxy`. Refer to the [services configuration reference](/consul/docs/services/configuration/services-configuration-reference#kind) for information about other kinds of proxies you can declare.
+1. Specify a name for the proxy service in the `name` field. Consul applies the configurations to any proxies you bootstrap with the same name.
+1. In the `proxy.destination_service_name` field, specify the name of the service that the proxy represents. 
+1. Configure any additional proxy behaviors that you want to implement in the `proxy` block. Refer to the [Service mesh proxy configuration reference](/consul/docs/connect/registration/service-registration) for information about all parameters. 
+1. Specify a port number where other services registered with Consul can discover and connect to the proxies service in the `port` field. To ensure that services only allow external connections established through the service mesh protocol, you should configure all services to only accept connections on a loopback address.
+
+Refer to the [Service mesh proxy configuration reference](/consul/docs/connect/proxy-config-reference) for example configurations.
+
+ ## Register the service 
+
+Provide the service definition to the Consul agent to register your proxy service. You can use the same methods for registering proxy services as you do for registering application services:
+ 
+- Place the service definition in a Consul agent's configuration directory and start, restart, or reload the agent. Use this method when implementing changes to an existing proxy service.
+- Use the `consul services register` command to register the proxy service with a running Consul agent.
+- Call the `/agent/service/register` HTTP API endpoint to register the proxy service with a running Consul agent.
+
+Refer to [Register services and health checks](/consul/docs/services/usage/register-services-checks) for instructions.
+
+In the following example, the `consul services register` command registers a proxy service stored in `proxy.hcl`:
+
+```shell-session
+$ consul services register proxy.hcl
+```
+
+## Start the proxy
+
+Envoy requires a bootstrap configuration file before it can start. Use the [`consul connect envoy` command](/consul/commands/connect/envoy) to create the Envoy bootstrap configuration and start the proxy service. Specify the ID of the proxy you want to start with the `-proxy-id` option.  
+
+The following example command starts an Envoy proxy for the `web-proxy` service:
+
+```shell-session
+$ consul connect envoy -proxy-id=web-proxy
+```
+
+For details about operating an Envoy proxy in Consul, refer to the [Envoy proxy reference](/consul/docs/connect/proxies/envoy).  

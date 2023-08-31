@@ -479,14 +479,18 @@
         ]
       },
       {
-        "title": "Supported Proxies",
+        "title": "Proxies",
         "routes": [
           {
             "title": "Overview",
             "path": "connect/proxies"
           },
           {
-            "title": "Envoy",
+            "title": "Deploy service mesh proxies",
+            "path": "connect/proxies/deploy-service-mesh-proxies"
+          },
+          {
+            "title": "Envoy proxies reference",
             "path": "connect/proxies/envoy"
           },
           {
@@ -561,10 +565,6 @@
       {
         "title": "Registering Proxies",
         "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/registration"
-          },
           {
             "title": "Proxy Service Registration",
             "path": "connect/registration/service-registration"
