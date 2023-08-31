@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Register a Service Mesh Proxy in a Service Registration
+page_title: Deploy proxies as sidecar services
 description: >-
   You can register a service instance and its sidecar proxy at the same time. Learn about default settings, customizable parameters, limitations, and lifecycle behaviors of the sidecar proxy.
 ---
 
-# Deploy sidecar proxies
+# Deploy sidecar services
 
 This topic describes how to create, register, and start sidecar proxy services in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxies) for additional information about how proxies enable Consul functionalities. For information about deploying service mesh proxies, refer to [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies).
 
@@ -172,46 +172,11 @@ $ consul connect envoy -sidecar-for=web
 
 For details about operating an Envoy proxy in Consul, refer to [](/consul/docs/connect/proxies/envoy)  
 
-
 ## Configuration reference
 
-Add the `connect.sidecar_service` block to your service definition file and specify the parameters to configure sidecar proxy behavior. The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies. 
+The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies. 
 
-Consul treats sidecar proxy service definitions as a root-level service definition. All fields are optional in nested
-definitions, which default to opinionated settings that are intended to reduce burden of setting up a sidecar proxy.
-
-
-
-## Example with overwitten configurations
-
-In the following example, but the `sidecar_service` macro sets baselines configurations for the proxy, but the [proxy
-upstreams](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
-and [built-in proxy
-configuration](/consul/docs/connect/proxies/built-in) fields contain custom values:  
-
-```json
-{
-  "name": "web",
-  "port": 8080,
-  "connect": {
-    "sidecar_service": {
-      "proxy": {
-        "upstreams": [
-          {
-            "destination_name": "db",
-            "local_bind_port": 9191
-          }
-        ],
-        "config": {
-          "handshake_timeout_ms": 1000
-        }
-      }
-    }
-  }
-}
-```
-
-
+Consul treats sidecar proxy service definitions as a root-level service definition. All fields are optional in nested definitions, which default to opinionated settings that are intended to reduce burden of setting up a sidecar proxy.
 
 ## Sidecar service defaults
 
@@ -239,6 +204,35 @@ proxy.
 - `proxy.destination_service_id` - Defaults to the parent service ID.
 - `proxy.local_service_address` - Defaults to `127.0.0.1`.
 - `proxy.local_service_port` - Defaults to the parent service port.
+
+### Example with overwritten configurations
+
+In the following example, but the `sidecar_service` macro sets baselines configurations for the proxy, but the [proxy
+upstreams](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
+and [built-in proxy
+configuration](/consul/docs/connect/proxies/built-in) fields contain custom values:  
+
+```json
+{
+  "name": "web",
+  "port": 8080,
+  "connect": {
+    "sidecar_service": {
+      "proxy": {
+        "upstreams": [
+          {
+            "destination_name": "db",
+            "local_bind_port": 9191
+          }
+        ],
+        "config": {
+          "handshake_timeout_ms": 1000
+        }
+      }
+    }
+  }
+}
+```
 
 ## Limitations
 
