@@ -3,7 +3,10 @@ package save
 import (
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/version"
+	"golang.org/x/exp/slices"
 	"os"
+	"strings"
 
 	"github.com/mitchellh/cli"
 	"github.com/rboyer/safeio"
@@ -20,10 +23,18 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
+	UI             cli.Ui
+	flags          *flag.FlagSet
+	http           *flags.HTTPFlags
+	help           string
+	appendFileName flags.StringValue
+}
+
+func (c *cmd) getAppendFileNameFlag() *flag.FlagSet {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	fs.Var(&c.appendFileName, "append-filename", "Append filename flag takes two possible values. "+
+		"1. version, 2. dc. It appends consul version and datacenter to filename given in command")
+	return fs
 }
 
 func (c *cmd) init() {
@@ -31,6 +42,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.getAppendFileNameFlag())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -49,12 +61,32 @@ func (c *cmd) Run(args []string) int {
 	case 1:
 		file = args[0]
 	default:
-		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1 or 3, got %d)", len(args)))
 		return 1
 	}
 
 	// Create and test the HTTP client
 	client, err := c.http.APIClient()
+
+	appendFileNameFlags := strings.Split(c.appendFileName.String(), ",")
+
+	if slices.Contains(appendFileNameFlags, "version") {
+		file = file + "-" + version.GetHumanVersion()
+	}
+
+	if slices.Contains(appendFileNameFlags, "dc") {
+		agentSelfResponse, err := client.Agent().Self()
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent and fetching datacenter: %s", err))
+			return 1
+		}
+		if config, ok := agentSelfResponse["Config"]; ok {
+			if datacenter, ok := config["Datacenter"]; ok {
+				file = file + "-" + datacenter.(string)
+			}
+		}
+	}
+
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
