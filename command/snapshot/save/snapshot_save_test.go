@@ -85,12 +85,21 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 	dir := testutil.TempDir(t, "snapshot")
 	file := filepath.Join(dir, "backup.tgz")
 	args := []string{
-		"-append-filename=version,dc",
+		"-append-filename=version,dc,node,status",
 		"-http-addr=" + a.HTTPAddr(),
 		file,
 	}
 
-	newFilePath := filepath.Join(dir, "backup"+"-"+a.Config.Version+"-"+a.Config.Datacenter+".tgz")
+	stats := a.Stats()
+
+	status := "follower"
+
+	if stats["consul"]["leader"] == "true" {
+		status = "leader"
+	}
+
+	newFilePath := filepath.Join(dir, "backup"+"-"+a.Config.Version+"-"+a.Config.Datacenter+
+		"-"+a.Config.NodeName+"-"+status+".tgz")
 
 	code := c.Run(args)
 	if code != 0 {
