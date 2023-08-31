@@ -1,178 +1,135 @@
 ---
 layout: docs
-page_title: Proxy Defaults - Configuration Entry Reference
+page_title: Proxy defaults configuration entry reference
 description: >-
   The proxy defaults configuration entry kind defines default behaviors for proxies in the service mesh. Use the reference guide to learn about `""proxy-defaults""` config entry parameters.
 ---
 
-# Proxy Defaults Configuration Entry
+# Proxy defaults configuration reference
 
-The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to globally configure passthrough Envoy settings for proxies in the service mesh, including both sidecars and gateways.
-It is different from the [`mesh` configuration entry](/consul/docs/connect/config-entries/mesh), which sets Consul features for cluster peering, transparent proxy, and TLS behavior that also affect Consul servers.
-
-Only one global entry is supported.
-For Consul Enterprise, only the global entry in the `default` partition is recognized.
+This topic provides reference information for proxy defaults configuration entries. Refer to [Service mesh proxy overview]() <!-- ADD LINK -->for information about using proxies in Consul.
 
 ## Introduction
 
-You can customize some service registration settings for service mesh proxies centrally using the `proxy-defaults` configuration entry in the `kind` field.
+Proxy defaults configuration entries set global passthrough Envoy settings for proxies in the service mesh, including sidecars and gateways. Proxy defaults configuration entries do not control features for peered clusters, transparent proxy, or TLS behavior. For information about configuring Consul settings that affect service mesh behavior, refer to the [mesh configuration entry reference](/consul/docs/connect/config-entries/mesh).
 
-You can still override this centralized configuration for specific services
-with the [`service-defaults`](/consul/docs/connect/config-entries/service-defaults)
-configuration entry `kind` or for individual proxy instances in their [sidecar
-service definitions](/consul/docs/connect/registration/sidecar-service).
+Consul only supports one global proxy defaults configuration entry at a time. If multiple configuration entries are defined in Consul Enterprise, Consul implements the configuration entry in the `default` partition.
 
-## Usage
+## Configuration model
 
-1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
-1. Determine the settings you want to implement (see [Configuration](#configuration)). You can create a file containing the configuration or pass them to the state store directly to apply the configuration.
-1. Apply the configuration using one of the following methods:
-   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/k8s/crds) documentation for details.
-   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
-
-## Configuration
-
-Configure the following parameters to define a `proxy-defaults` configuration entry:
+The following list outlines field hierarchy, language-specific data types, and requirements in proxy defaults configuration entries. Click on a property name to view additional details, including default values.
 
 <Tabs>
-<Tab heading="Consul OSS">
 
-<CodeTabs heading="Proxy defaults configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tab heading="HCL and JSON" group="hcl">
 
-```hcl
-Kind      = "proxy-defaults"
-Name      = "global"
-Meta {
-  <arbitrary string key> = "<arbitrary string value>"
-}
-Config {
-  <arbitrary string key> = <arbitrary value>
-}
-Mode = "<name of proxy mode>"
-TransparentProxy {
-  OutboundListenerPort = <port the proxy should listen on for outbound traffic>
-  DialedDirectly       = <true if proxy instances should be dialed directly>
-}
-MutualTLSMode = "<mutual TLS mode for all proxies>"
-MeshGateway {
-  Mode = "<name of mesh gateway configuration for all proxies>"
-}
-Expose {
-  Checks = <true to expose all HTTP and gRPC checks through Envoy>
-
-  Paths = [
-    {
-      Path          = "<the HTTP path to expose>"
-      LocalPathPort = <port where the local service is listening for connections to the path>
-      ListenerPort  = <port where the proxy will listen for connections>
-      Protocol      = "<protocol of the listener>"
-    }
-  ]
-}
-AccessLogs {
-  Enabled              = < true | false >
-  DisableListenerLogs  = < true | false , disables listener access logs for unrecognized traffic>
-  Type                 = "< file | stdout | stdout, the destination for access logs >"
-  Path                 = "< set the output path for 'file' based access logs >"
-  JSONFormat           = "< json representation of access log format >"
-  TextFormat           = "< text representation of access log format >"
-}
-```
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ProxyDefaults
-metadata:
-  name: global
-spec:
-  meta:
-    <arbitrary string key>: <arbitrary string value>
-  config:
-    <arbitrary string key>: <arbitrary value>
-  mode: <name of proxy mode>
-  transparentProxy:
-    outboundListenerPort: <port the proxy should listen on for outbound traffic>
-    dialedDirectly: <true if proxy instances should be dialed directly>
-  mutualTLSMode: <mutual TLS mode for all proxies>
-  meshGateway:
-    mode: <name of mesh gateway configuration for all proxies>
-  expose:
-    checks: <true to expose all HTTP and gRPC checks through Envoy>
-    paths:
-      - path: <the HTTP path to expose>
-        localPathPort: <port where the local service is listening for connections to the path>
-        listenerPort: <port where the proxy will listen for connections>
-        protocol:= <protocol of the listener>
-  accessLogs:
-    enabled: < true | false >
-    disableListenerLogs:  < true | false , disables listener access logs for unrecognized traffic>
-    type: < file | stdout | stdout, the destination for access logs >
-    path: < set the output path for 'file' based access logs >
-    jsonFormat: < json representation of access log format >
-    textFormat: < text representation of access log format >
-```
-
-```json
-{
-  "Kind": "proxy-defaults",
-  "Name": "global",
-  "Meta": {
-    "<arbitrary string key>": "<arbitrary string value>"
-  },
-  "Config": {
-    "<arbitrary string key>": <arbitrary value>
-  },
-  "MutualTLSMode": "<mutual TLS mode for all proxies>",
-  "Mode": "<name of proxy mode>",
-  "TransparentProxy": {
-    "OutboundListenerPort": <port the proxy should listen on for outbound traffic>,
-    "DialedDirectly": <true if proxy instances should be dialed directly>
-  },
-  "MeshGateway": {
-    "Mode": = "<name of mesh gateway configuration for all proxies>"
-  },
-  "Expose": {
-    "Checks": <true to expose all HTTP and gRPC checks through Envoy>,
-    "Paths": [
-      {
-        "Path": "<the HTTP path to expose>",
-        "LocalPathPort": <port where the local service is listening for connections to the path>,
-        "ListenerPort": <port where the proxy will listen for connections>,
-        "Protocol": "<protocol of the listener>"
-      }
-    ]
-  },
-  "AccessLogs": {
-    "Enabled": < true | false >,
-    "DisableListenerLogs": < true | false , disables listener access logs for unrecognized traffic>,
-    "Type": "< file | stdout | stdout, the destination for access logs >",
-    "Path": "< set the output path for 'file' based access logs >",
-    "JSONFormat": "< json representation of access log format >",
-    "TextFormat": "< text representation of access log format >"
-  }
-}
-```
-
-</CodeTabs>
+- [`Kind`](#kind): string | required | must be set to `proxy-defaults`
+- [`Name`](#name): string | must be set to `global`
+- [`Namespace`](#namespace): string | `default` | <EnterpriseAlert inline/>
+- [`Partition`](#partition): string | `default` |  <EnterpriseAlert inline/>
+- [`Meta`](#meta): map 
+- [`Config`](#meta): map
+- [`EnvoyExtensions`](#envoyextensions): list of maps
+   - [`Name`](#envoyextensions): string
+   - [`Required`](#envoyextensions): string
+   - [`Arguments`](#envoyextensions): string
+   - [`ConsulVersion`](#envoyextensions): string
+   - [`EnvoyVersion`](#envoyextensions): string
+- [`Mode`](#mode): string
+- [`TransparentProxy`](#transparentproxy): map
+   - [`OutboundListenerPort`](#transparentproxy): number | `15001`
+   - [`DialedDirectly`](#transparentproxy): boolean | `false`
+- [`MutualTLSMode`](#mutualtlsmode): string 
+- [`MeshGateway`](#meshgateway): map
+   - [`Mode`](#meshgateway): string
+- [`Expose`](#expose): map
+   - [`Checks`](#expose-checks): boolean | `false`
+   - [`Paths`](#expose-paths): list of maps
+      - [`Path`](#expose-paths-path): string | must begin with `/` 
+      - [`LocalPathPort`](#expose-paths): number | `0` 
+      - [`ListenerPort`](#expose-paths): number | `0` 
+      - [`Protocol`](#expose-paths): string | `http` 
+- [`FailoverPolicy`](#failoverpolicy): map
+   - [`Mode`](#failoverpolicy-mode): string
+- [`AccessLogs`](#accesslogs): map
+   - [`Enabled`](#accesslogs): boolean | `false`
+   - [`DisableListenerLogs`](#accesslogs): boolean | `false`
+   - [`Type`](#accesslogs): string | `stdout`
+   - [`Path`](#accesslogs): string
+   - [`JSONFormat`](#accesslogs): string 
+   - [`TextFormat`](#accesslogs): string 
 
 </Tab>
-<Tab heading="Consul Enterprise">
+<Tab heading="YAML" group="yaml">
 
--> **NOTE:** The `proxy-defaults` config entry can only be created in the `default`
-namespace and it will configure proxies in **all** namespaces.
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `ProxyDefaults`
+- [`metadata`](#metadata): map | required
+   - [`name`](#metadata-name): string | required | must be set to `global`
+   - [`namespace`](#metadata-namespace): string | `default` | <EnterpriseAlert inline/>
+- [`spec`](#spec): map | required
+   - [`config`](#spec-config): map
+   - [`EnvoyExtensions`](#spec-EnvoyExtensions): list of maps
+      - [`name`](#spec-EnvoyExtensions): string
+      - [`required`](#spec-EnvoyExtensions): string
+      - [`arguments`](#spec-EnvoyExtensions): string
+      - [`consulVersion`](#spec-EnvoyExtensions): string
+      - [`envoyVersion`](#spec-EnvoyExtensions): string
+   - [`mode`](#spec-mode): string
+   - [`transparentProxy`](#spec-transparentproxy): map
+      - [`outboundListenerPort`](#spec-transparentproxy): number | `15001`
+      - [`dialedDirectly`](#spec-transparentproxy): boolean | `false`
+   - [`mutualTLSMode`](#spec-mutualtlsmode): string 
+   - [`meshGateway`](#spec-meshgateway): map
+      - [`mode`](#spec-meshgateway): string
+   - [`expose`](#spec-expose): map
+      - [`checks`](#spec-expose-checks): boolean | `false`
+      - [`paths`](#spec-expose-paths): list
+         - [`path`](#spec-expose-paths): string | must begin with `/` 
+         - [`localPathPort`](#spec-expose-paths): number | `0` 
+         - [`listenerPort`](#spec-expose-paths): number | `0` 
+         - [`protocol`](#spec-expose-paths): string | `http` 
+   - [`failoverPolicy`](#spec-failoverpolicy): map
+      - [`mode`](#spec-failoverpolicy-mode): string
+   - [`accessLogs`](#spec-accesslogs): map
+      - [`enabled`](#spec-accesslogs): boolean | `false`
+      - [`disableListenerLogs`](#spec-accesslogs): boolean | `false`
+      - [`type`](#spec-accesslogs): string | `stdout`
+      - [`path`](#spec-accesslogs): string
+      - [`jsonFormat`](#spec-accesslogs): string 
+      - [`textFormat`](#spec-accesslogs): string 
 
-<CodeTabs heading="Proxy defaults configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+</Tab>
+
+</Tabs>
+
+## Complete configuration
+
+When every field is defined, a proxy defaults configuration entry has the following form:
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind      = "proxy-defaults"
 Name      = "global"
-Namespace = "default" # Can only be set to "default".
+Namespace = "default"
 Meta {
   <arbitrary string key> = "<arbitrary string value>"
 }
 Config {
   <arbitrary string key> = <arbitrary value>
 }
+EnvoyExtensions = [ 		
+  { 
+    Name= "<name of the extension>"
+    Required = "required"
+    Arguments = "<arguments to pass to the extension>"
+    ConsulVersion = "<Consul version required by the extension>"
+    EnvoyVersion = "<Envoy version required by the extension>"
+  }
+]   
 Mode = "<name of proxy mode>"
 TransparentProxy {
   OutboundListenerPort = <port the proxy should listen on for outbound traffic>
@@ -203,6 +160,9 @@ AccessLogs {
   TextFormat           = "< text representation of access log format >"
 }
 ```
+</Tab>
+
+<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -215,6 +175,12 @@ spec:
     <arbitrary string key>: <arbitrary string value>
   config:
     <arbitrary string key>: <arbitrary value>
+  EnvoyExtensions:
+  - name: <name of the extension>
+    required: required
+    arguments: <arguments to pass to the extension>
+    consulVersion: <Consul version required by the extension>
+    envoyVersion: <Envoy version required by the extension> 
   mode: <name of proxy mode>
   transparentProxy:
     outboundListenerPort: <port the proxy should listen on for outbound traffic>
@@ -238,6 +204,10 @@ spec:
     textFormat: < text representation of access log format >
 ```
 
+</Tab>
+
+<Tab heading="JSON" group="json">
+
 ```json
 {
   "Kind": "proxy-defaults",
@@ -249,6 +219,15 @@ spec:
   "Config": {
     "<arbitrary string key>": <arbitrary value>
   },
+  "EnvoyExtensions": [
+    {
+      "Name": "<name of the extension>",
+      "Required": "required",
+      "Arguments": "<arguments to pass to the extension>",
+      "ConsulVersion": "<Consul version required by the extension>",
+      "EnvoyVersion": "<Envoy version required by the extension>"
+    }
+  ],
   "Mode": "<name of proxy mode>",
   "TransparentProxy": {
     "OutboundListenerPort": <port the proxy should listen on for outbound traffic>,
@@ -280,288 +259,488 @@ spec:
 }
 ```
 
-</CodeTabs>
-
 </Tab>
+
 </Tabs>
 
-### Configuration Parameters
+## Specification
 
-<ConfigEntryReference
-  keys={[
-    {
-      name: 'apiVersion',
-      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
-      hcl: false,
-    },
-    {
-      name: 'Kind',
-      description: {
-        hcl: 'Must be set to `proxy-defaults`',
-        yaml: 'Must be set to `ProxyDefaults`',
-      },
-    },
-    {
-      name: 'Name',
-      description: 'Must be set to `global`',
-      yaml: false,
-    },
-    {
-      name: 'Namespace',
-      type: `string: "default"`,
-      enterprise: true,
-      description:
-        'Must be set to `default`. The configuration will apply to all namespaces.',
-      yaml: false,
-    },
-    {
-      name: 'Partition',
-      type: `string: "default"`,
-      enterprise: true,
-      description:
-        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for additional information.',
-      yaml: false,
-    },
-    {
-      name: 'Meta',
-      type: 'map<string|string>: nil',
-      description:
-        'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
-      yaml: false,
-    },
-    {
-      name: 'metadata',
-      children: [
-        {
-          name: 'name',
-          description: 'Must be set to `global`',
-        },
-        {
-          name: 'namespace',
-          enterprise: true,
-          description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
-        },
-      ],
-      hcl: false,
-    },
-    {
-      name: 'Config',
-      type: 'map[string]arbitrary',
-      description: `An arbitrary map of configuration values used by service mesh proxies.
-    The available configurations depend on the mesh proxy you use.
-     Any values that your proxy allows can be configured globally here. To explore these options please see the documentation for your chosen proxy.
-     <ul><li>[Envoy](/consul/docs/connect/proxies/envoy#proxy-config-options)</li>
-     <li>[Consul's built-in proxy](/consul/docs/connect/proxies/built-in#proxy-config-key-reference)</li></ul>`,
-    },
-    {
-      name: 'EnvoyExtensions',
-      type: 'array<EnvoyExtension>: []',
-      description: `A list of extensions to modify Envoy proxy configuration.<br><br>
-        Applying \`EnvoyExtensions\` to \`ProxyDefaults\` may produce unintended consequences. We recommend enabling \`EnvoyExtensions\` with [\`ServiceDefaults\`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) in most cases.`,
-      children: [
-        {
-          name: 'Name',
-          type: `string: ""`,
-          description: `Name of the extension.`,
-        },
-        {
-          name: 'Required',
-          type: `string: ""`,
-          description: `When \`Required\` is true and the extension does not update any Envoy resources, an error is
-          returned. Use this parameter to ensure that extensions required for secure communication are not unintentionally
-          bypassed.`,
-        },
-        {
-          name: 'Arguments',
-          type: 'map<string|Any>: nil',
-          description: `Arguments to pass to the extension executable.`,
-        },
-      ],
-    },
-    {
-      name: 'Mode',
-      type: `string: ""`,
-      description: `One of \`direct\` or \`transparent\`.
-                    \`transparent\` represents that inbound and outbound application traffic is being
-                    captured and redirected through the proxy. This mode does not enable the traffic redirection
-                     itself. Instead it signals Consul to configure Envoy as if traffic is already being redirected.
-                    \`direct\` represents that the proxy's listeners must be dialed directly by the local
-                    application and other proxies.
-                    Added in v1.10.0.`,
-    },
-    {
-      name: 'TransparentProxy',
-      type: 'TransparentProxyConfig: <optional>',
-      description: `Controls configuration specific to proxies in transparent mode. Added in v1.10.0.`,
-      children: [
-        {
-          name: 'OutboundListenerPort',
-          type: 'int: "15001"',
-          description: `The port the proxy should listen on for outbound traffic. This must be the port where
-                        outbound application traffic is captured and redirected to.`,
-        },
-        {
-          name: 'DialedDirectly',
-          type: 'bool: false',
-          description: `Determines whether this proxy instance's IP address can be dialed directly by transparent proxies.
-                        Typically transparent proxies dial upstreams using the "virtual" tagged address, which load balances
-                        across instances. Dialing individual instances can be helpful in cases like stateful services such
-                        as a database cluster with a leader. `,
-        },
-      ],
-    },
-    {
-      name: 'MutualTLSMode',
-      type: 'string: ""',
-      description: `Controls the default mutual TLS mode for all proxies. This setting is only
-                    supported for services with transparent proxy enabled. One of \`""\`, \`strict\`, or \`permissive\`.
-                    When unset or \`""\`, the mode defaults to \`strict\`. When set to \`strict\`, the sidecar proxy
-                    requires mutual TLS for incoming traffic. When set to \`permissive\`, the sidecar proxy accepts
-                    mutual TLS traffic on the sidecar proxy service port and accepts any traffic on the destination
-                    service port. We recommend only using \`permissive\` mode if necessary while onboarding services to
-                    the service mesh. `,
-    },
-    {
-      name: 'MeshGateway',
-      type: 'MeshGatewayConfig: <optional>',
-      description: `Controls the default
-      [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration)
-      for all proxies. Added in v1.6.0.`,
-      children: [
-        {
-          name: 'Mode',
-          type: 'string: ""',
-          description: 'One of `none`, `local`, or `remote`.',
-        },
-      ],
-    },
-    {
-      name: 'Expose',
-      type: 'ExposeConfig: <optional>',
-      description: `Controls the default
-                      [expose path configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
-                      for Envoy. Added in v1.6.2.<br><br>
-                      Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
-                      non-mesh-enabled applications to contact an HTTP endpoint.
-                      Some examples include: exposing a \`/metrics\` path for Prometheus or \`/healthz\` for kubelet liveness checks.`,
-      children: [
-        {
-          name: 'Checks',
-          type: 'bool: false',
-          description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
-        Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-        [advertise address](/consul/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
-        [expose_min_port](/consul/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/consul/docs/agent/config/config-files#expose_max_port).
-        This flag is useful when a Consul client cannot reach registered services over localhost.`,
-        },
-        {
-          name: 'Paths',
-          type: 'array<Path>: []',
-          description: 'A list of paths to expose through Envoy.',
-          children: [
-            {
-              name: 'Path',
-              type: 'string: ""',
-              description:
-                'The HTTP path to expose. The path must be prefixed by a slash. ie: `/metrics`.',
-            },
-            {
-              name: 'LocalPathPort',
-              type: 'int: 0',
-              description:
-                'The port where the local service is listening for connections to the path.',
-            },
-            {
-              name: 'ListenerPort',
-              type: 'int: 0',
-              description: `The port where the proxy will listen for connections. This port must be available
-           for the listener to be set up. If the port is not free then Envoy will not expose a listener for the path,
-           but the proxy registration will not fail.`,
-            },
-            {
-              name: 'Protocol',
-              type: 'string: "http"',
-              description:
-                'Sets the protocol of the listener. One of `http` or `http2`. For gRPC use `http2`.',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      name: 'FailoverPolicy',
-      type: 'ServiceResolverFailoverPolicy: <optional>',
-      description: `Policy specifies the exact mechanism used for failover.
-      Added in v1.16.0.`,
-      children: [
-        {
-          name: 'Mode',
-          type: 'string: ""',
-          description: 'One of `""`, `default`, or `order-by-locality`.',
-        },
-      ],
-    },
-    {
-      name: 'AccessLogs',
-      type: 'AccessLogsConfig: <optional>',
-      description: `Controls the configuration of [Envoy's access logging](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/access_logging.html?highlight=access%20logs)
-                      for all proxies in the mesh, including gateways. It also configures access logs on [Envoy's administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin.html?highlight=administration%20logs).`,
-      children: [
-        {
-          name: 'Enabled',
-          type: 'bool: false',
-          description: 'When enabled, access logs are emitted for all proxies in the mesh, including gateways.',
-        },
-        {
-          name: 'DisableListenerLogs',
-          type: 'bool: false',
-          description: `When enabled, access logs for traffic rejected at the listener-level are not emitted.
-          This traffic includes connections that do not match any of Envoy's configured filters, such as Consul upstream services.
-          Set this option to \`true\` if you do not want to log unknown requests that Envoy is not forwarding`,
-        },
-        {
-          name: 'Type',
-          type: 'string: "stdout"',
-          description: 'The destination for access logs.  One of \`stdout\`, \`stderr\`, or \`file\`.',
-        },
-        {
-          name: 'Path',
-          type: 'string: ""',
-          description: 'The destination file for access logs. Only valid with \`Type\` set to \`file\`.',
-        },
-        {
-          name: 'JSONFormat',
-          type: 'string: (default as follows)',
-          description: `A JSON-formatted string that represents the format of each emitted access log.
-          By default, it is set  to the [default access log format](/consul/docs/connect/observability/access-logs#default-log-format).
-          You can use Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data.
-          Nesting is supported.
-          Invalid if a custom format is specified with TextFormat.`,
-        },
-        {
-          name: 'TextFormat',
-          type: 'string: ""',
-          description: `A formatted string that represents the format of each emitted access log.
-          Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) can be used to customize the data emitted.
-          A new line is added to the string automatically.
-          Invalid when a custom JSONFormat is already specified.`,
-        }
-      ],
-    },
-  ]}
-/>
+This section provides details about the fields you can configure in the proxy defaults configuration entry.
+
+<Tabs>
+
+<Tab heading="HCL and JSON" group="hcl">
+
+### `Kind`
+
+Specifies the type of configuration entry to implement. Must be set to `proxy-defaults`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `proxy-defaults`.
+
+### `Name`
+
+Specifies a name for the configuration entry that is used to identify the configuration entry. Must be set to `global`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String that must be set to `global`.
+
+### `Namespace`
+
+Specifies the namespace that the proxy defaults apply to. You can only specify the `default` namespace. 
+
+#### Values
+
+- Default: `default`
+- Data type: String
+
+### `Partition`
+
+Specifies the local admin partition that the proxy defaults apply to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+
+#### Values
+
+- Default: `default`
+- Data type: String
+
+### `Meta`
+
+Specifies a set of custom key-value pairs to add the [Consul KV](#/consul/docs/dynamic-app-config/kv) store. 
+
+#### Values
+
+- Default: None
+- Data type: Map of one or more key-value pairs.
+   - Keys: String
+   - Values: String, integer, or float
+
+### `Config`
+
+Specifies an arbitrary map of configuration values used by service mesh proxies. The available configurations depend on the mesh proxy you use. You can configure any global values that your proxy allows in this field. Refer to the following topics for additional information:
+
+- [Envoy proxy configuration option](/consul/docs/connect/proxies/envoy#proxy-config-options)
+- [Built-in proxy configuration options](/consul/docs/connect/proxies/built-in#proxy-config-key-reference) 
+
+#### Values
+
+- Default: None
+- Data type: Map of 
+
+### `EnvoyExtensions`
+
+Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: Map of containing the following fields:
+   - `Name`
+   - `Required`
+   - `Arguments`
+   - `ConsulVersion`
+   - `EnvoyVersion`
+
+The following table describes how to configure values in the `EnvoyExtensions` map:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `Name` | Specifies the name of the extension. | String | None |
+| `Required` | Specify `true` to require Consul to implement the extension. <p>Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed.</p><p>Consul returns an error when `Required` is set to `true` and the extension does not update Envoy resources. </p> | String | None |
+| `Arguments` | Specifies the arguments to pass to the extension executable. Refer to the documentation for the extension you want to implement for additional information. | Map | None |
+| `ConsulVersion` | Specifies the version of Consul that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `ConsulVersion` and `EnvoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
+| `EnvoyVersion` | Specifies the version of Envoy that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `ConsulVersion` and `EnvoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
+
+### `Mode`
+
+Specifies a mode for how proxies direct inbound and outbound traffic. You can specify one of the following values:
+
+- `transparent`: In transparent mode, proxies capture and redirect inbound and outbound traffic. The mode does not enable traffic redirection, but directs Consul to configure Envoy as if traffic is already being redirected. 
+
+- `direct`: In this mode, the local application and other proxies must directly dial proxy listeners. 
+
+#### Values
+
+- Default: None
+- Data type: String 
+
+### `TransparentProxy`
+
+Contains configurations for proxies that are running in transparent proxy mode. Refer to [Transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy) for additional information. 
+
+#### Values
+
+- Default: None
+- Data type: Map of containing the following fields:
+   - `OutboundListenerPort`
+   - `DialedDirectly`
+
+The following table describes how to configure values in the `TransparentProxy` map:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. Outbound application traffic must be  captured and redirected to this port. | Integer | `15001` |
+| `DialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual`](/consul/docs/services/configuration/services-configuration-reference#tagged_addresses-virtual) tagged address, which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
+
+### `MutualTLSMode`
+
+Controls the default mutual TLS (mTLS) mode for all proxies. You can only set mutual TLS mode for services in transparent proxy mode. 
+
+You can specify one of the following modes:
+
+`strict`: The sidecar proxy requires mTLS for incoming traffic. 
+`permissive`: The sidecar proxy accepts mTLS traffic on the sidecar proxy service port and accepts any traffic on the destination service port. We recommend only using permissive mode if necessary while onboarding services to the service mesh.
+
+#### Values
+
+- Default: `strict`
+- Data type: One of the following string values:
+   - `strict`
+   - `permissive`
+
+### `MeshGateway`
+
+Sets the default mesh gateway `mode` field for all proxies. You can specify the following string values for the `mode` field:
+
+- `none`: The proxy does not make outbound connections through a mesh gateway. Instead, it makes outbound connections directly to the destination services.
+- `local`: The proxy makes an outbound connection to a gateway running in the same datacenter.
+- `remote`: The proxy makes an outbound connection to a gateway running in the destination datacenter.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the `mode` field
+
+### `Expose`
+
+Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to protect themselves by only listening on `localhost`. Applications that are not Consul service mesh-enabled are still able to contact an HTTP endpoint. 
+
+Example use-cases include exposing the `/metrics` endpoint to a monitoring system, such as Prometheus, and exposing the `/healthz` endpoint to the kubelet for liveness checks. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/proxy-config-reference#expose-paths-configuration-reference) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameters:
+   - [`Checks`](#expose-checks)
+   - [`Paths`](#expose-paths)
+
+### `Expose{}.Checks`
+
+Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/agent/config/config-files#advertise). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations.
+
+We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
+
+#### Values
+
+- Default: `false`
+- Data type: boolean
+
+### `Expose{}.Paths[]`
+
+Specifies a list of configuration maps that define paths to expose through Envoy when `Expose.Checks` is set to `true`. 
+
+#### Values
+
+- Default: None
+- Data type: List of maps. 
+
+The following table describes the parameters for each map you can define in the list:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `Path` | Specifies the HTTP path to expose. You must prepend the path with a forward slash (`/`). | String | None |
+| `LocalPathPort` | Specifies the port where the local service listens for connections to the path. | Integer | `0` |
+| `ListenPort` | Specifies the port where the proxy listens for connections. The port must be available. If the port is unavailable, Envoy does not expose a listener for the path and the proxy registration still succeeds. | Integer | `0` |
+| `Protocol` | Specifies the protocol of the listener. You can configure one of the following values: <li>`http`</li><li>`http2`: Use with gRPC traffic</li> | String | `http` |
+
+### `FailoverPolicy`
+
+Sets the failover policy `mode` field for all proxies. The failover policy mode defines how Consul directs traffic to failover service instances if the primary instance becomes unreachable. For example, you can direct Consul to send failover traffic to local service instances. Refer to [Failover overview](/consul/docs/connect/failover) for additional information.
+
+You can specify the following string values for the `mode` field:
+
+- `default`: Envoy sends failover traffic to the first failover target with healthy instances.  
+- `order-by-locality`: Envoy prioritizes failover targets that are closer to the downstream service. Envoy deterministically orders failover targets that are the same distance from the local proxy. 
+
+#### Values
+
+- Default: None
+- Data type: Map containing the `mode` field
+
+### `AccessLogs`
+
+Specifies [Envoy access logger](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/access_logging.html?highlight=access%20logs) configurations for all proxies in the service mesh, including gateways. This field also configures access logs on [Envoy's administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin.html?highlight=administration%20logs).
+
+#### Values
+
+- Default: None
+- Data type: Map 
+
+The following table describes the parameters you can define in the `AccessLogs` map:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `Enabled` | Enables Envoy to emit access logs for all proxies in the service mesh. | Boolean | `false` |
+| `DisabledListenerLogs` | Disables access logs for traffic rejected at the listener level. Rejected traffic includes connections that do not match any of Envoy's configured filters, such as Consul upstream services. Set this option to `true` if you do not want to log unknown requests that Envoy is not forwarding. | Boolean | `false` |
+| `Type` | Specifies the destination for access logs. You can specify one of the following types: <li>`stdout`</li><li>`stderr`</li><li>`file`</li> | String | None |
+| `Path` | Specifies the destination for writing access logs to file when `Type` is set to `file`. | String | None |
+| `JSONFormat` | Specifies a JSON-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `TextFormat` field concurrently. | String | [Default log format](/consul/docs/connect/observability/access-logs#default-log-format) |
+| `TextFormat` | Specifies a  text-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `JSONFormat` field concurrently. | String | None |
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+### apiVersion
+
+Specifies the verion of the Consul API to use to apply the configuration entry. This must be set to `consul.hashicorp.com/v1alpha1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `consul.hashicorp.com/v1alpha1`.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to `ProxyDefaults`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `ProxyDefaults`.
+
+
+### `metadata`
+
+Map that contains the service name, namespace, and admin partition that the configuration entry applies to.
+
+#### Values
+
+- Default: none
+- Map containing the following strings:
+  - `name`
+  - `namespace`
+
+
+### `metadata.name`
+
+Specifies a name for the configuration entry that is used to identify the configuration entry. Must be set to `global`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String that must be set to `global`.
+
+### `metadata.namespace`
+
+Specifies the namespace that the proxy defaults apply to. If you are on the community version, Consul ignores the `namespace` field. Refer to [Kubernetes namespaces in Consul](/consul/docs/k8s/crds#consul-oss) for additional information. If you are on Consul Enterprise, refer to [Kubernetes namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.
+
+#### Values
+
+- Default: `default`
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the ProxyDefaults configuration entry. The `apiVersion`, `kind``, and `metadata` fields are siblings of the `spec` field. All other configurations are children.
+
+### `spec.config`
+
+Specifies an arbitrary map of configuration values used by service mesh proxies. The available configurations depend on the mesh proxy you use. You can configure any global values that your proxy allows in this field. Refer to the following topics for additional information:
+
+- [Envoy proxy configuration option](/consul/docs/connect/proxies/envoy#proxy-config-options)
+- [Built-in proxy configuration options](/consul/docs/connect/proxies/built-in#proxy-config-key-reference) 
+
+#### Values
+
+- Default: None
+- Data type: Map 
+
+### `spec.envoyExtensions`
+
+Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: Map of containing the following fields:
+   - `name`
+   - `required`
+   - `arguments`
+   - `consulVersion`
+   - `envoyVersion`
+
+The following table describes how to configure values in the `EnvoyExtensions` map:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `name` | Specifies the name of the extension. | String | None |
+| `required` | Specify `true` to require Consul to implement the extension. <p>Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed.</p><p>Consul returns an error when `Required` is set to `true` and the extension does not update Envoy resources. </p> | String | None |
+| `arguments` | Specifies the arguments to pass to the extension executable. Refer to the documentation for the extension you want to implement for additional information. | Map | None |
+| `consulVersion` | Specifies the version of Consul that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `consulVersion` and `envoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
+| `envoyVersion` | Specifies the version of Envoy that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `consulVersion` and `envoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
+
+### `spec.mode`
+
+Specifies a mode for how proxies direct inbound and outbound traffic. You can specify one of the following values:
+
+- `transparent`: In transparent mode, proxies capture and redirect inbound and outbound traffic. The mode does not enable traffic redirection, but directs Consul to configure Envoy as if traffic is already being redirected. 
+
+- `direct`: In this mode, the local application and other proxies must directly dial proxy listeners. 
+
+#### Values
+
+- Default: None
+- Data type: String 
+
+### `spec.transparentProxy`
+
+Contains configurations for proxies that are running in transparent proxy mode. Refer to [Transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy) for additional information. 
+
+#### Values
+
+- Default: None
+- Data type: Map of containing the following fields:
+   - `outboundListenerPort`
+   - `dialedDirectly`
+
+The following table describes how to configure values in the `TransparentProxy` map:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. Outbound application traffic must be  captured and redirected to this port. | Integer | `15001` |
+| `dialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual`](/consul/docs/services/configuration/services-configuration-reference#tagged_addresses-virtual) tagged address, which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
+
+### `spec.mutualTLSMode`
+
+Controls the default mutual TLS (mTLS) mode for all proxies. You can only set mutual TLS mode for services in transparent proxy mode. 
+
+You can specify one of the following modes:
+
+`strict`: The sidecar proxy requires mTLS for incoming traffic. 
+`permissive`: The sidecar proxy accepts mTLS traffic on the sidecar proxy service port and accepts any traffic on the destination service port. We recommend only using permissive mode if necessary while onboarding services to the service mesh.
+
+#### Values
+
+- Default: `strict`
+- Data type: One of the following string values:
+   - `strict`
+   - `permissive`
+
+### `spec.meshGateway`
+
+Sets the default mesh gateway `mode` field for all proxies. You can specify the following string values for the `mode` field:
+
+- `none`: The proxy does not make outbound connections through a mesh gateway. Instead, it makes outbound connections directly to the destination services.
+- `local`: The proxy makes an outbound connection to a gateway running in the same datacenter.
+- `remote`: The proxy makes an outbound connection to a gateway running in the destination datacenter.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the `mode` field
+
+### `spec.expose`
+
+Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to protect themselves by only listening on `localhost`. Applications that are not Consul service mesh-enabled are still able to contact an HTTP endpoint. 
+
+Example use-cases include exposing the `/metrics` endpoint to a monitoring system, such as Prometheus, and exposing the `/healthz` endpoint to the kubelet for liveness checks. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/proxy-config-reference#expose-paths-configuration-reference) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameters:
+   - [`checks`](#expose-checks)
+   - [`aths`](#expose-paths)
+
+### `spec.expose{}.checks`
+
+Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/agent/config/config-files#advertise). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations.
+
+We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
+
+#### Values
+
+- Default: `false`
+- Data type: boolean
+
+### `spec.expose{}.paths[]`
+
+Specifies a list of configuration maps that define paths to expose through Envoy when `spec.expose.checks` is set to `true`. 
+
+#### Values
+
+- Default: None
+- Data type: List of maps. 
+
+The following table describes the parameters for each map you can define in the list:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `path` | Specifies the HTTP path to expose. You must prepend the path with a forward slash (`/`). | String | None |
+| `localPathPort` | Specifies the port where the local service listens for connections to the path. | Integer | `0` |
+| `listenPort` | Specifies the port where the proxy listens for connections. The port must be available. If the port is unavailable, Envoy does not expose a listener for the path and the proxy registration still succeeds. | Integer | `0` |
+| `protocol` | Specifies the protocol of the listener. You can configure one of the following values: <li>`http`</li><li>`http2`: Use with gRPC traffic</li> | String | `http` |
+
+### `spec.failoverPolicy`
+
+Sets the failover policy `mode` field for all proxies. The failover policy mode defines how Consul directs traffic to failover service instances if the primary instance becomes unreachable. For example, you can direct Consul to send failover traffic to local service instances. Refer to [Failover overview](/consul/docs/connect/failover) for additional information.
+
+You can specify the following string values for the `mode` field:
+
+- `default`: Envoy sends failover traffic to the first failover target with healthy instances.  
+- `order-by-locality`: Envoy prioritizes failover targets that are closer to the downstream service. Envoy deterministically orders failover targets that are the same distance from the local proxy. 
+
+#### Values
+
+- Default: None
+- Data type: Map containing the `mode` field
+
+### `spec.accessLogs`
+
+Specifies [Envoy access logger](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/access_logging.html?highlight=access%20logs) configurations for all proxies in the service mesh, including gateways. This field also configures access logs on [Envoy's administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin.html?highlight=administration%20logs).
+
+#### Values
+
+- Default: None
+- Data type: Map 
+
+The following table describes the parameters you can define in the `accessLogs` map:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `enabled` | Enables Envoy to emit access logs for all proxies in the service mesh. | Boolean | `false` |
+| `disabledListenerLogs` | Disables access logs for traffic rejected at the listener level. Rejected traffic includes connections that do not match any of Envoy's configured filters, such as Consul upstream services. Set this option to `true` if you do not want to log unknown requests that Envoy is not forwarding. | Boolean | `false` |
+| `type` | Specifies the destination for access logs. You can specify one of the following types: <li>`stdout`</li><li>`stderr`</li><li>`file`</li> | String | None |
+| `path` | Specifies the destination for writing access logs to file when `type` is set to `file`. | String | None |
+| `jsonFormat` | Specifies a JSON-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `textFormat` field concurrently. | String | [Default log format](/consul/docs/connect/observability/access-logs#default-log-format) |
+| `textFormat` | Specifies a  text-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `jsonFormat` field concurrently. | String | None |
+
+</Tab>
+
+</Tabs>
+
 
 ## Examples
 
+The following examples demonstrate common patterns for configuring proxy defaults configuration entries.
+
 ### Default protocol
 
-The following example configures the default protocol for all proxies.
+The following example sets the default protocol for all proxies to `http`.
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="HCL" group="hcl">
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+#### Community edition
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -570,6 +749,24 @@ Config {
   protocol = "http"
 }
 ```
+
+#### Consul Enterprise
+
+For Consul Enterprise, you can only create the configuration entry in the `default` namespace. The namepace configuration applies to proxies in all namespaces.
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+Namespace = "default" # Can only be set to "default".
+Config {
+  protocol = "http"
+}
+```
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+#### Community edition
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -581,34 +778,9 @@ spec:
     protocol: http
 ```
 
-```json
-{
-  "Kind": "proxy-defaults",
-  "Name": "global",
-  "Config": {
-    "protocol": "http"
-  }
-}
-```
+#### Consul Enterprise
 
-</CodeTabs>
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
--> **NOTE:** The `proxy-defaults` config entry can only be created in the `default`
-namespace and it will configure proxies in **all** namespaces.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind      = "proxy-defaults"
-Name      = "global"
-Namespace = "default" # Can only be set to "default".
-Config {
-  protocol = "http"
-}
-```
+For Consul Enterprise, you can only create the configuration entry in the `default` namespace. The namepace configuration applies to proxies in all namespaces.
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -621,6 +793,25 @@ spec:
     protocol: http
 ```
 
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+#### Community edition
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "Config": {
+    "protocol": "http"
+  }
+}
+```
+#### Consul Enterprise
+
+For Consul Enterprise, you can only create the configuration entry in the `default` namespace. The namepace configuration applies to proxies in all namespaces.
+
 ```json
 {
   "Kind": "proxy-defaults",
@@ -632,16 +823,16 @@ spec:
 }
 ```
 
-</CodeTabs>
-
 </Tab>
+
 </Tabs>
 
 ### Prometheus
 
 The following example configures all proxies to expose Prometheus metrics.
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -650,6 +841,11 @@ Config {
   envoy_prometheus_bind_addr = "0.0.0.0:9102"
 }
 ```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -661,6 +857,10 @@ spec:
     envoy_prometheus_bind_addr: '0.0.0.0:9102'
 ```
 
+</Tab>
+
+<Tab heading="JSON" group="json">
+
 ```json
 {
   "Kind": "proxy-defaults",
@@ -671,14 +871,17 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+
+</Tabs>
 
 ### Access Logs
 
-The following example is a minimal configuration for enabling access logs for all proxies.
-Refer to [access logs](/consul/docs/connect/observability/access-logs) for advanced configurations.
+The following example enables access logs for all proxies. efer to [access logs](/consul/docs/connect/observability/access-logs) for more detailed examples.
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -687,6 +890,10 @@ AccessLogs {
   Enabled = true
 }
 ```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -698,6 +905,10 @@ spec:
     enabled: true
 ```
 
+</Tab>
+
+<Tab heading="JSON" group="json">
+
 ```json
 {
   "Kind": "proxy-defaults",
@@ -708,13 +919,16 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+
+</Tabs>
 
 ### Proxy-specific defaults
 
-The following example configures some custom default values for all proxies.
+The following example configures custom default values for all proxies.
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -724,6 +938,10 @@ Config {
   handshake_timeout_ms     = 10000
 }
 ```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -736,6 +954,10 @@ spec:
     handshake_timeout_ms: 10000
 ```
 
+</Tab>
+
+<Tab heading="JSON" group="json">
+
 ```json
 {
   "Kind": "proxy-defaults",
@@ -747,13 +969,6 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
 
-## ACLs
-
-Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
-
-Reading a `proxy-defaults` config entry requires no specific privileges.
-
-Creating, updating, or deleting a `proxy-defaults` config entry requires
-`operator:write`.
+</Tabs>
