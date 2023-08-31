@@ -65,7 +65,7 @@ func (l *LogFile) openNew() error {
 	newfilePath := filepath.Join(l.logPath, newfileName)
 
 	// Try creating a file. We truncate the file because we are the only authority to write the logs
-	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0640)
+	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)
 	if err != nil {
 		return err
 	}
