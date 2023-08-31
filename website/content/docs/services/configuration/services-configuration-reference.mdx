@@ -338,7 +338,7 @@ The following table describes the parameters that you can place in the `connect`
 | Parameter | Description | Default |
 | ---       | ---         | ---     |
 | `native` | Boolean value that advertises the service as a native service mesh proxy. Use this parameter to integrate your application with the `connect` API. Refer to [Service Mesh Native App Integration Overview](/consul/docs/connect/native) for additional information. If set to `true`, do not configure a `sidecar_service`. | `false` |
-| `sidecar_service` | Object that defines a sidecar proxy for the service. Do not configure if `native` is set to `true`. Refer to [Register a Service Mesh Proxy in a Service Registration](/consul/docs/connect/registration/sidecar-service) for usage and configuration details. | Refer to [Register a Service Mesh Proxy in a Service Registration](/consul/docs/connect/registration/sidecar-service) for default configurations. |
+| `sidecar_service` | Object that defines a sidecar proxy for the service. Do not configure if `native` is set to `true`. Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for usage and configuration details. | Refer to [Sidecar service defaults](/consul/docs/connect/proxies/deploy-sidecar-services#sidecar-service-defaults). |
 
 ### weights
 Object that configures how the service responds to DNS SRV requests based on the service's health status. Configuring allows service instances with more capacity to respond to DNS SRV requests. It also reduces the load on services with checks in `warning` status by giving passing instances a higher weight.
