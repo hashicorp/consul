@@ -49,7 +49,7 @@ Service mesh proxies do not support dynamic upstreams. If an application require
 
 ## Proxies in Kubernetes-orchestrated networks
 
-For Kubernetes-orchestrated environments, Consul deploys _dataplanes_ by default to manage proxies. Consul dataplanes are light-weight processes that leverage existing Kubernetes sidecar orchestration capabilities.  Refer to the [ dataplanes documentation](/consul/docs/connect/dataplane) for additional information.
+For Kubernetes-orchestrated environments, Consul deploys _dataplanes_ by default to manage proxies. Consul dataplanes are light-weight processes that leverage existing Kubernetes sidecar orchestration capabilities.  Refer to the [dataplanes documentation](/consul/docs/connect/dataplane) for additional information.
 
 ## Guidance
 
@@ -61,8 +61,8 @@ Refer to the following resources for help using service mesh proxies:
 
 ### Usage documentation
 
-- [Deploy service mesh proxies](/consul/docs/connect/proxies) <!-- TODO add proper link -->
-- [Deploy sidecar proxies](/consul/docs/connect/registration/sidecar-service) <!-- TODO update to real link -->
+- [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies) 
+- [Deploy sidecar proxies](/consul/docs/connect/proxies/deploy-sidecar-services)
 - [Extend Envoy proxies](/consul/docs/connect/proxies/envoy-extensions)
 - [Integrate custom proxies](/consul/docs/connect/proxies/integrate)
 
@@ -70,5 +70,5 @@ Refer to the following resources for help using service mesh proxies:
 
 - [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for additional information. 
 - [Envoy proxies reference](/consul/docs/connect/proxies/envoy)
-- [Service mesh proxy configuration reference](/consul/docs/connect/proxies/builtin)
+- [Service mesh proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference)
 - [`consul connect envoy` command](/consul/commands/connect/envoy)
