@@ -77,6 +77,17 @@ $ consul snapshot save -stale backup.snap
 # ...
 ```
 
+To create snapshot file with consul version, datacenter, node name and leader/follower info,
+run
+
+```shell-session
+$ consul snapshot save -append-filename node,status,version,dc backup.snap
+#...
+```
+
+File name create will be like backup-%CONSUL_VERSION%-%DC_NAME%-%NODE_NAME%-%STATUS.snap
+example - backup-1.17.0-dc1-local-machine-leader.tgz
+
 This is useful for situations where a cluster is in a degraded state and no
 leader is available. To target a specific server for a snapshot, you can run
 the `consul snapshot save` command on that specific server.
