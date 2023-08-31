@@ -5,6 +5,7 @@ package api
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Resource struct {
@@ -23,7 +24,7 @@ func (c *Client) Resource() *Resource {
 }
 
 func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) (map[string]interface{}, error) {
-	r := resource.c.newRequest("GET", fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
+	r := resource.c.newRequest("GET", strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName)))
 	r.setQueryOptions(q)
 	_, resp, err := resource.c.doRequest(r)
 	if err != nil {
