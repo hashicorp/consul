@@ -70,7 +70,7 @@ func (c *cmd) Run(args []string) int {
 
 	appendFileNameFlags := strings.Split(c.appendFileNameFlag.String(), ",")
 
-	if len(appendFileNameFlags) != 0 {
+	if len(appendFileNameFlags) != 0 && len(c.appendFileNameFlag.String()) > 0 {
 		agentSelfResponse, err := client.Agent().Self()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent and fetching datacenter/version: %s", err))
