@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // REDIRECTS FILE
 
 // See the README file in this directory for documentation. Please do not
@@ -38,19 +33,19 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/connect/transparent-proxy',
-    destination: '/consul/docs/k8s/connect/transparent-proxy',
+    source: '/consul/docs/v1.16.x/connect/transparent-proxy',
+    destination: '/consul/docs/v1.16.x/k8s/connect/transparent-proxy',
     permanent: true,
   },
   {
-    source: '/consul/docs/agent/limits/init-rate-limits',
-    destination: '/consul/docs/agent/limits/usage/init-rate-limits',
+    source: '/consul/docs/1.16.x/agent/limits/init-rate-limits',
+    destination: '/consul/docs/1.16.x/agent/limits/usage/init-rate-limits',
     permanent: true,
   },
   {
-    source: '/consul/docs/agent/limits/set-global-traffic-rate-limits',
+    source: '/consul/docs/1.16.x/agent/limits/set-global-traffic-rate-limits',
     destination:
-      '/consul/docs/agent/limits/usage/set-global-traffic-rate-limits',
+      '/consul/docs/1.16.x/agent/limits/usage/set-global-traffic-rate-limits',
     permanent: true,
   },
   {
@@ -61,8 +56,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source:
-      '/consul/docs/enterprise/sentinel',
+    source: '/consul/docs/enterprise/sentinel',
     destination:
       '/consul/docs/dynamic-app-config/kv#using-sentinel-to-apply-policies-for-consul-kv',
     permanent: true,
@@ -70,8 +64,7 @@ module.exports = [
   {
     source:
       '/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
-    destination:
-      '/consul/docs/k8s/deployment-configurations/multi-cluster',
+    destination: '/consul/docs/k8s/deployment-configurations/multi-cluster',
     permanent: true,
-  }
+  },
 ]

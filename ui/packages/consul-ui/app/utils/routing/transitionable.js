@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 const filter = function (routeName, atts, params) {
   return [routeName, ...atts];
 };

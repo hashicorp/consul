@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -10,15 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/configentry"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -59,20 +54,21 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	roots, leaf := TestCerts(t)
 
 	dbDefaultChain := func() *structs.CompiledDiscoveryChain {
-		set := configentry.NewDiscoveryChainSet()
-		set.AddEntries(&structs.ServiceResolverConfigEntry{
-			Kind: structs.ServiceResolver,
-			Name: "db",
-		})
 		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", func(req *discoverychain.CompileRequest) {
 			// This is because structs.TestUpstreams uses an opaque config
 			// to override connect timeouts.
 			req.OverrideConnectTimeout = 1 * time.Second
-		}, set)
+		}, &structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "db",
+		})
 	}
 	dbSplitChain := func() *structs.CompiledDiscoveryChain {
-		set := configentry.NewDiscoveryChainSet()
-		set.AddEntries(&structs.ProxyConfigEntry{
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", func(req *discoverychain.CompileRequest) {
+			// This is because structs.TestUpstreams uses an opaque config
+			// to override connect timeouts.
+			req.OverrideConnectTimeout = 1 * time.Second
+		}, &structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
 			Name: structs.ProxyConfigGlobal,
 			Config: map[string]interface{}{
@@ -97,11 +93,6 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				{Weight: 40, ServiceSubset: "v2"},
 			},
 		})
-		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", func(req *discoverychain.CompileRequest) {
-			// This is because structs.TestUpstreams uses an opaque config
-			// to override connect timeouts.
-			req.OverrideConnectTimeout = 1 * time.Second
-		}, set)
 	}
 
 	upstreams := structs.TestUpstreams(t, false)
@@ -131,7 +122,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Datacenter:   "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token"},
 	}
-	leafReq := &leafcert.ConnectCALeafRequest{
+	leafReq := &cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Token:      "my-token",
 		Service:    "web",
@@ -359,7 +350,7 @@ func testManager_BasicLifecycle(
 	t *testing.T,
 	dataSources *TestDataSources,
 	rootsReq *structs.DCSpecificRequest,
-	leafReq *leafcert.ConnectCALeafRequest,
+	leafReq *cachetype.ConnectCALeafRequest,
 	roots *structs.IndexedCARoots,
 	webProxy *structs.NodeService,
 	expectSnap *ConfigSnapshot,
@@ -470,7 +461,7 @@ func testManager_BasicLifecycle(
 	require.Len(t, m.watchers, 0)
 }
 
-func assertWatchChanBlocks(t *testing.T, ch <-chan proxysnapshot.ProxySnapshot) {
+func assertWatchChanBlocks(t *testing.T, ch <-chan *ConfigSnapshot) {
 	t.Helper()
 
 	select {
@@ -480,7 +471,7 @@ func assertWatchChanBlocks(t *testing.T, ch <-chan proxysnapshot.ProxySnapshot) 
 	}
 }
 
-func assertWatchChanRecvs(t *testing.T, ch <-chan proxysnapshot.ProxySnapshot, expect proxysnapshot.ProxySnapshot) {
+func assertWatchChanRecvs(t *testing.T, ch <-chan *ConfigSnapshot, expect *ConfigSnapshot) {
 	t.Helper()
 
 	select {
@@ -518,7 +509,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	}
 
 	// test 1 buffered chan
-	ch1 := make(chan proxysnapshot.ProxySnapshot, 1)
+	ch1 := make(chan *ConfigSnapshot, 1)
 
 	// Sending to an unblocked chan should work
 	m.deliverLatest(snap1, ch1)
@@ -534,7 +525,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	require.Equal(t, snap2, <-ch1)
 
 	// Same again for 5-buffered chan
-	ch5 := make(chan proxysnapshot.ProxySnapshot, 5)
+	ch5 := make(chan *ConfigSnapshot, 5)
 
 	// Sending to an unblocked chan should work
 	m.deliverLatest(snap1, ch5)
@@ -644,7 +635,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// update the intentions
 	notifyCH <- UpdateEvent{
 		CorrelationID: intentionsWatchID,
-		Result:        structs.SimplifiedIntentions{},
+		Result:        structs.Intentions{},
 		Err:           nil,
 	}
 

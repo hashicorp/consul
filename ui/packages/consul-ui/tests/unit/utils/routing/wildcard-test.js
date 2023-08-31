@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import wildcard from 'consul-ui/utils/routing/wildcard';
 import { module, test } from 'qunit';
 

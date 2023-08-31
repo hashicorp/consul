@@ -1,7 +1,4 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 
 # Bring up s1 and it's proxy as well because the check that it has a cert causes
 # a proxy connection to be opened and having the backend not be available seems

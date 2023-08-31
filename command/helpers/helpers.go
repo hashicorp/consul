@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package helpers
 
 import (
@@ -8,14 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"time"
-
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-multierror"
+	"github.com/mitchellh/mapstructure"
 )
 
 func loadFromFile(path string) (string, error) {
@@ -126,19 +121,13 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 	}
 
 	for _, k := range md.Unused {
-		switch {
-		case strings.ToLower(k) == "kind":
+		switch k {
+		case "kind", "Kind":
 			// The kind field is used to determine the target, but doesn't need
 			// to exist on the target.
 			continue
-
-		case strings.HasSuffix(strings.ToLower(k), "namespace"):
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q, namespaces are a consul enterprise feature", k))
-		case strings.Contains(strings.ToLower(k), "jwt"):
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q, api-gateway jwt validation is a consul enterprise feature", k))
-		default:
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
 		}
+		err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
 	}
 	if err != nil {
 		return nil, err

@@ -10,7 +10,6 @@
 .vagrant/
 /pkg
 bin/
-workdir/
 changelog.tmp
 exit-code
 Thumbs.db
@@ -67,6 +66,3 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
-/go.work
-/go.work.sum
-.docker

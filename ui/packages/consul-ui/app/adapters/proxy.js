@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Adapter from './application';
 // TODO: Update to use this.formatDatacenter()
 export default class ProxyAdapter extends Adapter {

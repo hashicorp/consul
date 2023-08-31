@@ -7,16 +7,16 @@ description: >-
 
 # Create Network Segments
 
-This topic describes how to create Consul network segments so that services can connect to other services in the LAN gossip pool that have been placed into separate communication boundaries. Refer to [Network Segments Overview](/consul/docs/enterprise/network-segments/network-segments-overview) for additional information.
+This topic describes how to create Consul network segments so that services can connect to other services in the LAN gossip pool that have been placed into separate communication boundaries. Refer to [Network Segments Overview](/consul/docs/enterprise/network-segments/network-segments-overview) for additional information.  
 
 
 ## Requirements
 
-- Consul Enterprise 0.9.3+
+- Consul Enterprise 0.9.3+  
 
-## Define segments in the server configuration
+## Define segments in the server configuration 
 
-1. Add the `segments` block to your server configuration. Refer to the [`segments`](/consul/docs/agent/config/config-files#segments) documentation for details about how to define the configuration.
+1. Add the `segments` block to your server configuration. Refer to the [`segments`](/consul/docs/agent/config/config-files#segments) documentation for details about how to define the configuration. 
 
   In the following example, an `alpha` segment is configured to listen for traffic on port `8303` and a `beta` segment is configured to listen to traffic on port `8304`:
 
@@ -57,7 +57,7 @@ This topic describes how to create Consul network segments so that services can 
    ]
    }
    ```
-
+  
   </CodeTabs>
 
 1. Start the server using the `consul agent` command. Copy the address for each segment listener so that you can [direct clients to join the segment](#configure-clients-to-join-segments) when you start them:
@@ -71,7 +71,7 @@ This topic describes how to create Consul network segments so that services can 
   [INFO] consul: Started listener for LAN segment "beta" on 10.20.10.11:8304
   [INFO] serf: EventMemberJoin: server1 10.20.10.11
   ```
-1. Verify that the server is a member of all segments:
+1. Verfiy that the server is a member of all segments:
 
   ```shell-session
   $ consul members
@@ -118,7 +118,7 @@ server    192.168.4.159:8301    alive   server   1.14+ent  2         dc1  defaul
 client1   192.168.4.159:8447    alive   client   1.14+ent  2         dc1  default    alpha
 ```
 
-</CodeBlockConfig>
+</CodeBlockConfig> 
 
 You can also pass the name of a segment in the `-segment` flag to view agents in a specific segment. Note that server agents display their LAN listener port for the specified segment the segment filter applied. In the following example, the command returns port `8303` for alpha, rather than for the `<default>` segment port:
 
@@ -133,18 +133,18 @@ client1      10.20.10.21:8303   alive   client  1.14+ent  2         dc1  alpha
 
 </CodeBlockConfig>
 
-Refer to the [`members`](/consul/commands/members) documentation for additional information.
+Refer to the [`members`](/consul/commands/members) documentation for additional information. 
 
 </Tab>
 
 <Tab heading="API">
 
-Call the `/agent/members` API endpoint to view members that the agent sees in the cluster gossip pool.
+Call the `/agent/members` API endpoint to view members that the agent sees in the cluster gossip pool. 
 
 <CodeBlockConfig highlight="21">
 
 ```shell-session
-$ curl http://127.0.0.1:8500/v1/agent/members?segment=alpha
+$ curl http://127.0.0.1:8500/v1/agent/members?segment=alpha 
 
 {
    "Addr" : "192.168.4.163",
@@ -179,7 +179,7 @@ Refer to the [`/agent/members` API endpoint documentation](/consul/api-docs/agen
 </Tab>
 <Tab heading="UI">
 
-If the UI is enabled in your agent configuration, the segment name appears in the node’s Metadata tab.
+If the UI is enabled in your agent configuration, the segment name appears in the node’s Metadata tab. 
 
 1. Open the URL for the UI. By default, the UI is `localhost:8500`.
 1. Click **Node** in the sidebar and click on the name of the client agent you want to check.

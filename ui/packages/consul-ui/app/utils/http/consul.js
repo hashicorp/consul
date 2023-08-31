@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // TODO: Need to make all these headers capital case
 export const HEADERS_PARTITION = 'X-Consul-Partition';
 export const HEADERS_NAMESPACE = 'X-Consul-Namespace';

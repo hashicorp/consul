@@ -1,3 +1,0 @@
-```release-note:feature
-config-entry(api-gateway): (Enterprise only) Add GatewayPolicy to APIGateway Config Entry listeners
-```

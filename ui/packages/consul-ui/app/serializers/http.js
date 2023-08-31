@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Serializer from '@ember-data/serializer/rest';
 
 export default class HttpSerializer extends Serializer {

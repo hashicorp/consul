@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import ObjectProxy from '@ember/object/proxy';
 import ArrayProxy from '@ember/array/proxy';
 

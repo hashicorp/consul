@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 container {
 	dependencies = true
 	alpine_secdb = false

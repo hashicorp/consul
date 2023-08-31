@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package logging
 
 const (
@@ -20,7 +17,6 @@ const (
 	Consul                string = "consul"
 	ConsulClient          string = "client"
 	ConsulServer          string = "server"
-	ControllerRuntime     string = "controller-runtime"
 	Coordinate            string = "coordinate"
 	DNS                   string = "dns"
 	Envoy                 string = "envoy"

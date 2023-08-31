@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <Hds::Card::Container @level="base" @hasBorder={{true}} class="mt-6 mb-3">
   <div class="flex h-24 p-6 overflow-x-auto space-x-12">
     <div class="shrink-0">
@@ -15,7 +10,7 @@
     </div>
     <div class="shrink-0">
       <div
-        class="hds-typography-body-200 mb-2 hds-font-weight-semibold hds-foreground-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold hds-foreground-primary"
       >Latest heartbeat</div>
       <div class="flex items-center">
         {{#if @peering.LastHeartbeat}}

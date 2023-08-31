@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import templatize from 'consul-ui/utils/templatize';
 import { module, test } from 'qunit';
 

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package envoy
 
 import (
@@ -1399,83 +1396,6 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 	}
 }
 
-func TestEnvoy_proxyRegistration(t *testing.T) {
-	t.Parallel()
-
-	type args struct {
-		svcForProxy api.AgentService
-		cmdFn       func(*cmd)
-	}
-
-	cases := []struct {
-		name   string
-		args   args
-		testFn func(*testing.T, args, *api.AgentServiceRegistration)
-	}{
-		{
-			"locality is inherited from proxied service if configured and using sidecarFor",
-			args{
-				svcForProxy: api.AgentService{
-					ID: "my-svc",
-					Locality: &api.Locality{
-						Region: "us-east-1",
-						Zone:   "us-east-1a",
-					},
-				},
-				cmdFn: func(c *cmd) {
-					c.sidecarFor = "my-svc"
-				},
-			},
-			func(t *testing.T, args args, r *api.AgentServiceRegistration) {
-				assert.NotNil(t, r.Locality)
-				assert.Equal(t, args.svcForProxy.Locality, r.Locality)
-			},
-		},
-		{
-			"locality is not inherited if not using sidecarFor",
-			args{
-				svcForProxy: api.AgentService{
-					ID: "my-svc",
-					Locality: &api.Locality{
-						Region: "us-east-1",
-						Zone:   "us-east-1a",
-					},
-				},
-			},
-			func(t *testing.T, args args, r *api.AgentServiceRegistration) {
-				assert.Nil(t, r.Locality)
-			},
-		},
-		{
-			"locality is not set if not configured for proxied service",
-			args{
-				svcForProxy: api.AgentService{},
-				cmdFn: func(c *cmd) {
-					c.sidecarFor = "my-svc"
-				},
-			},
-			func(t *testing.T, args args, r *api.AgentServiceRegistration) {
-				assert.Nil(t, r.Locality)
-			},
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			ui := cli.NewMockUi()
-			c := New(ui)
-
-			if tc.args.cmdFn != nil {
-				tc.args.cmdFn(c)
-			}
-
-			result, err := c.proxyRegistration(&tc.args.svcForProxy)
-			assert.NoError(t, err)
-			tc.testFn(t, tc.args, result)
-		})
-	}
-}
-
 // testMockAgent combines testMockAgentProxyConfig and testMockAgentSelf,
 // routing /agent/service/... requests to testMockAgentProxyConfig,
 // routing /catalog/node-services/... requests to testMockCatalogNodeServiceList
@@ -1543,9 +1463,6 @@ func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 func namespaceFromQuery(r *http.Request) string {
 	// Use the namespace in the request if there is one, otherwise
 	// use-default.
-	if queryNamespace := r.URL.Query().Get("namespace"); queryNamespace != "" {
-		return queryNamespace
-	}
 	if queryNs := r.URL.Query().Get("ns"); queryNs != "" {
 		return queryNs
 	}
@@ -1555,11 +1472,8 @@ func namespaceFromQuery(r *http.Request) string {
 func partitionFromQuery(r *http.Request) string {
 	// Use the partition in the request if there is one, otherwise
 	// use-default.
-	if queryPartition := r.URL.Query().Get("partition"); queryPartition != "" {
-		return queryPartition
-	}
-	if queryAp := r.URL.Query().Get("ap"); queryAp != "" {
-		return queryAp
+	if queryAP := r.URL.Query().Get("partition"); queryAP != "" {
+		return queryAP
 	}
 	return "default"
 }

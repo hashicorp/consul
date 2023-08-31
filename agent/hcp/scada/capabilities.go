@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package scada
 
 import "github.com/hashicorp/hcp-scada-provider/capability"

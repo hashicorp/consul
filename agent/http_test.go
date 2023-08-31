@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -486,7 +483,6 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 	}
 	resp := httptest.NewRecorder()
 	a.enableDebug.Store(true)
-
 	a.srv.handler().ServeHTTP(resp, req)
 	if got, want := resp.Code, http.StatusBadRequest; got != want {
 		t.Fatalf("bad response code got %d want %d", got, want)
@@ -511,7 +507,6 @@ func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
 	}
 	resp := httptest.NewRecorder()
 	a.enableDebug.Store(true)
-
 	a.srv.handler().ServeHTTP(resp, req)
 	// Key doesn't actually exist so we should get 404
 	if got, want := resp.Code, http.StatusNotFound; got != want {
@@ -652,7 +647,6 @@ func requireHasHeadersSet(t *testing.T, a *TestAgent, path string) {
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", path, nil)
 	a.enableDebug.Store(true)
-
 	a.srv.handler().ServeHTTP(resp, req)
 
 	hdrs := resp.Header()
@@ -715,7 +709,6 @@ func TestAcceptEncodingGzip(t *testing.T) {
 	// transport, the header has to be set manually
 	req.Header["Accept-Encoding"] = []string{"gzip"}
 	a.enableDebug.Store(true)
-
 	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, 200, resp.Code)
 	require.Equal(t, "", resp.Header().Get("Content-Encoding"))
@@ -724,7 +717,6 @@ func TestAcceptEncodingGzip(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/v1/kv/long", nil)
 	req.Header["Accept-Encoding"] = []string{"gzip"}
 	a.enableDebug.Store(true)
-
 	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, 200, resp.Code)
 	require.Equal(t, "gzip", resp.Header().Get("Content-Encoding"))
@@ -887,15 +879,6 @@ func TestParseSource(t *testing.T) {
 	// We should follow whatever dc parameter was given so that the node is
 	// looked up correctly on the receiving end.
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob&dc=foo", nil)
-	source = structs.QuerySource{}
-	a.srv.parseSource(req, &source)
-	if source.Datacenter != "foo" || source.Node != "bob" {
-		t.Fatalf("bad: %v", source)
-	}
-
-	// We should follow whatever datacenter parameter was given so that the node is
-	// looked up correctly on the receiving end.
-	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob&datacenter=foo", nil)
 	source = structs.QuerySource{}
 	a.srv.parseSource(req, &source)
 	if source.Datacenter != "foo" || source.Node != "bob" {
@@ -1182,7 +1165,6 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
 			resp := httptest.NewRecorder()
 			a.enableDebug.Store(true)
-
 			a.srv.handler().ServeHTTP(resp, req)
 			assert.Equal(t, c.code, resp.Code)
 		})
@@ -1494,7 +1476,6 @@ func TestEnableWebUI(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/ui/", nil)
 	resp := httptest.NewRecorder()
 	a.enableDebug.Store(true)
-
 	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
@@ -1525,7 +1506,6 @@ func TestEnableWebUI(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/ui/", nil)
 		resp := httptest.NewRecorder()
 		a.enableDebug.Store(true)
-
 		a.srv.handler().ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
 		require.Contains(t, resp.Body.String(), `<!-- CONSUL_VERSION:`)

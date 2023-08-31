@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 // Package telemetry implements functionality to collect, aggregate, convert and export
 // telemetry data in OpenTelemetry Protocol (OTLP) format.
 //

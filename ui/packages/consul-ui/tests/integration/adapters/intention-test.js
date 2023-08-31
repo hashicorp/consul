@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import getNspaceRunner from 'consul-ui/tests/helpers/get-nspace-runner';

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 const asArray = function (arr) {
   return Array.isArray(arr) ? arr : arr.toArray();
 };

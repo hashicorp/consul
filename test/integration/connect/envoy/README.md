@@ -52,7 +52,6 @@ Where `case-basic` can be replaced by any directory name from this directory.
 * When tests fail in CI, logs and additional debugging data are available in the artifacts of the test run.
 * You can re-run the tests locally by running `make test-envoy-integ GO_TEST_FLAGS="-run TestEnvoy/<case-directory>"` where `<case-directory>` is
   replaced with the name of the directory, e.g. `case-basic`.
-* You can override the envoy version by specifying `ENVOY_VERSION=<your envoy version>` eg. `ENVOY_VERSION=1.27.0 make test-envoy-integ`.
 * Locally, all the logs of the failed test will be available in `workdir` in this directory.
 * You can run with `DEBUG=1` to print out all the commands being run, e.g. `DEBUG=1 make test-envoy-integ GO_TEST_FLAGS="-run TestEnvoy/case-basic"`.
 * If you want to prevent the Docker containers from being spun down after test failure, add a `sleep 9999` to the `verify.bats` test case that's failing.

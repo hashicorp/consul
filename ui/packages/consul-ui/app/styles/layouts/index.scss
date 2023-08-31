@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // workaround bulma's sweeping box-sizing
 
 %viewport-container {
@@ -31,7 +26,7 @@ fieldset [role='group'] {
 [role='group'] fieldset:not(:first-of-type) {
   padding-left: 20px;
   border-left: 1px solid;
-  border-left: var(--token-color-foreground-faint);
+  border-left: rgb(var(--tone-gray-500));
 }
 [role='group'] fieldset:not(:last-of-type) {
   padding-right: 20px;

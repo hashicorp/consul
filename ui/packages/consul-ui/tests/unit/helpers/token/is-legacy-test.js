@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { isLegacy } from 'consul-ui/helpers/token/is-legacy';
 import { module, test } from 'qunit';
 

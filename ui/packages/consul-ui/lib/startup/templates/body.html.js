@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // rootURL in production equals `{{.ContentPath}}` and therefore is replaced
 // with the value of -ui-content-path. During development rootURL uses the
 // value as set in environment.js

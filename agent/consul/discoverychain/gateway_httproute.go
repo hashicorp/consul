@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package discoverychain
 
 import (
@@ -161,28 +158,6 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			}
 		}
 
-		if rule.Filters.RetryFilter != nil {
-			if rule.Filters.RetryFilter.NumRetries != nil {
-				destination.NumRetries = *rule.Filters.RetryFilter.NumRetries
-			}
-			if rule.Filters.RetryFilter.RetryOnConnectFailure != nil {
-				destination.RetryOnConnectFailure = *rule.Filters.RetryFilter.RetryOnConnectFailure
-			}
-
-			if len(rule.Filters.RetryFilter.RetryOn) > 0 {
-				destination.RetryOn = rule.Filters.RetryFilter.RetryOn
-			}
-
-			if len(rule.Filters.RetryFilter.RetryOnStatusCodes) > 0 {
-				destination.RetryOnStatusCodes = rule.Filters.RetryFilter.RetryOnStatusCodes
-			}
-		}
-
-		if rule.Filters.TimeoutFilter != nil {
-			destination.IdleTimeout = rule.Filters.TimeoutFilter.IdleTimeout
-			destination.RequestTimeout = rule.Filters.TimeoutFilter.RequestTimeout
-		}
-
 		// for each match rule a ServiceRoute is created for the service-router
 		// if there are no rules a single route with the destination is set
 		if len(rule.Matches) == 0 {
@@ -195,7 +170,6 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 				Destination: &destination,
 			})
 		}
-
 	}
 
 	return router, splitters, defaults

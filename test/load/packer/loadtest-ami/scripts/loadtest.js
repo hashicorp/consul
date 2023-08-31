@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import http from 'k6/http';
 import { uuidv4 } from "https://jslib.k6.io/k6-utils/1.0.0/index.js";
 import { check, fail } from 'k6';

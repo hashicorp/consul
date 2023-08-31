@@ -1,8 +1,6 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
+%app-view-title-left-container > *:first-child {
+  @extend %h100;
+}
 %app-view-title {
   border-bottom: var(--decor-border-100);
 }
@@ -10,15 +8,15 @@
   border-bottom: var(--decor-border-200);
 }
 %app-view-header h1 > em {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-600));
 }
 %app-view-header dd > a {
-  color: var(--token-color-hashicorp-brand);
+  color: rgb(var(--tone-gray-999));
 }
 %app-view-content div > dl > dd {
-  color: var(--token-color-foreground-disabled);
+  color: rgb(var(--tone-gray-400));
 }
 %app-view-title,
 %app-view-content form:not(.filter-bar) fieldset {
-  border-color: var(--token-color-surface-interactive-active);
+  border-color: rgb(var(--tone-gray-200));
 }

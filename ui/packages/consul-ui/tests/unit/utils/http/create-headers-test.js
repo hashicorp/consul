@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import createHeaders from 'consul-ui/utils/http/create-headers';
 import { module, test } from 'qunit';
 

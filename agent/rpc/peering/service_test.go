@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peering_test
 
 import (
@@ -14,8 +11,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
@@ -46,8 +41,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1820,7 +1815,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	deps := newDefaultDeps(t, conf)
 	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator, rate.NullRequestLimitsHandler())
 
-	server, err := consul.NewServer(conf, deps, externalGRPCServer, nil, deps.Logger, nil)
+	server, err := consul.NewServer(conf, deps, externalGRPCServer, nil, deps.Logger)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		require.NoError(t, server.Shutdown())
@@ -1952,7 +1947,6 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
-		Registry:                 resource.NewRegistry(),
 	}
 }
 

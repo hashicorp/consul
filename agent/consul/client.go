@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -25,7 +22,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -94,9 +90,6 @@ type Client struct {
 	EnterpriseClient
 
 	tlsConfigurator *tlsutil.Configurator
-
-	// resourceServiceClient is a client for the gRPC Resource Service.
-	resourceServiceClient pbresource.ResourceServiceClient
 }
 
 // NewClient creates and returns a Client
@@ -154,13 +147,6 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		return nil, fmt.Errorf("Failed to add LAN area to the RPC router: %w", err)
 	}
 	c.router = deps.Router
-
-	conn, err := deps.GRPCConnPool.ClientConn(deps.ConnPool.Datacenter)
-	if err != nil {
-		c.Shutdown()
-		return nil, fmt.Errorf("Failed to get gRPC client connection: %w", err)
-	}
-	c.resourceServiceClient = pbresource.NewResourceServiceClient(conn)
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
@@ -461,8 +447,4 @@ func (c *Client) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 
 func (c *Client) agentSegmentName() string {
 	return c.config.Segment
-}
-
-func (c *Client) ResourceServiceClient() pbresource.ResourceServiceClient {
-	return c.resourceServiceClient
 }

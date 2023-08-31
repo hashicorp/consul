@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package configentry
 
 import (
@@ -36,7 +33,6 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 					ProxyConfig: map[string]interface{}{
 						"foo": "bar",
 					},
-					MutualTLSMode: structs.MutualTLSModePermissive,
 					Expose: structs.ExposeConfig{
 						Checks: true,
 						Paths: []structs.ExposePath{
@@ -78,7 +74,6 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
 					},
-					MutualTLSMode: structs.MutualTLSModePermissive,
 					Config: map[string]interface{}{
 						"foo": "bar",
 					},
@@ -969,114 +964,6 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			// The input defaults must not be modified by the merge.
 			// See PR #10647
 			assert.Equal(t, tt.args.defaults, defaultsCopy)
-		})
-	}
-}
-
-// Tests that RateLimit config is a no-op in non-enterprise.
-// In practice, the ratelimit config would have been validated
-// on write.
-func Test_MergeServiceConfig_RateLimit(t *testing.T) {
-	rl := structs.RateLimits{
-		InstanceLevel: structs.InstanceLevelRateLimits{
-			RequestsPerSecond: 1234,
-			RequestsMaxBurst:  2345,
-			Routes: []structs.InstanceLevelRouteRateLimits{
-				{
-					PathExact:         "/admin",
-					RequestsPerSecond: 3333,
-					RequestsMaxBurst:  4444,
-				},
-			},
-		},
-	}
-	tests := []struct {
-		name     string
-		defaults *structs.ServiceConfigResponse
-		service  *structs.NodeService
-		want     *structs.NodeService
-	}{
-		{
-			name: "injects ratelimit extension",
-			defaults: &structs.ServiceConfigResponse{
-				RateLimits: rl,
-			},
-			service: &structs.NodeService{
-				ID:      "foo-proxy",
-				Service: "foo-proxy",
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "foo",
-					DestinationServiceID:   "foo",
-				},
-			},
-			want: &structs.NodeService{
-				ID:      "foo-proxy",
-				Service: "foo-proxy",
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "foo",
-					DestinationServiceID:   "foo",
-					EnvoyExtensions: func() []structs.EnvoyExtension {
-						if ext := rl.ToEnvoyExtension(); ext != nil {
-							return []structs.EnvoyExtension{*ext}
-						}
-						return nil
-					}(),
-				},
-			},
-		},
-		{
-			name: "injects ratelimit extension at the end",
-			defaults: &structs.ServiceConfigResponse{
-				RateLimits: rl,
-				EnvoyExtensions: []structs.EnvoyExtension{
-					{
-						Name:     "existing-ext",
-						Required: true,
-						Arguments: map[string]interface{}{
-							"arg1": "val1",
-						},
-					},
-				},
-			},
-			service: &structs.NodeService{
-				ID:      "foo-proxy",
-				Service: "foo-proxy",
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "foo",
-					DestinationServiceID:   "foo",
-				},
-			},
-
-			want: &structs.NodeService{
-				ID:      "foo-proxy",
-				Service: "foo-proxy",
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "foo",
-					DestinationServiceID:   "foo",
-					EnvoyExtensions: func() []structs.EnvoyExtension {
-						existing := []structs.EnvoyExtension{
-							{
-								Name:     "existing-ext",
-								Required: true,
-								Arguments: map[string]interface{}{
-									"arg1": "val1",
-								},
-							},
-						}
-						if ext := rl.ToEnvoyExtension(); ext != nil {
-							existing = append(existing, *ext)
-						}
-						return existing
-					}(),
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := MergeServiceConfig(tt.defaults, tt.service)
-			require.NoError(t, err)
-			assert.Equal(t, tt.want, got)
 		})
 	}
 }
