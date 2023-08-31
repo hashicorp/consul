@@ -69,8 +69,22 @@ module.exports = [
   {
     source:
       '/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
-    destination:
-      '/consul/docs/k8s/deployment-configurations/multi-cluster',
+    destination: '/consul/docs/k8s/deployment-configurations/multi-cluster',
     permanent: true,
-  }
+  },
+  {
+    source: '/consul/docs/connect/registration/service-registration',
+    destination: '/consul/docs/connect/proxies/proxy-config-reference',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/registration',
+    destination: '/consul/docs/connect/proxies/',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/registration/sidecar-service',
+    destination: '/consul/docs/connect/proxies/deploy-sidecar-services',
+    permanent: true,
+  },
 ]
