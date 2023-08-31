@@ -36,7 +36,7 @@ type cmd struct {
 func (c *cmd) getAppendFileNameFlag() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	fs.Var(&c.appendFileNameFlag, "append-filename", "Append filename flag takes two possible values. "+
-		"1. version, 2. dc. It appends consul version and datacenter to filename given in command")
+		"1. version, 2. dc. 3. node 5. status. It appends consul version and datacenter to filename given in command")
 	return fs
 }
 
@@ -95,6 +95,29 @@ func (c *cmd) Run(args []string) int {
 			if config, ok := agentSelfResponse["Config"]; ok {
 				if datacenter, ok := config["Datacenter"]; ok {
 					fileNameWithoutExt = fileNameWithoutExt + "-" + datacenter.(string)
+				}
+			}
+		}
+
+		if slices.Contains(appendFileNameFlags, "node") {
+			if config, ok := agentSelfResponse["Config"]; ok {
+				if nodeName, ok := config["NodeName"]; ok {
+					fileNameWithoutExt = fileNameWithoutExt + "-" + nodeName.(string)
+				}
+			}
+		}
+
+		if slices.Contains(appendFileNameFlags, "status") {
+			if status, ok := agentSelfResponse["Stats"]; ok {
+				if config, ok := status["consul"]; ok {
+					configMap := config.(map[string]interface{})
+					if leader, ok := configMap["leader"]; ok {
+						if leader == "true" {
+							fileNameWithoutExt = fileNameWithoutExt + "-" + "leader"
+						} else {
+							fileNameWithoutExt = fileNameWithoutExt + "-" + "follower"
+						}
+					}
 				}
 			}
 		}
