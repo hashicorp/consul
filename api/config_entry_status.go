@@ -106,10 +106,6 @@ const (
 	// certificates and cannot bind to any routes
 	GatewayReasonInvalidCertificates GatewayConditionReason = "InvalidCertificates"
 
-	// This reason is used with the "Accepted" condition when the gateway has multiple invalid
-	// JWT providers and cannot bind to any routes
-	GatewayReasonInvalidJWTProviders GatewayConditionReason = "InvalidJWTProviders"
-
 	// This condition indicates that the gateway was unable to resolve
 	// conflicting specification requirements for this Listener. If a
 	// Listener is conflicted, its network port should not be configured
@@ -167,14 +163,6 @@ const (
 	// If the reference is not allowed, the reason RefNotPermitted must be used
 	// instead.
 	GatewayListenerReasonInvalidCertificateRef GatewayConditionReason = "InvalidCertificateRef"
-
-	// This reason is used with the "ResolvedRefs" condition when a
-	// Listener has a JWT configuration with at least one JWTProvider
-	// that is invalid or does not exist.
-	// A JWTProvider is considered invalid when it refers to a nonexistent
-	// or unsupported resource or kind, or when the data within that resource
-	// is malformed.
-	GatewayListenerReasonInvalidJWTProviderRef GatewayConditionReason = "InvalidJWTProviderRef"
 )
 
 var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[ConditionStatus][]GatewayConditionReason{
@@ -184,7 +172,6 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 		},
 		ConditionStatusFalse: {
 			GatewayReasonInvalidCertificates,
-			GatewayReasonInvalidJWTProviders,
 		},
 		ConditionStatusUnknown: {},
 	},
@@ -203,7 +190,6 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 		},
 		ConditionStatusFalse: {
 			GatewayListenerReasonInvalidCertificateRef,
-			GatewayListenerReasonInvalidJWTProviderRef,
 		},
 		ConditionStatusUnknown: {},
 	},
@@ -296,10 +282,6 @@ const (
 	// This reason is used with the "Bound" condition when the route fails
 	// to find the gateway
 	RouteReasonGatewayNotFound RouteConditionReason = "GatewayNotFound"
-
-	// This reason is used with the "Accepted" condition when the route references non-existent
-	// JWTProviders
-	RouteReasonJWTProvidersNotFound RouteConditionReason = "JWTProvidersNotFound"
 )
 
 var validRouteConditionReasonsMapping = map[RouteConditionType]map[ConditionStatus][]RouteConditionReason{
@@ -320,7 +302,6 @@ var validRouteConditionReasonsMapping = map[RouteConditionType]map[ConditionStat
 		ConditionStatusFalse: {
 			RouteReasonGatewayNotFound,
 			RouteReasonFailedToBind,
-			RouteReasonJWTProvidersNotFound,
 		},
 		ConditionStatusUnknown: {},
 	},

@@ -1,16 +1,15 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"math"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -32,7 +31,6 @@ func RegisterService(r resource.Registry) {
 		Type:     ServiceV1Alpha1Type,
 		Proto:    &pbcatalog.Service{},
 		Validate: ValidateService,
-		Scope:    resource.ScopeNamespace,
 	})
 }
 
@@ -85,17 +83,6 @@ func ValidateService(res *pbresource.Resource) error {
 				Wrapped: resource.ErrInvalidField{
 					Name:    "target_port",
 					Wrapped: nameErr,
-				},
-			})
-		}
-
-		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
-			err = multierror.Append(err, resource.ErrInvalidListElement{
-				Name:  "ports",
-				Index: idx,
-				Wrapped: resource.ErrInvalidField{
-					Name:    "protocol",
-					Wrapped: protoErr,
 				},
 			})
 		}

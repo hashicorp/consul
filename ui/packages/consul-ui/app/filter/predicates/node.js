@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 export default {
@@ -9,12 +9,5 @@ export default {
     warning: (item, value) => item.Status === value,
     critical: (item, value) => item.Status === value,
   },
-  version: (item, value) => {
-    for (const element of value) {
-      if (item.Version.includes(element + '.')) {
-        return true;
-      }
-    }
-    return false;
-  },
+  version: (item, value) => item.Version.includes(value + '.'),
 };

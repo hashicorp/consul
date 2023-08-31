@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package controller_test
 
@@ -25,20 +25,9 @@ func TestController_API(t *testing.T) {
 	rec := newTestReconciler()
 	client := svctest.RunResourceService(t, demo.RegisterTypes)
 
-	concertsChan := make(chan controller.Event)
-	defer close(concertsChan)
-	concertSource := &controller.Source{Source: concertsChan}
-	concertMapper := func(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
-		artistID := event.Obj.(*Concert).artistID
-		var requests []controller.Request
-		requests = append(requests, controller.Request{ID: artistID})
-		return requests, nil
-	}
-
 	ctrl := controller.
 		ForType(demo.TypeV2Artist).
 		WithWatch(demo.TypeV2Album, controller.MapOwner).
-		WithCustomWatch(concertSource, concertMapper).
 		WithBackoff(10*time.Millisecond, 100*time.Millisecond).
 		WithReconciler(rec)
 
@@ -78,32 +67,6 @@ func TestController_API(t *testing.T) {
 
 		req = rec.wait(t)
 		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
-	})
-
-	t.Run("custom watched resource type", func(t *testing.T) {
-		res, err := demo.GenerateV2Artist()
-		require.NoError(t, err)
-
-		rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
-		require.NoError(t, err)
-
-		req := rec.wait(t)
-		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
-
-		rec.expectNoRequest(t, 500*time.Millisecond)
-
-		concertsChan <- controller.Event{Obj: &Concert{name: "test-concert", artistID: rsp.Resource.Id}}
-
-		watchedReq := rec.wait(t)
-		prototest.AssertDeepEqual(t, req.ID, watchedReq.ID)
-
-		otherArtist, err := demo.GenerateV2Artist()
-		require.NoError(t, err)
-
-		concertsChan <- controller.Event{Obj: &Concert{name: "test-concert", artistID: otherArtist.Id}}
-
-		watchedReq = rec.wait(t)
-		prototest.AssertDeepEqual(t, otherArtist.Id, watchedReq.ID)
 	})
 
 	t.Run("error retries", func(t *testing.T) {
@@ -302,13 +265,4 @@ func testContext(t *testing.T) context.Context {
 	t.Cleanup(cancel)
 
 	return ctx
-}
-
-type Concert struct {
-	name     string
-	artistID *pbresource.ID
-}
-
-func (c Concert) Key() string {
-	return c.name
 }

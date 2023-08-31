@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 // Package demo includes fake resource types for working on Consul's generic
 // state storage without having to refer to specific features.
@@ -22,12 +22,11 @@ import (
 )
 
 var (
-	// TypeV1RecordLabel represents a record label which artists are signed to.
-	// Used specifically as a resource to test partition only scoped resources.
-	TypeV1RecordLabel = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "RecordLabel",
+	// TenancyDefault contains the default values for all tenancy units.
+	TenancyDefault = &pbresource.Tenancy{
+		Partition: "default",
+		PeerName:  "local",
+		Namespace: "default",
 	}
 
 	// TypeV1Artist represents a musician or group of musicians.
@@ -73,20 +72,20 @@ const (
 // TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
 // system can be more modularly extended (or support generic resource permissions).
 func RegisterTypes(r resource.Registry) {
-	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+	readACL := func(authz acl.Authorizer, id *pbresource.ID) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
-		return authz.ToAllowAuthorizer().KeyReadAllowed(key, authzContext)
+		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
 	}
 
-	writeACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
-		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, authzContext)
+	writeACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
+		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
 	}
 
-	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *acl.AuthorizerContext) error {
-		return func(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *pbresource.Tenancy) error {
+		return func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
 			key := fmt.Sprintf("resource/%s", resource.ToGVK(typ))
-			return authz.ToAllowAuthorizer().KeyListAllowed(key, authzContext)
+			return authz.ToAllowAuthorizer().KeyListAllowed(key, &acl.AuthorizerContext{})
 		}
 	}
 
@@ -126,17 +125,6 @@ func RegisterTypes(r resource.Registry) {
 	}
 
 	r.Register(resource.Registration{
-		Type:  TypeV1RecordLabel,
-		Proto: &pbdemov1.RecordLabel{},
-		ACLs: &resource.ACLHooks{
-			Read:  readACL,
-			Write: writeACL,
-			List:  makeListACL(TypeV1RecordLabel),
-		},
-		Scope: resource.ScopePartition,
-	})
-
-	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
 		ACLs: &resource.ACLHooks{
@@ -145,7 +133,6 @@ func RegisterTypes(r resource.Registry) {
 			List:  makeListACL(TypeV1Artist),
 		},
 		Validate: validateV1ArtistFn,
-		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -156,7 +143,6 @@ func RegisterTypes(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV1Album),
 		},
-		Scope: resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -169,7 +155,6 @@ func RegisterTypes(r resource.Registry) {
 		},
 		Validate: validateV2ArtistFn,
 		Mutate:   mutateV2ArtistFn,
-		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
@@ -180,28 +165,7 @@ func RegisterTypes(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV2Album),
 		},
-		Scope: resource.ScopeNamespace,
 	})
-}
-
-// GenerateV1RecordLabel generates a named RecordLabel resource.
-func GenerateV1RecordLabel(name string) (*pbresource.Resource, error) {
-	data, err := anypb.New(&pbdemov1.RecordLabel{Name: name})
-	if err != nil {
-		return nil, err
-	}
-
-	return &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    TypeV1RecordLabel,
-			Tenancy: resource.DefaultPartitionedTenancy(),
-			Name:    name,
-		},
-		Data: data,
-		Metadata: map[string]string{
-			"generated_at": time.Now().Format(time.RFC3339),
-		},
-	}, nil
 }
 
 // GenerateV2Artist generates a random Artist resource.
@@ -227,7 +191,7 @@ func GenerateV2Artist() (*pbresource.Resource, error) {
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    TypeV2Artist,
-			Tenancy: resource.DefaultNamespacedTenancy(),
+			Tenancy: TenancyDefault,
 			Name:    fmt.Sprintf("%s-%s", strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Data: data,
@@ -270,7 +234,7 @@ func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Reso
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    TypeV2Album,
-			Tenancy: clone(artistID.Tenancy),
+			Tenancy: artistID.Tenancy,
 			Name:    fmt.Sprintf("%s/%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Owner: artistID,

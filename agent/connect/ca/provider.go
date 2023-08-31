@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package ca
 
@@ -152,7 +152,7 @@ type PrimaryProvider interface {
 	SignIntermediate(*x509.CertificateRequest) (string, error)
 
 	// CrossSignCA must accept a CA certificate from another CA provider and cross
-	// sign it exactly as it is such that it forms a chain back the
+	// sign it exactly as it is such that it forms a chain back the the
 	// CAProvider's current root. Specifically, the Distinguished Name, Subject
 	// Alternative Name, SubjectKeyID and other relevant extensions must be kept.
 	// The resulting certificate must have a distinct Serial Number and the

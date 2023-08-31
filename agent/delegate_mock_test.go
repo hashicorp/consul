@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type delegateMock struct {
@@ -76,8 +75,4 @@ func (m *delegateMock) Stats() map[string]map[string]string {
 
 func (m *delegateMock) ReloadConfig(config consul.ReloadableConfig) error {
 	return m.Called(config).Error(0)
-}
-
-func (m *delegateMock) ResourceServiceClient() pbresource.ResourceServiceClient {
-	return nil
 }

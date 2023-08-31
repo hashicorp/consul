@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package consul
 
@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -30,7 +29,6 @@ type Deps struct {
 	GRPCConnPool     GRPCClientConner
 	LeaderForwarder  LeaderForwarder
 	XDSStreamLimiter *limiter.SessionLimiter
-	Registry         resource.Registry
 	// GetNetRPCInterceptorFunc, if not nil, sets the net/rpc rpc.ServerServiceCallInterceptor on
 	// the server side to record metrics around the RPC requests. If nil, no interceptor is added to
 	// the rpc server.
