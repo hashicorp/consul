@@ -446,8 +446,6 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 		routeRef := readyUpstreams.routeReference
 		listenerKey := readyUpstreams.listenerKey
 
-		// TODO: might have to add the JWT Authentication the the Route Configuration here
-
 		defaultRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
