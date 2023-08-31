@@ -64,7 +64,7 @@ func (c *cmd) Run(args []string) int {
 	case 1:
 		file = args[0]
 	default:
-		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1 or 3, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
