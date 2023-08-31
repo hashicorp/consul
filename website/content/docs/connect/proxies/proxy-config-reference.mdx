@@ -1,14 +1,13 @@
 ---
 layout: docs
-page_title: Register a Service Mesh Proxy Outside of a Service Registration
+page_title: Service mesh proxy configuration
 description: >-
   You can register a service mesh sidecar proxy separately from the registration of the service instance it fronts. Learn about proxy configuration options and how to format them with examples.
 ---
 
-# Register a Service Mesh Proxy Outside of a Service Registration
+# Service mesh proxy configuration
 
 This topic describes how to declare a service mesh proxy in a service definition. The `kind` must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
-
 
 ## Configuration
 
@@ -79,7 +78,7 @@ proxy = {
 
 </CodeTabs>
 
-### Sidecar Proxy Configuration
+### Sidecar proxy configuration
 
 Many service mesh proxies are deployed as sidecars.
 Sidecar proxies are co-located with the single service instance they represent and proxy all inbound traffic to.
@@ -92,7 +91,7 @@ Specify the following parameters in the `proxy` code block to configure a sideca
 
 See [Sidecar Service Registration](/consul/docs/connect/registration/sidecar-service) for additional information about configuring service mesh proxies as sidecars.
 
-### Complete Configuration Example
+### Complete configuration example
 
 The following example includes values for all available options when registering a proxy instance.
 
@@ -140,7 +139,7 @@ proxy = {
 
 </CodeTabs>
 
-### Proxy Parameters
+### Proxy parameters
 
 The following table describes all parameters that can be defined in the `proxy` block.
 
@@ -158,7 +157,7 @@ The following table describes all parameters that can be defined in the `proxy` 
 | `mesh_gateway` | Object value that specifies the mesh gateway configuration for the proxy. Refer to [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for details. | Optional | None |
 | `expose` | Object value that specifies a configuration for exposing HTTP paths through the proxy. <br/>This parameter is only compatible with Envoy proxies. <br/>Refer to [Expose Paths Configuration Reference](#expose-paths-configuration-reference) for details. | Optional | None |
 
-### Upstream Configuration Reference
+### Upstream configuration reference
 
 You can configure the service mesh proxy to create listeners for upstream services. The listeners enable the upstream service to accept requests. You can specify the following parameters to configure upstream service listeners.
 
@@ -177,7 +176,7 @@ You can configure the service mesh proxy to create listeners for upstream servic
 | `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/consul/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/consul/docs/connect/proxies/envoy#proxy-upstream-config-options) | Optional | None |
 | `mesh_gateway` | Object that defines the mesh gateway configuration for the proxy. Refer to the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for configuration details. | Optional | None |
 
-### Upstream Configuration Examples
+### Upstream configuration examples
 
 Upstreams support multiple destination types. The following examples include information about each implementation. Note that the examples in this topic use snake case, which is a convention that separates words with underscores, because the format is supported in configuration files and API registrations. 
 
@@ -280,7 +279,7 @@ local_bind_port = 9090
 
 </CodeTabs>
 
-## Proxy Modes
+## Proxy modes
 
 You can configure which mode a proxy operates in by specifying `"direct"` or `"transparent"` in the `mode` parameter. The proxy mode determines the how proxies direct traffic. This feature was added in Consul 1.10.0.
 
@@ -295,7 +294,7 @@ You can also specify an empty string (`""`), which configures the proxy to opera
 
 The proxy will default to `direct` mode if a mode cannot be determined from the parent parameters.
 
-### Transparent Proxy Configuration Reference
+### Transparent proxy configuration reference
 
 The following examples show additional configuration for transparent proxies.
 
@@ -320,13 +319,13 @@ Note that the examples in this topic use snake case, which is a convention that 
   ~> **Note:** Dynamic routing rules such as failovers and redirects do not apply to services dialed directly.
      Additionally, the connection is proxied using a TCP proxy with a connection timeout of 5 seconds.
 
-### Mesh Gateway Configuration Reference
+### Mesh gateway configuration reference
 
 The following examples show all possible mesh gateway configurations.
 
  Note that the examples in this topic use snake case, which is a convention that separates words with underscores, because the format is supported in configuration files and API registrations.
 
-#### Using a Local/Egress Gateway in the Local Datacenter
+#### Using local and egress gateways in the local datacenter
 
 ```json
 {
@@ -334,7 +333,7 @@ The following examples show all possible mesh gateway configurations.
 }
 ```
 
-#### Direct to a Remote/Ingress in a Remote Datacenter
+#### Direct to remote and ingress services in a remote datacenter
 
 ```json
 {
@@ -342,7 +341,7 @@ The following examples show all possible mesh gateway configurations.
 }
 ```
 
-#### Prevent Using a Mesh Gateway
+#### Disable a mesh gateway
 
 ```json
 {
@@ -350,7 +349,7 @@ The following examples show all possible mesh gateway configurations.
 }
 ```
 
-#### Default Mesh Gateway Mode
+#### Specify the default mesh gateway mode
 
 ```json
 {
@@ -373,7 +372,7 @@ The following examples show all possible mesh gateway configurations.
     3.  The `service-defaults` configuration for the service.
     4.  The `global` `proxy-defaults`.
 
-### Expose Paths Configuration Reference
+### Expose paths configuration reference
 
 The following examples show possible configurations to expose HTTP paths through Envoy.
 
@@ -383,7 +382,9 @@ Some examples include: exposing a `/metrics` path for Prometheus or `/healthz` f
  
 Note that the examples in this topic use snake case, which is a convention that separates words with underscores, because the format is supported in configuration files and API registrations.
 
-#### Expose listeners in Envoy for HTTP and GRPC checks registered with the local Consul agent
+#### Expose listeners in Envoy for health checks
+
+The following example exposes Envoy listeners to HTTP and GRPC checks registered with the local Consul agent:
 
 ```json
 {
@@ -393,7 +394,9 @@ Note that the examples in this topic use snake case, which is a convention that 
 }
 ```
 
-#### Expose an HTTP listener in Envoy at port 21500 that routes to an HTTP server listening at port 8080
+#### Expose an HTTP listener 
+
+The following example exposes and HTTP listener in Envoy at port `21500` that routes to an HTTP server listening at port `8080`:
 
 ```json
 {
@@ -409,7 +412,9 @@ Note that the examples in this topic use snake case, which is a convention that 
 }
 ```
 
-#### Expose an HTTP2 listener in Envoy at port 21501 that routes to a gRPC server listening at port 9090
+#### Expose an HTTP2 listener 
+
+The following example expose an HTTP2 listener in Envoy at port `21501` that routes to a gRPC server listening at port `9090`:
 
 ```json
 {
@@ -440,15 +445,9 @@ Note that the examples in this topic use snake case, which is a convention that 
     but the proxy registration will not fail.
   - `protocol` `(string: "http")` - Sets the protocol of the listener. One of `http` or `http2`. For gRPC use `http2`.
 
-### Unix Domain Sockets
+### Unix domain sockets
 
-The following examples show additional configuration for Unix domain sockets.
-
-Added in v1.10.0.
-
-To connect to a service via local Unix Domain Socket instead of a
-port, add `local_bind_socket_path` and optionally `local_bind_socket_mode`
-to the upstream config for a service:
+To connect to a service using a local Unix domain socket instead of a port, add `local_bind_socket_path` and optionally `local_bind_socket_mode` to the upstream config for a service. The following examples show additional configurations for Unix domain sockets:
 
 <CodeTabs>
 
@@ -474,11 +473,9 @@ upstreams = [
 
 </CodeTabs>
 
-This will cause Envoy to create a socket with the path and mode
-provided, and connect that to service-1.
+Envoy creates a socket with the specified path and mode and connects to `service-1`.
 
-The mode field is optional, and if omitted will use the default mode
-for Envoy. This is not applicable for abstract sockets. See the
+The `mode` field is optional. When omitted, Envoy uses the default mode. This is not applicable for abstract sockets. Refer to the
 [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-pipe)
 for details.
 
