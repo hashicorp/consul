@@ -15,27 +15,40 @@ import (
 
 // DecodedResource is a generic holder to contain an original Resource and its
 // decoded contents.
-type DecodedResource[V any, PV interface {
-	proto.Message
-	*V
-}] struct {
+type DecodedResource[T proto.Message] struct {
 	Resource *pbresource.Resource
-	Data     PV
+	Data     T
+}
+
+func (d *DecodedResource[T]) GetResource() *pbresource.Resource {
+	if d == nil {
+		return nil
+	}
+
+	return d.Resource
+}
+
+func (d *DecodedResource[T]) GetData() T {
+	if d == nil {
+		var zero T
+		return zero
+	}
+
+	return d.Data
 }
 
 // Decode will generically decode the provided resource into a 2-field
 // structure that holds onto the original Resource and the decoded contents.
 //
 // Returns an ErrDataParse on unmarshalling errors.
-func Decode[V any, PV interface {
-	proto.Message
-	*V
-}](res *pbresource.Resource) (*DecodedResource[V, PV], error) {
-	data := PV(new(V))
+func Decode[T proto.Message](res *pbresource.Resource) (*DecodedResource[T], error) {
+	var zero T
+	data := zero.ProtoReflect().New().Interface().(T)
+
 	if err := res.Data.UnmarshalTo(data); err != nil {
 		return nil, NewErrDataParse(data, err)
 	}
-	return &DecodedResource[V, PV]{
+	return &DecodedResource[T]{
 		Resource: res,
 		Data:     data,
 	}, nil
@@ -43,10 +56,7 @@ func Decode[V any, PV interface {
 
 // GetDecodedResource will generically read the requested resource using the
 // client and either return nil on a NotFound or decode the response value.
-func GetDecodedResource[V any, PV interface {
-	proto.Message
-	*V
-}](ctx context.Context, client pbresource.ResourceServiceClient, id *pbresource.ID) (*DecodedResource[V, PV], error) {
+func GetDecodedResource[T proto.Message](ctx context.Context, client pbresource.ResourceServiceClient, id *pbresource.ID) (*DecodedResource[T], error) {
 	rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: id})
 	switch {
 	case status.Code(err) == codes.NotFound:
@@ -55,5 +65,5 @@ func GetDecodedResource[V any, PV interface {
 		return nil, err
 	}
 
-	return Decode[V, PV](rsp.Resource)
+	return Decode[T](rsp.Resource)
 }

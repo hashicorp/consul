@@ -29,12 +29,12 @@ func TestGetDecodedResource(t *testing.T) {
 
 	babypantsID := &pbresource.ID{
 		Type:    demo.TypeV2Artist,
-		Tenancy: demo.TenancyDefault,
+		Tenancy: resource.DefaultNamespacedTenancy(),
 		Name:    "babypants",
 	}
 
 	testutil.RunStep(t, "not found", func(t *testing.T) {
-		got, err := resource.GetDecodedResource[pbdemo.Artist, *pbdemo.Artist](ctx, client, babypantsID)
+		got, err := resource.GetDecodedResource[*pbdemo.Artist](ctx, client, babypantsID)
 		require.NoError(t, err)
 		require.Nil(t, got)
 	})
@@ -47,7 +47,7 @@ func TestGetDecodedResource(t *testing.T) {
 			WithData(t, data).
 			Write(t, client)
 
-		got, err := resource.GetDecodedResource[pbdemo.Artist, *pbdemo.Artist](ctx, client, babypantsID)
+		got, err := resource.GetDecodedResource[*pbdemo.Artist](ctx, client, babypantsID)
 		require.NoError(t, err)
 		require.NotNil(t, got)
 
@@ -75,7 +75,7 @@ func TestDecode(t *testing.T) {
 		foo := &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "babypants",
 			},
 			Data: any,
@@ -84,7 +84,7 @@ func TestDecode(t *testing.T) {
 			},
 		}
 
-		dec, err := resource.Decode[pbdemo.Artist, *pbdemo.Artist](foo)
+		dec, err := resource.Decode[*pbdemo.Artist](foo)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, foo, dec.Resource)
@@ -95,7 +95,7 @@ func TestDecode(t *testing.T) {
 		foo := &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "babypants",
 			},
 			Data: &anypb.Any{
@@ -107,7 +107,7 @@ func TestDecode(t *testing.T) {
 			},
 		}
 
-		_, err := resource.Decode[pbdemo.Artist, *pbdemo.Artist](foo)
+		_, err := resource.Decode[*pbdemo.Artist](foo)
 		require.Error(t, err)
 	})
 }

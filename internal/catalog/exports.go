@@ -118,7 +118,7 @@ func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.Failover
 // FailoverPolicyMapper maintains the bidirectional tracking relationship of a
 // FailoverPolicy to the Services related to it.
 type FailoverPolicyMapper interface {
-	TrackFailover(failover *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy])
+	TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy])
 	UntrackFailover(failoverID *pbresource.ID)
 	FailoverIDsByService(svcID *pbresource.ID) []*pbresource.ID
 }

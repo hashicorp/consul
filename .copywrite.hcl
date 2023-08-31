@@ -19,6 +19,7 @@ project {
 
     # ignore specific test data files
     "agent/uiserver/testdata/**",
+    "internal/resourcehcl/testdata/**",
 
     # generated files 
     "agent/structs/structs.deepcopy.go",

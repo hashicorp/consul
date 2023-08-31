@@ -20,7 +20,8 @@ import (
 )
 
 var (
-	flagWin = flag.Bool("win", false, "Execute tests on windows")
+	flagWin          = flag.Bool("win", false, "Execute tests on windows")
+	flagResourceAPIs = flag.Bool("enable-resource-apis", false, "Execute tests with resource apis enabled.")
 )
 
 func TestEnvoy(t *testing.T) {
@@ -31,7 +32,14 @@ func TestEnvoy(t *testing.T) {
 		check_dir_files(dir)
 	}
 
-	testcases, err := discoverCases()
+	var testcases []string
+	var err error
+	if *flagResourceAPIs == true {
+		os.Setenv("USE_RESOURCE_APIS", "true")
+		testcases, err = discoverResourceAPICases()
+	} else {
+		testcases, err = discoverCases()
+	}
 	require.NoError(t, err)
 
 	runCmd(t, "suite_setup")
@@ -54,7 +62,6 @@ func TestEnvoy(t *testing.T) {
 		})
 	}
 }
-
 
 func runCmdLinux(t *testing.T, c string, env ...string) {
 	t.Helper()
@@ -96,7 +103,7 @@ func runCmd(t *testing.T, c string, env ...string) {
 	}
 }
 
-// Discover the cases so we pick up both oss and ent copies.
+// Discover the cases so we pick up both ce and ent copies.
 func discoverCases() ([]string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -111,6 +118,33 @@ func discoverCases() ([]string, error) {
 	var out []string
 	for _, fi := range dirs {
 		if fi.IsDir() && strings.HasPrefix(fi.Name(), "case-") {
+			out = append(out, fi.Name())
+		}
+	}
+
+	sort.Strings(out)
+	return out, nil
+}
+
+// discoverResourceAPICases will discover the Envoy tests case files but will contain
+// a filter in it to only return those case for which functionality has been added
+// to the V2 catalog resources.
+func discoverResourceAPICases() ([]string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	dirs, err := os.ReadDir(cwd)
+	if err != nil {
+		return nil, err
+	}
+
+	var out []string
+	for _, fi := range dirs {
+		// TODO(proxystate): enable this to only include tests cases that are supported.
+		// Currently the work is in progress, so it is wired up in CI, but this excludes any tests from actually running.
+		if fi.IsDir() && strings.HasPrefix(fi.Name(), "case-don-match-me-on-anything-yet-because-i-am-not-ready") {
 			out = append(out, fi.Name())
 		}
 	}

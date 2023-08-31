@@ -512,6 +512,10 @@
                     "path": "connect/proxies/envoy-extensions/usage/lambda"
                   },
                   {
+                    "title": "Send access logs to OpenTelemetry collector service",
+                    "path": "connect/proxies/envoy-extensions/usage/otel-access-logging"
+                  },
+                  {
                     "title": "Configure Envoy proxy properties",
                     "path": "connect/proxies/envoy-extensions/usage/property-override"
                   },
@@ -527,6 +531,10 @@
                   {
                     "title": "External authorization",
                     "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
+                  },
+                  {
+                    "title": "OpenTelemetry Access Logging",
+                    "path": "connect/proxies/envoy-extensions/configuration/otel-access-logging"
                   },
                   {
                     "title": "Property override",

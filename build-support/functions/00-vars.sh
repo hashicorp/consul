@@ -44,4 +44,5 @@ else
    SED_EXT="-r"
 fi
 
+# TODO(spatel): CE refactor
 CONSUL_BINARY_TYPE=oss

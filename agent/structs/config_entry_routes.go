@@ -343,6 +343,38 @@ type HTTPMatch struct {
 	Query   []HTTPQueryMatch
 }
 
+func (m HTTPMatch) DeepEqual(other HTTPMatch) bool {
+	if m.Method != other.Method {
+		return false
+	}
+
+	if m.Path != other.Path {
+		return false
+	}
+
+	if len(m.Headers) != len(other.Headers) {
+		return false
+	}
+
+	if len(m.Query) != len(other.Query) {
+		return false
+	}
+
+	for i := 0; i < len(m.Headers); i++ {
+		if m.Headers[i] != other.Headers[i] {
+			return false
+		}
+	}
+
+	for i := 0; i < len(m.Query); i++ {
+		if m.Query[i] != other.Query[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 // HTTPMatchMethod specifies which type of HTTP verb should
 // be used for matching a given request.
 type HTTPMatchMethod string

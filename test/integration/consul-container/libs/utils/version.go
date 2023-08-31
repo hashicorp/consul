@@ -25,7 +25,7 @@ var (
 )
 
 const (
-	DefaultImageNameOSS   = "hashicorp/consul"
+	DefaultImageNameCE    = "hashicorp/consul"
 	DefaultImageNameENT   = "hashicorp/consul-enterprise"
 	ImageVersionSuffixENT = "-ent"
 )
@@ -65,7 +65,7 @@ func TargetImages() topology.Images {
 		}
 	} else {
 		return topology.Images{
-			ConsulOSS: img,
+			ConsulCE: img,
 		}
 	}
 }

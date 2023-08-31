@@ -324,7 +324,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DevMode = true
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
-			rt.Experiments = []string{"resource-apis"}
+			rt.Experiments = nil
 			rt.EnableDebug = true
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false

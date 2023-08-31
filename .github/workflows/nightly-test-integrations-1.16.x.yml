@@ -47,6 +47,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
+      branch-name: "release/1.16.x"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -90,7 +91,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
   
   envoy-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - generate-envoy-job-matrices
@@ -185,7 +186,7 @@ jobs:
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
   
   upgrade-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - dev-build
@@ -328,3 +329,14 @@ jobs:
             printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
             exit 1
           fi
+      - name: Notify Slack
+        if: ${{ failure() }}
+        id: slack
+        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        with:
+          payload: |
+            {
+              "message": "One or more nightly integration tests have failed on branch ${{ env.BRANCH }} for Consul. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}
