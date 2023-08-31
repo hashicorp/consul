@@ -91,11 +91,11 @@ as |dc partition nspace id item create|}}
         @type="none"
         as |notice|>
         <notice.Header>
-          <h3>Read-only</h3>
+          <h3>Built-in policy</h3>
         </notice.Header>
         <notice.Body>
           <p>
-            This global-read-only token is built into Consul's policy system. You can apply this special policy to tokens for full access. This policy is not editable or removeable, but can be ignored by not applying it to any tokens. Learn more in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#builtin-policies" target="_blank" rel="noopener noreferrer">documentation</a>.
+            This global-read-only policy is built into Consul's policy system. You can apply this special policy to tokens for read-only access to all Consul components. This policy is not editable or removable, but can be ignored by not applying it to any tokens. Learn more in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#builtin-policies" target="_blank" rel="noopener noreferrer">documentation</a>.
           </p>
         </notice.Body>
       </Notice>
