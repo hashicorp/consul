@@ -47,6 +47,10 @@ Usage: `consul snapshot save [options] FILE`
 
 @include 'http_api_options_server.mdx'
 
+- `-append-filename=<value>` - Value can be - version,dc,node,status
+Adds consul version, datacenter name, node name, and status (leader/follower)
+to the file name before the extension separated by `-`
+
 ## Examples
 
 To create a snapshot from the leader server and save it to "backup.snap":
