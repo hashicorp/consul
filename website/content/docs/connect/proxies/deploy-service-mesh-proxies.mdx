@@ -30,7 +30,11 @@ If you want to define global passthrough settings for all Envoy proxies, create 
    - `Kind`: Must be set to `proxy-defaults`
    - `Name`: Must be set to `global`
 1. Configure any additional settings you want to apply to all proxies. Refer to [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for details about all settings available in the configuraiton entry. 
-1. Apply the configuration by either calling the [`/config` API endpoint](/consul/api-docs/config) or running the [`consul config write` CLI command](/consul/commands/config/write). 
+1. Apply the configuration by either calling the [`/config` API endpoint](/consul/api-docs/config) or running the [`consul config write` CLI command](/consul/commands/config/write). The following example writes a proxy defaults configuration entry from a local HCL file using the CLI:
+
+```shell-session
+$ consul config write proxy-defaults.hcl
+```
 
 ## Define service mesh proxy 
 
