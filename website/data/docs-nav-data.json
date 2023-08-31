@@ -490,6 +490,10 @@
             "path": "connect/proxies/deploy-service-mesh-proxies"
           },
           {
+            "title": "Deploy sidecar services",
+            "path": "connect/proxies/deploy-sidecar-services"
+          },
+          {
             "title": "Envoy proxies reference",
             "path": "connect/proxies/envoy"
           },
@@ -568,10 +572,6 @@
           {
             "title": "Proxy Service Registration",
             "path": "connect/registration/service-registration"
-          },
-          {
-            "title": "Sidecar Service Registration",
-            "path": "connect/registration/sidecar-service"
           }
         ]
       },
