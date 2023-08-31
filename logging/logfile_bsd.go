@@ -12,5 +12,5 @@ import (
 func (l *LogFile) createTime(stat os.FileInfo) time.Time {
 	stat_t := stat.Sys().(*syscall.Stat_t)
 	createTime := stat_t.Ctimespec
-	return time.Unix(createTime.Sec, createTime.Nsec)
+	return time.Unix(int64(createTime.Sec), int64(createTime.Nsec))
 }
