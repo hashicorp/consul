@@ -89,6 +89,7 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 	file := filepath.Join(dir, "backup.tgz")
 	args := []string{
 		"-append-filename=version,dc",
+		"-http-addr=" + a.HTTPAddr(),
 		file,
 	}
 
