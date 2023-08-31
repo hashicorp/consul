@@ -437,3 +437,476 @@ func TestHTTPRoute(t *testing.T) {
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
+
+func TestHTTPMatch_DeepEqual(t *testing.T) {
+	type fields struct {
+		Headers []HTTPHeaderMatch
+		Method  HTTPMatchMethod
+		Path    HTTPPathMatch
+		Query   []HTTPQueryMatch
+	}
+	type args struct {
+		other HTTPMatch
+	}
+	tests := map[string]struct {
+		match HTTPMatch
+		other HTTPMatch
+		want  bool
+	}{
+		"all fields equal": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			want: true,
+		},
+		"differing number of header matches": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			want: false,
+		},
+		"differing header matches": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h4",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			want: false,
+		},
+		"different path matching": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/zoidberg",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			want: false,
+		},
+		"differing methods": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodConnect,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			want: false,
+		},
+		"differing number of query matches": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			want: false,
+		},
+		"different query matches": {
+			match: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "another",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			other: HTTPMatch{
+				Headers: []HTTPHeaderMatch{
+					{
+						Match: HTTPHeaderMatchExact,
+						Name:  "h1",
+						Value: "a",
+					},
+					{
+						Match: HTTPHeaderMatchPrefix,
+						Name:  "h2",
+						Value: "b",
+					},
+				},
+				Method: HTTPMatchMethodGet,
+				Path: HTTPPathMatch{
+					Match: HTTPPathMatchType(HTTPHeaderMatchPrefix),
+					Value: "/bender",
+				},
+				Query: []HTTPQueryMatch{
+					{
+						Match: HTTPQueryMatchExact,
+						Name:  "q",
+						Value: "nibbler",
+					},
+					{
+						Match: HTTPQueryMatchPresent,
+						Name:  "ship",
+						Value: "planet express",
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for name, tt := range tests {
+		name := name
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.match.DeepEqual(tt.other); got != tt.want {
+				t.Errorf("HTTPMatch.DeepEqual() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
