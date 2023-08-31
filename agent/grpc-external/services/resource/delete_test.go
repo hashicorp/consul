@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -32,10 +31,6 @@ func TestDelete_InputValidation(t *testing.T) {
 		},
 		"no type": func(artistId, _ *pbresource.ID) *pbresource.ID {
 			artistId.Type = nil
-			return artistId
-		},
-		"no tenancy": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Tenancy = nil
 			return artistId
 		},
 		"no name": func(artistId, _ *pbresource.ID) *pbresource.ID {
@@ -102,21 +97,23 @@ func TestDelete_ACLs(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
-
-			mockACLResolver := &MockACLResolver{}
-			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-				Return(tc.authz, nil)
-			server.ACLResolver = mockACLResolver
 			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			artist, err = server.Backend.WriteCAS(context.Background(), artist)
+			// Write test resource to delete.
+			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: artist})
 			require.NoError(t, err)
 
-			// exercise ACL
-			_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: artist.Id})
+			// Mock is put in place after the above "write" since the "write" must also pass the ACL check.
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+
+			// Exercise ACL.
+			_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: rsp.Resource.Id})
 			tc.assertErrFn(err)
 		})
 	}
@@ -134,15 +131,20 @@ func TestDelete_Success(t *testing.T) {
 
 					recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
 					require.NoError(t, err)
-					recordLabel, err = server.Backend.WriteCAS(ctx, recordLabel)
+					writeRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
 					require.NoError(t, err)
+					recordLabel = writeRsp.Resource
+					originalRecordLabelId := clone(recordLabel.Id)
 
 					artist, err := demo.GenerateV2Artist()
 					require.NoError(t, err)
-					artist, err = server.Backend.WriteCAS(ctx, artist)
+					writeRsp, err = client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 					require.NoError(t, err)
+					artist = writeRsp.Resource
+					originalArtistId := clone(artist.Id)
 
-					// Pick the resource to be deleted based on type's scope
+					// Pick the resource to be deleted based on type's scope and mod tenancy
+					// based on the tenancy test case.
 					deleteId := modFn(artist.Id, recordLabel.Id)
 					deleteReq := tc.deleteReqFn(recordLabel)
 					if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
@@ -154,19 +156,25 @@ func TestDelete_Success(t *testing.T) {
 					require.NoError(t, err)
 
 					// Verify deleted
-					_, err = server.Backend.Read(ctx, storage.StrongConsistency, deleteId)
+					_, err = client.Read(ctx, &pbresource.ReadRequest{Id: deleteId})
 					require.Error(t, err)
-					require.ErrorIs(t, err, storage.ErrNotFound)
+					require.Equal(t, codes.NotFound.String(), status.Code(err).String())
+
+					// Derive tombstone name from resource that was deleted.
+					tname := tombstoneName(originalRecordLabelId)
+					if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
+						tname = tombstoneName(originalArtistId)
+					}
 
 					// Verify tombstone created
 					_, err = client.Read(ctx, &pbresource.ReadRequest{
 						Id: &pbresource.ID{
-							Name:    tombstoneName(deleteReq.Id),
+							Name:    tname,
 							Type:    resource.TypeV1Tombstone,
 							Tenancy: deleteReq.Id.Tenancy,
 						},
 					})
-					require.NoError(t, err, "expected tombstome to be found")
+					require.NoError(t, err, "expected tombstone to be found")
 				})
 			}
 		})

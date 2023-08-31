@@ -8,6 +8,7 @@ on:
     # * is a special character in YAML so you have to quote this string
     # Run nightly at 12AM UTC/8PM EST/5PM PST.
     - cron: '0 0 * * *'
+  workflow_dispatch:
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
@@ -38,7 +39,7 @@ jobs:
   dev-build:
     uses: ./.github/workflows/reusable-dev-build-windows.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul.exe'
     secrets:
