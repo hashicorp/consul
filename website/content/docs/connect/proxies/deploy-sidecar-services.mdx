@@ -16,7 +16,7 @@ They may be on the same VM or running as a separate container in the same networ
 
 You can attach a sidecar proxy to a service you want to deploy to your mesh:
 
-1. It is not required, but you can create a proxy defaults configuration entry that contains global  passthrough settings for all Envoy proxies. Refer to [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for additional information.
+1. It is not required, but you can create a proxy defaults configuration entry that contains global  passthrough settings for all Envoy proxies. 
 1. Create the service definition and include the `connect` block. The `connect` block contains the sidecar proxy configurations that allow the service to interact with other services in the mesh.
 1. Register the service using either the API or CLI.
 1. Start the sidecar proxy service. 
@@ -24,6 +24,16 @@ You can attach a sidecar proxy to a service you want to deploy to your mesh:
 ## Requirements
 
 If [ACLs](/consul/docs/security/acl) are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token) for additional information.
+
+## Configure global Envoy passthrough settings
+
+If you want to define global passthrough settings for all Envoy proxies, create a proxy defaults configuration entry and specify default settings, such as access log configuration. [Service defaults configuration entries](/consul/docs/connect/config-entries/service-defaults) override proxy defaults and individual service configurations override both configuration entries.
+
+1. Create a proxy defaults configuration entry and specify the following parameters:
+   - `Kind`: Must be set to `proxy-defaults`
+   - `Name`: Must be set to `global`
+1. Configure any additional settings you want to apply to all proxies. Refer to [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for details about all settings available in the configuraiton entry. 
+1. Apply the configuration by either calling the [`/config` API endpoint](/consul/api-docs/config) or running the [`consul config write` CLI command](/consul/commands/config/write). 
 
 ## Define service mesh proxy 
 
