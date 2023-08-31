@@ -14,15 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-<<<<<<< HEAD
 	"io"
-=======
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/proxycfg-sources/local"
-	"github.com/hashicorp/consul/agent/xds"
-	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
->>>>>>> main
 	mathrand "math/rand"
 	"net"
 	"net/http"
@@ -37,6 +29,12 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/proxycfg-sources/local"
+	"github.com/hashicorp/consul/agent/xds"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
