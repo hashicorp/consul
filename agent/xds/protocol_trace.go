@@ -1,27 +1,26 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package xds
 
 import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/mitchellh/copystructure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
-func logTraceRequest(logger hclog.Logger, msg string, pb proto.Message) {
-	logTraceProto(logger, msg, pb, false)
+func (s *ResourceGenerator) logTraceRequest(msg string, pb proto.Message) {
+	s.logTraceProto(msg, pb, false)
 }
 
-func logTraceResponse(logger hclog.Logger, msg string, pb proto.Message) {
-	logTraceProto(logger, msg, pb, true)
+func (s *ResourceGenerator) logTraceResponse(msg string, pb proto.Message) {
+	s.logTraceProto(msg, pb, true)
 }
 
-func logTraceProto(logger hclog.Logger, msg string, pb proto.Message, response bool) {
-	if !logger.IsTrace() {
+func (s *ResourceGenerator) logTraceProto(msg string, pb proto.Message, response bool) {
+	if !s.Logger.IsTrace() {
 		return
 	}
 
@@ -56,5 +55,5 @@ func logTraceProto(logger hclog.Logger, msg string, pb proto.Message, response b
 		out = string(outBytes)
 	}
 
-	logger.Trace(msg, "direction", dir, "protobuf", out)
+	s.Logger.Trace(msg, "direction", dir, "protobuf", out)
 }

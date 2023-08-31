@@ -370,9 +370,9 @@ Specifies the configuration Envoy encodes as bytes and passes to the plugin duri
 
 ### `PluginConfig{}.VmConfig{}.EnvironmentVariables{}`
 
-Specifies environment variables for Envoy to inject into this VM so that they are available through WASI's `environ_get` and `environ_get_sizes` system calls.
+Specifies environment variables for Enovy to inject into this VM so that they are available through WASI's `environ_get` and `environ_get_sizes` system calls. 
 
-In most cases, WASI calls the functions implicitly in your language's standard library. As a result, you do not need to call them directly. You can also access environment variables as you would on native platforms.
+In most cases, WASI calls the functions implicitly in your language's standard library. As a result, you do not need to call them directly. You can also access environment variables as you would on native platforms. 
 
 Envoy rejects the configuration if there is a key space conflict.
 

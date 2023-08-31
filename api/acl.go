@@ -272,6 +272,13 @@ type ACLAuthMethod struct {
 	Partition string `json:",omitempty"`
 }
 
+type ACLTokenFilterOptions struct {
+	AuthMethod  string `json:",omitempty"`
+	Policy      string `json:",omitempty"`
+	Role        string `json:",omitempty"`
+	ServiceName string `json:",omitempty"`
+}
+
 func (m *ACLAuthMethod) MarshalJSON() ([]byte, error) {
 	type Alias ACLAuthMethod
 	exported := &struct {
@@ -876,6 +883,44 @@ func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/tokens")
 	r.setQueryOptions(q)
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var entries []*ACLTokenListEntry
+	if err := decodeBody(resp, &entries); err != nil {
+		return nil, nil, err
+	}
+	return entries, qm, nil
+}
+
+// TokenListFiltered lists all tokens that match the given filter options.
+// The listing does not contain any SecretIDs as those may only be retrieved by a call to TokenRead.
+func (a *ACL) TokenListFiltered(t ACLTokenFilterOptions, q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/tokens")
+	r.setQueryOptions(q)
+
+	if t.AuthMethod != "" {
+		r.params.Set("authmethod", t.AuthMethod)
+	}
+	if t.Policy != "" {
+		r.params.Set("policy", t.Policy)
+	}
+	if t.Role != "" {
+		r.params.Set("role", t.Role)
+	}
+	if t.ServiceName != "" {
+		r.params.Set("servicename", t.ServiceName)
+	}
+
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err

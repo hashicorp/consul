@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package assert
 
@@ -34,7 +34,7 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.Que
 			r.Fatal("error reading service data")
 		}
 		if len(services) == 0 {
-			r.Fatalf("did not find catalog entry for %q with opts %#v", svc, opts)
+			r.Fatal("did not find catalog entry for ", svc)
 		}
 	})
 }

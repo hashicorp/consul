@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package consul
 
@@ -680,8 +680,18 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, methodMeta, &args.EnterpriseMeta)
+		func(ws memdb.WatchSet, s *state.Store) error {
+			index, tokens, err := s.ACLTokenListWithParameters(ws, state.ACLTokenListParameters{
+				Local:          args.IncludeLocal,
+				Global:         args.IncludeGlobal,
+				Policy:         args.Policy,
+				Role:           args.Role,
+				MethodName:     args.AuthMethod,
+				ServiceName:    args.ServiceName,
+				MethodMeta:     methodMeta,
+				EnterpriseMeta: &args.EnterpriseMeta,
+			})
+
 			if err != nil {
 				return err
 			}

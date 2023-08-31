@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package proxycfgglue
 
@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -39,14 +38,13 @@ import (
 // because proxycfg has a `req.Source.Node != ""` which prevents the `streamingEnabled` check from passing.
 // This means that while agents should technically have this same issue, they don't experience it with mesh health
 // watches.
-func ServerHealthBlocking(deps ServerDataSourceDeps, remoteSource proxycfg.Health, state *state.Store) *serverHealthBlocking {
-	return &serverHealthBlocking{deps, remoteSource, state, 5 * time.Minute}
+func ServerHealthBlocking(deps ServerDataSourceDeps, remoteSource proxycfg.Health) *serverHealthBlocking {
+	return &serverHealthBlocking{deps, remoteSource, 5 * time.Minute}
 }
 
 type serverHealthBlocking struct {
 	deps         ServerDataSourceDeps
 	remoteSource proxycfg.Health
-	state        *state.Store
 	watchTimeout time.Duration
 }
 
@@ -66,7 +64,7 @@ func (h *serverHealthBlocking) Notify(ctx context.Context, args *structs.Service
 	}
 
 	// Determine the function we'll call
-	var f func(memdb.WatchSet, *state.Store, *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error)
+	var f func(memdb.WatchSet, Store, *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error)
 	switch {
 	case args.Connect:
 		f = serviceNodesConnect
@@ -108,6 +106,12 @@ func (h *serverHealthBlocking) Notify(ctx context.Context, args *structs.Service
 					// their data, rather than holding onto the last-known list of healthy nodes indefinitely.
 					if hadResults {
 						hadResults = false
+						h.deps.Logger.Debug("serverHealthBlocking emitting zero check-service-nodes due to insufficient ACL privileges",
+							"serviceName", structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta),
+							"correlationID", correlationID,
+							"connect", args.Connect,
+							"ingress", args.Ingress,
+						)
 						return 0, &structs.IndexedCheckServiceNodes{}, watch.ErrorACLResetData
 					}
 					return 0, nil, acl.ErrPermissionDenied
@@ -115,7 +119,7 @@ func (h *serverHealthBlocking) Notify(ctx context.Context, args *structs.Service
 			}
 
 			var thisReply structs.IndexedCheckServiceNodes
-			thisReply.Index, thisReply.Nodes, err = f(ws, h.state, args)
+			thisReply.Index, thisReply.Nodes, err = f(ws, store, args)
 			if err != nil {
 				return 0, nil, err
 			}
@@ -134,6 +138,13 @@ func (h *serverHealthBlocking) Notify(ctx context.Context, args *structs.Service
 			}
 
 			hadResults = true
+			h.deps.Logger.Trace("serverHealthBlocking emitting check-service-nodes",
+				"serviceName", structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta),
+				"correlationID", correlationID,
+				"connect", args.Connect,
+				"ingress", args.Ingress,
+				"nodes", len(thisReply.Nodes),
+			)
 			return thisReply.Index, &thisReply, nil
 		},
 		dispatchBlockingQueryUpdate[*structs.IndexedCheckServiceNodes](ch),
@@ -151,14 +162,14 @@ func (h *serverHealthBlocking) filterACL(authz *acl.AuthorizerContext, token str
 	return nil
 }
 
-func serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
+func serviceNodesConnect(ws memdb.WatchSet, s Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
 	return s.CheckConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 }
 
-func serviceNodesIngress(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
+func serviceNodesIngress(ws memdb.WatchSet, s Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
 	return s.CheckIngressServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
 }
 
-func serviceNodesDefault(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
+func serviceNodesDefault(ws memdb.WatchSet, s Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
 	return s.CheckServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 }

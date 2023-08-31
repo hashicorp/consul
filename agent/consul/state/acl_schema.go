@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package state
 
@@ -22,6 +22,7 @@ const (
 	indexAccessor      = "accessor"
 	indexPolicies      = "policies"
 	indexRoles         = "roles"
+	indexServiceName   = "service-name"
 	indexAuthMethod    = "authmethod"
 	indexLocality      = "locality"
 	indexName          = "name"
@@ -104,6 +105,15 @@ func tokensTableSchema() *memdb.TableSchema {
 				Indexer: indexerSingle[*TimeQuery, *structs.ACLToken]{
 					readIndex:  indexFromTimeQuery,
 					writeIndex: indexExpiresLocalFromACLToken,
+				},
+			},
+			indexServiceName: {
+				Name:         indexServiceName,
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: indexerMulti[Query, *structs.ACLToken]{
+					readIndex:       indexFromQuery,
+					writeIndexMulti: indexServiceNameFromACLToken,
 				},
 			},
 		},
@@ -396,6 +406,21 @@ func indexExpiresFromACLToken(t *structs.ACLToken, local bool) ([]byte, error) {
 	var b indexBuilder
 	b.Time(*t.ExpirationTime)
 	return b.Bytes(), nil
+}
+
+func indexServiceNameFromACLToken(token *structs.ACLToken) ([][]byte, error) {
+	vals := make([][]byte, 0, len(token.ServiceIdentities))
+	for _, id := range token.ServiceIdentities {
+		if id != nil && id.ServiceName != "" {
+			var b indexBuilder
+			b.String(strings.ToLower(id.ServiceName))
+			vals = append(vals, b.Bytes())
+		}
+	}
+	if len(vals) == 0 {
+		return nil, errMissingValueForIndex
+	}
+	return vals, nil
 }
 
 func authMethodsTableSchema() *memdb.TableSchema {

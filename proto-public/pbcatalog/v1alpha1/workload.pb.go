@@ -269,7 +269,7 @@ func (x *WorkloadPort) GetProtocol() Protocol {
 	if x != nil {
 		return x.Protocol
 	}
-	return Protocol_PROTOCOL_UNSPECIFIED
+	return Protocol_PROTOCOL_TCP
 }
 
 type Locality struct {

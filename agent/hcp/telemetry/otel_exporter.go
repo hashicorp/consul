@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package telemetry
 
 import (
@@ -23,9 +20,7 @@ type MetricsClient interface {
 // EndpointProvider provides the endpoint where metrics are exported to by the OTELExporter.
 // EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
 // This abstraction layer offers flexibility, in particular for dynamic configuration or changes to the endpoint.
-// The OTELExporter calls the Disabled interface to verify that it should actually export metrics.
 type EndpointProvider interface {
-	Disabled
 	GetEndpoint() *url.URL
 }
 
@@ -70,10 +65,6 @@ func (e *otelExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 
 // Export serializes and transmits metric data to a receiver.
 func (e *otelExporter) Export(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
-	if e.endpointProvider.IsDisabled() {
-		return nil
-	}
-
 	endpoint := e.endpointProvider.GetEndpoint()
 	if endpoint == nil {
 		return nil

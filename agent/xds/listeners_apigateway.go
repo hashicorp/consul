@@ -1,15 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package xds
 
 import (
 	"fmt"
-
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	"github.com/hashicorp/consul/agent/xds/naming"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -71,7 +69,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				if err != nil {
 					return nil, err
 				}
-				clusterName = naming.CustomizeClusterName(target.Name, chain)
+				clusterName = CustomizeClusterName(target.Name, chain)
 			}
 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
@@ -286,7 +284,10 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.
 
 	connectTLSEnabled := (!listenerCfg.TLS.IsEmpty())
 
-	if connectTLSEnabled {
+	if tlsCfg.SDS != nil {
+		// Set up listener TLS from SDS
+		tlsContext = makeCommonTLSContextFromGatewayTLSConfig(*tlsCfg)
+	} else if connectTLSEnabled {
 		tlsContext = makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
 	}
 
@@ -313,6 +314,29 @@ func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfigurati
 	}
 
 	return &mergedCfg, nil
+}
+
+func routeNameForAPIGatewayUpstream(l structs.IngressListener, s structs.IngressService) string {
+	key := proxycfg.IngressListenerKeyFromListener(l)
+
+	// If the upstream service doesn't have any TLS overrides then it can just use
+	// the combined filterchain with all the merged routes.
+	if !ingressServiceHasSDSOverrides(s) {
+		return key.RouteName()
+	}
+
+	// Return a specific route for this service as it needs a custom FilterChain
+	// to serve its custom cert so we should attach its routes to a separate Route
+	// too. We need this to be consistent between OSS and Enterprise to avoid xDS
+	// config golden files in tests conflicting so we can't use ServiceID.String()
+	// which normalizes to included all identifiers in Enterprise.
+	sn := s.ToServiceName()
+	svcIdentifier := sn.Name
+	if !sn.InDefaultPartition() || !sn.InDefaultNamespace() {
+		// Non-default partition/namespace, use a full identifier
+		svcIdentifier = sn.String()
+	}
+	return fmt.Sprintf("%s_%s", key.RouteName(), svcIdentifier)
 }
 
 // when we have multiple certificates on a single listener, we need

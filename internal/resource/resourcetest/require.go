@@ -1,41 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package resourcetest
 
 import (
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
 )
-
-// CompareErrorString is a helper to generate a custom go-cmp comparer method
-// that will perform an equality check on the error message. This is mainly
-// useful to get around not being able to see unexported data within errors.
-func CompareErrorString[T error]() cmp.Option {
-	return cmp.Comparer(func(e1, e2 T) bool {
-		return e1.Error() == e2.Error()
-	})
-}
-
-// default comparers for known types that don't play well with go-cmp
-var comparers = []cmp.Option{
-	CompareErrorString[resource.ConstError](),
-}
-
-// RequireError is useful for asserting that some chained multierror contains a specific error.
-func RequireError[E error](t T, err error, expected E, opts ...cmp.Option) {
-	t.Helper()
-
-	var actual E
-	require.ErrorAs(t, err, &actual)
-
-	opts = append(opts, comparers...)
-	prototest.AssertDeepEqual(t, expected, actual, opts...)
-}
 
 func RequireVersionUnchanged(t T, res *pbresource.Resource, version string) {
 	t.Helper()

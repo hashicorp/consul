@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 
 set -eEuo pipefail
@@ -15,7 +15,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.27.0"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -179,14 +179,6 @@ function start_consul {
     license=$(cat $CONSUL_LICENSE_PATH)
   fi
 
-  USE_RESOURCE_APIS=${USE_RESOURCE_APIS:-false}
-
-  experiments="experiments=[]"
-  # set up consul to run in V1 or V2 catalog mode
-  if [[ "${USE_RESOURCE_APIS}" == true ]]; then
-   experiments="experiments=[\"resource-apis\"]"
-  fi
-
   # We currently run these integration tests in two modes: one in which Envoy's
   # xDS sessions are served directly by a Consul server, and another in which it
   # goes through a client agent.
@@ -270,7 +262,6 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
-      -hcl=${experiments} \
       -client "0.0.0.0" >/dev/null
   fi
 }
@@ -797,9 +788,6 @@ function common_run_container_gateway {
 
 function run_container_gateway-primary {
   common_run_container_gateway mesh-gateway primary
-}
-function run_container_gateway-ap1 {
-  common_run_container_gateway mesh-gateway ap1
 }
 function run_container_gateway-secondary {
   common_run_container_gateway mesh-gateway secondary

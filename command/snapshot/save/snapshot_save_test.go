@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package save
 
@@ -69,6 +69,71 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 		if !strings.Contains(output, tc.output) {
 			t.Errorf("%s: expected %q to contain %q", name, output, tc.output)
 		}
+	}
+}
+
+func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	dir := testutil.TempDir(t, "snapshot")
+	file := filepath.Join(dir, "backup.tgz")
+	args := []string{
+		"-append-filename=version,dc",
+		"-http-addr=" + a.HTTPAddr(),
+		file,
+	}
+
+	// We need to use the self endpoint here for ENT, which returns the product suffix (+ent)
+	self, err := client.Agent().Self()
+	require.NoError(t, err)
+
+	cfg, ok := self["Config"]
+	require.True(t, ok)
+
+	dc, ok := cfg["Datacenter"]
+	require.True(t, ok)
+
+	datacenter := dc.(string)
+
+	operatorHealth, error := client.Operator().AutopilotServerHealth(nil)
+	require.NoError(t, error)
+
+	var version string
+	for _, server := range operatorHealth.Servers {
+		if server.Leader {
+			version = server.Version
+		}
+	}
+
+	newFilePath := filepath.Join(dir, "backup"+"-"+version+"-"+datacenter+".tgz")
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	fi, err := os.Stat(newFilePath)
+	require.NoError(t, err)
+	require.Equal(t, fi.Mode(), os.FileMode(0600))
+
+	f, err := os.Open(newFilePath)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer f.Close()
+
+	if err := client.Snapshot().Restore(nil, f); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }
 

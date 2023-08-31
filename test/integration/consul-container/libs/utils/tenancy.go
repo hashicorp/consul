@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package utils
 
 import "github.com/hashicorp/consul/api"
@@ -25,11 +22,11 @@ func DefaultToEmpty(name string) string {
 	return name
 }
 
-// CompatQueryOpts cleans a QueryOptions so that Partition and Namespace fields
-// are compatible with CE or ENT
-// TODO: not sure why we can't do this server-side
-func CompatQueryOpts(opts *api.QueryOptions) *api.QueryOptions {
-	opts.Partition = DefaultToEmpty(opts.Partition)
-	opts.Namespace = DefaultToEmpty(opts.Namespace)
-	return opts
+// PartitionQueryOptions returns an *api.QueryOptions with the given partition
+// field set only if the partition is non-default. This helps when writing
+// tests for joint use in OSS and ENT.
+func PartitionQueryOptions(partition string) *api.QueryOptions {
+	return &api.QueryOptions{
+		Partition: DefaultToEmpty(partition),
+	}
 }

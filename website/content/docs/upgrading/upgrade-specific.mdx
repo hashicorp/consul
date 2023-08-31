@@ -16,6 +16,12 @@ upgrade flow.
 
 ## Consul 1.16.x
 
+#### Known issues
+
+Service mesh in Consul versions 1.16.0 and 1.16.1 may have issues when a snapshot restore is performed and the servers are hosting xDS streams.
+When this bug triggers, it will cause Envoy to incorrectly populate upstream endpoints. Due to this issue, it is currently not recommended for
+service mesh users running agent-less workloads to upgrade Consul to these versions.
+
 #### API health endpoints return different status code
 
 Consul versions 1.16.0+ now return an error 403 "Permission denied" status
@@ -864,7 +870,7 @@ API so existing integrations that create tokens (e.g. Vault) will continue to
 work. The "legacy" tokens generated though will not be able to take advantage of
 new policy features. It's recommended that you complete migration of all tokens
 as soon as possible after upgrade, as well as updating any integrations to work
-with the new ACL [Token](/consul/api-docs/acl/tokens) and
+with the the new ACL [Token](/consul/api-docs/acl/tokens) and
 [Policy](/consul/api-docs/acl/policies) APIs.
 
 ### Multi-datacenter service mesh

@@ -49,6 +49,10 @@ Usage: `consul snapshot save [options] FILE`
 
 @include 'http_api_options_server.mdx'
 
+- `-append-filename=<value>` - Value can be - version,dc,node,status
+Adds consul version, datacenter name, node name, and status (leader/follower)
+to the file name before the extension separated by `-`
+
 ## Examples
 
 To create a snapshot from the leader server and save it to "backup.snap":
@@ -76,6 +80,17 @@ $ consul snapshot save -stale backup.snap
 This is useful for situations where a cluster is in a degraded state and no
 leader is available. To target a specific server for a snapshot, you can run
 the `consul snapshot save` command on that specific server.
+
+To create snapshot file with consul version and datacenter run
+
+```shell-session
+$ consul snapshot save -append-filename version,dc backup.snap
+#...
+```
+
+File name created will be like backup-%CONSUL_VERSION%-%DC_NAME%.snap
+example - backup-1.17.0-dc1-local-machine-leader.tgz
+Note Version is always the leader's consul version
 
 Please see the [HTTP API](/consul/api-docs/snapshot) documentation for
 more details about snapshot internals.

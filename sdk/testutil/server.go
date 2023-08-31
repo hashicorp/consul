@@ -131,7 +131,6 @@ type TestServerConfig struct {
 	ReturnPorts         func()                 `json:"-"`
 	Audit               *TestAuditConfig       `json:"audit,omitempty"`
 	Version             string                 `json:"version,omitempty"`
-	Experiments         []string               `json:"experiments,omitempty"`
 }
 
 type TestACLs struct {

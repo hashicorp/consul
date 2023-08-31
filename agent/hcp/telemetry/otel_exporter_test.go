@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package telemetry
 
 import (
@@ -34,11 +31,9 @@ func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *met
 
 type mockEndpointProvider struct {
 	endpoint *url.URL
-	disabled bool
 }
 
 func (m *mockEndpointProvider) GetEndpoint() *url.URL { return m.endpoint }
-func (m *mockEndpointProvider) IsDisabled() bool      { return m.disabled }
 
 func TestTemporality(t *testing.T) {
 	t.Parallel()
@@ -82,20 +77,13 @@ func TestExport(t *testing.T) {
 		client   MetricsClient
 		provider EndpointProvider
 	}{
-		"earlyReturnDisabledProvider": {
-			client: &mockMetricsClient{},
-			provider: &mockEndpointProvider{
-				disabled: true,
-			},
-		},
 		"earlyReturnWithoutEndpoint": {
 			client:   &mockMetricsClient{},
 			provider: &mockEndpointProvider{},
 		},
 		"earlyReturnWithoutScopeMetrics": {
-			client:   &mockMetricsClient{},
-			metrics:  mutateMetrics(nil),
-			provider: &mockEndpointProvider{},
+			client:  &mockMetricsClient{},
+			metrics: mutateMetrics(nil),
 		},
 		"earlyReturnWithoutMetrics": {
 			client: &mockMetricsClient{},
@@ -103,7 +91,6 @@ func TestExport(t *testing.T) {
 				{Metrics: []metricdata.Metrics{}},
 			},
 			),
-			provider: &mockEndpointProvider{},
 		},
 		"errorWithExportFailure": {
 			client: &mockMetricsClient{
@@ -120,9 +107,6 @@ func TestExport(t *testing.T) {
 				},
 			},
 			),
-			provider: &mockEndpointProvider{
-				endpoint: &url.URL{},
-			},
 			wantErr: "failed to export metrics",
 		},
 	} {

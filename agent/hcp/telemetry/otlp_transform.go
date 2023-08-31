@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package telemetry
 
 import (
@@ -16,8 +13,8 @@ import (
 )
 
 var (
-	errAggregaton  = errors.New("unsupported aggregation")
-	errTemporality = errors.New("unsupported temporality")
+	aggregationErr = errors.New("unsupported aggregation")
+	temporalityErr = errors.New("unsupported temporality")
 )
 
 // isEmpty verifies if the given OTLP protobuf metrics contains metric data.
@@ -99,7 +96,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 		}
 	case metricdata.Sum[float64]:
 		if a.Temporality != metricdata.CumulativeTemporality {
-			return out, fmt.Errorf("failed to convert metric to otel format: %w: %T", errTemporality, a)
+			return out, fmt.Errorf("error: %w: %T", temporalityErr, a)
 		}
 		out.Data = &mpb.Metric_Sum{
 			Sum: &mpb.Sum{
@@ -110,7 +107,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 		}
 	case metricdata.Histogram[float64]:
 		if a.Temporality != metricdata.CumulativeTemporality {
-			return out, fmt.Errorf("failed to convert metric to otel format: %w: %T", errTemporality, a)
+			return out, fmt.Errorf("error: %w: %T", temporalityErr, a)
 		}
 		out.Data = &mpb.Metric_Histogram{
 			Histogram: &mpb.Histogram{
@@ -119,7 +116,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 			},
 		}
 	default:
-		return out, fmt.Errorf("failed to convert metric to otel format: %w: %T", errAggregaton, a)
+		return out, fmt.Errorf("error: %w: %T", aggregationErr, a)
 	}
 	return out, nil
 }
