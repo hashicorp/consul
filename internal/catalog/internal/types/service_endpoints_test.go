@@ -54,6 +54,7 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 	}
 
 	res := rtest.Resource(ServiceEndpointsType, "test-service").
+		WithTenancy(defaultEndpointTenancy).
 		WithData(t, data).
 		Build()
 
@@ -231,6 +232,7 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 				},
 			}
 			res := rtest.Resource(ServiceEndpointsType, "test-service").
+				WithTenancy(defaultEndpointTenancy).
 				WithOwner(tcase.owner).
 				WithData(t, data).
 				Build()
@@ -246,7 +248,9 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 }
 
 func TestMutateServiceEndpoints_PopulateOwner(t *testing.T) {
-	res := rtest.Resource(ServiceEndpointsType, "test-service").Build()
+	res := rtest.Resource(ServiceEndpointsType, "test-service").
+		WithTenancy(defaultEndpointTenancy).
+		Build()
 
 	require.NoError(t, MutateServiceEndpoints(res))
 	require.NotNil(t, res.Owner)

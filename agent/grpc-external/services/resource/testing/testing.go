@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	internal "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
@@ -52,7 +54,27 @@ func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
 // returns a client to interact with it. ACLs will be disabled and only the
 // default partition and namespace are available.
 func RunResourceService(t *testing.T, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
-	return RunResourceServiceWithACL(t, resolver.DANGER_NO_AUTH{}, registerFns...)
+	// Provide a resolver which will default partition and namespace when not provided. This is similar to user
+	// initiated requests.
+	//
+	// Controllers under test should be providing full tenancy since they will run with the DANGER_NO_AUTH.
+	mockACLResolver := &svc.MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLsDisabled(t), nil).
+		Run(func(args mock.Arguments) {
+			// Caller expecting passed in tokenEntMeta and authorizerContext to be filled in.
+			tokenEntMeta := args.Get(1).(*acl.EnterpriseMeta)
+			if tokenEntMeta != nil {
+				FillEntMeta(tokenEntMeta)
+			}
+
+			authzContext := args.Get(2).(*acl.AuthorizerContext)
+			if authzContext != nil {
+				FillAuthorizerContext(authzContext)
+			}
+		})
+
+	return RunResourceServiceWithACL(t, mockACLResolver, registerFns...)
 }
 
 func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {

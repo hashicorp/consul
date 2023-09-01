@@ -72,6 +72,58 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 	}
 }
 
+func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	dir := testutil.TempDir(t, "snapshot")
+	file := filepath.Join(dir, "backup.tgz")
+	args := []string{
+		"-append-filename=version,dc,node,status",
+		"-http-addr=" + a.HTTPAddr(),
+		file,
+	}
+
+	stats := a.Stats()
+
+	status := "follower"
+
+	if stats["consul"]["leader"] == "true" {
+		status = "leader"
+	}
+
+	newFilePath := filepath.Join(dir, "backup"+"-"+a.Config.Version+"-"+a.Config.Datacenter+
+		"-"+a.Config.NodeName+"-"+status+".tgz")
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	fi, err := os.Stat(newFilePath)
+	require.NoError(t, err)
+	require.Equal(t, fi.Mode(), os.FileMode(0600))
+
+	f, err := os.Open(newFilePath)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer f.Close()
+
+	if err := client.Snapshot().Restore(nil, f); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestSnapshotSaveCommand(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
