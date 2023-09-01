@@ -457,6 +457,10 @@ type HTTPFilters struct {
 	JWT           *JWTFilter
 }
 
+type HTTPResponseFilters struct {
+	Headers []HTTPHeaderFilter
+}
+
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
 type HTTPHeaderFilter struct {
 	Add    map[string]string
@@ -486,6 +490,9 @@ type HTTPRouteRule struct {
 	// Filters is a list of HTTP-based filters used to modify a request prior
 	// to routing it to the upstream service
 	Filters HTTPFilters
+	// ResponseFilters is a list of HTTP-based filters used to modify a response
+	// returned by the upstream service
+	ResponseFilters HTTPResponseFilters
 	// Matches specified the matching criteria used in the routing table. If a
 	// request matches the given HTTPMatch configuration, then traffic is routed
 	// to services specified in the Services field.
