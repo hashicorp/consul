@@ -79,7 +79,8 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 	var defaults []*structs.ServiceConfigEntry
 
 	for idx, rule := range route.Rules {
-		modifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
+		requestModifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
+		responseModifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.ResponseFilters.Headers)
 		prefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(rule.Filters.URLRewrite)
 
 		var destination structs.ServiceRouteDestination
@@ -91,15 +92,16 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 				servicePrefixRewrite = prefixRewrite
 			}
 			serviceModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
-			modifier.Add = mergeMaps(modifier.Add, serviceModifier.Add)
-			modifier.Set = mergeMaps(modifier.Set, serviceModifier.Set)
-			modifier.Remove = append(modifier.Remove, serviceModifier.Remove...)
+			requestModifier.Add = mergeMaps(requestModifier.Add, serviceModifier.Add)
+			requestModifier.Set = mergeMaps(requestModifier.Set, serviceModifier.Set)
+			requestModifier.Remove = append(requestModifier.Remove, serviceModifier.Remove...)
 
 			destination.Service = service.Name
 			destination.Namespace = service.NamespaceOrDefault()
 			destination.Partition = service.PartitionOrDefault()
 			destination.PrefixRewrite = servicePrefixRewrite
-			destination.RequestHeaders = modifier
+			destination.RequestHeaders = requestModifier
+			destination.ResponseHeaders = responseModifier
 
 			// since we have already validated the protocol elsewhere, we
 			// create a new service defaults here to make sure we pass validation
@@ -115,7 +117,8 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			destination.Namespace = route.NamespaceOrDefault()
 			destination.Partition = route.PartitionOrDefault()
 			destination.PrefixRewrite = prefixRewrite
-			destination.RequestHeaders = modifier
+			destination.RequestHeaders = requestModifier
+			destination.ResponseHeaders = responseModifier
 
 			splitter := &structs.ServiceSplitterConfigEntry{
 				Kind:           structs.ServiceSplitter,
