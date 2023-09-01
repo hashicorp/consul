@@ -1,0 +1,6 @@
+```release-note:improvement
+checks: It is now possible to configure agent TCP checks to use TLS with
+optional server SNI and mutual authentication. To use TLS with a TCP check, the
+check must enable the `tcp_use_tls` boolean. By default the agent will use the
+TLS configuration in the `tls.default` stanza. 
+```
