@@ -1,3 +1,0 @@
-```release-note:bug
-agent: Fixed an issue that could cause previous log lines to be overwritten
-```
