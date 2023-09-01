@@ -106,6 +106,12 @@ func (h *serverHealthBlocking) Notify(ctx context.Context, args *structs.Service
 					// their data, rather than holding onto the last-known list of healthy nodes indefinitely.
 					if hadResults {
 						hadResults = false
+						h.deps.Logger.Debug("serverHealthBlocking emitting zero check-service-nodes due to insufficient ACL privileges",
+							"serviceName", structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta),
+							"correlationID", correlationID,
+							"connect", args.Connect,
+							"ingress", args.Ingress,
+						)
 						return 0, &structs.IndexedCheckServiceNodes{}, watch.ErrorACLResetData
 					}
 					return 0, nil, acl.ErrPermissionDenied
@@ -132,6 +138,13 @@ func (h *serverHealthBlocking) Notify(ctx context.Context, args *structs.Service
 			}
 
 			hadResults = true
+			h.deps.Logger.Trace("serverHealthBlocking emitting check-service-nodes",
+				"serviceName", structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta),
+				"correlationID", correlationID,
+				"connect", args.Connect,
+				"ingress", args.Ingress,
+				"nodes", len(thisReply.Nodes),
+			)
 			return thisReply.Index, &thisReply, nil
 		},
 		dispatchBlockingQueryUpdate[*structs.IndexedCheckServiceNodes](ch),
