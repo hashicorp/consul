@@ -355,7 +355,7 @@ func (s *ac5_2PQFailoverSuite) testPQSingleFailover(t *testing.T, ct *commonTopo
 			require.Equal(r, 1, queryResult.Failovers, "expected 1 prepared query failover")
 
 			require.Equal(r, peerClu.Name, queryResult.Nodes[0].Node.Datacenter, fmt.Sprintf("the pq results should originate from cluster %s", peerClu.Name))
-			require.Equal(r, pqFailoverTargets[0].Peer, queryResult.Nodes[0].Node.PeerName,
+			require.Equal(r, pqFailoverTargets[0].Peer, queryResult.Nodes[0].Checks[0].PeerName,
 				fmt.Sprintf("pq results should come from the second failover target peer %s", pqFailoverTargets[0].Peer))
 		})
 	})
