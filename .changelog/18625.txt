@@ -1,4 +1,5 @@
 ```release-note:improvement
-Adds flag -append-filename (which works on two values version and dc) to consul snapshot save command.
-Adding the flag -append-filename version,dc will add consul version and consul datacenter in the file name given in the snapshot save command before the file extension.
+Adds flag -append-filename (which works on values version, dc, node and status) to consul snapshot save command.
+Adding the flag -append-filename version,dc,node,status will add consul version, consul datacenter, node name and leader/follower
+(status) in the file name given in the snapshot save command before the file extension.
 ```
