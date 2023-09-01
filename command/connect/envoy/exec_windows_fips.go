@@ -1,5 +1,5 @@
-//go:build fips
-// +build fips
+//go:build windows && fips
+// +build windows,fips
 
 package envoy
 
