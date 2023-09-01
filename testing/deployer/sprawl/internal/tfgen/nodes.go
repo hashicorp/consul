@@ -77,11 +77,8 @@ func (g *Generator) generateNodeContainers(
 	for _, svc := range node.SortedServices() {
 		token := g.sec.ReadServiceToken(node.Cluster, svc.ID)
 		switch {
-		case svc.IsMeshGateway && node.IsDataplane():
-			panic("NOT READY YET")
-
 		case svc.IsMeshGateway && !node.IsDataplane():
-			tfin := struct {
+			svcContainers = append(svcContainers, Eval(tfMeshGatewayT, struct {
 				terraformPod
 				ImageResource string
 				Enterprise    bool
@@ -89,12 +86,25 @@ func (g *Generator) generateNodeContainers(
 				Token         string
 			}{
 				terraformPod:  pod,
-				Enterprise:    cluster.Enterprise,
 				ImageResource: DockerImageResourceName(node.Images.EnvoyConsulImage()),
+				Enterprise:    cluster.Enterprise,
 				Service:       svc,
 				Token:         token,
-			}
-			svcContainers = append(svcContainers, Eval(tfMeshGatewayT, &tfin))
+			}))
+		case svc.IsMeshGateway && node.IsDataplane():
+			svcContainers = append(svcContainers, Eval(tfMeshGatewayDataplaneT, &struct {
+				terraformPod
+				ImageResource string
+				Enterprise    bool
+				Service       *topology.Service
+				Token         string
+			}{
+				terraformPod:  pod,
+				ImageResource: DockerImageResourceName(node.Images.LocalDataplaneImage()),
+				Enterprise:    cluster.Enterprise,
+				Service:       svc,
+				Token:         token,
+			}))
 
 		case !svc.IsMeshGateway:
 			svcContainers = append(svcContainers, Eval(tfAppT, struct {
@@ -107,42 +117,31 @@ func (g *Generator) generateNodeContainers(
 				Service:       svc,
 			}))
 
-			if !svc.DisableServiceMesh {
+			if svc.DisableServiceMesh {
 				break
 			}
 
-			switch node.IsDataplane() {
-			case false:
-				svcContainers = append(svcContainers, Eval(tfAppSidecarT, struct {
-					terraformPod
-					ImageResource string
-					Service       *topology.Service
-					Token         string
-					Enterprise    bool
-					// TODO: we used to use the env from the app container, doubt we need it, seems leaky
-					// Env                []string
-				}{
-					terraformPod:  pod,
-					ImageResource: DockerImageResourceName(node.Images.EnvoyConsulImage()),
-					Service:       svc,
-					Token:         token,
-					Enterprise:    cluster.Enterprise,
-				}))
-
-			case true:
-				svcContainers = append(svcContainers, Eval(tfAppDataplaneT, &struct {
-					terraformPod
-					ImageResource string
-					Token         string
-				}{
-					terraformPod:  pod,
-					ImageResource: DockerImageResourceName(node.Images.LocalDataplaneImage()),
-					Token:         token,
-				}))
+			tmpl := tfAppSidecarT
+			var img string
+			if node.IsDataplane() {
+				tmpl = tfAppDataplaneT
+				img = DockerImageResourceName(node.Images.LocalDataplaneImage())
+			} else {
+				img = DockerImageResourceName(node.Images.EnvoyConsulImage())
 			}
-
-		default:
-			panic(fmt.Sprintf("unhandled node kind/dataplane type: %#v", svc))
+			svcContainers = append(svcContainers, Eval(tmpl, struct {
+				terraformPod
+				ImageResource string
+				Service       *topology.Service
+				Token         string
+				Enterprise    bool
+			}{
+				terraformPod:  pod,
+				ImageResource: img,
+				Service:       svc,
+				Token:         token,
+				Enterprise:    cluster.Enterprise,
+			}))
 		}
 
 		if step.StartServices() {

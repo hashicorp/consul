@@ -290,6 +290,7 @@ func (c *Cluster) ServerByAddr(addr string) *Node {
 
 func (c *Cluster) FirstServer() *Node {
 	for _, node := range c.Nodes {
+		// TODO: not sure why we check that it has 8500 exposed?
 		if node.IsServer() && !node.Disabled && node.ExposedPort(8500) > 0 {
 			return node
 		}

@@ -52,6 +52,8 @@ type commonTopo struct {
 	services map[string]map[topology.ServiceID]struct{}
 }
 
+const agentlessDC = "dc2"
+
 func NewCommonTopo(t *testing.T) *commonTopo {
 	t.Helper()
 
@@ -84,12 +86,9 @@ func NewCommonTopo(t *testing.T) *commonTopo {
 	peerings = append(peerings, addPeerings(dc1, dc3)...)
 	peerings = append(peerings, addPeerings(dc2, dc3)...)
 
-	// TODO: NodeKindDataplane for mesh gateways
-	addMeshGateways(dc1, topology.NodeKindClient)
-	addMeshGateways(dc2, topology.NodeKindClient)
-	addMeshGateways(dc3, topology.NodeKindClient)
-	// TODO: consul-topology doesn't support this yet
-	// addMeshGateways(dc2, topology.NodeKindDataplane)
+	addMeshGateways(dc1)
+	addMeshGateways(dc2)
+	addMeshGateways(dc3)
 
 	setupGlobals(dc1)
 	setupGlobals(dc2)
@@ -132,7 +131,7 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 	)
 
 	// check that exports line up as expected
-	for _, clu := range ct.Sprawl.Config().Clusters {
+	for _, clu := range ct.Sprawl.Topology().Clusters {
 		// expected exports per peer
 		type key struct {
 			peer      string
@@ -228,7 +227,6 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 	nodeKind := topology.NodeKindClient
 	if clu.Datacenter == "dc2" {
 		nodeKind = topology.NodeKindDataplane
-
 	}
 
 	node := &topology.Node{
@@ -266,7 +264,12 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 }
 
 func (ct *commonTopo) APIClientForCluster(t *testing.T, clu *topology.Cluster) *api.Client {
-	cl, err := ct.Sprawl.APIClientForNode(clu.Name, clu.FirstClient().ID(), "")
+	firstClient := clu.FirstClient()
+	if firstClient == nil {
+		firstClient = clu.FirstServer()
+		require.NotNil(t, firstClient, "for cluster %s", clu.Datacenter)
+	}
+	cl, err := ct.Sprawl.APIClientForNode(clu.Name, firstClient.ID(), "")
 	require.NoError(t, err)
 	return cl
 }
@@ -373,10 +376,14 @@ func setupGlobals(clu *topology.Cluster) {
 
 // addMeshGateways adds a mesh gateway for every partition in the cluster.
 // Assumes that the LAN network name is equal to datacenter name.
-func addMeshGateways(c *topology.Cluster, kind topology.NodeKind) {
+func addMeshGateways(c *topology.Cluster) {
+	nodeKind := topology.NodeKindClient
+	if c.Datacenter == agentlessDC {
+		nodeKind = topology.NodeKindDataplane
+	}
 	for _, p := range c.Partitions {
 		c.Nodes = topology.MergeSlices(c.Nodes, newTopologyMeshGatewaySet(
-			kind,
+			nodeKind,
 			p.Name,
 			fmt.Sprintf("%s-%s-mgw", c.Name, p.Name),
 			1,

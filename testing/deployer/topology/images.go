@@ -66,6 +66,7 @@ func (i Images) EnvoyConsulImage() string {
 	return "local/" + name1 + "-and-" + name2 + ":" + tag1 + "-with-" + tag2
 }
 
+// TODO: why do we do this?
 func (i Images) ChooseNode(kind NodeKind) Images {
 	switch kind {
 	case NodeKindServer:
