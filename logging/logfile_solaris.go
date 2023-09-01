@@ -1,5 +1,5 @@
-//go:build dragonfly || linux
-// +build dragonfly linux
+//go:build solaris
+// +build solaris
 
 package logging
 
