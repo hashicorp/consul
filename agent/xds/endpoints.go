@@ -723,6 +723,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			}
 			switch len(groupedTarget.Targets) {
 			case 0:
+				s.Logger.Trace("skipping endpoint generation for zero-length target group", "cluster", clusterName)
 				continue
 			case 1:
 				// We expect one target so this passes through to continue setting the load assignment up.
@@ -730,7 +731,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				return nil, fmt.Errorf("cannot have more than one target")
 			}
 			ti := groupedTarget.Targets[0]
-			s.Logger.Debug("generating endpoints for", "cluster", clusterName, "targetID", ti.TargetID)
+			s.Logger.Trace("generating endpoints for", "cluster", clusterName, "targetID", ti.TargetID, "gatewayKey", gatewayKey)
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(ti.TargetID)
 			if targetUID.Peer != "" {
 				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, targetUID, mgwMode)
@@ -752,6 +753,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				forMeshGateway,
 			)
 			if !valid {
+				s.Logger.Trace("skipping endpoint generation for invalid target group", "cluster", clusterName)
 				continue // skip the cluster if we're still populating the snapshot
 			}
 
