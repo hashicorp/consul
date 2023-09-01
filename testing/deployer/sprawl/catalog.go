@@ -340,19 +340,19 @@ func serviceToCatalogRegistration(
 		// TODO: not sure what the difference is between these, but with just the
 		// top-level set, it appeared to not get set in either :/
 		reg.Service.TaggedAddresses = map[string]api.ServiceAddress{
-			"lan": api.ServiceAddress{
+			"lan": {
 				Address: node.LocalAddress(),
 				Port:    svc.Port,
 			},
-			"lan_ipv4": api.ServiceAddress{
+			"lan_ipv4": {
 				Address: node.LocalAddress(),
 				Port:    svc.Port,
 			},
-			"wan": api.ServiceAddress{
+			"wan": {
 				Address: node.PublicAddress(),
 				Port:    svc.Port,
 			},
-			"wan_ipv4": api.ServiceAddress{
+			"wan_ipv4": {
 				Address: node.PublicAddress(),
 				Port:    svc.Port,
 			},
