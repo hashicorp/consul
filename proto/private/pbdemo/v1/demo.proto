@@ -38,6 +38,6 @@ enum Genre {
 message Album {
   string name = 1;
   int32 year_of_release = 2;
-  bool critically_aclaimed = 3;
+  bool critically_acclaimed = 3;
   repeated string tracks = 4;
 }

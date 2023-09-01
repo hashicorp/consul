@@ -130,7 +130,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
 				{
-					TargetRef: rtest.Resource(types.WorkloadType, "api-1").ID(),
+					TargetRef: rtest.Resource(types.WorkloadType, "api-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID(),
 					Addresses: []*pbcatalog.WorkloadAddress{
 						{
 							Host:  "127.0.0.1",
@@ -150,7 +150,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 func (suite *reconciliationDataSuite) TestGetServiceData_NotFound() {
 	// This test's purposes is to ensure that NotFound errors when retrieving
 	// the service data are ignored properly.
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(types.ServiceType, "not-found").ID())
+	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(types.ServiceType, "not-found").WithTenancy(resource.DefaultNamespacedTenancy()).ID())
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), data)
 }

@@ -44,6 +44,7 @@ func TestGetDecodedResource(t *testing.T) {
 			Name: "caspar babypants",
 		}
 		res := rtest.Resource(demo.TypeV2Artist, "babypants").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
 

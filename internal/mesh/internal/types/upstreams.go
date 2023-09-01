@@ -27,6 +27,7 @@ func RegisterUpstreams(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     UpstreamsV1Alpha1Type,
 		Proto:    &pbmesh.Upstreams{},
+		Scope:    resource.ScopeNamespace,
 		Validate: nil,
 	})
 }

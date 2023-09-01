@@ -355,7 +355,7 @@ func (s *ac5_2PQFailoverSuite) testPQSingleFailover(t *testing.T, ct *commonTopo
 	})
 }
 
-func (s *ac5_2PQFailoverSuite) testPQZeroFailover(t *testing.T, ct *commonTopo, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
+func (s *ac5_2PQFailoverSuite) testPQZeroFailover(t *testing.T, ct *commonTopo, cl *api.Client, def *api.PreparedQueryDefinition, cluster, _ *topology.Cluster, partition string) {
 	t.Run(fmt.Sprintf("delete failing health check in %s and validate zero failover %s", cluster.Name, cluster.Name), func(t *testing.T) {
 		cfg := ct.Sprawl.Config()
 

@@ -143,7 +143,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_PushChangeError() {
 func (suite *xdsControllerTestSuite) TestReconcile_MissingEndpoint() {
 	// Set fooProxyStateTemplate with a reference to fooEndpoints, without storing fooEndpoints so the controller should
 	// notice it's missing.
-	fooEndpointsId := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").ID()
+	fooEndpointsId := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
 		Id:   fooEndpointsId,
