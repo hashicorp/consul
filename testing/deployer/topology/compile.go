@@ -203,7 +203,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			n.Index = nextIndex
 			nextIndex++
 
-			n.Images = c.Images.OverrideWith(n.Images)
+			n.Images = c.Images.OverrideWith(n.Images).ChooseNode(n.Kind)
 
 			n.Cluster = c.Name
 			n.Datacenter = c.Datacenter
