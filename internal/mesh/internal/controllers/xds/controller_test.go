@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -60,7 +61,7 @@ func (suite *xdsControllerTestSuite) SetupTest() {
 	suite.fetcher = mockFetcher
 
 	suite.mapper = bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
-	suite.updater = NewMockUpdater()
+	suite.updater = newMockUpdater()
 
 	suite.ctl = &xdsReconciler{
 		bimapper:         suite.mapper,
@@ -430,6 +431,37 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() 
 		prototest.AssertDeepEqual(r, suite.expectedFooProxyStateEndpoints, actualEndpoints)
 	})
 
+}
+
+// Sets up a full controller, and tests that reconciles are getting triggered for the events it should.
+func (suite *xdsControllerTestSuite) TestController_ComputeEndpointForProxyConnections() {
+	// Run the controller manager.
+	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
+
+	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	// Set up fooEndpoints and fooProxyStateTemplate with a reference to fooEndpoints. These need to be stored
+	// because the controller reconcile looks them up.
+	suite.setupFooProxyStateTemplateAndEndpoints()
+
+	// Assert that the expected ProxyState matches the actual ProxyState that PushChange was called with. This needs to
+	// be in a retry block unlike the Reconcile tests because the controller triggers asynchronously.
+	retry.Run(suite.T(), func(r *retry.R) {
+		actualEndpoints := suite.updater.GetEndpoints(suite.fooProxyStateTemplate.Id.Name)
+		// Assert on the status.
+		suite.client.RequireStatusCondition(r, suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
+		// Assert that the endpoints computed in the controller matches the expected endpoints.
+		prototest.AssertDeepEqual(r, suite.expectedFooProxyStateEndpoints, actualEndpoints)
+	})
+
+	eventChannel := suite.updater.EventChannel()
+	eventChannel <- controller.Event{Obj: &proxytracker.ProxyConnection{ProxyID: suite.fooProxyStateTemplate.Id}}
+
+	// Wait for the proxy state template to be re-evaluated.
+	proxyStateTemp := suite.client.WaitForNewVersion(suite.T(), suite.fooProxyStateTemplate.Id, suite.fooProxyStateTemplate.Version)
+	require.NotNil(suite.T(), proxyStateTemp)
 }
 
 // Setup: fooProxyStateTemplate with an EndpointsRef to fooEndpoints

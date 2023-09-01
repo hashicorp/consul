@@ -6,26 +6,26 @@ package proxytracker
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"sync"
 
-	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// Proxy implements the queue.ItemType interface so that it can be used in a controller.Event.
+// ProxyConnection implements the queue.ItemType interface so that it can be used in a controller.Event.
 // It is sent on the newProxyConnectionCh channel.
 // TODO(ProxyState): needs to support tenancy in the future.
-// Key() is current resourceID.Name.
 type ProxyConnection struct {
 	ProxyID *pbresource.ID
 }
 
+// Key is current resourceID.Name.
 func (e *ProxyConnection) Key() string {
 	return e.ProxyID.GetName()
 }
@@ -35,9 +35,9 @@ func (e *ProxyConnection) Key() string {
 // when the ProxyState for that proxyID has changed.
 type proxyWatchData struct {
 	// notifyCh is the channel that the watcher receives updates from ProxyTracker.
-	notifyCh chan proxycfg.ProxySnapshot
+	notifyCh chan proxysnapshot.ProxySnapshot
 	// state is the current/last updated ProxyState for a given proxy.
-	state *mesh.ProxyState
+	state proxysnapshot.ProxySnapshot
 	// token is the ACL token provided by the watcher.
 	token string
 	// nodeName is the node where the given proxy resides.
@@ -87,8 +87,8 @@ func NewProxyTracker(cfg ProxyTrackerConfig) *ProxyTracker {
 // Watch connects a proxy with ProxyTracker and returns the consumer a channel to receive updates,
 // a channel to notify of xDS terminated session, and a cancel function to cancel the watch.
 func (pt *ProxyTracker) Watch(proxyID *pbresource.ID,
-	nodeName string, token string) (<-chan proxycfg.ProxySnapshot,
-	limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
+	nodeName string, token string) (<-chan proxysnapshot.ProxySnapshot,
+	limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error) {
 	pt.config.Logger.Trace("watch initiated", "proxyID", proxyID, "nodeName", nodeName)
 	if err := pt.validateWatchArgs(proxyID, nodeName); err != nil {
 		pt.config.Logger.Error("args failed validation", err)
@@ -106,7 +106,7 @@ func (pt *ProxyTracker) Watch(proxyID *pbresource.ID,
 	// This buffering is crucial otherwise we'd block immediately trying to
 	// deliver the current snapshot below if we already have one.
 
-	proxyStateChan := make(chan proxycfg.ProxySnapshot, 1)
+	proxyStateChan := make(chan proxysnapshot.ProxySnapshot, 1)
 	watchData := &proxyWatchData{
 		notifyCh: proxyStateChan,
 		state:    nil,
@@ -166,7 +166,7 @@ func (pt *ProxyTracker) notifyNewProxyChannel(proxyID *pbresource.ID) error {
 // - ends the session with xDS session limiter.
 // - closes the proxy state channel assigned to the proxy.
 // This function assumes the state lock is already held.
-func (pt *ProxyTracker) cancelWatchLocked(proxyReferenceKey resource.ReferenceKey, proxyStateChan chan proxycfg.ProxySnapshot, session limiter.Session) {
+func (pt *ProxyTracker) cancelWatchLocked(proxyReferenceKey resource.ReferenceKey, proxyStateChan chan proxysnapshot.ProxySnapshot, session limiter.Session) {
 	delete(pt.proxies, proxyReferenceKey)
 	session.End()
 	close(proxyStateChan)
@@ -179,8 +179,8 @@ func (pt *ProxyTracker) validateWatchArgs(proxyID *pbresource.ID,
 	nodeName string) error {
 	if proxyID == nil {
 		return errors.New("proxyID is required")
-	} else if proxyID.GetType().GetKind() != mesh.ProxyStateTemplateConfigurationType.Kind {
-		return fmt.Errorf("proxyID must be a %s", mesh.ProxyStateTemplateConfigurationType.GetKind())
+	} else if proxyID.GetType().GetKind() != types.ProxyStateTemplateType.Kind {
+		return fmt.Errorf("proxyID must be a %s", types.ProxyStateTemplateType.GetKind())
 	} else if nodeName == "" {
 		return errors.New("nodeName is required")
 	}
@@ -189,7 +189,7 @@ func (pt *ProxyTracker) validateWatchArgs(proxyID *pbresource.ID,
 }
 
 // PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
-func (pt *ProxyTracker) PushChange(proxyID *pbresource.ID, proxyState *mesh.ProxyState) error {
+func (pt *ProxyTracker) PushChange(proxyID *pbresource.ID, proxyState proxysnapshot.ProxySnapshot) error {
 	pt.config.Logger.Trace("push change called for proxy", "proxyID", proxyID)
 	proxyReferenceKey := resource.NewReferenceKey(proxyID)
 	pt.mu.Lock()
@@ -205,7 +205,7 @@ func (pt *ProxyTracker) PushChange(proxyID *pbresource.ID, proxyState *mesh.Prox
 	return nil
 }
 
-func (pt *ProxyTracker) deliverLatest(proxyID *pbresource.ID, proxyState *mesh.ProxyState, ch chan proxycfg.ProxySnapshot) {
+func (pt *ProxyTracker) deliverLatest(proxyID *pbresource.ID, proxyState proxysnapshot.ProxySnapshot, ch chan proxysnapshot.ProxySnapshot) {
 	pt.config.Logger.Trace("delivering latest proxy snapshot to proxy", "proxyID", proxyID)
 	// Send if chan is empty
 	select {

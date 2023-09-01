@@ -19,6 +19,6 @@ type perRouteFilterBuilder struct {
 	route       *structs.HTTPRouteConfigEntry
 }
 
-func (p perRouteFilterBuilder) buildFilter(match *envoy_route_v3.RouteMatch) (map[string]*anypb.Any, error) {
+func (p perRouteFilterBuilder) buildTypedPerFilterConfig(match *envoy_route_v3.RouteMatch, routeAction *envoy_route_v3.Route_Route) (map[string]*anypb.Any, error) {
 	return nil, nil
 }

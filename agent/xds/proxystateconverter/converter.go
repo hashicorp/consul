@@ -5,21 +5,22 @@ package proxystateconverter
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/internal/mesh"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
-	"github.com/hashicorp/go-hclog"
 )
 
 // Converter converts a single snapshot into a ProxyState.
 type Converter struct {
 	Logger     hclog.Logger
 	CfgFetcher configfetcher.ConfigFetcher
-	proxyState *mesh.ProxyState
+	proxyState *proxytracker.ProxyState
 }
 
 func NewConverter(
@@ -29,7 +30,7 @@ func NewConverter(
 	return &Converter{
 		Logger:     logger,
 		CfgFetcher: cfgFetcher,
-		proxyState: &mesh.ProxyState{
+		proxyState: &proxytracker.ProxyState{
 			ProxyState: &pbmesh.ProxyState{
 				Listeners: make([]*pbproxystate.Listener, 0),
 				Clusters:  make(map[string]*pbproxystate.Cluster),
@@ -40,7 +41,7 @@ func NewConverter(
 	}
 }
 
-func (g *Converter) ProxyStateFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (*mesh.ProxyState, error) {
+func (g *Converter) ProxyStateFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (*proxytracker.ProxyState, error) {
 	err := g.resourcesFromSnapshot(cfgSnap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate FullProxyState: %v", err)

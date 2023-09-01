@@ -5,12 +5,12 @@ package xdsv2
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/internal/mesh"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 )
 
 // ResourceGenerator is associated with a single gRPC stream and creates xDS
@@ -29,11 +29,11 @@ func NewResourceGenerator(
 }
 
 type ProxyResources struct {
-	proxyState     *mesh.ProxyState
+	proxyState     *proxytracker.ProxyState
 	envoyResources map[string][]proto.Message
 }
 
-func (g *ResourceGenerator) AllResourcesFromIR(proxyState *mesh.ProxyState) (map[string][]proto.Message, error) {
+func (g *ResourceGenerator) AllResourcesFromIR(proxyState *proxytracker.ProxyState) (map[string][]proto.Message, error) {
 	pr := &ProxyResources{
 		proxyState:     proxyState,
 		envoyResources: make(map[string][]proto.Message),

@@ -10,9 +10,10 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -20,13 +21,13 @@ import (
 const ControllerName = "consul.io/xds-controller"
 
 func Controller(mapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher) controller.Controller {
-	//if mapper == nil || updater == nil || fetcher == nil {
-	if mapper == nil || fetcher == nil {
+	if mapper == nil || updater == nil || fetcher == nil {
 		panic("mapper, updater and fetcher are required")
 	}
 
 	return controller.ForType(types.ProxyStateTemplateType).
 		WithWatch(catalog.ServiceEndpointsType, mapper.MapLink).
+		WithCustomWatch(proxySource(updater), proxyMapper).
 		WithPlacement(controller.PlacementEachServer).
 		WithReconciler(&xdsReconciler{bimapper: mapper, updater: updater, fetchTrustBundle: fetcher})
 }
@@ -43,10 +44,13 @@ type TrustBundleFetcher func() (*pbproxystate.TrustBundle, error)
 // and also check its connectivity to the server.
 type ProxyUpdater interface {
 	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
-	PushChange(id *pbresource.ID, snapshot *pbmesh.ProxyState) error
+	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
 
 	// ProxyConnectedToServer returns whether this id is connected to this server.
 	ProxyConnectedToServer(id *pbresource.ID) bool
+
+	// EventChannel returns a channel of events that are consumed by the Custom Watcher.
+	EventChannel() chan controller.Event
 }
 
 func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -156,7 +160,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 
 	computedProxyState := proxyStateTemplate.Template.ProxyState
 
-	err = r.updater.PushChange(req.ID, computedProxyState)
+	err = r.updater.PushChange(req.ID, &proxytracker.ProxyState{ProxyState: computedProxyState})
 	if err != nil {
 		// Set the status.
 		statusCondition = status.ConditionRejectedPushChangeFailed(status.KeyFromID(req.ID))

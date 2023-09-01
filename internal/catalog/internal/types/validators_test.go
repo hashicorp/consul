@@ -334,6 +334,26 @@ func TestValidatePortName(t *testing.T) {
 	})
 }
 
+func TestValidateProtocol(t *testing.T) {
+	// this test simply verifies that we accept all enum values specified in our proto
+	// in order to avoid validator drift.
+	for name, value := range pbcatalog.Protocol_value {
+		t.Run(name, func(t *testing.T) {
+			require.NoError(t, validateProtocol(pbcatalog.Protocol(value)))
+		})
+	}
+}
+
+func TestValidateHealth(t *testing.T) {
+	// this test simply verifies that we accept all enum values specified in our proto
+	// in order to avoid validator drift.
+	for name, value := range pbcatalog.Health_value {
+		t.Run(name, func(t *testing.T) {
+			require.NoError(t, validateHealth(pbcatalog.Health(value)))
+		})
+	}
+}
+
 func TestValidateWorkloadAddress(t *testing.T) {
 	type testCase struct {
 		addr        *pbcatalog.WorkloadAddress

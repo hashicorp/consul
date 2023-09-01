@@ -23,6 +23,11 @@ env:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
+# concurrency
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   conditional-skip:
     runs-on: ubuntu-latest 
@@ -173,7 +178,7 @@ jobs:
     - setup
     uses: ./.github/workflows/reusable-lint.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -184,7 +189,7 @@ jobs:
     uses: ./.github/workflows/reusable-lint.yml
     with:
       go-arch: "386"
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -195,7 +200,7 @@ jobs:
     - setup
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -207,7 +212,7 @@ jobs:
   #   uses: ./.github/workflows/reusable-dev-build.yml
   #   with:
   #     uploaded-binary-name: 'consul-bin-s390x'
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
+  #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     go-arch: "s390x"
   #     repository-name: ${{ github.repository }}
   #   secrets:
@@ -221,7 +226,7 @@ jobs:
   #   uses: ./.github/workflows/reusable-dev-build.yml
   #   with:
   #     uploaded-binary-name: 'consul-bin-arm64'
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
+  #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     go-arch: "arm64"
   #     repository-name: ${{ github.repository }}
   #   secrets:
@@ -254,7 +259,7 @@ jobs:
     with:
       directory: .
       runner-count: 12
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: ""
     permissions:
@@ -274,7 +279,7 @@ jobs:
     with:
       directory: .
       runner-count: 12
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
@@ -294,7 +299,7 @@ jobs:
       directory: .
       go-test-flags: 'GO_TEST_FLAGS="-race -gcflags=all=-d=checkptr=0"'
       package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul(/command|/connect|/snapshot)'"
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
@@ -314,7 +319,7 @@ jobs:
       directory: .
       go-arch: "386"
       go-test-flags: 'export GO_TEST_FLAGS="-short"'
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
@@ -335,7 +340,7 @@ jobs:
   #     uploaded-binary-name: 'consul-bin-s390x'
   #     directory: .
   #     go-test-flags: 'export GO_TEST_FLAGS="-short"'
-  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
+  #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     repository-name: ${{ github.repository }}
   #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
   #   permissions:
@@ -353,7 +358,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: envoyextensions
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
@@ -371,7 +376,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: troubleshoot
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
@@ -389,7 +394,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: api
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.19"
@@ -408,7 +413,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: api
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.20"
@@ -427,7 +432,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: sdk
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.19"
@@ -446,7 +451,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: sdk
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.20"

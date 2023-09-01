@@ -21,6 +21,7 @@ Click on a property name to view additional details, including default values.
 - [`Name`](#name): string | required | must be set to `builtin/ext-authz` 
 - [`Arguments`](#arguments): map | required
    - [`ProxyType`](#arguments-proxytype): string | required | `connect-proxy`
+   - [`ListenerType`](#arguments-listenertype): string | required | `inbound`
    - [`InsertOptions`](#arguments-insertoptions): map
       - [`Location`](#arguments-insertoptions-location): string
       - [FilterName](#arguments-insertoptions-filtername): string
@@ -236,6 +237,18 @@ Specifies the type of Envoy proxy that this extension applies to. The extension 
 - Default: `connect-proxy`
 - This field is required.
 - Data type: String
+
+### `Arguments.ListenerType`
+
+Specifies the type of listener the extension applies to. The listener type is either `inbound` or `outbound`. If the listener type is set to `inbound`, Consul applies the extension so the external authorization is enabled when other services in the mesh send messages to the service attached to the proxy. If the listener type is set to `outbound`, Consul applies the extension so the external authorization is enabled when the attached proxy sends messages to other services in the mesh.
+
+#### Values
+
+- Default: `inbound`
+- This field is required.
+- Data type is one of the following string values:
+  - `inbound`
+  - `outbound`
 
 ### `Arguments.InsertOptions`
 

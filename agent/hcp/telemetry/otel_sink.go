@@ -13,20 +13,41 @@ import (
 	"time"
 
 	gometrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	otelsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+
+	"github.com/hashicorp/go-hclog"
 )
 
-// DefaultExportInterval is a default time interval between export of aggregated metrics.
-const DefaultExportInterval = 10 * time.Second
+const (
+	// defaultExportInterval is a default time interval between export of aggregated metrics.
+	// At the time of writing this is the same as the otelsdk.Reader's default export interval.
+	defaultExportInterval = 60 * time.Second
+
+	// defaultExportTimeout is the time the otelsdk.Reader waits on an export before cancelling it.
+	// At the time of writing this is the same as the otelsdk.Reader's default export timeout default.
+	//
+	// note: in practice we are more likely to hit the http.Client Timeout in telemetry.MetricsClient.
+	// That http.Client Timeout is 15 seconds (at the time of writing). The otelsdk.Reader will use
+	// defaultExportTimeout for the entire Export call, but since the http.Client's Timeout is 15s,
+	// we should hit that first before reaching the 30 second timeout set here.
+	defaultExportTimeout = 30 * time.Second
+)
+
+// Disabled should be implemented to turn on/off metrics processing
+type Disabled interface {
+	// IsDisabled() can return true disallow the sink from accepting metrics.
+	IsDisabled() bool
+}
 
 // ConfigProvider is required to provide custom metrics processing.
 type ConfigProvider interface {
+	Disabled
 	// GetLabels should return a set of OTEL attributes added by default all metrics.
 	GetLabels() map[string]string
+
 	// GetFilters should return filtesr that are required to enable metric processing.
 	// Filters act as an allowlist to collect only the required metrics.
 	GetFilters() *regexp.Regexp
@@ -75,9 +96,12 @@ type OTELSink struct {
 // NewOTELReader returns a configured OTEL PeriodicReader to export metrics every X seconds.
 // It configures the reader with a custom OTELExporter with a MetricsClient to transform and export
 // metrics in OTLP format to an external url.
-func NewOTELReader(client MetricsClient, endpointProvider EndpointProvider, exportInterval time.Duration) otelsdk.Reader {
-	exporter := NewOTELExporter(client, endpointProvider)
-	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
+func NewOTELReader(client MetricsClient, endpointProvider EndpointProvider) otelsdk.Reader {
+	return otelsdk.NewPeriodicReader(
+		newOTELExporter(client, endpointProvider),
+		otelsdk.WithInterval(defaultExportInterval),
+		otelsdk.WithTimeout(defaultExportTimeout),
+	)
 }
 
 // NewOTELSink returns a sink which fits the Go Metrics MetricsSink interface.
@@ -130,8 +154,11 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 // AddSampleWithLabels emits a Consul gauge metric that gets
 // registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	if o.cfgProvider.IsDisabled() {
+		return
+	}
 
+	k := o.flattenKey(key)
 	if !o.allowedMetric(k) {
 		return
 	}
@@ -158,8 +185,11 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 
 // AddSampleWithLabels emits a Consul sample metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	if o.cfgProvider.IsDisabled() {
+		return
+	}
 
+	k := o.flattenKey(key)
 	if !o.allowedMetric(k) {
 		return
 	}
@@ -184,8 +214,11 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	if o.cfgProvider.IsDisabled() {
+		return
+	}
 
+	k := o.flattenKey(key)
 	if !o.allowedMetric(k) {
 		return
 	}
