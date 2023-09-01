@@ -19,10 +19,15 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 	}
 
 	cases := map[string]tc{
+		"nil args": {
+			args:           nil,
+			expectedCode:   1,
+			expectedErrMsg: "Please provide required arguments",
+		},
 		"empty args": {
 			args:           []string{},
 			expectedCode:   1,
-			expectedErrMsg: "Please provide subcommands or flags",
+			expectedErrMsg: "Please provide required arguments",
 		},
 		"missing file path": {
 			args:           []string{"-f"},

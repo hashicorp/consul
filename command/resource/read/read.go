@@ -51,17 +51,18 @@ func (c *cmd) Run(args []string) int {
 	var opts *api.QueryOptions
 
 	if len(args) == 0 {
-		c.UI.Error("Please provide subcommands or flags")
+		c.UI.Error("Please provide required arguments")
 		return 1
 	}
-	if args[0] == "-f" {
-		if err := c.flags.Parse(args); err != nil {
-			if errors.Is(err, flag.ErrHelp) {
-				return 0
-			}
+
+	if err := c.flags.Parse(args); err != nil {
+		if !errors.Is(err, flag.ErrHelp) {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 			return 1
 		}
+	}
+
+	if c.flags.Lookup("f").Value.String() != "" {
 		if c.filePath != "" {
 			data, err := helpers.LoadDataSourceNoRaw(c.filePath, nil)
 			if err != nil {
@@ -87,10 +88,14 @@ func (c *cmd) Run(args []string) int {
 				Token:     c.http.Token(),
 			}
 		} else {
-			c.UI.Error("Please provide the HCL file path")
+			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
 			return 1
 		}
 	} else {
+		if len(args) < 2 {
+			c.UI.Error("Must specify two arguments: resource type and resource name")
+			return 1
+		}
 		var err error
 		gvk, resourceName, err = getTypeAndResourceName(args)
 		if err != nil {
@@ -142,9 +147,6 @@ func (c *cmd) Run(args []string) int {
 }
 
 func getTypeAndResourceName(args []string) (gvk *api.GVK, resourceName string, e error) {
-	if len(args) < 2 {
-		return nil, "", fmt.Errorf("Must specify two arguments: resource type and resource name")
-	}
 	if strings.HasPrefix(args[1], "-") {
 		return nil, "", fmt.Errorf("Must provide resource name right after type")
 	}
