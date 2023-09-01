@@ -54,8 +54,8 @@ func (suite *controllerSuite) TestController() {
 	go mgr.Run(suite.ctx)
 
 	// Create an advance pointer to some services.
-	apiServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "api").ID(), "")
-	otherServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "other").ID(), "")
+	apiServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).ID(), "")
+	otherServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "other").WithTenancy(resource.DefaultNamespacedTenancy()).ID(), "")
 
 	// create a failover without any services
 	failoverData := &pbcatalog.FailoverPolicy{
