@@ -816,6 +816,15 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
+	// Setup resource service clients.
+	if err := s.setupSecureResourceServiceClient(); err != nil {
+		return nil, err
+	}
+
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
+		return nil, err
+	}
+
 	// Initialize external gRPC server
 	s.setupExternalGRPC(config, flat, logger)
 
@@ -825,14 +834,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
-
-	if err := s.setupSecureResourceServiceClient(); err != nil {
-		return nil, err
-	}
-
-	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
-		return nil, err
-	}
 
 	s.controllerManager = controller.NewManager(
 		s.insecureResourceServiceClient,
@@ -1342,11 +1343,12 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 	s.externalConnectCAServer.Register(s.externalGRPCServer)
 
 	dataplane.NewServer(dataplane.Config{
-		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: s.ACLResolver,
-		Datacenter:  s.config.Datacenter,
-		EnableV2:    stringslice.Contains(deps.Experiments, catalogResourceExperimentName),
+		GetStore:          func() dataplane.StateStore { return s.FSM().State() },
+		Logger:            logger.Named("grpc-api.dataplane"),
+		ACLResolver:       s.ACLResolver,
+		Datacenter:        s.config.Datacenter,
+		EnableV2:          stringslice.Contains(deps.Experiments, CatalogResourceExperimentName),
+		ResourceAPIClient: s.insecureResourceServiceClient,
 	}).Register(s.externalGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{

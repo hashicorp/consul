@@ -8,14 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -23,13 +15,22 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
-	"github.com/hashicorp/consul/types"
 )
 
 const (
@@ -79,7 +80,7 @@ func testRegisterRequestProxy(t *testing.T) *structs.RegisterRequest {
 
 func testRegisterIngressGateway(t *testing.T) *structs.RegisterRequest {
 	registerReq := structs.TestRegisterIngressGateway(t)
-	registerReq.ID = types.NodeID("2980b72b-bd9d-9d7b-d4f9-951bf7508d95")
+	registerReq.ID = "2980b72b-bd9d-9d7b-d4f9-951bf7508d95"
 	registerReq.Service.ID = registerReq.Service.Service
 	registerReq.Service.Proxy.Config = map[string]interface{}{
 		proxyConfigKey: proxyConfigValue,
@@ -179,7 +180,6 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		require.Equal(t, tc.registerReq.EnterpriseMeta.NamespaceOrDefault(), resp.Namespace)
 		requireConfigField(t, resp, proxyConfigKey, structpb.NewStringValue(proxyConfigValue))
 		require.Equal(t, tc.registerReq.Node, resp.NodeName)
-		require.Equal(t, string(tc.registerReq.ID), resp.NodeId)
 
 		if tc.serviceDefaults != nil && tc.proxyDefaults != nil {
 			// service-defaults take precedence over proxy-defaults
@@ -290,12 +290,14 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		}
 		workloadResource := resourcetest.Resource(catalog.WorkloadType, "test-workload").
 			WithData(t, tc.workloadData).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			Write(t, resourceClient)
 
 		// Create any proxy cfg resources.
 		for i, cfg := range tc.proxyCfgs {
 			resourcetest.Resource(mesh.ProxyConfigurationType, fmt.Sprintf("proxy-cfg-%d", i)).
 				WithData(t, cfg).
+				WithTenancy(resource.DefaultNamespacedTenancy()).
 				Write(t, resourceClient)
 		}
 
@@ -311,7 +313,7 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		resp, err := client.GetEnvoyBootstrapParams(ctx, req)
 		require.NoError(t, err)
 
-		require.Equal(t, tc.workloadData.Identity, resp.ClusterName)
+		require.Equal(t, tc.workloadData.Identity, resp.Identity)
 		require.Equal(t, serverDC, resp.Datacenter)
 		require.Equal(t, workloadResource.Id.Tenancy.Partition, resp.Partition)
 		require.Equal(t, workloadResource.Id.Tenancy.Namespace, resp.Namespace)
@@ -527,8 +529,8 @@ func TestGetEnvoyBootstrapParams_Error_EnableV2(t *testing.T) {
 		} else {
 			req = pbdataplane.GetEnvoyBootstrapParamsRequest{
 				ProxyId:   "not-found",
-				Namespace: "not-found",
-				Partition: "not-found",
+				Namespace: "default",
+				Partition: "default",
 			}
 		}
 
@@ -549,7 +551,9 @@ func TestGetEnvoyBootstrapParams_Error_EnableV2(t *testing.T) {
 			Ports: map[string]*pbcatalog.WorkloadPort{
 				"tcp": {Port: 8080},
 			},
-		}).Build()
+		}).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Build()
 
 	testCases := []testCase{
 		{

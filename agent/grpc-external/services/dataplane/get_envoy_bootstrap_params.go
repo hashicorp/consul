@@ -8,17 +8,18 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/mesh"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -114,13 +115,12 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		accessLogs := makeAccessLogs(dynamicCfg.GetAccessLogs(), logger)
 
 		return &pbdataplane.GetEnvoyBootstrapParamsResponse{
-			ClusterName:     workload.Identity,
+			Identity:        workload.Identity,
 			Partition:       workloadRsp.Resource.Id.Tenancy.Partition,
 			Namespace:       workloadRsp.Resource.Id.Tenancy.Namespace,
 			BootstrapConfig: bootstrapCfg,
 			Datacenter:      s.Datacenter,
 			NodeName:        workload.NodeName,
-			NodeId:          workloadRsp.Resource.Id.Name,
 			AccessLogs:      accessLogs,
 		}, nil
 	}
@@ -181,15 +181,14 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	}
 
 	return &pbdataplane.GetEnvoyBootstrapParamsResponse{
-		ClusterName: serviceName,
-		Service:     serviceName,
-		Partition:   svc.EnterpriseMeta.PartitionOrDefault(),
-		Namespace:   svc.EnterpriseMeta.NamespaceOrDefault(),
-		Config:      bootstrapConfig,
-		Datacenter:  s.Datacenter,
-		NodeName:    svc.Node,
-		NodeId:      string(svc.ID),
-		AccessLogs:  accessLogs,
+		Identity:   serviceName,
+		Service:    serviceName,
+		Partition:  svc.EnterpriseMeta.PartitionOrDefault(),
+		Namespace:  svc.EnterpriseMeta.NamespaceOrDefault(),
+		Config:     bootstrapConfig,
+		Datacenter: s.Datacenter,
+		NodeName:   svc.Node,
+		AccessLogs: accessLogs,
 	}, nil
 }
 
