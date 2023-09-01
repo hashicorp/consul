@@ -35,8 +35,8 @@ type cmd struct {
 
 func (c *cmd) getAppendFileNameFlag() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	fs.Var(&c.appendFileNameFlag, "append-filename", "Append filename flag takes two possible values. "+
-		"1. version, 2. dc. 3. node 5. status. It appends consul version and datacenter to filename given in command")
+	fs.Var(&c.appendFileNameFlag, "append-filename", "Append filename flag supports the following "+
+		"comma-separated arguments. 1. version, 2. dc. 3. node 4. status. It appends these values to the filename provided in the command")
 	return fs
 }
 
