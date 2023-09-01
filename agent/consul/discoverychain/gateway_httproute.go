@@ -91,10 +91,16 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			if service.Filters.URLRewrite == nil {
 				servicePrefixRewrite = prefixRewrite
 			}
-			serviceModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
-			requestModifier.Add = mergeMaps(requestModifier.Add, serviceModifier.Add)
-			requestModifier.Set = mergeMaps(requestModifier.Set, serviceModifier.Set)
-			requestModifier.Remove = append(requestModifier.Remove, serviceModifier.Remove...)
+
+			serviceRequestModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
+			requestModifier.Add = mergeMaps(requestModifier.Add, serviceRequestModifier.Add)
+			requestModifier.Set = mergeMaps(requestModifier.Set, serviceRequestModifier.Set)
+			requestModifier.Remove = append(requestModifier.Remove, serviceRequestModifier.Remove...)
+
+			serviceResponseModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.ResponseFilters.Headers)
+			responseModifier.Add = mergeMaps(responseModifier.Add, serviceResponseModifier.Add)
+			responseModifier.Set = mergeMaps(responseModifier.Set, serviceResponseModifier.Set)
+			responseModifier.Remove = append(responseModifier.Remove, serviceResponseModifier.Remove...)
 
 			destination.Service = service.Name
 			destination.Namespace = service.NamespaceOrDefault()

@@ -512,6 +512,10 @@ type HTTPService struct {
 	// to routing it to the upstream service
 	Filters HTTPFilters
 
+	// ResponseFilters is a list of HTTP-based filters used to modify the
+	// response returned from the upstream service
+	ResponseFilters HTTPResponseFilters
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 

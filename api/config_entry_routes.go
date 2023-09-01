@@ -262,9 +262,14 @@ type HTTPService struct {
 	// Weight is an arbitrary integer used in calculating how much
 	// traffic should be sent to the given service.
 	Weight int
+
 	// Filters is a list of HTTP-based filters used to modify a request prior
 	// to routing it to the upstream service
 	Filters HTTPFilters
+
+	// ResponseFilters is a list of HTTP-based filters used to modify the
+	// response returned from the upstream service
+	ResponseFilters HTTPResponseFilters
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
