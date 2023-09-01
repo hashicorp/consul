@@ -11,6 +11,6 @@ ${ location.pathname.get(3) !== '00000000-0000-0000-0000-000000000001' ? `
   policy = "write"
 }`)},
 ` : "" }
-  "Name": "${location.pathname.get(3) === '00000000-0000-0000-0000-000000000001' ? 'global-management' : fake.hacker.noun() + '-policy'}"
+  "Name": "${location.pathname.get(3) === '00000000-0000-0000-0000-000000000001' ? 'global-management' : location.pathname.get(3) === '00000000-0000-0000-0000-000000000002' ? 'global-read-only': fake.hacker.noun() + '-policy'}"
 }
 
