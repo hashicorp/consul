@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -137,6 +137,18 @@ func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool) []err
 				Wrapped: err,
 			})
 		}
+	}
+
+	switch config.Mode {
+	case pbcatalog.FailoverMode_FAILOVER_MODE_UNSPECIFIED:
+		// means pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL
+	case pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL:
+	case pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY:
+	default:
+		errs = append(errs, resource.ErrInvalidField{
+			Name:    "mode",
+			Wrapped: fmt.Errorf("not a supported enum value: %v", config.Mode),
+		})
 	}
 
 	// TODO: validate sameness group requirements

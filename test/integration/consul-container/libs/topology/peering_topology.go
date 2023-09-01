@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package topology
 
@@ -151,7 +151,7 @@ func BasicPeeringTwoClustersSetup(
 
 		// Create a service and proxy instance
 		var err error
-		clientSidecarService, err = libservice.CreateAndRegisterStaticClientSidecar(clientNode, DialingPeerName, true, false)
+		clientSidecarService, err = libservice.CreateAndRegisterStaticClientSidecar(clientNode, DialingPeerName, true, false, nil)
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy", nil)

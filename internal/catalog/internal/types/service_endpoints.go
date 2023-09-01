@@ -1,15 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
 import (
 	"math"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -128,6 +129,13 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 		})
 	}
 
+	if healthErr := validateHealth(endpoint.HealthStatus); healthErr != nil {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "health_status",
+			Wrapped: healthErr,
+		})
+	}
+
 	// Validate the endpoints ports
 	for portName, port := range endpoint.Ports {
 		// Port names must be DNS labels
@@ -139,6 +147,17 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 			})
 		}
 
+		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
+			err = multierror.Append(err, resource.ErrInvalidMapValue{
+				Map: "ports",
+				Key: portName,
+				Wrapped: resource.ErrInvalidField{
+					Name:    "protocol",
+					Wrapped: protoErr,
+				},
+			})
+		}
+
 		// As the physical port is the real port the endpoint will be bound to
 		// it must be in the standard 1-65535 range.
 		if port.Port < 1 || port.Port > math.MaxUint16 {
@@ -146,7 +165,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 				Map: "ports",
 				Key: portName,
 				Wrapped: resource.ErrInvalidField{
-					Name:    "phsical_port",
+					Name:    "physical_port",
 					Wrapped: errInvalidPhysicalPort,
 				},
 			})

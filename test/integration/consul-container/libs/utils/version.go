@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package utils
 
@@ -25,7 +25,7 @@ var (
 )
 
 const (
-	DefaultImageNameOSS   = "hashicorp/consul"
+	DefaultImageNameCE    = "hashicorp/consul"
 	DefaultImageNameENT   = "hashicorp/consul-enterprise"
 	ImageVersionSuffixENT = "-ent"
 )
@@ -65,7 +65,7 @@ func TargetImages() topology.Images {
 		}
 	} else {
 		return topology.Images{
-			ConsulOSS: img,
+			ConsulCE: img,
 		}
 	}
 }

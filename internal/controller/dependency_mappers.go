@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package controller
 
 import (
@@ -13,6 +16,14 @@ type DependencyMapper func(
 	ctx context.Context,
 	rt Runtime,
 	res *pbresource.Resource,
+) ([]Request, error)
+
+// CustomDependencyMapper is called when an Event occurs to determine which of the
+// controller's managed resources need to be reconciled.
+type CustomDependencyMapper func(
+	ctx context.Context,
+	rt Runtime,
+	event Event,
 ) ([]Request, error)
 
 // MapOwner implements a DependencyMapper that returns the updated resource's owner.

@@ -414,7 +414,7 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the replication token.
 
-    - `resources` ((#v-global-acls-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods. 
+    - `resources` ((#v-global-acls-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods.
       This should be a YAML map corresponding to a Kubernetes
       [`ResourceRequirements``](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
       object.
@@ -440,7 +440,7 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretName` ((#v-global-acls-partitiontoken-secretname)) (`string: null`) - The name of the Vault secret that holds the partition token.
 
-      - `secretKey` ((#v-global-acls-partitiontoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the parition token.
+      - `secretKey` ((#v-global-acls-partitiontoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the partition token.
 
     - `tolerations` ((#v-global-acls-tolerations)) (`string: ""`) - tolerations configures the taints and tolerations for the server-acl-init
       and server-acl-init-cleanup jobs. This should be a multi-line string matching the
@@ -484,7 +484,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-federation-enabled)) (`boolean: false`) - If enabled, this datacenter will be federation-capable. Only federation
       via mesh gateways is supported.
       Mesh gateways and servers will be configured to allow federation.
-      Requires `global.tls.enabled`, `connectInject.enabled`, and one of 
+      Requires `global.tls.enabled`, `connectInject.enabled`, and one of
       `meshGateway.enabled` or `externalServers.enabled` to be true.
       Requires Consul 1.8+.
 
@@ -508,7 +508,7 @@ Use these links to navigate to a particular top-level stanza.
       from the one used by the Consul Service Mesh.
       Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
 
-      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
+      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
       `externalServers.k8sAuthMethodHost` should be set to the same value.
 
       You can retrieve this value from your `kubeconfig` by running:
@@ -1004,7 +1004,7 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing 
+  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing
     and configure a sink and filters for their audit logs. Please refer to
     [audit logs](/consul/docs/enterprise/audit-logging) documentation
     for further information.
@@ -1012,7 +1012,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
       global.acls.manageSystemACLs must be enabled to use this feature.
 
-    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul 
+    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul
       will log auditing events.
 
       Example:
@@ -1027,7 +1027,7 @@ Use these links to navigate to a particular top-level stanza.
           rotate_duration: 24h
           rotate_max_files: 15
           rotate_bytes: 25165824
-          
+
       ```
 
       The sink object supports the following keys:
@@ -1124,7 +1124,7 @@ Use these links to navigate to a particular top-level stanza.
     This address must be reachable from the Consul servers.
     Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
 
-    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
+    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
     `externalServers.k8sAuthMethodHost` should be set to the same value.
 
     You could retrieve this value from your `kubeconfig` by running:

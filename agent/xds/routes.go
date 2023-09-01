@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/config"
+	"github.com/hashicorp/consul/agent/xds/response"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
@@ -70,7 +72,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
-			ValidateClusters: makeBoolValue(true),
+			ValidateClusters: response.MakeBoolValue(true),
 		}
 		resources = append(resources, route)
 	}
@@ -140,7 +142,7 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		cfg, err := ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
+		cfg, err := config.ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -168,7 +170,7 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 
 		for _, address := range svcConfig.Destination.Addresses {
 			clusterName := clusterNameForDestination(cfgSnap, svc.Name, address, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
-			cfg, err := ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
+			cfg, err := config.ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
 			if err != nil {
 				// Don't hard fail on a config typo, just warn. The parse func returns
 				// default config if there is an error so it's safe to continue.
@@ -267,7 +269,7 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
-			ValidateClusters: makeBoolValue(true),
+			ValidateClusters: response.MakeBoolValue(true),
 		}
 		resources = append(resources, route)
 	}
@@ -285,7 +287,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, t
 	// Configure Envoy to rewrite Host header
 	if autoHostRewrite {
 		action.Route.HostRewriteSpecifier = &envoy_route_v3.RouteAction_AutoHostRewrite{
-			AutoHostRewrite: makeBoolValue(true),
+			AutoHostRewrite: response.MakeBoolValue(true),
 		}
 	}
 
@@ -310,7 +312,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, t
 		// ValidateClusters defaults to true when defined statically and false
 		// when done via RDS. Re-set the reasonable value of true to prevent
 		// null-routing traffic.
-		ValidateClusters: makeBoolValue(true),
+		ValidateClusters: response.MakeBoolValue(true),
 	}, nil
 }
 
@@ -320,7 +322,7 @@ func makeNamedAddressesRoute(routeName string, addresses map[string]string) (*en
 		// ValidateClusters defaults to true when defined statically and false
 		// when done via RDS. Re-set the reasonable value of true to prevent
 		// null-routing traffic.
-		ValidateClusters: makeBoolValue(true),
+		ValidateClusters: response.MakeBoolValue(true),
 	}
 	for clusterName, address := range addresses {
 		action := makeRouteActionFromName(clusterName)
@@ -362,7 +364,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
-			ValidateClusters: makeBoolValue(true),
+			ValidateClusters: response.MakeBoolValue(true),
 		}
 
 		for _, u := range upstreams {
@@ -411,7 +413,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			} else {
 				svcRoute := &envoy_route_v3.RouteConfiguration{
 					Name:             svcRouteName,
-					ValidateClusters: makeBoolValue(true),
+					ValidateClusters: response.MakeBoolValue(true),
 					VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
 				}
 				result = append(result, svcRoute)
@@ -447,7 +449,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
-			ValidateClusters: makeBoolValue(true),
+			ValidateClusters: response.MakeBoolValue(true),
 		}
 
 		route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
@@ -514,7 +516,7 @@ func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.
 				Key:   k,
 				Value: v,
 			},
-			Append: makeBoolValue(add),
+			Append: response.MakeBoolValue(add),
 		}
 		opts = append(opts, o)
 	}
@@ -751,7 +753,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 func getRetryPolicyForDestination(destination *structs.ServiceRouteDestination) *envoy_route_v3.RetryPolicy {
 	retryPolicy := &envoy_route_v3.RetryPolicy{}
 	if destination.NumRetries > 0 {
-		retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
+		retryPolicy.NumRetries = response.MakeUint32Value(int(destination.NumRetries))
 	}
 
 	// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
@@ -804,7 +806,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 		}
 	case match.HTTP.PathRegex != "":
 		em.PathSpecifier = &envoy_route_v3.RouteMatch_SafeRegex{
-			SafeRegex: makeEnvoyRegexMatch(match.HTTP.PathRegex),
+			SafeRegex: response.MakeEnvoyRegexMatch(match.HTTP.PathRegex),
 		}
 	default:
 		em.PathSpecifier = &envoy_route_v3.RouteMatch_Prefix{
@@ -826,7 +828,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 				}
 			case hdr.Regex != "":
 				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-					SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
+					SafeRegexMatch: response.MakeEnvoyRegexMatch(hdr.Regex),
 				}
 			case hdr.Prefix != "":
 				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
@@ -858,7 +860,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
 			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
+				SafeRegexMatch: response.MakeEnvoyRegexMatch(methodHeaderRegex),
 			},
 		}
 
@@ -885,7 +887,7 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 				eq.QueryParameterMatchSpecifier = &envoy_route_v3.QueryParameterMatcher_StringMatch{
 					StringMatch: &envoy_matcher_v3.StringMatcher{
 						MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-							SafeRegex: makeEnvoyRegexMatch(qm.Regex),
+							SafeRegex: response.MakeEnvoyRegexMatch(qm.Regex),
 						},
 					},
 				}
@@ -966,7 +968,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		weight := int(split.Weight * 100)
 		totalWeight += weight
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
-			Weight: makeUint32Value(weight),
+			Weight: response.MakeUint32Value(weight),
 			Name:   clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
@@ -982,7 +984,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 
 	var envoyWeightScale *wrapperspb.UInt32Value
 	if totalWeight == 10000 {
-		envoyWeightScale = makeUint32Value(10000)
+		envoyWeightScale = response.MakeUint32Value(10000)
 	}
 
 	return &envoy_route_v3.Route_Route{

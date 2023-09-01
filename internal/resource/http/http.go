@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package http
 
 import (
@@ -20,6 +23,11 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+const (
+	HeaderConsulToken     = "x-consul-token"
+	HeaderConsistencyMode = "x-consul-consistency-mode"
+)
+
 func NewHandler(
 	client pbresource.ResourceServiceClient,
 	registry resource.Registry,
@@ -27,8 +35,12 @@ func NewHandler(
 	logger hclog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	for _, t := range registry.Types() {
-		// Individual Resource Endpoints.
-		prefix := strings.ToLower(fmt.Sprintf("/%s/%s/%s/", t.Type.Group, t.Type.GroupVersion, t.Type.Kind))
+		// List Endpoint
+		base := strings.ToLower(fmt.Sprintf("/%s/%s/%s", t.Type.Group, t.Type.GroupVersion, t.Type.Kind))
+		mux.Handle(base, http.StripPrefix(base, &listHandler{t, client, parseToken, logger}))
+
+		// Individual Resource Endpoints
+		prefix := strings.ToLower(fmt.Sprintf("%s/", base))
 		logger.Info("Registered resource endpoint", "endpoint", prefix)
 		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken, logger}))
 	}
@@ -52,10 +64,14 @@ type resourceHandler struct {
 func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var token string
 	h.parseToken(r, &token)
-	ctx := metadata.AppendToOutgoingContext(r.Context(), "x-consul-token", token)
+	ctx := metadata.AppendToOutgoingContext(r.Context(), HeaderConsulToken, token)
 	switch r.Method {
 	case http.MethodPut:
 		h.handleWrite(w, r, ctx)
+	case http.MethodGet:
+		h.handleRead(w, r, ctx)
+	case http.MethodDelete:
+		h.handleDelete(w, r, ctx)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -83,23 +99,23 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 
-	tenancyInfo, resourceName, version := checkURL(r)
+	tenancyInfo, params := parseParams(r)
 
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
 				Type:    h.reg.Type,
 				Tenancy: tenancyInfo,
-				Name:    resourceName,
+				Name:    params["resourceName"],
 			},
 			Owner:    req.Owner,
-			Version:  version,
+			Version:  params["version"],
 			Metadata: req.Metadata,
 			Data:     anyProtoMsg,
 		},
 	})
 	if err != nil {
-		handleResponseError(err, w, h)
+		handleResponseError(err, w, h.logger)
 		return
 	}
 
@@ -112,20 +128,74 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	w.Write(output)
 }
 
-func checkURL(r *http.Request) (tenancy *pbresource.Tenancy, resourceName string, version string) {
-	params := r.URL.Query()
-	tenancy = &pbresource.Tenancy{
-		Partition: params.Get("partition"),
-		PeerName:  params.Get("peer_name"),
-		Namespace: params.Get("namespace"),
+func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	tenancyInfo, params := parseParams(r)
+	if params["consistent"] != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
 	}
-	resourceName = path.Base(r.URL.Path)
+
+	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Type:    h.reg.Type,
+			Tenancy: tenancyInfo,
+			Name:    params["resourceName"],
+		},
+	})
+	if err != nil {
+		handleResponseError(err, w, h.logger)
+		return
+	}
+
+	output, err := jsonMarshal(rsp.Resource)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to unmarshal GRPC resource response", "error", err)
+		return
+	}
+	w.Write(output)
+}
+
+// Note: The HTTP endpoints do not accept UID since it is quite unlikely that the user will have access to it
+func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	tenancyInfo, params := parseParams(r)
+	_, err := h.client.Delete(ctx, &pbresource.DeleteRequest{
+		Id: &pbresource.ID{
+			Type:    h.reg.Type,
+			Tenancy: tenancyInfo,
+			Name:    params["resourceName"],
+		},
+		Version: params["version"],
+	})
+	if err != nil {
+		handleResponseError(err, w, h.logger)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+	w.Write([]byte("{}"))
+}
+
+func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
+	query := r.URL.Query()
+	tenancy = &pbresource.Tenancy{
+		Partition: query.Get("partition"),
+		PeerName:  query.Get("peer_name"),
+		Namespace: query.Get("namespace"),
+	}
+
+	resourceName := path.Base(r.URL.Path)
 	if resourceName == "." || resourceName == "/" {
 		resourceName = ""
 	}
-	version = params.Get("version")
 
-	return
+	params = make(map[string]string)
+	params["resourceName"] = resourceName
+	params["version"] = query.Get("version")
+	params["namePrefix"] = query.Get("name_prefix")
+	if _, ok := query["consistent"]; ok {
+		params["consistent"] = "true"
+	}
+
+	return tenancy, params
 }
 
 func jsonMarshal(res *pbresource.Resource) ([]byte, error) {
@@ -143,28 +213,82 @@ func jsonMarshal(res *pbresource.Resource) ([]byte, error) {
 	return json.MarshalIndent(stuff, "", "  ")
 }
 
-func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
+func handleResponseError(err error, w http.ResponseWriter, logger hclog.Logger) {
 	if e, ok := status.FromError(err); ok {
 		switch e.Code() {
 		case codes.InvalidArgument:
 			w.WriteHeader(http.StatusBadRequest)
-			h.logger.Info("User has mal-formed request", "error", err)
+			logger.Info("User has mal-formed request", "error", err)
 		case codes.NotFound:
 			w.WriteHeader(http.StatusNotFound)
-			h.logger.Info("Failed to write to GRPC resource: Not found", "error", err)
+			logger.Info("Received error from resource service: Not found", "error", err)
 		case codes.PermissionDenied:
 			w.WriteHeader(http.StatusForbidden)
-			h.logger.Info("Failed to write to GRPC resource: User not authenticated", "error", err)
+			logger.Info("Received error from resource service: User not authenticated", "error", err)
 		case codes.Aborted:
 			w.WriteHeader(http.StatusConflict)
-			h.logger.Info("Failed to write to GRPC resource: the request conflict with the current state of the target resource", "error", err)
+			logger.Info("Received error from resource service: the request conflict with the current state of the target resource", "error", err)
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
-			h.logger.Error("Failed to write to GRPC resource", "error", err)
+			logger.Error("Received error from resource service", "error", err)
 		}
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("Failed to write to GRPC resource: not able to parse error returned", "error", err)
+		logger.Error("Received error from resource service: not able to parse error returned", "error", err)
 	}
 	w.Write([]byte(err.Error()))
+}
+
+type listHandler struct {
+	reg        resource.Registration
+	client     pbresource.ResourceServiceClient
+	parseToken func(req *http.Request, token *string)
+	logger     hclog.Logger
+}
+
+func (h *listHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	var token string
+	h.parseToken(r, &token)
+	ctx := metadata.AppendToOutgoingContext(r.Context(), HeaderConsulToken, token)
+
+	tenancyInfo, params := parseParams(r)
+	if params["consistent"] == "true" {
+		ctx = metadata.AppendToOutgoingContext(ctx, HeaderConsistencyMode, "consistent")
+	}
+
+	rsp, err := h.client.List(ctx, &pbresource.ListRequest{
+		Type:       h.reg.Type,
+		Tenancy:    tenancyInfo,
+		NamePrefix: params["namePrefix"],
+	})
+	if err != nil {
+		handleResponseError(err, w, h.logger)
+		return
+	}
+
+	output := make([]json.RawMessage, len(rsp.Resources))
+	for idx, res := range rsp.Resources {
+		b, err := jsonMarshal(res)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Error("Failed to unmarshal GRPC resource response", "error", err)
+			return
+		}
+		output[idx] = b
+	}
+
+	b, err := json.MarshalIndent(struct {
+		Resources []json.RawMessage `json:"resources"`
+	}{output}, "", "  ")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to correctly format the list response", "error", err)
+		return
+	}
+	w.Write(b)
 }

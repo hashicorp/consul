@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"io"
 	"net"
 	"os"
@@ -19,9 +20,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/internal/resource"
-
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -37,8 +37,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -75,6 +73,8 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
@@ -82,6 +82,7 @@ import (
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
@@ -134,7 +135,7 @@ const (
 
 	LeaderTransferMinVersion = "1.6.0"
 
-	catalogResourceExperimentName = "resource-apis"
+	CatalogResourceExperimentName = "resource-apis"
 )
 
 const (
@@ -480,9 +481,21 @@ type connHandler interface {
 	Shutdown() error
 }
 
+// ProxyUpdater is an interface for ProxyTracker.
+type ProxyUpdater interface {
+	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
+	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
+
+	// ProxyConnectedToServer returns whether this id is connected to this server.
+	ProxyConnectedToServer(id *pbresource.ID) bool
+
+	EventChannel() chan controller.Event
+}
+
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
+	incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, proxyUpdater ProxyUpdater) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -822,7 +835,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		s.insecureResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerControllers(flat)
+	s.registerControllers(flat, proxyUpdater)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -873,9 +886,24 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	return s, nil
 }
 
-func (s *Server) registerControllers(deps Deps) {
-	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
+func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
+	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
+			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
+				var bundle pbproxystate.TrustBundle
+				roots, err := s.getCARoots(nil, s.GetState())
+				if err != nil {
+					return nil, err
+				}
+				bundle.TrustDomain = roots.TrustDomain
+				for _, root := range roots.Roots {
+					bundle.Roots = append(bundle.Roots, root.RootCert)
+				}
+				return &bundle, nil
+			},
+			ProxyUpdater: proxyUpdater,
+		})
 	}
 
 	reaper.RegisterControllers(s.controllerManager)

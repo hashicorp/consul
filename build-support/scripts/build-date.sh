@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
 readonly SCRIPT_DIR="$(dirname ${BASH_SOURCE[0]})"

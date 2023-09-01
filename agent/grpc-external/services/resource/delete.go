@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -27,17 +27,13 @@ import (
 // - Errors with Aborted if the requested Version does not match the stored Version.
 // - Errors with PermissionDenied if ACL check fails
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	if err := validateDeleteRequest(req); err != nil {
-		return nil, err
-	}
-
-	reg, err := s.resolveType(req.Id.Type)
+	reg, err := s.validateDeleteRequest(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(spatel): Refactor _ and entMeta in NET-4919
-	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
+	entMeta := v2TenancyToV1EntMeta(req.Id.Tenancy)
+	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), entMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +44,10 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	if req.Version == "" || req.Id.Uid == "" {
 		consistency = storage.StrongConsistency
 	}
+
+	// Apply defaults when tenancy units empty.
+	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
+
 	existing, err := s.Backend.Read(ctx, consistency, req.Id)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
@@ -144,15 +144,31 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 	}
 }
 
-func validateDeleteRequest(req *pbresource.DeleteRequest) error {
+func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource.Registration, error) {
 	if req.Id == nil {
-		return status.Errorf(codes.InvalidArgument, "id is required")
+		return nil, status.Errorf(codes.InvalidArgument, "id is required")
 	}
 
 	if err := validateId(req.Id, "id"); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	reg, err := s.resolveType(req.Id.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check scope
+	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped resource %s cannot have a namespace. got: %s",
+			resource.ToGVK(req.Id.Type),
+			req.Id.Tenancy.Namespace,
+		)
+	}
+
+	return reg, nil
 }
 
 // Maintains a deterministic mapping between a resource and it's tombstone's

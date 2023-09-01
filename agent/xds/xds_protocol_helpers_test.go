@@ -1,9 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
 import (
+	"github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
+	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"sort"
 	"sync"
 	"testing"
@@ -71,14 +75,14 @@ func newTestSnapshot(
 // testing. It also implements ConnectAuthz to allow control over authorization.
 type testManager struct {
 	sync.Mutex
-	stateChans map[structs.ServiceID]chan *proxycfg.ConfigSnapshot
+	stateChans map[structs.ServiceID]chan proxysnapshot.ProxySnapshot
 	drainChans map[structs.ServiceID]chan struct{}
 	cancels    chan structs.ServiceID
 }
 
 func newTestManager(t *testing.T) *testManager {
 	return &testManager{
-		stateChans: map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
+		stateChans: map[structs.ServiceID]chan proxysnapshot.ProxySnapshot{},
 		drainChans: map[structs.ServiceID]chan struct{}{},
 		cancels:    make(chan structs.ServiceID, 10),
 	}
@@ -88,12 +92,12 @@ func newTestManager(t *testing.T) *testManager {
 func (m *testManager) RegisterProxy(t *testing.T, proxyID structs.ServiceID) {
 	m.Lock()
 	defer m.Unlock()
-	m.stateChans[proxyID] = make(chan *proxycfg.ConfigSnapshot, 1)
+	m.stateChans[proxyID] = make(chan proxysnapshot.ProxySnapshot, 1)
 	m.drainChans[proxyID] = make(chan struct{})
 }
 
 // Deliver simulates a proxy registration
-func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg *proxycfg.ConfigSnapshot) {
+func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg proxysnapshot.ProxySnapshot) {
 	t.Helper()
 	m.Lock()
 	defer m.Unlock()
@@ -120,7 +124,10 @@ func (m *testManager) DrainStreams(proxyID structs.ServiceID) {
 }
 
 // Watch implements ConfigManager
-func (m *testManager) Watch(proxyID structs.ServiceID, _ string, _ string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
+func (m *testManager) Watch(id *pbresource.ID, _ string, _ string) (<-chan proxysnapshot.ProxySnapshot,
+	limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error) {
+	// Create service ID
+	proxyID := structs.NewServiceID(id.Name, catalog.GetEnterpriseMetaFromResourceID(id))
 	m.Lock()
 	defer m.Unlock()
 
@@ -228,7 +235,7 @@ func xdsNewEndpoint(ip string, port int) *envoy_endpoint_v3.LbEndpoint {
 	return &envoy_endpoint_v3.LbEndpoint{
 		HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 			Endpoint: &envoy_endpoint_v3.Endpoint{
-				Address: makeAddress(ip, port),
+				Address: response.MakeAddress(ip, port),
 			},
 		},
 	}
@@ -237,7 +244,7 @@ func xdsNewEndpoint(ip string, port int) *envoy_endpoint_v3.LbEndpoint {
 func xdsNewEndpointWithHealth(ip string, port int, health envoy_core_v3.HealthStatus, weight int) *envoy_endpoint_v3.LbEndpoint {
 	ep := xdsNewEndpoint(ip, port)
 	ep.HealthStatus = health
-	ep.LoadBalancingWeight = makeUint32Value(weight)
+	ep.LoadBalancingWeight = response.MakeUint32Value(weight)
 	return ep
 }
 
@@ -297,7 +304,7 @@ func xdsNewTransportSocket(
 	if downstream {
 		var requireClientCertPB *wrapperspb.BoolValue
 		if requireClientCert {
-			requireClientCertPB = makeBoolValue(true)
+			requireClientCertPB = response.MakeBoolValue(true)
 		}
 
 		tlsContext = &envoy_tls_v3.DownstreamTlsContext{
@@ -597,7 +604,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 		return &envoy_listener_v3.Listener{
 			// Envoy can't bind to port 1
 			Name:             "public_listener:0.0.0.0:1",
-			Address:          makeAddress("0.0.0.0", 1),
+			Address:          response.MakeAddress("0.0.0.0", 1),
 			TrafficDirection: envoy_core_v3.TrafficDirection_INBOUND,
 			FilterChains: []*envoy_listener_v3.FilterChain{
 				{
@@ -620,7 +627,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 	case "tcp:public_listener":
 		return &envoy_listener_v3.Listener{
 			Name:             "public_listener:0.0.0.0:9999",
-			Address:          makeAddress("0.0.0.0", 9999),
+			Address:          response.MakeAddress("0.0.0.0", 9999),
 			TrafficDirection: envoy_core_v3.TrafficDirection_INBOUND,
 			FilterChains: []*envoy_listener_v3.FilterChain{
 				{
@@ -643,7 +650,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 	case "tcp:db":
 		return &envoy_listener_v3.Listener{
 			Name:             "db:127.0.0.1:9191",
-			Address:          makeAddress("127.0.0.1", 9191),
+			Address:          response.MakeAddress("127.0.0.1", 9191),
 			TrafficDirection: envoy_core_v3.TrafficDirection_OUTBOUND,
 			FilterChains: []*envoy_listener_v3.FilterChain{
 				{
@@ -661,7 +668,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 	case "http2:db":
 		return &envoy_listener_v3.Listener{
 			Name:             "db:127.0.0.1:9191",
-			Address:          makeAddress("127.0.0.1", 9191),
+			Address:          response.MakeAddress("127.0.0.1", 9191),
 			TrafficDirection: envoy_core_v3.TrafficDirection_OUTBOUND,
 			FilterChains: []*envoy_listener_v3.FilterChain{
 				{
@@ -689,7 +696,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 	case "http2:db:rds":
 		return &envoy_listener_v3.Listener{
 			Name:             "db:127.0.0.1:9191",
-			Address:          makeAddress("127.0.0.1", 9191),
+			Address:          response.MakeAddress("127.0.0.1", 9191),
 			TrafficDirection: envoy_core_v3.TrafficDirection_OUTBOUND,
 			FilterChains: []*envoy_listener_v3.FilterChain{
 				{
@@ -720,7 +727,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 	case "http:db:rds":
 		return &envoy_listener_v3.Listener{
 			Name:             "db:127.0.0.1:9191",
-			Address:          makeAddress("127.0.0.1", 9191),
+			Address:          response.MakeAddress("127.0.0.1", 9191),
 			TrafficDirection: envoy_core_v3.TrafficDirection_OUTBOUND,
 			FilterChains: []*envoy_listener_v3.FilterChain{
 				{
@@ -751,7 +758,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 	case "tcp:geo-cache":
 		return &envoy_listener_v3.Listener{
 			Name:             "prepared_query:geo-cache:127.10.10.10:8181",
-			Address:          makeAddress("127.10.10.10", 8181),
+			Address:          response.MakeAddress("127.10.10.10", 8181),
 			TrafficDirection: envoy_core_v3.TrafficDirection_OUTBOUND,
 			FilterChains: []*envoy_listener_v3.FilterChain{
 				{
@@ -777,7 +784,7 @@ func makeTestRoute(t *testing.T, fixtureName string) *envoy_route_v3.RouteConfig
 	case "http2:db", "http:db":
 		return &envoy_route_v3.RouteConfiguration{
 			Name:             "db",
-			ValidateClusters: makeBoolValue(true),
+			ValidateClusters: response.MakeBoolValue(true),
 			VirtualHosts: []*envoy_route_v3.VirtualHost{
 				{
 					Name:    "db",

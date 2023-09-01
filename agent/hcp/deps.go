@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package hcp
 
@@ -82,7 +82,7 @@ func sink(
 		return nil, fmt.Errorf("failed to init config provider: %w", err)
 	}
 
-	reader := telemetry.NewOTELReader(metricsClient, cfgProvider, telemetry.DefaultExportInterval)
+	reader := telemetry.NewOTELReader(metricsClient, cfgProvider)
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Reader:         reader,
 		ConfigProvider: cfgProvider,

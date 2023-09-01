@@ -40,7 +40,7 @@ terminatingGateways:
 The Helm chart may be deployed using the [Consul on Kubernetes CLI](/consul/docs/k8s/k8s-cli).
 
 ```shell-session
-$ consul-k8s install -f values.yaml
+$ consul-k8s install --config-file values.yaml
 ```
 
 ## Accessing the Consul agent
@@ -52,7 +52,7 @@ You can access the Consul server directly from your host by running `kubectl por
 <Tab heading="Without TLS">
 
 ```shell-session
-$ kubectl port-forward consul-server-0 8500 &
+$ kubectl port-forward service/consul-server 8500 &
 ```
 
 ```shell-session
@@ -65,7 +65,7 @@ $ export CONSUL_HTTP_ADDR=http://localhost:8500
 If TLS is enabled use port 8501:
 
 ```shell-session
-$ kubectl port-forward consul-server-0 8501 &
+$ kubectl port-forward service/consul-server 8501 &
 ```
 
 ```shell-session
@@ -102,6 +102,7 @@ you may register the service as a node in the Consul catalog.
 <Tab heading="Using ServiceDefaults and TransparentProxy">
 
 The [`destination`](/consul/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial an external service directly. For this method to work, [`TransparentProxy`](/consul/docs/connect/transparent-proxy) must be enabled.
+
 The following table describes traffic behaviors when using the `destination` field to route traffic through a terminating gateway:
 
 | <nobr>External Services Layer</nobr> | <nobr>Client dials</nobr> | <nobr>Client uses TLS</nobr> | Allowed                  | Notes                                                                                         |
@@ -205,7 +206,7 @@ true
 
 ### Update terminating gateway ACL role if ACLs are enabled
 
-If ACLs are enabled, update the terminating gateway acl role to have `service: write` permissions on all of the services
+If ACLs are enabled, update the terminating gateway ACL role to have `service:write` permissions on all of the services
 being represented by the gateway.
 
 Create a new policy that includes the write permission for the service you created.
@@ -232,15 +233,14 @@ service "example-https" {
 }
 ```
 
-Fetch the ID of the terminating gateway token.
+Obtain the ID of the terminating gateway role.
 
 ```shell-session
-consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-policy" | grep ID
-
-ID:       <role id>
+$ consul acl role list -format=json | jq --raw-output '[.[] | select(.Name | endswith("-terminating-gateway-acl-role"))] | if (. | length) == 1 then (. | first | .ID) else "Unable to determine the role ID because there are multiple roles matching this name.\n" | halt_error end'
+<role id>
 ```
 
-Update the terminating gateway ACL token with the new policy.
+Update the terminating gateway ACL role with the new policy.
 
 ```shell-session
 $ consul acl role update -id <role id> -policy-name example-https-write-policy
@@ -379,7 +379,7 @@ deployment "static-client" successfully rolled out
 You can verify connectivity of the static-client and terminating gateway via a curl command.
 
 <Tabs>
-<Tab heading="Registered with `ServiceDefaults` destinations">
+<Tab heading="Registered with ServiceDefaults destinations">
 
 ```shell-session
 $ kubectl exec deploy/static-client -- curl -vvvs https://example.com/

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -73,6 +73,17 @@ func ValidateWorkload(res *pbresource.Resource) error {
 				Wrapped: resource.ErrInvalidField{
 					Name:    "port",
 					Wrapped: errInvalidPhysicalPort,
+				},
+			})
+		}
+
+		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
+			err = multierror.Append(err, resource.ErrInvalidMapValue{
+				Map: "ports",
+				Key: portName,
+				Wrapped: resource.ErrInvalidField{
+					Name:    "protocol",
+					Wrapped: protoErr,
 				},
 			})
 		}

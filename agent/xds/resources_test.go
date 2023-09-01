@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -27,6 +27,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -120,7 +121,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 					}
 				})
 
-				r, err := createResponse(typeUrl, "00000001", "00000001", items)
+				r, err := response.CreateResponse(typeUrl, "00000001", "00000001", items)
 				require.NoError(t, err)
 
 				gotJSON := protoToJSON(t, r)
@@ -192,7 +193,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
-	tests = append(tests, getEnterpriseGoldenTestCases()...)
+	tests = append(tests, getEnterpriseGoldenTestCases(t)...)
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package demo includes fake resource types for working on Consul's generic
 // state storage without having to refer to specific features.
@@ -22,13 +22,6 @@ import (
 )
 
 var (
-	// TenancyDefault contains the default values for all tenancy units.
-	TenancyDefault = &pbresource.Tenancy{
-		Partition: resource.DefaultPartitionName,
-		PeerName:  "local",
-		Namespace: resource.DefaultNamespaceName,
-	}
-
 	// TypeV1RecordLabel represents a record label which artists are signed to.
 	// Used specifically as a resource to test partition only scoped resources.
 	TypeV1RecordLabel = &pbresource.Type{
@@ -87,13 +80,13 @@ func RegisterTypes(r resource.Registry) {
 
 	writeACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
-		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
+		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, authzContext)
 	}
 
-	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *pbresource.Tenancy) error {
-		return func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *acl.AuthorizerContext) error {
+		return func(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 			key := fmt.Sprintf("resource/%s", resource.ToGVK(typ))
-			return authz.ToAllowAuthorizer().KeyListAllowed(key, &acl.AuthorizerContext{})
+			return authz.ToAllowAuthorizer().KeyListAllowed(key, authzContext)
 		}
 	}
 
