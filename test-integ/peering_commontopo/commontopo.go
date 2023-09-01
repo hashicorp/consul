@@ -225,7 +225,9 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 	}
 
 	nodeKind := topology.NodeKindClient
-	if clu.Datacenter == "dc2" {
+	// TODO: bug in deployer somewhere; it should guard against a KindDataplane node with
+	// DisableServiceMesh services on it; dataplane is only for service-mesh
+	if !svc.DisableServiceMesh && clu.Datacenter == agentlessDC {
 		nodeKind = topology.NodeKindDataplane
 	}
 
