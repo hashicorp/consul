@@ -504,6 +504,14 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "control-plane-request-limit"},
 				},
 			},
+			"consul.usage.test.version;version=1.7.0;pre_release=dev": {
+				Name:  "consul.usage.test.version",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "version", Value: "1.7.0"},
+					{Name: "pre_release", Value: "dev"},
+				},
+			},
 		},
 		getMembersFunc: func() []serf.Member { return []serf.Member{} },
 	},
@@ -993,6 +1001,14 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "control-plane-request-limit"},
+				},
+			},
+			"consul.usage.test.version;version=1.7.0;pre_release=dev": {
+				Name:  "consul.usage.test.version",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "version", Value: "1.7.0"},
+					{Name: "pre_release", Value: "dev"},
 				},
 			},
 		},
