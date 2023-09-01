@@ -560,6 +560,10 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 										Add: make(map[string]string),
 										Set: make(map[string]string),
 									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
 								},
 							},
 							NextNode: "resolver:foo.default.default.dc1",
@@ -660,6 +664,10 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 									Partition: "default",
 									Namespace: "default",
 									RequestHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
 										Add: make(map[string]string),
 										Set: make(map[string]string),
 									},
@@ -847,6 +855,10 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 									Partition: "default",
 									Namespace: "default",
 									RequestHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
 										Add: make(map[string]string),
 										Set: make(map[string]string),
 									},
