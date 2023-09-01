@@ -162,6 +162,14 @@ func GetVersionWithMetadata() string {
 
 func (u *UsageMetricsReporter) emitVersionUsage() {
 
+	metrics.SetGaugeWithLabels(
+		[]string{"consul", "version"},
+		1,
+		[]metrics.Label{
+			{Name: "version", Value: GetVersionWithMetadata()},
+			{Name: "pre_release", Value: consulversion.VersionPrerelease},
+		},
+	)
 	// consul version metric with labels
 	metrics.SetGaugeWithLabels(
 		[]string{"version"},
