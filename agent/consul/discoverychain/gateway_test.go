@@ -518,6 +518,24 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 					Kind: structs.HTTPRoute,
 					Name: "http-route",
 					Rules: []structs.HTTPRouteRule{{
+						Filters: structs.HTTPFilters{
+							Headers: []structs.HTTPHeaderFilter{
+								{
+									Add:    map[string]string{"add me on the request": "hello world"},
+									Set:    map[string]string{"set me on the request": "hello world"},
+									Remove: []string{"remove me on the request"},
+								},
+							},
+						},
+						ResponseFilters: structs.HTTPResponseFilters{
+							Headers: []structs.HTTPHeaderFilter{
+								{
+									Add:    map[string]string{"add me on the response": "hello world"},
+									Set:    map[string]string{"set me on the response": "hello world"},
+									Remove: []string{"remove me on the response"},
+								},
+							},
+						},
 						Services: []structs.HTTPService{{
 							Name: "foo",
 						}},
@@ -557,12 +575,14 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 									Partition: "default",
 									Namespace: "default",
 									RequestHeaders: &structs.HTTPHeaderModifiers{
-										Add: make(map[string]string),
-										Set: make(map[string]string),
+										Add:    map[string]string{"add me on the request": "hello world"},
+										Set:    map[string]string{"set me on the request": "hello world"},
+										Remove: []string{"remove me on the request"},
 									},
 									ResponseHeaders: &structs.HTTPHeaderModifiers{
-										Add: make(map[string]string),
-										Set: make(map[string]string),
+										Add:    map[string]string{"add me on the response": "hello world"},
+										Set:    map[string]string{"set me on the response": "hello world"},
+										Remove: []string{"remove me on the response"},
 									},
 								},
 							},
