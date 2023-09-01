@@ -264,12 +264,7 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 }
 
 func (ct *commonTopo) APIClientForCluster(t *testing.T, clu *topology.Cluster) *api.Client {
-	firstClient := clu.FirstClient()
-	if firstClient == nil {
-		firstClient = clu.FirstServer()
-		require.NotNil(t, firstClient, "for cluster %s", clu.Datacenter)
-	}
-	cl, err := ct.Sprawl.APIClientForNode(clu.Name, firstClient.ID(), "")
+	cl, err := ct.Sprawl.APIClientForCluster(clu.Name, "")
 	require.NoError(t, err)
 	return cl
 }
