@@ -506,7 +506,7 @@ var baseCases = map[string]testCase{
 			},
 			"consul.usage.test.consul.version;version=1.17.0;pre_release=dev": { // Legacy
 				Name:  "consul.usage.test.consul.version",
-				Value: 0,
+				Value: 1,
 				Labels: []metrics.Label{
 					{Name: "version", Value: "1.17.0"},
 					{Name: "pre_release", Value: "dev"},
@@ -514,7 +514,7 @@ var baseCases = map[string]testCase{
 			},
 			"consul.usage.test.version;version=1.17.0;pre_release=dev": {
 				Name:  "consul.usage.test.version",
-				Value: 0,
+				Value: 1,
 				Labels: []metrics.Label{
 					{Name: "version", Value: "1.17.0"},
 					{Name: "pre_release", Value: "dev"},
@@ -1013,7 +1013,7 @@ var baseCases = map[string]testCase{
 			},
 			"consul.usage.test.consul.version;version=1.17.0;pre_release=dev": { //legacy
 				Name:  "consul.usage.test.consul.version",
-				Value: 0,
+				Value: 1,
 				Labels: []metrics.Label{
 					{Name: "version", Value: "1.17.0"},
 					{Name: "pre_release", Value: "dev"},
@@ -1021,7 +1021,7 @@ var baseCases = map[string]testCase{
 			},
 			"consul.usage.test.version;version=1.17.0;pre_release=dev": {
 				Name:  "consul.usage.test.version",
-				Value: 0,
+				Value: 1,
 				Labels: []metrics.Label{
 					{Name: "version", Value: "1.17.0"},
 					{Name: "pre_release", Value: "dev"},
