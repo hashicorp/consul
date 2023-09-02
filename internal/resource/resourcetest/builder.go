@@ -36,11 +36,6 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					GroupVersion: rtype.GroupVersion,
 					Kind:         rtype.Kind,
 				},
-				Tenancy: &pbresource.Tenancy{
-					Partition: resource.DefaultPartitionName,
-					Namespace: resource.DefaultNamespaceName,
-					PeerName:  "local",
-				},
 				Name: name,
 			},
 		},

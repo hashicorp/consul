@@ -73,6 +73,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
@@ -460,6 +461,8 @@ type Server struct {
 
 	// handles metrics reporting to HashiCorp
 	reportingManager *reporting.ReportingManager
+
+	registry resource.Registry
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -480,9 +483,21 @@ type connHandler interface {
 	Shutdown() error
 }
 
+// ProxyUpdater is an interface for ProxyTracker.
+type ProxyUpdater interface {
+	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
+	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
+
+	// ProxyConnectedToServer returns whether this id is connected to this server.
+	ProxyConnectedToServer(id *pbresource.ID) bool
+
+	EventChannel() chan controller.Event
+}
+
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
+	incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, proxyUpdater ProxyUpdater) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -534,6 +549,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
+		registry:                flat.Registry,
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -822,7 +838,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		s.insecureResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerControllers(flat)
+	s.registerControllers(flat, proxyUpdater)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -873,7 +889,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	return s, nil
 }
 
-func (s *Server) registerControllers(deps Deps) {
+func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
@@ -889,6 +905,7 @@ func (s *Server) registerControllers(deps Deps) {
 				}
 				return &bundle, nil
 			},
+			ProxyUpdater: proxyUpdater,
 		})
 	}
 

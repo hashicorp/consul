@@ -32,6 +32,7 @@ func RegisterDestinationPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     DestinationPolicyV1Alpha1Type,
 		Proto:    &pbmesh.DestinationPolicy{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDestinationPolicy,
 	})
 }

@@ -156,6 +156,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 
 	run := func(t *testing.T, tc testcase) {
 		res := resourcetest.Resource(FailoverPolicyType, "api").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, tc.failover).
 			Build()
 
@@ -228,7 +229,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest: ref with section": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: resourcetest.Resource(ServiceType, "api").Reference("blah")},
+					{Ref: resourcetest.Resource(ServiceType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).Reference("blah")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: invalid "section" field: section not supported for failover policy dest refs`,
@@ -589,7 +590,9 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return resourcetest.Resource(typ, name).Reference("")
+	return resourcetest.Resource(typ, name).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Reference("")
 }
 
 func newRefWithPeer(typ *pbresource.Type, name string, peer string) *pbresource.Reference {

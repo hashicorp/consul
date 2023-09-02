@@ -47,6 +47,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		resource.Registration{
 			Type:  demo.TypeV2Artist,
 			Proto: &pbdemov2.Artist{},
+			Scope: resource.ScopeNamespace,
 		},
 		client,
 		func(req *http.Request, token *string) { return },

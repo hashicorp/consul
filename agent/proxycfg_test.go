@@ -5,8 +5,6 @@ package agent
 
 import (
 	"encoding/json"
-	"github.com/hashicorp/consul/internal/mesh"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,9 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/mesh"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -54,7 +54,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 
 	// This is a little gross, but this gives us the layered pair of
 	// local/catalog sources for now.
-	cfg := a.xdsServer.CfgSrc
+	cfg := a.xdsServer.ProxyWatcher
 
 	var (
 		timer      = time.After(100 * time.Millisecond)
@@ -64,9 +64,9 @@ func TestAgent_local_proxycfg(t *testing.T) {
 
 	var (
 		firstTime = true
-		ch        <-chan proxycfg.ProxySnapshot
+		ch        <-chan proxysnapshot.ProxySnapshot
 		stc       limiter.SessionTerminatedChan
-		cancel    proxycfg.CancelFunc
+		cancel    proxysnapshot.CancelFunc
 	)
 	defer func() {
 		if cancel != nil {

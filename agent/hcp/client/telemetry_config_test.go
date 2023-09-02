@@ -88,7 +88,6 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 		resp                 *consul_telemetry_service.AgentTelemetryConfigOK
 		expectedTelemetryCfg *TelemetryConfig
 		wantErr              error
-		expectedEnabled      bool
 	}{
 		"success": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -115,34 +114,6 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 					RefreshInterval: 2 * time.Second,
 				},
 			},
-			expectedEnabled: true,
-		},
-		"successNoEndpoint": {
-			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
-				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{
-					TelemetryConfig: &models.HashicorpCloudConsulTelemetry20230414TelemetryConfig{
-						Endpoint: "",
-						Labels:   map[string]string{"test": "test"},
-						Metrics: &models.HashicorpCloudConsulTelemetry20230414TelemetryMetricsConfig{
-							IncludeList: []string{"test", "consul"},
-						},
-					},
-					RefreshConfig: &models.HashicorpCloudConsulTelemetry20230414RefreshConfig{
-						RefreshInterval: "2s",
-					},
-				},
-			},
-			expectedTelemetryCfg: &TelemetryConfig{
-				MetricsConfig: &MetricsConfig{
-					Endpoint: nil,
-					Labels:   map[string]string{"test": "test"},
-					Filters:  validTestFilters,
-				},
-				RefreshConfig: &RefreshConfig{
-					RefreshInterval: 2 * time.Second,
-				},
-			},
-			expectedEnabled: false,
 		},
 		"successBadFilters": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -163,13 +134,12 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 				MetricsConfig: &MetricsConfig{
 					Endpoint: validTestURL,
 					Labels:   map[string]string{"test": "test"},
-					Filters:  defaultMetricFilters,
+					Filters:  DefaultMetricFilters,
 				},
 				RefreshConfig: &RefreshConfig{
 					RefreshInterval: 2 * time.Second,
 				},
 			},
-			expectedEnabled: true,
 		},
 		"errorsWithInvalidRefreshInterval": {
 			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
@@ -209,7 +179,6 @@ func TestConvertAgentTelemetryResponse(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedTelemetryCfg, telemetryCfg)
-			require.Equal(t, tc.expectedEnabled, telemetryCfg.MetricsEnabled())
 		})
 	}
 }
@@ -231,10 +200,10 @@ func TestConvertMetricEndpoint(t *testing.T) {
 			override: "https://override.com",
 			expected: "https://override.com/v1/metrics",
 		},
-		"noErrorWithEmptyEndpoints": {
+		"errorWithEmptyEndpoints": {
 			endpoint: "",
 			override: "",
-			expected: "",
+			wantErr:  errEmptyEndpoint,
 		},
 		"errorWithInvalidURL": {
 			endpoint: "     ",
@@ -249,12 +218,6 @@ func TestConvertMetricEndpoint(t *testing.T) {
 			if tc.wantErr != nil {
 				require.ErrorIs(t, err, tc.wantErr)
 				require.Empty(t, u)
-				return
-			}
-
-			if tc.expected == "" {
-				require.Nil(t, u)
-				require.NoError(t, err)
 				return
 			}
 
@@ -277,13 +240,13 @@ func TestConvertMetricFilters(t *testing.T) {
 	}{
 		"badFilterRegex": {
 			filters:             []string{"(*LF)"},
-			expectedRegexString: defaultMetricFilters.String(),
+			expectedRegexString: DefaultMetricFilters.String(),
 			matches:             []string{"consul.raft.peers", "consul.mem.heap_size"},
 			wantMatch:           true,
 		},
 		"emptyRegex": {
 			filters:             []string{},
-			expectedRegexString: defaultMetricFilters.String(),
+			expectedRegexString: DefaultMetricFilters.String(),
 			matches:             []string{"consul.raft.peers", "consul.mem.heap_size"},
 			wantMatch:           true,
 		},

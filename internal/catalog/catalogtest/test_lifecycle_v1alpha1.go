@@ -695,7 +695,6 @@ func RunCatalogV1Alpha1EndpointsLifecycleIntegrationTest(t *testing.T, client pb
 	// Now delete the service and ensure that the endpoints eventually are deleted as well
 	c.MustDelete(t, service.Id)
 	c.WaitForDeletion(t, endpointsID)
-
 }
 
 func setHealthStatus(t *testing.T, client *rtest.Client, owner *pbresource.ID, name string, health pbcatalog.Health) *pbresource.Resource {

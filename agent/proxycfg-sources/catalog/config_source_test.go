@@ -4,8 +4,8 @@
 package catalog
 
 import (
+	"context"
 	"errors"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"testing"
 	"time"
 
@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/mesh"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 )
 
 func TestConfigSource_Success(t *testing.T) {
@@ -177,7 +179,7 @@ func TestConfigSource_LocallyManagedService(t *testing.T) {
 
 	localWatcher := NewMockWatcher(t)
 	localWatcher.On("Watch", proxyID, nodeName, token).
-		Return(make(<-chan proxycfg.ProxySnapshot), nil, proxycfg.CancelFunc(func() {}), nil)
+		Return(make(<-chan proxysnapshot.ProxySnapshot), nil, proxysnapshot.CancelFunc(func() {}), nil)
 
 	mgr := NewConfigSource(Config{
 		NodeName:          nodeName,
@@ -211,12 +213,12 @@ func TestConfigSource_ErrorRegisteringService(t *testing.T) {
 	}))
 
 	var canceledWatch bool
-	cancel := proxycfg.CancelFunc(func() { canceledWatch = true })
+	cancel := proxysnapshot.CancelFunc(func() { canceledWatch = true })
 
 	cfgMgr := NewMockConfigManager(t)
 
 	cfgMgr.On("Watch", mock.Anything).
-		Return(make(<-chan proxycfg.ProxySnapshot), cancel)
+		Return(make(<-chan proxysnapshot.ProxySnapshot), cancel)
 
 	cfgMgr.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errors.New("KABOOM"))
@@ -261,12 +263,12 @@ func TestConfigSource_NotProxyService(t *testing.T) {
 	}))
 
 	var canceledWatch bool
-	cancel := proxycfg.CancelFunc(func() { canceledWatch = true })
+	cancel := proxysnapshot.CancelFunc(func() { canceledWatch = true })
 
 	cfgMgr := NewMockConfigManager(t)
 
 	cfgMgr.On("Watch", mock.Anything).
-		Return(make(<-chan proxycfg.ProxySnapshot), cancel)
+		Return(make(<-chan proxysnapshot.ProxySnapshot), cancel)
 
 	mgr := NewConfigSource(Config{
 		Manager:        cfgMgr,
@@ -312,9 +314,9 @@ func testConfigManager(t *testing.T, serviceID structs.ServiceID, nodeName strin
 		Token:     token,
 	}
 
-	snapCh := make(chan proxycfg.ProxySnapshot, 1)
+	snapCh := make(chan proxysnapshot.ProxySnapshot, 1)
 	cfgMgr.On("Watch", proxyID).
-		Return((<-chan proxycfg.ProxySnapshot)(snapCh), proxycfg.CancelFunc(func() {}), nil)
+		Return((<-chan proxysnapshot.ProxySnapshot)(snapCh), proxysnapshot.CancelFunc(func() {}), nil)
 
 	cfgMgr.On("Register", mock.Anything, mock.Anything, source, token, false).
 		Run(func(args mock.Arguments) {
@@ -357,6 +359,8 @@ type nullSessionLimiter struct{}
 func (nullSessionLimiter) BeginSession() (limiter.Session, error) {
 	return nullSession{}, nil
 }
+
+func (nullSessionLimiter) Run(ctx context.Context) {}
 
 type nullSession struct{}
 

@@ -8,10 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/xds/configfetcher"
-	"github.com/hashicorp/consul/agent/xdsv2"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -23,7 +19,6 @@ import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/hashicorp/go-hclog"
 	goversion "github.com/hashicorp/go-version"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -33,10 +28,16 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
+	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/mesh"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/version"
 )
 
@@ -91,7 +92,7 @@ func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
 // Envoy resource generator based on whether it was passed a ConfigSource or
 // ProxyState implementation of the ProxySnapshot interface and returns the
 // generated Envoy configuration.
-func getEnvoyConfiguration(proxySnapshot proxycfg.ProxySnapshot, logger hclog.Logger, cfgFetcher configfetcher.ConfigFetcher) (map[string][]proto.Message, error) {
+func getEnvoyConfiguration(proxySnapshot proxysnapshot.ProxySnapshot, logger hclog.Logger, cfgFetcher configfetcher.ConfigFetcher) (map[string][]proto.Message, error) {
 	switch proxySnapshot.(type) {
 	case *proxycfg.ConfigSnapshot:
 		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ConfigSnapshot",
@@ -106,14 +107,14 @@ func getEnvoyConfiguration(proxySnapshot proxycfg.ProxySnapshot, logger hclog.Lo
 		c := proxySnapshot.(*proxycfg.ConfigSnapshot)
 		logger.Trace("ConfigSnapshot", c)
 		return generator.AllResourcesFromSnapshot(c)
-	case *mesh.ProxyState:
+	case *proxytracker.ProxyState:
 		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ProxyState",
 			"proxySnapshot", proxySnapshot,
 		)
 		generator := xdsv2.NewResourceGenerator(
 			logger,
 		)
-		c := proxySnapshot.(*mesh.ProxyState)
+		c := proxySnapshot.(*proxytracker.ProxyState)
 		logger.Trace("ProxyState", c)
 		return generator.AllResourcesFromIR(c)
 	default:
@@ -135,9 +136,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	// Loop state
 	var (
-		proxySnapshot proxycfg.ProxySnapshot
+		proxySnapshot proxysnapshot.ProxySnapshot
 		node          *envoy_config_core_v3.Node
-		stateCh       <-chan proxycfg.ProxySnapshot
+		stateCh       <-chan proxysnapshot.ProxySnapshot
 		drainCh       limiter.SessionTerminatedChan
 		watchCancel   func()
 		nonce         uint64 // xDS requires a unique nonce to correlate response/request pairs
@@ -202,7 +203,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		authTimer = time.After(s.AuthCheckFrequency)
 	}
 
-	checkStreamACLs := func(proxySnap proxycfg.ProxySnapshot) error {
+	checkStreamACLs := func(proxySnap proxysnapshot.ProxySnapshot) error {
 		return s.authorize(stream.Context(), proxySnap)
 	}
 
@@ -326,7 +327,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
 
-			stateCh, drainCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
+			stateCh, drainCh, watchCancel, err = s.ProxyWatcher.Watch(proxyID, nodeName, options.Token)
 			switch {
 			case errors.Is(err, limiter.ErrCapacityReached):
 				return errOverwhelmed
@@ -432,14 +433,14 @@ func newResourceIDFromEnvoyNode(node *envoy_config_core_v3.Node) *pbresource.ID 
 	}
 }
 
-func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, proxySnapshot proxycfg.ProxySnapshot, node *envoy_config_core_v3.Node) (*xdscommon.IndexedResources, error) {
+func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, proxySnapshot proxysnapshot.ProxySnapshot, node *envoy_config_core_v3.Node) (*xdscommon.IndexedResources, error) {
 	// TODO(proxystate)
 	// This is a workaround for now as envoy extensions are not yet supported with ProxyState.
 	// For now, we cast to proxycfg.ConfigSnapshot and no-op if it's the pbmesh.ProxyState type.
 	var snapshot *proxycfg.ConfigSnapshot
 	switch proxySnapshot.(type) {
 	//TODO(proxystate): implement envoy extensions for ProxyState
-	case *mesh.ProxyState:
+	case *proxytracker.ProxyState:
 		return resources, nil
 	case *proxycfg.ConfigSnapshot:
 		snapshot = proxySnapshot.(*proxycfg.ConfigSnapshot)

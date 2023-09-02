@@ -1,4 +1,4 @@
-package mesh
+package proxytracker
 
 import (
 	"github.com/hashicorp/consul/acl"
