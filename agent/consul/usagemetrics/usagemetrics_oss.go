@@ -149,24 +149,13 @@ func (u *UsageMetricsReporter) emitConfigEntryUsage(configUsage state.ConfigEntr
 	}
 }
 
-func GetVersionWithMetadata() string {
-
-	version := consulversion.Version
-	metadata := consulversion.VersionMetadata
-
-	if metadata != "" {
-		version += "+" + metadata
-	}
-	return version
-}
-
-func (u *UsageMetricsReporter) emitVersionUsage() {
+func (u *UsageMetricsReporter) emitVersionUsage(GetVersionWithMetadata string) {
 
 	metrics.SetGaugeWithLabels(
 		[]string{"consul", "version"},
 		1,
 		[]metrics.Label{
-			{Name: "version", Value: GetVersionWithMetadata()},
+			{Name: "version", Value: GetVersionWithMetadata},
 			{Name: "pre_release", Value: consulversion.VersionPrerelease},
 		},
 	)
@@ -175,7 +164,7 @@ func (u *UsageMetricsReporter) emitVersionUsage() {
 		[]string{"version"},
 		1,
 		[]metrics.Label{
-			{Name: "version", Value: GetVersionWithMetadata()},
+			{Name: "version", Value: GetVersionWithMetadata},
 			{Name: "pre_release", Value: consulversion.VersionPrerelease},
 		},
 	)

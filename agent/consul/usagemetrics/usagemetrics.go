@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/logging"
+	consulversion "github.com/hashicorp/consul/version"
 )
 
 var Gauges = []prometheus.GaugeDefinition{
@@ -253,7 +254,8 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	u.emitConfigEntryUsage(configUsage)
 
-	u.emitVersionUsage()
+	GetVersionWithMetadata := u.GetVersionWithMetadata()
+	u.emitVersionUsage(GetVersionWithMetadata)
 }
 
 func (u *UsageMetricsReporter) memberUsage() []serf.Member {
@@ -275,4 +277,16 @@ func (u *UsageMetricsReporter) memberUsage() []serf.Member {
 	}
 
 	return out
+}
+
+func (u *UsageMetricsReporter) GetVersionWithMetadata() string {
+
+	version := consulversion.Version
+	metadata := consulversion.VersionMetadata
+
+	if metadata != "" {
+		version += "+" + metadata
+	}
+
+	return version
 }

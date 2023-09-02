@@ -504,9 +504,17 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "control-plane-request-limit"},
 				},
 			},
-			"consul.usage.test.version;version=1.17.0;pre_release=dev": {
+			"consul.usage.test.consul.version;version=1.7.0;pre_release=dev": { // Legacy
+				Name:  "consul.usage.test.consul.version",
+				Value: 1,
+				Labels: []metrics.Label{
+					{Name: "version", Value: "1.17.0"},
+					{Name: "pre_release", Value: "dev"},
+				},
+			},
+			"consul.usage.test.version;version=1.7.0;pre_release=dev": {
 				Name:  "consul.usage.test.version",
-				Value: 0,
+				Value: 1,
 				Labels: []metrics.Label{
 					{Name: "version", Value: "1.17.0"},
 					{Name: "pre_release", Value: "dev"},
@@ -1450,24 +1458,6 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 		Name:   "consul.usage.test.state.kv_entries",
 		Value:  4,
 		Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
-	}
-
-	nodesCase.expectedGauges["consul.usage.consul.test.version;version=1.7.0;pre_release=dev"] = metrics.GaugeValue{ // Legacy
-		Name:  "consul.usage.test.consul.version",
-		Value: 0,
-		Labels: []metrics.Label{
-			{Name: "version", Value: "1.17.0"},
-			{Name: "pre_release", Value: "dev"},
-		},
-	}
-
-	nodesCase.expectedGauges["consul.usage.test.version;version=1.7.0;pre_release=dev"] = metrics.GaugeValue{
-		Name:  "consul.usage.test.version",
-		Value: 0,
-		Labels: []metrics.Label{
-			{Name: "version", Value: "1.17.0"},
-			{Name: "pre_release", Value: "dev"},
-		},
 	}
 
 	cases["nodes"] = nodesCase
