@@ -504,17 +504,17 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "control-plane-request-limit"},
 				},
 			},
-			"consul.usage.test.consul.version;version=1.7.0;pre_release=dev": { // Legacy
+			"consul.usage.test.consul.version;version=1.17.0;pre_release=dev": { // Legacy
 				Name:  "consul.usage.test.consul.version",
-				Value: 1,
+				Value: 0,
 				Labels: []metrics.Label{
 					{Name: "version", Value: "1.17.0"},
 					{Name: "pre_release", Value: "dev"},
 				},
 			},
-			"consul.usage.test.version;version=1.7.0;pre_release=dev": {
+			"consul.usage.test.version;version=1.17.0;pre_release=dev": {
 				Name:  "consul.usage.test.version",
-				Value: 1,
+				Value: 0,
 				Labels: []metrics.Label{
 					{Name: "version", Value: "1.17.0"},
 					{Name: "pre_release", Value: "dev"},
@@ -1009,6 +1009,14 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "control-plane-request-limit"},
+				},
+			},
+			"consul.usage.test.consul.version;version=1.17.0;pre_release=dev": { //legacy
+				Name:  "consul.usage.test.consul.version",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "version", Value: "1.17.0"},
+					{Name: "pre_release", Value: "dev"},
 				},
 			},
 			"consul.usage.test.version;version=1.17.0;pre_release=dev": {
