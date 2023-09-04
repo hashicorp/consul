@@ -64,6 +64,19 @@ We are pleased to announce the following Consul updates.
 
 For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
 
+<<<<<<< HEAD
+=======
+## Known Issues
+
+The following issues are known to exist in the v1.16.x releases:
+
+- v1.16.0 - v1.16.1 may have issues when a snapshot restore is performed
+    and the servers are hosting xDS streams. When this bug triggers, it
+    will cause Envoy to incorrectly populate upstream endpoints. It is
+    currently not recommended for service mesh users running agent-less
+    workloads to upgrade Consul to these versions.
+
+>>>>>>> 0cfe6f84a19eba1b25d8e6c7efd18da4abfa037c
 ## Changelogs
 
 The changelogs for this major release version and any maintenance versions are listed below.

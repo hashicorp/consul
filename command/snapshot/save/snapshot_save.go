@@ -6,7 +6,10 @@ package save
 import (
 	"flag"
 	"fmt"
+	"golang.org/x/exp/slices"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/mitchellh/cli"
 	"github.com/rboyer/safeio"
@@ -23,10 +26,18 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
+	UI                 cli.Ui
+	flags              *flag.FlagSet
+	http               *flags.HTTPFlags
+	help               string
+	appendFileNameFlag flags.StringValue
+}
+
+func (c *cmd) getAppendFileNameFlag() *flag.FlagSet {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	fs.Var(&c.appendFileNameFlag, "append-filename", "Append filename flag supports the following "+
+		"comma-separated arguments. 1. version, 2. dc. 3. node 4. status. It appends these values to the filename provided in the command")
+	return fs
 }
 
 func (c *cmd) init() {
@@ -34,6 +45,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.getAppendFileNameFlag())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -58,6 +70,62 @@ func (c *cmd) Run(args []string) int {
 
 	// Create and test the HTTP client
 	client, err := c.http.APIClient()
+
+	appendFileNameFlags := strings.Split(c.appendFileNameFlag.String(), ",")
+
+	if len(appendFileNameFlags) != 0 && len(c.appendFileNameFlag.String()) > 0 {
+		agentSelfResponse, err := client.Agent().Self()
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent and fetching datacenter/version: %s", err))
+			return 1
+		}
+
+		fileExt := filepath.Ext(file)
+		fileNameWithoutExt := strings.TrimSuffix(file, fileExt)
+
+		if slices.Contains(appendFileNameFlags, "version") {
+			if config, ok := agentSelfResponse["Config"]; ok {
+				if version, ok := config["Version"]; ok {
+					fileNameWithoutExt = fileNameWithoutExt + "-" + version.(string)
+				}
+			}
+		}
+
+		if slices.Contains(appendFileNameFlags, "dc") {
+			if config, ok := agentSelfResponse["Config"]; ok {
+				if datacenter, ok := config["Datacenter"]; ok {
+					fileNameWithoutExt = fileNameWithoutExt + "-" + datacenter.(string)
+				}
+			}
+		}
+
+		if slices.Contains(appendFileNameFlags, "node") {
+			if config, ok := agentSelfResponse["Config"]; ok {
+				if nodeName, ok := config["NodeName"]; ok {
+					fileNameWithoutExt = fileNameWithoutExt + "-" + nodeName.(string)
+				}
+			}
+		}
+
+		if slices.Contains(appendFileNameFlags, "status") {
+			if status, ok := agentSelfResponse["Stats"]; ok {
+				if config, ok := status["consul"]; ok {
+					configMap := config.(map[string]interface{})
+					if leader, ok := configMap["leader"]; ok {
+						if leader == "true" {
+							fileNameWithoutExt = fileNameWithoutExt + "-" + "leader"
+						} else {
+							fileNameWithoutExt = fileNameWithoutExt + "-" + "follower"
+						}
+					}
+				}
+			}
+		}
+
+		//adding extension back
+		file = fileNameWithoutExt + fileExt
+	}
+
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
