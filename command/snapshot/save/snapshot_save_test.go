@@ -98,7 +98,7 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 		status = "leader"
 	}
 
-	//We need to use the self endpoint here for ENT, which returns the product suffix (+ent)
+	// We need to use the self endpoint here for ENT, which returns the product suffix (+ent)
 	self, err := client.Agent().Self()
 	require.NoError(t, err)
 
