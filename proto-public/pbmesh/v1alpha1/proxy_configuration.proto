@@ -93,6 +93,7 @@ message BootstrapConfig {
   string stats_config_json = 11;
   string stats_flush_interval = 12;
   string tracing_config_json = 13;
+  string telemetry_collector_bind_socket_dir = 14;
 }
 
 enum ProxyMode {

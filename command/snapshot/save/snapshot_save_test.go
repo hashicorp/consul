@@ -101,7 +101,20 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 		status = "leader"
 	}
 
-	newFilePath := filepath.Join(dir, "backup"+"-"+a.Config.Version+"-"+a.Config.Datacenter+
+	// We need to use the self endpoint here for ENT, which returns the product suffix (+ent)
+	self, err := client.Agent().Self()
+	require.NoError(t, err)
+
+	cfg, ok := self["Config"]
+	require.True(t, ok)
+
+	versionAny, ok := cfg["Version"]
+	require.True(t, ok)
+
+	version, ok := versionAny.(string)
+	require.True(t, ok)
+
+	newFilePath := filepath.Join(dir, "backup"+"-"+version+"-"+a.Config.Datacenter+
 		"-"+a.Config.NodeName+"-"+status+".tgz")
 
 	code := c.Run(args)
