@@ -60,10 +60,8 @@ func (l *LogFile) fileNamePattern() string {
 }
 
 func (l *LogFile) openNew() error {
-	fileNamePattern := l.fileNamePattern()
-
 	createTime := now()
-	newfileName := fmt.Sprintf(fileNamePattern, strconv.FormatInt(createTime.UnixNano(), 10))
+	newfileName := l.fileName
 	newfilePath := filepath.Join(l.logPath, newfileName)
 
 	// Try creating a file. We truncate the file because we are the only authority to write the logs
@@ -79,12 +77,28 @@ func (l *LogFile) openNew() error {
 	return nil
 }
 
+func (l *LogFile) renameCurrentFile() error {
+	fileNamePattern := l.fileNamePattern()
+
+	createTime := now()
+	// Current file is consul.log always
+	currentFilePath := filepath.Join(l.logPath, l.fileName)
+
+	oldFileName := fmt.Sprintf(fileNamePattern, strconv.FormatInt(createTime.UnixNano(), 10))
+	oldFilePath := filepath.Join(l.logPath, oldFileName)
+
+	return os.Rename(currentFilePath, oldFilePath)
+}
+
 func (l *LogFile) rotate() error {
 	// Get the time from the last point of contact
 	timeElapsed := time.Since(l.LastCreated)
 	// Rotate if we hit the byte file limit or the time limit
 	if (l.BytesWritten >= int64(l.MaxBytes) && (l.MaxBytes > 0)) || timeElapsed >= l.duration {
 		l.FileInfo.Close()
+		if err := l.renameCurrentFile(); err != nil {
+			return err
+		}
 		if err := l.pruneFiles(); err != nil {
 			return err
 		}
