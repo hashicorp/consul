@@ -310,7 +310,7 @@ jobs:
 
 
   peering_commontopo-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     needs:
       - setup
       - dev-build
