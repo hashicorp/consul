@@ -11,17 +11,21 @@ This topic provides an overview of how Consul uses proxies in your service mesh.
 
 ## Proxy use cases
 
-_Proxies_ are services that you can configure to perform several different types of functions in Consul.
+You can configure proxies to perform several different types of functions in Consul.
+
+### Service mesh proxies
+
+A _service mesh proxy_ is any type of proxy service that you use for communication in a service mesh. Specialized proxy implementations, such as sidecar proxies and gateways, are subsets of service mesh proxies. Refer to [Deploy service mesh proxy services](/consul/docs/connect/proxies/deploy-service-mesh-proxies) for instructions on how to deploy a service mesh proxy.
 
 ### Sidecars
 
-You can configure proxies to operate as sidecar services transparently handles inbound and outbound service connections. Sidecars also automatically wrap and verify TLS connections. Each service in your mesh should have its own sidecar proxy.   
+Sidecar proxies are service mesh proxy implementations that transparently handles inbound and outbound service connections. Sidecars automatically wrap and verify TLS connections. In a non-containerized network, each service in your mesh should have its own sidecar proxy.   
 
 Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information.
 
 ### Gateways
 
-You can configure proxies to operate as gateway services, which allow service-to-service traffic across different network areas, including peered clusters, WAN-federated datacenters, and nodes outside the mesh. Consul ships with several types of gateway capabilities, but gateways deliver the underlying functionality.
+You can configure service mesh proxies to operate as gateway services, which allow service-to-service traffic across different network areas, including peered clusters, WAN-federated datacenters, and nodes outside the mesh. Consul ships with several types of gateway capabilities, but gateways deliver the underlying functionality.
 
 Refer to [Gateways overview](/consul/docs/connect/gateways) for additional information.
 
