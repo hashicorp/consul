@@ -849,18 +849,36 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			AuthMethod: "test",
 			Local:      true,
 		},
+		// the serviceName specific token
+		&structs.ACLToken{
+			AccessorID: "80c900e1-2fc5-4685-ae29-1b2d17fc30e4",
+			SecretID:   "9d229cfd-ec4b-4d31-a6fd-ecbcb2a41d41",
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				{ServiceName: "sn1"},
+			},
+		},
+		// the serviceName specific token and local
+		&structs.ACLToken{
+			AccessorID: "a14fa45e-0afe-4b44-961d-a430030ccfe2",
+			SecretID:   "17f696b9-448a-4bd3-936b-08c92c66530f",
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				{ServiceName: "sn1"},
+			},
+			Local: true,
+		},
 	}
 
 	require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
 
 	type testCase struct {
-		name       string
-		local      bool
-		global     bool
-		policy     string
-		role       string
-		methodName string
-		accessors  []string
+		name        string
+		local       bool
+		global      bool
+		policy      string
+		role        string
+		methodName  string
+		serviceName string
+		accessors   []string
 	}
 
 	cases := []testCase{
@@ -876,6 +894,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
 				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
+				"80c900e1-2fc5-4685-ae29-1b2d17fc30e4", // serviceName + global
 				"a7715fde-8954-4c92-afbc-d84c6ecdc582", // role + global
 			},
 		},
@@ -889,6 +908,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			accessors: []string{
 				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
+				"a14fa45e-0afe-4b44-961d-a430030ccfe2", // serviceName + local
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 				"f1093997-b6c7-496d-bfb8-6b1b1895641b", // mgmt + local
 			},
@@ -984,6 +1004,30 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			},
 		},
 		{
+			name:        "ServiceName - Local",
+			local:       true,
+			global:      false,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "sn1",
+			accessors: []string{
+				"a14fa45e-0afe-4b44-961d-a430030ccfe2", // serviceName + local
+			},
+		},
+		{
+			name:        "ServiceName - Global",
+			local:       false,
+			global:      true,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "sn1",
+			accessors: []string{
+				"80c900e1-2fc5-4685-ae29-1b2d17fc30e4", // serviceName + global
+			},
+		},
+		{
 			name:       "All",
 			local:      true,
 			global:     true,
@@ -997,6 +1041,8 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
 				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
+				"80c900e1-2fc5-4685-ae29-1b2d17fc30e4", // serviceName + global
+				"a14fa45e-0afe-4b44-961d-a430030ccfe2", // serviceName + local
 				"a7715fde-8954-4c92-afbc-d84c6ecdc582", // role + global
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 				"f1093997-b6c7-496d-bfb8-6b1b1895641b", // mgmt + local
@@ -1004,14 +1050,26 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		},
 	}
 
-	for _, tc := range []struct{ policy, role, methodName string }{
-		{testPolicyID_A, testRoleID_A, "test"},
-		{"", testRoleID_A, "test"},
-		{testPolicyID_A, "", "test"},
-		{testPolicyID_A, testRoleID_A, ""},
+	for _, tc := range []struct{ policy, role, methodName, serviceName string }{
+		{testPolicyID_A, testRoleID_A, "test", ""},
+		{"", testRoleID_A, "test", ""},
+		{testPolicyID_A, "", "test", ""},
+		{testPolicyID_A, testRoleID_A, "", ""},
+		{testPolicyID_A, "", "", "test"},
 	} {
-		t.Run(fmt.Sprintf("can't filter on more than one: %s/%s/%s", tc.policy, tc.role, tc.methodName), func(t *testing.T) {
-			_, _, err := s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName, nil, nil)
+		t.Run(fmt.Sprintf("can't filter on more than one: %s/%s/%s/%s", tc.policy, tc.role, tc.methodName, tc.serviceName), func(t *testing.T) {
+			var err error
+			if tc.serviceName == "" {
+				// The legacy call can only be tested when the serviceName is not specified
+				_, _, err = s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName, nil, nil)
+				require.Error(t, err)
+			}
+			_, _, err = s.ACLTokenListWithParameters(nil, ACLTokenListParameters{
+				Policy:      tc.policy,
+				Role:        tc.role,
+				MethodName:  tc.methodName,
+				ServiceName: tc.serviceName,
+			})
 			require.Error(t, err)
 		})
 	}
@@ -1020,12 +1078,32 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil, nil)
-			require.NoError(t, err)
-			require.Len(t, tokens, len(tc.accessors))
-			tokens.Sort()
-			for i, token := range tokens {
-				require.Equal(t, tc.accessors[i], token.AccessorID)
+			// Test old function
+			if tc.serviceName == "" {
+				_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil, nil)
+				require.NoError(t, err)
+				require.Len(t, tokens, len(tc.accessors))
+				tokens.Sort()
+				for i, token := range tokens {
+					require.Equal(t, tc.accessors[i], token.AccessorID)
+				}
+			}
+			// Test new function
+			{
+				_, tokens, err := s.ACLTokenListWithParameters(nil, ACLTokenListParameters{
+					Local:       tc.local,
+					Global:      tc.global,
+					Policy:      tc.policy,
+					Role:        tc.role,
+					ServiceName: tc.serviceName,
+					MethodName:  tc.methodName,
+				})
+				require.NoError(t, err)
+				require.Len(t, tokens, len(tc.accessors))
+				tokens.Sort()
+				for i, token := range tokens {
+					require.Equal(t, tc.accessors[i], token.AccessorID)
+				}
 			}
 		})
 	}
