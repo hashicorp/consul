@@ -413,7 +413,7 @@ func indexServiceNameFromACLToken(token *structs.ACLToken) ([][]byte, error) {
 	for _, id := range token.ServiceIdentities {
 		if id != nil && id.ServiceName != "" {
 			var b indexBuilder
-			b.String(id.ServiceName)
+			b.String(strings.ToLower(id.ServiceName))
 			vals = append(vals, b.Bytes())
 		}
 	}
