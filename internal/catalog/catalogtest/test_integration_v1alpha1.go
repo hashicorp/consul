@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -68,7 +69,7 @@ func VerifyCatalogV1Alpha1IntegrationTestResults(t *testing.T, client pbresource
 		c.RequireResourceExists(t, rtest.Resource(catalog.ServiceV1Alpha1Type, "foo").ID())
 
 		for i := 1; i < 5; i++ {
-			nodeId := rtest.Resource(catalog.NodeV1Alpha1Type, fmt.Sprintf("node-%d", i)).ID()
+			nodeId := rtest.Resource(catalog.NodeV1Alpha1Type, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 			c.RequireResourceExists(t, nodeId)
 
 			res := c.RequireResourceExists(t, rtest.Resource(catalog.HealthStatusV1Alpha1Type, fmt.Sprintf("node-%d-health", i)).ID())
@@ -76,7 +77,7 @@ func VerifyCatalogV1Alpha1IntegrationTestResults(t *testing.T, client pbresource
 		}
 
 		for i := 1; i < 21; i++ {
-			workloadId := rtest.Resource(catalog.WorkloadV1Alpha1Type, fmt.Sprintf("api-%d", i)).ID()
+			workloadId := rtest.Resource(catalog.WorkloadV1Alpha1Type, fmt.Sprintf("api-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 			c.RequireResourceExists(t, workloadId)
 
 			res := c.RequireResourceExists(t, rtest.Resource(catalog.HealthStatusV1Alpha1Type, fmt.Sprintf("api-%d-health", i)).ID())

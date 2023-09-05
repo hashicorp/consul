@@ -32,6 +32,7 @@ func RegisterGRPCRoute(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  GRPCRouteV1Alpha1Type,
 		Proto: &pbmesh.GRPCRoute{},
+		Scope: resource.ScopeNamespace,
 		// TODO(rb): normalize parent/backend ref tenancies in a Mutate hook
 		Validate: ValidateGRPCRoute,
 	})

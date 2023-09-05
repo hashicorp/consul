@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -19,7 +20,16 @@ var (
 	groupRegexp        = regexp.MustCompile(`^[a-z][a-z\d_]+$`)
 	groupVersionRegexp = regexp.MustCompile(`^v([a-z\d]+)?\d$`)
 	kindRegexp         = regexp.MustCompile(`^[A-Z][A-Za-z\d]+$`)
+	// Track resource types that are allowed to have an undefined scope. These are usually
+	// non-customer facing or internal types.
+	undefinedScopeAllowed = map[string]bool{
+		storage.UnversionedTypeFrom(TypeV1Tombstone).String(): true,
+	}
 )
+
+func isUndefinedScopeAllowed(t *pbresource.Type) bool {
+	return undefinedScopeAllowed[storage.UnversionedTypeFrom(t).String()]
+}
 
 type Registry interface {
 	// Register the given resource type and its hooks.
@@ -105,6 +115,14 @@ func (r *TypeRegistry) Register(registration Registration) {
 		panic(fmt.Sprintf("Type.GroupVersion must be lowercase, start with `v`, and end with a number (e.g. `v2` or `v1alpha1`). Got: %q", typ.Group))
 	case !kindRegexp.MatchString(typ.Kind):
 		panic(fmt.Sprintf("Type.Kind must be in PascalCase. Got: %q", typ.Kind))
+	}
+
+	if registration.Proto == nil {
+		panic("Proto field is required.")
+	}
+
+	if registration.Scope == ScopeUndefined && !isUndefinedScopeAllowed(typ) {
+		panic(fmt.Sprintf("scope required for %s. Got: %q", typ, registration.Scope))
 	}
 
 	r.lock.Lock()

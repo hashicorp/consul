@@ -33,6 +33,7 @@ func RegisterFailoverPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     FailoverPolicyV1Alpha1Type,
 		Proto:    &pbcatalog.FailoverPolicy{},
+		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateFailoverPolicy,
 		Validate: ValidateFailoverPolicy,
 	})
