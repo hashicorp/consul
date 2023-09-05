@@ -654,8 +654,8 @@ The following table describes the configurations for passive health checks:
   | `Interval` | Specifies the time between checks. | string | `0s` |
   | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
   | `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
-  | `MaxEjectionPercent` | The maximum % of an upstream cluster that can be ejected due to outlier detection. Defaults to 10% but will eject at least one host regardless of the value. | integer | `10` |
-  | `BaseEjectionTime` | The base time that a host is ejected for. The real time is equal to the base time multiplied by the number of times the host has been ejected and is capped by max_ejection_time (Default 300s). Defaults to 30000ms or 30s. | string | `30s` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. The real time can not exceed the amount of time specified inthe `max_ejection_time` field. | string | `30s` |
 
 ### `Listeners[]`
 
@@ -891,8 +891,8 @@ The following table describes the configurations for passive health checks:
   | `Interval` | Specifies the time between checks. | string | `0s` |
   | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
   | `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
-  | `MaxEjectionPercent` | The maximum % of an upstream cluster that can be ejected due to outlier detection. Defaults to 10% but will eject at least one host regardless of the value. | integer | `10` |
-  | `BaseEjectionTime` | The base time that a host is ejected for. The real time is equal to the base time multiplied by the number of times the host has been ejected and is capped by max_ejection_time (Default 300s). Defaults to 30000ms or 30s. | string | `30s` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. The real time can not exceed the amount of time specified inthe `max_ejection_time` field. | string | `30s` |
 
 ### `Listeners[].TLS`
 
