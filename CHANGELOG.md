@@ -1,5 +1,9 @@
 ## 1.16.1 (August 8, 2023)
 
+KNOWN ISSUES:
+
+* connect: Consul versions 1.16.0 and 1.16.1 may have issues when a snapshot restore is performed and the servers are hosting xDS streams. When this bug triggers, it will cause Envoy to incorrectly populate upstream endpoints. This bug only impacts agent-less service mesh and should be fixed in Consul 1.16.2 by [GH-18636](https://github.com/hashicorp/consul/pull/18636).
+
 SECURITY:
 
 * Update `golang.org/x/net` to v0.13.0 to address [CVE-2023-3978](https://nvd.nist.gov/vuln/detail/CVE-2023-3978). [[GH-18358](https://github.com/hashicorp/consul/issues/18358)]
@@ -135,6 +139,10 @@ BUG FIXES:
 https://github.com/rboyer/safeio/pull/3 [[GH-18302](https://github.com/hashicorp/consul/issues/18302)]
 
 ## 1.16.0 (June 26, 2023)
+
+KNOWN ISSUES:
+
+* connect: Consul versions 1.16.0 and 1.16.1 may have issues when a snapshot restore is performed and the servers are hosting xDS streams. When this bug triggers, it will cause Envoy to incorrectly populate upstream endpoints. This bug only impacts agent-less service mesh and should be fixed in Consul 1.16.2 by [GH-18636](https://github.com/hashicorp/consul/pull/18636).
 
 BREAKING CHANGES:
 
