@@ -33,7 +33,7 @@ type cmd struct {
 func (c *cmd) getAppendFileNameFlag() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	fs.Var(&c.appendFileNameFlag, "append-filename", "Append filename flag supports the following "+
-		"comma-separated arguments. 1. version, 2. dc. 3. node 4. status. It appends these values to the filename provided in the command")
+		"comma-separated arguments. 1. version, 2. dc. It appends these values to the filename provided in the command")
 	return fs
 }
 
@@ -72,7 +72,9 @@ func (c *cmd) Run(args []string) int {
 
 	if len(appendFileNameFlags) != 0 && len(c.appendFileNameFlag.String()) > 0 {
 		agentSelfResponse, err := client.Agent().Self()
-		if err != nil {
+		operatorHealthResponse, error := client.Operator().AutopilotServerHealth(nil)
+
+		if err != nil && error != nil {
 			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent and fetching datacenter/version: %s", err))
 			return 1
 		}
@@ -92,29 +94,6 @@ func (c *cmd) Run(args []string) int {
 			if config, ok := agentSelfResponse["Config"]; ok {
 				if datacenter, ok := config["Datacenter"]; ok {
 					fileNameWithoutExt = fileNameWithoutExt + "-" + datacenter.(string)
-				}
-			}
-		}
-
-		if slices.Contains(appendFileNameFlags, "node") {
-			if config, ok := agentSelfResponse["Config"]; ok {
-				if nodeName, ok := config["NodeName"]; ok {
-					fileNameWithoutExt = fileNameWithoutExt + "-" + nodeName.(string)
-				}
-			}
-		}
-
-		if slices.Contains(appendFileNameFlags, "status") {
-			if status, ok := agentSelfResponse["Stats"]; ok {
-				if config, ok := status["consul"]; ok {
-					configMap := config.(map[string]interface{})
-					if leader, ok := configMap["leader"]; ok {
-						if leader == "true" {
-							fileNameWithoutExt = fileNameWithoutExt + "-" + "leader"
-						} else {
-							fileNameWithoutExt = fileNameWithoutExt + "-" + "follower"
-						}
-					}
 				}
 			}
 		}
