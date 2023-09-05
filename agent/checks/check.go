@@ -641,7 +641,7 @@ type CheckTCP struct {
 	StatusHandler   *StatusHandler
 
 	dialer   *net.Dialer
-	tlsConn 	*tls.Conn
+	tlsConn  *tls.Conn
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
@@ -663,8 +663,13 @@ func (c *CheckTCP) Start() {
 		}
 	}
 
-	if c.TLSClientConfig != nil {
-		c.tlsConn = tls.DialWithDialer(c.dialer, _, _, c.TLSClientConfig)
+	var err error
+	if c.TLSClientConfig != nil && c.tlsConn == nil {
+		c.tlsConn, err = tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
+		if err != nil {
+			c.Logger.Error("Cannot create TCP TLS client", "error", err)
+			return
+		}
 	}
 
 	c.stop = false
@@ -700,20 +705,39 @@ func (c *CheckTCP) run() {
 
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
-	conn, err := c.dialer.Dial(`tcp`, c.TCP)
-	conn, err = c.dialer.
-	//(`tcp`, c.TCP)
+	var conn net.Conn
+	var err error
+
+	if c.tlsConn != nil {
+		conn, err = c.dialer.Dial(`tcp`, c.TCP)
+		if err != nil {
+			c.Logger.Warn("Check TCP TLS socket connection failed",
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+		}
+	} else {
+		conn, err = c.dialer.Dial(`tcp`, c.TCP)
+		if err != nil {
+			c.Logger.Warn("Check TCP socket connection failed",
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+		}
+	}
 
 	if err != nil {
-		c.Logger.Warn("Check socket connection failed",
-			"check", c.CheckID.String(),
-			"error", err,
-		)
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
-	conn.Close()
-	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
+
+	if c.tlsConn != nil {
+		c.tlsConn.Close()
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP with TLS connect %s: Success", c.TCP))
+	} else {
+		conn.Close()
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
+	}
 }
 
 // CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.
