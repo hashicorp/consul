@@ -457,6 +457,8 @@ type HTTPFilters struct {
 	JWT           *JWTFilter
 }
 
+// HTTPResponseFilters specifies a list of filters used to modify the
+// response returned by an upstream
 type HTTPResponseFilters struct {
 	Headers []HTTPHeaderFilter
 }
