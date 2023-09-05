@@ -82,10 +82,11 @@ func (c *cmd) Run(args []string) int {
 			}
 			resourceName = parsedResource.Id.GetName()
 			opts = &api.QueryOptions{
-				Namespace: parsedResource.Id.Tenancy.GetNamespace(),
-				Partition: parsedResource.Id.Tenancy.GetPartition(),
-				Peer:      parsedResource.Id.Tenancy.GetPeerName(),
-				Token:     c.http.Token(),
+				Namespace:         parsedResource.Id.Tenancy.GetNamespace(),
+				Partition:         parsedResource.Id.Tenancy.GetPartition(),
+				Peer:              parsedResource.Id.Tenancy.GetPeerName(),
+				Token:             c.http.Token(),
+				RequireConsistent: !c.http.Stale(),
 			}
 		} else {
 			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
