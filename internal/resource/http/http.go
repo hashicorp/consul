@@ -176,10 +176,18 @@ func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, c
 
 func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
 	query := r.URL.Query()
+	namespace := query.Get("namespace")
+	if namespace == "" {
+		namespace = query.Get("ns")
+	}
+	peer := query.Get("peer")
+	if peer == "" {
+		peer = query.Get("peer_name")
+	}
 	tenancy = &pbresource.Tenancy{
 		Partition: query.Get("partition"),
-		PeerName:  query.Get("peer_name"),
-		Namespace: query.Get("namespace"),
+		PeerName:  peer,
+		Namespace: namespace,
 	}
 
 	resourceName := path.Base(r.URL.Path)
@@ -191,6 +199,9 @@ func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[strin
 	params["resourceName"] = resourceName
 	params["version"] = query.Get("version")
 	params["namePrefix"] = query.Get("name_prefix")
+	// coming from command line
+	params["consistent"] = query.Get("RequireConsistent")
+	// coming from http client
 	if _, ok := query["consistent"]; ok {
 		params["consistent"] = "true"
 	}
