@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 syntax = "proto3";
 
@@ -66,6 +66,7 @@ message HealthCheckDefinition {
   string Body = 18;
   bool DisableRedirects = 22;
   string TCP = 5;
+  bool TCPUseTLS = 25;
   string UDP = 23;
   string OSService = 24;
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
@@ -117,6 +118,7 @@ message CheckType {
   string Body = 26;
   bool DisableRedirects = 31;
   string TCP = 8;
+  bool TCPUseTLS = 34;
   string UDP = 32;
   string OSService = 33;
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto

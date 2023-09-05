@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package structs
 
@@ -1483,10 +1483,6 @@ func (s *NodeService) IsGateway() bool {
 func (s *NodeService) Validate() error {
 	var result error
 
-	if err := s.Locality.Validate(); err != nil {
-		result = multierror.Append(result, err)
-	}
-
 	if s.Kind == ServiceKindConnectProxy {
 		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
@@ -1879,6 +1875,7 @@ type HealthCheckDefinition struct {
 	Body                           string              `json:",omitempty"`
 	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
+	TCPUseTLS                      bool                `json:",omitempty"`
 	UDP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	OSService                      string              `json:",omitempty"`
@@ -2031,6 +2028,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Body:                           c.Definition.Body,
 		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
+		TCPUseTLS:                      c.Definition.TCPUseTLS,
 		UDP:                            c.Definition.UDP,
 		H2PING:                         c.Definition.H2PING,
 		OSService:                      c.Definition.OSService,
@@ -2096,18 +2094,6 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 		return acl.Deny
 	}
 	return acl.Allow
-}
-
-func (csn *CheckServiceNode) Locality() *Locality {
-	if csn.Service != nil && csn.Service.Locality != nil {
-		return csn.Service.Locality
-	}
-
-	if csn.Node != nil && csn.Node.Locality != nil {
-		return csn.Node.Locality
-	}
-
-	return nil
 }
 
 type CheckServiceNodes []CheckServiceNode
@@ -3130,16 +3116,4 @@ func (l *Locality) GetRegion() string {
 		return ""
 	}
 	return l.Region
-}
-
-func (l *Locality) Validate() error {
-	if l == nil {
-		return nil
-	}
-
-	if l.Region == "" && l.Zone != "" {
-		return fmt.Errorf("zone cannot be set without region")
-	}
-
-	return nil
 }

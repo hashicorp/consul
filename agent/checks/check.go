@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package checks
 
@@ -625,19 +625,20 @@ func (c *CheckH2PING) Start() {
 	go c.run()
 }
 
-// CheckTCP is used to periodically make an TCP/UDP connection to
-// determine the health of a given check.
+// CheckTCP is used to periodically make a TCP connection to determine the
+// health of a given check.
 // The check is passing if the connection succeeds
 // The check is critical if the connection returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckTCP struct {
-	CheckID       structs.CheckID
-	ServiceID     structs.ServiceID
-	TCP           string
-	Interval      time.Duration
-	Timeout       time.Duration
-	Logger        hclog.Logger
-	StatusHandler *StatusHandler
+	CheckID         structs.CheckID
+	ServiceID       structs.ServiceID
+	TCP             string
+	Interval        time.Duration
+	Timeout         time.Duration
+	Logger          hclog.Logger
+	TLSClientConfig *tls.Config
+	StatusHandler   *StatusHandler
 
 	dialer   *net.Dialer
 	stop     bool
@@ -694,17 +695,30 @@ func (c *CheckTCP) run() {
 
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
-	conn, err := c.dialer.Dial(`tcp`, c.TCP)
+	var conn io.Closer
+	var err error
+	var checkType string
+
+	if c.TLSClientConfig == nil {
+		conn, err = c.dialer.Dial(`tcp`, c.TCP)
+		checkType = "TCP"
+	} else {
+		conn, err = tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
+		checkType = "TCP+TLS"
+	}
+
 	if err != nil {
-		c.Logger.Warn("Check socket connection failed",
+		c.Logger.Warn(fmt.Sprintf("Check %s connection failed", checkType),
 			"check", c.CheckID.String(),
 			"error", err,
 		)
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
+
 	conn.Close()
-	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
+	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("%s connect %s: Success", checkType, c.TCP))
+
 }
 
 // CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.

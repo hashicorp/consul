@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package structs
 
@@ -1305,6 +1305,7 @@ type ACLTokenListRequest struct {
 	Policy        string // Policy filter
 	Role          string // Role filter
 	AuthMethod    string // Auth Method filter
+	ServiceName   string // Service name (from service identities) filter
 	Datacenter    string // The datacenter to perform the request within
 	ACLAuthMethodEnterpriseMeta
 	acl.EnterpriseMeta
@@ -1323,7 +1324,7 @@ type ACLTokenListResponse struct {
 }
 
 // ACLTokenBatchGetRequest is used for reading multiple tokens, this is
-// different from the token list request in that only tokens with the
+// different from the the token list request in that only tokens with the
 // the requested ids are returned
 type ACLTokenBatchGetRequest struct {
 	AccessorIDs []string // List of accessor ids to fetch

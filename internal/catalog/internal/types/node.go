@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
@@ -26,14 +26,8 @@ var (
 
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  NodeV1Alpha1Type,
-		Proto: &pbcatalog.Node{},
-		// TODO: A node should be partition scoped. However its HealthStatus which is
-		// namespace scoped has Node as an owner. We do not support ownership between resources
-		// of differing scope at this time. HealthStatus will probably be split out into two different
-		// types, one for namespace scoped owners and the other for partition scoped owners.
-		// Until that time, Node will remain namespace scoped.
-		Scope:    resource.ScopeNamespace,
+		Type:     NodeV1Alpha1Type,
+		Proto:    &pbcatalog.Node{},
 		Validate: ValidateNode,
 	})
 }

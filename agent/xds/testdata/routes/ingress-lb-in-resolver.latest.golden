@@ -49,11 +49,6 @@
                     }
                   },
                   {
-                    "queryParameter": {
-                      "name": "my-pretty-param"
-                    }
-                  },
-                  {
                     "connectionProperties": {
                       "sourceIp": true
                     },

@@ -1,1 +1,0 @@
-invalid-group.hcl:3,13-17: Failed to unmarshal argument Group: expected value of type string but actual type is number

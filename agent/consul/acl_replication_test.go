@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package consul
 
@@ -378,8 +378,10 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	checkSame := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
+		// nolint:staticcheck
 		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
+		// nolint:staticcheck
 		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 
@@ -483,6 +485,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 	})
 
 	// verify dc2 local tokens didn't get blown away
+	// nolint:staticcheck
 	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, local, 50)
@@ -821,9 +824,11 @@ func TestACLReplication_AllTypes(t *testing.T) {
 
 	checkSameTokens := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
+		// nolint:staticcheck
 		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 		// Query for all of them, so that we can prove that no globals snuck in.
+		// nolint:staticcheck
 		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 

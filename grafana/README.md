@@ -9,7 +9,3 @@ The page for publishing this dashboard is https://grafana.com/grafana/dashboards
     - Click "share" and export for external publishing
     - Login to Grafana via the team account (message a manager)
     - Publish as a new version, including change notes.
-
-### Grafana dashboard for consul-k8s (control plane)
-
-A grafana dashboard for monitoring consul-k8s (control plane) can also be found in this directory: `consul-k8s-control-plane-monitoring.json`. This dashboard has not been published to https://grafana.com.

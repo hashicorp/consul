@@ -61,10 +61,8 @@ func RegisterTypes(r resource.Registry) {
 }
 ```
 
-Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
-package's type registration method:
-
-[`type_registry.go`]: ../../agent/consul/type_registry.go
+Update the `registerResources` method in [`server.go`] to call your package's
+type registration method:
 
 ```Go
 import (
@@ -73,12 +71,14 @@ import (
 	// …
 )
 
-func NewTypeRegistry() resource.Registry {
+func (s *Server) registerResources() {
 	// …
-    foo.RegisterTypes(registry)
+	foo.RegisterTypes(s.typeRegistry)
 	// …
 }
 ```
+
+[`server.go`]: ../../agent/consul/server.go
 
 That should be all you need to start using your new resource type. Test it out
 by starting an agent in dev mode:
@@ -277,9 +277,7 @@ func (barReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 Next, register your controller with the controller manager. Another common
 pattern is to have your package expose a method for registering controllers,
-which is called from `registerControllers` in [`server.go`].
-
-[`server.go`]: ../../agent/consul/server.go
+which is also called from `registerResources` in [`server.go`].
 
 ```Go
 package foo
@@ -292,7 +290,7 @@ func RegisterControllers(mgr *controller.Manager) {
 ```Go
 package consul
 
-func (s *Server) registerControllers() {
+func (s *Server) registerResources() {
 	// …
 	foo.RegisterControllers(s.controllerManager)
 	// …

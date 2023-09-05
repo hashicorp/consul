@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -313,6 +313,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Method:                         check.Definition.Method,
 							Body:                           check.Definition.Body,
 							TCP:                            check.Definition.TCP,
+							TCPUseTLS:                      check.Definition.TCPUseTLS,
 							GRPC:                           check.Definition.GRPC,
 							GRPCUseTLS:                     check.Definition.GRPCUseTLS,
 							OSService:                      check.Definition.OSService,

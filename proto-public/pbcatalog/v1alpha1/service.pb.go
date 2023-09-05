@@ -158,7 +158,7 @@ func (x *ServicePort) GetProtocol() Protocol {
 	if x != nil {
 		return x.Protocol
 	}
-	return Protocol_PROTOCOL_UNSPECIFIED
+	return Protocol_PROTOCOL_TCP
 }
 
 var File_pbcatalog_v1alpha1_service_proto protoreflect.FileDescriptor

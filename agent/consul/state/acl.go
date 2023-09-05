@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package state
 
@@ -623,8 +623,35 @@ func aclTokenGetTxn(tx ReadTxn, ws memdb.WatchSet, value, index string, entMeta 
 	return nil, nil
 }
 
+type ACLTokenListParameters struct {
+	Local          bool
+	Global         bool
+	Policy         string
+	Role           string
+	ServiceName    string
+	MethodName     string
+	MethodMeta     *acl.EnterpriseMeta
+	EnterpriseMeta *acl.EnterpriseMeta
+}
+
 // ACLTokenList return a list of ACL Tokens that match the policy, role, and method.
+// This function should be treated as deprecated, and ACLTokenListWithParameters should be preferred.
+//
+// Deprecated: use ACLTokenListWithParameters
 func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, methodMeta, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
+	return s.ACLTokenListWithParameters(ws, ACLTokenListParameters{
+		Local:          local,
+		Global:         global,
+		Policy:         policy,
+		Role:           role,
+		MethodName:     methodName,
+		MethodMeta:     methodMeta,
+		EnterpriseMeta: entMeta,
+	})
+}
+
+// ACLTokenListWithParameters returns a list of ACL Tokens that match the provided parameters.
+func (s *Store) ACLTokenListWithParameters(ws memdb.WatchSet, params ACLTokenListParameters) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -637,43 +664,51 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 
 	needLocalityFilter := false
 
-	if policy == "" && role == "" && methodName == "" {
-		if global == local {
-			iter, err = aclTokenListAll(tx, entMeta)
+	if params.Policy == "" && params.Role == "" && params.MethodName == "" && params.ServiceName == "" {
+		if params.Global == params.Local {
+			iter, err = aclTokenListAll(tx, params.EnterpriseMeta)
 		} else {
-			iter, err = aclTokenList(tx, entMeta, local)
+			iter, err = aclTokenList(tx, params.EnterpriseMeta, params.Local)
 		}
 
-	} else if policy != "" && role == "" && methodName == "" {
-		iter, err = aclTokenListByPolicy(tx, policy, entMeta)
+	} else if params.Policy != "" && params.Role == "" && params.MethodName == "" && params.ServiceName == "" {
+		// Find by policy
+		iter, err = aclTokenListByPolicy(tx, params.Policy, params.EnterpriseMeta)
 		needLocalityFilter = true
 
-	} else if policy == "" && role != "" && methodName == "" {
-		iter, err = aclTokenListByRole(tx, role, entMeta)
+	} else if params.Policy == "" && params.Role != "" && params.MethodName == "" && params.ServiceName == "" {
+		// Find by role
+		iter, err = aclTokenListByRole(tx, params.Role, params.EnterpriseMeta)
 		needLocalityFilter = true
 
-	} else if policy == "" && role == "" && methodName != "" {
-		iter, err = aclTokenListByAuthMethod(tx, methodName, methodMeta, entMeta)
+	} else if params.Policy == "" && params.Role == "" && params.MethodName != "" && params.ServiceName == "" {
+		// Find by methodName
+		iter, err = aclTokenListByAuthMethod(tx, params.MethodName, params.MethodMeta, params.EnterpriseMeta)
+		needLocalityFilter = true
+
+	} else if params.Policy == "" && params.Role == "" && params.MethodName == "" && params.ServiceName != "" {
+		// Find by the service identity's serviceName
+		iter, err = aclTokenListByServiceName(tx, params.ServiceName, params.EnterpriseMeta)
 		needLocalityFilter = true
 
 	} else {
-		return 0, nil, fmt.Errorf("can only filter by one of policy, role, or methodName at a time")
+		return 0, nil, fmt.Errorf("can only filter by one of policy, role, serviceName, or methodName at a time")
 	}
 
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
 
-	if needLocalityFilter && global != local {
+	if needLocalityFilter && params.Global != params.Local {
 		iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
 			token, ok := raw.(*structs.ACLToken)
 			if !ok {
 				return true
 			}
 
-			if global && !token.Local {
+			if params.Global && !token.Local {
 				return false
-			} else if local && token.Local {
+			} else if params.Local && token.Local {
 				return false
 			}
 
@@ -698,7 +733,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	}
 
 	// Get the table index.
-	idx := aclTokenMaxIndex(tx, nil, entMeta)
+	idx := aclTokenMaxIndex(tx, nil, params.EnterpriseMeta)
 	return idx, result, nil
 }
 

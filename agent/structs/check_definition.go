@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package structs
 
@@ -36,6 +36,7 @@ type CheckDefinition struct {
 	Body                           string
 	DisableRedirects               bool
 	TCP                            string
+	TCPUseTLS                      bool
 	UDP                            string
 	Interval                       time.Duration
 	DockerContainerID              string
@@ -76,6 +77,7 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		DockerContainerIDSnake              string      `json:"docker_container_id"`
 		TLSServerNameSnake                  string      `json:"tls_server_name"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
+		TCPUseTLSSnake                      bool        `json:"tcp_use_tls"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		ServiceIDSnake                      string      `json:"service_id"`
 		H2PingUseTLSSnake                   bool        `json:"h2ping_use_tls"`
@@ -118,6 +120,9 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}
 	if aux.TLSSkipVerifySnake {
 		t.TLSSkipVerify = aux.TLSSkipVerifySnake
+	}
+	if aux.TCPUseTLSSnake {
+		t.TCPUseTLS = aux.TCPUseTLSSnake
 	}
 	if aux.GRPCUseTLSSnake {
 		t.GRPCUseTLS = aux.GRPCUseTLSSnake
@@ -220,6 +225,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		DisableRedirects:               c.DisableRedirects,
 		OutputMaxSize:                  c.OutputMaxSize,
 		TCP:                            c.TCP,
+		TCPUseTLS:                      c.TCPUseTLS,
 		UDP:                            c.UDP,
 		Interval:                       c.Interval,
 		DockerContainerID:              c.DockerContainerID,

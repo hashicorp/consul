@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
+  SPDX-License-Identifier: MPL-2.0
 }}
 
 <ListCollection
@@ -8,19 +8,13 @@
   @items={{@items}}
 as |item|>
     <BlockSlot @name="header">
-{{#if (or (eq (policy/typeof item) 'policy-management') (eq (policy/typeof item) 'read-only'))}}
+{{#if (eq (policy/typeof item) 'policy-management')}}
         <dl class="policy-management">
           <dt>Type</dt>
           <dd>
-            {{#if (eq (policy/typeof item) 'policy-management')}}
-              <Tooltip>
-                Global Management Policy
-              </Tooltip>
-            {{else}}
-              <Tooltip>
-                Global Read-only Policy
-              </Tooltip>
-            {{/if}}
+            <Tooltip>
+              Global Management Policy
+            </Tooltip>
           </dd>
         </dl>
 {{/if}}

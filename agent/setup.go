@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -259,8 +259,6 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
 
 	d.XDSStreamLimiter = limiter.NewSessionLimiter()
-
-	d.Registry = consul.NewTypeRegistry()
 
 	return d, nil
 }

@@ -1,50 +1,56 @@
 {
-  "versionInfo":  "00000001",
-  "resources":  [
+  "versionInfo": "00000001",
+  "resources": [
     {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "type":  "STRICT_DNS",
-      "connectTimeout":  "5s",
-      "loadAssignment":  {
-        "clusterName":  "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-        "endpoints":  [
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "type": "LOGICAL_DNS",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+        "endpoints": [
           {
-            "lbEndpoints":  [
+            "lbEndpoints": [
               {
-                "endpoint":  {
-                  "address":  {
-                    "socketAddress":  {
-                      "address":  "alt.us-east-1.elb.notaws.com",
-                      "portValue":  8443
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "alt.us-east-1.elb.notaws.com",
+                      "portValue": 8443
                     }
                   }
                 },
-                "healthStatus":  "HEALTHY",
-                "loadBalancingWeight":  1
+                "healthStatus": "HEALTHY",
+                "loadBalancingWeight": 1
               }
             ]
           }
         ]
       },
-      "dnsRefreshRate":  "10s",
-      "dnsLookupFamily":  "V4_ONLY",
-      "outlierDetection":  {}
+      "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
+      "outlierDetection": {
+
+      }
     },
     {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "db.default.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "type":  "EDS",
-      "edsClusterConfig":  {
-        "edsConfig":  {
-          "ads":  {},
-          "resourceApiVersion":  "V3"
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "db.default.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {
+
+          },
+          "resourceApiVersion": "V3"
         }
       },
-      "connectTimeout":  "5s",
-      "outlierDetection":  {}
+      "connectTimeout": "5s",
+      "outlierDetection": {
+
+      }
     }
   ],
-  "typeUrl":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "nonce":  "00000001"
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+  "nonce": "00000001"
 }
