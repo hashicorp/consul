@@ -38,6 +38,7 @@ message NamespaceTrafficPermissions {
   repeated Permission permissions = 2;
 }
 
+<<<<<<< HEAD
 message PartitionTrafficPermissions {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
 

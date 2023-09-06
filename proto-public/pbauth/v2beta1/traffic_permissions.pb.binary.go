@@ -8,21 +8,34 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
+<<<<<<< HEAD
 func (msg *TrafficPermissions) MarshalBinary() ([]byte, error) {
+=======
+func (msg *NamespaceTrafficPermission) MarshalBinary() ([]byte, error) {
+>>>>>>> 4866cc63b7 (cleanup)
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
+<<<<<<< HEAD
 func (msg *TrafficPermissions) UnmarshalBinary(b []byte) error {
+=======
+func (msg *NamespaceTrafficPermission) UnmarshalBinary(b []byte) error {
+>>>>>>> 4866cc63b7 (cleanup)
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+<<<<<<< HEAD
 func (msg *NamespaceTrafficPermissions) MarshalBinary() ([]byte, error) {
+=======
+func (msg *PartitionTrafficPermission) MarshalBinary() ([]byte, error) {
+>>>>>>> 4866cc63b7 (cleanup)
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
+<<<<<<< HEAD
 func (msg *NamespaceTrafficPermissions) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
@@ -34,6 +47,9 @@ func (msg *PartitionTrafficPermissions) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *PartitionTrafficPermissions) UnmarshalBinary(b []byte) error {
+=======
+func (msg *PartitionTrafficPermission) UnmarshalBinary(b []byte) error {
+>>>>>>> 4866cc63b7 (cleanup)
 	return proto.Unmarshal(b, msg)
 }
 

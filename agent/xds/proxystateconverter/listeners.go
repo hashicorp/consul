@@ -1439,7 +1439,6 @@ func makeL4Destination(opts destinationOpts) (*pbproxystate.L4Destination, error
 	//if err != nil && opts.logger != nil {
 	//	opts.logger.Warn("could not make access log xds for tcp proxy", err)
 	//}
-
 	l4Dest := &pbproxystate.L4Destination{
 		//AccessLog:        accessLogs,
 		Destination: &pbproxystate.L4Destination_Cluster{

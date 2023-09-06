@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -27,19 +28,18 @@ type Mapper interface {
 	// UntrackComputedTrafficPermission instructs the Mapper to forget about any
 	// association it was tracking for this ComputedTrafficPermission.
 	UntrackComputedTrafficPermission(*pbresource.ID)
-
-	WorkloadIdentityFromCTP(*pbresource.Resource, *pbauth.ComputedTrafficPermission) *pbresource.ID
 }
 
 // Controller creates a controller for automatic ComputedTrafficPermissions management for
 // updates to WorkloadIdentity or TrafficPermission resources.
 func Controller(mapper Mapper) controller.Controller {
 	if mapper == nil {
-		panic("No WorkloadMapper was provided to the ServiceEndpointsController constructor")
+		panic("No WorkloadIdentityMapper was provided to the ServiceEndpointsController constructor")
 	}
 
 	return controller.ForType(types.ComputedTrafficPermissionType).
-		WithWatch(types.TrafficPermissionType, mapper.MapTrafficPermission).
+		WithWatch(types.NamespaceTrafficPermissionType, mapper.MapTrafficPermission).
+		WithWatch(types.PartitionTrafficPermissionType, mapper.MapTrafficPermission).
 		WithWatch(types.WorkloadIdentityType, mapper.MapWorkloadIdentity).
 		WithReconciler(&reconciler{mapper: mapper})
 }
@@ -48,27 +48,31 @@ type reconciler struct {
 	mapper Mapper
 }
 
+// Reconcile will reconcile one ComputedTrafficPermission (CTP) in response to some event.
+// Events include adding, modifying or deleting a WorkloadIdentity or TrafficPermission.
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
-
 	rt.Logger.Trace("reconciling computed traffic permissions")
 
 	/*
-	 * A CTP ID could come in for a variety or reasons.
+	 * A CTP ID could come in for a variety of reasons.
 	 * 1. workload identity create / delete
 	 * 2. traffic permission create / delete
 	 *
 	 * We need to take the CTP ID and map it back to the relevant
 	 * workloads and traffic permissions.
 	 *
-	 * Mappings must be maintained for
+	 * 1:1 mappings must be maintained for
 	 * 1. workloadIdentity -> computedTrafficPermission (CTP which represents that WI as a destination)
-	 * 2. workloadIdentity -> []trafficPermission (TP which affect the CTP for the WI)
-	 * 3. trafficPermissions -> []workloadIdentity (WI which are affected by the TP)
-	 * 4. trafficPermissions -> []computedTrafficPermission (CTP affected by the TP, only one if explicit dest)
-	 * 5. computedTrafficPermission -> workloadIdentity (WI which is the destination for the CTP)
-	 * 6. computedTrafficPermission -> []trafficPermission (TP which affect the CTP)
+	 * 2. computedTrafficPermission -> workloadIdentity (WI which is the destination for the CTP)
+
+	 * Collection bi-mappings must be maintained for:
+	 * 1. trafficPermissions -> []computedTrafficPermission (CTP affected by the TP, only one if explicit dest)
+	 * 2. computedTrafficPermission -> []trafficPermission (TP which affect the CTP)
 	 *
+
+
+
 	 * First, look up the workload identity that maps to the CTP.
 	 * If not found, the WI has been deleted. Untrack the WI and delete the CTP.
 	 * Else, it must have been a traffic permissions update.
@@ -82,7 +86,24 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	 * were affected by the deleted TP but I think that the mapper will sort of resolve this naturally. When
 	 * a TP is deleted, the mapper will already add all of the affected CTPs to the reconcile queue so we don't have to
 	 * do the reverse mapping and recalculate all in the reconcile.
+	 *
+	 *
+	 * Write TP: Find CTPs, update CTPs, update CTP -> TP mapping, update TP -> CTP mapping, write TP
+	 * Delete TP: ", delete TP
+	 * Write WI: Make CTP, find all applicable TPs, populate CTP, update CTP -> TP mapping, update TP -> CTP mapping, write WI, update WI:CTP
+	 * Delete WI: Delete CTP, update CTP -> TP mapping, update TP -> CTP mapping, write WI, update WI:CTP
+	 *
 	 */
+
+	// Case 1: Workload identity create / delete:
+	ctpID := req.ID
+	workloadIdentity := &pbresource.ID{
+		Type:    types.WorkloadIdentityType,
+		Tenancy: ctpID.Tenancy,
+		Uid:     ctpID.Name, // when a CTP is generated for a newly created WI, it takes the WI Uid as it's name
+	}
+	rt.Logger.Trace("got workload identity:", workloadIdentity)
+	// Case 2: TP create / modify / delete
 
 	// TODO: Need to add a UUID to new ComputedTrafficPermissions or some other unique name
 	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: req.ID})
@@ -106,8 +127,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// Check the workload identity associated to the CTP
-	workloadIdentityID := r.mapper.WorkloadIdentityFromCTP(res, &ctp)
+	workloadIdentityID := req.ID //r.mapper.WorkloadIdentityFromCTP(res, &ctp)
 	wi, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: workloadIdentityID})
+	rt.Logger.Trace("Got WorkloadIdentity in CTP reconciler: %v", wi.Resource.Id.Name)
 	switch {
 	case status.Code(err) == codes.NotFound:
 		// the WI has been deleted. Remove the CTP (? or should we leave it)
@@ -119,4 +141,33 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	return nil
+}
+
+type workloadIdentityData struct {
+	resource         *pbresource.Resource
+	workloadIdentity *pbauth.WorkloadIdentity
+}
+
+// getServiceData will read the service with the given ID and unmarshal the
+// Data field. The return value is a struct that contains the retrieved
+// resource as well as the unmsashalled form. If the resource doesn't
+// exist, nil will be returned. Any other error either with retrieving
+// the resource or unmarshalling it will cause the error to be returned
+// to the caller
+func getWorkloadIdentity(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*workloadIdentityData, error) {
+	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
+	switch {
+	case status.Code(err) == codes.NotFound:
+		return nil, nil
+	case err != nil:
+		return nil, err
+	}
+
+	var wi pbauth.WorkloadIdentity
+	err = rsp.Resource.Data.UnmarshalTo(&wi)
+	if err != nil {
+		return nil, resource.NewErrDataParse(&wi, err)
+	}
+
+	return &workloadIdentityData{resource: rsp.Resource, workloadIdentity: &wi}, nil
 }

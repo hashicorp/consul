@@ -24,7 +24,8 @@ type TrafficPermissionsMapper struct {
 	// radix tree is used to match on fully qualified workload selectors.
 	workloadIdentityExact *radix.Tree[[]controller.Request]
 
-	workloadIdentityToCTP map[string]controller.Request
+	workloadIdentityToCTP   map[*pbresource.ID]controller.Request
+	workloadIdentityFromCTP map[*pbresource.ID]controller.Request
 }
 
 func New() *TrafficPermissionsMapper {
@@ -35,19 +36,21 @@ func New() *TrafficPermissionsMapper {
 	}
 }
 
+// MapWorkloadIdentity will return a single controller request for the ComputedTrafficPermission associated with that identity
 func (t *TrafficPermissionsMapper) MapWorkloadIdentity(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
+	wi, err := resource.GetDecodedResource[*pbauth.WorkloadIdentity](ctx, rt.Client, res.Id)
+	if err != nil {
+		// TODO wrap error
+		return nil, err
+	}
 	/*
 	 * When a WorkloadIdentity comes in on the map queue,
-	 * we need to translate it to all the relevant CTPs.
-	 * Fortunately, this should mean we only need to look
-	 * the CTP which represents the WorkloadIdentity as a
-	 * destination.
+	 * we need to translate it to it's corresponding CTP.
 	 */
-
-	ctp, _ := t.workloadIdentityToCTP[res.Id.Name]
+	ctp, _ := t.workloadIdentityToCTP[wi.Resource.Id]
 
 	return []controller.Request{ctp}, nil
 }
@@ -56,13 +59,13 @@ func (t *TrafficPermissionsMapper) MapTrafficPermission(ctx context.Context, rt 
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	tp, err := resource.GetDecodedResource[pbauth.TrafficPermission, *pbauth.TrafficPermission](ctx, rt.Client, res.Id)
+	tp, err := resource.GetDecodedResource[*pbauth.NamespaceTrafficPermission](ctx, rt.Client, res.Id)
 	if err != nil {
 		// TODO wrap error
 		return nil, err
 	}
 
-	dest := tp.Data.Data.Destination.IdentityName
+	dest := tp.Data.Destination.IdentityName
 	var workloadIdentities []controller.Request
 	if isExplicitDestination(dest) {
 		// traverse the explicit tree
@@ -87,9 +90,7 @@ func (t *TrafficPermissionsMapper) UntrackComputedTrafficPermission(computedTraf
 	return
 }
 
-func (t *TrafficPermissionsMapper) WorkloadIdentityFromCTP(ctp *pbresource.Resource, ctpData *pbauth.ComputedTrafficPermission) *pbresource.ID {
-	// TODO: We can probably just give the CTP a name field that is aligned
-	// with its corresponding WorkloadIdentity since that should be a 1:1 mapping
+func (t *TrafficPermissionsMapper) WorkloadIdentityFromCTP(ctp *pbresource.Resource, ctpData *pbauth.ComputedTrafficPermission) *pbauth.WorkloadIdentity {
 	return nil
 }
 
