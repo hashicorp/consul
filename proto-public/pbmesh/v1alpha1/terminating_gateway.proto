@@ -5,5 +5,5 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1;
 
-// TODO Implement me
+// TODO(nathancoleman) Implement me
 message TerminatingGateway {}

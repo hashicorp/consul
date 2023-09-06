@@ -28,7 +28,7 @@ func RegisterAPIGateway(r resource.Registry) {
 		Type:     APIGatewayV1Alpha1Type,
 		Proto:    &pbmesh.APIGateway{},
 		Scope:    resource.ScopeNamespace,
-		Mutate:   nil,
-		Validate: nil,
+		Mutate:   nil, // TODO(nathancoleman)
+		Validate: nil, // TODO(nathancoleman)
 	})
 }
