@@ -5,6 +5,7 @@ package dataplane
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
@@ -14,13 +15,22 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
-	"github.com/hashicorp/consul/types"
 )
 
 const (
@@ -41,13 +51,15 @@ const (
 	proxyDefaultsRequestTimeout   = 1111
 	serviceDefaultsProtocol       = "tcp"
 	serviceDefaultsConnectTimeout = 4444
+
+	testAccessLogs = "{\"name\":\"Consul Listener Filter Log\",\"typedConfig\":{\"@type\":\"type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog\",\"logFormat\":{\"jsonFormat\":{\"custom_field\":\"%START_TIME%\"}}}}"
 )
 
 func testRegisterRequestProxy(t *testing.T) *structs.RegisterRequest {
 	return &structs.RegisterRequest{
 		Datacenter: serverDC,
 		Node:       nodeName,
-		ID:         types.NodeID(nodeID),
+		ID:         nodeID,
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Kind:    structs.ServiceKindConnectProxy,
@@ -68,7 +80,7 @@ func testRegisterRequestProxy(t *testing.T) *structs.RegisterRequest {
 
 func testRegisterIngressGateway(t *testing.T) *structs.RegisterRequest {
 	registerReq := structs.TestRegisterIngressGateway(t)
-	registerReq.ID = types.NodeID("2980b72b-bd9d-9d7b-d4f9-951bf7508d95")
+	registerReq.ID = "2980b72b-bd9d-9d7b-d4f9-951bf7508d95"
 	registerReq.Service.ID = registerReq.Service.Service
 	registerReq.Service.Proxy.Config = map[string]interface{}{
 		proxyConfigKey: proxyConfigValue,
@@ -167,9 +179,7 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		require.Equal(t, tc.registerReq.EnterpriseMeta.PartitionOrDefault(), resp.Partition)
 		require.Equal(t, tc.registerReq.EnterpriseMeta.NamespaceOrDefault(), resp.Namespace)
 		requireConfigField(t, resp, proxyConfigKey, structpb.NewStringValue(proxyConfigValue))
-		require.Equal(t, convertToResponseServiceKind(tc.registerReq.Service.Kind), resp.ServiceKind)
 		require.Equal(t, tc.registerReq.Node, resp.NodeName)
-		require.Equal(t, string(tc.registerReq.ID), resp.NodeId)
 
 		if tc.serviceDefaults != nil && tc.proxyDefaults != nil {
 			// service-defaults take precedence over proxy-defaults
@@ -232,6 +242,158 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 			name:            "merge proxy defaults and service defaults for sidecar proxy",
 			registerReq:     testRegisterRequestProxy(t),
 			serviceDefaults: testServiceDefaults(t),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
+	type testCase struct {
+		name            string
+		workloadData    *pbcatalog.Workload
+		proxyCfgs       []*pbmesh.ProxyConfiguration
+		expBootstrapCfg *pbmesh.BootstrapConfig
+		expAccessLogs   string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		resourceClient := svctest.RunResourceService(t, catalog.RegisterTypes, mesh.RegisterTypes)
+
+		options := structs.QueryOptions{Token: testToken}
+		ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+		require.NoError(t, err)
+
+		aclResolver := &MockACLResolver{}
+
+		server := NewServer(Config{
+			Logger:            hclog.NewNullLogger(),
+			ACLResolver:       aclResolver,
+			Datacenter:        serverDC,
+			EnableV2:          true,
+			ResourceAPIClient: resourceClient,
+		})
+		client := testClient(t, server)
+
+		// Add required fields to workload data.
+		tc.workloadData.Addresses = []*pbcatalog.WorkloadAddress{
+			{
+				Host: "127.0.0.1",
+			},
+		}
+		tc.workloadData.Ports = map[string]*pbcatalog.WorkloadPort{
+			"tcp": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+		}
+		workloadResource := resourcetest.Resource(catalog.WorkloadType, "test-workload").
+			WithData(t, tc.workloadData).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			Write(t, resourceClient)
+
+		// Create any proxy cfg resources.
+		for i, cfg := range tc.proxyCfgs {
+			resourcetest.Resource(mesh.ProxyConfigurationType, fmt.Sprintf("proxy-cfg-%d", i)).
+				WithData(t, cfg).
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				Write(t, resourceClient)
+		}
+
+		req := &pbdataplane.GetEnvoyBootstrapParamsRequest{
+			ProxyId:   workloadResource.Id.Name,
+			Namespace: workloadResource.Id.Tenancy.Namespace,
+			Partition: workloadResource.Id.Tenancy.Partition,
+		}
+
+		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
+			Return(testutils.ACLServiceRead(t, workloadResource.Id.Name), nil)
+
+		resp, err := client.GetEnvoyBootstrapParams(ctx, req)
+		require.NoError(t, err)
+
+		require.Equal(t, tc.workloadData.Identity, resp.Identity)
+		require.Equal(t, serverDC, resp.Datacenter)
+		require.Equal(t, workloadResource.Id.Tenancy.Partition, resp.Partition)
+		require.Equal(t, workloadResource.Id.Tenancy.Namespace, resp.Namespace)
+		require.Equal(t, resp.NodeName, tc.workloadData.NodeName)
+		prototest.AssertDeepEqual(t, tc.expBootstrapCfg, resp.BootstrapConfig)
+		if tc.expAccessLogs != "" {
+			require.JSONEq(t, tc.expAccessLogs, resp.AccessLogs[0])
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name: "workload without node",
+			workloadData: &pbcatalog.Workload{
+				Identity: "test-identity",
+			},
+			expBootstrapCfg: &pbmesh.BootstrapConfig{},
+		},
+		{
+			name: "workload with node",
+			workloadData: &pbcatalog.Workload{
+				Identity: "test-identity",
+				NodeName: "test-node",
+			},
+			expBootstrapCfg: &pbmesh.BootstrapConfig{},
+		},
+		{
+			name: "single proxy configuration",
+			workloadData: &pbcatalog.Workload{
+				Identity: "test-identity",
+			},
+			proxyCfgs: []*pbmesh.ProxyConfiguration{
+				{
+					Workloads: &pbcatalog.WorkloadSelector{Names: []string{"test-workload"}},
+					BootstrapConfig: &pbmesh.BootstrapConfig{
+						DogstatsdUrl: "dogstats-url",
+					},
+				},
+			},
+			expBootstrapCfg: &pbmesh.BootstrapConfig{
+				DogstatsdUrl: "dogstats-url",
+			},
+		},
+		{
+			name: "multiple proxy configurations",
+			workloadData: &pbcatalog.Workload{
+				Identity: "test-identity",
+			},
+			proxyCfgs: []*pbmesh.ProxyConfiguration{
+				{
+					Workloads: &pbcatalog.WorkloadSelector{Names: []string{"test-workload"}},
+					BootstrapConfig: &pbmesh.BootstrapConfig{
+						DogstatsdUrl: "dogstats-url",
+					},
+				},
+				{
+					Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"test-"}},
+					BootstrapConfig: &pbmesh.BootstrapConfig{
+						StatsdUrl: "stats-url",
+					},
+					DynamicConfig: &pbmesh.DynamicConfig{
+						AccessLogs: &pbmesh.AccessLogsConfig{
+							Enabled:    true,
+							JsonFormat: "{ \"custom_field\": \"%START_TIME%\" }",
+						},
+					},
+				},
+
+				{
+					Workloads: &pbcatalog.WorkloadSelector{Names: []string{"not-test-workload"}},
+					BootstrapConfig: &pbmesh.BootstrapConfig{
+						PrometheusBindAddr: "prom-addr",
+					},
+				},
+			},
+			expBootstrapCfg: &pbmesh.BootstrapConfig{
+				DogstatsdUrl: "dogstats-url",
+				StatsdUrl:    "stats-url",
+			},
+			expAccessLogs: testAccessLogs,
 		},
 	}
 
@@ -312,6 +474,98 @@ func TestGetEnvoyBootstrapParams_Error(t *testing.T) {
 				ServiceId: proxyServiceID},
 			expectedErrCode: codes.InvalidArgument,
 			expecteErrMsg:   "Node ID or name required to lookup the service",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+
+}
+
+func TestGetEnvoyBootstrapParams_Error_EnableV2(t *testing.T) {
+	type testCase struct {
+		name            string
+		expectedErrCode codes.Code
+		expecteErrMsg   string
+		workload        *pbresource.Resource
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		resourceClient := svctest.RunResourceService(t, catalog.RegisterTypes, mesh.RegisterTypes)
+
+		options := structs.QueryOptions{Token: testToken}
+		ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+		require.NoError(t, err)
+
+		aclResolver := &MockACLResolver{}
+		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
+			Return(testutils.ACLServiceRead(t, "doesn't matter"), nil)
+
+		server := NewServer(Config{
+			Logger:            hclog.NewNullLogger(),
+			ACLResolver:       aclResolver,
+			Datacenter:        serverDC,
+			EnableV2:          true,
+			ResourceAPIClient: resourceClient,
+		})
+		client := testClient(t, server)
+
+		var req pbdataplane.GetEnvoyBootstrapParamsRequest
+		// Write the workload resource.
+		if tc.workload != nil {
+			_, err = resourceClient.Write(context.Background(), &pbresource.WriteRequest{
+				Resource: tc.workload,
+			})
+			require.NoError(t, err)
+
+			req = pbdataplane.GetEnvoyBootstrapParamsRequest{
+				ProxyId:   tc.workload.Id.Name,
+				Namespace: tc.workload.Id.Tenancy.Namespace,
+				Partition: tc.workload.Id.Tenancy.Partition,
+			}
+		} else {
+			req = pbdataplane.GetEnvoyBootstrapParamsRequest{
+				ProxyId:   "not-found",
+				Namespace: "default",
+				Partition: "default",
+			}
+		}
+
+		resp, err := client.GetEnvoyBootstrapParams(ctx, &req)
+		require.Nil(t, resp)
+		require.Error(t, err)
+		errStatus, ok := status.FromError(err)
+		require.True(t, ok)
+		require.Equal(t, tc.expectedErrCode.String(), errStatus.Code().String())
+		require.Equal(t, tc.expecteErrMsg, errStatus.Message())
+	}
+
+	workload := resourcetest.Resource(catalog.WorkloadType, "test-workload").
+		WithData(t, &pbcatalog.Workload{
+			Addresses: []*pbcatalog.WorkloadAddress{
+				{Host: "127.0.0.1"},
+			},
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"tcp": {Port: 8080},
+			},
+		}).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Build()
+
+	testCases := []testCase{
+		{
+			name:            "workload doesn't exist",
+			expectedErrCode: codes.NotFound,
+			expecteErrMsg:   "resource not found",
+		},
+		{
+			name:            "workload without identity",
+			expectedErrCode: codes.InvalidArgument,
+			expecteErrMsg:   "workload \"test-workload\" doesn't have identity associated with it",
+			workload:        workload,
 		},
 	}
 
