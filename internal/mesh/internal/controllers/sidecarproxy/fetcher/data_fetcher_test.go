@@ -4,6 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
@@ -18,10 +23,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestIsMeshEnabled(t *testing.T) {
@@ -368,7 +369,9 @@ func (suite *dataFetcherSuite) TestFetcher_FetchDestinationsData() {
 	})
 
 	suite.T().Run("service endpoints not found", func(t *testing.T) {
-		notFoundServiceRef := resourcetest.Resource(catalog.ServiceType, "not-found").ReferenceNoSection()
+		notFoundServiceRef := resourcetest.Resource(catalog.ServiceType, "not-found").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			ReferenceNoSection()
 		destinationNoServiceEndpoints := intermediate.CombinedDestinationRef{
 			ServiceRef:             notFoundServiceRef,
 			Port:                   "tcp",

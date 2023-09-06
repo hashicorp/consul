@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
@@ -13,12 +15,13 @@ import (
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMapServiceEndpointsToProxyStateTemplate(t *testing.T) {
-	workload1 := resourcetest.Resource(catalog.WorkloadType, "workload-1").Build()
-	workload2 := resourcetest.Resource(catalog.WorkloadType, "workload-2").Build()
+	workload1 := resourcetest.Resource(catalog.WorkloadType, "workload-1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	workload2 := resourcetest.Resource(catalog.WorkloadType, "workload-2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 	serviceEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "service").
 		WithData(t, &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
@@ -39,15 +42,22 @@ func TestMapServiceEndpointsToProxyStateTemplate(t *testing.T) {
 					},
 				},
 			},
-		}).Build()
-	proxyTmpl1ID := resourcetest.Resource(types.ProxyStateTemplateType, "workload-1").ID()
-	proxyTmpl2ID := resourcetest.Resource(types.ProxyStateTemplateType, "workload-2").ID()
+		}).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Build()
+	proxyTmpl1ID := resourcetest.Resource(types.ProxyStateTemplateType, "workload-1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+	proxyTmpl2ID := resourcetest.Resource(types.ProxyStateTemplateType, "workload-2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
 	c := sidecarproxycache.New()
 	mapper := &Mapper{cache: c}
-	sourceProxy1 := resourcetest.Resource(types.ProxyStateTemplateType, "workload-3").ID()
-	sourceProxy2 := resourcetest.Resource(types.ProxyStateTemplateType, "workload-4").ID()
-	sourceProxy3 := resourcetest.Resource(types.ProxyStateTemplateType, "workload-5").ID()
+	sourceProxy1 := resourcetest.Resource(types.ProxyStateTemplateType, "workload-3").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+	sourceProxy2 := resourcetest.Resource(types.ProxyStateTemplateType, "workload-4").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+	sourceProxy3 := resourcetest.Resource(types.ProxyStateTemplateType, "workload-5").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := intermediate.CombinedDestinationRef{
 		ServiceRef: resourcetest.Resource(catalog.ServiceType, "service").ReferenceNoSection(),
 		Port:       "tcp1",

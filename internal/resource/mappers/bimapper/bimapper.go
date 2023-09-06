@@ -215,30 +215,6 @@ func (m *Mapper) LinkIDsForItem(item *pbresource.ID) []*pbresource.ID {
 	return out
 }
 
-// LinkIDsForItem returns IDs to links related to the requested item.
-func (m *Mapper) LinkIDsForItem(item *pbresource.ID) []*pbresource.ID {
-	if !resource.EqualType(item.Type, m.itemType) {
-		panic(fmt.Sprintf("expected item type %q got %q",
-			resource.TypeToString(m.itemType),
-			resource.TypeToString(item.Type),
-		))
-	}
-
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	links, ok := m.itemToLink[resource.NewReferenceKey(item)]
-	if !ok {
-		return nil
-	}
-
-	out := make([]*pbresource.ID, 0, len(links))
-	for l := range links {
-		out = append(out, l.ToID())
-	}
-	return out
-}
-
 // ItemsForLink returns item ids for items related to the provided link.
 // Deprecated: use ItemIDsForLink
 func (m *Mapper) ItemsForLink(link *pbresource.ID) []*pbresource.ID {

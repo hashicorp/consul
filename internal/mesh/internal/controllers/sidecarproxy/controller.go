@@ -1,10 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package sidecarproxy
 
 import (
 	"context"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
@@ -16,8 +19,6 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ControllerName is the name for this controller. It's used for logging or status keys.
@@ -44,14 +45,14 @@ type reconciler struct {
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", ControllerName)
 
-	rt.Logger.Trace("reconciling proxy state template", "id", req.ID)
+	rt.Logger.Trace("reconciling proxy state template")
 
 	// Instantiate a data fetcher to fetch all reconciliation data.
 	dataFetcher := fetcher.Fetcher{Client: rt.Client, Cache: r.cache}
 
 	// Check if the workload exists.
 	workloadID := resource.ReplaceType(catalog.WorkloadType, req.ID)
-	workload, err := dataFetcher.FetchWorkload(ctx, resource.ReplaceType(catalog.WorkloadType, req.ID))
+	workload, err := dataFetcher.FetchWorkload(ctx, workloadID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated workload", "error", err)
 		return err
@@ -71,7 +72,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	if proxyStateTemplate == nil {
 		// If proxy state template has been deleted, we will need to generate a new one.
-		rt.Logger.Trace("proxy state template for this workload doesn't yet exist; generating a new one", "id", req.ID)
+		rt.Logger.Trace("proxy state template for this workload doesn't yet exist; generating a new one")
 	}
 
 	if !workload.Workload.IsMeshEnabled() {
@@ -79,7 +80,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 		// If there's existing proxy state template, delete it.
 		if proxyStateTemplate != nil {
-			rt.Logger.Trace("deleting existing proxy state template because workload is no longer on the mesh", "id", req.ID)
+			rt.Logger.Trace("deleting existing proxy state template because workload is no longer on the mesh")
 			_, err = rt.Client.Delete(ctx, &pbresource.DeleteRequest{Id: req.ID})
 			if err != nil {
 				rt.Logger.Error("error deleting existing proxy state template", "error", err)
@@ -107,7 +108,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	destinationsRefs := r.cache.DestinationsBySourceProxy(req.ID)
 	destinationsData, statuses, err := dataFetcher.FetchDestinationsData(ctx, destinationsRefs)
 	if err != nil {
-		rt.Logger.Error("error fetching destinations for this proxy", "id", req.ID, "error", err)
+		rt.Logger.Error("error fetching destinations for this proxy", "error", err)
 		return err
 	}
 
@@ -121,7 +122,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			rt.Logger.Error("error creating proxy state template data", "error", err)
 			return err
 		}
-		rt.Logger.Trace("updating proxy state template", "id", req.ID)
+		rt.Logger.Trace("updating proxy state template")
 		_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
 			Resource: &pbresource.Resource{
 				Id:    req.ID,
@@ -134,7 +135,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			return err
 		}
 	} else {
-		rt.Logger.Trace("proxy state template data has not changed, skipping update", "id", req.ID)
+		rt.Logger.Trace("proxy state template data has not changed, skipping update")
 	}
 
 	// Update any statuses.

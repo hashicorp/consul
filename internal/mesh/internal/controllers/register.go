@@ -4,19 +4,14 @@
 package controllers
 
 import (
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/cache"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecar-proxy/mapper"
-
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds"
+	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
 )
 
 type Dependencies struct {

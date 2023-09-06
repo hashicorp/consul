@@ -3,11 +3,14 @@ package builder
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBuildLocalApp(t *testing.T) {
@@ -68,7 +71,7 @@ func TestBuildLocalApp(t *testing.T) {
 			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul").BuildLocalApp(c.workload).
 				Build()
 			actual := protoToJSON(t, proxyTmpl)
-			expected := goldenValue(t, name, actual, *update)
+			expected := golden.Get(t, actual, name+".golden")
 
 			require.JSONEq(t, expected, actual)
 		})
@@ -76,7 +79,9 @@ func TestBuildLocalApp(t *testing.T) {
 }
 
 func testProxyStateTemplateID() *pbresource.ID {
-	return resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
+	return resourcetest.Resource(types.ProxyStateTemplateType, "test").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		ID()
 }
 
 func testIdentityRef() *pbresource.Reference {

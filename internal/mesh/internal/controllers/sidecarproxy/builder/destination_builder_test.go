@@ -3,14 +3,16 @@ package builder
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -32,10 +34,10 @@ var (
 
 func TestBuildExplicitDestinations(t *testing.T) {
 	api1Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-1").
-		WithData(t, endpointsData).Build()
+		WithData(t, endpointsData).WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 
 	api2Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-2").
-		WithData(t, endpointsData).Build()
+		WithData(t, endpointsData).WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 
 	api1Identity := &pbresource.Reference{
 		Name:    "api1-identity",
@@ -99,7 +101,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			Build()
 
 		actual := protoToJSON(t, proxyTmpl)
-		expected := goldenValue(t, name, actual, *update)
+		expected := golden.Get(t, actual, name+".golden")
 
 		require.JSONEq(t, expected, actual)
 	}
