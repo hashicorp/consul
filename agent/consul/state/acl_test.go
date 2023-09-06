@@ -214,6 +214,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure the ACLs are in an expected state.
+	// nolint:staticcheck
 	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
@@ -228,6 +229,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	err = s.ACLBootstrap(32, index, token2.Clone())
 	require.NoError(t, err)
 
+	// nolint:staticcheck
 	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, tokens, 2)
@@ -1061,6 +1063,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			var err error
 			if tc.serviceName == "" {
 				// The legacy call can only be tested when the serviceName is not specified
+				// nolint:staticcheck
 				_, _, err = s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName, nil, nil)
 				require.Error(t, err)
 			}
@@ -1080,6 +1083,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			t.Parallel()
 			// Test old function
 			if tc.serviceName == "" {
+				// nolint:staticcheck
 				_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil, nil)
 				require.NoError(t, err)
 				require.Len(t, tokens, len(tc.accessors))
@@ -1158,6 +1162,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Equal(t, "node-read-renamed", retrieved.Policies[0].Name)
 
 	// list tokens without stale links
+	// nolint:staticcheck
 	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
@@ -1202,6 +1207,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Len(t, retrieved.Policies, 0)
 
 	// list tokens without stale links
+	// nolint:staticcheck
 	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
@@ -1287,6 +1293,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Equal(t, "node-read-role-renamed", retrieved.Roles[0].Name)
 
 	// list tokens without stale links
+	// nolint:staticcheck
 	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
@@ -1331,6 +1338,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Len(t, retrieved.Roles, 0)
 
 	// list tokens without stale links
+	// nolint:staticcheck
 	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
@@ -2766,16 +2774,19 @@ func TestStateStore_ACLAuthMethod_GlobalNameShadowing_TokenTest(t *testing.T) {
 	}
 
 	require.True(t, t.Run("list local only", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, true, false, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC2_tok1, methodDC2_tok2}, toList(got))
 	}))
 	require.True(t, t.Run("list global only", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, false, true, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
 	}))
 	require.True(t, t.Run("list both", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, true, true, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2, methodDC2_tok1, methodDC2_tok2}, toList(got))
@@ -2787,16 +2798,19 @@ func TestStateStore_ACLAuthMethod_GlobalNameShadowing_TokenTest(t *testing.T) {
 	}))
 
 	require.True(t, t.Run("list local only (after dc2 delete)", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, true, false, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.Empty(t, got)
 	}))
 	require.True(t, t.Run("list global only (after dc2 delete)", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, false, true, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
 	}))
 	require.True(t, t.Run("list both (after dc2 delete)", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, true, true, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
@@ -3587,6 +3601,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 		// Read the restored ACLs back out and verify that they match.
+		// nolint:staticcheck
 		idx, res, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx)

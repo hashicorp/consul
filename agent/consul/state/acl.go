@@ -636,6 +636,8 @@ type ACLTokenListParameters struct {
 
 // ACLTokenList return a list of ACL Tokens that match the policy, role, and method.
 // This function should be treated as deprecated, and ACLTokenListWithParameters should be preferred.
+//
+// Deprecated: use ACLTokenListWithParameters
 func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, methodMeta, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
 	return s.ACLTokenListWithParameters(ws, ACLTokenListParameters{
 		Local:          local,
