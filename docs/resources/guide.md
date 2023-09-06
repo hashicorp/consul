@@ -50,16 +50,21 @@ import (
 var BarV1Alpha1Type = &pbresource.Type{
 	Group:        "foo",
 	GroupVersion: "v1alpha1",
+	Scope:    resource.ScopeNamespace,
 	Kind:         "bar",
 }
 
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  BarV1Alpha1Type,
+		Type:  BarV1Alpha1Type, 
+		Scope:    resource.ScopePartition,
 		Proto: &pbv1alpha1.Bar{},
 	})
 }
 ```
+Note that Scope reference the scope of the new resource, `resource.ScopePartition` 
+mean that resource will be at the partition level and have no namespace, while `resource.ScopeNamespace` mean it will have both a namespace 
+and a partition.
 
 Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
 package's type registration method:
@@ -140,7 +145,8 @@ using a validation hook provided in the type registration:
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     BarV1Alpha1Type,
-		Proto:    &pbv1alpha1.Bar{},
+		Proto:    &pbv1alpha1.Bar{}, 
+		Scope:    resource.ScopeNamespace,
 		Validate: validateBar,
 	})
 }
@@ -172,7 +178,8 @@ a set of ACL hooks:
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  BarV1Alpha1Type,
-		Proto: &pbv1alpha1.Bar{},
+		Proto: &pbv1alpha1.Bar{}, 
+		Scope:    resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{,
 			Read:  authzReadBar,
 			Write: authzWriteBar,
@@ -210,7 +217,8 @@ by providing a mutation hook:
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:   BarV1Alpha1Type,
-		Proto:  &pbv1alpha1.Bar{},
+		Proto:  &pbv1alpha1.Bar{}, 
+		Scope:    resource.ScopeNamespace,
 		Mutate: mutateBar,
 	})
 }
