@@ -50,7 +50,6 @@ import (
 var BarV1Alpha1Type = &pbresource.Type{
 	Group:        "foo",
 	GroupVersion: "v1alpha1",
-	Scope:    resource.ScopeNamespace,
 	Kind:         "bar",
 }
 
