@@ -75,9 +75,7 @@ func (c *cmd) Run(args []string) int {
 
 	if len(appendFileNameFlags) != 0 && len(c.appendFileNameFlag.String()) > 0 {
 		agentSelfResponse, err := client.Agent().Self()
-		operatorHealthResponse, error := client.Operator().AutopilotServerHealth(nil)
-
-		if err != nil && error != nil {
+		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent and fetching datacenter/version: %s", err))
 			return 1
 		}
@@ -86,11 +84,19 @@ func (c *cmd) Run(args []string) int {
 		fileNameWithoutExt := strings.TrimSuffix(file, fileExt)
 
 		if slices.Contains(appendFileNameFlags, "version") {
-			if config, ok := agentSelfResponse["Config"]; ok {
-				if version, ok := config["Version"]; ok {
-					fileNameWithoutExt = fileNameWithoutExt + "-" + version.(string)
+			operatorHealthResponse, err := client.Operator().AutopilotServerHealth(nil)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf("Error fetching version of Consul agent Leader: %s", err))
+				return 1
+			}
+			version := ""
+			for _, server := range operatorHealthResponse.Servers {
+				if server.Leader {
+					version = server.Version
+					break
 				}
 			}
+			fileNameWithoutExt = fileNameWithoutExt + "-" + version
 		}
 
 		if slices.Contains(appendFileNameFlags, "dc") {
