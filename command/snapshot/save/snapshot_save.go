@@ -83,7 +83,7 @@ func (c *cmd) Run(args []string) int {
 				c.UI.Error(fmt.Sprintf("Error fetching version of Consul agent Leader: %s", err))
 				return 1
 			}
-			version := ""
+			var version string
 			for _, server := range operatorHealthResponse.Servers {
 				if server.Leader {
 					version = server.Version
