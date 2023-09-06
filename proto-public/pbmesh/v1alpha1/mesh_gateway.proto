@@ -1,0 +1,9 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+// TODO Implement me
+message MeshGateway {}
