@@ -85,17 +85,9 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 	dir := testutil.TempDir(t, "snapshot")
 	file := filepath.Join(dir, "backup.tgz")
 	args := []string{
-		"-append-filename=version,dc,node,status",
+		"-append-filename=version,dc",
 		"-http-addr=" + a.HTTPAddr(),
 		file,
-	}
-
-	stats := a.Stats()
-
-	status := "follower"
-
-	if stats["consul"]["leader"] == "true" {
-		status = "leader"
 	}
 
 	// We need to use the self endpoint here for ENT, which returns the product suffix (+ent)
@@ -105,14 +97,22 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 	cfg, ok := self["Config"]
 	require.True(t, ok)
 
-	versionAny, ok := cfg["Version"]
+	dc, ok := cfg["Datacenter"]
 	require.True(t, ok)
 
-	version, ok := versionAny.(string)
-	require.True(t, ok)
+	datacenter := dc.(string)
 
-	newFilePath := filepath.Join(dir, "backup"+"-"+version+"-"+a.Config.Datacenter+
-		"-"+a.Config.NodeName+"-"+status+".tgz")
+	operatorHealth, error := client.Operator().AutopilotServerHealth(nil)
+	require.NoError(t, error)
+
+	var version string
+	for _, server := range operatorHealth.Servers {
+		if server.Leader {
+			version = server.Version
+		}
+	}
+
+	newFilePath := filepath.Join(dir, "backup"+"-"+version+"-"+datacenter+".tgz")
 
 	code := c.Run(args)
 	if code != 0 {
