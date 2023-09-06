@@ -24,4 +24,5 @@ func Register(r resource.Registry) {
 	RegisterDestinationPolicy(r)
 	RegisterComputedRoutes(r)
 	RegisterAPIGateway(r)
+	RegisterMeshGateway(r)
 }
