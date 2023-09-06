@@ -23,4 +23,5 @@ func Register(r resource.Registry) {
 	RegisterGRPCRoute(r)
 	RegisterDestinationPolicy(r)
 	RegisterComputedRoutes(r)
+	RegisterAPIGateway(r)
 }
