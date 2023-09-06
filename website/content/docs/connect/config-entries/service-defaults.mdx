@@ -647,7 +647,7 @@ The following table describes passive health check parameters you can configure:
 | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
 | `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
   | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
-  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. The real time can not exceed the amount of time specified inthe `max_ejection_time` field. | string | `30s` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `UpstreamConfig.Defaults`
 
@@ -713,7 +713,7 @@ Map that specifies a set of rules that enable Consul to remove hosts from the up
 | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
 | `EnforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
   | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
-  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. The real time can not exceed the amount of time specified inthe `max_ejection_time` field. | string | `30s` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `TransparentProxy`
 
@@ -1120,7 +1120,7 @@ The following table describes the health check parameters you can configure:
 | `maxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
 | `enforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
   | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
-  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. The real time can not exceed the amount of time specified inthe `max_ejection_time` field. | string | `30s` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `spec.transparentProxy`
 
