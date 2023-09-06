@@ -57,7 +57,7 @@ var BarV1Alpha1Type = &pbresource.Type{
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  BarV1Alpha1Type, 
-		Scope:    resource.ScopePartition,
+		Scope: resource.ScopePartition,
 		Proto: &pbv1alpha1.Bar{},
 	})
 }
@@ -179,7 +179,7 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  BarV1Alpha1Type,
 		Proto: &pbv1alpha1.Bar{}, 
-		Scope:    resource.ScopeNamespace,
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{,
 			Read:  authzReadBar,
 			Write: authzWriteBar,
@@ -218,7 +218,7 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:   BarV1Alpha1Type,
 		Proto:  &pbv1alpha1.Bar{}, 
-		Scope:    resource.ScopeNamespace,
+		Scope:  resource.ScopeNamespace,
 		Mutate: mutateBar,
 	})
 }
