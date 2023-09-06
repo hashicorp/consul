@@ -66,6 +66,7 @@ func (i Images) EnvoyConsulImage() string {
 	return "local/" + name1 + "-and-" + name2 + ":" + tag1 + "-with-" + tag2
 }
 
+// TODO: what is this for and why do we need to do this and why is it named this?
 func (i Images) ChooseNode(kind NodeKind) Images {
 	switch kind {
 	case NodeKindServer:

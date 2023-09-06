@@ -41,6 +41,7 @@ type asserter struct {
 type sprawlLite interface {
 	HTTPClientForCluster(clusterName string) (*http.Client, error)
 	APIClientForNode(clusterName string, nid topology.NodeID, token string) (*api.Client, error)
+	APIClientForCluster(clusterName string, token string) (*api.Client, error)
 	Topology() *topology.Topology
 }
 
@@ -58,16 +59,10 @@ func (a *asserter) mustGetHTTPClient(t *testing.T, cluster string) *http.Client 
 }
 
 func (a *asserter) mustGetAPIClient(t *testing.T, cluster string) *api.Client {
-	cl, err := a.apiClientFor(cluster)
+	clu := a.sp.Topology().Clusters[cluster]
+	cl, err := a.sp.APIClientForCluster(clu.Name, "")
 	require.NoError(t, err)
 	return cl
-}
-
-func (a *asserter) apiClientFor(cluster string) (*api.Client, error) {
-	clu := a.sp.Topology().Clusters[cluster]
-	// TODO: this always goes to the first client, but we might want to balance this
-	cl, err := a.sp.APIClientForNode(cluster, clu.FirstClient().ID(), "")
-	return cl, err
 }
 
 // httpClientFor returns a pre-configured http.Client that proxies requests
