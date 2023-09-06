@@ -768,6 +768,24 @@ Config {
 
 #### Community edition
 
+#### Consul Enterprise
+
+When using multiple namespaces with Consul Enterprise, the only configuration entry that affects proxy defaults is the one in the `default` namespace. This configuration applies to proxies in all namespaces.
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+Namespace = "default" # Can only be set to "default".
+Config {
+  protocol = "http"
+}
+```
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+#### Community edition
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ProxyDefaults
