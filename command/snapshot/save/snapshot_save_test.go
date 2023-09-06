@@ -105,7 +105,7 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 
 	datacenter := dc.(string)
 
-	operatorHealth, err := client.Operator().AutopilotServerHealth(nil)
+	operatorHealth, _ := client.Operator().AutopilotServerHealth(nil)
 
 	version := ""
 	for _, server := range operatorHealth.Servers {
