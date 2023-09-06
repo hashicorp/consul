@@ -239,6 +239,10 @@ The table below shows this endpoint's support for
   made to both addresses, and the first successful connection attempt will
   result in a successful check.
 
+- `TCPUseTLS` `(bool: false)` - Specifies whether to use TLS for this `TCP` health check.
+  If TLS is enabled, then by default, a valid TLS certificate is expected. Certificate
+  verification can be turned off by setting `TLSSkipVerify` to `true`.
+
 - `UDP` `(string: "")` - Specifies a `UDP` IP address/hostname and port.
 The check sends datagrams to the value specified at the interval specified in the `Interval` configuration.
 If the datagram is sent successfully or a timeout is returned, the check is set to the `passing` state.
