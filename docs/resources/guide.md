@@ -188,19 +188,19 @@ func RegisterTypes(r resource.Registry) {
 	})
 }
 
-func authzReadBar(authz acl.Authorizer, id *pbresource.ID) error {
+func authzReadBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
 	return authz.ToAllowAuthorizer().
-		BarReadAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
+		BarReadAllowed(id.Name, authzContext)
 }
 
-func authzWriteBar(authz acl.Authorizer, id *pbresource.ID) error {
+func authzWriteBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 	return authz.ToAllowAuthorizer().
-		BarWriteAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
+		BarWriteAllowed(res.ID().Name, authzContext)
 }
 
-func authzListBar(authz acl.Authorizer, ten *pbresource.Tenancy) error {
+func authzListBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 	return authz.ToAllowAuthorizer().
-		BarListAllowed(resource.AuthorizerContext(ten))
+		BarListAllowed(authzContext)
 }
 ```
 
