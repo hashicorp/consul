@@ -74,7 +74,7 @@ jobs:
 
   ember-build-test:
     needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     strategy:
       matrix:
         partition: [1, 2, 3, 4]
