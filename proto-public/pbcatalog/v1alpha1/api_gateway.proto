@@ -1,0 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+// NOTE: this should align to the GAMMA/gateway-api version, or at least be
+// easily translatable.
+//
+// https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1beta1.Gateway
+//
+// This is a Resource type.
+// TODO(nathancoleman) Implement me
+message APIGateway {}

@@ -28,39 +28,48 @@ var (
 
 	// Resource Kind Names.
 
-	WorkloadKind         = types.WorkloadKind
-	ServiceKind          = types.ServiceKind
-	ServiceEndpointsKind = types.ServiceEndpointsKind
-	VirtualIPsKind       = types.VirtualIPsKind
-	NodeKind             = types.NodeKind
-	HealthStatusKind     = types.HealthStatusKind
-	HealthChecksKind     = types.HealthChecksKind
-	DNSPolicyKind        = types.DNSPolicyKind
-	FailoverPolicyKind   = types.FailoverPolicyKind
+	WorkloadKind           = types.WorkloadKind
+	ServiceKind            = types.ServiceKind
+	ServiceEndpointsKind   = types.ServiceEndpointsKind
+	VirtualIPsKind         = types.VirtualIPsKind
+	NodeKind               = types.NodeKind
+	HealthStatusKind       = types.HealthStatusKind
+	HealthChecksKind       = types.HealthChecksKind
+	DNSPolicyKind          = types.DNSPolicyKind
+	FailoverPolicyKind     = types.FailoverPolicyKind
+	APIGatewayKind         = types.APIGatewayKind
+	MeshGatewayKind        = types.MeshGatewayKind
+	TerminatingGatewayKind = types.TerminatingGatewayKind
 
 	// Resource Types for the v1alpha1 version.
 
-	WorkloadV1Alpha1Type         = types.WorkloadV1Alpha1Type
-	ServiceV1Alpha1Type          = types.ServiceV1Alpha1Type
-	ServiceEndpointsV1Alpha1Type = types.ServiceEndpointsV1Alpha1Type
-	VirtualIPsV1Alpha1Type       = types.VirtualIPsV1Alpha1Type
-	NodeV1Alpha1Type             = types.NodeV1Alpha1Type
-	HealthStatusV1Alpha1Type     = types.HealthStatusV1Alpha1Type
-	HealthChecksV1Alpha1Type     = types.HealthChecksV1Alpha1Type
-	DNSPolicyV1Alpha1Type        = types.DNSPolicyV1Alpha1Type
-	FailoverPolicyV1Alpha1Type   = types.FailoverPolicyV1Alpha1Type
+	WorkloadV1Alpha1Type           = types.WorkloadV1Alpha1Type
+	ServiceV1Alpha1Type            = types.ServiceV1Alpha1Type
+	ServiceEndpointsV1Alpha1Type   = types.ServiceEndpointsV1Alpha1Type
+	VirtualIPsV1Alpha1Type         = types.VirtualIPsV1Alpha1Type
+	NodeV1Alpha1Type               = types.NodeV1Alpha1Type
+	HealthStatusV1Alpha1Type       = types.HealthStatusV1Alpha1Type
+	HealthChecksV1Alpha1Type       = types.HealthChecksV1Alpha1Type
+	DNSPolicyV1Alpha1Type          = types.DNSPolicyV1Alpha1Type
+	FailoverPolicyV1Alpha1Type     = types.FailoverPolicyV1Alpha1Type
+	APIGatewayV1Alpha1Type         = types.APIGatewayV1Alpha1Type
+	MeshGatewayV1Alpha1Type        = types.MeshGatewayV1Alpha1Type
+	TerminatingGatewayV1Alpha1Type = types.TerminatingGatewayV1Alpha1Type
 
 	// Resource Types for the latest version.
 
-	WorkloadType         = types.WorkloadType
-	ServiceType          = types.ServiceType
-	ServiceEndpointsType = types.ServiceEndpointsType
-	VirtualIPsType       = types.VirtualIPsType
-	NodeType             = types.NodeType
-	HealthStatusType     = types.HealthStatusType
-	HealthChecksType     = types.HealthChecksType
-	DNSPolicyType        = types.DNSPolicyType
-	FailoverPolicyType   = types.FailoverPolicyType
+	WorkloadType           = types.WorkloadType
+	ServiceType            = types.ServiceType
+	ServiceEndpointsType   = types.ServiceEndpointsType
+	VirtualIPsType         = types.VirtualIPsType
+	NodeType               = types.NodeType
+	HealthStatusType       = types.HealthStatusType
+	HealthChecksType       = types.HealthChecksType
+	DNSPolicyType          = types.DNSPolicyType
+	FailoverPolicyType     = types.FailoverPolicyType
+	APIGatewayType         = types.APIGatewayType
+	MeshGatewayType        = types.MeshGatewayType
+	TerminatingGatewayType = types.TerminatingGatewayType
 
 	// Controller Statuses
 	NodeHealthStatusKey              = nodehealth.StatusKey

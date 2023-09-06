@@ -23,4 +23,7 @@ func Register(r resource.Registry) {
 	RegisterDNSPolicy(r)
 	RegisterVirtualIPs(r)
 	RegisterFailoverPolicy(r)
+	RegisterAPIGateway(r)
+	RegisterMeshGateway(r)
+	RegisterTerminatingGateway(r)
 }
