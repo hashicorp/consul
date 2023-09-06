@@ -5,9 +5,6 @@ package tfgen
 
 import (
 	"fmt"
-	"sort"
-	"strconv"
-	"text/template"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
@@ -20,32 +17,6 @@ type terraformPod struct {
 	TLSVolumeName     string
 	DNSAddress        string
 	DockerNetworkName string
-}
-
-type terraformConsulAgent struct {
-	terraformPod
-	ImageResource     string
-	HCL               string
-	EnterpriseLicense string
-	Env               []string
-}
-
-type terraformMeshGatewayService struct {
-	terraformPod
-	EnvoyImageResource string
-	Service            *topology.Service
-	Command            []string
-}
-
-type terraformService struct {
-	terraformPod
-	AppImageResource       string
-	EnvoyImageResource     string // agentful
-	DataplaneImageResource string // agentless
-	Service                *topology.Service
-	Env                    []string
-	Command                []string
-	EnvoyCommand           []string // agentful
 }
 
 func (g *Generator) generateNodeContainers(
@@ -82,156 +53,99 @@ func (g *Generator) generateNodeContainers(
 	}
 	pod.DockerNetworkName = net.DockerName
 
-	var (
-		containers []Resource
-	)
+	containers := []Resource{}
 
 	if node.IsAgent() {
-		agentHCL, err := g.generateAgentHCL(node)
-		if err != nil {
-			return nil, err
-		}
-
-		agent := terraformConsulAgent{
-			terraformPod:      pod,
-			ImageResource:     DockerImageResourceName(node.Images.Consul),
-			HCL:               agentHCL,
-			EnterpriseLicense: g.license,
-			Env:               node.AgentEnv,
-		}
-
 		switch {
 		case node.IsServer() && step.StartServers(),
 			!node.IsServer() && step.StartAgents():
-			containers = append(containers, Eval(tfConsulT, &agent))
+			containers = append(containers, Eval(tfConsulT, struct {
+				terraformPod
+				ImageResource     string
+				HCL               string
+				EnterpriseLicense string
+			}{
+				terraformPod:      pod,
+				ImageResource:     DockerImageResourceName(node.Images.Consul),
+				HCL:               g.generateAgentHCL(node),
+				EnterpriseLicense: g.license,
+			}))
 		}
 	}
 
+	svcContainers := []Resource{}
 	for _, svc := range node.SortedServices() {
-		if svc.IsMeshGateway {
-			if node.Kind == topology.NodeKindDataplane {
-				panic("NOT READY YET")
-			}
-			gw := terraformMeshGatewayService{
-				terraformPod:       pod,
-				EnvoyImageResource: DockerImageResourceName(node.Images.EnvoyConsulImage()),
-				Service:            svc,
-				Command: []string{
-					"consul", "connect", "envoy",
-					"-register",
-					"-mesh-gateway",
-				},
-			}
-			if token := g.sec.ReadServiceToken(node.Cluster, svc.ID); token != "" {
-				gw.Command = append(gw.Command, "-token", token)
-			}
-			if cluster.Enterprise {
-				gw.Command = append(gw.Command,
-					"-partition",
-					svc.ID.Partition,
-				)
-			}
-			gw.Command = append(gw.Command,
-				"-address",
-				`{{ GetInterfaceIP \"eth0\" }}:`+strconv.Itoa(svc.Port),
-				"-wan-address",
-				`{{ GetInterfaceIP \"eth1\" }}:`+strconv.Itoa(svc.Port),
-			)
-			gw.Command = append(gw.Command,
-				"-grpc-addr", "http://127.0.0.1:8502",
-				"-admin-bind",
-				// for demo purposes
-				"0.0.0.0:"+strconv.Itoa(svc.EnvoyAdminPort),
-				"--",
-				"-l",
-				"trace",
-			)
-			if step.StartServices() {
-				containers = append(containers, Eval(tfMeshGatewayT, &gw))
-			}
-		} else {
-			tfsvc := terraformService{
-				terraformPod:     pod,
-				AppImageResource: DockerImageResourceName(svc.Image),
-				Service:          svc,
-				Command:          svc.Command,
-			}
-			tfsvc.Env = append(tfsvc.Env, svc.Env...)
-			if step.StartServices() {
-				containers = append(containers, Eval(tfAppT, &tfsvc))
+		token := g.sec.ReadServiceToken(node.Cluster, svc.ID)
+		switch {
+		case svc.IsMeshGateway && !node.IsDataplane():
+			svcContainers = append(svcContainers, Eval(tfMeshGatewayT, struct {
+				terraformPod
+				ImageResource string
+				Enterprise    bool
+				Service       *topology.Service
+				Token         string
+			}{
+				terraformPod:  pod,
+				ImageResource: DockerImageResourceName(node.Images.EnvoyConsulImage()),
+				Enterprise:    cluster.Enterprise,
+				Service:       svc,
+				Token:         token,
+			}))
+		case svc.IsMeshGateway && node.IsDataplane():
+			svcContainers = append(svcContainers, Eval(tfMeshGatewayDataplaneT, &struct {
+				terraformPod
+				ImageResource string
+				Enterprise    bool
+				Service       *topology.Service
+				Token         string
+			}{
+				terraformPod:  pod,
+				ImageResource: DockerImageResourceName(node.Images.LocalDataplaneImage()),
+				Enterprise:    cluster.Enterprise,
+				Service:       svc,
+				Token:         token,
+			}))
+
+		case !svc.IsMeshGateway:
+			svcContainers = append(svcContainers, Eval(tfAppT, struct {
+				terraformPod
+				ImageResource string
+				Service       *topology.Service
+			}{
+				terraformPod:  pod,
+				ImageResource: DockerImageResourceName(svc.Image),
+				Service:       svc,
+			}))
+
+			if svc.DisableServiceMesh {
+				break
 			}
 
-			setenv := func(k, v string) {
-				tfsvc.Env = append(tfsvc.Env, k+"="+v)
+			tmpl := tfAppSidecarT
+			var img string
+			if node.IsDataplane() {
+				tmpl = tfAppDataplaneT
+				img = DockerImageResourceName(node.Images.LocalDataplaneImage())
+			} else {
+				img = DockerImageResourceName(node.Images.EnvoyConsulImage())
 			}
+			svcContainers = append(svcContainers, Eval(tmpl, struct {
+				terraformPod
+				ImageResource string
+				Service       *topology.Service
+				Token         string
+				Enterprise    bool
+			}{
+				terraformPod:  pod,
+				ImageResource: img,
+				Service:       svc,
+				Token:         token,
+				Enterprise:    cluster.Enterprise,
+			}))
+		}
 
-			if !svc.DisableServiceMesh {
-				if node.IsDataplane() {
-					tfsvc.DataplaneImageResource = DockerImageResourceName(node.Images.LocalDataplaneImage())
-					tfsvc.EnvoyImageResource = ""
-					tfsvc.EnvoyCommand = nil
-					// --- REQUIRED ---
-					setenv("DP_CONSUL_ADDRESSES", "server."+node.Cluster+"-consulcluster.lan")
-					setenv("DP_SERVICE_NODE_NAME", node.PodName())
-					setenv("DP_PROXY_SERVICE_ID", svc.ID.Name+"-sidecar-proxy")
-				} else {
-					tfsvc.DataplaneImageResource = ""
-					tfsvc.EnvoyImageResource = DockerImageResourceName(node.Images.EnvoyConsulImage())
-					tfsvc.EnvoyCommand = []string{
-						"consul", "connect", "envoy",
-						"-sidecar-for", svc.ID.Name,
-					}
-				}
-				if cluster.Enterprise {
-					if node.IsDataplane() {
-						setenv("DP_SERVICE_NAMESPACE", svc.ID.Namespace)
-						setenv("DP_SERVICE_PARTITION", svc.ID.Partition)
-					} else {
-						tfsvc.EnvoyCommand = append(tfsvc.EnvoyCommand,
-							"-partition",
-							svc.ID.Partition,
-							"-namespace",
-							svc.ID.Namespace,
-						)
-					}
-				}
-				if token := g.sec.ReadServiceToken(node.Cluster, svc.ID); token != "" {
-					if node.IsDataplane() {
-						setenv("DP_CREDENTIAL_TYPE", "static")
-						setenv("DP_CREDENTIAL_STATIC_TOKEN", token)
-					} else {
-						tfsvc.EnvoyCommand = append(tfsvc.EnvoyCommand, "-token", token)
-					}
-				}
-				if node.IsDataplane() {
-					setenv("DP_ENVOY_ADMIN_BIND_ADDRESS", "0.0.0.0") // for demo purposes
-					setenv("DP_ENVOY_ADMIN_BIND_PORT", "19000")
-					setenv("DP_LOG_LEVEL", "trace")
-
-					setenv("DP_CA_CERTS", "/consul/config/certs/consul-agent-ca.pem")
-					setenv("DP_CONSUL_GRPC_PORT", "8503")
-					setenv("DP_TLS_SERVER_NAME", "server."+node.Datacenter+".consul")
-				} else {
-					tfsvc.EnvoyCommand = append(tfsvc.EnvoyCommand,
-						"-grpc-addr", "http://127.0.0.1:8502",
-						"-admin-bind",
-						// for demo purposes
-						"0.0.0.0:"+strconv.Itoa(svc.EnvoyAdminPort),
-						"--",
-						"-l",
-						"trace",
-					)
-				}
-				if step.StartServices() {
-					sort.Strings(tfsvc.Env)
-
-					if node.IsDataplane() {
-						containers = append(containers, Eval(tfAppDataplaneT, &tfsvc))
-					} else {
-						containers = append(containers, Eval(tfAppSidecarT, &tfsvc))
-					}
-				}
-			}
+		if step.StartServices() {
+			containers = append(containers, svcContainers...)
 		}
 	}
 
@@ -243,10 +157,3 @@ func (g *Generator) generateNodeContainers(
 
 	return containers, nil
 }
-
-var tfPauseT = template.Must(template.ParseFS(content, "templates/container-pause.tf.tmpl"))
-var tfConsulT = template.Must(template.ParseFS(content, "templates/container-consul.tf.tmpl"))
-var tfMeshGatewayT = template.Must(template.ParseFS(content, "templates/container-mgw.tf.tmpl"))
-var tfAppT = template.Must(template.ParseFS(content, "templates/container-app.tf.tmpl"))
-var tfAppSidecarT = template.Must(template.ParseFS(content, "templates/container-app-sidecar.tf.tmpl"))
-var tfAppDataplaneT = template.Must(template.ParseFS(content, "templates/container-app-dataplane.tf.tmpl"))

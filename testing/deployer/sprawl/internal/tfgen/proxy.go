@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"text/template"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"
@@ -86,5 +85,3 @@ func (g *Generator) getForwardProxyContainer(
 
 	return Eval(tfForwardProxyT, &proxy)
 }
-
-var tfForwardProxyT = template.Must(template.ParseFS(content, "templates/container-proxy.tf.tmpl"))

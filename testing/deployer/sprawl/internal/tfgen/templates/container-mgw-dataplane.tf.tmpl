@@ -1,5 +1,5 @@
-resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidecar" {
-	name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidecar"
+resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
+	name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}"
     network_mode = "container:${docker_container.{{.PodName}}.id}"
     image        = docker_image.{{.ImageResource}}.latest
     restart      = "on-failure"
@@ -20,7 +20,7 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
   env = [
 			"DP_CONSUL_ADDRESSES=server.{{.Node.Cluster}}-consulcluster.lan",
 			"DP_SERVICE_NODE_NAME={{.Node.PodName}}",
-			"DP_PROXY_SERVICE_ID={{.Service.ID.Name}}-sidecar-proxy",
+			"DP_PROXY_SERVICE_ID={{.Service.ID.Name}}",
     {{ if .Enterprise }}
       "DP_SERVICE_NAMESPACE={{.Service.ID.Namespace}}",
       "DP_SERVICE_PARTITION={{.Service.ID.Partition}}",
@@ -42,3 +42,4 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
     "/usr/local/bin/consul-dataplane",
   ]
 }
+
