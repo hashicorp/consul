@@ -23,7 +23,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// TODO Implement me
+// TODO(nathancoleman) Implement me
 type APIGateway struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -28,7 +28,7 @@ func RegisterTerminatingGateway(r resource.Registry) {
 		Type:     TerminatingGatewayV1Alpha1Type,
 		Proto:    &pbmesh.TerminatingGateway{},
 		Scope:    resource.ScopeNamespace,
-		Mutate:   nil,
-		Validate: nil,
+		Mutate:   nil, // TODO(nathancoleman)
+		Validate: nil, // TODO(nathancoleman)
 	})
 }
