@@ -370,7 +370,7 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 					},
 				},
 				{
-					Workloads: &pbcatalog.WorkloadSelector{Names: []string{"test-workload"}},
+					Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"test-"}},
 					BootstrapConfig: &pbmesh.BootstrapConfig{
 						StatsdUrl: "stats-url",
 					},
