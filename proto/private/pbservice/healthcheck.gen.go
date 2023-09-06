@@ -21,6 +21,7 @@ func CheckTypeToStructs(s *CheckType, t *structs.CheckType) {
 	t.Body = s.Body
 	t.DisableRedirects = s.DisableRedirects
 	t.TCP = s.TCP
+	t.TCPUseTLS = s.TCPUseTLS
 	t.UDP = s.UDP
 	t.Interval = structs.DurationFromProto(s.Interval)
 	t.AliasNode = s.AliasNode
@@ -59,6 +60,7 @@ func CheckTypeFromStructs(t *structs.CheckType, s *CheckType) {
 	s.Body = t.Body
 	s.DisableRedirects = t.DisableRedirects
 	s.TCP = t.TCP
+	s.TCPUseTLS = t.TCPUseTLS
 	s.UDP = t.UDP
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.AliasNode = t.AliasNode
@@ -142,6 +144,7 @@ func HealthCheckDefinitionToStructs(s *HealthCheckDefinition, t *structs.HealthC
 	t.Body = s.Body
 	t.DisableRedirects = s.DisableRedirects
 	t.TCP = s.TCP
+	t.TCPUseTLS = s.TCPUseTLS
 	t.UDP = s.UDP
 	t.H2PING = s.H2PING
 	t.OSService = s.OSService
@@ -171,6 +174,7 @@ func HealthCheckDefinitionFromStructs(t *structs.HealthCheckDefinition, s *Healt
 	s.Body = t.Body
 	s.DisableRedirects = t.DisableRedirects
 	s.TCP = t.TCP
+	s.TCPUseTLS = t.TCPUseTLS
 	s.UDP = t.UDP
 	s.H2PING = t.H2PING
 	s.OSService = t.OSService
