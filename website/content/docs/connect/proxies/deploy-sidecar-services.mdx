@@ -5,24 +5,55 @@ description: >-
   You can register a service instance and its sidecar proxy at the same time. Learn about default settings, customizable parameters, limitations, and lifecycle behaviors of the sidecar proxy.
 ---
 
-# Register a Service Mesh Proxy in a Service Registration
+# Deploy sidecar proxies
 
-This topic describes how to declare a proxy as a _sidecar_ proxy. 
+This topic describes how to create, register, and start sidecar proxy services in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxies) for additional information about how proxies enable Consul functionalities. For information about deploying service mesh proxies, refer to [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies).
+
+## Overview
+
 Sidecar proxies run on the same node as the single service instance that they handle traffic for. 
-They may be on the same VM or running as a separate container in the same network namespace.
+They may be on the same VM or running as a separate container in the same network namespace. 
 
-## Configuration
+You can attach a sidecar proxy to a service you want to deploy to your mesh:
 
-Add the `connect.sidecar_service` block to your service definition file and specify the parameters to configure sidecar proxy behavior. The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies. 
+1. It is not required, but you can create a proxy defaults configuration entry that contains global  passthrough settings for all Envoy proxies. Refer to [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for additional information.
+1. Create the service definition and include the `connect` block. The `connect` block contains the sidecar proxy configurations that allow the service to interact with other services in the mesh.
+1. Register the service using either the API or CLI.
+1. Start the sidecar proxy service. 
 
-Consul treats sidecar proxy service definitions as a root-level service definition. All fields are optional in nested
-definitions, which default to opinionated settings that are intended to reduce burden of setting up a sidecar proxy.
+## Requirements
 
-## Minimal Example
+If [ACLs](/consul/docs/security/acl) are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token) for additional information.
 
-To register a service instance with a sidecar, all that's needed is:
+## Define service mesh proxy 
+
+Create a service definition and configure the following fields: 
+
+1. Specify a name for the service you want to attach a sidecar proxy to in the `name` field. This field is required for all services you want to register in Consul.  
+1. Specify a port number where other services registered with Consul can discover and connect to the service in the `port` field. This field is required for all services you want to register in Consul.
+1. Set the `connect` field to `{ sidecar_service: {} }`. The `{ sidecar_service: {} }` value is a macro that applies a set of default configurations that enable you to quickly implement a sidecar. Refer to [Sidecar service defaults](#sidecar-service-defaults) for additional information.
+1. Configure any additional options for your service. Refer to [Services configuration reference](/consul/docs/services/configuration/services-configuration-reference) for details. 
+
+In the following example, a service named `web` is configured with a sidecar proxy:
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+service = {
+  name = "web"
+  port = 8080
+  connect = { sidecar_service = {} }
+}
+```  
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
+
 {
   "service": {
     "name": "web",
@@ -30,13 +61,50 @@ To register a service instance with a sidecar, all that's needed is:
     "connect": { "sidecar_service": {} }
   }
 }
+
 ```
 
-This will register the `web` service as normal, but will also register another
-[proxy service](/consul/docs/connect/proxies) with defaults values used.
+</Tab>
 
-The above expands out to be equivalent to the following explicit service
-definitions:
+</Tabs>
+
+When Consul processes the service definition, it generates the following configuration in place of the `sidecar_service` macro. Note that sidecar proxies services are based on the `connect-proxy` type:
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+services = [ 
+  {
+    name = "web"
+    port = 8080
+  }
+    checks = {
+      Interval = "10s"
+      Name = "Connect Sidecar Listening"
+      TCP = "127.0.0.1:20000"
+    }
+    checks = {
+      alias_service = "web"
+      name = "Connect Sidecar Aliasing web"
+    }
+    kind = "connect-proxy"
+    name = "web-sidecar-proxy"
+    port = 20000
+    proxy = {
+      destination_service_id = "web"
+      destination_service_name = "web"
+      local_service_address = "127.0.0.1"
+      local_service_port = 8080
+    }
+]
+
+```  
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -69,19 +137,57 @@ definitions:
     }
   ]
 }
+
 ```
 
-Details on how the defaults are determined are [documented
-below](#sidecar-service-defaults).
+</Tab>
 
--> **Note:** Sidecar service registrations are only a shorthand for registering
-multiple services. Consul will not start up or manage the actual proxy processes
-for you.
+</Tabs>    
 
-## Overridden Example
+## Register the service 
 
-The following example shows a service definition where some fields are
-overridden to customize the proxy configuration.
+Provide the service definition to the Consul agent to register your proxy service. You can use the same methods for registering proxy services as you do for registering application services:
+ 
+- Place the service definition in a Consul agent's configuration directory and start, restart, or reload the agent. Use this method when implementing changes to an existing proxy service.
+- Use the `consul services register` command to register the proxy service with a running Consul agent.
+- Call the `/agent/service/register` HTTP API endpoint to register the proxy service with a running Consul agent.
+
+Refer to [Register services and health checks](/consul/docs/services/usage/register-services-checks) for instructions.
+
+In the following example, the `consul services register` command registers a proxy service stored in `proxy.hcl`:
+
+```shell-session
+$ consul services register proxy.hcl
+```
+
+## Start the proxy
+
+Envoy requires a bootstrap configuration file before it can start. Use the [`consul connect envoy` command](/consul/commands/connect/envoy) to create the Envoy bootstrap configuration and start the proxy service. Specify the name of the service with the attached proxy with the `-sidecar-for` option.  
+
+The following example command starts an Envoy sidecar proxy for the `web` service:
+
+```shell-session
+$ consul connect envoy -sidecar-for=web
+```
+
+For details about operating an Envoy proxy in Consul, refer to [](/consul/docs/connect/proxies/envoy)  
+
+
+## Configuration reference
+
+Add the `connect.sidecar_service` block to your service definition file and specify the parameters to configure sidecar proxy behavior. The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies. 
+
+Consul treats sidecar proxy service definitions as a root-level service definition. All fields are optional in nested
+definitions, which default to opinionated settings that are intended to reduce burden of setting up a sidecar proxy.
+
+
+
+## Example with overwitten configurations
+
+In the following example, but the `sidecar_service` macro sets baselines configurations for the proxy, but the [proxy
+upstreams](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
+and [built-in proxy
+configuration](/consul/docs/connect/proxies/built-in) fields contain custom values:  
 
 ```json
 {
@@ -105,12 +211,9 @@ overridden to customize the proxy configuration.
 }
 ```
 
-This example customizes the [proxy
-upstreams](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
-and some [built-in proxy
-configuration](/consul/docs/connect/proxies/built-in).
 
-## Sidecar Service Defaults
+
+## Sidecar service defaults
 
 The following fields are set by default on a sidecar service registration. With
 [the exceptions noted](#limitations) any field may be overridden explicitly in
