@@ -189,9 +189,10 @@ Defines the Consul checks for the service. Each `check` object may contain the f
 | `status` | `string` | optional | Specifies the initial status the health check. Must be one of `passing`, `warning`, `critical`, `maintenance`, or `null`. |
 | `successBeforePassing` | `integer` | optional | Specifies the number of consecutive successful results required before check status transitions to passing.  |
 | `tcp` | `string` | optional | Specifies this is a TCP check. Must be an IP/hostname plus port to which a TCP connection is made every `interval`.  |
+| `tcpUseTls` | `boolean` | optional | Specifies whether to use TLS for this `TCP` health check. If TLS is enabled, then by default, a valid TLS certificate is expected. Certificate verification can be disabled by setting `TLSSkipVerify` to `true`.  |
 | `timeout` | `string` | optional | Specifies a timeout for outgoing connections. Applies to script, HTTP, TCP, UDP, and gRPC checks. Must be a duration string, such as `10s` or `5m`.  |
 | `tlsServerName` | `string` | optional | Specifies an optional string used to set the SNI host when connecting via TLS.  |
-| `tlsSkipVerify` | `boolean` | optional | Specifies if the certificate for an HTTPS check should not be verified.  |
+| `tlsSkipVerify` | `boolean` | optional | Specifies if the check should verify the chain and hostname of the certificate presented by the server being checked. Set to `true` to disable verification. We recommend setting to `false` for production use. Default is `false`. Supported check types: `HTTP`, `H2Ping`, `gRPC`, and `TCP`|
 | `ttl` | `string` | optional | Specifies this is a TTL check. Must be a duration string, such as `10s` or `5m`.  |
 | `udp` | `string` | optional | Specifies this is a UDP check. Must be an IP/hostname plus port to which UDP datagrams are sent every `interval`.  |
 
