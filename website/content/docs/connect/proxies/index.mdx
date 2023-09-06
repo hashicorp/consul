@@ -7,7 +7,7 @@ description: >-
 
 # Service mesh proxy overview
 
-This topic provides an overview of how Consul uses proxies in your service mesh. A proxy is a type of service that enables unmodified applications to connect to other services in the service mesh. Consul ships with a built-in L4 proxy and has first class support for Envoy. You can plug other proxies into your environment, as well, and apply configurations in Consul to define proxy behavior.
+This topic provides an overview of how Consul uses proxies in your service mesh. A proxy is a type of service that enables unmodified applications to connect to other services in the service mesh. Consul ships with a built-in L4 proxy and has first class support for Envoy. You can plug other proxies into your environment as well, and apply configurations in Consul to define proxy behavior.
 
 ## Proxy use cases
 
@@ -44,7 +44,7 @@ The following procedure describes how to implement proxies:
 
 1. **Configure global proxy settings**. You can configure global passthrough settings for all proxies deployed to your service mesh in the proxy defaults configuration entry. This step is not required, but it enables you to define common behaviors in a central configuration.
 1. **Deploy your service mesh proxy**. Configure proxy behavior in a service definition and register the proxy with Consul. 
-1. **Start the proxy service**. 
+1. **Start the proxy service**. Proxies appear in the list of services registered to Consul and must be started before they begin to route traffic in your service mesh.
 
 ### Dynamic upstreams require native integration
 
@@ -52,7 +52,7 @@ Service mesh proxies do not support dynamic upstreams. If an application require
 
 ## Proxies in Kubernetes-orchestrated networks
 
-For Kubernetes-orchestrated environments, Consul deploys _dataplanes_ by default to manage proxies. Consul dataplanes are light-weight processes that leverage existing Kubernetes sidecar orchestration capabilities.  Refer to the [dataplanes documentation](/consul/docs/connect/dataplane) for additional information.
+For Kubernetes-orchestrated environments, Consul deploys _dataplanes_ by default to manage sidecar proxies. Consul dataplanes are light-weight processes that leverage existing Kubernetes sidecar orchestration capabilities.  Refer to the [dataplanes documentation](/consul/docs/connect/dataplane) for additional information.
 
 ## Guidance
 

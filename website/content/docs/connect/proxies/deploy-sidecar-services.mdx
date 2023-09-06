@@ -7,7 +7,7 @@ description: >-
 
 # Deploy sidecar services
 
-This topic describes how to create, register, and start sidecar proxy services in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxies) for additional information about how proxies enable Consul functionalities. For information about deploying service mesh proxies, refer to [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies).
+This topic describes how to create, register, and start sidecar proxy services in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxies) for additional information about how proxies enable Consul's functions and operations. For information about deploying service mesh proxies, refer to [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies).
 
 ## Overview
 
@@ -23,7 +23,7 @@ You can attach a sidecar proxy to a service you want to deploy to your mesh:
 
 ## Requirements
 
-If [ACLs](/consul/docs/security/acl) are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token) for additional information.
+If ACLs are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token) for additional information.
 
 ## Configure global Envoy passthrough settings
 
@@ -43,9 +43,9 @@ $ consul config write proxy-defaults.hcl
 
 Create a service definition and configure the following fields: 
 
-1. Specify a name for the service you want to attach a sidecar proxy to in the `name` field. This field is required for all services you want to register in Consul.  
-1. Specify a port number where other services registered with Consul can discover and connect to the service in the `port` field. This field is required for all services you want to register in Consul.
-1. Set the `connect` field to `{ sidecar_service: {} }`. The `{ sidecar_service: {} }` value is a macro that applies a set of default configurations that enable you to quickly implement a sidecar. Refer to [Sidecar service defaults](#sidecar-service-defaults) for additional information.
+1. `name`: Specify a name for the service you want to attach a sidecar proxy to in the `name` field. This field is required for all services you want to register in Consul.  
+1. `port`: Specify a port number where other services registered with Consul can discover and connect to the service in the `port` field. This field is required for all services you want to register in Consul.
+1. `connect`: Set the `connect` field to `{ sidecar_service: {} }`. The `{ sidecar_service: {} }` value is a macro that applies a set of default configurations that enable you to quickly implement a sidecar. Refer to [Sidecar service defaults](#sidecar-service-defaults) for additional information.
 1. Configure any additional options for your service. Refer to [Services configuration reference](/consul/docs/services/configuration/services-configuration-reference) for details. 
 
 In the following example, a service named `web` is configured with a sidecar proxy:
@@ -200,16 +200,16 @@ the `connect.sidecar_service` definition to customize the proxy registration.
 The "parent" service refers to the service definition that embeds the sidecar
 proxy.
 
-- `id` - ID defaults to being `<parent-service-id>-sidecar-proxy`. This can't
+- `id` - ID defaults to `<parent-service-id>-sidecar-proxy`. This value cannot
   be overridden as it is used to [manage the lifecycle](#lifecycle) of the
   registration.
-- `name` - Defaults to being `<parent-service-name>-sidecar-proxy`.
+- `name` - Defaults to `<parent-service-name>-sidecar-proxy`.
 - `tags` - Defaults to the tags of the parent service.
 - `meta` - Defaults to the service metadata of the parent service.
 - `port` - Defaults to being auto-assigned from a configurable
   range specified by [`sidecar_min_port`](/consul/docs/agent/config/config-files#sidecar_min_port)
   and [`sidecar_max_port`](/consul/docs/agent/config/config-files#sidecar_max_port).
-- `kind` - Defaults to `connect-proxy`. This can't be overridden currently.
+- `kind` - Defaults to `connect-proxy`. This value cannot be overridden.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
   check](/consul/docs/services/usage/checks#alias-checks) for the parent service. If either
@@ -221,7 +221,7 @@ proxy.
 
 ### Example with overwritten configurations
 
-In the following example, but the `sidecar_service` macro sets baselines configurations for the proxy, but the [proxy
+In the following example, the `sidecar_service` macro sets baselines configurations for the proxy, but the [proxy
 upstreams](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
 and [built-in proxy
 configuration](/consul/docs/connect/proxies/built-in) fields contain custom values:  
@@ -253,13 +253,12 @@ configuration](/consul/docs/connect/proxies/built-in) fields contain custom valu
 The following fields are not supported in the `connect.sidecar_service` block:
 
 - `id` - Sidecar services get an ID assigned and it is an error to override
-  this. This ensures the agent can correctly deregister the sidecar service
+  this value. This ID is required to ensure that the agent can correctly deregister the sidecar service
   later when the parent service is removed.
-- `kind` - Kind defaults to `connect-proxy` and there is currently no way to
-  unset this to make the registration be for a regular non-connect-proxy
-  service.
-- `connect.sidecar_service` - Service definitions can't be nested recursively.
-- `connect.native` - Currently the `kind` is fixed to `connect-proxy` and it's
+- `kind` - Kind defaults to `connect-proxy` and there is no way to
+  unset this behavior.
+- `connect.sidecar_service` - Service definitions cannot be nested recursively.
+- `connect.native` - The `kind` is fixed to `connect-proxy` and it is
   an error to register a `connect-proxy` that is also service mesh-native.
 
 ## Lifecycle
@@ -270,17 +269,16 @@ have some specific behavior around their lifecycle that makes them easier to
 work with.
 
 The agent fixes the ID of the sidecar service to be based on the parent
-service's ID. This enables the following behavior.
+service's ID, which enables the following behavior.
 
-- A service instance can _only ever have one_ sidecar service registered.
-- When re-registering via API or reloading from configuration file:
-  - If something changes in the nested sidecar service definition, the change
-    will _update_ the current sidecar registration instead of creating a new
+- A service instance can only ever have one sidecar service registered.
+- When re-registering through the HTTP API or reloading from configuration file:
+  - If something changes in the nested sidecar service definition, the update is applied to the current sidecar registration instead of creating a new
     one.
   - If a service registration removes the nested `sidecar_service` then the
-    previously registered sidecar for that service will be deregistered
+    previously registered sidecar for that service is deregistered
     automatically.
 - When reloading the configuration files, if a service definition changes its
-  ID, then a new service instance _and_ a new sidecar instance will be
-  registered. The old ones will be removed since they are no longer found in
-  the config files.
+  ID, then a new service instance and a new sidecar instance are
+  registered. The old instance and proxy are removed because they are no longer found in
+  the configuration files.
