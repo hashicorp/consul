@@ -105,9 +105,10 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 
 	datacenter := dc.(string)
 
-	operatorHealth, err := client.Operator().AutopilotServerHealth(nil)
+	operatorHealth, error := client.Operator().AutopilotServerHealth(nil)
+	require.NoError(t, error)
 
-	version := ""
+	var version string
 	for _, server := range operatorHealth.Servers {
 		if server.Leader {
 			version = server.Version

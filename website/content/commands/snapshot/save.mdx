@@ -90,6 +90,7 @@ $ consul snapshot save -append-filename version,dc backup.snap
 
 File name created will be like backup-%CONSUL_VERSION%-%DC_NAME%.snap
 example - backup-1.17.0-dc1-local-machine-leader.tgz
+Note Version is always the leader's consul version
 
 Please see the [HTTP API](/consul/api-docs/snapshot) documentation for
 more details about snapshot internals.
