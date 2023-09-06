@@ -1305,6 +1305,7 @@ type ACLTokenListRequest struct {
 	Policy        string // Policy filter
 	Role          string // Role filter
 	AuthMethod    string // Auth Method filter
+	ServiceName   string // Service name (from service identities) filter
 	Datacenter    string // The datacenter to perform the request within
 	ACLAuthMethodEnterpriseMeta
 	acl.EnterpriseMeta
