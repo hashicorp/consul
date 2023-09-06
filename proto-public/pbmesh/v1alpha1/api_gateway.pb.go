@@ -23,6 +23,12 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// NOTE: this should align to the GAMMA/gateway-api version, or at least be
+// easily translatable.
+//
+// https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1beta1.Gateway
+//
+// This is a Resource type.
 // TODO(nathancoleman) Implement me
 type APIGateway struct {
 	state         protoimpl.MessageState
