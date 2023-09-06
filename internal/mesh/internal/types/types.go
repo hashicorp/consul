@@ -25,4 +25,5 @@ func Register(r resource.Registry) {
 	RegisterComputedRoutes(r)
 	RegisterAPIGateway(r)
 	RegisterMeshGateway(r)
+	RegisterTerminatingGateway(r)
 }
