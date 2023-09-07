@@ -382,9 +382,8 @@ The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS
 <CodeTabs>
 
 ```hcl
-node_name = "consul-server"
-server    = true
-bootstrap = true
+node_name = "consul-client"
+server    = false
 ui_config {
   enabled = true
 }
@@ -405,9 +404,8 @@ advertise_addr = "{{ GetInterfaceIP \"en0\" }}"
 
 ```json
 {
-  "node_name": "consul-server",
-  "server": true,
-  "bootstrap": true,
+  "node_name": "consul-client",
+  "server": false,
   "ui_config": {
     "enabled": true
   },
