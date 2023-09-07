@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 if [ $2 != "false" ]
 then
@@ -17,7 +20,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.27.0"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=0

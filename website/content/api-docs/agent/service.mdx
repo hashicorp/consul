@@ -693,10 +693,10 @@ For the `Connect` field, the parameters are:
   If this is true, then service mesh proxies, DNS queries, etc. will be able to
   service discover this service.
 - `Proxy` `(Proxy: nil)` -
-  [**Deprecated**](/consul/docs/connect/proxies/managed-deprecated) Specifies that
-  a managed service mesh proxy should be started for this service instance, and
-  optionally provides configuration for the proxy. The format is as documented
-  in [Managed Proxy Deprecation](/consul/docs/connect/proxies/managed-deprecated).
+  **Deprecated** Specifies that a managed service mesh proxy should be started 
+  for this service instance, and optionally provides configuration for the proxy. 
+  Managed proxies (which have been deprecated since Consul v1.3.0) have been 
+  [removed](/consul/docs/connect/proxies) since v1.6.0.
 - `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested
   service definition to register. For more information see
   [Sidecar Service Registration](/consul/docs/connect/registration/sidecar-service).

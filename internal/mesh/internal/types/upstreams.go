@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -27,6 +27,7 @@ func RegisterUpstreams(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     UpstreamsV1Alpha1Type,
 		Proto:    &pbmesh.Upstreams{},
+		Scope:    resource.ScopeNamespace,
 		Validate: nil,
 	})
 }

@@ -287,7 +287,7 @@ metadata:
 ### Service meta
 
 A service registered in Consul from Kubernetes sets the `external-source` key to
-`kubernetes`. This can be used from the APLI, CLI and UI to filter
+`kubernetes`. This can be used from the API, CLI and UI to filter
 service instances that are set in k8s. The Consul UI displays a Kubernetes icon next to all externally
 registered services from Kubernetes.
 
@@ -422,7 +422,7 @@ configuration.
 
 **If a conflicting service is found**: the service is not synced. This
 does not match the Kubernetes to Consul behavior, but given the current
-implementation we must do this because Kubernetes cannott mix both CNAME and
+implementation we must do this because Kubernetes cannot mix both CNAME and
 Endpoint-based services.
 
 ### Kubernetes service labels and annotations

@@ -1,0 +1,132 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1.pbproxystate;
+
+import "google/protobuf/wrappers.proto";
+import "pbmesh/v1alpha1/pbproxystate/address.proto";
+import "pbmesh/v1alpha1/pbproxystate/intentions.proto";
+import "pbmesh/v1alpha1/pbproxystate/transport_socket.proto";
+
+message Listener {
+  // name is the name of the listener.
+  string name = 1;
+  // direction tells the listener the direction of traffic.
+  Direction direction = 2;
+  // bind_address describes where to listen.
+  oneof bind_address {
+    HostPortAddress host_port = 3;
+    UnixSocketAddress unix_socket = 4;
+  }
+
+  // routers describes how to route traffic from this listener.
+  repeated Router routers = 5;
+  // default_router describes where to route if none of the other router matches match the connection.
+  Router default_router = 6;
+  // capabilities describe Envoy proxy functionality to enable. These map closely to Envoy listener filters.
+  repeated Capability capabilities = 7;
+  // balance_connections configures how the listener should balance connections.
+  BalanceConnections balance_connections = 8;
+  // escape_hatch_listener_json configures a user configured escape hatch listener.
+  string escape_hatch_listener = 9;
+  // use_escape_hatch_tracing configures whether to use the top level user configured tracing escape hatch for this listener.
+  bool use_escape_hatch_tracing = 10;
+}
+
+enum Direction {
+  // DIRECTION_UNSPECIFIED is used by mesh gateway listeners.
+  DIRECTION_UNSPECIFIED = 0;
+  DIRECTION_INBOUND = 1;
+  DIRECTION_OUTBOUND = 2;
+}
+
+enum BalanceConnections {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  BALANCE_CONNECTIONS_DEFAULT = 0;
+  BALANCE_CONNECTIONS_EXACT = 1;
+}
+
+// Capabilities map to proxy functionality to enable. These enable tproxy, l7 protocol/alpn inspection, or l4 sni/alpn inspection.
+enum Capability {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  CAPABILITY_TRANSPARENT = 0;
+  CAPABILITY_L7_PROTOCOL_INSPECTION = 1;
+  CAPABILITY_L4_TLS_INSPECTION = 2;
+}
+
+message Router {
+  // match specifies how to match traffic coming into this listener. If the traffic matches, it will be routed to the
+  // destination.
+  Match match = 1;
+  oneof destination {
+    // l4 is an l4 destination to route to, which will have a reference to a cluster.
+    L4Destination l4 = 2;
+    // l7 is an l7 destination to route to, which will have a reference to a route.
+    L7Destination l7 = 3;
+    // sni is an SNI destination, which means there will be no references, but the SNI name will be tied to the cluster
+    // name, so we should generate all clusters.
+    SNIDestination sni = 4;
+  }
+  // inbound_tls is used by inbound listeners that terminate TLS.
+  TransportSocket inbound_tls = 5;
+}
+
+message Match {
+  google.protobuf.UInt32Value destination_port = 1;
+  repeated CidrRange prefix_ranges = 2;
+  repeated CidrRange source_prefix_ranges = 3;
+  // server_names matches based on SNI of the incoming request.
+  repeated string server_names = 4;
+}
+
+message CidrRange {
+  string address_prefix = 1;
+  google.protobuf.UInt32Value prefix_len = 2;
+}
+
+message L4Destination {
+  // name is a key in the top level clusters map. This specifies which cluster to go to in this L4 destination.
+  string name = 1;
+  // stat_prefix is for compatibility with v1 xds configuration, so it is generated in exactly the same way.
+  string stat_prefix = 2;
+  // intentions is a list of intentions for this destination.
+  repeated L4Intention intentions = 3;
+  // add_empty_intention specifies whether to add an empty intention for this destination, when there are no other intentions specified.
+  bool add_empty_intention = 4;
+  // max_inbound_connections specifies how many connections this destination can accept.
+  uint64 max_inbound_connections = 5;
+}
+
+message L7Destination {
+  // name is a key in the top level routes map. This specifies which route to go to in this L7 destination.
+  string name = 1;
+  // stat_prefix is for compatibility with v1 xds configuration, so it is generated in exactly the same way.
+  string stat_prefix = 2;
+  // protocol for the destination.
+  L7Protocol protocol = 3;
+  // intentions is a list of intentions for this destination.
+  repeated L7Intention intentions = 4;
+  // add_empty_intention specifies whether to add an empty intention for this destination, when there are no other intentions specified.
+  bool add_empty_intention = 5;
+  // include_xfcc specifies whether to add xfcc header.
+  bool include_xfcc = 6;
+  // static_route specifies whether this is a static route that is inlined in the listener filter. This is required to
+  // match existing xds config.
+  bool static_route = 7;
+  // max_inbound_connections specifies how many connections this destination can accept.
+  uint64 max_inbound_connections = 8;
+}
+
+enum L7Protocol {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  L7_PROTOCOL_HTTP = 0;
+  L7_PROTOCOL_HTTP2 = 1;
+  L7_PROTOCOL_GRPC = 2;
+}
+
+message SNIDestination {
+  // stat_prefix is for compatibility with v1 xds configuration, so it is generated in exactly the same way.
+  string stat_prefix = 1;
+}

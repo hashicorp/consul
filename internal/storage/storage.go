@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package storage
 
@@ -296,6 +296,10 @@ func UnversionedTypeFrom(t *pbresource.Type) UnversionedType {
 		Group: t.Group,
 		Kind:  t.Kind,
 	}
+}
+
+func (u UnversionedType) String() string {
+	return fmt.Sprintf("%s.%s", u.Group, u.Kind)
 }
 
 // GroupVersionMismatchError is returned when a resource is stored as a type

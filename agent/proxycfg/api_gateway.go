@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -54,8 +54,7 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
-	// Watch the bound-api-gateway's config entry
-	err = h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
+	err = watchJWTProviders(ctx, h)
 	if err != nil {
 		return snap, err
 	}
@@ -103,27 +102,33 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
 
-	switch {
-	case u.CorrelationID == rootsWatchID:
+	switch u.CorrelationID {
+	case rootsWatchID:
 		// Handle change in the CA roots
 		if err := h.handleRootCAUpdate(u, snap); err != nil {
 			return err
 		}
-	case u.CorrelationID == apiGatewayConfigWatchID || u.CorrelationID == boundGatewayConfigWatchID:
+	case apiGatewayConfigWatchID, boundGatewayConfigWatchID:
 		// Handle change in the api-gateway or bound-api-gateway config entry
 		if err := h.handleGatewayConfigUpdate(ctx, u, snap, u.CorrelationID); err != nil {
 			return err
 		}
-	case u.CorrelationID == inlineCertificateConfigWatchID:
+	case inlineCertificateConfigWatchID:
 		// Handle change in an attached inline-certificate config entry
 		if err := h.handleInlineCertConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
-	case u.CorrelationID == routeConfigWatchID:
+	case routeConfigWatchID:
 		// Handle change in an attached http-route or tcp-route config entry
 		if err := h.handleRouteConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
+	case jwtProviderID:
+		err := setJWTProvider(u, snap)
+		if err != nil {
+			return err
+		}
+
 	default:
 		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
 			return err
@@ -143,10 +148,12 @@ func (h *handlerAPIGateway) handleRootCAUpdate(u UpdateEvent, snap *ConfigSnapsh
 	return nil
 }
 
-// handleGatewayConfigUpdate responds to changes in the watched config entry for a gateway.
-// In particular, we want to make sure that we're subscribing to any attached resources such
-// as routes and certificates. These additional subscriptions will enable us to update the
-// config snapshot appropriately for any route or certificate changes.
+// handleGatewayConfigUpdate responds to changes in the watched config entries for a gateway.
+// Once the base api-gateway config entry has been seen, we store the list of listeners and
+// then subscribe to the corresponding bound-api-gateway config entry. We use the bound-api-gateway
+// config entry to subscribe to any attached resources, including routes and certificates.
+// These additional subscriptions will enable us to update the config snapshot appropriately
+// for any route or certificate changes.
 func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot, correlationID string) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
@@ -244,6 +251,12 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		}
 
 		snap.APIGateway.GatewayConfigLoaded = true
+
+		// Watch the corresponding bound-api-gateway config entry
+		err := h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
+		if err != nil {
+			return err
+		}
 		break
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)

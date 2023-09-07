@@ -274,6 +274,8 @@ type MembersOpts struct {
 	// Segment is the LAN segment to show members for. Setting this to the
 	// AllSegments value above will show members in all segments.
 	Segment string
+
+	Filter string
 }
 
 // AgentServiceRegistration is used to register a new service
@@ -343,6 +345,7 @@ type AgentServiceCheck struct {
 	Method                 string              `json:",omitempty"`
 	Body                   string              `json:",omitempty"`
 	TCP                    string              `json:",omitempty"`
+	TCPUseTLS              bool                `json:",omitempty"`
 	UDP                    string              `json:",omitempty"`
 	Status                 string              `json:",omitempty"`
 	Notes                  string              `json:",omitempty"`
@@ -788,6 +791,10 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 	r.params.Set("segment", opts.Segment)
 	if opts.WAN {
 		r.params.Set("wan", "1")
+	}
+
+	if opts.Filter != "" {
+		r.params.Set("filter", opts.Filter)
 	}
 
 	_, resp, err := a.c.doRequest(r)

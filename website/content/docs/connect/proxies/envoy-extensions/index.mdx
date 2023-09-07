@@ -2,7 +2,7 @@
 layout: docs
 page_title: Envoy Extensions
 description: >-
-  Learn how Envoy extensions enables you to add support for additional Envoy features without modifying the Consul codebase. 
+  Learn how Envoy extensions enables you to add support for additional Envoy features without modifying the Consul codebase.
 ---
 
 # Envoy extensions overview
@@ -23,8 +23,9 @@ Envoy extensions enable additional service mesh functionality in Consul by chang
 - External authorization
 - Lua
 - Lambda
+- OpenTelemetry Access Logging
 - Property override
-- WebAssembly (Wasm) 
+- WebAssembly (Wasm)
 
 ### External authorization
 
@@ -38,10 +39,14 @@ The `lambda` Envoy extension enables services to make requests to AWS Lambda fun
 
 The `lua` Envoy extension enables HTTP Lua filters in your Consul Envoy proxies. It allows you to run Lua scripts during Envoy requests and responses from Consul-generated Envoy resources. Refer to the [Lua extension documentation](/consul/docs/connect/proxies/envoy-extensions/usage/lua) for more information.
 
+### OpenTelemetry Access Logging
+
+The `otel-access-logging` Envoy extension lets you configure Envoy proxies to send access logs to OpenTelemetry collector service. Refer to the [OpenTelemetry Access Logging extension documentation](/consul/docs/connect/proxies/envoy-extensions/usage/otel-access-logging) for more information.
+
 ### Property override
 
-The `property-override` extension lets you set and unset individual properties pm the Envoy resources that Consul generates. Use the extension instead of [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) to enable advanced Envoy configuration. Refer to the [property override documentation](/consul/docs/connect/proxies/envoy-extensions/usage/property-override) for more information.
+The `property-override` extension lets you set and unset individual properties on the Envoy resources that Consul generates. Use the extension instead of [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) to enable advanced Envoy configuration. Refer to the [property override documentation](/consul/docs/connect/proxies/envoy-extensions/usage/property-override) for more information.
 
 ### WebAssembly
 
-The `wasm` extension enables you to configure TCP and HTTP filters that invoke custom WebAssembly (Wasm) plugins. Refer to the [WebAssembly extenstion documentation](/consul/docs/connect/proxies/envoy-extensions/usage/wasm) for more information.
+The `wasm` extension enables you to configure TCP and HTTP filters that invoke custom WebAssembly (Wasm) plugins. Refer to the [WebAssembly extension documentation](/consul/docs/connect/proxies/envoy-extensions/usage/wasm) for more information.

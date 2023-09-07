@@ -1,0 +1,47 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+import "pbresource/resource.proto";
+
+// This is a Resource type.
+message FailoverPolicy {
+  // Config defines failover for any named port not present in PortConfigs.
+  FailoverConfig config = 1;
+
+  // PortConfigs defines failover for a specific port on this service and takes
+  // precedence over Config.
+  map<string, FailoverConfig> port_configs = 2;
+}
+
+message FailoverConfig {
+  // Destinations specifies a fixed list of failover destinations to try. We
+  // never try a destination multiple times, so those are subtracted from this
+  // list before proceeding.
+  repeated FailoverDestination destinations = 1;
+
+  // Mode specifies the type of failover that will be performed. Valid values are
+  // "sequential", "" (equivalent to "sequential") and "order-by-locality".
+  FailoverMode mode = 2;
+  repeated string regions = 3;
+
+  // SamenessGroup specifies the sameness group to failover to.
+  string sameness_group = 4;
+}
+
+message FailoverDestination {
+  // This must be a Service.
+  hashicorp.consul.resource.Reference ref = 1;
+  // TODO: what should an empty port mean?
+  string port = 2;
+  string datacenter = 3;
+}
+
+enum FailoverMode {
+  FAILOVER_MODE_UNSPECIFIED = 0;
+  FAILOVER_MODE_SEQUENTIAL = 1;
+  FAILOVER_MODE_ORDER_BY_LOCALITY = 2;
+}

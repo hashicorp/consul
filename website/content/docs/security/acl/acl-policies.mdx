@@ -11,7 +11,7 @@ This topic describes policies, which are components in Consul's access control l
 
 ## Introduction
 
-A policy is a group of one or more ACL rules that are linked to [ACL tokens](/consul/docs/security/acl/acl-tokens). The following diagram describes the relationships between rules, policies, and tokens:
+A policy is a group of one or more ACL rules that are linked to [ACL tokens](/consul/docs/security/acl/tokens). The following diagram describes the relationships between rules, policies, and tokens:
 
 ![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
 
@@ -326,7 +326,7 @@ A policy that has been implemented must still be linked to a token before the po
 
 The person responsible for administrating ACLs can use the command line or call the API endpoint to link policies to tokens. Tokens can also be generated dynamically from an external system using Consul's [auth methods](/consul/docs/security/acl/auth-methods) functionality.
 
-Refer to the [tokens documentation](/consul/docs/security/acl/acl-tokens), as well as the [ACL tutorial](/consul/tutorials/security/access-control-setup-production#create-the-agent-token), for details about creating and linking policies to tokens.
+Refer to the [tokens documentation](/consul/docs/security/acl/tokens), as well as the [ACL tutorial](/consul/tutorials/security/access-control-setup-production#create-the-agent-token), for details about creating and linking policies to tokens.
 
 ## Policy Attributes
 
@@ -391,7 +391,11 @@ New installations of Consul ship with the following built-in policies.
 
 ### Global Management
 
-The `global-management` policy grants unrestricted privileges to any token linked to it. The policy is assigned the reserved ID of `00000000-0000-0000-0000-000000000001`. You can rename the global management policy, but Consul will prevent you from modifying any other attributes, including the rule set and datacenter scope.
+The `global-management` policy grants unrestricted privileges to any token linked to it. The policy is assigned the reserved ID of `00000000-0000-0000-0000-000000000001`. You can rename the global management policy, but Consul prevents you from modifying any other attributes, including the rule set and datacenter scope.
+
+### Global Read-Only
+
+The `builtin/global-read-only` policy grants unrestricted _read-only_ privileges to any token linked to it. The policy is assigned the reserved ID of `00000000-0000-0000-0000-000000000002`. You can rename the global read-only policy, but Consul prevents you from modifying any other attributes, including the rule set and datacenter scope.
 
 ### Namespace Management <EnterpriseAlert inline />
 

@@ -89,7 +89,7 @@ The following flags are required:
 | `-type`         | string  | Must be `aws-iam`.                                                                                                                |
 | `-name`         | string  | A name of your choice. Must be unique among all auth methods.                                                                     |
 | `-description`  | string  | A description of your choice.                                                                                                     |
-| `-config`       | string  | A JSON string containing the [configuration](/consul/docs/security/acl/auth-methods/aws-iam#config-parameters) for the the auth method.  |
+| `-config`       | string  | A JSON string containing the [configuration](/consul/docs/security/acl/auth-methods/aws-iam#config-parameters) for the auth method.  |
 
 In the `-config` option, the following fields are required:
 
@@ -177,7 +177,7 @@ The following flags are required:
 | `-type`         | string  | Must be `aws-iam`.                                                                                                                |
 | `-name`         | string  | A name of your choice. Must be unique among all auth methods.                                                                     |
 | `-description`  | string  | A description of your choice.                                                                                                     |
-| `-config`       | string  | A JSON string containing the [configuration](/consul/docs/security/acl/auth-methods/aws-iam#config-parameters) for the the auth method.  |
+| `-config`       | string  | A JSON string containing the [configuration](/consul/docs/security/acl/auth-methods/aws-iam#config-parameters) for the auth method.  |
 
 In the `-config` option, the following fields are required:
 
@@ -346,9 +346,9 @@ script to the container.
 
 # Obtain details from the task metadata
 ECS_TASK_META=$(curl -s $ECS_CONTAINER_METADATA_URI_V4/task)
-TASK_REGION=$(echo "$ECS_TASK_META" | jq -r .TaskARN | cut -d ':' -f 4)
-TASK_ID=$(echo "$ECS_TASK_META" | jq -r .TaskARN | cut -d '/' -f 3)
-CLUSTER_ARN=$(echo "$ECS_TASK_META" | jq -r .TaskARN | sed -E 's|:task/([^/]+).*|:cluster/\1|')
+TASK_REGION=$(echo "$ECS_TASK_META" | jq --raw-output '.TaskARN / ":" | .[3]')
+TASK_ID=$(echo "$ECS_TASK_META" | jq --raw-output '.TaskARN / "/" | .[2]')
+CLUSTER_ARN=$(echo "$ECS_TASK_META" | jq --raw-output '.TaskARN | sub(":task/(?<cluster>[^/]+).*"; ":cluster/\(.cluster)")')
 
 # Write the CA certs to a files in the shared volume
 echo "$CONSUL_CACERT_PEM" > /consul/consul-ca-cert.pem

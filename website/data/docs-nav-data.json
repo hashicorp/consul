@@ -512,6 +512,10 @@
                     "path": "connect/proxies/envoy-extensions/usage/lambda"
                   },
                   {
+                    "title": "Send access logs to OpenTelemetry collector service",
+                    "path": "connect/proxies/envoy-extensions/usage/otel-access-logging"
+                  },
+                  {
                     "title": "Configure Envoy proxy properties",
                     "path": "connect/proxies/envoy-extensions/usage/property-override"
                   },
@@ -527,6 +531,10 @@
                   {
                     "title": "External authorization",
                     "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
+                  },
+                  {
+                    "title": "OpenTelemetry Access Logging",
+                    "path": "connect/proxies/envoy-extensions/configuration/otel-access-logging"
                   },
                   {
                     "title": "Property override",
@@ -926,6 +934,26 @@
                   {
                     "title": "Create a terminating gateway token",
                     "path": "security/acl/tokens/create/create-a-terminating-gateway-token"
+                  },
+                  {
+                    "title": "Create a DNS token",
+                    "path": "security/acl/tokens/create/create-a-dns-token"
+                  },
+                  {
+                    "title": "Create a replication token",
+                    "path": "security/acl/tokens/create/create-a-replication-token"
+                  },
+                  {
+                    "title": "Create a snapshot agent token",
+                    "path": "security/acl/tokens/create/create-a-snapshot-agent-token"
+                  },
+                  {
+                    "title": "Create a token for Vault's Consul storage backend",
+                    "path": "security/acl/tokens/create/create-a-token-for-vault-consul-storage"
+                  },
+                  {
+                    "title": "Create a Consul ESM token",
+                    "path": "security/acl/tokens/create/create-a-consul-esm-token"
                   }
                 ]
               }

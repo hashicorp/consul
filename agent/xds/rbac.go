@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -19,7 +19,13 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
+)
+
+const (
+	envoyHTTPRBACFilterKey    = "envoy.filters.http.rbac"
+	envoyNetworkRBACFilterKey = "envoy.filters.network.rbac"
 )
 
 func makeRBACNetworkFilter(
@@ -37,7 +43,7 @@ func makeRBACNetworkFilter(
 		StatPrefix: "connect_authz",
 		Rules:      rules,
 	}
-	return makeFilter("envoy.filters.network.rbac", cfg)
+	return makeFilter(envoyNetworkRBACFilterKey, cfg)
 }
 
 func makeRBACHTTPFilter(
@@ -55,7 +61,7 @@ func makeRBACHTTPFilter(
 	cfg := &envoy_http_rbac_v3.RBAC{
 		Rules: rules,
 	}
-	return makeEnvoyHTTPFilter("envoy.filters.http.rbac", cfg)
+	return makeEnvoyHTTPFilter(envoyHTTPRBACFilterKey, cfg)
 }
 
 func intentionListToIntermediateRBACForm(
@@ -325,6 +331,7 @@ func intentionActionFromBool(v bool) intentionAction {
 		return intentionActionDeny
 	}
 }
+
 func intentionActionFromString(s structs.IntentionAction) intentionAction {
 	if s == structs.IntentionActionAllow {
 		return intentionActionAllow
@@ -808,7 +815,6 @@ func segmentToPermission(segments []*envoy_matcher_v3.MetadataMatcher_PathSegmen
 //		},
 //	},
 func pathToSegments(paths []string, payloadKey string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
-
 	segments := make([]*envoy_matcher_v3.MetadataMatcher_PathSegment, 0, len(paths))
 	segments = append(segments, makeSegment(payloadKey))
 
@@ -987,7 +993,7 @@ func authenticatedPatternPrincipal(pattern string) *envoy_rbac_v3.Principal {
 			Authenticated: &envoy_rbac_v3.Principal_Authenticated{
 				PrincipalName: &envoy_matcher_v3.StringMatcher{
 					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-						SafeRegex: makeEnvoyRegexMatch(pattern),
+						SafeRegex: response.MakeEnvoyRegexMatch(pattern),
 					},
 				},
 			},
@@ -1019,7 +1025,7 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 				HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
 					StringMatch: &envoy_matcher_v3.StringMatcher{
 						MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-							SafeRegex: makeEnvoyRegexMatch(pattern),
+							SafeRegex: response.MakeEnvoyRegexMatch(pattern),
 						},
 					},
 				},
@@ -1028,8 +1034,10 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 	}
 }
 
-const anyPath = `[^/]+`
-const trustDomain = anyPath + "." + anyPath
+const (
+	anyPath     = `[^/]+`
+	trustDomain = anyPath + "." + anyPath
+)
 
 // downstreamServiceIdentityMatcher needs to match XFCC headers in two cases:
 // 1. Requests to cluster peered services through a mesh gateway. In this case, the XFCC header looks like the following (I added a new line after each ; for readability)
@@ -1224,7 +1232,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 					Rule: &envoy_matcher_v3.PathMatcher_Path{
 						Path: &envoy_matcher_v3.StringMatcher{
 							MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-								SafeRegex: makeEnvoyRegexMatch(perm.HTTP.PathRegex),
+								SafeRegex: response.MakeEnvoyRegexMatch(perm.HTTP.PathRegex),
 							},
 						},
 					},
@@ -1245,7 +1253,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 			}
 		case hdr.Regex != "":
 			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
+				SafeRegexMatch: response.MakeEnvoyRegexMatch(hdr.Regex),
 			}
 		case hdr.Prefix != "":
 			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
@@ -1280,7 +1288,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
 			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
+				SafeRegexMatch: response.MakeEnvoyRegexMatch(methodHeaderRegex),
 			},
 		}
 

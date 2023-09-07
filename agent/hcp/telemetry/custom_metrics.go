@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package telemetry
 
 // Keys for custom Go Metrics metrics emitted only for the OTEL
@@ -6,7 +9,7 @@ package telemetry
 var (
 	internalMetricTransformFailure []string = []string{"hcp", "otel", "transform", "failure"}
 
-	internalMetricExportSuccess []string = []string{"hcp", "otel", "exporter", "export", "sucess"}
+	internalMetricExportSuccess []string = []string{"hcp", "otel", "exporter", "export", "success"}
 	internalMetricExportFailure []string = []string{"hcp", "otel", "exporter", "export", "failure"}
 
 	internalMetricExporterShutdown   []string = []string{"hcp", "otel", "exporter", "shutdown"}

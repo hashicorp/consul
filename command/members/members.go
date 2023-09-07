@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package members
 
@@ -33,6 +33,7 @@ type cmd struct {
 	wan          bool
 	statusFilter string
 	segment      string
+	filter       string
 }
 
 func New(ui cli.Ui) *cmd {
@@ -54,6 +55,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.segment, "segment", consulapi.AllSegments,
 		"(Enterprise-only) If provided, output is filtered to only nodes in"+
 			"the given segment.")
+	c.flags.StringVar(&c.filter, "filter", "", "Filter to use with the request")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -83,6 +85,7 @@ func (c *cmd) Run(args []string) int {
 	opts := consulapi.MembersOpts{
 		Segment: c.segment,
 		WAN:     c.wan,
+		Filter:  c.filter,
 	}
 	members, err := client.Agent().MembersOpts(opts)
 	if err != nil {

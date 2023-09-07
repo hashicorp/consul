@@ -1,10 +1,10 @@
 ---
 layout: docs
-page_title: WebAssembly extension configuration reference 
+page_title: WebAssembly extension configuration reference
 description: Learn how to configure the wasm Envoy extension, which is a builtin Consul extension that allows you to run WebAssembly plugins in Envoy proxies.
 ---
 
-# WebAssembly extension configuration reference 
+# WebAssembly extension configuration reference
 
 This topic describes how to configure the `wasm` extension, which directs Consul to run WebAssembly (Wasm) plugins in Envoy proxies. Refer to [Run WebAssembly plug-ins in Envoy proxy](/consul/docs/connect/proxies/envoy-extensions/usage/wasm) for usage information.
 
@@ -16,15 +16,15 @@ The following list outlines the field hierarchy, data types, and requirements fo
 - [`EnvoyExtensions` in service defaults](/consul/docs/connect/config-entries/service-defaults#envoyextensions)
 
 Click on a property name to view additional details, including default values.
-  
-- [`Protocol`](#protocol): string 
+
+- [`Protocol`](#protocol): string
 - [`ListenerType`](#listenertype): string | required
 - [`ProxyType`](#proxytype): string | `connect-proxy`
 - [`PluginConfig`](#pluginconfig): map | required
    - [`Name`](#pluginconfig-name): string
    - [`RootID`](#pluginconfig-rootid): string | required
    - [`VmConfig`](#pluginconfig-vmconfig): map
-      - [`VmID`](#pluginconfig-vmconfig-vmid): string 
+      - [`VmID`](#pluginconfig-vmconfig-vmid): string
       - [`Runtime`](#pluginconfig-vmconfig): string | `v8`
       - [`Code`](#pluginconfig-vmconfig-code): map
          - [`Local`](#pluginconfig-vmconfig-code-local): map
@@ -56,7 +56,7 @@ Click on a property name to view additional details, including default values.
 When all parameters are set for the extension, the configuration has the following form:
 
 ```hcl
-Protocol = "<tcp or http>" 
+Protocol = "<tcp or http>"
 ListenerType = "<inbound or outbound>"
 ProxyType = "connect-proxy"
 PluginConfig = {
@@ -73,7 +73,7 @@ PluginConfig = {
             HttpURI =  {
                Service = {
                   Name = "<name of the upstream service>"
-                  Namespace = "<Consul namespace containing the usptream service>"
+                  Namespace = "<Consul namespace containing the upstream service>"
                   Partition = "<Consul partition containing the upstream service>"
                }
                URI = "<URI of the plugin data>"
@@ -82,19 +82,19 @@ PluginConfig = {
             RetryPolicy = {
                   RetryBackOff = {
                      BaseInterval = "1s"
-                     MaxInterval = "10s" 
+                     MaxInterval = "10s"
                   }
                   NumRetries = -1
                }
             }
       Configuration = "<configuration passed to plugin on VM startup>"
       EnvironmentVariables = {
-         HostEnvKeys = [ 
-            <"keys"> 
+         HostEnvKeys = [
+            <"keys">
          ]
          KeyValues = {
-            [ 
-               <"key = value"> 
+            [
+               <"key = value">
             ]
          }
       }
@@ -116,7 +116,7 @@ This section provides details about the fields you can configure for the `wasm` 
 
 ### `Protocol`
 
-Specifies the type of Wasm filter to apply. You can set either `tcp` or `http`. Set the `Protocol` to the protocol that the Wasm plugin implements when loaded by the filter. For Consul to apply the filter, the protocol must match the service’s protocol.
+Specifies the type of Wasm filter to apply. You can set either `tcp` or `http`. Set the `Protocol` to the protocol that the Wasm plugin implements when loaded by the filter. For Consul to apply the filter, the protocol must match the service's protocol.
 
 #### Values
 
@@ -128,7 +128,7 @@ Specifies the type of Wasm filter to apply. You can set either `tcp` or `http`. 
 
 ### `ListenerType`
 
-Specifies the type of listener the extension applies to. The listener type is either `inbound` or `outbound`. If the listener type is set to `inbound`, Consul applies the extension so the Wasm plugin is run when other services in the mesh send messages to the service attached to the proxy. If the listener type is set to `outbound`, Consul applies the extension so the Wasm plugin is run when the attached proxy sends messages to other services in the mesh. 
+Specifies the type of listener the extension applies to. The listener type is either `inbound` or `outbound`. If the listener type is set to `inbound`, Consul applies the extension so the Wasm plugin is run when other services in the mesh send messages to the service attached to the proxy. If the listener type is set to `outbound`, Consul applies the extension so the Wasm plugin is run when the attached proxy sends messages to other services in the mesh.
 
 #### Values
 
@@ -146,7 +146,7 @@ Specifies the type of Envoy proxy that the extension applies to. The only suppor
 
 - Default: `connect-proxy`
 - This field is required.
-- Data type: String 
+- Data type: String
 
 ### `PluginConfig{}`
 
@@ -208,7 +208,7 @@ Specifies an ID that Envoy uses with a hash of the Wasm code to determine which 
 
 ### `PluginConfig{}.VmConfig{}.Runtime`
 
-Specifies the type of Wasm runtime. 
+Specifies the type of Wasm runtime.
 #### Values
 
 - Default: `v8`
@@ -225,7 +225,7 @@ Map containing one of the following configuration parameters:
 - [`Local`](#pluginconfig-vmconfig-code-local)
 - [`Remote`](#pluginconfig-vmconfig-code-local)
 
-You can configure either `Local` or `Remote`, but not both. The `Code` block instructs Consul how to find the Wasm plugin code for Envoy to execute. 
+You can configure either `Local` or `Remote`, but not both. The `Code` block instructs Consul how to find the Wasm plugin code for Envoy to execute.
 
 #### Values
 
@@ -237,9 +237,9 @@ You can configure either `Local` or `Remote`, but not both. The `Code` block ins
 
 ### `PluginConfig{}.VmConfig{}.Code{}.Local{}`
 
-Instructs Envoy to load the plugin code from a local volume. Do not configure the `Local` parameter if the plugin code is on a remote server. 
+Instructs Envoy to load the plugin code from a local volume. Do not configure the `Local` parameter if the plugin code is on a remote server.
 
-The `Local` field is a map that contains a `Filename` parameter. The `Filename` parameter takes a string value that specifies the path to the plugin on the local file system. 
+The `Local` field is a map that contains a `Filename` parameter. The `Filename` parameter takes a string value that specifies the path to the plugin on the local file system.
 
 Local plug-ins are not supported in Kubernetes-orchestrated environments.
 
@@ -250,7 +250,7 @@ Local plug-ins are not supported in Kubernetes-orchestrated environments.
 
 ### `PluginConfig{}.VmConfig{}.Code{}.Remote{}`
 
-Instructs Envoy to load the plugin code from a remote server. Do not configure the `Remote` parameter if the plugin code is on the local VM. 
+Instructs Envoy to load the plugin code from a remote server. Do not configure the `Remote` parameter if the plugin code is on the local VM.
 
 The `Remote` field is a map containing the following parameters:
 
@@ -278,7 +278,7 @@ Specifies the configuration for fetching the remote data. The `HttpURI` field is
 
 ### `PluginConfig{}.VmConfig{}.Code{}.Remote{}.HttpURI{}.Service`
 
-Specifies the upstream service to fetch the remote plugin from. 
+Specifies the upstream service to fetch the remote plugin from.
 
 #### Values
 
@@ -295,17 +295,17 @@ The following table describes the fields you can specify in the `Service` map:
 
 ### `PluginConfig{}.VmConfig{}.Code{}.Remote{}.HttpURI{}.URI`
 
-Specifies the URI Envoy uses to fetch the plugin file from the upstream. This field is required for Envoy to retrieve plugin code from a remote location. You must specify the fully-qualified domain name (FDQN) of the remote URI, which includes the protocol, host, and path.
+Specifies the URI Envoy uses to fetch the plugin file from the upstream. This field is required for Envoy to retrieve plugin code from a remote location. You must specify the fully-qualified domain name (FQDN) of the remote URI, which includes the protocol, host, and path.
 
 #### Values
 
 - Default: None
 - This field is required.
-- Data type: String value that specifies a FDQN
+- Data type: String value that specifies a FQDN
 
 ### `PluginConfig{}.VmConfig{}.Code{}.Remote{}.HttpURI{}.Timeout`
 
-Specifies the maximum duration that a response can take to complete the request for the plugin data. 
+Specifies the maximum duration that a response can take to complete the request for the plugin data.
 
 #### Values
 
@@ -335,7 +335,7 @@ Defines a policy for retrying requests to the upstream service when fetching the
 - Data type: Map
 ### `PluginConfig{}.VmConfig{}.Code{}.Remote{}.RetryPolicy{}.RetryBackOff{}`
 
-Specifies parameters that control retry backoff strategy. 
+Specifies parameters that control retry backoff strategy.
 
 #### Values
 
@@ -360,7 +360,7 @@ Specifies the number of times Envoy retries to fetch plugin data if the initial 
 
 ### `PluginConfig{}.VmConfig{}.Configuration`
 
-Specifies the configuration Envoy encodes as bytes and passes to the plugin during VM startup. Refer to [`proxy_on_vm_start` in the Proxy Wasm ABI documentation](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT#proxy_on_vm_start) for additional information.
+Specifies the configuration Envoy encodes as bytes and passes to the plugin during VM startup. Refer to [`proxy_on_vm_start` in the Proxy Wasm ABI documentation](https://github.com/proxy-wasm/spec/tree/cefc2cbab70eaba2c187523dff0b38fce2f90771/abi-versions/vNEXT#proxy_on_vm_start) for additional information.
 
 #### Values
 
@@ -370,11 +370,11 @@ Specifies the configuration Envoy encodes as bytes and passes to the plugin duri
 
 ### `PluginConfig{}.VmConfig{}.EnvironmentVariables{}`
 
-Specifies environment variables for Enovy to inject into this VM so that they are available through WASI’s `environ_get` and `environ_get_sizes` system calls. 
+Specifies environment variables for Envoy to inject into this VM so that they are available through WASI's `environ_get` and `environ_get_sizes` system calls.
 
-In most cases, WASI calls the functions implicitly in your language’s standard library. As a result, you do not need to call them directly. You can also access environment variables as you would on native platforms. 
+In most cases, WASI calls the functions implicitly in your language's standard library. As a result, you do not need to call them directly. You can also access environment variables as you would on native platforms.
 
-Envoy rejects the configuration if there’s conflict of key space.
+Envoy rejects the configuration if there is a key space conflict.
 
 The `EnvironmentVariables` field is a map containing parameters for setting the keys and values.
 
@@ -387,12 +387,12 @@ The following table describes the parameters contained in the `EnvironmentVariab
 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
-| `HostEnvKeys` | Specifies a list of Envoy environment variable keys to expose to the VM. If a key exists in Envoy’s environment variables, then the key-value pair is injected. Envoy ignores `HostEnvKeys` that do not exist in its environment variables. | List | None |
+| `HostEnvKeys` | Specifies a list of Envoy environment variable keys to expose to the VM. If a key exists in Envoy's environment variables, then the key-value pair is injected. Envoy ignores `HostEnvKeys` that do not exist in its environment variables. | List | None |
 | `KeyValues` | Specifies a map of explicit key-value pairs to inject into the VM. | <nobr>Map of </nobr>string keys and values | None |
 
 ### `PluginConfig{}.Configuration`
 
-Specifies the configuration Consul encodes as bytes and passes to the plugin during plugin startup. Refer to [`proxy_on_configure` in the Envoy documentation](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT#proxy_on_configure) for additional information.
+Specifies the configuration Consul encodes as bytes and passes to the plugin during plugin startup. Refer to [`proxy_on_configure` in the Envoy documentation](https://github.com/proxy-wasm/spec/tree/cefc2cbab70eaba2c187523dff0b38fce2f90771/abi-versions/vNEXT#proxy_on_configure) for additional information.
 
 #### Values
 
@@ -401,16 +401,16 @@ Specifies the configuration Consul encodes as bytes and passes to the plugin dur
 
 ### `PluginConfig{}.CapabilityRestrictionConfiguration{}`
 
-Specifies a configuration for restricting the proxy-Wasm capabilities that are available to the module. 
+Specifies a configuration for restricting the proxy-Wasm capabilities that are available to the module.
 
 The `CapabilityRestrictionConfiguration` field is a map that contains a `AllowedCapabilities` parameter. The `AllowedCapabilities` parameter takes a map of string values that correspond to Envoy capability names. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/wasm/v3/wasm.proto#extensions-wasm-v3-capabilityrestrictionconfig) for additional information.
 
-!> **Security warning**: Consul ignores the value that each capability maps to. You can leave the `AllowedCapabilities` empty to allow all capabilities, but doing so gives the configured plugin full unrestricted access to the runtime API provided by the Wasm VM. You must set this to a non-empty map if you want to restrict access to specific capabilities provided by the Wasm runtime API.  
+!> **Security warning**: Consul ignores the value that each capability maps to. You can leave the `AllowedCapabilities` empty to allow all capabilities, but doing so gives the configured plugin full unrestricted access to the runtime API provided by the Wasm VM. You must set this to a non-empty map if you want to restrict access to specific capabilities provided by the Wasm runtime API.
 
 #### Values
 
 - Default: `""`
-- Data type is a map containing the `AllowedCapabilities` parameter. The `AllowedCapabilities` parameter takes a map of string values that correspond to Envoy capability names. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/wasm/v3/wasm.proto#extensions-wasm-v3-capabilityrestrictionconfig) for additional information. 
+- Data type is a map containing the `AllowedCapabilities` parameter. The `AllowedCapabilities` parameter takes a map of string values that correspond to Envoy capability names. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/wasm/v3/wasm.proto#extensions-wasm-v3-capabilityrestrictionconfig) for additional information.
 
 ## Examples
 
@@ -453,7 +453,7 @@ EOF
 
 ### Run a Wasm plugin from a remote file
 
-In the following example, Consul configures the Envoy proxy for all HTTP services with an HTTP Wasm filter. The filter uses the plugin code from a remote `https://extension-server/waf.wasm` file. The Envoy proxy for each service fetches the remote file and verify the SHA256 checksum. The proxy times if Consul cannot fetch the remote plugin after three seconds. 
+In the following example, Consul configures the Envoy proxy for all HTTP services with an HTTP Wasm filter. The filter uses the plugin code from a remote `https://extension-server/waf.wasm` file. The Envoy proxy for each service fetches the remote file and verify the SHA256 checksum. The proxy times if Consul cannot fetch the remote plugin after three seconds.
 
 ```hcl
 Kind   = "proxy-defaults"
