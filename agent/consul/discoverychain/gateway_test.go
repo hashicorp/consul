@@ -526,8 +526,8 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 									Remove: []string{"remove me from the rule request"},
 								},
 								{
-									Add: map[string]string{"add me to the rule and service request": "present"},
-									Set: map[string]string{"set me on the rule and service request": "present"},
+									Add: map[string]string{"add me to the rule and service request": "rule"},
+									Set: map[string]string{"set me on the rule and service request": "rule"},
 								},
 								{
 									Remove: []string{"remove me from the rule and service request"},
@@ -538,11 +538,11 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 							Headers: []structs.HTTPHeaderFilter{{
 								Add: map[string]string{
 									"add me to the rule response":             "present",
-									"add me to the rule and service response": "present",
+									"add me to the rule and service response": "rule",
 								},
 								Set: map[string]string{
 									"set me on the rule response":             "present",
-									"set me on the rule and service response": "present",
+									"set me on the rule and service response": "rule",
 								},
 								Remove: []string{
 									"remove me from the rule response",
@@ -562,8 +562,8 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 										Remove: []string{"remove me from the service request"},
 									},
 									{
-										Add:    map[string]string{"add me to the rule and service request": "present"},
-										Set:    map[string]string{"set me on the rule and service request": "present"},
+										Add:    map[string]string{"add me to the rule and service request": "service"},
+										Set:    map[string]string{"set me on the rule and service request": "service"},
 										Remove: []string{"remove me from the rule and service request"},
 									},
 								},
@@ -576,8 +576,8 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 										Remove: []string{"remove me from the service response"},
 									},
 									{
-										Add:    map[string]string{"add me to the rule and service response": "present"},
-										Set:    map[string]string{"set me on the rule and service response": "present"},
+										Add:    map[string]string{"add me to the rule and service response": "service"},
+										Set:    map[string]string{"set me on the rule and service response": "service"},
 										Remove: []string{"remove me from the rule and service response"},
 									},
 								},
@@ -622,12 +622,12 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 										Add: map[string]string{
 											"add me to the rule request":             "present",
 											"add me to the service request":          "present",
-											"add me to the rule and service request": "present",
+											"add me to the rule and service request": "service",
 										},
 										Set: map[string]string{
 											"set me on the rule request":             "present",
 											"set me on the service request":          "present",
-											"set me on the rule and service request": "present",
+											"set me on the rule and service request": "service",
 										},
 										Remove: []string{
 											"remove me from the rule request",
@@ -640,12 +640,12 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 										Add: map[string]string{
 											"add me to the rule response":             "present",
 											"add me to the service response":          "present",
-											"add me to the rule and service response": "present",
+											"add me to the rule and service response": "service",
 										},
 										Set: map[string]string{
 											"set me on the rule response":             "present",
 											"set me on the service response":          "present",
-											"set me on the rule and service response": "present",
+											"set me on the rule and service response": "service",
 										},
 										Remove: []string{
 											"remove me from the rule response",
