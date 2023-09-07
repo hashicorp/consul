@@ -1,38 +1,38 @@
 {
-  "versionInfo": "00000001",
-  "resources": [
+  "versionInfo":  "00000001",
+  "resources":  [
     {
-      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "db",
-      "virtualHosts": [
+      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name":  "db",
+      "virtualHosts":  [
         {
-          "name": "db",
-          "domains": [
+          "name":  "db",
+          "domains":  [
             "*"
           ],
-          "routes": [
+          "routes":  [
             {
-              "match": {
-                "path": "/fgrpc.PingServer/Ping"
+              "match":  {
+                "path":  "/fgrpc.PingServer/Ping"
               },
-              "route": {
-                "cluster": "prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              "route":  {
+                "cluster":  "prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             },
             {
-              "match": {
-                "prefix": "/"
+              "match":  {
+                "prefix":  "/"
               },
-              "route": {
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              "route":  {
+                "cluster":  "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
         }
       ],
-      "validateClusters": true
+      "validateClusters":  true
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-  "nonce": "00000001"
+  "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "nonce":  "00000001"
 }

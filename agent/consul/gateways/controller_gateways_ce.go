@@ -18,10 +18,10 @@ func (r *apiGatewayReconciler) enqueueJWTProviderReferencedGatewaysAndHTTPRoutes
 	return nil
 }
 
-func (m *gatewayMeta) checkJWTProviders(_ *state.Store) (map[structs.ResourceReference]error, error) {
+func (m *gatewayMeta) checkJWTProviders() (map[structs.ResourceReference]error, error) {
 	return nil, nil
 }
 
-func validateJWTForRoute(_ *state.Store, _ *structs.StatusUpdater, _ *structs.HTTPRouteConfigEntry) error {
-	return nil
+func (m *gatewayMeta) validateJWTForRoute(_ *structs.HTTPRouteConfigEntry) (bool, map[structs.ResourceReference]error) {
+	return true, nil
 }
