@@ -1,31 +1,5 @@
 {
   "proxyState": {
-    "identity": {
-      "tenancy": {
-        "partition": "default",
-        "namespace": "default",
-        "peerName": "local"
-      },
-      "name": "test-identity"
-    },
-    "listeners": [
-      {
-        "name": "api-2:tcp:/path/to/socket",
-        "direction": "DIRECTION_OUTBOUND",
-        "unixSocket": {
-          "path": "/path/to/socket",
-          "mode": "0666"
-        },
-        "routers": [
-          {
-            "l4": {
-              "name": "api-2.default.dc1.internal.foo.consul",
-              "statPrefix": "upstream.api-2.default.default.dc1"
-            }
-          }
-        ]
-      }
-    ],
     "clusters": {
       "api-2.default.dc1.internal.foo.consul": {
         "endpointGroup": {
@@ -36,32 +10,58 @@
             "outboundTls": {
               "outboundMesh": {
                 "identityKey": "test-identity",
+                "sni": "api-2.default.dc1.internal.foo.consul",
                 "validationContext": {
                   "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
                   ]
-                },
-                "sni": "api-2.default.dc1.internal.foo.consul"
+                }
               }
             }
           }
         }
       }
-    }
+    },
+    "identity": {
+      "name": "test-identity",
+      "tenancy": {
+        "namespace": "default",
+        "partition": "default",
+        "peerName": "local"
+      }
+    },
+    "listeners": [
+      {
+        "direction": "DIRECTION_OUTBOUND",
+        "name": "api-2:tcp:/path/to/socket",
+        "routers": [
+          {
+            "l4": {
+              "name": "api-2.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.api-2.default.default.dc1"
+            }
+          }
+        ],
+        "unixSocket": {
+          "mode": "0666",
+          "path": "/path/to/socket"
+        }
+      }
+    ]
   },
   "requiredEndpoints": {
     "api-2.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
         "type": {
           "group": "catalog",
           "groupVersion": "v1alpha1",
           "kind": "ServiceEndpoints"
-        },
-        "tenancy": {
-          "partition": "default",
-          "namespace": "default",
-          "peerName": "local"
         }
       },
       "port": "mesh"
