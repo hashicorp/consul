@@ -27,7 +27,7 @@ var (
 	}
 
 	NamespaceTrafficPermissionType = NamespaceTrafficPermissionV1AlphaType
-	PartitionTrafficPermissionType = NamespaceTrafficPermissionV1AlphaType
+	PartitionTrafficPermissionType = PartitionTrafficPermissionV1AlphaType
 )
 
 func RegisterTrafficPermissions(r resource.Registry) {
