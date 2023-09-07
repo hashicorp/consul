@@ -1053,8 +1053,13 @@ func (s *Converter) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name s
 			l4Dest.MaxInboundConnections = uint64(cfg.MaxInboundConnections)
 		}
 
-		// TODO(proxystate): Intentions will be added to l4 destination in the future. This is currently done in finalizePublicListenerFromConfig.
-		l4Dest.AddEmptyIntention = true
+		defaultAction := pbproxystate.TrafficPermissionAction_INTENTION_ACTION_DENY
+		if cfgSnap.IntentionDefaultAllow {
+			defaultAction = pbproxystate.TrafficPermissionAction_INTENTION_ACTION_ALLOW
+		}
+		l4Dest.TrafficPermissions = &pbproxystate.L4TrafficPermissions{
+			DefaultAction: defaultAction,
+		}
 	}
 	l.Routers = append(l.Routers, localAppRouter)
 
@@ -1575,7 +1580,7 @@ func (g *Converter) makeL7Destination(opts destinationOpts) (*pbproxystate.L7Des
 	// access and that every filter chain uses our TLS certs.
 	if len(opts.httpAuthzFilters) > 0 {
 		// TODO(proxystate) support intentions in the future
-		dest.Intentions = make([]*pbproxystate.L7Intention, 0)
+		dest.TrafficPermissions = make([]*pbproxystate.L7TrafficPermission, 0)
 		//cfg.HttpFilters = append(opts.httpAuthzFilters, cfg.HttpFilters...)
 	}
 
