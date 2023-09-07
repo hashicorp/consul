@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package hashicorp.consul.auth.v1alpha1;
+
+message NamespaceTrafficPermission {
+  Destination destination = 1;
+  string action = 2;
+  repeated Permission permissions = 3;
+}
+
+message PartitionTrafficPermission {
+  string action = 2;
+  repeated Permission permissions = 3;
+}
+
+message Destination {
+  string identity_name = 1;
+}
+
+enum Action {
+  ACTION_ALLOW = 0;
+  ACTION_DENY = 1;
+}
+
+message Permission {
+  repeated Source sources = 1;
+  repeated DestinationRule destination_rules = 2;
+}
+
+message Source {
+  string identity_name = 1;
+  string namespace = 2;
+  string partition = 3;
+  string peer = 4;
+  string sameness_group = 5;
+
+  // exclude is a list of sources to exclude from this source.
+  repeated ExcludeSource exclude = 6;
+}
+
+// ExcludeSource is almost the same as source but it doesn't allow to
+// add more exclude sources.
+message ExcludeSource {
+  string identity_name = 1;
+  string namespace = 2;
+  string partition = 3;
+  string peer = 4;
+  string sameness_group = 5;
+}
+
+message DestinationRule {
+  oneof path {
+    string path_exact = 1;
+    string path_prefix = 2;
+    string path_regex = 3;
+  }
+  repeated string methods = 4;
+  DestinationRuleHeader header = 5;
+  repeated string port_name = 6;
+  repeated ExcludePermissionRule exclude = 7;
+}
+
+message ExcludePermissionRule {
+  oneof path {
+    string path_exact = 1;
+    string path_prefix = 2;
+    string path_regex = 3;
+  }
+  // methods is the list of HTTP methods. If no methods are specified,
+  // this rule will apply to all methods.
+  repeated string methods = 4;
+
+  DestinationRuleHeader header = 5;
+
+  // destination_ports is a list of workload ports to apply this rule to. The ports specified here
+  // must be the ports used in the connection. The list
+  // values are OR'ed together if multiple are provided. If no ports provided,
+  // this rule will apply to all ports.
+  repeated string ports = 6;
+}
+
+message DestinationRuleHeader {
+  string name = 1;
+  bool present = 2;
+  string exact = 3;
+  string prefix = 4;
+  string suffix = 5;
+  string regex = 6;
+  bool invert = 7;
+}
