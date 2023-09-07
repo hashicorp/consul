@@ -33,7 +33,7 @@ var (
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     NamespaceTrafficPermissionV1AlphaType,
-		Proto:    &pbauth.NamespaceTrafficPermission{},
+		Proto:    &pbauth.TrafficPermission{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateNamespaceTrafficPermission,
 	})
@@ -46,11 +46,11 @@ func RegisterTrafficPermissions(r resource.Registry) {
 }
 
 func ValidatePartitionTrafficPermission(res *pbresource.Resource) error {
-	return errWildcardNotSupported
+	return errNotSupported
 }
 
 func ValidateNamespaceTrafficPermission(res *pbresource.Resource) error {
-	var tp pbauth.NamespaceTrafficPermission
+	var tp pbauth.TrafficPermission
 
 	if err := res.Data.UnmarshalTo(&tp); err != nil {
 		return resource.NewErrDataParse(&tp, err)
@@ -58,24 +58,22 @@ func ValidateNamespaceTrafficPermission(res *pbresource.Resource) error {
 
 	var err error
 
-	// TODO: There is probably a better way to indicate a nested field.
-	if !(tp.Action == ActionAllow || tp.Action == ActionDeny) {
+	// TODO: Refactor errors for nested fields after further validation logic is added
+	if tp.Action == pbauth.Action_ACTION_UNSPECIFIED {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "data.action",
 			Wrapped: errInvalidAction,
 		})
 	}
+	if tp.Destination != nil && len(tp.Destination.IdentityName) == 0 {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "data.destination.identity_name",
+			Wrapped: resource.ErrEmpty,
+		})
+	}
 
 	// Validate permissions
 	for i, permission := range tp.Permissions {
-		if len(permission.DestinationRules) <= 0 {
-			err = multierror.Append(err, resource.ErrInvalidListElement{
-				Name:    "destination_rules",
-				Index:   i,
-				Wrapped: errEmptyDestinationRules,
-			})
-		}
-
 		// TODO: Validate destination rules
 
 		if len(permission.Sources) <= 0 {
@@ -86,15 +84,17 @@ func ValidateNamespaceTrafficPermission(res *pbresource.Resource) error {
 			})
 		}
 
-		// TODO: Validate sources
-	}
+		for _, src := range permission.Sources {
+			if len(src.IdentityName) == 0 {
+				err = multierror.Append(err, resource.ErrInvalidListElement{
+					Name:    "sources",
+					Index:   i,
+					Wrapped: errEmptySources,
+				})
+			}
+		}
 
-	// TODO: There is probably a better way to indicate a nested field.
-	if tp.Destination.IdentityName == "" {
-		err = multierror.Append(err, resource.ErrInvalidField{
-			Name:    "data.destination.identity_name",
-			Wrapped: resource.ErrEmpty,
-		})
+		// TODO: Validate sources
 	}
 
 	return err
