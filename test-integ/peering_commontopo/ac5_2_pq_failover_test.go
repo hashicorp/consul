@@ -86,7 +86,10 @@ func (s *ac5_2PQFailoverSuite) setupDC(ct *commonTopo, clu, peerClu *topology.Cl
 		Service: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
-			nil,
+			func(s *topology.Service) {
+				s.EnvoyAdminPort = 0
+				s.DisableServiceMesh = true
+			},
 		),
 		Exports: []api.ServiceConsumer{{Peer: peer}},
 	}
@@ -149,7 +152,10 @@ func (s *ac5_2PQFailoverSuite) setupDC3(ct *commonTopo, clu, peer1, peer2 *topol
 		Service: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
-			nil,
+			func(s *topology.Service) {
+				s.EnvoyAdminPort = 0
+				s.DisableServiceMesh = true
+			},
 		),
 		Exports: func() []api.ServiceConsumer {
 			var consumers []api.ServiceConsumer
