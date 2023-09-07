@@ -22,8 +22,17 @@ type GVK struct {
 
 type WriteRequest struct {
 	Metadata map[string]string `json:"metadata"`
-	Data     map[string]string `json:"data"`
+	Data     map[string]any    `json:"data"`
 	Owner    *pbresource.ID    `json:"owner"`
+}
+
+type WriteResponse struct {
+	Metadata   map[string]string `json:"metadata"`
+	Data       map[string]any    `json:"data"`
+	Owner      *pbresource.ID    `json:"owner,omitempty"`
+	ID         *pbresource.ID    `json:"id"`
+	Version    string            `json:"version"`
+	Generation string            `json:"generation"`
 }
 
 // Config returns a handle to the Config endpoints
@@ -51,7 +60,7 @@ func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) (
 	return out, nil
 }
 
-func (resource *Resource) Apply(gvk *GVK, resourceName string, q *QueryOptions, payload *WriteRequest) (map[string]interface{}, *WriteMeta, error) {
+func (resource *Resource) Apply(gvk *GVK, resourceName string, q *QueryOptions, payload *WriteRequest) (*WriteResponse, *WriteMeta, error) {
 	url := strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
 
 	r := resource.c.newRequest("PUT", url)
@@ -69,10 +78,9 @@ func (resource *Resource) Apply(gvk *GVK, resourceName string, q *QueryOptions, 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
 
-	var out map[string]interface{}
+	var out *WriteResponse
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
-
 	return out, wm, nil
 }

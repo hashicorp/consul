@@ -26,10 +26,17 @@ func TestResourceApplyCommand(t *testing.T) {
 	cases := []struct {
 		name   string
 		output string
+		args   []string
 	}{
 		{
 			name:   "sample output",
+			args:   []string{"-f=../testdata/demo.hcl"},
 			output: "demo.v2.Artist 'korn' created.",
+		},
+		{
+			name:   "nested data format",
+			args:   []string{"-f=../testdata/nested_data.hcl"},
+			output: "mesh.v1alpha1.Upstreams 'api' created.",
 		},
 	}
 
@@ -39,10 +46,11 @@ func TestResourceApplyCommand(t *testing.T) {
 			c := New(ui)
 
 			args := []string{
-				"-f=../testdata/demo.hcl",
 				"-http-addr=" + a.HTTPAddr(),
 				"-token=root",
 			}
+
+			args = append(args, tc.args...)
 
 			code := c.Run(args)
 			require.Equal(t, 0, code)
@@ -76,6 +84,11 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 			args:         []string{"-f=../testdata/invalid.hcl"},
 			expectedCode: 1,
 			expectedErr:  errors.New("Failed to decode resource from input file"),
+		},
+		"file not found": {
+			args:         []string{"-f=../testdata/test.hcl"},
+			expectedCode: 1,
+			expectedErr:  errors.New("Failed to load data: Failed to read file: open ../testdata/test.hcl: no such file or directory"),
 		},
 	}
 

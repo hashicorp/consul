@@ -46,12 +46,14 @@ func (c *cmd) init() {
 }
 
 func makeWriteRequest(parsedResource *pbresource.Resource) (payload *api.WriteRequest, error error) {
+	// The parsed hcl file has data field in proto message format anypb.Any
+	// Converting to json format requires us to fisrt marshal it then unmarshal it
 	data, err := protojson.Marshal(parsedResource.Data)
 	if err != nil {
 		return nil, fmt.Errorf("unrecognized hcl format: %s", err)
 	}
 
-	var resourceData map[string]string
+	var resourceData map[string]any
 	err = json.Unmarshal(data, &resourceData)
 	if err != nil {
 		return nil, fmt.Errorf("unrecognized hcl format: %s", err)
@@ -163,7 +165,7 @@ const synopsis = "Writes/updates resource information"
 const help = `
 Usage: consul resource apply -f=<file-path>
 
-Write and/or update a resource by providing the definition in the hcl file in the argument
+Write and/or update a resource by providing the definition in an hcl file as an argument
 
 Example:
 
