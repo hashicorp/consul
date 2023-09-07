@@ -28,6 +28,7 @@ func RegisterHealthChecks(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     HealthChecksV1Alpha1Type,
 		Proto:    &pbcatalog.HealthChecks{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthChecks,
 	})
 }

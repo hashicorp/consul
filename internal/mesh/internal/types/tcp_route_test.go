@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -23,6 +24,7 @@ func TestValidateTCPRoute(t *testing.T) {
 
 	run := func(t *testing.T, tc testcase) {
 		res := resourcetest.Resource(TCPRouteType, "api").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, tc.route).
 			Build()
 

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -68,7 +69,7 @@ func VerifyCatalogV1Alpha1IntegrationTestResults(t *testing.T, client pbresource
 		c.RequireResourceExists(t, rtest.Resource(catalog.ServiceV1Alpha1Type, "foo").ID())
 
 		for i := 1; i < 5; i++ {
-			nodeId := rtest.Resource(catalog.NodeV1Alpha1Type, fmt.Sprintf("node-%d", i)).ID()
+			nodeId := rtest.Resource(catalog.NodeV1Alpha1Type, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 			c.RequireResourceExists(t, nodeId)
 
 			res := c.RequireResourceExists(t, rtest.Resource(catalog.HealthStatusV1Alpha1Type, fmt.Sprintf("node-%d-health", i)).ID())
@@ -76,7 +77,7 @@ func VerifyCatalogV1Alpha1IntegrationTestResults(t *testing.T, client pbresource
 		}
 
 		for i := 1; i < 21; i++ {
-			workloadId := rtest.Resource(catalog.WorkloadV1Alpha1Type, fmt.Sprintf("api-%d", i)).ID()
+			workloadId := rtest.Resource(catalog.WorkloadV1Alpha1Type, fmt.Sprintf("api-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 			c.RequireResourceExists(t, workloadId)
 
 			res := c.RequireResourceExists(t, rtest.Resource(catalog.HealthStatusV1Alpha1Type, fmt.Sprintf("api-%d-health", i)).ID())
@@ -164,6 +165,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 			// api-2
 			{
@@ -178,6 +180,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_WARNING,
+				Identity:     "api",
 			},
 			// api-3
 			{
@@ -192,6 +195,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-4
 			{
@@ -206,6 +210,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-5
 			{
@@ -220,6 +225,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_WARNING,
+				Identity:     "api",
 			},
 			// api-6
 			{
@@ -234,6 +240,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_WARNING,
+				Identity:     "api",
 			},
 			// api-7
 			{
@@ -248,6 +255,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-8
 			{
@@ -262,6 +270,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-9
 			{
@@ -276,6 +285,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-10
 			{
@@ -290,6 +300,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-11
 			{
@@ -304,6 +315,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-12
 			{
@@ -318,6 +330,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-13
 			{
@@ -332,6 +345,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-14
 			{
@@ -346,6 +360,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-15
 			{
@@ -360,6 +375,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-16
 			{
@@ -374,6 +390,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-17
 			{
@@ -388,6 +405,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 			// api-18
 			{
@@ -402,6 +420,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_WARNING,
+				Identity:     "api",
 			},
 			// api-19
 			{
@@ -416,6 +435,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-20
 			{
@@ -430,6 +450,7 @@ func expectedApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.Servi
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 		},
 	}
@@ -448,6 +469,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 			// api-10
 			{
@@ -459,6 +481,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-11
 			{
@@ -470,6 +493,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-12
 			{
@@ -481,6 +505,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-13
 			{
@@ -492,6 +517,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-14
 			{
@@ -503,6 +529,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-15
 			{
@@ -514,6 +541,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-16
 			{
@@ -525,6 +553,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-17
 			{
@@ -536,6 +565,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 			// api-18
 			{
@@ -547,6 +577,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_WARNING,
+				Identity:     "api",
 			},
 			// api-19
 			{
@@ -558,6 +589,7 @@ func expectedHTTPApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 		},
 	}
@@ -578,6 +610,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Identity:     "api",
 			},
 			// api-2
 			{
@@ -591,6 +624,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_WARNING,
+				Identity:     "api",
 			},
 			// api-3
 			{
@@ -604,6 +638,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-4
 			{
@@ -617,6 +652,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-5
 			{
@@ -630,6 +666,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_WARNING,
+				Identity:     "api",
 			},
 			// api-6
 			{
@@ -643,6 +680,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_WARNING,
+				Identity:     "api",
 			},
 			// api-7
 			{
@@ -656,6 +694,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-8
 			{
@@ -669,6 +708,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 			// api-9
 			{
@@ -682,6 +722,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+				Identity:     "api",
 			},
 			// api-20
 			{
@@ -695,6 +736,7 @@ func expectedGRPCApiServiceEndpoints(t *testing.T, c *rtest.Client) *pbcatalog.S
 					"mesh": {Port: 10000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_MAINTENANCE,
+				Identity:     "api",
 			},
 		},
 	}

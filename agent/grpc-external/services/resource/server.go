@@ -133,8 +133,6 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 	switch {
 	case id.Type == nil:
 		field = "type"
-	case id.Tenancy == nil:
-		field = "tenancy"
 	case id.Name == "":
 		field = "name"
 	}
@@ -142,6 +140,18 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 	if field != "" {
 		return status.Errorf(codes.InvalidArgument, "%s.%s is required", errorPrefix, field)
 	}
+
+	// Better UX: Allow callers to pass in nil tenancy.  Defaulting and inheritance of tenancy
+	// from the request token will take place further down in the call flow.
+	if id.Tenancy == nil {
+		id.Tenancy = &pbresource.Tenancy{
+			Partition: "",
+			Namespace: "",
+			// TODO(spatel): Remove when peerTenancy introduced.
+			PeerName: "local",
+		}
+	}
+
 	resource.Normalize(id.Tenancy)
 
 	return nil

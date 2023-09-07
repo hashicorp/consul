@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -962,7 +963,7 @@ func getXRouteRetriesTestCases() map[string]xRouteRetriesTestcase {
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return resourcetest.Resource(typ, name).Reference("")
+	return resourcetest.Resource(typ, name).WithTenancy(resource.DefaultNamespacedTenancy()).Reference("")
 }
 
 func newBackendRef(typ *pbresource.Type, name, port string) *pbmesh.BackendReference {

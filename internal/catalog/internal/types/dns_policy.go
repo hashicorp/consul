@@ -30,6 +30,7 @@ func RegisterDNSPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     DNSPolicyV1Alpha1Type,
 		Proto:    &pbcatalog.DNSPolicy{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,
 	})
 }

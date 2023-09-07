@@ -24,31 +24,37 @@ func TestMapper_Tracking(t *testing.T) {
 
 	// Create an advance pointer to some services.
 	randoSvc := rtest.Resource(types.ServiceType, "rando").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, randoSvc)
 
 	apiSvc := rtest.Resource(types.ServiceType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, apiSvc)
 
 	fooSvc := rtest.Resource(types.ServiceType, "foo").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, fooSvc)
 
 	barSvc := rtest.Resource(types.ServiceType, "bar").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, barSvc)
 
 	wwwSvc := rtest.Resource(types.ServiceType, "www").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, wwwSvc)
 
 	fail1 := rtest.Resource(types.FailoverPolicyType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
@@ -62,6 +68,7 @@ func TestMapper_Tracking(t *testing.T) {
 	failDec1 := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail1)
 
 	fail2 := rtest.Resource(types.FailoverPolicyType, "www").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
@@ -75,6 +82,7 @@ func TestMapper_Tracking(t *testing.T) {
 	failDec2 := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail2)
 
 	fail1_updated := rtest.Resource(types.FailoverPolicyType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
@@ -178,13 +186,7 @@ func requireServicesTracked(t *testing.T, mapper *Mapper, svc *pbresource.Resour
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).Reference("")
-}
-
-func defaultTenancy() *pbresource.Tenancy {
-	return &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "default",
-		PeerName:  "local",
-	}
+	return rtest.Resource(typ, name).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Reference("")
 }

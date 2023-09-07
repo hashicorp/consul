@@ -34,10 +34,6 @@ func TestListByOwner_InputValidation(t *testing.T) {
 			artistId.Type = nil
 			return artistId
 		},
-		"no tenancy": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Tenancy = nil
-			return artistId
-		},
 		"no name": func(artistId, _ *pbresource.ID) *pbresource.ID {
 			artistId.Name = ""
 			return artistId

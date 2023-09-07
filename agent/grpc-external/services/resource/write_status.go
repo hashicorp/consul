@@ -120,8 +120,6 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 		field = "id"
 	case req.Id.Type == nil:
 		field = "id.type"
-	case req.Id.Tenancy == nil:
-		field = "id.tenancy"
 	case req.Id.Name == "":
 		field = "id.name"
 	case req.Id.Uid == "":
@@ -167,6 +165,17 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 
 	if _, err := ulid.ParseStrict(req.Status.ObservedGeneration); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "status.observed_generation is not valid")
+	}
+
+	// Better UX: Allow callers to pass in nil tenancy.  Defaulting and inheritance of tenancy
+	// from the request token will take place further down in the call flow.
+	if req.Id.Tenancy == nil {
+		req.Id.Tenancy = &pbresource.Tenancy{
+			Partition: "",
+			Namespace: "",
+			// TODO(spatel): Remove when peerTenancy introduced.
+			PeerName: "local",
+		}
 	}
 
 	// Lowercase

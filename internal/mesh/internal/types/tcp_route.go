@@ -29,6 +29,7 @@ func RegisterTCPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  TCPRouteV1Alpha1Type,
 		Proto: &pbmesh.TCPRoute{},
+		Scope: resource.ScopeNamespace,
 		// TODO(rb): normalize parent/backend ref tenancies in a Mutate hook
 		Validate: ValidateTCPRoute,
 	})

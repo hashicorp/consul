@@ -32,6 +32,7 @@ func RegisterWorkload(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     WorkloadV1Alpha1Type,
 		Proto:    &pbcatalog.Workload{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateWorkload,
 	})
 }

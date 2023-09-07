@@ -37,25 +37,25 @@ var (
 func TestMapper(t *testing.T) {
 	// Create an advance pointer to some services.
 
-	randoSvc := rtest.Resource(fakeBarType, "rando").Build()
-	apiSvc := rtest.Resource(fakeBarType, "api").Build()
-	fooSvc := rtest.Resource(fakeBarType, "foo").Build()
-	barSvc := rtest.Resource(fakeBarType, "bar").Build()
-	wwwSvc := rtest.Resource(fakeBarType, "www").Build()
+	randoSvc := rtest.Resource(fakeBarType, "rando").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	apiSvc := rtest.Resource(fakeBarType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	fooSvc := rtest.Resource(fakeBarType, "foo").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	barSvc := rtest.Resource(fakeBarType, "bar").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	wwwSvc := rtest.Resource(fakeBarType, "www").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 
 	apiRef := newRef(fakeBarType, "api")
 	fooRef := newRef(fakeBarType, "foo")
 	barRef := newRef(fakeBarType, "bar")
 	wwwRef := newRef(fakeBarType, "www")
 
-	fail1 := rtest.Resource(fakeFooType, "api").Build()
+	fail1 := rtest.Resource(fakeFooType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 	fail1Refs := []resource.ReferenceOrID{
 		apiRef,
 		fooRef,
 		barRef,
 	}
 
-	fail2 := rtest.Resource(fakeFooType, "www").Build()
+	fail2 := rtest.Resource(fakeFooType, "www").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 	fail2Refs := []resource.ReferenceOrID{
 		wwwRef,
 		fooRef,
@@ -352,5 +352,5 @@ func requireLinksForItem(t *testing.T, mapper *Mapper, item *pbresource.ID, link
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).Reference("")
+	return rtest.Resource(typ, name).WithTenancy(resource.DefaultNamespacedTenancy()).Reference("")
 }

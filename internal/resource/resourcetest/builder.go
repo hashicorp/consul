@@ -36,11 +36,6 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					GroupVersion: rtype.GroupVersion,
 					Kind:         rtype.Kind,
 				},
-				Tenancy: &pbresource.Tenancy{
-					Partition: resource.DefaultPartitionName,
-					Namespace: resource.DefaultNamespaceName,
-					PeerName:  "local",
-				},
 				Name: name,
 			},
 		},
@@ -130,6 +125,10 @@ func (b *resourceBuilder) ID() *pbresource.ID {
 
 func (b *resourceBuilder) Reference(section string) *pbresource.Reference {
 	return resource.Reference(b.ID(), section)
+}
+
+func (b *resourceBuilder) ReferenceNoSection() *pbresource.Reference {
+	return resource.Reference(b.ID(), "")
 }
 
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
