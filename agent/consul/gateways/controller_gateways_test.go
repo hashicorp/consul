@@ -2013,7 +2013,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2111,7 +2111,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2240,7 +2240,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2389,7 +2389,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2536,7 +2536,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2700,12 +2700,12 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "tcp-listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
@@ -3054,7 +3054,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -3407,7 +3407,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -3504,12 +3504,12 @@ func TestAPIGatewayController(t *testing.T) {
 					},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "listener-1",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "listener-2",
@@ -3728,7 +3728,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "invalid-listener",
 							}, errors.New("certificate \"missing certificate\" not found")),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "valid-listener",
@@ -3834,7 +3834,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							validCertificate(structs.ResourceReference{
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
