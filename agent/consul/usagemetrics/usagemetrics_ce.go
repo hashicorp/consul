@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	consulversion "github.com/hashicorp/consul/version"
 )
 
 func (u *UsageMetricsReporter) emitNodeUsage(nodeUsage state.NodeUsage) {
@@ -147,16 +146,4 @@ func (u *UsageMetricsReporter) emitConfigEntryUsage(configUsage state.ConfigEntr
 			append(u.metricLabels, metrics.Label{Name: "kind", Value: k}),
 		)
 	}
-}
-
-func (u *UsageMetricsReporter) emitVersionUsage(GetVersionWithMetadata string) {
-	// consul version metric with labels
-	metrics.SetGaugeWithLabels(
-		[]string{"version"},
-		1,
-		[]metrics.Label{
-			{Name: "version", Value: GetVersionWithMetadata},
-			{Name: "pre_release", Value: consulversion.VersionPrerelease},
-		},
-	)
 }

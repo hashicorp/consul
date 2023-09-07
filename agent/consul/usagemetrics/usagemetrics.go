@@ -249,9 +249,7 @@ func (u *UsageMetricsReporter) runOnce() {
 	}
 
 	u.emitConfigEntryUsage(configUsage)
-
-	GetVersionWithMetadata := u.GetVersionWithMetadata()
-	u.emitVersionUsage(GetVersionWithMetadata)
+	u.emitVersion()
 }
 
 func (u *UsageMetricsReporter) memberUsage() []serf.Member {
@@ -275,8 +273,19 @@ func (u *UsageMetricsReporter) memberUsage() []serf.Member {
 	return out
 }
 
-func (u *UsageMetricsReporter) GetVersionWithMetadata() string {
+func (u *UsageMetricsReporter) emitVersion() {
+	// consul version metric with labels
+	metrics.SetGaugeWithLabels(
+		[]string{"version"},
+		1,
+		[]metrics.Label{
+			{Name: "version", Value: versionWithMetadata()},
+			{Name: "pre_release", Value: consulversion.VersionPrerelease},
+		},
+	)
+}
 
+func versionWithMetadata() string {
 	version := consulversion.Version
 	metadata := consulversion.VersionMetadata
 
