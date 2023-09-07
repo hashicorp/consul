@@ -1,40 +1,36 @@
 {
-  "name": "envoy.filters.network.rbac",
-  "typedConfig": {
-    "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-    "rules": {
-      "policies": {
-        "consul-intentions-layer4": {
-          "permissions": [
+  "name":  "envoy.filters.network.rbac",
+  "typedConfig":  {
+    "@type":  "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+    "rules":  {
+      "policies":  {
+        "consul-intentions-layer4":  {
+          "permissions":  [
             {
-              "any": true
+              "any":  true
             }
           ],
-          "principals": [
+          "principals":  [
             {
-              "andIds": {
-                "ids": [
+              "andIds":  {
+                "ids":  [
                   {
-                    "authenticated": {
-                      "principalName": {
-                        "safeRegex": {
-                          "googleRe2": {
-
-                          },
-                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
+                    "authenticated":  {
+                      "principalName":  {
+                        "safeRegex":  {
+                          "googleRe2":  {},
+                          "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
                         }
                       }
                     }
                   },
                   {
-                    "notId": {
-                      "authenticated": {
-                        "principalName": {
-                          "safeRegex": {
-                            "googleRe2": {
-
-                            },
-                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                    "notId":  {
+                      "authenticated":  {
+                        "principalName":  {
+                          "safeRegex":  {
+                            "googleRe2":  {},
+                            "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                           }
                         }
                       }
@@ -47,6 +43,6 @@
         }
       }
     },
-    "statPrefix": "connect_authz"
+    "statPrefix":  "connect_authz"
   }
 }
