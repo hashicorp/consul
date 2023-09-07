@@ -1693,7 +1693,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, rpolicy)
 		require.Equal(t, "global-management", rpolicy.Name)
-		require.Equal(t, "Builtin Policy that grants unlimited access", rpolicy.Description)
+		require.Equal(t, structs.ACLPolicyGlobalManagementDesc, rpolicy.Description)
 		require.Equal(t, structs.ACLPolicyGlobalManagementRules, rpolicy.Rules)
 		require.Equal(t, acl.SyntaxCurrent, rpolicy.Syntax)
 		require.Len(t, rpolicy.Datacenters, 0)
