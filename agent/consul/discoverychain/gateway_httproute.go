@@ -92,11 +92,17 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 				servicePrefixRewrite = prefixRewrite
 			}
 
+			// Merge service request header modifier(s) onto route rule modifiers
+			// Note: Removals for the same header may exist on the rule + the service and
+			//   will result in idempotent duplicate values in the modifier w/ service coming last
 			serviceRequestModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
 			requestModifier.Add = mergeMaps(requestModifier.Add, serviceRequestModifier.Add)
 			requestModifier.Set = mergeMaps(requestModifier.Set, serviceRequestModifier.Set)
 			requestModifier.Remove = append(requestModifier.Remove, serviceRequestModifier.Remove...)
 
+			// Merge service response header modifier(s) onto route rule modifiers
+			// Note: Removals for the same header may exist on the rule + the service and
+			//   will result in idempotent duplicate values in the modifier w/ service coming last
 			serviceResponseModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.ResponseFilters.Headers)
 			responseModifier.Add = mergeMaps(responseModifier.Add, serviceResponseModifier.Add)
 			responseModifier.Set = mergeMaps(responseModifier.Set, serviceResponseModifier.Set)

@@ -528,16 +528,39 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 							},
 						},
 						ResponseFilters: structs.HTTPResponseFilters{
-							Headers: []structs.HTTPHeaderFilter{
-								{
-									Add:    map[string]string{"add me on the response": "hello world"},
-									Set:    map[string]string{"set me on the response": "hello world"},
-									Remove: []string{"remove me on the response"},
+							Headers: []structs.HTTPHeaderFilter{{
+								Add: map[string]string{
+									"add me to the rule response":             "hello world",
+									"add me to the rule and service response": "hello world",
 								},
-							},
+								Set: map[string]string{
+									"set me on the rule response":             "hello world",
+									"set me on the rule and service response": "hello world",
+								},
+								Remove: []string{
+									"remove me from the rule response",
+									"remove me from the rule and service response",
+								},
+							}},
 						},
 						Services: []structs.HTTPService{{
 							Name: "foo",
+							ResponseFilters: structs.HTTPResponseFilters{
+								Headers: []structs.HTTPHeaderFilter{{
+									Add: map[string]string{
+										"add me to the service response":          "hello world",
+										"add me to the rule and service response": "hello world",
+									},
+									Set: map[string]string{
+										"set me on the service response":          "hello world",
+										"set me on the rule and service response": "hello world",
+									},
+									Remove: []string{
+										"remove me from the service response",
+										"remove me from the rule and service response",
+									},
+								}},
+							},
 						}},
 					}},
 				},
@@ -580,9 +603,22 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 										Remove: []string{"remove me on the request"},
 									},
 									ResponseHeaders: &structs.HTTPHeaderModifiers{
-										Add:    map[string]string{"add me on the response": "hello world"},
-										Set:    map[string]string{"set me on the response": "hello world"},
-										Remove: []string{"remove me on the response"},
+										Add: map[string]string{
+											"add me to the rule response":             "hello world",
+											"add me to the service response":          "hello world",
+											"add me to the rule and service response": "hello world",
+										},
+										Set: map[string]string{
+											"set me on the rule response":             "hello world",
+											"set me on the service response":          "hello world",
+											"set me on the rule and service response": "hello world",
+										},
+										Remove: []string{
+											"remove me from the rule response",
+											"remove me from the rule and service response",
+											"remove me from the service response",
+											"remove me from the rule and service response",
+										},
 									},
 								},
 							},
