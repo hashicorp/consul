@@ -59,11 +59,10 @@ various configuration entries interact in more complex ways. For example:
   [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) config
   entry. Violations must be rejected as invalid.
 
-- If an [upstream
-  configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
-  [`datacenter`](/consul/docs/connect/registration/service-registration#datacenter)
-  parameter is defined then any configuration entry that does not explicitly
-  refer to a desired datacenter should use that value from the upstream.
+- When an [upstream
+  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
+  `datacenter` parameter is defined, any configuration entry that does not explicitly
+  refer to a desired datacenter uses the value defined in the upstream.
 
 ## Compilation
 
@@ -80,9 +79,9 @@ API](/consul/api-docs/discovery-chain).
 - **Datacenter** - The datacenter to use as the basis of compilation.
 - **Overrides** - Discovery-time tweaks to apply when compiling. These should
   be derived from either the
-  [proxy](/consul/docs/connect/registration/service-registration#complete-configuration-example)
+  [proxy](/consul/docs/connect/proxies/proxy-config-reference#complete-configuration-example)
   or
-  [upstream](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
+  [upstream](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
   configurations if either are set.
 
 ### Compilation Results

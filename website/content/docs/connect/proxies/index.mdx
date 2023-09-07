@@ -7,21 +7,25 @@ description: >-
 
 # Service mesh proxy overview
 
-This topic provides an overview of how Consul uses proxies in your service mesh. A proxy is a type of service that enables unmodified applications to connect to other services in the service mesh. Consul ships with a built-in L4 proxy and has first class support for Envoy. You can plug other proxies into your environment, as well, and apply configurations in Consul to define proxy behavior.
+This topic provides an overview of how Consul uses proxies in your service mesh. A proxy is a type of service that enables unmodified applications to connect to other services in the service mesh. Consul ships with a built-in L4 proxy and has first class support for Envoy. You can plug other proxies into your environment as well, and apply configurations in Consul to define proxy behavior.
 
 ## Proxy use cases
 
-_Proxies_ are services that you can configure to perform several different types of functions in Consul.
+You can configure proxies to perform several different types of functions in Consul.
+
+### Service mesh proxies
+
+A _service mesh proxy_ is any type of proxy service that you use for communication in a service mesh. Specialized proxy implementations, such as sidecar proxies and gateways, are subsets of service mesh proxies. Refer to [Deploy service mesh proxy services](/consul/docs/connect/proxies/deploy-service-mesh-proxies) for instructions on how to deploy a service mesh proxy.
 
 ### Sidecars
 
-You can configure proxies to operate as sidecar services transparently handles inbound and outbound service connections. Sidecars also automatically wrap and verify TLS connections. Each service in your mesh should have its own sidecar proxy.   
+Sidecar proxies are service mesh proxy implementations that transparently handles inbound and outbound service connections. Sidecars automatically wrap and verify TLS connections. In a non-containerized network, each service in your mesh should have its own sidecar proxy.   
 
 Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information.
 
 ### Gateways
 
-You can configure proxies to operate as gateway services, which allow service-to-service traffic across different network areas, including peered clusters, WAN-federated datacenters, and nodes outside the mesh. Consul ships with several types of gateway capabilities, but gateways deliver the underlying functionality.
+You can configure service mesh proxies to operate as gateway services, which allow service-to-service traffic across different network areas, including peered clusters, WAN-federated datacenters, and nodes outside the mesh. Consul ships with several types of gateway capabilities, but gateways deliver the underlying functionality.
 
 Refer to [Gateways overview](/consul/docs/connect/gateways) for additional information.
 
@@ -40,7 +44,7 @@ The following procedure describes how to implement proxies:
 
 1. **Configure global proxy settings**. You can configure global passthrough settings for all proxies deployed to your service mesh in the proxy defaults configuration entry. This step is not required, but it enables you to define common behaviors in a central configuration.
 1. **Deploy your service mesh proxy**. Configure proxy behavior in a service definition and register the proxy with Consul. 
-1. **Start the proxy service**. 
+1. **Start the proxy service**. Proxies appear in the list of services registered to Consul and must be started before they begin to route traffic in your service mesh.
 
 ### Dynamic upstreams require native integration
 
@@ -48,7 +52,7 @@ Service mesh proxies do not support dynamic upstreams. If an application require
 
 ## Proxies in Kubernetes-orchestrated networks
 
-For Kubernetes-orchestrated environments, Consul deploys _dataplanes_ by default to manage proxies. Consul dataplanes are light-weight processes that leverage existing Kubernetes sidecar orchestration capabilities.  Refer to the [dataplanes documentation](/consul/docs/connect/dataplane) for additional information.
+For Kubernetes-orchestrated environments, Consul deploys _dataplanes_ by default to manage sidecar proxies. Consul dataplanes are light-weight processes that leverage existing Kubernetes sidecar orchestration capabilities.  Refer to the [dataplanes documentation](/consul/docs/connect/dataplane) for additional information.
 
 ## Guidance
 
@@ -67,7 +71,7 @@ Refer to the following resources for help using service mesh proxies:
 
 ### Reference documentation
 
-- [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for additional information. 
+- [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults)
 - [Envoy proxies reference](/consul/docs/connect/proxies/envoy)
 - [Service mesh proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference)
 - [`consul connect envoy` command](/consul/commands/connect/envoy)
