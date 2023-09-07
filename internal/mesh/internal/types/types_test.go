@@ -19,6 +19,16 @@ func TestTypeRegistration(t *testing.T) {
 	requiredKinds := []string{
 		ProxyConfigurationKind,
 		UpstreamsKind,
+		UpstreamsConfigurationKind,
+		HTTPRouteKind,
+		GRPCRouteKind,
+		TCPRouteKind,
+		DestinationPolicyKind,
+		ComputedRoutesKind,
+		ProxyStateTemplateKind,
+		APIGatewayKind,
+		MeshGatewayKind,
+		TerminatingGatewayKind,
 	}
 
 	r := resource.NewRegistry()
