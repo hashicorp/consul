@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hashicorp.consul.auth.v1alpha1;
 
-import "pbauth/v1alpha1/traffic_permissions.proto";
+import "pbauth/v1alpha1/traffic_permission.proto";
 
 message ComputedTrafficPermission {
   repeated Permission allow_permissions = 1;

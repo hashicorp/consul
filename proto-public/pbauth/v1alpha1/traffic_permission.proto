@@ -2,15 +2,15 @@ syntax = "proto3";
 
 package hashicorp.consul.auth.v1alpha1;
 
-message NamespaceTrafficPermission {
+message TrafficPermission {
   Destination destination = 1;
-  string action = 2;
+  Action action = 2;
   repeated Permission permissions = 3;
 }
 
 message PartitionTrafficPermission {
-  string action = 2;
-  repeated Permission permissions = 3;
+  Action action = 1;
+  repeated Permission permissions = 2;
 }
 
 message Destination {
@@ -18,8 +18,9 @@ message Destination {
 }
 
 enum Action {
-  ACTION_ALLOW = 0;
+  ACTION_UNSPECIFIED = 0;
   ACTION_DENY = 1;
+  ACTION_ALLOW = 2;
 }
 
 message Permission {
@@ -56,7 +57,7 @@ message DestinationRule {
   }
   repeated string methods = 4;
   DestinationRuleHeader header = 5;
-  repeated string port_name = 6;
+  repeated string port_names = 6;
   repeated ExcludePermissionRule exclude = 7;
 }
 
@@ -72,10 +73,7 @@ message ExcludePermissionRule {
 
   DestinationRuleHeader header = 5;
 
-  // destination_ports is a list of workload ports to apply this rule to. The ports specified here
-  // must be the ports used in the connection. The list
-  // values are OR'ed together if multiple are provided. If no ports provided,
-  // this rule will apply to all ports.
+  // ports is a list of workload ports from which this permission is excluded.
   repeated string ports = 6;
 }
 
