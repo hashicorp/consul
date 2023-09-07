@@ -1,0 +1,5 @@
+ syntax = "proto3";
+
+package hashicorp.consul.auth.v1alpha1;
+
+message WorkloadIdentity{}
