@@ -4,6 +4,8 @@
 package builder
 
 import (
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
@@ -12,7 +14,6 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
@@ -56,11 +57,9 @@ func (b *Builder) buildExplicitDestination(destination *intermediate.Destination
 				addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, meshPortName)
 		}
 	}
-
-	return b
 }
 
-func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) *Builder {
+func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) {
 	serviceRef := resource.Reference(destination.ServiceEndpoints.Resource.Owner, "")
 	clusterName := DestinationClusterName(serviceRef, b.localDatacenter, b.trustDomain)
 	statPrefix := DestinationStatPrefix(serviceRef, b.localDatacenter)
@@ -74,13 +73,13 @@ func (b *Builder) buildImplicitDestination(destination *intermediate.Destination
 		meshPortName := findMeshPort(destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports)
 
 		for _, port := range destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports {
-			b.addRouterWithIPMatch(clusterName, statPrefix, port.Protocol, destination.VirtualIPs).
+			b.outboundListenerBuilder.
+				addRouterWithIPMatch(clusterName, statPrefix, port.Protocol, destination.VirtualIPs).
+				buildListener().
 				addCluster(clusterName, destination.Identities).
 				addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, meshPortName)
 		}
 	}
-
-	return b
 }
 
 func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *ListenerBuilder {
@@ -113,7 +112,7 @@ func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Lis
 	return b.NewListenerBuilder(listener)
 }
 
-func (b *Builder) addOutboundListener(port uint32) *Builder {
+func (b *Builder) addOutboundListener(port uint32) *ListenerBuilder {
 	listener := &pbproxystate.Listener{
 		Name:      xdscommon.OutboundListenerName,
 		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
@@ -126,16 +125,19 @@ func (b *Builder) addOutboundListener(port uint32) *Builder {
 		Capabilities: []pbproxystate.Capability{pbproxystate.Capability_CAPABILITY_TRANSPARENT},
 	}
 
-	return b.addListener(listener)
+	lb := b.NewListenerBuilder(listener)
+
+	// Save outbound listener builder so we can use it in the future.
+	b.outboundListenerBuilder = lb
+
+	return lb
 }
 
 func (l *ListenerBuilder) addRouter(clusterName, statPrefix string, protocol pbcatalog.Protocol) *ListenerBuilder {
-	return b.addRouterWithIPMatch(clusterName, statPrefix, protocol, nil)
+	return l.addRouterWithIPMatch(clusterName, statPrefix, protocol, nil)
 }
 
-func (b *Builder) addRouterWithIPMatch(clusterName, statPrefix string, protocol pbcatalog.Protocol, vips []string) *Builder {
-	listener := b.getLastBuiltListener()
-
+func (l *ListenerBuilder) addRouterWithIPMatch(clusterName, statPrefix string, protocol pbcatalog.Protocol, vips []string) *ListenerBuilder {
 	// For explicit destinations, we have no filter chain match, and filters are based on port protocol.
 	router := &pbproxystate.Router{}
 	switch protocol {
@@ -200,12 +202,11 @@ func (b *Builder) addCluster(clusterName string, destinationIdentities []*pbreso
 	return b
 }
 
-func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) *Builder {
+func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) {
 	b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
 		Id:   serviceEndpointsID,
 		Port: destinationPort,
 	}
-	return b
 }
 
 func findMeshPort(ports map[string]*pbcatalog.WorkloadPort) string {

@@ -101,7 +101,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			Build()
 
 		actual := protoToJSON(t, proxyTmpl)
-		expected := goldenValue(t, name, actual, *update)
+		expected := golden.Get(t, actual, name)
 
 		require.JSONEq(t, expected, actual)
 	}
@@ -109,11 +109,16 @@ func TestBuildExplicitDestinations(t *testing.T) {
 
 func TestBuildImplicitDestinations(t *testing.T) {
 	api1Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-1").
-		WithOwner(resourcetest.Resource(catalog.ServiceType, "api-1").ID()).
+		WithOwner(
+			resourcetest.Resource(catalog.ServiceType, "api-1").
+				WithTenancy(resource.DefaultNamespacedTenancy()).ID()).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, endpointsData).Build()
 
 	api2Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-2").
-		WithOwner(resourcetest.Resource(catalog.ServiceType, "api-2").ID()).
+		WithOwner(resourcetest.Resource(catalog.ServiceType, "api-2").
+			WithTenancy(resource.DefaultNamespacedTenancy()).ID()).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, endpointsData).Build()
 
 	api1Identity := &pbresource.Reference{

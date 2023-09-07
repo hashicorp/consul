@@ -75,6 +75,7 @@ func (m *Mapper) MapServiceEndpointsToProxyStateTemplate(ctx context.Context, rt
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: res.Id.Tenancy.Partition,
+			PeerName:  res.Id.Tenancy.PeerName,
 		},
 	})
 	if err != nil {

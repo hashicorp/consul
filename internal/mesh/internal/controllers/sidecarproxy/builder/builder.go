@@ -13,6 +13,8 @@ type Builder struct {
 	proxyCfg           *pbmesh.ProxyConfiguration
 	trustDomain        string
 	localDatacenter    string
+
+	outboundListenerBuilder *ListenerBuilder
 }
 
 func New(id *pbresource.ID,

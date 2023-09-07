@@ -18,7 +18,7 @@ func (m *Mapper) MapProxyConfigurationToProxyStateTemplate(ctx context.Context, 
 
 	var proxyIDs []resource.ReferenceOrID
 
-	requests, err := mapWorkloadsBySelector(ctx, rt.Client, proxyConfig.Workloads, res.Id.Tenancy, func(id *pbresource.ID) {
+	requests, err := mapSelectorToProxyStateTemplates(ctx, rt.Client, proxyConfig.Workloads, res.Id.Tenancy, func(id *pbresource.ID) {
 		proxyIDs = append(proxyIDs, id)
 	})
 	if err != nil {

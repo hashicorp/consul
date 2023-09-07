@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
@@ -13,7 +15,6 @@ import (
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMapWorkloadsBySelector(t *testing.T) {
@@ -38,6 +39,10 @@ func TestMapWorkloadsBySelector(t *testing.T) {
 	w4 := resourcetest.Resource(catalog.WorkloadType, "prefix-w4").
 		WithData(t, workloadData).
 		Write(t, client).Id
+	// This workload should not be used as it's not selected by the workload selector.
+	resourcetest.Resource(catalog.WorkloadType, "not-selected-workload").
+		WithData(t, workloadData).
+		Write(t, client)
 
 	selector := &pbcatalog.WorkloadSelector{
 		Names:    []string{"w1", "w2"},
@@ -52,7 +57,7 @@ func TestMapWorkloadsBySelector(t *testing.T) {
 
 	var cachedReqs []controller.Request
 
-	reqs, err := mapWorkloadsBySelector(context.Background(), client, selector, defaultTenancy(), func(id *pbresource.ID) {
+	reqs, err := mapSelectorToProxyStateTemplates(context.Background(), client, selector, defaultTenancy(), func(id *pbresource.ID) {
 		// save IDs to check that the cache func is called
 		cachedReqs = append(cachedReqs, controller.Request{ID: id})
 	})

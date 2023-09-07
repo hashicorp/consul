@@ -3,19 +3,19 @@ package fetcher
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 type Fetcher struct {
@@ -214,7 +214,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 		d.ServiceEndpoints = se
 
 		// Check if this endpoints is mesh-enabled. If not, remove it from cache and return an error.
-		if !IsMeshEnabled(se.Endpoints.Endpoints[0].Ports) {
+		if len(se.Endpoints.Endpoints) > 0 && !IsMeshEnabled(se.Endpoints.Endpoints[0].Ports) {
 			// Add invalid status but don't remove from cache. If this state changes,
 			// we want to be able to detect this change.
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
@@ -231,7 +231,9 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 
 		// No destination port should point to a port with "mesh" protocol,
 		// so check if destination port has the mesh protocol and update the status.
-		if se.Endpoints.Endpoints[0].Ports[dest.Port].Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+		if len(se.Endpoints.Endpoints) > 0 &&
+			se.Endpoints.Endpoints[0].Ports[dest.Port].Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
 				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionMeshProtocolDestinationPort(serviceRef, dest.Port))
 			continue
@@ -272,7 +274,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(ctx context.Context, proxyID *pb
 	rsp, err := f.Client.List(ctx, &pbresource.ListRequest{
 		Type: catalog.ServiceEndpointsType,
 		Tenancy: &pbresource.Tenancy{
-			Namespace: storage.Wildcard,
+			Namespace: proxyID.Tenancy.Namespace,
 			Partition: proxyID.Tenancy.Partition,
 			PeerName:  proxyID.Tenancy.PeerName,
 		},
@@ -295,6 +297,11 @@ func (f *Fetcher) FetchImplicitDestinationsData(ctx context.Context, proxyID *pb
 
 		// If this proxy is a part of this service, ignore it.
 		if isPartOfService(resource.ReplaceType(catalog.WorkloadType, proxyID), &endpoints) {
+			continue
+		}
+
+		// Skip if this service is not mesh-enabled.
+		if len(endpoints.Endpoints) > 0 && !IsMeshEnabled(endpoints.Endpoints[0].Ports) {
 			continue
 		}
 

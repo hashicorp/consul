@@ -4,6 +4,10 @@
 package mesh
 
 import (
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )

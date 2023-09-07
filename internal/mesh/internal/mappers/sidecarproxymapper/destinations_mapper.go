@@ -20,7 +20,7 @@ func (m *Mapper) MapDestinationsToProxyStateTemplate(ctx context.Context, rt con
 	// Look up workloads for this destinations.
 	sourceProxyIDs := make(map[resource.ReferenceKey]struct{})
 
-	requests, err := mapWorkloadsBySelector(ctx, rt.Client, destinations.Workloads, res.Id.Tenancy, func(id *pbresource.ID) {
+	requests, err := mapSelectorToProxyStateTemplates(ctx, rt.Client, destinations.Workloads, res.Id.Tenancy, func(id *pbresource.ID) {
 		sourceProxyIDs[resource.NewReferenceKey(id)] = struct{}{}
 	})
 	if err != nil {

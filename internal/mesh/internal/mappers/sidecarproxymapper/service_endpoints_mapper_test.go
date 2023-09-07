@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
@@ -17,6 +19,7 @@ import (
 )
 
 func TestMapServiceEndpointsToProxyStateTemplate(t *testing.T) {
+	client := svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
 	workload1 := resourcetest.Resource(catalog.WorkloadType, "workload-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 	workload2 := resourcetest.Resource(catalog.WorkloadType, "workload-2").

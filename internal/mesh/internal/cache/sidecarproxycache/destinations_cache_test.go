@@ -3,19 +3,21 @@ package sidecarproxycache
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
 )
 
 func TestWrite_Create(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
+	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination := testDestination(proxyID)
 	cache.WriteDestination(destination)
 
@@ -36,7 +38,8 @@ func TestWrite_Create(t *testing.T) {
 func TestWrite_Update(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
+	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := testDestination(proxyID)
 	cache.WriteDestination(destination1)
 
@@ -58,7 +61,8 @@ func TestWrite_Update(t *testing.T) {
 	// Add another destination for a different proxy.
 	anotherProxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-def").ID()
 	destination3 := testDestination(anotherProxyID)
-	destination3.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-3").ReferenceNoSection()
+	destination3.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-3").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination3)
 
 	actualSourceProxies = cache.sourceProxiesIndex
@@ -93,13 +97,15 @@ func TestWrite_Update(t *testing.T) {
 func TestWrite_Delete(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
+	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := testDestination(proxyID)
 	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
-	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection()
+	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination2)
 
 	cache.DeleteDestination(destination1.ServiceRef, destination1.Port)
@@ -117,7 +123,8 @@ func TestWrite_Delete(t *testing.T) {
 
 	// Try to delete non-existing destination and check that nothing has changed..
 	cache.DeleteDestination(
-		resourcetest.Resource(catalog.ServiceType, "does-not-exist").ReferenceNoSection(),
+		resourcetest.Resource(catalog.ServiceType, "does-not-exist").
+			WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection(),
 		"doesn't-matter")
 
 	require.Contains(t, cache.store, KeyFromRefAndPort(destination2.ServiceRef, destination2.Port))
@@ -127,13 +134,15 @@ func TestWrite_Delete(t *testing.T) {
 func TestDeleteSourceProxy(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
+	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := testDestination(proxyID)
 	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
-	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection()
+	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination2)
 
 	cache.DeleteSourceProxy(proxyID)
@@ -162,13 +171,15 @@ func TestDeleteSourceProxy(t *testing.T) {
 func TestDestinationsBySourceProxy(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
+	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := testDestination(proxyID)
 	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
-	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection()
+	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination2)
 
 	actualDestinations := cache.DestinationsBySourceProxy(proxyID)
@@ -178,9 +189,11 @@ func TestDestinationsBySourceProxy(t *testing.T) {
 
 func testDestination(proxyID *pbresource.ID) intermediate.CombinedDestinationRef {
 	return intermediate.CombinedDestinationRef{
-		ServiceRef:             resourcetest.Resource(catalog.ServiceType, "test-service").ReferenceNoSection(),
-		Port:                   "tcp",
-		ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "test-servicedestinations").ID(),
+		ServiceRef: resourcetest.Resource(catalog.ServiceType, "test-service").
+			WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection(),
+		Port: "tcp",
+		ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "test-servicedestinations").
+			WithTenancy(resource.DefaultNamespacedTenancy()).ID(),
 		SourceProxies: map[resource.ReferenceKey]struct{}{
 			resource.NewReferenceKey(proxyID): {},
 		},

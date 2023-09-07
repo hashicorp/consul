@@ -24,9 +24,9 @@ func New(destinationsCache *sidecarproxycache.DestinationsCache, proxyCfgCache *
 	}
 }
 
-// mapWorkloadsBySelector returns ProxyStateTemplate requests given a workload
+// mapSelectorToProxyStateTemplates returns ProxyStateTemplate requests given a workload
 // selector and tenancy. The cacheFunc can be called if the resulting ids need to be cached.
-func mapWorkloadsBySelector(ctx context.Context,
+func mapSelectorToProxyStateTemplates(ctx context.Context,
 	client pbresource.ResourceServiceClient,
 	selector *pbcatalog.WorkloadSelector,
 	tenancy *pbresource.Tenancy,

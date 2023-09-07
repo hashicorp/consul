@@ -1,137 +1,199 @@
 {
-  "proxyState":  {
-    "identity":  {
-      "tenancy":  {
-        "partition":  "default",
-        "namespace":  "default",
-        "peerName":  "local"
-      },
-      "name":  "test-identity"
-    },
-    "listeners":  [
-      {
-        "name":  "outbound_listener",
-        "direction":  "DIRECTION_OUTBOUND",
-        "hostPort":  {
-          "host":  "127.0.0.1",
-          "port":  15001
-        },
-        "routers":  [
-          {
-            "match":  {
-              "prefixRanges":  [
-                {
-                  "addressPrefix":  "2.2.2.2",
-                  "prefixLen":  32
-                },
-                {
-                  "addressPrefix":  "3.3.3.3",
-                  "prefixLen":  32
-                }
-              ]
+  "proxyState": {
+    "clusters": {
+      "api-1.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
             },
-            "l4":  {
-              "name":  "api-2.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.api-2.default.default.dc1"
-            }
-          }
-        ],
-        "capabilities":  [
-          "CAPABILITY_TRANSPARENT"
-        ]
-      },
-      {
-        "name":  "api-1:tcp:1.1.1.1:1234",
-        "direction":  "DIRECTION_OUTBOUND",
-        "hostPort":  {
-          "host":  "1.1.1.1",
-          "port":  1234
-        },
-        "routers":  [
-          {
-            "l4":  {
-              "name":  "api-1.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.api-1.default.default.dc1"
-            }
-          }
-        ]
-      }
-    ],
-    "clusters":  {
-      "api-1.default.dc1.internal.foo.consul":  {
-        "endpointGroup":  {
-          "dynamic":  {
-            "config":  {
-              "disablePanicThreshold":  true
-            },
-            "outboundTls":  {
-              "outboundMesh":  {
-                "identityKey":  "test-identity",
-                "validationContext":  {
-                  "spiffeIds":  [
+            "outboundTls": {
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-1.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
                   ]
-                },
-                "sni":  "api-1.default.dc1.internal.foo.consul"
+                }
               }
             }
           }
         }
       },
-      "api-2.default.dc1.internal.foo.consul":  {
-        "endpointGroup":  {
-          "dynamic":  {
-            "config":  {
-              "disablePanicThreshold":  true
+      "api-2.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
             },
-            "outboundTls":  {
-              "outboundMesh":  {
-                "identityKey":  "test-identity",
-                "validationContext":  {
-                  "spiffeIds":  [
+            "outboundTls": {
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-2.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
                   ]
-                },
-                "sni":  "api-2.default.dc1.internal.foo.consul"
+                }
               }
             }
           }
         }
       }
-    }
-  },
-  "requiredEndpoints":  {
-    "api-1.default.dc1.internal.foo.consul":  {
-      "id":  {
-        "name":  "api-1",
-        "type":  {
-          "group":  "catalog",
-          "groupVersion":  "v1alpha1",
-          "kind":  "ServiceEndpoints"
-        },
-        "tenancy":  {
-          "partition":  "default",
-          "namespace":  "default",
-          "peerName":  "local"
-        }
-      },
-      "port":  "mesh"
     },
-    "api-2.default.dc1.internal.foo.consul":  {
-      "id":  {
-        "name":  "api-2",
-        "type":  {
-          "group":  "catalog",
-          "groupVersion":  "v1alpha1",
-          "kind":  "ServiceEndpoints"
+    "identity": {
+      "name": "test-identity",
+      "tenancy": {
+        "namespace": "default",
+        "partition": "default",
+        "peerName": "local"
+      }
+    },
+    "listeners": [
+      {
+        "capabilities": [
+          "CAPABILITY_TRANSPARENT"
+        ],
+        "direction": "DIRECTION_OUTBOUND",
+        "hostPort": {
+          "host": "127.0.0.1",
+          "port": 15001
         },
-        "tenancy":  {
-          "partition":  "default",
-          "namespace":  "default",
-          "peerName":  "local"
+        "name": "outbound_listener",
+        "routers": [
+          {
+            "l4": {
+              "name": "api-2.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.api-2.default.default.dc1"
+            },
+            "match": {
+              "prefixRanges": [
+                {
+                  "addressPrefix": "2.2.2.2",
+                  "prefixLen": 32
+                },
+                {
+                  "addressPrefix": "3.3.3.3",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "capabilities": [
+          "CAPABILITY_TRANSPARENT"
+        ],
+        "direction": "DIRECTION_OUTBOUND",
+        "hostPort": {
+          "host": "127.0.0.1",
+          "port": 15001
+        },
+        "name": "outbound_listener",
+        "routers": [
+          {
+            "l4": {
+              "name": "api-2.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.api-2.default.default.dc1"
+            },
+            "match": {
+              "prefixRanges": [
+                {
+                  "addressPrefix": "2.2.2.2",
+                  "prefixLen": 32
+                },
+                {
+                  "addressPrefix": "3.3.3.3",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "capabilities": [
+          "CAPABILITY_TRANSPARENT"
+        ],
+        "direction": "DIRECTION_OUTBOUND",
+        "hostPort": {
+          "host": "127.0.0.1",
+          "port": 15001
+        },
+        "name": "outbound_listener",
+        "routers": [
+          {
+            "l4": {
+              "name": "api-2.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.api-2.default.default.dc1"
+            },
+            "match": {
+              "prefixRanges": [
+                {
+                  "addressPrefix": "2.2.2.2",
+                  "prefixLen": 32
+                },
+                {
+                  "addressPrefix": "3.3.3.3",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "direction": "DIRECTION_OUTBOUND",
+        "hostPort": {
+          "host": "1.1.1.1",
+          "port": 1234
+        },
+        "name": "api-1:tcp:1.1.1.1:1234",
+        "routers": [
+          {
+            "l4": {
+              "name": "api-1.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.api-1.default.default.dc1"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "requiredEndpoints": {
+    "api-1.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-1",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
         }
       },
-      "port":  "mesh"
+      "port": "mesh"
+    },
+    "api-2.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
     }
   }
 }
