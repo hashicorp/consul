@@ -23,5 +23,5 @@ func (m *gatewayMeta) checkJWTProviders() (map[structs.ResourceReference]error, 
 }
 
 func (m *gatewayMeta) validateJWTForRoute(_ *structs.HTTPRouteConfigEntry) (bool, map[structs.ResourceReference]error) {
-	return false, nil
+	return true, nil
 }
