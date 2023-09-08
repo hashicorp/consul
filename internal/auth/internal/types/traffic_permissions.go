@@ -11,6 +11,22 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+const (
+	NamespaceTrafficPermissionsKind = "NamespaceTrafficPermissions"
+	PartitionTrafficPermissionsKind = "PartitionTrafficPermissions"
+	TrafficPermissionsKind          = "TrafficPermissions"
+)
+
+var (
+	TrafficPermissionsV2Beta1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV2Beta1,
+		Kind:         TrafficPermissionsKind,
+	}
+
+	TrafficPermissionsType = TrafficPermissionsV2Beta1Type
+)
+
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbauth.TrafficPermissionsType,
@@ -106,6 +122,7 @@ func firstNonEmptyString(a, b, c string) (string, bool) {
 
 func ValidateTrafficPermissions(res *pbresource.Resource) error {
 	var tp pbauth.TrafficPermissions
+
 	if err := res.Data.UnmarshalTo(&tp); err != nil {
 		return resource.NewErrDataParse(&tp, err)
 	}

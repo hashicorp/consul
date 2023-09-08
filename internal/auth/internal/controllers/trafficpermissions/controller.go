@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package trafficpermissions
 
 import (
@@ -5,7 +8,10 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/internal/auth/internal/mappers/trafficpermissionsmapper"
 	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -16,36 +22,43 @@ import (
 // Mapper is used to map a watch event for a TrafficPermission resource and translate
 // it to a ComputedTrafficPermissions resource which contains the effective permissions
 // from the TrafficPermission resource.
-type Mapper interface {
-	// MapWorkloadIdentity will take a WorkloadIdentity resource and return controller requests for all
-	// ComputedTrafficPermissions associated with that workload.
-	MapWorkloadIdentity(context.Context, controller.Runtime, *pbresource.Resource) ([]controller.Request, error)
-
+type WorkloadIdentityMapper interface {
 	// MapTrafficPermission will take a TrafficPermission resource and return controller requests for all
-	// ComputedTrafficPermissions associated with that workload.
-	MapTrafficPermission(context.Context, controller.Runtime, *pbresource.Resource) ([]controller.Request, error)
+	// ComputedTrafficPermissions associated with that TrafficPermission.
+	MapTrafficPermissions(context.Context, controller.Runtime, *pbresource.Resource) ([]controller.Request, error)
 
-	// UntrackComputedTrafficPermission instructs the Mapper to forget about any
-	// association it was tracking for this ComputedTrafficPermission.
-	UntrackComputedTrafficPermission(*pbresource.ID)
+	// UntrackWorkloadIdentity instructs the Mapper to track the WorkloadIdentity. If the WorkloadIdentity is already
+	// being tracked, it is a no-op.
+	TrackWorkloadIdentity(*pbresource.ID)
+
+	// UntrackWorkloadIdentity instructs the Mapper to forget about the WorkloadIdentity and associated
+	// ComputedTrafficPermission.
+	UntrackWorkloadIdentity(*pbresource.ID)
+
+	// UntrackTrafficPermission instructs the Mapper to forget about the TrafficPermission.
+	UntrackTrafficPermissions(*pbresource.ID)
+
+	// Get a new set of computed permissions
+	ComputeNewTrafficPermissions(context.Context, controller.Runtime, *pbresource.ID) (*pbauth.ComputedTrafficPermissions, error)
 }
 
 // Controller creates a controller for automatic ComputedTrafficPermissions management for
 // updates to WorkloadIdentity or TrafficPermission resources.
-func Controller(mapper Mapper) controller.Controller {
+func Controller(mapper WorkloadIdentityMapper) controller.Controller {
 	if mapper == nil {
-		panic("No WorkloadIdentityMapper was provided to the ServiceEndpointsController constructor")
+		panic("No TrafficPermissionsMapper was provided to the TrafficPermissionsController constructor")
 	}
 
-	return controller.ForType(types.ComputedTrafficPermissionType).
-		WithWatch(types.NamespaceTrafficPermissionType, mapper.MapTrafficPermission).
-		WithWatch(types.PartitionTrafficPermissionType, mapper.MapTrafficPermission).
-		WithWatch(types.WorkloadIdentityType, mapper.MapWorkloadIdentity).
+	return controller.ForType(types.ComputedTrafficPermissionsType).
+		WithWatch(types.WorkloadIdentityType, controller.ReplaceType(types.ComputedTrafficPermissionsType)).
+		WithWatch(types.TrafficPermissionsType, mapper.MapTrafficPermissions).
+		WithWatch(types.NamespaceTrafficPermissionsType, mapper.MapTrafficPermissions).
+		WithWatch(types.PartitionTrafficPermissionsType, mapper.MapTrafficPermissions).
 		WithReconciler(&reconciler{mapper: mapper})
 }
 
 type reconciler struct {
-	mapper Mapper
+	mapper WorkloadIdentityMapper
 }
 
 // Reconcile will reconcile one ComputedTrafficPermission (CTP) in response to some event.
@@ -53,108 +66,105 @@ type reconciler struct {
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
 	rt.Logger.Trace("reconciling computed traffic permissions")
-
 	/*
 	 * A CTP ID could come in for a variety of reasons.
-	 * 1. workload identity create / delete
-	 * 2. traffic permission create / delete
+	 * 1. workload identity create / delete: this results in the creation / deletion of a new CTP
+	 * 2. traffic permission create / modify / delete: this results in a potential modification of an existing CTP
 	 *
-	 * We need to take the CTP ID and map it back to the relevant
-	 * workloads and traffic permissions.
-	 *
-	 * 1:1 mappings must be maintained for
-	 * 1. workloadIdentity -> computedTrafficPermission (CTP which represents that WI as a destination)
-	 * 2. computedTrafficPermission -> workloadIdentity (WI which is the destination for the CTP)
-
-	 * Collection bi-mappings must be maintained for:
-	 * 1. trafficPermissions -> []computedTrafficPermission (CTP affected by the TP, only one if explicit dest)
-	 * 2. computedTrafficPermission -> []trafficPermission (TP which affect the CTP)
-	 *
-
-
-
-	 * First, look up the workload identity that maps to the CTP.
-	 * If not found, the WI has been deleted. Untrack the WI and delete the CTP.
-	 * Else, it must have been a traffic permissions update.
-	 * TODO: Except if it is a new WI. Where do we create a new CTP? We can't just ship some non-existent ID so mapper?
-	 *
-	 * Use the WI to grab all the traffic permissions that apply to that WI. We will likely need to store the
-	 * TP as a radix tree based on their destinations. Then we can find all the matching TP to the WI.
-	 *
-	 * Take the list of TP IDs and then look up each one. If its missing, then it was deleted so untrack it.
-	 * Recompute the CTP from the list of TPs. I originally though we would have to recompute all of the CTPs which
-	 * were affected by the deleted TP but I think that the mapper will sort of resolve this naturally. When
-	 * a TP is deleted, the mapper will already add all of the affected CTPs to the reconcile queue so we don't have to
-	 * do the reverse mapping and recalculate all in the reconcile.
-	 *
-	 *
-	 * Write TP: Find CTPs, update CTPs, update CTP -> TP mapping, update TP -> CTP mapping, write TP
-	 * Delete TP: ", delete TP
-	 * Write WI: Make CTP, find all applicable TPs, populate CTP, update CTP -> TP mapping, update TP -> CTP mapping, write WI, update WI:CTP
-	 * Delete WI: Delete CTP, update CTP -> TP mapping, update TP -> CTP mapping, write WI, update WI:CTP
-	 *
+	 * Part 1: Handle Workload Identity changes:
+	 * Check if the workload identity exists. If it doesn't we can stop here.
+	 * CTPs are always generated from WorkloadIdentities, therefore the WI resource must already exist.
+	 * If it is missing, that means it was deleted.
 	 */
-
-	// Case 1: Workload identity create / delete:
 	ctpID := req.ID
-	workloadIdentity := &pbresource.ID{
-		Type:    types.WorkloadIdentityType,
-		Tenancy: ctpID.Tenancy,
-		Uid:     ctpID.Name, // when a CTP is generated for a newly created WI, it takes the WI Uid as it's name
+	workloadIdentity, err := trafficpermissionsmapper.LookupWorkloadIdentityByName(ctx, rt, ctpID, ctpID.Name)
+	if err != nil {
+		rt.Logger.Error("error retrieving corresponding Workload Identity", "error", err)
+		return err
 	}
-	rt.Logger.Trace("got workload identity:", workloadIdentity)
-	// Case 2: TP create / modify / delete
-
-	// TODO: Need to add a UUID to new ComputedTrafficPermissions or some other unique name
-	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: req.ID})
-	switch {
-	case status.Code(err) == codes.NotFound:
-		// What would possibly cause this? We won't allow direct crud ops
-		// on CTP, so I don't think that this should really happen.
-		rt.Logger.Trace("")
-		r.mapper.UntrackComputedTrafficPermission(req.ID)
+	if workloadIdentity == nil {
+		rt.Logger.Trace("workload identity has been deleted")
+		// The workload identity was deleted, so we need to update the mapper to tell it to
+		// stop tracking this workload identity, and clean up the associated CTP
+		r.mapper.UntrackWorkloadIdentity(&pbresource.ID{
+			Type:    types.WorkloadIdentityType,
+			Tenancy: ctpID.Tenancy,
+			Name:    ctpID.Name,
+		})
 		return nil
-	case err != nil:
-		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
+	}
+	rt.Logger.Trace("Got active WorkloadIdentity in CTP reconciler", "name", workloadIdentity.Id.Name)
+
+	// Check if CTP exists:
+	oldCTPData, err := getCTPData(ctx, rt, ctpID)
+	if err != nil {
+		rt.Logger.Error("error retrieving computed permissions", "error", err)
+		return err
+	}
+	// make sure we are tracking the WorkloadIdentity
+	r.mapper.TrackWorkloadIdentity(workloadIdentity.Id)
+
+	// Part 2: Recompute a CTP from TP create / modify / delete, or create a new CTP from existing TPs:
+	latestTrafficPermissions, err := r.mapper.ComputeNewTrafficPermissions(ctx, rt, workloadIdentity.Id)
+	if err != nil {
+		rt.Logger.Error("error calculating computed permissions", "error", err)
 		return err
 	}
 
-	res := rsp.Resource
-	var ctp pbauth.ComputedTrafficPermission
-	if err := res.Data.UnmarshalTo(&ctp); err != nil {
-		rt.Logger.Error("error unmarshalling computed traffic permission data", "error", err)
-		return err
-	}
-
-	// Check the workload identity associated to the CTP
-	workloadIdentityID := req.ID //r.mapper.WorkloadIdentityFromCTP(res, &ctp)
-	wi, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: workloadIdentityID})
-	rt.Logger.Trace("Got WorkloadIdentity in CTP reconciler: %v", wi.Resource.Id.Name)
-	switch {
-	case status.Code(err) == codes.NotFound:
-		// the WI has been deleted. Remove the CTP (? or should we leave it)
-		// and untrack the WI
+	if oldCTPData != nil && proto.Equal(oldCTPData.ctp, latestTrafficPermissions) {
+		// there are no changes to the computed traffic permissions, and we can return early
 		return nil
-	case err != nil:
-		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
-		return err
 	}
 
+	if oldCTPData == nil {
+		// CTP does not yet exist, so we need to make a new one
+		rt.Logger.Trace("creating new computed traffic permissions for workload identity")
+		// First encode the data as an Any type.
+		newCTPData, err := anypb.New(latestTrafficPermissions)
+		if err != nil {
+			rt.Logger.Error("error marshalling latest traffic permissions", "error", err)
+			return err
+		}
+		// Write the new CTP.
+		_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
+			Resource: &pbresource.Resource{
+				Id:   ctpID,
+				Data: newCTPData,
+			},
+		})
+	}
+
+	status := &pbresource.Status{
+		ObservedGeneration: workloadIdentity.Generation,
+		Conditions: []*pbresource.Condition{
+			ConditionComputed(workloadIdentity.Id.Name, ""),
+		},
+	}
+	// If the status is unchanged then we should return and avoid the unnecessary write
+	if resource.EqualStatus(workloadIdentity.Status[StatusKey], status, false) {
+		return nil
+	}
+
+	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
+		Id:     workloadIdentity.Id,
+		Key:    StatusKey,
+		Status: status,
+	})
 	return nil
 }
 
-type workloadIdentityData struct {
-	resource         *pbresource.Resource
-	workloadIdentity *pbauth.WorkloadIdentity
+type ctpData struct {
+	resource *pbresource.Resource
+	ctp      *pbauth.ComputedTrafficPermissions
 }
 
-// getServiceData will read the service with the given ID and unmarshal the
-// Data field. The return value is a struct that contains the retrieved
-// resource as well as the unmsashalled form. If the resource doesn't
-// exist, nil will be returned. Any other error either with retrieving
-// the resource or unmarshalling it will cause the error to be returned
-// to the caller
-func getWorkloadIdentity(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*workloadIdentityData, error) {
+// getCTPData will read the computed traffic permissions with the given
+// ID and unmarshal the Data field. The return value is a struct that
+// contains the retrieved resource as well as the unmsashalled form.
+// If the resource doesn't  exist, nil will be returned. Any other error
+// either with retrieving the resource or unmarshalling it will cause the
+// error to be returned to the caller.
+func getCTPData(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*ctpData, error) {
 	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
 	switch {
 	case status.Code(err) == codes.NotFound:
@@ -163,11 +173,11 @@ func getWorkloadIdentity(ctx context.Context, rt controller.Runtime, id *pbresou
 		return nil, err
 	}
 
-	var wi pbauth.WorkloadIdentity
-	err = rsp.Resource.Data.UnmarshalTo(&wi)
+	var ctp pbauth.ComputedTrafficPermissions
+	err = rsp.Resource.Data.UnmarshalTo(&ctp)
 	if err != nil {
-		return nil, resource.NewErrDataParse(&wi, err)
+		return nil, resource.NewErrDataParse(&ctp, err)
 	}
 
-	return &workloadIdentityData{resource: rsp.Resource, workloadIdentity: &wi}, nil
+	return &ctpData{resource: rsp.Resource, ctp: &ctp}, nil
 }

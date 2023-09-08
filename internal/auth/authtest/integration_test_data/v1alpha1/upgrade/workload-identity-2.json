@@ -1,0 +1,18 @@
+{
+  "id": {
+    "type": {
+      "group": "auth",
+      "group_version": "v1alpha1",
+      "kind": "WorkloadIdentity"
+    },
+    "tenancy": {
+      "partition": "default",
+      "namespace": "default",
+      "peer_name": "local"
+    },
+    "name": "wi-2"
+  },
+  "data": {
+    "@type": "hashicorp.consul.auth.v1alpha1.WorkloadIdentity"
+  }
+}

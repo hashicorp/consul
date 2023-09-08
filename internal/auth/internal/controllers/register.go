@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package controllers
 
 import (
@@ -6,9 +9,9 @@ import (
 )
 
 type Dependencies struct {
-	ComputedTrafficPermissionsMapper trafficpermissions.Mapper
+	WorkloadIdentityMapper trafficpermissions.WorkloadIdentityMapper
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
-	mgr.Register(trafficpermissions.Controller(deps.ComputedTrafficPermissionsMapper))
+	mgr.Register(trafficpermissions.Controller(deps.WorkloadIdentityMapper))
 }

@@ -49,7 +49,7 @@ type ControllerDependencies = controllers.Dependencies
 
 func DefaultControllerDependencies() ControllerDependencies {
 	return ControllerDependencies{
-		ComputedTrafficPermissionsMapper: trafficpermissionsmapper.New(),
+		WorkloadIdentityMapper: trafficpermissionsmapper.New(),
 	}
 }
 
