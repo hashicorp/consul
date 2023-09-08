@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Get the list of changed files
 files_to_check=$(git diff --name-only origin/$GITHUB_BASE_REF)
 
