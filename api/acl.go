@@ -19,6 +19,11 @@ const (
 
 	// ACLManagementType is the management type token
 	ACLManagementType = "management"
+
+	// ACLTemplatedPolicy names
+	ACLTemplatedPolicyServiceName = "builtin/service"
+	ACLTemplatedPolicyNodeName    = "builtin/node"
+	ACLTemplatedPolicyDNSName     = "builtin/dns"
 )
 
 type ACLLink struct {
@@ -40,6 +45,7 @@ type ACLToken struct {
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Local             bool
 	AuthMethod        string        `json:",omitempty"`
 	ExpirationTTL     time.Duration `json:",omitempty"`
@@ -88,6 +94,7 @@ type ACLTokenListEntry struct {
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Local             bool
 	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
@@ -148,6 +155,21 @@ type ACLNodeIdentity struct {
 	Datacenter string
 }
 
+// ACLTemplatedPolicy represents a template used to generate a `synthetic` policy
+// given some input variables.
+type ACLTemplatedPolicy struct {
+	TemplateName      string
+	TemplateVariables *ACLTemplatedPolicyVariables `json:",omitempty"`
+
+	// Datacenters are an artifact of Nodeidentity & ServiceIdentity.
+	// It is used to facilitate the future migration away from both
+	Datacenters []string `json:",omitempty"`
+}
+
+type ACLTemplatedPolicyVariables struct {
+	Name string
+}
+
 // ACLPolicy represents an ACL Policy.
 type ACLPolicy struct {
 	ID          string
@@ -196,6 +218,7 @@ type ACLRole struct {
 	Policies          []*ACLRolePolicyLink  `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Hash              []byte
 	CreateIndex       uint64
 	ModifyIndex       uint64
@@ -270,6 +293,13 @@ type ACLAuthMethod struct {
 	// Partition is the partition the ACLAuthMethod is associated with.
 	// Partitions are a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
+}
+
+type ACLTokenFilterOptions struct {
+	AuthMethod  string `json:",omitempty"`
+	Policy      string `json:",omitempty"`
+	Role        string `json:",omitempty"`
+	ServiceName string `json:",omitempty"`
 }
 
 func (m *ACLAuthMethod) MarshalJSON() ([]byte, error) {
@@ -876,6 +906,44 @@ func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/tokens")
 	r.setQueryOptions(q)
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var entries []*ACLTokenListEntry
+	if err := decodeBody(resp, &entries); err != nil {
+		return nil, nil, err
+	}
+	return entries, qm, nil
+}
+
+// TokenListFiltered lists all tokens that match the given filter options.
+// The listing does not contain any SecretIDs as those may only be retrieved by a call to TokenRead.
+func (a *ACL) TokenListFiltered(t ACLTokenFilterOptions, q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/tokens")
+	r.setQueryOptions(q)
+
+	if t.AuthMethod != "" {
+		r.params.Set("authmethod", t.AuthMethod)
+	}
+	if t.Policy != "" {
+		r.params.Set("policy", t.Policy)
+	}
+	if t.Role != "" {
+		r.params.Set("role", t.Role)
+	}
+	if t.ServiceName != "" {
+		r.params.Set("servicename", t.ServiceName)
+	}
+
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err

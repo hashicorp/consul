@@ -5,7 +5,9 @@ package sprawl
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -89,7 +91,14 @@ func (s *Sprawl) initPeerings() error {
 				time.Sleep(50 * time.Millisecond)
 				goto ESTABLISH
 			}
-			return fmt.Errorf("error establishing peering with token for %q: %w", peering.String(), err)
+			// Establish and friends return an api.StatusError value, not pointer
+			// not sure if this is weird
+			var asStatusError api.StatusError
+			if errors.As(err, &asStatusError) && asStatusError.Code == http.StatusGatewayTimeout {
+				time.Sleep(50 * time.Millisecond)
+				goto ESTABLISH
+			}
+			return fmt.Errorf("error establishing peering with token for %q: %#v", peering.String(), err)
 		}
 
 		logger.Info("peering established", "peering", peering.String())

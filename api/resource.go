@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type Resource struct {
@@ -17,6 +19,21 @@ type GVK struct {
 	Group   string
 	Version string
 	Kind    string
+}
+
+type WriteRequest struct {
+	Metadata map[string]string `json:"metadata"`
+	Data     map[string]any    `json:"data"`
+	Owner    *pbresource.ID    `json:"owner"`
+}
+
+type WriteResponse struct {
+	Metadata   map[string]string `json:"metadata"`
+	Data       map[string]any    `json:"data"`
+	Owner      *pbresource.ID    `json:"owner,omitempty"`
+	ID         *pbresource.ID    `json:"id"`
+	Version    string            `json:"version"`
+	Generation string            `json:"generation"`
 }
 
 // Config returns a handle to the Config endpoints
@@ -56,4 +73,29 @@ func (resource *Resource) Delete(gvk *GVK, resourceName string, q *QueryOptions)
 		return err
 	}
 	return nil
+}
+
+func (resource *Resource) Apply(gvk *GVK, resourceName string, q *QueryOptions, payload *WriteRequest) (*WriteResponse, *WriteMeta, error) {
+	url := strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
+
+	r := resource.c.newRequest("PUT", url)
+	r.setQueryOptions(q)
+	r.obj = payload
+	rtt, resp, err := resource.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+
+	wm := &WriteMeta{}
+	wm.RequestTime = rtt
+
+	var out *WriteResponse
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return out, wm, nil
 }

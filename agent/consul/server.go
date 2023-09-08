@@ -19,6 +19,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/resource"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
@@ -72,9 +75,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
@@ -816,8 +817,19 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
+	// Setup insecure resource service client.
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
+		return nil, err
+	}
+
 	// Initialize external gRPC server
-	s.setupExternalGRPC(config, flat.Registry, logger)
+	s.setupExternalGRPC(config, flat, logger)
+
+	// Setup secure resource service client. We need to do it after we setup the
+	// gRPC server because it needs the server to be instantiated.
+	if err := s.setupSecureResourceServiceClient(); err != nil {
+		return nil, err
+	}
 
 	// Initialize internal gRPC server.
 	//
@@ -825,14 +837,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
-
-	if err := s.setupSecureResourceServiceClient(); err != nil {
-		return nil, err
-	}
-
-	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
-		return nil, err
-	}
 
 	s.controllerManager = controller.NewManager(
 		s.insecureResourceServiceClient,
@@ -906,6 +910,15 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 				return &bundle, nil
 			},
 			ProxyUpdater: proxyUpdater,
+			// This function is adapted from server_connect.go:getCARoots.
+			TrustDomainFetcher: func() (string, error) {
+				_, caConfig, err := s.fsm.State().CAConfig(nil)
+				if err != nil {
+					return "", err
+				}
+
+				return s.getTrustDomain(caConfig)
+			},
 		})
 	}
 
@@ -1309,7 +1322,7 @@ func (s *Server) setupRPC() error {
 }
 
 // Initialize and register services on external gRPC server.
-func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registry, logger hclog.Logger) {
+func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logger) {
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1342,10 +1355,12 @@ func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registr
 	s.externalConnectCAServer.Register(s.externalGRPCServer)
 
 	dataplane.NewServer(dataplane.Config{
-		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: s.ACLResolver,
-		Datacenter:  s.config.Datacenter,
+		GetStore:          func() dataplane.StateStore { return s.FSM().State() },
+		Logger:            logger.Named("grpc-api.dataplane"),
+		ACLResolver:       s.ACLResolver,
+		Datacenter:        s.config.Datacenter,
+		EnableV2:          stringslice.Contains(deps.Experiments, CatalogResourceExperimentName),
+		ResourceAPIClient: s.insecureResourceServiceClient,
 	}).Register(s.externalGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{
@@ -1375,7 +1390,7 @@ func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registr
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:        typeRegistry,
+		Registry:        deps.Registry,
 		Backend:         s.raftStorageBackend,
 		ACLResolver:     s.ACLResolver,
 		Logger:          logger.Named("grpc-api.resource"),
@@ -1387,6 +1402,10 @@ func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registr
 }
 
 func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
+	if s.raftStorageBackend == nil {
+		return fmt.Errorf("raft storage backend cannot be nil")
+	}
+
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
 		Registry:        typeRegistry,
 		Backend:         s.raftStorageBackend,
@@ -1405,6 +1424,9 @@ func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Regist
 }
 
 func (s *Server) setupSecureResourceServiceClient() error {
+	if s.resourceServiceServer == nil {
+		return fmt.Errorf("resource service server cannot be nil")
+	}
 	conn, err := s.runInProcessGRPCServer(s.resourceServiceServer.Register)
 	if err != nil {
 		return err

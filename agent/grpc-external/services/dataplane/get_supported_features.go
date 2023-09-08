@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/version"
 )
 
-func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdataplane.GetSupportedDataplaneFeaturesRequest) (*pbdataplane.GetSupportedDataplaneFeaturesResponse, error) {
+func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, _ *pbdataplane.GetSupportedDataplaneFeaturesRequest) (*pbdataplane.GetSupportedDataplaneFeaturesResponse, error) {
 	logger := s.Logger.Named("get-supported-dataplane-features").With("request_id", external.TraceID())
 
 	logger.Trace("Started processing request")

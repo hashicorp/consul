@@ -113,6 +113,21 @@ func (s *Sprawl) APIClientForNode(clusterName string, nid topology.NodeID, token
 	)
 }
 
+// APIClientForCluster is a convenience wrapper for APIClientForNode that returns
+// an API client for an agent node in the cluster, preferring clients, then servers
+func (s *Sprawl) APIClientForCluster(clusterName, token string) (*api.Client, error) {
+	clu := s.topology.Clusters[clusterName]
+	// TODO: this always goes to the first client, but we might want to balance this
+	firstAgent := clu.FirstClient()
+	if firstAgent == nil {
+		firstAgent = clu.FirstServer()
+	}
+	if firstAgent == nil {
+		return nil, fmt.Errorf("failed to find agent in cluster %s", clusterName)
+	}
+	return s.APIClientForNode(clusterName, firstAgent.ID(), token)
+}
+
 func copyConfig(cfg *topology.Config) (*topology.Config, error) {
 	dup, err := copystructure.Copy(cfg)
 	if err != nil {
