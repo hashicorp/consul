@@ -52,6 +52,7 @@ message BackendReference {
   hashicorp.consul.resource.Reference ref = 1;
 
   // For east/west this is the name of the consul port.
+  // For north/south this is the stringified integer port expected by GAMMA.
   string port = 2;
 
   // NOT IN GAMMA; multi-cluster + GWapi is still unknown

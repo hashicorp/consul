@@ -121,6 +121,7 @@ type BackendReference struct {
 	// (MCS+GAMMA) when translating
 	Ref *pbresource.Reference `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
 	// For east/west this is the name of the consul port.
+	// For north/south this is the stringified integer port expected by GAMMA.
 	Port string `protobuf:"bytes,2,opt,name=port,proto3" json:"port,omitempty"`
 	// NOT IN GAMMA; multi-cluster + GWapi is still unknown
 	//
