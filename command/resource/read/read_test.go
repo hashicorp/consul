@@ -32,22 +32,12 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 		"missing file path": {
 			args:           []string{"-f"},
 			expectedCode:   1,
-			expectedErrMsg: "Please input file path",
+			expectedErrMsg: "Failed to parse args: flag needs an argument: -f",
 		},
 		"provide type and name": {
 			args:           []string{"a.b.c"},
 			expectedCode:   1,
 			expectedErrMsg: "Must specify two arguments: resource type and resource name",
-		},
-		"provide type and name with -f": {
-			args:           []string{"a.b.c", "name", "-f", "test.hcl"},
-			expectedCode:   1,
-			expectedErrMsg: "You need to provide all information in the HCL file if provide its file path",
-		},
-		"provide type and name with -f and other flags": {
-			args:           []string{"a.b.c", "name", "-f", "test.hcl", "-namespace", "default"},
-			expectedCode:   1,
-			expectedErrMsg: "You need to provide all information in the HCL file if provide its file path",
 		},
 		"does not provide resource name after type": {
 			args:           []string{"a.b.c", "-namespace", "default"},
@@ -62,7 +52,7 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 			c := New(ui)
 
 			require.Equal(t, tc.expectedCode, c.Run(tc.args))
-			require.NotEmpty(t, ui.ErrorWriter.String())
+			require.Contains(t, ui.ErrorWriter.String(), tc.expectedErrMsg)
 		})
 	}
 }

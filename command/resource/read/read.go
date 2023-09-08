@@ -113,8 +113,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if c.filePath != "" {
-			c.UI.Error("You need to provide all information in the HCL file if provide its file path")
-			return 1
+			c.UI.Warn("We ignored the -f flag if you provide gvk and resource name")
 		}
 		opts = &api.QueryOptions{
 			Namespace:         c.http.Namespace(),
