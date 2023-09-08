@@ -919,6 +919,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 
 				return s.getTrustDomain(caConfig)
 			},
+			LocalDatacenter: s.config.Datacenter,
 		})
 	}
 

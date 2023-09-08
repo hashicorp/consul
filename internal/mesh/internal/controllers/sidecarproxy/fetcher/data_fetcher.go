@@ -3,6 +3,10 @@ package fetcher
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
@@ -12,13 +16,23 @@ import (
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type Fetcher struct {
-	Client pbresource.ResourceServiceClient
-	Cache  *sidecarproxycache.Cache
+	Client            pbresource.ResourceServiceClient
+	DestinationsCache *sidecarproxycache.DestinationsCache
+	ProxyCfgCache     *sidecarproxycache.ProxyConfigurationCache
+}
+
+func New(client pbresource.ResourceServiceClient,
+	dCache *sidecarproxycache.DestinationsCache,
+	pcfgCache *sidecarproxycache.ProxyConfigurationCache) *Fetcher {
+
+	return &Fetcher{
+		Client:            client,
+		DestinationsCache: dCache,
+		ProxyCfgCache:     pcfgCache,
+	}
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*intermediateTypes.Workload, error) {
@@ -28,7 +42,9 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*interm
 	case status.Code(err) == codes.NotFound:
 		// We also need to make sure to delete the associated proxy from cache.
 		// We are ignoring errors from cache here as this deletion is best effort.
-		f.Cache.DeleteSourceProxy(resource.ReplaceType(types.ProxyStateTemplateType, id))
+		proxyID := resource.ReplaceType(types.ProxyStateTemplateType, id)
+		f.DestinationsCache.DeleteSourceProxy(proxyID)
+		f.ProxyCfgCache.UntrackProxyID(proxyID)
 		return nil, nil
 	case err != nil:
 		return nil, err
@@ -96,6 +112,30 @@ func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) 
 	return se, nil
 }
 
+func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*intermediateTypes.Service, error) {
+	rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
+
+	switch {
+	case status.Code(err) == codes.NotFound:
+		return nil, nil
+	case err != nil:
+		return nil, err
+	}
+
+	se := &intermediateTypes.Service{
+		Resource: rsp.Resource,
+	}
+
+	var service pbcatalog.Service
+	err = rsp.Resource.Data.UnmarshalTo(&service)
+	if err != nil {
+		return nil, resource.NewErrDataParse(&service, err)
+	}
+
+	se.Service = &service
+	return se, nil
+}
+
 func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*intermediateTypes.Destinations, error) {
 	rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
 
@@ -120,9 +160,9 @@ func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*in
 	return u, nil
 }
 
-func (f *Fetcher) FetchDestinationsData(
+func (f *Fetcher) FetchExplicitDestinationsData(
 	ctx context.Context,
-	destinationRefs []intermediateTypes.CombinedDestinationRef,
+	explDestRefs []intermediateTypes.CombinedDestinationRef,
 ) ([]*intermediateTypes.Destination, map[string]*intermediateTypes.Status, error) {
 
 	var (
@@ -130,7 +170,7 @@ func (f *Fetcher) FetchDestinationsData(
 		statuses     = make(map[string]*intermediateTypes.Status)
 	)
 
-	for _, dest := range destinationRefs {
+	for _, dest := range explDestRefs {
 		// Fetch Destinations resource if there is one.
 		us, err := f.FetchDestinations(ctx, dest.ExplicitDestinationsID)
 		if err != nil {
@@ -141,11 +181,12 @@ func (f *Fetcher) FetchDestinationsData(
 
 		if us == nil {
 			// If the Destinations resource is not found, then we should delete it from cache and continue.
-			f.Cache.DeleteDestination(dest.ServiceRef, dest.Port)
+			f.DestinationsCache.DeleteDestination(dest.ServiceRef, dest.Port)
 			continue
 		}
 
 		d := &intermediateTypes.Destination{}
+
 		// As Destinations resource contains a list of destinations,
 		// we need to find the one that references our service and port.
 		d.Explicit = findDestination(dest.ServiceRef, dest.Port, us.Destinations)
@@ -173,7 +214,7 @@ func (f *Fetcher) FetchDestinationsData(
 		d.ServiceEndpoints = se
 
 		// Check if this endpoints is mesh-enabled. If not, remove it from cache and return an error.
-		if !IsMeshEnabled(se.Endpoints.Endpoints[0].Ports) {
+		if len(se.Endpoints.Endpoints) > 0 && !IsMeshEnabled(se.Endpoints.Endpoints[0].Ports) {
 			// Add invalid status but don't remove from cache. If this state changes,
 			// we want to be able to detect this change.
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
@@ -190,7 +231,9 @@ func (f *Fetcher) FetchDestinationsData(
 
 		// No destination port should point to a port with "mesh" protocol,
 		// so check if destination port has the mesh protocol and update the status.
-		if se.Endpoints.Endpoints[0].Ports[dest.Port].Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+		if len(se.Endpoints.Endpoints) > 0 &&
+			se.Endpoints.Endpoints[0].Ports[dest.Port].Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
 				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionMeshProtocolDestinationPort(serviceRef, dest.Port))
 			continue
@@ -215,6 +258,124 @@ func (f *Fetcher) FetchDestinationsData(
 	}
 
 	return destinations, statuses, nil
+}
+
+// FetchImplicitDestinationsData fetches all implicit destinations and adds them to existing destinations.
+// If the implicit destination is already in addToDestinations, it will be skipped.
+// todo (ishustava): this function will eventually need to fetch implicit destinations from the ImplicitDestinations resource instead.
+func (f *Fetcher) FetchImplicitDestinationsData(ctx context.Context, proxyID *pbresource.ID, addToDestinations []*intermediateTypes.Destination) ([]*intermediateTypes.Destination, error) {
+	// First, convert existing destinations to a map so we can de-dup.
+	destinations := make(map[resource.ReferenceKey]*intermediateTypes.Destination)
+	for _, d := range addToDestinations {
+		destinations[resource.NewReferenceKey(d.ServiceEndpoints.Resource.Id)] = d
+	}
+
+	// For now, we need to look up all service endpoints within a partition.
+	rsp, err := f.Client.List(ctx, &pbresource.ListRequest{
+		Type: catalog.ServiceEndpointsType,
+		Tenancy: &pbresource.Tenancy{
+			Namespace: proxyID.Tenancy.Namespace,
+			Partition: proxyID.Tenancy.Partition,
+			PeerName:  proxyID.Tenancy.PeerName,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range rsp.Resources {
+		// If it's already in destinations, ignore it.
+		if _, ok := destinations[resource.NewReferenceKey(r.Id)]; ok {
+			continue
+		}
+
+		var endpoints pbcatalog.ServiceEndpoints
+		err = r.Data.UnmarshalTo(&endpoints)
+		if err != nil {
+			return nil, err
+		}
+
+		// If this proxy is a part of this service, ignore it.
+		if isPartOfService(resource.ReplaceType(catalog.WorkloadType, proxyID), &endpoints) {
+			continue
+		}
+
+		// Skip if this service is not mesh-enabled.
+		if len(endpoints.Endpoints) > 0 && !IsMeshEnabled(endpoints.Endpoints[0].Ports) {
+			continue
+		}
+
+		// Collect all identities.
+		var identities []*pbresource.Reference
+		for _, ep := range endpoints.Endpoints {
+			identities = append(identities, &pbresource.Reference{
+				Name:    ep.Identity,
+				Tenancy: r.Id.Tenancy,
+			})
+		}
+
+		// Fetch the service.
+		// todo (ishustava): this should eventually grab virtual IPs resource.
+		s, err := f.FetchService(ctx, resource.ReplaceType(catalog.ServiceType, r.Id))
+		if err != nil {
+			return nil, err
+		}
+		if s == nil {
+			// If service no longer exists, skip.
+			continue
+		}
+
+		d := &intermediateTypes.Destination{
+			ServiceEndpoints: &intermediateTypes.ServiceEndpoints{
+				Resource:  r,
+				Endpoints: &endpoints,
+			},
+			VirtualIPs: s.Service.VirtualIps,
+			Identities: identities,
+		}
+		addToDestinations = append(addToDestinations, d)
+	}
+	return addToDestinations, err
+}
+
+// FetchAndMergeProxyConfigurations fetches proxy configurations for the proxy state template provided by id
+// and merges them into one object.
+func (f *Fetcher) FetchAndMergeProxyConfigurations(ctx context.Context, id *pbresource.ID) (*pbmesh.ProxyConfiguration, error) {
+	proxyCfgRefs := f.ProxyCfgCache.ProxyConfigurationsByProxyID(id)
+
+	result := &pbmesh.ProxyConfiguration{
+		DynamicConfig: &pbmesh.DynamicConfig{},
+	}
+	for _, ref := range proxyCfgRefs {
+		proxyCfgID := &pbresource.ID{
+			Name:    ref.GetName(),
+			Type:    ref.GetType(),
+			Tenancy: ref.GetTenancy(),
+		}
+		rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{
+			Id: proxyCfgID,
+		})
+		switch {
+		case status.Code(err) == codes.NotFound:
+			f.ProxyCfgCache.UntrackProxyConfiguration(proxyCfgID)
+			return nil, nil
+		case err != nil:
+			return nil, err
+		}
+
+		var proxyCfg pbmesh.ProxyConfiguration
+		err = rsp.Resource.Data.UnmarshalTo(&proxyCfg)
+		if err != nil {
+			return nil, err
+		}
+
+		// Note that we only care about dynamic config as bootstrap config
+		// will not be updated dynamically by this controller.
+		// todo (ishustava): do sorting etc.
+		proto.Merge(result.DynamicConfig, proxyCfg.DynamicConfig)
+	}
+
+	return result, nil
 }
 
 // IsMeshEnabled returns true if the workload or service endpoints port
@@ -255,4 +416,18 @@ func updateStatusCondition(
 			OldStatus:  oldStatus,
 		}
 	}
+}
+
+func isPartOfService(workloadID *pbresource.ID, endpoints *pbcatalog.ServiceEndpoints) bool {
+	// convert IDs to refs so that we can compare without UIDs.
+	workloadRef := resource.Reference(workloadID, "")
+	for _, ep := range endpoints.Endpoints {
+		if ep.TargetRef != nil {
+			targetRef := resource.Reference(ep.TargetRef, "")
+			if resource.EqualReference(workloadRef, targetRef) {
+				return true
+			}
+		}
+	}
+	return false
 }

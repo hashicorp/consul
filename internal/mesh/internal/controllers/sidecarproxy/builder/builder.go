@@ -10,13 +10,25 @@ import (
 type Builder struct {
 	id                 *pbresource.ID
 	proxyStateTemplate *pbmesh.ProxyStateTemplate
+	proxyCfg           *pbmesh.ProxyConfiguration
 	trustDomain        string
+	localDatacenter    string
+
+	outboundListenerBuilder *ListenerBuilder
 }
 
-func New(id *pbresource.ID, identity *pbresource.Reference, trustDomain string) *Builder {
+func New(id *pbresource.ID,
+	identity *pbresource.Reference,
+	trustDomain string,
+	dc string,
+	proxyCfg *pbmesh.ProxyConfiguration,
+) *Builder {
+
 	return &Builder{
-		id:          id,
-		trustDomain: trustDomain,
+		id:              id,
+		trustDomain:     trustDomain,
+		localDatacenter: dc,
+		proxyCfg:        proxyCfg,
 		proxyStateTemplate: &pbmesh.ProxyStateTemplate{
 			ProxyState: &pbmesh.ProxyState{
 				Identity:  identity,
