@@ -817,17 +817,19 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// Setup resource service clients.
-	if err := s.setupSecureResourceServiceClient(); err != nil {
-		return nil, err
-	}
-
+	// Setup insecure resource service client.
 	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
 		return nil, err
 	}
 
 	// Initialize external gRPC server
 	s.setupExternalGRPC(config, flat, logger)
+
+	// Setup secure resource service client. We need to do it after we setup the
+	// gRPC server because it needs the server to be instantiated.
+	if err := s.setupSecureResourceServiceClient(); err != nil {
+		return nil, err
+	}
 
 	// Initialize internal gRPC server.
 	//
@@ -1401,6 +1403,10 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 }
 
 func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
+	if s.raftStorageBackend == nil {
+		return fmt.Errorf("raft storage backend cannot be nil")
+	}
+
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
 		Registry:        typeRegistry,
 		Backend:         s.raftStorageBackend,
@@ -1419,6 +1425,9 @@ func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Regist
 }
 
 func (s *Server) setupSecureResourceServiceClient() error {
+	if s.resourceServiceServer == nil {
+		return fmt.Errorf("resource service server cannot be nil")
+	}
 	conn, err := s.runInProcessGRPCServer(s.resourceServiceServer.Register)
 	if err != nil {
 		return err

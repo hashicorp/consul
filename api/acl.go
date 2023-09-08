@@ -19,6 +19,11 @@ const (
 
 	// ACLManagementType is the management type token
 	ACLManagementType = "management"
+
+	// ACLTemplatedPolicy names
+	ACLTemplatedPolicyServiceName = "builtin/service"
+	ACLTemplatedPolicyNodeName    = "builtin/node"
+	ACLTemplatedPolicyDNSName     = "builtin/dns"
 )
 
 type ACLLink struct {
@@ -40,6 +45,7 @@ type ACLToken struct {
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Local             bool
 	AuthMethod        string        `json:",omitempty"`
 	ExpirationTTL     time.Duration `json:",omitempty"`
@@ -88,6 +94,7 @@ type ACLTokenListEntry struct {
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Local             bool
 	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
@@ -148,6 +155,21 @@ type ACLNodeIdentity struct {
 	Datacenter string
 }
 
+// ACLTemplatedPolicy represents a template used to generate a `synthetic` policy
+// given some input variables.
+type ACLTemplatedPolicy struct {
+	TemplateName      string
+	TemplateVariables *ACLTemplatedPolicyVariables `json:",omitempty"`
+
+	// Datacenters are an artifact of Nodeidentity & ServiceIdentity.
+	// It is used to facilitate the future migration away from both
+	Datacenters []string `json:",omitempty"`
+}
+
+type ACLTemplatedPolicyVariables struct {
+	Name string
+}
+
 // ACLPolicy represents an ACL Policy.
 type ACLPolicy struct {
 	ID          string
@@ -196,6 +218,7 @@ type ACLRole struct {
 	Policies          []*ACLRolePolicyLink  `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Hash              []byte
 	CreateIndex       uint64
 	ModifyIndex       uint64
@@ -218,6 +241,12 @@ const (
 
 	// BindingRuleBindTypeRole binds to pre-existing roles with the given name.
 	BindingRuleBindTypeRole BindingRuleBindType = "role"
+
+	// BindingRuleBindTypeNode binds to a node identity with given name.
+	BindingRuleBindTypeNode BindingRuleBindType = "node"
+
+	// BindingRuleBindTypeTemplatedPolicy binds to a templated policy with given template name and variables.
+	BindingRuleBindTypeTemplatedPolicy BindingRuleBindType = "templated-policy"
 )
 
 type ACLBindingRule struct {
@@ -227,6 +256,7 @@ type ACLBindingRule struct {
 	Selector    string
 	BindType    BindingRuleBindType
 	BindName    string
+	BindVars    *ACLTemplatedPolicyVariables `json:",omitempty"`
 
 	CreateIndex uint64
 	ModifyIndex uint64
