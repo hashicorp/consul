@@ -947,20 +947,28 @@ func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher) {
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	if server, ok := a.delegate.(*consul.Server); ok {
-		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
-			NodeName:          a.config.NodeName,
-			LocalState:        a.State,
-			LocalConfigSource: proxyWatcher,
-			Manager:           a.proxyConfig,
-			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
-			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
-			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
-		})
-		go func() {
-			<-a.shutdownCh
-			catalogCfg.Shutdown()
-		}()
-		proxyWatcher = catalogCfg
+		switch proxyWatcher.(type) {
+		case *proxytracker.ProxyTracker:
+			go func() {
+				<-a.shutdownCh
+				proxyWatcher.(*proxytracker.ProxyTracker).Shutdown()
+			}()
+		default:
+			catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
+				NodeName:          a.config.NodeName,
+				LocalState:        a.State,
+				LocalConfigSource: proxyWatcher,
+				Manager:           a.proxyConfig,
+				GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
+				Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+				SessionLimiter:    a.baseDeps.XDSStreamLimiter,
+			})
+			go func() {
+				<-a.shutdownCh
+				catalogCfg.Shutdown()
+			}()
+			proxyWatcher = catalogCfg
+		}
 	}
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,

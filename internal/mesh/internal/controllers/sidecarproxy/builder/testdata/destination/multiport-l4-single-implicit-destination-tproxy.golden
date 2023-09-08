@@ -28,27 +28,23 @@
               "destinationPort": 8080
             },
             "l4":  {
-              "name":  "tcp.api-1.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.tcp.api-1.default.default.dc1"
+              "name":  "admin-port.api-app.default.dc1.internal.foo.consul",
+              "statPrefix":  "upstream.admin-port.api-app.default.default.dc1"
             }
           },
           {
             "match":  {
               "prefixRanges":  [
                 {
-                  "addressPrefix":  "2.2.2.2",
-                  "prefixLen":  32
-                },
-                {
-                  "addressPrefix":  "3.3.3.3",
+                  "addressPrefix":  "1.1.1.1",
                   "prefixLen":  32
                 }
               ],
-              "destinationPort": 8080
+              "destinationPort": 9090
             },
             "l4":  {
-              "name":  "tcp.api-2.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.tcp.api-2.default.default.dc1"
+              "name":  "api-port.api-app.default.dc1.internal.foo.consul",
+              "statPrefix":  "upstream.api-port.api-app.default.default.dc1"
             }
           }
         ],
@@ -58,7 +54,7 @@
       }
     ],
     "clusters":  {
-      "tcp.api-1.default.dc1.internal.foo.consul":  {
+      "api-port.api-app.default.dc1.internal.foo.consul":  {
         "endpointGroup":  {
           "dynamic":  {
             "config":  {
@@ -69,19 +65,19 @@
                 "identityKey":  "test-identity",
                 "validationContext":  {
                   "spiffeIds":  [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
                   ]
                 },
-                "sni":  "api-1.default.dc1.internal.foo.consul"
+                "sni":  "api-app.default.dc1.internal.foo.consul"
               },
               "alpnProtocols": [
-                "consul~tcp"
+                "consul~api-port"
               ]
             }
           }
         }
       },
-      "tcp.api-2.default.dc1.internal.foo.consul":  {
+      "admin-port.api-app.default.dc1.internal.foo.consul":  {
         "endpointGroup":  {
           "dynamic":  {
             "config":  {
@@ -92,13 +88,13 @@
                 "identityKey":  "test-identity",
                 "validationContext":  {
                   "spiffeIds":  [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
                   ]
                 },
-                "sni":  "api-2.default.dc1.internal.foo.consul"
+                "sni":  "api-app.default.dc1.internal.foo.consul"
               },
               "alpnProtocols": [
-                "consul~tcp"
+                "consul~admin-port"
               ]
             }
           }
@@ -107,25 +103,9 @@
     }
   },
   "requiredEndpoints":  {
-    "api-1.default.dc1.internal.foo.consul":  {
+    "api-app.default.dc1.internal.foo.consul":  {
       "id":  {
-        "name":  "api-1",
-        "type":  {
-          "group":  "catalog",
-          "groupVersion":  "v1alpha1",
-          "kind":  "ServiceEndpoints"
-        },
-        "tenancy":  {
-          "partition":  "default",
-          "namespace":  "default",
-          "peerName":  "local"
-        }
-      },
-      "port":  "mesh"
-    },
-    "api-2.default.dc1.internal.foo.consul":  {
-      "id":  {
-        "name":  "api-2",
+        "name":  "api-app",
         "type":  {
           "group":  "catalog",
           "groupVersion":  "v1alpha1",

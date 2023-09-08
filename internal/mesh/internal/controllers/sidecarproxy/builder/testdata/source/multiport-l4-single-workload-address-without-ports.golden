@@ -13,18 +13,39 @@
         "name":  "public_listener",
         "direction":  "DIRECTION_INBOUND",
         "hostPort":  {
-          "host":  "10.0.0.2",
+          "host":  "10.0.0.1",
           "port":  20000
         },
         "routers":  [
           {
             "match":  {
               "alpnProtocols":  [
-                "consul~port1"
+                "consul~admin-port"
               ]
             },
             "l4":  {
-              "name":  "local_app:port1",
+              "name":  "local_app:admin-port",
+              "statPrefix":  "public_listener"
+            },
+            "inboundTls":  {
+              "inboundMesh":  {
+                "identityKey":  "test-identity",
+                "validationContext":  {
+                  "trustBundlePeerNameKeys":  [
+                    "local"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "match":  {
+              "alpnProtocols":  [
+                "consul~api-port"
+              ]
+            },
+            "l4":  {
+              "name":  "local_app:api-port",
               "statPrefix":  "public_listener"
             },
             "inboundTls":  {
@@ -42,19 +63,34 @@
       }
     ],
     "clusters":  {
-      "local_app:port1":  {
+      "local_app:api-port":  {
+        "endpointGroup":  {
+          "static":  {}
+        }
+      },
+      "local_app:admin-port":  {
         "endpointGroup":  {
           "static":  {}
         }
       }
     },
     "endpoints":  {
-      "local_app:port1":  {
+      "local_app:admin-port":  {
         "endpoints":  [
           {
             "hostPort":  {
               "host":  "127.0.0.1",
               "port":  8080
+            }
+          }
+        ]
+      },
+      "local_app:api-port":  {
+        "endpoints":  [
+          {
+            "hostPort":  {
+              "host":  "127.0.0.1",
+              "port":  9090
             }
           }
         ]
@@ -72,5 +108,6 @@
     "local":  {
       "peer":  "local"
     }
-  }
+  },
+  "requiredEndpoints": {}
 }

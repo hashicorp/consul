@@ -31,25 +31,6 @@
               "name":  "tcp.api-1.default.dc1.internal.foo.consul",
               "statPrefix":  "upstream.tcp.api-1.default.default.dc1"
             }
-          },
-          {
-            "match":  {
-              "prefixRanges":  [
-                {
-                  "addressPrefix":  "2.2.2.2",
-                  "prefixLen":  32
-                },
-                {
-                  "addressPrefix":  "3.3.3.3",
-                  "prefixLen":  32
-                }
-              ],
-              "destinationPort": 8080
-            },
-            "l4":  {
-              "name":  "tcp.api-2.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.tcp.api-2.default.default.dc1"
-            }
           }
         ],
         "capabilities":  [
@@ -80,29 +61,6 @@
             }
           }
         }
-      },
-      "tcp.api-2.default.dc1.internal.foo.consul":  {
-        "endpointGroup":  {
-          "dynamic":  {
-            "config":  {
-              "disablePanicThreshold":  true
-            },
-            "outboundTls":  {
-              "outboundMesh":  {
-                "identityKey":  "test-identity",
-                "validationContext":  {
-                  "spiffeIds":  [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
-                  ]
-                },
-                "sni":  "api-2.default.dc1.internal.foo.consul"
-              },
-              "alpnProtocols": [
-                "consul~tcp"
-              ]
-            }
-          }
-        }
       }
     }
   },
@@ -110,22 +68,6 @@
     "api-1.default.dc1.internal.foo.consul":  {
       "id":  {
         "name":  "api-1",
-        "type":  {
-          "group":  "catalog",
-          "groupVersion":  "v1alpha1",
-          "kind":  "ServiceEndpoints"
-        },
-        "tenancy":  {
-          "partition":  "default",
-          "namespace":  "default",
-          "peerName":  "local"
-        }
-      },
-      "port":  "mesh"
-    },
-    "api-2.default.dc1.internal.foo.consul":  {
-      "id":  {
-        "name":  "api-2",
         "type":  {
           "group":  "catalog",
           "groupVersion":  "v1alpha1",
