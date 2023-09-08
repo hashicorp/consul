@@ -5,10 +5,8 @@
 
 @keyframes icon-cancel-circle-fill {
   100% {
-
     -webkit-mask-image: var(--icon-x-circle-fill-16);
     mask-image: var(--icon-x-circle-fill-16);
     background-color: var(--icon-color, var(--color-cancel-circle-fill-500, currentColor));
-
   }
 }

@@ -5,10 +5,8 @@
 
 @keyframes icon-chevron-down {
   100% {
-
     -webkit-mask-image: var(--icon-chevron-down-16);
     mask-image: var(--icon-chevron-down-16);
     background-color: var(--icon-color, var(--color-chevron-down-500, currentColor));
-
   }
 }

@@ -5,10 +5,8 @@
 
 @keyframes icon-mic {
   100% {
-
     -webkit-mask-image: var(--icon-mic-16);
     mask-image: var(--icon-mic-16);
     background-color: var(--icon-color, var(--color-mic-500, currentColor));
-
   }
 }

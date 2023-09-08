@@ -5,10 +5,8 @@
 
 @keyframes icon-hourglass {
   100% {
-
     -webkit-mask-image: var(--icon-hourglass-16);
     mask-image: var(--icon-hourglass-16);
     background-color: var(--icon-color, var(--color-hourglass-500, currentColor));
-
   }
 }

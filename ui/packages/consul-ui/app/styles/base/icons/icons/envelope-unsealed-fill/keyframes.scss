@@ -5,10 +5,8 @@
 
 @keyframes icon-envelope-unsealed-fill {
   100% {
-
     -webkit-mask-image: var(--icon-mail-open-16);
     mask-image: var(--icon-mail-open-16);
     background-color: var(--icon-color, var(--color-envelope-unsealed-fill-500, currentColor));
-
   }
 }

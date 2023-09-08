@@ -7,7 +7,7 @@
 %app-view-title {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas: "title actions";
+  grid-template-areas: 'title actions';
   position: relative;
   z-index: 5;
 }

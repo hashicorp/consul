@@ -5,10 +5,8 @@
 
 @keyframes icon-sync {
   100% {
-
     -webkit-mask-image: var(--icon-sync-16);
     mask-image: var(--icon-sync-16);
     background-color: var(--icon-color, var(--color-sync-500, currentColor));
-
   }
 }

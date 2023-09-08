@@ -5,10 +5,8 @@
 
 @keyframes icon-refresh-alert {
   100% {
-
     -webkit-mask-image: var(--icon-sync-alert-16);
     mask-image: var(--icon-sync-alert-16);
     background-color: var(--icon-color, var(--color-refresh-alert-500, currentColor));
-
   }
 }

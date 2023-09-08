@@ -5,10 +5,11 @@
 
 @keyframes icon-logo-azure-dev-ops-monochrome {
   100% {
-
     -webkit-mask-image: var(--icon-azure-devops-color-16);
     mask-image: var(--icon-azure-devops-color-16);
-    background-color: var(--icon-color, var(--color-logo-azure-dev-ops-monochrome-500, currentColor));
-
+    background-color: var(
+      --icon-color,
+      var(--color-logo-azure-dev-ops-monochrome-500, currentColor)
+    );
   }
 }

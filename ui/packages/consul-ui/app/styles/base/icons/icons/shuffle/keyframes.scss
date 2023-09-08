@@ -5,10 +5,8 @@
 
 @keyframes icon-shuffle {
   100% {
-
     -webkit-mask-image: var(--icon-shuffle-16);
     mask-image: var(--icon-shuffle-16);
     background-color: var(--icon-color, var(--color-shuffle-500, currentColor));
-
   }
 }

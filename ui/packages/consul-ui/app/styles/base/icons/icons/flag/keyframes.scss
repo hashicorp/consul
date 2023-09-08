@@ -5,10 +5,8 @@
 
 @keyframes icon-flag {
   100% {
-
     -webkit-mask-image: var(--icon-flag-16);
     mask-image: var(--icon-flag-16);
     background-color: var(--icon-color, var(--color-flag-500, currentColor));
-
   }
 }

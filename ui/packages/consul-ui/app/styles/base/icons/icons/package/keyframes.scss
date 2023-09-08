@@ -5,10 +5,8 @@
 
 @keyframes icon-package {
   100% {
-
     -webkit-mask-image: var(--icon-package-16);
     mask-image: var(--icon-package-16);
     background-color: var(--icon-color, var(--color-package-500, currentColor));
-
   }
 }

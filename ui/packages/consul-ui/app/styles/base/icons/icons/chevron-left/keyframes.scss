@@ -5,10 +5,8 @@
 
 @keyframes icon-chevron-left {
   100% {
-
     -webkit-mask-image: var(--icon-chevron-left-16);
     mask-image: var(--icon-chevron-left-16);
     background-color: var(--icon-color, var(--color-chevron-left-500, currentColor));
-
   }
 }

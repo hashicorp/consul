@@ -5,10 +5,8 @@
 
 @keyframes icon-hexagon-fill {
   100% {
-
     -webkit-mask-image: var(--icon-hexagon-fill-16);
     mask-image: var(--icon-hexagon-fill-16);
     background-color: var(--icon-color, var(--color-hexagon-fill-500, currentColor));
-
   }
 }

@@ -5,10 +5,8 @@
 
 @keyframes icon-info {
   100% {
-
     -webkit-mask-image: var(--icon-info-16);
     mask-image: var(--icon-info-16);
     background-color: var(--icon-color, var(--color-info-500, currentColor));
-
   }
 }

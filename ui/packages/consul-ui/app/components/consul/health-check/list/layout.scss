@@ -70,7 +70,7 @@
 %healthcheck-output .copy-button {
   position: absolute;
   right: 0.5em;
-  top: .7em;
+  top: 0.7em;
 }
 @media #{$--lt-spacious-healthcheck-output} {
   %healthcheck-output {

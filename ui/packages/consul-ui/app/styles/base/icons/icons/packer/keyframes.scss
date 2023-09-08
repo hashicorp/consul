@@ -5,10 +5,8 @@
 
 @keyframes icon-packer {
   100% {
-
     -webkit-mask-image: var(--icon-packer-color-16);
     mask-image: var(--icon-packer-color-16);
     background-color: var(--icon-color, var(--color-packer-500, currentColor));
-
   }
 }

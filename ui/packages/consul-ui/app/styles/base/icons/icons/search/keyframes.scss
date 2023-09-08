@@ -5,10 +5,8 @@
 
 @keyframes icon-search {
   100% {
-
     -webkit-mask-image: var(--icon-search-16);
     mask-image: var(--icon-search-16);
     background-color: var(--icon-color, var(--color-search-500, currentColor));
-
   }
 }

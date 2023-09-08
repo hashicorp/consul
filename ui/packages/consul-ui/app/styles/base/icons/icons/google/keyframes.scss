@@ -5,10 +5,8 @@
 
 @keyframes icon-google {
   100% {
-
     -webkit-mask-image: var(--icon-google-color-16);
     mask-image: var(--icon-google-color-16);
     background-color: var(--icon-color, var(--color-google-500, currentColor));
-
   }
 }

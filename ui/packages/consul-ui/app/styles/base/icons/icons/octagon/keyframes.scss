@@ -5,10 +5,8 @@
 
 @keyframes icon-octagon {
   100% {
-
     -webkit-mask-image: var(--icon-octagon-16);
     mask-image: var(--icon-octagon-16);
     background-color: var(--icon-color, var(--color-octagon-500, currentColor));
-
   }
 }

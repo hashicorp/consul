@@ -5,10 +5,8 @@
 
 @keyframes icon-change {
   100% {
-
     -webkit-mask-image: var(--icon-change-16);
     mask-image: var(--icon-change-16);
     background-color: var(--icon-color, var(--color-change-500, currentColor));
-
   }
 }

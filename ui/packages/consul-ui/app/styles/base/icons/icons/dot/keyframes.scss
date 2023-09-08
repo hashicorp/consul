@@ -5,10 +5,8 @@
 
 @keyframes icon-dot {
   100% {
-
     -webkit-mask-image: var(--icon-dot-16);
     mask-image: var(--icon-dot-16);
     background-color: var(--icon-color, var(--color-dot-500, currentColor));
-
   }
 }
