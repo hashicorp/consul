@@ -813,12 +813,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
 
-	// consul version metric with labels
-	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.VersionWithMetadata()},
-		{Name: "pre_release", Value: a.config.VersionPrerelease},
-	})
-
 	// start a go routine to reload config based on file watcher events
 	if a.configFileWatcher != nil {
 		a.baseDeps.Logger.Debug("starting file watcher")
