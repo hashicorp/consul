@@ -526,7 +526,8 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	}
 
 	if opts.ProhibitUnprivileged {
-		if numValidRoles == 0 && numValidPolicies == 0 && len(token.ServiceIdentities) == 0 && len(token.NodeIdentities) == 0 {
+		if numValidRoles == 0 && numValidPolicies == 0 && len(token.ServiceIdentities) == 0 &&
+			len(token.NodeIdentities) == 0 && len(token.TemplatedPolicies) == 0 {
 			return ErrTokenHasNoPrivileges
 		}
 	}

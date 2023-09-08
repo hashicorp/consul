@@ -265,6 +265,15 @@ func ExtractTemplatedPolicies(templatedPolicy string, templatedPolicyFile string
 	return out, nil
 }
 
+func ExtractBindVars(bindVars map[string]string) (*api.ACLTemplatedPolicyVariables, error) {
+	if len(bindVars) == 0 {
+		return nil, nil
+	}
+	out := &api.ACLTemplatedPolicyVariables{}
+	err := mapstructure.Decode(bindVars, out)
+	return out, err
+}
+
 func getTemplatedPolicyVariables(variables []string) (*api.ACLTemplatedPolicyVariables, error) {
 	if len(variables) == 0 {
 		return nil, nil

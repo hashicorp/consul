@@ -1068,6 +1068,21 @@ const (
 	//   }
 	// }
 	BindingRuleBindTypeNode = "node"
+
+	// BindingRuleBindTypeTemplatedPolicy is the binding rule bind type that
+	// assigns a TemplatedPolicy to the token that is created using the value
+	// of the computed BindVars as template variables and BindName as template name like:
+	//
+	// &ACLToken{
+	//   ...other fields...
+	//   TemplatedPolicies: []*ACLTemplatedPolicy{
+	//     &ACLTemplatedPolicy{
+	//       TemplateName: "<BindName>",
+	//       TemplateVariables: &ACLTemplatedPolicyVariables{<computed BindVars>}
+	//     },
+	//   },
+	// }
+	BindingRuleBindTypeTemplatedPolicy = "templated-policy"
 )
 
 type ACLBindingRule struct {
@@ -1087,14 +1102,20 @@ type ACLBindingRule struct {
 	// BindType adjusts how this binding rule is applied at login time.  The
 	// valid values are:
 	//
-	//  - BindingRuleBindTypeService = "service"
-	//  - BindingRuleBindTypeRole    = "role"
+	//  - BindingRuleBindTypeService         = "service"
+	//  - BindingRuleBindTypeNode            = "node"
+	//  - BindingRuleBindTypeRole            = "role"
+	//  - BindingRuleBindTypeTemplatedPolicy = "templated-policy"
 	BindType string
 
 	// BindName is the target of the binding. Can be lightly templated using
 	// HIL ${foo} syntax from available field names. How it is used depends
 	// upon the BindType.
 	BindName string
+
+	// BindVars is a the variables used when binding rule type is `templated-policy`. Can be lightly
+	// templated using HIL ${foo} syntax from available field names.
+	BindVars *ACLTemplatedPolicyVariables `json:",omitempty"`
 
 	// Embedded Enterprise ACL metadata
 	acl.EnterpriseMeta `mapstructure:",squash"`

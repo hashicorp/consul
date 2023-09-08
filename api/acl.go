@@ -241,6 +241,12 @@ const (
 
 	// BindingRuleBindTypeRole binds to pre-existing roles with the given name.
 	BindingRuleBindTypeRole BindingRuleBindType = "role"
+
+	// BindingRuleBindTypeNode binds to a node identity with given name.
+	BindingRuleBindTypeNode BindingRuleBindType = "node"
+
+	// BindingRuleBindTypeTemplatedPolicy binds to a templated policy with given template name and variables.
+	BindingRuleBindTypeTemplatedPolicy BindingRuleBindType = "templated-policy"
 )
 
 type ACLBindingRule struct {
@@ -250,6 +256,7 @@ type ACLBindingRule struct {
 	Selector    string
 	BindType    BindingRuleBindType
 	BindName    string
+	BindVars    *ACLTemplatedPolicyVariables `json:",omitempty"`
 
 	CreateIndex uint64
 	ModifyIndex uint64
