@@ -199,6 +199,12 @@ type HTTPFilters struct {
 	URLRewrite *URLRewrite
 }
 
+// HTTPResponseFilters specifies a list of filters used to modify a
+// response returned by an upstream
+type HTTPResponseFilters struct {
+	Headers []HTTPHeaderFilter
+}
+
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
 type HTTPHeaderFilter struct {
 	Add    map[string]string
@@ -216,6 +222,9 @@ type HTTPRouteRule struct {
 	// Filters is a list of HTTP-based filters used to modify a request prior
 	// to routing it to the upstream service
 	Filters HTTPFilters
+	// ResponseFilters is a list of HTTP-based filters used to modify a response
+	// returned by the upstream service
+	ResponseFilters HTTPResponseFilters
 	// Matches specified the matching criteria used in the routing table. If a
 	// request matches the given HTTPMatch configuration, then traffic is routed
 	// to services specified in the Services field.
@@ -231,9 +240,14 @@ type HTTPService struct {
 	// Weight is an arbitrary integer used in calculating how much
 	// traffic should be sent to the given service.
 	Weight int
+
 	// Filters is a list of HTTP-based filters used to modify a request prior
 	// to routing it to the upstream service
 	Filters HTTPFilters
+
+	// ResponseFilters is a list of HTTP-based filters used to modify the
+	// response returned from the upstream service
+	ResponseFilters HTTPResponseFilters
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.

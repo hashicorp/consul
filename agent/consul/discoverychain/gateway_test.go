@@ -518,8 +518,70 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 					Kind: structs.HTTPRoute,
 					Name: "http-route",
 					Rules: []structs.HTTPRouteRule{{
+						Filters: structs.HTTPFilters{
+							Headers: []structs.HTTPHeaderFilter{
+								{
+									Add:    map[string]string{"add me to the rule request": "present"},
+									Set:    map[string]string{"set me on the rule request": "present"},
+									Remove: []string{"remove me from the rule request"},
+								},
+								{
+									Add: map[string]string{"add me to the rule and service request": "rule"},
+									Set: map[string]string{"set me on the rule and service request": "rule"},
+								},
+								{
+									Remove: []string{"remove me from the rule and service request"},
+								},
+							},
+						},
+						ResponseFilters: structs.HTTPResponseFilters{
+							Headers: []structs.HTTPHeaderFilter{{
+								Add: map[string]string{
+									"add me to the rule response":             "present",
+									"add me to the rule and service response": "rule",
+								},
+								Set: map[string]string{
+									"set me on the rule response":             "present",
+									"set me on the rule and service response": "rule",
+								},
+								Remove: []string{
+									"remove me from the rule response",
+									"remove me from the rule and service response",
+								},
+							}},
+						},
 						Services: []structs.HTTPService{{
 							Name: "foo",
+							Filters: structs.HTTPFilters{
+								Headers: []structs.HTTPHeaderFilter{
+									{
+										Add: map[string]string{"add me to the service request": "present"},
+									},
+									{
+										Set:    map[string]string{"set me on the service request": "present"},
+										Remove: []string{"remove me from the service request"},
+									},
+									{
+										Add:    map[string]string{"add me to the rule and service request": "service"},
+										Set:    map[string]string{"set me on the rule and service request": "service"},
+										Remove: []string{"remove me from the rule and service request"},
+									},
+								},
+							},
+							ResponseFilters: structs.HTTPResponseFilters{
+								Headers: []structs.HTTPHeaderFilter{
+									{
+										Add:    map[string]string{"add me to the service response": "present"},
+										Set:    map[string]string{"set me on the service response": "present"},
+										Remove: []string{"remove me from the service response"},
+									},
+									{
+										Add:    map[string]string{"add me to the rule and service response": "service"},
+										Set:    map[string]string{"set me on the rule and service response": "service"},
+										Remove: []string{"remove me from the rule and service response"},
+									},
+								},
+							},
 						}},
 					}},
 				},
@@ -557,8 +619,40 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 									Partition: "default",
 									Namespace: "default",
 									RequestHeaders: &structs.HTTPHeaderModifiers{
-										Add: make(map[string]string),
-										Set: make(map[string]string),
+										Add: map[string]string{
+											"add me to the rule request":             "present",
+											"add me to the service request":          "present",
+											"add me to the rule and service request": "service",
+										},
+										Set: map[string]string{
+											"set me on the rule request":             "present",
+											"set me on the service request":          "present",
+											"set me on the rule and service request": "service",
+										},
+										Remove: []string{
+											"remove me from the rule request",
+											"remove me from the rule and service request",
+											"remove me from the service request",
+											"remove me from the rule and service request",
+										},
+									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
+										Add: map[string]string{
+											"add me to the rule response":             "present",
+											"add me to the service response":          "present",
+											"add me to the rule and service response": "service",
+										},
+										Set: map[string]string{
+											"set me on the rule response":             "present",
+											"set me on the service response":          "present",
+											"set me on the rule and service response": "service",
+										},
+										Remove: []string{
+											"remove me from the rule response",
+											"remove me from the rule and service response",
+											"remove me from the service response",
+											"remove me from the rule and service response",
+										},
 									},
 								},
 							},
@@ -660,6 +754,10 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 									Partition: "default",
 									Namespace: "default",
 									RequestHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
 										Add: make(map[string]string),
 										Set: make(map[string]string),
 									},
@@ -847,6 +945,10 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 									Partition: "default",
 									Namespace: "default",
 									RequestHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
 										Add: make(map[string]string),
 										Set: make(map[string]string),
 									},
