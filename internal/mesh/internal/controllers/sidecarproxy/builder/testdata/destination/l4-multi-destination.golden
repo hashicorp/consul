@@ -1,63 +1,21 @@
 {
-  "proxyState":  {
-    "identity":  {
-      "tenancy":  {
-        "partition":  "default",
-        "namespace":  "default",
-        "peerName":  "local"
-      },
-      "name":  "test-identity"
-    },
-    "listeners":  [
-      {
-        "name":  "api-1:tcp:1.1.1.1:1234",
-        "direction":  "DIRECTION_OUTBOUND",
-        "hostPort":  {
-          "host":  "1.1.1.1",
-          "port":  1234
-        },
-        "routers":  [
-          {
-            "l4":  {
-              "name":  "tcp.api-1.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.tcp.api-1.default.default.dc1"
-            }
-          }
-        ]
-      },
-      {
-        "name":  "api-2:tcp:/path/to/socket",
-        "direction":  "DIRECTION_OUTBOUND",
-        "unixSocket":  {
-          "path":  "/path/to/socket",
-          "mode":  "0666"
-        },
-        "routers":  [
-          {
-            "l4":  {
-              "name":  "tcp.api-2.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.tcp.api-2.default.default.dc1"
-            }
-          }
-        ]
-      }
-    ],
-    "clusters":  {
-      "tcp.api-1.default.dc1.internal.foo.consul":  {
-        "endpointGroup":  {
-          "dynamic":  {
-            "config":  {
-              "disablePanicThreshold":  true
+  "proxyState": {
+    "clusters": {
+      "tcp.api-1.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
             },
-            "outboundTls":  {
-              "outboundMesh":  {
-                "identityKey":  "test-identity",
-                "validationContext":  {
-                  "spiffeIds":  [
+            "outboundTls": {
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
                   ]
                 },
-                "sni":  "api-1.default.dc1.internal.foo.consul"
+                "sni": "api-1.default.dc1.internal.foo.consul"
               },
               "alpnProtocols": [
                 "consul~tcp"
@@ -66,21 +24,21 @@
           }
         }
       },
-      "tcp.api-2.default.dc1.internal.foo.consul":  {
-        "endpointGroup":  {
-          "dynamic":  {
-            "config":  {
-              "disablePanicThreshold":  true
+      "tcp.api-2.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
             },
-            "outboundTls":  {
-              "outboundMesh":  {
-                "identityKey":  "test-identity",
-                "validationContext":  {
-                  "spiffeIds":  [
+            "outboundTls": {
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
                   ]
                 },
-                "sni":  "api-2.default.dc1.internal.foo.consul"
+                "sni": "api-2.default.dc1.internal.foo.consul"
               },
               "alpnProtocols": [
                 "consul~tcp"
@@ -89,40 +47,82 @@
           }
         }
       }
-    }
-  },
-  "requiredEndpoints":  {
-    "api-1.default.dc1.internal.foo.consul":  {
-      "id":  {
-        "name":  "api-1",
-        "type":  {
-          "group":  "catalog",
-          "groupVersion":  "v1alpha1",
-          "kind":  "ServiceEndpoints"
-        },
-        "tenancy":  {
-          "partition":  "default",
-          "namespace":  "default",
-          "peerName":  "local"
-        }
-      },
-      "port":  "mesh"
     },
-    "api-2.default.dc1.internal.foo.consul":  {
-      "id":  {
-        "name":  "api-2",
-        "type":  {
-          "group":  "catalog",
-          "groupVersion":  "v1alpha1",
-          "kind":  "ServiceEndpoints"
+    "identity": {
+      "tenancy": {
+        "namespace": "default",
+        "partition": "default",
+        "peerName": "local"
+      },
+      "name": "test-identity"
+    },
+    "listeners": [
+      {
+        "name": "api-1:tcp:1.1.1.1:1234",
+        "direction": "DIRECTION_OUTBOUND",
+        "hostPort": {
+          "host": "1.1.1.1",
+          "port": 1234
         },
-        "tenancy":  {
-          "partition":  "default",
-          "namespace":  "default",
-          "peerName":  "local"
+        "routers": [
+          {
+            "l4": {
+              "name": "tcp.api-1.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.tcp.api-1.default.default.dc1"
+            }
+          }
+        ]
+      },
+      {
+        "name": "api-2:tcp:/path/to/socket",
+        "direction": "DIRECTION_OUTBOUND",
+        "unixSocket": {
+          "path": "/path/to/socket",
+          "mode": "0666"
+        },
+        "routers": [
+          {
+            "l4": {
+              "name": "tcp.api-2.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.tcp.api-2.default.default.dc1"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "requiredEndpoints": {
+    "api-1.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-1",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
         }
       },
-      "port":  "mesh"
+      "port": "mesh"
+    },
+    "api-2.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
     }
   }
 }
