@@ -76,6 +76,10 @@ func aclTokenListByAuthMethod(tx ReadTxn, authMethod string, _, _ *acl.Enterpris
 	return tx.Get(tableACLTokens, indexAuthMethod, AuthMethodQuery{Value: authMethod})
 }
 
+func aclTokenListByServiceName(tx ReadTxn, serviceName string, entMeta *acl.EnterpriseMeta) (memdb.ResultIterator, error) {
+	return tx.Get(tableACLTokens, indexServiceName, Query{Value: serviceName})
+}
+
 func aclTokenDeleteWithToken(tx WriteTxn, token *structs.ACLToken, idx uint64) error {
 	// remove the token
 	if err := tx.Delete(tableACLTokens, token); err != nil {

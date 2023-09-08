@@ -1,0 +1,3 @@
+```release-note:bug
+api: Fix `/v1/agent/self` not returning latest configuration 
+```
