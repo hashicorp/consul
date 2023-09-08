@@ -42,9 +42,11 @@ The following list describes the configuration hierarchy, language-specific data
    - [`MaxPendingRequests`](#defaults-maxpendingrequests): number
    - [`MaxConcurrentRequests`](#defaults-maxconcurrentrequests): number
    - [`PassiveHealthCheck`](#defaults-passivehealthcheck): map
-      - [`interval`](#defaults-passivehealthcheck): number
-      - [`max_failures`](#defaults-passivehealthcheck): number
-      - [`enforcing_consecutive_5xx`](#defaults-passivehealthcheck): number
+      - [`Interval`](#defaults-passivehealthcheck): number
+      - [`MaxFailures`](#defaults-passivehealthcheck): number
+      - [`EnforcingConsecutive5xx`](#defaults-passivehealthcheck): number
+      - [`MaxEjectionPercent`](#defaults-passivehealthcheck): number
+      - [`BaseEjectionTime`](#defaults-passivehealthcheck): string
 - [`Listeners`](#listeners): list of maps
    - [`Port`](#listeners-port): number | `0`
    - [`Protocol`](#listeners-protocol): number | `tcp`
@@ -69,9 +71,11 @@ The following list describes the configuration hierarchy, language-specific data
       - [`MaxPendingRequests`](#listeners-services-maxconnections): number | `0`
       - [`MaxConcurrentRequests`](#listeners-services-maxconnections): number | `0`
       - [`PassiveHealthCheck`](#listeners-services-passivehealthcheck): map
-         - [`interval`](#listeners-services-passivehealthcheck): number
-         - [`max_failures`](#listeners-services-passivehealthcheck): number
-         - [`enforcing_consecutive_5xx`](#listeners-services-passivehealthcheck): number
+        - [`Interval`](#listeners-services-passivehealthcheck): number
+        - [`MaxFailures`](#listeners-services-passivehealthcheck): number
+        - [`EnforcingConsecutive5xx`](#listeners-services-passivehealthcheck): number
+        - [`MaxEjectionPercent`](#listeners-services-passivehealthcheck): number
+        - [`BaseEjectionTime`](#listeners-services-passivehealthcheck): string
    - [`TLS`](#listeners-tls): map
       - [`Enabled`](#listeners-tls-enabled): boolean | `false`
       - [`TLSMinVersion`](#listeners-tls-tlsminversion): string | `TLSv1_2`
@@ -104,9 +108,11 @@ The following list describes the configuration hierarchy, language-specific data
       - [`maxPendingRequests`](#spec-defaults-maxpendingrequests): number
       - [`maxConcurrentRequests`](#spec-defaults-maxconcurrentrequests): number
       - [`passiveHealthCheck`](#spec-defaults-passivehealthcheck): map
-         - [`interval`](#spec-defaults-passivehealthcheck): number | no proxy's default value
-         - [`max_failures`](#spec-defaults-passivehealthcheck): number | no proxy's default value
-         - [`enforcing_consecutive_5xx`](#spec-defaults-passivehealthcheck): number | proxy's default value
+        - [`interval`](#spec-defaults-passivehealthcheck): string
+        - [`maxFailures`](#spec-defaults-passivehealthcheck): integer
+        - [`enforcingConsecutive5xx`](#spec-defaults-passivehealthcheck): number
+        - [`maxEjectionPercent`](#spec-defaults-passivehealthcheck): number
+        - [`baseEjectionTime`](#spec-defaults-passivehealthcheck): string
    - [`listeners`](#spec-listeners): list of maps
       - [`port`](#spec-listeners-port): number | `0`
       - [`protocol`](#spec-listeners-protocol): number | `tcp`
@@ -131,9 +137,11 @@ The following list describes the configuration hierarchy, language-specific data
          - [`maxPendingRequests`](#spec-listeners-services-maxconnections): number | `0`
          - [`maxConcurrentRequests`](#spec-listeners-services-maxconnections): number | `0`
          - [`passiveHealthCheck`](#spec-listeners-services-passivehealthcheck): map
-            - [`interval`](#spec-listeners-services-passivehealthcheck): number
-            - [`max_failures`](#spec-listeners-services-passivehealthcheck): number
-            - [`enforcing_consecutive_5xx`](#spec-listeners-services-passivehealthcheck): number
+            - [`interval`](#spec-listeners-services-passivehealthcheck): string
+            - [`maxFailures`](#spec-listeners-services-passivehealthcheck): number
+            - [`enforcingConsecutive5xx`](#spec-listeners-services-passivehealthcheck): number
+            - [`maxEjectionPercent`](#spec-listeners-services-passivehealthcheck): integer
+            - [`baseEjectionTime`](#spec-listeners-services-passivehealthcheck): string
       - [`tls`](#spec-listeners-tls): map
          - [`enabled`](#spec-listeners-tls-enabled): boolean | `false`
          - [`tlsMinVersion`](#spec-listeners-tls-tlsminversion): string | `TLSv1_2`
@@ -176,13 +184,15 @@ TLS = {
   }
 }
 Defaults = {
-  MaxConnections        = 0
-  MaxPendingRequests    = 0
-  MaxConcurrentRequests = 0
+  MaxConnections        = <number>
+  MaxPendingRequests    = <number>
+  MaxConcurrentRequests = <number>
   PassiveHealthCheck = {
-    interval                  = 10
-    max_failures              = 5
-    enforcing_consecutive_5xx = 100
+    Interval                = "<the time between checks>"
+    MaxFailures             = <number>
+    EnforcingConsecutive5xx = <number>
+    MaxEjectionPercent      = <number>
+    BaseEjectionTime        = "<the base time that a host is ejected for>"
   }
 }
 Listeners = [
@@ -229,9 +239,11 @@ Listeners = [
         MaxPendingRequests    = <number>
         MaxConcurrentRequests = <number>
         PassiveHealthCheck = {
-          interval                  = 10
-          max_failures              = 5
-          enforcing_consecutive_5xx = 100
+          Interval                = "<the time between checks>"
+          MaxFailures             = <number>
+          EnforcingConsecutive5xx = <number>
+          MaxEjectionPercent      = <number>
+          BaseEjectionTime        = "<the base time that a host is ejected for>"
         }
     }]
     TLS = {
@@ -271,13 +283,15 @@ spec:
       clusterName: <name of SDS cluster>
       certResource: <SDS resource name>
   defaults:
-    maxConnections: 0
-    maxPendingRequests: 0
-    maxConcurrentRequests: 0
+    maxConnections: <number>
+    maxPendingRequests: <number>
+    maxConcurrentRequests: <number>
     passiveHealthCheck:
-      interval: 10
-      max_failures: 5
-      enforcing_consecutive_5xx: 100
+      interval: "<the time between checks>"
+      maxFailures: <number>
+      enforcingConsecutive5xx:<number>
+      maxEjectionPercent: <number>
+      baseEjectionTime: "<the base time that a host is ejected for>"
   listeners:
     - port: 0
       protocol: tcp
@@ -292,7 +306,7 @@ spec:
               requestHeaderName: <request header value to add>
             set:
               requestHeaderName: <request header value to set>
-     remove:
+      remove:
               - <request header to remove>
           responseHeaders:
             add:
@@ -309,9 +323,11 @@ spec:
             maxPendingRequests: <number>
             maxConcurrentRequests: <number>
             passiveHealthCheck:
-              interval: 10
-              max_failures: 5
-              enforcing_consecutive_5xx: 100
+              interval: "<the time between checks>"
+              maxFailures: <number>
+                enforcingConsecutive5xx:<number>
+                maxEjectionPercent: <number>
+                baseEjectionTime: "<the base time that a host is ejected for>"
       tls:
         enabled: false
         tlsMinVersion: TLSv1_2
@@ -349,13 +365,13 @@ spec:
     }
   },
   "Defaults" : {
-    "MaxConnections" : 0,
-    "MaxPendingRequests" : 0,
-    "MaxConcurrentRequests": 0,
+    "MaxConnections" : <number>,
+    "MaxPendingRequests" : <number>,
+    "MaxConcurrentRequests": <number>,
     "PassiveHealthCheck" : {
-      "interval": "<the time between checks>",
+      "interval": <the time between checks>",
       "maxFailures": <number>,
-      "enforcingConsecutive5xx": <number>,
+      "enforcingConsecutive5xx":<number>,
       "maxEjectionPercent": <number>,
       "baseEjectionTime": "<the base time that a host is ejected for>"
     }
@@ -404,12 +420,11 @@ spec:
           "MaxPendingRequests" : <number>,
           "MaxConcurrentRequests" : <number>,
           "PassiveHealthCheck" : {
-            "interval": "<the time between checks>",
+            "interval": <the time between checks>",
             "maxFailures": <number>,
             "enforcingConsecutive5xx":<number>,
             "maxEjectionPercent": <number>,
             "baseEjectionTime": "<the base time that a host is ejected for>"
-          }
         }
       ],
       "TLS" : {
@@ -636,9 +651,11 @@ The following table describes the configurations for passive health checks:
 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
-| `interval` |  Specifies the time in nanoseconds between checks. | Integer | Proxy's default configuration, which is `10` for Envoy |
-| `max_failures` | Specifies the number of consecutive failures that cause a host to be removed from the upstream cluster. | Integer | Proxy's default configuration, which is `5` for Envoy |
-| `enforcing_consecutive_5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | Integer | Proxy's default configuration, which is `100` for Envoy |
+  | `Interval` | Specifies the time between checks. | string | `0s` |
+  | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
+  | `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `Listeners[]`
 
@@ -871,9 +888,11 @@ The following table describes the configurations for passive health checks:
 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
-| `interval` |  Specifies the time in nanoseconds between checks. | Integer | Proxy's default configuration, which is `10` for Envoy |
-| `max_failures` | Specifies the number of consecutive failures that cause a host to be removed from the upstream cluster. | Integer | Proxy's default configuration, which is `5` for Envoy |
-| `enforcing_consecutive_5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | Integer | Proxy's default configuration, which is `100` for Envoy |
+  | `Interval` | Specifies the time between checks. | string | `0s` |
+  | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
+  | `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `Listeners[].TLS`
 
@@ -1167,9 +1186,11 @@ The following table describes the configurations for passive health checks:
 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
-| `interval` |  Specifies the time in nanoseconds between checks. | Integer | Proxy's default configuration, which is `10` for Envoy |
-| `max_failures` | Specifies the number of consecutive failures that cause a host to be removed from the upstream cluster. | Integer | Proxy's default configuration, which is `5` for Envoy |
-| `enforcing_consecutive_5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | Integer | Proxy's default configuration, which is `100` for Envoy |
+  | `Interval` | Specifies the time between checks. | string | `0s` |
+  | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
+  | `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `spec.listeners[]`
 
@@ -1403,9 +1424,11 @@ The following table describes the configurations for passive health checks:
 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
-| `interval` |  Specifies the time in nanoseconds between checks. | Integer | Proxy's default configuration, which is `10` for Envoy |
-| `max_failures` | Specifies the number of consecutive failures that cause a host to be removed from the upstream cluster. | Integer | Proxy's default configuration, which is `5` for Envoy |
-| `enforcing_consecutive_5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | Integer | Proxy's default configuration, which is `100` for Envoy |
+  | `Interval` | Specifies the time between checks. | string | `0s` |
+  | `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
+  | `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `spec.listeners[].tls`
 
