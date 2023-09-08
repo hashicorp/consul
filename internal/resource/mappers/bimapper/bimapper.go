@@ -272,6 +272,8 @@ func (m *Mapper) MapLink(_ context.Context, _ controller.Runtime, res *pbresourc
 }
 
 func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
+	// a lock must be held both to read item from the map and to read the
+	// the returned items.
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -288,6 +290,8 @@ func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
 }
 
 func (m *Mapper) itemRefsByLink(link resource.ReferenceKey) []*pbresource.Reference {
+	// a lock must be held both to read item from the map and to read the
+	// the returned items.
 	m.lock.Lock()
 	defer m.lock.Unlock()
 

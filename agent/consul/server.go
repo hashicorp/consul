@@ -19,6 +19,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/resource"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
@@ -72,9 +75,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
@@ -907,6 +908,15 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 				return &bundle, nil
 			},
 			ProxyUpdater: proxyUpdater,
+			// This function is adapted from server_connect.go:getCARoots.
+			TrustDomainFetcher: func() (string, error) {
+				_, caConfig, err := s.fsm.State().CAConfig(nil)
+				if err != nil {
+					return "", err
+				}
+
+				return s.getTrustDomain(caConfig)
+			},
 		})
 	}
 

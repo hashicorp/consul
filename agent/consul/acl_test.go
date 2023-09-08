@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -1978,6 +1979,48 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 					},
 				},
 			},
+			&structs.ACLToken{
+				AccessorID: "359b9927-25fd-46b9-84c2-3470f848ec65",
+				SecretID:   "found-synthetic-policy-5",
+				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+					{
+						TemplateName: api.ACLTemplatedPolicyNodeName,
+						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+							Name: "templated-test-node1",
+						},
+						Datacenters: []string{"dc1"},
+					},
+					{
+						TemplateName: api.ACLTemplatedPolicyNodeName,
+						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+							Name: "templated-test-node2",
+						},
+						// as the resolver is in dc1 this identity should be ignored
+						Datacenters: []string{"dc2"},
+					},
+				},
+			},
+			&structs.ACLToken{
+				AccessorID: "359b9927-25fd-46b9-84c2-3470f848ec65",
+				SecretID:   "found-synthetic-policy-6",
+				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+					{
+						TemplateName: api.ACLTemplatedPolicyNodeName,
+						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+							Name: "templated-test-node3",
+						},
+						Datacenters: []string{"dc1"},
+					},
+					{
+						TemplateName: api.ACLTemplatedPolicyNodeName,
+						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+							Name: "templated-test-node4",
+						},
+						// as the resolver is in dc1 this identity should be ignored
+						Datacenters: []string{"dc2"},
+					},
+				},
+			},
 		})
 
 		// We resolve these tokens in the same cache session
@@ -2042,6 +2085,22 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 			require.Equal(t, acl.Allow, authz.NodeWrite("test-node2", nil))
 			// ensure node identity for other DC is ignored
 			require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
+		})
+		t.Run("synthetic-policy-6", func(t *testing.T) { // templated policy
+			authz, err := r.ResolveToken("found-synthetic-policy-6")
+			require.NoError(t, err)
+			require.NotNil(t, authz)
+
+			// spot check some random perms
+			require.Equal(t, acl.Deny, authz.ACLRead(nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+			// ensure we didn't bleed over to the other synthetic policy
+			require.Equal(t, acl.Deny, authz.NodeWrite("templated-test-node1", nil))
+			// check our own synthetic policy
+			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
+			require.Equal(t, acl.Allow, authz.NodeWrite("templated-test-node3", nil))
+			// ensure template identity for other DC is ignored
+			require.Equal(t, acl.Deny, authz.NodeWrite("templated-test-node4", nil))
 		})
 	})
 
