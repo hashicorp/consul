@@ -202,7 +202,7 @@ func (suite *meshControllerTestSuite) TestReconcile_NoExistingProxyStateTemplate
 func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithUpdates() {
 	// This test ensures that we write a new proxy state template when there are changes.
 
-	// AddDestination the original.
+	// Write the original.
 	resourcetest.Resource(types.ProxyStateTemplateType, "api-abc").
 		WithData(suite.T(), suite.proxyStateTemplate).
 		WithOwner(suite.apiWorkloadID).
@@ -237,7 +237,7 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_W
 func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpdates() {
 	// This test ensures that we skip writing of the proxy state template when there are no changes to it.
 
-	// AddDestination the original.
+	// Write the original.
 	originalProxyState := resourcetest.Resource(types.ProxyStateTemplateType, "api-abc").
 		WithData(suite.T(), suite.proxyStateTemplate).
 		WithOwner(suite.apiWorkloadID).
