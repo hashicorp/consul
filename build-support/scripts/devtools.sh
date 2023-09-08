@@ -51,6 +51,10 @@ function main {
                 codegen_install
                 return 0
                 ;;
+            -copyright )
+                copyright_install
+                return 0
+                ;;
             -h | --help )
                 usage
                 return 0
@@ -159,11 +163,23 @@ function codegen_install {
         'github.com/globusdigital/deep-copy'
 }
 
+function copyright_install {
+    local copyright_version
+    copyright_version="$(make --no-print-directory print-COPYRIGHT_TOOL_VERSION)"
+
+    install_versioned_tool \
+        'copyright' \
+        'github.com/hashicorp/copywrite' \
+        "${copyright_version}" \
+        'github.com/hashicorp/copywrite'
+}
+
 function tools_install {
 
     lint_install
     proto_tools_install
     codegen_install
+    copyright_install
 
     return 0
 }
