@@ -47,11 +47,11 @@ const (
 	// may rename if desired but cannot delete or modify the rules.
 	ACLPolicyGlobalManagementID   = "00000000-0000-0000-0000-000000000001"
 	ACLPolicyGlobalManagementName = "global-management"
-	ACLPolicyGlobalManagementDesc = "Builtin Policy that grants unlimited access"
+	ACLPolicyGlobalManagementDesc = "A built-in policy that grants read and write access to all Consul features"
 
 	ACLPolicyGlobalReadOnlyID   = "00000000-0000-0000-0000-000000000002"
 	ACLPolicyGlobalReadOnlyName = "builtin/global-read-only"
-	ACLPolicyGlobalReadOnlyDesc = "Builtin Policy that grants unlimited read-only access to all components"
+	ACLPolicyGlobalReadOnlyDesc = "A built-in policy that grants read-only access to all Consul features"
 
 	ACLReservedIDPrefix = "00000000-0000-0000-0000-0000000000"
 
