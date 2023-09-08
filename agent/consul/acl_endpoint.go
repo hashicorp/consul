@@ -1719,18 +1719,23 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return fmt.Errorf("Invalid Binding Rule: no BindName is set")
 	}
 
+	if rule.BindType != structs.BindingRuleBindTypeTemplatedPolicy && rule.BindVars != nil {
+		return fmt.Errorf("invalid Binding Rule: BindVars cannot be set when bind type is not templated-policy.")
+	}
+
 	switch rule.BindType {
 	case structs.BindingRuleBindTypeService:
 	case structs.BindingRuleBindTypeNode:
 	case structs.BindingRuleBindTypeRole:
+	case structs.BindingRuleBindTypeTemplatedPolicy:
 	default:
 		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", rule.BindType)
 	}
 
-	if valid, err := auth.IsValidBindName(rule.BindType, rule.BindName, blankID.ProjectedVarNames()); err != nil {
-		return fmt.Errorf("Invalid Binding Rule: invalid BindName: %v", err)
+	if valid, err := auth.IsValidBindNameOrBindVars(rule.BindType, rule.BindName, rule.BindVars, blankID.ProjectedVarNames()); err != nil {
+		return fmt.Errorf("Invalid Binding Rule: invalid BindName or BindVars: %v", err)
 	} else if !valid {
-		return fmt.Errorf("Invalid Binding Rule: invalid BindName")
+		return fmt.Errorf("Invalid Binding Rule: invalid BindName or BindVars")
 	}
 
 	req := &structs.ACLBindingRuleBatchSetRequest{
