@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-func loadFromFile(path string) (string, error) {
+func LoadFromFile(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("Failed to read file: %v", err)
@@ -47,7 +47,7 @@ func LoadDataSource(data string, testStdin io.Reader) (string, error) {
 
 	switch data[0] {
 	case '@':
-		return loadFromFile(data[1:])
+		return LoadFromFile(data[1:])
 	case '-':
 		if len(data) > 1 {
 			return data, nil
@@ -67,7 +67,7 @@ func LoadDataSourceNoRaw(data string, testStdin io.Reader) (string, error) {
 		return loadFromStdin(testStdin)
 	}
 
-	return loadFromFile(data)
+	return LoadFromFile(data)
 }
 
 func ParseConfigEntry(data string) (api.ConfigEntry, error) {

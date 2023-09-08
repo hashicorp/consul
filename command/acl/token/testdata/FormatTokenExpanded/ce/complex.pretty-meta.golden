@@ -52,6 +52,37 @@ Node Identities:
 				policy = "read"
 			}
 
+Templated Policies:
+	builtin/service
+		Name: web
+		Datacenters: middleearth-northwest
+		Description: synthetic policy generated from templated policy: builtin/service
+		Rules:
+			service "web" {
+				policy = "write"
+			}
+			service "web-sidecar-proxy" {
+				policy = "write"
+			}
+			service_prefix "" {
+				policy = "read"
+			}
+			node_prefix "" {
+				policy = "read"
+			}
+
+	builtin/node
+		Name: api
+		Datacenters: all
+		Description: synthetic policy generated from templated policy: builtin/node
+		Rules:
+			node "api" {
+				policy = "write"
+			}
+			service_prefix "" {
+				policy = "read"
+			}
+
 Roles:
 	Role Name: shire
 		ID: 3b0a78fe-b9c3-40de-b8ea-7d4d6674b366

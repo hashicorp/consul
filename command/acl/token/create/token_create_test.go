@@ -107,6 +107,27 @@ func TestTokenCreateCommand_Pretty(t *testing.T) {
 		require.Equal(t, a.Config.NodeName, nodes[0].Node)
 	})
 
+	// templated policy
+	t.Run("templated-policy", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-templated-policy=builtin/node",
+			"-var=name:" + a.Config.NodeName,
+		})
+
+		conf := api.DefaultConfig()
+		conf.Address = a.HTTPAddr()
+		conf.Token = token.SecretID
+		client, err := api.NewClient(conf)
+		require.NoError(t, err)
+
+		nodes, _, err := client.Catalog().Nodes(nil)
+		require.NoError(t, err)
+		require.Len(t, nodes, 1)
+		require.Equal(t, a.Config.NodeName, nodes[0].Node)
+	})
+
 	// create with accessor and secret
 	t.Run("predefined-ids", func(t *testing.T) {
 		token := run(t, []string{
