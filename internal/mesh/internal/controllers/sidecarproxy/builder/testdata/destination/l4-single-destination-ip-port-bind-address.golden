@@ -1,21 +1,46 @@
 {
   "proxyState": {
+    "clusters": {
+      "tcp.api-1.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-1.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "identity": {
+      "name": "test-identity",
       "tenancy": {
-        "partition": "default",
         "namespace": "default",
+        "partition": "default",
         "peerName": "local"
-      },
-      "name": "test-identity"
+      }
     },
     "listeners": [
       {
-        "name": "api-1:tcp:1.1.1.1:1234",
         "direction": "DIRECTION_OUTBOUND",
         "hostPort": {
           "host": "1.1.1.1",
           "port": 1234
         },
+        "name": "api-1:tcp:1.1.1.1:1234",
         "routers": [
           {
             "l4": {
@@ -25,40 +50,15 @@
           }
         ]
       }
-    ],
-    "clusters": {
-      "tcp.api-1.default.dc1.internal.foo.consul": {
-        "endpointGroup": {
-          "dynamic": {
-            "config": {
-              "disablePanicThreshold": true
-            },
-            "outboundTls": {
-              "outboundMesh": {
-                "identityKey": "test-identity",
-                "validationContext": {
-                  "spiffeIds": [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
-                  ]
-                },
-                "sni": "api-1.default.dc1.internal.foo.consul"
-              },
-              "alpnProtocols": [
-                "consul~tcp"
-              ]
-            }
-          }
-        }
-      }
-    }
+    ]
   },
   "requiredEndpoints": {
     "api-1.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-1",
         "tenancy": {
-          "partition": "default",
           "namespace": "default",
+          "partition": "default",
           "peerName": "local"
         },
         "type": {
