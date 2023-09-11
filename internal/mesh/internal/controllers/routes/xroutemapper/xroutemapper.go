@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"google.golang.org/protobuf/proto"
-
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -172,10 +170,7 @@ func (m *Mapper) MapTCPRoute(_ context.Context, _ controller.Runtime, res *pbres
 }
 
 // mapXRouteToComputedRoutes will map xRoute changes to ComputedRoutes changes.
-func mapXRouteToComputedRoutes[T interface {
-	proto.Message
-	types.XRouteWithRefs
-}](res *pbresource.Resource, m *Mapper) ([]controller.Request, error) {
+func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *Mapper) ([]controller.Request, error) {
 	dec, err := resource.Decode[T](res)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling xRoute: %w", err)
