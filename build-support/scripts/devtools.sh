@@ -184,7 +184,7 @@ function tools_install {
     lint_install
     proto_tools_install
     codegen_install
-    copyright_install
+    copywrite_install
 
     return 0
 }
