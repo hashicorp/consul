@@ -4,17 +4,18 @@
 package loader
 
 import (
+	"context"
+	"fmt"
+
+	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
-
-//go:generate ./gen_memoizer_funcs.sh http_route.gen.go pbmesh.HTTPRoute
-//go:generate ./gen_memoizer_funcs.sh grpc_route.gen.go pbmesh.GRPCRoute
-//go:generate ./gen_memoizer_funcs.sh tcp_route.gen.go pbmesh.TCPRoute
-//go:generate ./gen_memoizer_funcs.sh dest_policy.gen.go pbmesh.DestinationPolicy
-//go:generate ./gen_memoizer_funcs.sh failover_policy.gen.go pbcatalog.FailoverPolicy
-//go:generate ./gen_memoizer_funcs.sh service.gen.go pbcatalog.Service
 
 type memoizingLoader struct {
 	client pbresource.ResourceServiceClient
@@ -40,4 +41,54 @@ func newMemoizingLoader(client pbresource.ResourceServiceClient) *memoizingLoade
 		mapFailoverPolicy:    make(map[resource.ReferenceKey]*types.DecodedFailoverPolicy),
 		mapService:           make(map[resource.ReferenceKey]*types.DecodedService),
 	}
+}
+
+func (m *memoizingLoader) GetHTTPRoute(ctx context.Context, id *pbresource.ID) (*types.DecodedHTTPRoute, error) {
+	return getOrCacheResource[*pbmesh.HTTPRoute](ctx, m.client, m.mapHTTPRoute, types.HTTPRouteType, id)
+}
+
+func (m *memoizingLoader) GetGRPCRoute(ctx context.Context, id *pbresource.ID) (*types.DecodedGRPCRoute, error) {
+	return getOrCacheResource[*pbmesh.GRPCRoute](ctx, m.client, m.mapGRPCRoute, types.GRPCRouteType, id)
+}
+
+func (m *memoizingLoader) GetTCPRoute(ctx context.Context, id *pbresource.ID) (*types.DecodedTCPRoute, error) {
+	return getOrCacheResource[*pbmesh.TCPRoute](ctx, m.client, m.mapTCPRoute, types.TCPRouteType, id)
+}
+
+func (m *memoizingLoader) GetDestinationPolicy(ctx context.Context, id *pbresource.ID) (*types.DecodedDestinationPolicy, error) {
+	return getOrCacheResource[*pbmesh.DestinationPolicy](ctx, m.client, m.mapDestinationPolicy, types.DestinationPolicyType, id)
+}
+
+func (m *memoizingLoader) GetFailoverPolicy(ctx context.Context, id *pbresource.ID) (*types.DecodedFailoverPolicy, error) {
+	return getOrCacheResource[*pbcatalog.FailoverPolicy](ctx, m.client, m.mapFailoverPolicy, catalog.FailoverPolicyType, id)
+}
+
+func (m *memoizingLoader) GetService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
+	return getOrCacheResource[*pbcatalog.Service](ctx, m.client, m.mapService, catalog.ServiceType, id)
+}
+
+func getOrCacheResource[T proto.Message](
+	ctx context.Context,
+	client pbresource.ResourceServiceClient,
+	cache map[resource.ReferenceKey]*resource.DecodedResource[T],
+	typ *pbresource.Type,
+	id *pbresource.ID,
+) (*resource.DecodedResource[T], error) {
+	if !resource.EqualType(id.Type, typ) {
+		return nil, fmt.Errorf("expected %s not %s", resource.TypeToString(typ), resource.TypeToString(id.Type))
+	}
+
+	rk := resource.NewReferenceKey(id)
+
+	if cached, ok := cache[rk]; ok {
+		return cached, nil // cached value may be nil
+	}
+
+	dec, err := resource.GetDecodedResource[T](ctx, client, id)
+	if err != nil {
+		return nil, err
+	}
+
+	cache[rk] = dec
+	return dec, nil
 }
