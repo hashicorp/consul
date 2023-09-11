@@ -75,15 +75,26 @@ as |dc partition nspace id item create|}}
             </dl>
         </div>
   {{/if}}
-  {{#if (eq (policy/typeof item) 'policy-management')}}
-    <Hds::Alert @type="inline" @icon="star-fill" class="mb-3 mt-2" as |A|>
-      <A.Title>Management</A.Title>
-      <A.Description>This global-management token is built into Consul's policy system. You can apply this special policy to tokens for full access. This policy is not editable or removeable, but can be ignored by not applying it to any tokens.</A.Description>
-      <A.Link::Standalone @text='Learn more'
-                          @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#builtin-policies"
-                          @icon='docs-link'
-                          @iconPosition='trailing' />
-    </Hds::Alert>
+  {{#if (or (eq (policy/typeof item) 'policy-management') (eq (policy/typeof item) 'read-only'))}}
+    {{#if (eq (policy/typeof item) 'policy-management')}}
+      <Hds::Alert @type="inline" @icon="star-fill" class="mb-3 mt-2" as |A|>
+        <A.Title>Management</A.Title>
+        <A.Description>This global-management token is built into Consul's policy system. You can apply this special policy to tokens for full access. This policy is not editable or removeable, but can be ignored by not applying it to any tokens.</A.Description>
+        <A.Link::Standalone @text='Learn more'
+                            @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#builtin-policies"
+                            @icon='docs-link'
+                            @iconPosition='trailing' />
+      </Hds::Alert>
+    {{else}}
+      <Hds::Alert @type="inline" @icon="star-fill" class="mb-3 mt-2" as |A|>
+        <A.Title>Built-in policy</A.Title>
+        <A.Description>This global-read-only policy is built into Consul's policy system. You can apply this special policy to tokens for read-only access to all Consul components. This policy is not editable or removable, but can be ignored by not applying it to any tokens.</A.Description>
+        <A.Link::Standalone @text='Learn more'
+                            @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#builtin-policies"
+                            @icon='docs-link'
+                            @iconPosition='trailing' />
+      </Hds::Alert>
+    {{/if}}
     <div class="definition-table">
       <dl>
         <dt>Name</dt>

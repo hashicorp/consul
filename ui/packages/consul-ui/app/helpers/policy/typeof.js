@@ -6,6 +6,7 @@
 import { helper } from '@ember/component/helper';
 import { get } from '@ember/object';
 const MANAGEMENT_ID = '00000000-0000-0000-0000-000000000001';
+const READ_ONLY_ID = '00000000-0000-0000-0000-000000000002';
 export function typeOf(params, hash) {
   const item = params[0];
   const template = get(item, 'template');
@@ -18,6 +19,8 @@ export function typeOf(params, hash) {
       return 'policy-node-identity';
     case get(item, 'ID') === MANAGEMENT_ID:
       return 'policy-management';
+    case get(item, 'ID') === READ_ONLY_ID:
+      return 'read-only';
     default:
       return 'policy';
   }

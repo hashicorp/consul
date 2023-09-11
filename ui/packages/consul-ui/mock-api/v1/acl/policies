@@ -29,6 +29,23 @@ ${typeof location.search.partition !== 'undefined' ? `
             }
           `
         }
+        if(i === 2) {
+          return `
+            {
+              "ID": "00000000-0000-0000-0000-000000000002",
+              "Name": "global-read-only",
+${typeof location.search.ns !== 'undefined' ? `
+              "Namespace": "${location.search.ns}",
+` : ``}
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${location.search.partition}",
+` : ``}
+              "Description": "Built-In Read-only Policy",
+              "CreateIndex": 10,
+              "ModifyIndex": 10
+            }
+          `
+        }
         return `
           {
             "ID": "${fake.random.uuid()}",
