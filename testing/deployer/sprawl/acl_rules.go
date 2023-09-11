@@ -107,40 +107,8 @@ func tokenForService(svc *topology.Service, overridePolicy *api.ACLPolicy, enter
 	return token
 }
 
-func policyForMeshGateway(svc *topology.Service, enterprise bool) *api.ACLPolicy {
-	policyName := "mesh-gateway--" + svc.ID.ACLString()
-
-	policy := &api.ACLPolicy{
-		Name:        policyName,
-		Description: policyName,
-	}
-	if enterprise {
-		policy.Partition = svc.ID.Partition
-		policy.Namespace = "default"
-	}
-
-	if enterprise {
-		policy.Rules = `
-namespace_prefix "" {
-  service "mesh-gateway" {
-    policy = "write"
-  }
-  service_prefix "" {
-    policy = "read"
-  }
-  node_prefix "" {
-    policy = "read"
-  }
-}
-agent_prefix "" {
-  policy = "read"
-}
-# for peering
-mesh = "write"
-peering = "read"
-`
-	} else {
-		policy.Rules = `
+const (
+	meshGatewayCommunityRules = `
 service "mesh-gateway" {
   policy = "write"
 }
@@ -157,6 +125,71 @@ agent_prefix "" {
 mesh = "write"
 peering = "read"
 `
+
+	meshGatewayEntDefaultRules = `
+namespace_prefix "" {
+  service "mesh-gateway" {
+    policy = "write"
+  }
+  service_prefix "" {
+    policy = "read"
+  }
+  node_prefix "" {
+    policy = "read"
+  }
+}
+agent_prefix "" {
+  policy = "read"
+}
+# for peering
+mesh = "write"
+
+partition_prefix "" {
+  peering = "read"
+}
+`
+
+	meshGatewayEntNonDefaultRules = `
+namespace_prefix "" {
+  service "mesh-gateway" {
+    policy = "write"
+  }
+  service_prefix "" {
+    policy = "read"
+  }
+  node_prefix "" {
+    policy = "read"
+  }
+}
+agent_prefix "" {
+  policy = "read"
+}
+# for peering
+mesh = "write"
+`
+)
+
+func policyForMeshGateway(svc *topology.Service, enterprise bool) *api.ACLPolicy {
+	policyName := "mesh-gateway--" + svc.ID.ACLString()
+
+	policy := &api.ACLPolicy{
+		Name:        policyName,
+		Description: policyName,
+	}
+	if enterprise {
+		fmt.Printf("Enterprise mgw ACLS - Partition: %s, Namespace: default", svc.ID.Partition)
+		policy.Partition = svc.ID.Partition
+		policy.Namespace = "default"
+	}
+
+	if enterprise {
+		if svc.ID.Partition == "default" {
+			policy.Rules = meshGatewayEntDefaultRules
+		} else {
+			policy.Rules = meshGatewayEntNonDefaultRules
+		}
+	} else {
+		policy.Rules = meshGatewayCommunityRules
 	}
 
 	return policy

@@ -833,21 +833,44 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 
 			switch {
 			case hdr.Exact != "":
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_ExactMatch{
-					ExactMatch: hdr.Exact,
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+					StringMatch: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+							Exact: hdr.Exact,
+						},
+						IgnoreCase: false,
+					},
 				}
 			case hdr.Regex != "":
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-					SafeRegexMatch: response.MakeEnvoyRegexMatch(hdr.Regex),
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+					StringMatch: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+							SafeRegex: response.MakeEnvoyRegexMatch(hdr.Regex),
+						},
+						IgnoreCase: false,
+					},
 				}
+
 			case hdr.Prefix != "":
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
-					PrefixMatch: hdr.Prefix,
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+					StringMatch: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
+							Prefix: hdr.Prefix,
+						},
+						IgnoreCase: false,
+					},
 				}
+
 			case hdr.Suffix != "":
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SuffixMatch{
-					SuffixMatch: hdr.Suffix,
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+					StringMatch: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_Suffix{
+							Suffix: hdr.Suffix,
+						},
+						IgnoreCase: false,
+					},
 				}
+
 			case hdr.Present:
 				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PresentMatch{
 					PresentMatch: true,
