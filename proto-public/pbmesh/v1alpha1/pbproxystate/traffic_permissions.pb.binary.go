@@ -8,12 +8,12 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *L7TrafficPermission) MarshalBinary() ([]byte, error) {
+func (msg *L7TrafficPermissions) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *L7TrafficPermission) UnmarshalBinary(b []byte) error {
+func (msg *L7TrafficPermissions) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

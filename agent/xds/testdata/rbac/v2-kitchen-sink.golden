@@ -84,7 +84,7 @@
         "rules":  {
           "action":  "DENY",
           "policies":  {
-            "consul-intentions-layer4-0":  {
+            "consul-intentions-layer4":  {
               "permissions":  [
                 {
                   "any":  true
@@ -100,16 +100,7 @@
                       }
                     }
                   }
-                }
-              ]
-            },
-            "consul-intentions-layer4-2":  {
-              "permissions":  [
-                {
-                  "any":  true
-                }
-              ],
-              "principals":  [
+                },
                 {
                   "authenticated":  {
                     "principalName":  {

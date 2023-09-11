@@ -21,22 +21,34 @@ const (
 )
 
 func MakeL4RBAC(trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy_listener_v3.Filter, error) {
+	var filters []*envoy_listener_v3.Filter
+
 	if trafficPermissions == nil {
 		return nil, nil
 	}
 
-	rbacs, err := makeRBACs(trafficPermissions)
-	if err != nil {
-		return nil, err
+	// Only include the allow RBAC when Consul is in default deny.
+	if trafficPermissions.DefaultAction != pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_ALLOW {
+		allowRBAC := &envoy_rbac_v3.RBAC{
+			Action:   envoy_rbac_v3.RBAC_ALLOW,
+			Policies: make(map[string]*envoy_rbac_v3.Policy),
+		}
+
+		allowRBAC.Policies = makeRBACPolicies(trafficPermissions.AllowPermissions)
+		filter, err := makeRBACFilter(allowRBAC)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, filter)
 	}
 
-	filters := make([]*envoy_listener_v3.Filter, 0, len(rbacs))
-	for _, rbac := range rbacs {
-		cfg := &envoy_network_rbac_v3.RBAC{
-			StatPrefix: "connect_authz",
-			Rules:      rbac,
+	if len(trafficPermissions.DenyPermissions) > 0 {
+		denyRBAC := &envoy_rbac_v3.RBAC{
+			Action:   envoy_rbac_v3.RBAC_DENY,
+			Policies: make(map[string]*envoy_rbac_v3.Policy),
 		}
-		filter, err := makeEnvoyFilter("envoy.filters.network.rbac", cfg)
+		denyRBAC.Policies = makeRBACPolicies(trafficPermissions.DenyPermissions)
+		filter, err := makeRBACFilter(denyRBAC)
 		if err != nil {
 			return nil, err
 		}
@@ -46,93 +58,42 @@ func MakeL4RBAC(trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy
 	return filters, nil
 }
 
-func makeRBACs(trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy_rbac_v3.RBAC, error) {
-	allowRBAC := &envoy_rbac_v3.RBAC{
-		Action:   envoy_rbac_v3.RBAC_ALLOW,
-		Policies: make(map[string]*envoy_rbac_v3.Policy),
+func makeRBACFilter(rbac *envoy_rbac_v3.RBAC) (*envoy_listener_v3.Filter, error) {
+	cfg := &envoy_network_rbac_v3.RBAC{
+		StatPrefix: "connect_authz",
+		Rules:      rbac,
 	}
+	return makeEnvoyFilter("envoy.filters.network.rbac", cfg)
+}
 
-	denyRBAC := &envoy_rbac_v3.RBAC{
-		Action:   envoy_rbac_v3.RBAC_DENY,
-		Policies: make(map[string]*envoy_rbac_v3.Policy),
-	}
-
+func makeRBACPolicies(l4Permissions []*pbproxystate.L4Permission) map[string]*envoy_rbac_v3.Policy {
 	policyLabel := func(i int) string {
-		if len(trafficPermissions.Permissions) == 1 {
+		if len(l4Permissions) == 1 {
 			return baseL4PermissionKey
 		}
 		return fmt.Sprintf("%s-%d", baseL4PermissionKey, i)
 	}
 
-	for i, p := range trafficPermissions.Permissions {
-		allowPolicy, err := makeRBACPolicy(allowRBAC.Action, p.AllowPrincipals)
-		if err != nil {
-			return nil, err
-		}
+	policies := make(map[string]*envoy_rbac_v3.Policy, len(l4Permissions))
 
-		if allowPolicy != nil {
-			allowRBAC.Policies[policyLabel(i)] = allowPolicy
-		}
-
-		denyPolicy, err := makeRBACPolicy(denyRBAC.Action, p.DenyPrincipals)
-		if err != nil {
-			return nil, err
-		}
-
-		if denyPolicy != nil {
-			denyRBAC.Policies[policyLabel(i)] = denyPolicy
-		}
+	for i, permission := range l4Permissions {
+		policies[policyLabel(i)] = makeRBACPolicy(permission)
 	}
 
-	var rbacs []*envoy_rbac_v3.RBAC
-	if rbac := finalizeRBAC(allowRBAC, trafficPermissions.DefaultAction); rbac != nil {
-		rbacs = append(rbacs, rbac)
-	}
-
-	if rbac := finalizeRBAC(denyRBAC, trafficPermissions.DefaultAction); rbac != nil {
-		rbacs = append(rbacs, rbac)
-	}
-
-	return rbacs, nil
+	return policies
 }
 
-func finalizeRBAC(rbac *envoy_rbac_v3.RBAC, defaultAction pbproxystate.TrafficPermissionAction) *envoy_rbac_v3.RBAC {
-	isRBACAllow := rbac.Action == envoy_rbac_v3.RBAC_ALLOW
-	isConsulAllow := defaultAction == pbproxystate.TrafficPermissionAction_INTENTION_ACTION_ALLOW
-	// Remove allow traffic permissions with default allow. This is required because including an allow RBAC filter enforces default deny.
-	// It is safe because deny traffic permissions are applied before allow permissions, so explicit allow is equivalent to default allow. 
-	removeAllows := isRBACAllow && isConsulAllow
-	if removeAllows {
-		return nil
-	}
+func makeRBACPolicy(p *pbproxystate.L4Permission) *envoy_rbac_v3.Policy {
+	var principals []*envoy_rbac_v3.Principal
 
-	if len(rbac.Policies) != 0 {
-		return rbac
-	}
-
-	// Include an empty allow RBAC filter to enforce Consul's default deny.
-	includeEmpty := isRBACAllow && !isConsulAllow
-	if includeEmpty {
-		return rbac
-	}
-
-	return nil
-}
-
-func makeRBACPolicy(action envoy_rbac_v3.RBAC_Action, l4Principals []*pbproxystate.L4Principal) (*envoy_rbac_v3.Policy, error) {
-	if len(l4Principals) == 0 {
-		return nil, nil
-	}
-
-	principals := make([]*envoy_rbac_v3.Principal, 0, len(l4Principals))
-	for _, s := range l4Principals {
-		principals = append(principals, toEnvoyPrincipal(s.ToL7Principal()))
+	for _, l4Principal := range p.Principals {
+		principals = append(principals, toEnvoyPrincipal(l4Principal.ToL7Principal()))
 	}
 
 	return &envoy_rbac_v3.Policy{
 		Principals:  principals,
 		Permissions: []*envoy_rbac_v3.Permission{anyPermission()},
-	}, nil
+	}
 }
 
 func toEnvoyPrincipal(p *pbproxystate.L7Principal) *envoy_rbac_v3.Principal {

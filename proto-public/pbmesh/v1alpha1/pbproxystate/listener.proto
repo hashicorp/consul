@@ -106,7 +106,7 @@ message L7Destination {
   // protocol for the destination.
   L7Protocol protocol = 3;
   // traffic_permissions is a list of intentions for this destination.
-  repeated L7TrafficPermission traffic_permissions = 4;
+  L7TrafficPermissions traffic_permissions = 4;
   // add_empty_intention specifies whether to add an empty intention for this destination, when there are no other intentions specified.
   bool add_empty_intention = 5;
   // include_xfcc specifies whether to add xfcc header.

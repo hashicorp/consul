@@ -584,9 +584,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testIntention(t, "web", "*", structs.IntentionActionDeny),
 			),
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				AllowPermissions: []*pbproxystate.L4Permission{
 					{
-						AllowPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("web", nil),
 							},
@@ -601,9 +601,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				AllowPermissions: []*pbproxystate.L4Permission{
 					{
-						AllowPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("*", nil),
 							},
@@ -618,9 +618,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("*", structs.IntentionActionDeny),
 			),
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				DenyPermissions: []*pbproxystate.L4Permission{
 					{
-						DenyPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("*", nil),
 							},
@@ -635,9 +635,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("web", structs.IntentionActionAllow),
 			),
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				AllowPermissions: []*pbproxystate.L4Permission{
 					{
-						AllowPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("web", nil),
 							},
@@ -652,9 +652,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("web", structs.IntentionActionDeny),
 			),
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				DenyPermissions: []*pbproxystate.L4Permission{
 					{
-						DenyPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("web", nil),
 							},
@@ -670,9 +670,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				AllowPermissions: []*pbproxystate.L4Permission{
 					{
-						AllowPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex:          makeL4Spiffe("*", nil),
 								ExcludeSpiffeRegexes: []string{makeL4Spiffe("web", nil)},
@@ -692,9 +692,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				AllowPermissions: []*pbproxystate.L4Permission{
 					{
-						AllowPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("cron", nil),
 							},
@@ -717,9 +717,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		"v2-kitchen-sink": {
 			intentionDefaultAllow: false,
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				AllowPermissions: []*pbproxystate.L4Permission{
 					{
-						AllowPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("api", nil),
 							},
@@ -730,21 +730,21 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 								},
 							},
 						},
-						DenyPrincipals: []*pbproxystate.L4Principal{
-							{
-								SpiffeRegex: makeL4Spiffe("db", nil),
-							},
-						},
 					},
 					{
-						AllowPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("web", nil),
 							},
 						},
 					},
+				},
+				DenyPermissions: []*pbproxystate.L4Permission{
 					{
-						DenyPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
+							{
+								SpiffeRegex: makeL4Spiffe("db", nil),
+							},
 							{
 								SpiffeRegex: makeL4Spiffe("cron", nil),
 							},
@@ -764,9 +764,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		"v2-default-allow-one-allow": {
 			intentionDefaultAllow: true,
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				AllowPermissions: []*pbproxystate.L4Permission{
 					{
-						AllowPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("web", nil),
 							},
@@ -785,9 +785,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("*", structs.IntentionActionDeny),
 			),
 			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				Permissions: []*pbproxystate.L4Permission{
+				DenyPermissions: []*pbproxystate.L4Permission{
 					{
-						DenyPrincipals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.L4Principal{
 							{
 								SpiffeRegex: makeL4Spiffe("cron", nil),
 							},
@@ -1126,9 +1126,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 					if tt.v2L4TrafficPermissions == nil {
 						return
 					}
-					tt.v2L4TrafficPermissions.DefaultAction = pbproxystate.TrafficPermissionAction_INTENTION_ACTION_DENY
+					tt.v2L4TrafficPermissions.DefaultAction = pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_DENY
 					if tt.intentionDefaultAllow {
-						tt.v2L4TrafficPermissions.DefaultAction = pbproxystate.TrafficPermissionAction_INTENTION_ACTION_ALLOW
+						tt.v2L4TrafficPermissions.DefaultAction = pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_ALLOW
 					}
 
 					filters, err := xdsv2.MakeL4RBAC(tt.v2L4TrafficPermissions)

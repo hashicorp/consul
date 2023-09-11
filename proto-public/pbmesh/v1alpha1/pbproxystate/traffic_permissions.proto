@@ -5,22 +5,22 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1.pbproxystate;
 
-message L7TrafficPermission {}
+message L7TrafficPermissions {}
 
 enum TrafficPermissionAction {
-  INTENTION_ACTION_DENY = 0;
-  INTENTION_ACTION_ALLOW = 1;
+  TRAFFIC_PERMISSION_ACTION_UNSPECIFIED = 0;
+  TRAFFIC_PERMISSION_ACTION_DENY = 1;
+  TRAFFIC_PERMISSION_ACTION_ALLOW = 2;
 }
 
 message L4TrafficPermissions {
   TrafficPermissionAction default_action = 1;
-  // permission is constructed by pre-flattening all relevant permissions.
-  repeated L4Permission permissions = 2;
+  repeated L4Permission allow_permissions = 2;
+  repeated L4Permission deny_permissions = 3;
 }
 
 message L4Permission {
-  repeated L4Principal allow_principals = 1;
-  repeated L4Principal deny_principals = 2;
+  repeated L4Principal principals = 1;
 
   // We don't need destination rules here because they either apply to L7 features or multi-ports.
   // In the case of multiple ports, the xds controller is responsible for filtering per-port permissions.
