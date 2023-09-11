@@ -604,9 +604,14 @@ function suite_teardown {
 }
 
 function run_containers {
- for name in $@ ; do
-   run_container $name
- done
+  echo "Starting Containers"
+  echo $@
+  for name in $@ ; do
+    echo "Starting container"
+    echo $name
+    run_container $name
+  done
+  echo "Done running containers"
 }
 
 function run_container {
