@@ -51,10 +51,6 @@ function main {
                 codegen_install
                 return 0
                 ;;
-            -copywrite )
-                copywrite_install
-                return 0
-                ;;
             -h | --help )
                 usage
                 return 0
