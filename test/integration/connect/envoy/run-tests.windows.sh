@@ -611,6 +611,7 @@ function run_containers {
     echo $name
     run_container $name
   done
+  echo "Done running containers"
 }
 
 function run_container {
