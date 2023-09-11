@@ -65,7 +65,7 @@ func makeRBACs(trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy_
 	}
 
 	for i, p := range trafficPermissions.Permissions {
-		allowPolicy, err := makeRBACPolicy(allowRBAC.Action, p.AllowPrincipals)
+		allowPolicy, err := makeRBACPolicy(p.AllowPrincipals)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ func makeRBACs(trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy_
 			allowRBAC.Policies[policyLabel(i)] = allowPolicy
 		}
 
-		denyPolicy, err := makeRBACPolicy(denyRBAC.Action, p.DenyPrincipals)
+		denyPolicy, err := makeRBACPolicy(p.DenyPrincipals)
 		if err != nil {
 			return nil, err
 		}
@@ -98,9 +98,9 @@ func makeRBACs(trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy_
 
 func finalizeRBAC(rbac *envoy_rbac_v3.RBAC, defaultAction pbproxystate.TrafficPermissionAction) *envoy_rbac_v3.RBAC {
 	isRBACAllow := rbac.Action == envoy_rbac_v3.RBAC_ALLOW
-	isConsulAllow := defaultAction == pbproxystate.TrafficPermissionAction_INTENTION_ACTION_ALLOW
+	isConsulAllow := defaultAction == pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_ALLOW
 	// Remove allow traffic permissions with default allow. This is required because including an allow RBAC filter enforces default deny.
-	// It is safe because deny traffic permissions are applied before allow permissions, so explicit allow is equivalent to default allow. 
+	// It is safe because deny traffic permissions are applied before allow permissions, so explicit allow is equivalent to default allow.
 	removeAllows := isRBACAllow && isConsulAllow
 	if removeAllows {
 		return nil
@@ -119,7 +119,7 @@ func finalizeRBAC(rbac *envoy_rbac_v3.RBAC, defaultAction pbproxystate.TrafficPe
 	return nil
 }
 
-func makeRBACPolicy(action envoy_rbac_v3.RBAC_Action, l4Principals []*pbproxystate.L4Principal) (*envoy_rbac_v3.Policy, error) {
+func makeRBACPolicy(l4Principals []*pbproxystate.L4Principal) (*envoy_rbac_v3.Policy, error) {
 	if len(l4Principals) == 0 {
 		return nil, nil
 	}

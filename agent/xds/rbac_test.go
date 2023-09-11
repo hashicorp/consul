@@ -1126,9 +1126,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 					if tt.v2L4TrafficPermissions == nil {
 						return
 					}
-					tt.v2L4TrafficPermissions.DefaultAction = pbproxystate.TrafficPermissionAction_INTENTION_ACTION_DENY
+					tt.v2L4TrafficPermissions.DefaultAction = pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_DENY
 					if tt.intentionDefaultAllow {
-						tt.v2L4TrafficPermissions.DefaultAction = pbproxystate.TrafficPermissionAction_INTENTION_ACTION_ALLOW
+						tt.v2L4TrafficPermissions.DefaultAction = pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_ALLOW
 					}
 
 					filters, err := xdsv2.MakeL4RBAC(tt.v2L4TrafficPermissions)

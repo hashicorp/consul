@@ -5,11 +5,12 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1.pbproxystate;
 
-message L7TrafficPermission {}
+message L7TrafficPermissions {}
 
 enum TrafficPermissionAction {
-  INTENTION_ACTION_DENY = 0;
-  INTENTION_ACTION_ALLOW = 1;
+  TRAFFIC_PERMISSION_ACTION_UNSPECIFIED = 0;
+  TRAFFIC_PERMISSION_ACTION_DENY = 1;
+  TRAFFIC_PERMISSION_ACTION_ALLOW = 2;
 }
 
 message L4TrafficPermissions {
