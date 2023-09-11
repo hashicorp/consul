@@ -91,12 +91,16 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 				},
 			},
 			Match: &pbproxystate.Match{
-				AlpnProtocols: []string{fmt.Sprintf("consul~%s", portName)},
+				AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
 			},
 		}
 		l.listener.Routers = append(l.listener.Routers, r)
 	}
 	return l
+}
+
+func getAlpnProtocolFromPortName(portName string) string {
+	return fmt.Sprintf("consul~%s", portName)
 }
 
 func (b *Builder) addLocalAppCluster(clusterName string) *Builder {

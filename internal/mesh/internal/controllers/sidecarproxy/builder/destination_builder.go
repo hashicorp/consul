@@ -230,9 +230,7 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 									Sni: sni,
 								},
 							},
-							AlpnProtocols: []string{
-								fmt.Sprintf("consul~%s", portName),
-							},
+							AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
 						},
 					},
 				},
