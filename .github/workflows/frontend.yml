@@ -23,7 +23,7 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/checkout@v3 # pin@v3.3.0
     - id: setup-outputs
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
@@ -35,11 +35,11 @@ jobs:
       run:
         working-directory: ui
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+    - uses: actions/setup-node@v3
       with:
-        node-version: 14
+        node-version: '14'
 
     - name: Install Yarn
       run: npm install -g yarn
@@ -55,11 +55,11 @@ jobs:
     needs: setup
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+    - uses: actions/setup-node@v3
       with:
-        node-version: 14
+        node-version: '14'
 
     - name: Install Yarn
       run: npm install -g yarn
@@ -78,17 +78,18 @@ jobs:
     strategy:
       matrix:
         partition: [1, 2, 3, 4]
+        node: [14]
     env:
       EMBER_TEST_REPORT: test-results/report-ce.xml # outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
       CONSUL_NSPACES_ENABLED: ${{ endsWith(github.repository, '-enterprise') && 1 || 0 }} # NOTE: this should be 1 in ENT.
       JOBS: 2 # limit parallelism for broccoli-babel-transpiler
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+    - uses: actions/setup-node@v3
       with:
-        node-version: 14
+        node-version: '14'
 
     - name: Install Yarn
       run: npm install -g yarn
