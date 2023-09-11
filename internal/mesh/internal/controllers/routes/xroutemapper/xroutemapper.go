@@ -180,7 +180,7 @@ func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *
 
 	m.TrackXRoute(res.Id, route)
 
-	return makeControllerRequests(
+	return controller.MakeRequests(
 		types.ComputedRoutesType,
 		parentRefSliceToRefSlice(route.GetParentRefs()),
 	), nil
@@ -291,7 +291,7 @@ func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(svcID *pbresource
 		// Find all parent refs of this route.
 		svcRefs := m.ParentServiceRefsByRouteID(routeID)
 
-		out = append(out, makeControllerRequests(
+		out = append(out, controller.MakeRequests(
 			types.ComputedRoutesType,
 			svcRefs,
 		)...)

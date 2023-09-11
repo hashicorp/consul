@@ -4,7 +4,6 @@
 package xroutemapper
 
 import (
-	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
@@ -45,27 +44,5 @@ func sliceReplaceType(list []*pbresource.ID, typ *pbresource.Type) []*pbresource
 	for _, id := range list {
 		out = append(out, resource.ReplaceType(typ, id))
 	}
-	return out
-}
-
-func makeControllerRequests[V resource.ReferenceOrID](
-	typ *pbresource.Type,
-	refs []V,
-) []controller.Request {
-	if len(refs) == 0 {
-		return nil
-	}
-
-	out := make([]controller.Request, 0, len(refs))
-	for _, ref := range refs {
-		out = append(out, controller.Request{
-			ID: &pbresource.ID{
-				Type:    typ,
-				Tenancy: ref.GetTenancy(),
-				Name:    ref.GetName(),
-			},
-		})
-	}
-
 	return out
 }
