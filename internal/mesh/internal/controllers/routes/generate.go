@@ -164,6 +164,8 @@ func compile(
 				typ = types.TCPRouteType
 			case pbcatalog.Protocol_PROTOCOL_MESH:
 				fallthrough // to default
+			case pbcatalog.Protocol_PROTOCOL_UNSPECIFIED:
+				fallthrough // to default
 			default:
 				continue // not possible
 			}
