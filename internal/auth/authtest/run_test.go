@@ -37,5 +37,5 @@ func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Depend
 
 func TestControllers_Integration(t *testing.T) {
 	client := runInMemResourceServiceAndControllers(t, auth.DefaultControllerDependencies())
-	RunCatalogV1Alpha1IntegrationTest(t, client)
+	RunAuthV1Alpha1IntegrationTest(t, client)
 }

@@ -245,7 +245,8 @@ func (wm *WorkloadIdentityMapper) MapTrafficPermissions(ctx context.Context, rt 
 			return nil, err
 		}
 		if newWI != nil {
-			wm.trackTrafficPermissionsForWI(res.Id, newWI.Id)
+			newTPsForWI := wm.trackTrafficPermissionsForWI(res.Id, newWI.Id)
+			rt.Logger.Trace("tracking new explicit TPs for WI", "wi:", newWorkloadIdentityName, "tps:", newTPsForWI)
 			newWorkloadIdentities = append(newWorkloadIdentities, controller.Request{ID: newWI.Id})
 		} else {
 			// if not add to missingWIMap
@@ -265,7 +266,8 @@ func (wm *WorkloadIdentityMapper) MapTrafficPermissions(ctx context.Context, rt 
 	return append(workloadIdentities, newWorkloadIdentities...), nil
 }
 
-func (wm *WorkloadIdentityMapper) trackTrafficPermissionsForWI(tp *pbresource.ID, wi *pbresource.ID) {
+// tracks a new TP for a given WI, returns the new list of tracked TPs for that WI
+func (wm *WorkloadIdentityMapper) trackTrafficPermissionsForWI(tp *pbresource.ID, wi *pbresource.ID) []resource.ReferenceOrID {
 	// Update the bimapper entry with a new link
 	tpRef := &pbresource.Reference{
 		Type:    types.TrafficPermissionsType,
@@ -278,6 +280,7 @@ func (wm *WorkloadIdentityMapper) trackTrafficPermissionsForWI(tp *pbresource.ID
 		tpsAsIDsOrRefs = append(tpsAsIDsOrRefs, ref)
 	}
 	wm.mapper.TrackItem(wi, tpsAsIDsOrRefs)
+	return tpsAsIDsOrRefs
 }
 
 func (wm *WorkloadIdentityMapper) UntrackTrafficPermissions(tp *pbresource.ID) {
@@ -318,9 +321,10 @@ func (wm *WorkloadIdentityMapper) TrackWorkloadIdentity(wi *pbresource.ID) {
 
 // computeNewTrafficPermissions will use all associated Traffic Permissions to create new Computed Traffic Permissions data
 func (wm *WorkloadIdentityMapper) ComputeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, workloadIdentity *pbresource.ID) (*pbauth.ComputedTrafficPermissions, error) {
+	rt.Logger.Trace("Computing new CTP for WI", "workloadID:", workloadIdentity.Name)
 	// Part 1: Get all TPs that apply to workload identity
 	// explicit permissions
-	var allTrafficPermisisons []pbauth.TrafficPermissions
+	var allTrafficPermissions []pbauth.TrafficPermissions
 	// Get already associated WorkloadIdentities/CTPs for reconcile requests:
 	// Get by direct association
 	explicitTPs := wm.mapper.LinkIDsForItem(workloadIdentity)
@@ -337,16 +341,18 @@ func (wm *WorkloadIdentityMapper) ComputeNewTrafficPermissions(ctx context.Conte
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to parse traffic permissions data")
 		}
-		allTrafficPermisisons = append(allTrafficPermisisons, tp)
+		allTrafficPermissions = append(allTrafficPermissions, tp)
 	}
 	// Part 2: For all TPs affecting WI, aggregate Allow and Deny permissions
 	ap := make([]*pbauth.Permission, 0)
 	dp := make([]*pbauth.Permission, 0)
-	for _, t := range allTrafficPermisisons {
+	for _, t := range allTrafficPermissions {
 		if t.Action == pbauth.Action_ACTION_ALLOW {
 			ap = append(ap, t.Permissions...)
+			rt.Logger.Trace("Adding Allow permission to CTP", "workloadID:", workloadIdentity.Name, "permission:", t.Permissions)
 		} else {
 			dp = append(dp, t.Permissions...)
+			rt.Logger.Trace("Adding Deny permission to CTP", "workloadID:", workloadIdentity.Name, "permission:", t.Permissions)
 		}
 	}
 	return &pbauth.ComputedTrafficPermissions{AllowPermissions: ap, DenyPermissions: dp}, nil

@@ -5,12 +5,17 @@ package authtest
 
 import (
 	"embed"
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -19,21 +24,21 @@ var (
 	testData embed.FS
 )
 
-// RunCatalogV1Alpha1IntegrationTest will push up a bunch of auth related data and then
+// RunAuthV1Alpha1IntegrationTest will push up a bunch of auth related data and then
 // verify that all the expected reconciliations happened correctly.
 // Besides just controller reconciliation behavior, the intent is also to verify
 // that integrations with the resource service are also working (i.e. the various
 // validation, mutation and ACL hooks get invoked and are working properly)
-func RunCatalogV1Alpha1IntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunAuthV1Alpha1IntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
 	t.Helper()
 
-	PublishCatalogV1Alpha1IntegrationTestData(t, client)
-	VerifyCatalogV1Alpha1IntegrationTestResults(t, client)
+	PublishAuthV1Alpha1IntegrationTestData(t, client)
+	VerifyAuthV1Alpha1IntegrationTestResults(t, client)
 }
 
-// PublishCatalogV1Alpha1IntegrationTestData will perform a whole bunch of resource writes
+// PublishAuthV1Alpha1IntegrationTestData will perform a whole bunch of resource writes
 // for WorkloadIdentity, TrafficPermission, NamespaceTrafficPermisison, and PartitionTrafficPermission objects
-func PublishCatalogV1Alpha1IntegrationTestData(t *testing.T, client pbresource.ResourceServiceClient) {
+func PublishAuthV1Alpha1IntegrationTestData(t *testing.T, client pbresource.ResourceServiceClient) {
 	t.Helper()
 
 	c := rtest.NewClient(client)
@@ -42,7 +47,7 @@ func PublishCatalogV1Alpha1IntegrationTestData(t *testing.T, client pbresource.R
 	c.PublishResources(t, resources)
 }
 
-func VerifyCatalogV1Alpha1IntegrationTestResults(t *testing.T, client pbresource.ResourceServiceClient) {
+func VerifyAuthV1Alpha1IntegrationTestResults(t *testing.T, client pbresource.ResourceServiceClient) {
 	t.Helper()
 
 	c := rtest.NewClient(client)
@@ -64,7 +69,7 @@ func VerifyCatalogV1Alpha1IntegrationTestResults(t *testing.T, client pbresource
 		c.RequireResourceExists(t, wi2)
 		wi3 := rtest.Resource(auth.WorkloadIdentityV1Alpha1Type, "wi-2").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, wi3)
-		//wi3 := rtest.Resource(auth.WorkloadIdentityV1Alpha1Type, "wi-4").WithTenancy(&pbresource.Tenancy{
+		//wi4 := rtest.Resource(auth.WorkloadIdentityV1Alpha1Type, "wi-4").WithTenancy(&pbresource.Tenancy{
 		//	Partition: resource.DefaultPartitionName,
 		//	Namespace: "ns1",
 		//}).ID()
@@ -77,4 +82,32 @@ func VerifyCatalogV1Alpha1IntegrationTestResults(t *testing.T, client pbresource
 		tp3 := rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, tp3)
 	})
+
+	testutil.RunStep(t, "ctp-generation", func(t *testing.T) {
+		verifyComputedTrafficPermissions(t, c, rtest.Resource(auth.ComputedTrafficPermissionsV1Alpha1Type, "wi-1").ID(), expectedCTPForWI["wi-1"])
+		//verifyComputedTrafficPermissions(t, c, rtest.Resource(auth.ComputedTrafficPermissionsV1Alpha1Type, "wi-2").ID(), expectedCTPForWI["wi-2"])
+		//verifyComputedTrafficPermissions(t, c, rtest.Resource(auth.ComputedTrafficPermissionsV1Alpha1Type, "wi-3").ID(), expectedCTPForWI["wi-3"])
+	})
+}
+
+func verifyComputedTrafficPermissions(t *testing.T, c *rtest.Client, id *pbresource.ID, expected *pbauth.ComputedTrafficPermissions) {
+	t.Helper()
+	c.WaitForResourceState(t, id, func(t rtest.T, res *pbresource.Resource) {
+		var actual pbauth.ComputedTrafficPermissions
+		err := res.Data.UnmarshalTo(&actual)
+		require.NoError(t, err)
+		fmt.Printf("DENY expected: %v, actual: %v\n", expected.DenyPermissions, actual.DenyPermissions)
+		fmt.Printf("ALLOW expected: %v, actual: %v\n", expected.AllowPermissions, actual.AllowPermissions)
+		prototest.AssertElementsMatch(t, expected.AllowPermissions, actual.AllowPermissions)
+		prototest.AssertElementsMatch(t, expected.DenyPermissions, actual.DenyPermissions)
+	})
+}
+
+var expectedCTPForWI = map[string]*pbauth.ComputedTrafficPermissions{
+	"wi-1": {
+		AllowPermissions: []*pbauth.Permission{
+			{Sources: []*pbauth.Source{{IdentityName: "wi-3"}}, DestinationRules: []*pbauth.DestinationRule{{PortNames: []string{"baz"}}}},
+			{Sources: []*pbauth.Source{{IdentityName: "wi-2"}}, DestinationRules: []*pbauth.DestinationRule{{PortNames: []string{"foo"}}}},
+		},
+		DenyPermissions: nil},
 }
