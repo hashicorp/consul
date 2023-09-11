@@ -96,7 +96,7 @@ jobs:
     - name: Notify Slack
       if: ${{ failure() }}
       run: .github/scripts/notify_slack.sh
-  check-generated-deep-copy:
+  check-codegen:
      needs:
      - setup
      runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
@@ -109,7 +109,7 @@ jobs:
      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
        with:
          go-version-file: 'go.mod'
-     - run: make --always-make deep-copy
+     - run: make --always-make codegen
      - run: |
          if ! git diff --exit-code; then
            echo "Generated code was not updated correctly"
@@ -485,7 +485,7 @@ jobs:
     needs:
     - conditional-skip
     - setup
-    - check-generated-deep-copy
+    - check-codegen
     - check-generated-protobuf
     - check-go-mod
     - lint-consul-retry

@@ -428,8 +428,8 @@ lint-tools: ## Install tools for linting
 codegen-tools: ## Install tools for codegen
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
 
-.PHONY: deep-copy
-deep-copy: codegen-tools ## Deep copy
+.PHONY: codegen
+codegen: codegen-tools ## Deep copy
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
