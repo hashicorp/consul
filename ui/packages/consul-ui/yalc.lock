@@ -1,8 +1,0 @@
-{
-  "version": "v1",
-  "packages": {
-    "@hashicorp/consul-ui-toolkit": {
-      "signature": "892d5be1e5d785808d3b0ec9450b799b"
-    }
-  }
-}
