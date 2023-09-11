@@ -4,6 +4,7 @@
 package builder
 
 import (
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"sort"
 	"testing"
 
@@ -85,7 +86,7 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 			})
 
 			actual := protoToJSON(t, proxyTmpl)
-			expected := JSONToProxyTemplate(t, goldenValueBytes(t, name, actual, false))
+			expected := JSONToProxyTemplate(t, golden.GetBytes(t, name, actual))
 
 			// sort routers on listener from golden file
 			expectedRouters := expected.ProxyState.Listeners[0].Routers

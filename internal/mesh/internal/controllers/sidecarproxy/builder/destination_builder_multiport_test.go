@@ -6,6 +6,7 @@ package builder
 import (
 	"fmt"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"sort"
 	"testing"
@@ -166,7 +167,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			})
 
 			actual := protoToJSON(t, proxyTmpl)
-			expected := JSONToProxyTemplate(t, goldenValueBytes(t, name, actual, false))
+			expected := JSONToProxyTemplate(t, golden.GetBytes(t, name, actual))
 
 			// sort routers on listener from golden file
 			expectedRouters := expected.ProxyState.Listeners[0].Routers

@@ -100,7 +100,7 @@ func (b *Builder) addRouters(portInfo *servicePortInfo, destination *intermediat
 	return b
 }
 
-// addOutboundDestinationListener creates an outbound listener for an explicit destination.
+// addExplicitOutboundListener creates an outbound listener for an explicit destination.
 func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Upstream) *Builder {
 	listener := &pbproxystate.Listener{
 		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
@@ -148,8 +148,8 @@ func (b *Builder) addTransparentProxyOutboundListener(port uint32) *Builder {
 	return b.NewListenerBuilder(listener).buildListener()
 }
 
-// getRouterDestination returns the appropriate router destination based on the port protocol.
-func (b *Builder) getRouterDestination(router *pbproxystate.Router, clusterName, statPrefix string, _ *pbcatalog.WorkloadPort) *Builder {
+// addRouterDestination returns the appropriate router destination based on the port protocol.
+func (b *Builder) addRouterDestination(router *pbproxystate.Router, clusterName, statPrefix string, _ *pbcatalog.WorkloadPort) *Builder {
 	//switch port.GetProtocol() {
 	//case pbcatalog.Protocol_PROTOCOL_TCP:
 	//	router.Destination = &pbproxystate.Router_L4{
@@ -183,7 +183,7 @@ func (b *Builder) addRouterWithIPAndPortMatch(clusterName, statPrefix string, po
 
 	// For explicit destinations, we have no filter chain match, and filters are based on port protocol.
 	router := &pbproxystate.Router{}
-	b.getRouterDestination(router, clusterName, statPrefix, port)
+	b.addRouterDestination(router, clusterName, statPrefix, port)
 
 	if router.Destination != nil {
 		if (port != nil || len(vips) > 0) && router.Match == nil {

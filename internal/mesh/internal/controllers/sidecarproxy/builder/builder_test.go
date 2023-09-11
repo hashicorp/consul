@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
-	"path/filepath"
 	"testing"
 
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
@@ -50,26 +49,4 @@ func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
 	err := m.Unmarshal(json, proxyTemplate)
 	require.NoError(t, err)
 	return proxyTemplate
-}
-
-func goldenValue(t *testing.T, goldenFile string, actual string, update bool) string {
-	t.Helper()
-	return string(goldenValueBytes(t, goldenFile, actual, update))
-}
-
-func goldenValueBytes(t *testing.T, goldenFile string, actual string, update bool) []byte {
-	t.Helper()
-	goldenPath := filepath.Join("testdata", goldenFile) + ".golden"
-
-	if update {
-		bytes := []byte(actual)
-		err := os.WriteFile(goldenPath, bytes, 0644)
-		require.NoError(t, err)
-
-		return bytes
-	}
-
-	content, err := os.ReadFile(goldenPath)
-	require.NoError(t, err)
-	return content
 }
