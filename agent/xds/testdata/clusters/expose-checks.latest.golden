@@ -1,22 +1,20 @@
 {
-  "versionInfo":  "00000001",
-  "resources":  [
+  "nonce": "00000001",
+  "resources": [
     {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "exposed_cluster_8181",
-      "type":  "STATIC",
-      "connectTimeout":  "5s",
-      "loadAssignment":  {
-        "clusterName":  "exposed_cluster_8181",
-        "endpoints":  [
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "exposed_cluster_8181",
+        "endpoints": [
           {
-            "lbEndpoints":  [
+            "lbEndpoints": [
               {
-                "endpoint":  {
-                  "address":  {
-                    "socketAddress":  {
-                      "address":  "127.0.0.1",
-                      "portValue":  8181
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8181
                     }
                   }
                 }
@@ -24,24 +22,24 @@
             ]
           }
         ]
-      }
+      },
+      "name": "exposed_cluster_8181",
+      "type": "STATIC"
     },
     {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "local_app",
-      "type":  "STATIC",
-      "connectTimeout":  "5s",
-      "loadAssignment":  {
-        "clusterName":  "local_app",
-        "endpoints":  [
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "local_app",
+        "endpoints": [
           {
-            "lbEndpoints":  [
+            "lbEndpoints": [
               {
-                "endpoint":  {
-                  "address":  {
-                    "socketAddress":  {
-                      "address":  "127.0.0.1",
-                      "portValue":  8080
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8080
                     }
                   }
                 }
@@ -49,9 +47,11 @@
             ]
           }
         ]
-      }
+      },
+      "name": "local_app",
+      "type": "STATIC"
     }
   ],
-  "typeUrl":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "nonce":  "00000001"
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+  "versionInfo": "00000001"
 }

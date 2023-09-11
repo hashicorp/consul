@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/helpers"
+	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/internal/resourcehcl"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -69,27 +69,21 @@ func makeWriteRequest(parsedResource *pbresource.Resource) (payload *api.WriteRe
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return 0
+		if !errors.Is(err, flag.ErrHelp) {
+			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
+			return 1
 		}
-		c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
-		return 1
 	}
 
 	var parsedResource *pbresource.Resource
 
 	if c.filePath != "" {
-		data, err := helpers.LoadDataSourceNoRaw(c.filePath, nil)
+		data, err := resource.ParseResourceFromFile(c.filePath)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to load data: %v", err))
+			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
 			return 1
 		}
-
-		parsedResource, err = parseResource(data)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Your argument format is incorrect: %s", err))
-			return 1
-		}
+		parsedResource = data
 	} else {
 		c.UI.Error("Flag -f is required")
 		return 1
