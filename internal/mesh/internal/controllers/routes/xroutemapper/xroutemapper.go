@@ -248,7 +248,7 @@ func (m *Mapper) MapService(
 
 	// (case 2) First find all failover policies that have a reference to our input service.
 	failPolicyIDs := m.failMapper.FailoverIDsByService(res.Id)
-	effectiveServiceIDs := SliceReplaceType(failPolicyIDs, catalog.ServiceType)
+	effectiveServiceIDs := sliceReplaceType(failPolicyIDs, catalog.ServiceType)
 
 	// (case 1) Do the direct mapping also.
 	effectiveServiceIDs = append(effectiveServiceIDs, res.Id)

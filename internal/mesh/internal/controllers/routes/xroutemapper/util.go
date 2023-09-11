@@ -37,7 +37,7 @@ func backendRefSliceToRefSlice(backendRefs []*pbmesh.BackendReference) []resourc
 	return backends
 }
 
-func SliceReplaceType(list []*pbresource.ID, typ *pbresource.Type) []*pbresource.ID {
+func sliceReplaceType(list []*pbresource.ID, typ *pbresource.Type) []*pbresource.ID {
 	if list == nil {
 		return nil
 	}
