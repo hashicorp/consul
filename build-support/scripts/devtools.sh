@@ -51,8 +51,8 @@ function main {
                 codegen_install
                 return 0
                 ;;
-            -copyright )
-                copyright_install
+            -copywrite )
+                copywrite_install
                 return 0
                 ;;
             -h | --help )
@@ -154,7 +154,7 @@ function lint_install {
 
 function codegen_install {
   deepcopy_install
-  copyright_install
+  copywrite_install
 }
 
 function deepcopy_install {
@@ -168,14 +168,14 @@ function deepcopy_install {
           'github.com/globusdigital/deep-copy'
 }
 
-function copyright_install {
-    local copyright_version
-    copyright_version="$(make --no-print-directory print-COPYRIGHT_TOOL_VERSION)"
+function copywrite_install {
+    local copywrite_version
+    copywrite_version="$(make --no-print-directory print-COPYWRITE_TOOL_VERSION)"
 
     install_versioned_tool \
-        'copyright' \
+        'copywrite' \
         'github.com/hashicorp/copywrite' \
-        "${copyright_version}" \
+        "${copywrite_version}" \
         'github.com/hashicorp/copywrite'
 }
 
