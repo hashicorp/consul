@@ -4,7 +4,6 @@
 package xroutemapper
 
 import (
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -16,7 +15,7 @@ func parentRefSliceToRefSlice(parentRefs []*pbmesh.ParentReference) []resource.R
 	}
 	parents := make([]resource.ReferenceOrID, 0, len(parentRefs))
 	for _, parentRef := range parentRefs {
-		if parentRef.Ref != nil && types.IsServiceType(parentRef.Ref.Type) {
+		if parentRef.Ref != nil {
 			parents = append(parents, parentRef.Ref)
 		}
 	}
@@ -29,7 +28,7 @@ func backendRefSliceToRefSlice(backendRefs []*pbmesh.BackendReference) []resourc
 	}
 	backends := make([]resource.ReferenceOrID, 0, len(backendRefs))
 	for _, backendRef := range backendRefs {
-		if backendRef.Ref != nil && types.IsServiceType(backendRef.Ref.Type) {
+		if backendRef.Ref != nil {
 			backends = append(backends, backendRef.Ref)
 		}
 	}
