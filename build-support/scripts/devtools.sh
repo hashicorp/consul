@@ -153,14 +153,19 @@ function lint_install {
 }
 
 function codegen_install {
-    local deep_copy_version
-    deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
+  deepcopy_install
+  copyright_install
+}
 
-    install_versioned_tool \
-        'deep-copy' \
-        'github.com/globusdigital/deep-copy' \
-        "${deep_copy_version}" \
-        'github.com/globusdigital/deep-copy'
+function deepcopy_install {
+  local deep_copy_version
+      deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
+
+      install_versioned_tool \
+          'deep-copy' \
+          'github.com/globusdigital/deep-copy' \
+          "${deep_copy_version}" \
+          'github.com/globusdigital/deep-copy'
 }
 
 function copyright_install {
