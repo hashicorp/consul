@@ -58,6 +58,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 	newService := func(name string, data *pbcatalog.Service) *types.DecodedService {
 		svc := rtest.Resource(catalog.ServiceType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
 		return rtest.MustDecode[*pbcatalog.Service](t, svc)
@@ -65,18 +66,21 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 	newHTTPRoute := func(name string, data *pbmesh.HTTPRoute) *types.DecodedHTTPRoute {
 		svc := rtest.Resource(types.HTTPRouteType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
 		return rtest.MustDecode[*pbmesh.HTTPRoute](t, svc)
 	}
 	newGRPCRoute := func(name string, data *pbmesh.GRPCRoute) *types.DecodedGRPCRoute {
 		svc := rtest.Resource(types.GRPCRouteType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
 		return rtest.MustDecode[*pbmesh.GRPCRoute](t, svc)
 	}
 	newTCPRoute := func(name string, data *pbmesh.TCPRoute) *types.DecodedTCPRoute {
 		svc := rtest.Resource(types.TCPRouteType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
 		return rtest.MustDecode[*pbmesh.TCPRoute](t, svc)
@@ -84,6 +88,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 	newDestPolicy := func(name string, data *pbmesh.DestinationPolicy) *types.DecodedDestinationPolicy {
 		policy := rtest.Resource(types.DestinationPolicyType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, policy)
 		return rtest.MustDecode[*pbmesh.DestinationPolicy](t, policy)
@@ -91,6 +96,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 	newFailPolicy := func(name string, data *pbcatalog.FailoverPolicy) *types.DecodedFailoverPolicy {
 		policy := rtest.Resource(catalog.FailoverPolicyType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, policy)
 		return rtest.MustDecode[*pbcatalog.FailoverPolicy](t, policy)
@@ -101,14 +107,22 @@ func TestGenerateComputedRoutes(t *testing.T) {
 	}
 
 	var (
-		apiServiceID        = rtest.Resource(catalog.ServiceType, "api").ID()
+		apiServiceID = rtest.Resource(catalog.ServiceType, "api").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				ID()
 		apiServiceRef       = resource.Reference(apiServiceID, "")
-		apiComputedRoutesID = rtest.Resource(types.ComputedRoutesType, "api").ID()
+		apiComputedRoutesID = rtest.Resource(types.ComputedRoutesType, "api").
+					WithTenancy(resource.DefaultNamespacedTenancy()).
+					ID()
 
-		fooServiceID  = rtest.Resource(catalog.ServiceType, "foo").ID()
+		fooServiceID = rtest.Resource(catalog.ServiceType, "foo").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				ID()
 		fooServiceRef = resource.Reference(fooServiceID, "")
 
-		barServiceID  = rtest.Resource(catalog.ServiceType, "bar").ID()
+		barServiceID = rtest.Resource(catalog.ServiceType, "bar").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				ID()
 		barServiceRef = resource.Reference(barServiceID, "")
 	)
 

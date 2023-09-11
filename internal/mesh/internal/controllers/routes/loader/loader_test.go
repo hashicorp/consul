@@ -54,6 +54,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeHTTP := func(name string, data *pbmesh.HTTPRoute) *types.DecodedHTTPRoute {
 		res := rtest.Resource(types.HTTPRouteType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
 		mapper.TrackXRoute(res.Id, data)
@@ -64,6 +65,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeGRPC := func(name string, data *pbmesh.GRPCRoute) *types.DecodedGRPCRoute {
 		res := rtest.Resource(types.GRPCRouteType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
 		mapper.TrackXRoute(res.Id, data)
@@ -75,6 +77,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeTCP := func(name string, data *pbmesh.TCPRoute) *types.DecodedTCPRoute {
 		res := rtest.Resource(types.TCPRouteType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
 		mapper.TrackXRoute(res.Id, data)
@@ -86,6 +89,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeDestPolicy := func(name string, data *pbmesh.DestinationPolicy) *types.DecodedDestinationPolicy {
 		res := rtest.Resource(types.DestinationPolicyType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
 		dec, err := resource.Decode[*pbmesh.DestinationPolicy](res)
@@ -95,6 +99,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeFailover := func(name string, data *pbcatalog.FailoverPolicy) *types.DecodedFailoverPolicy {
 		res := rtest.Resource(catalog.FailoverPolicyType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
 		dec, err := resource.Decode[*pbcatalog.FailoverPolicy](res)
@@ -104,6 +109,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeService := func(name string, data *pbcatalog.Service) *types.DecodedService {
 		res := rtest.Resource(catalog.ServiceType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
 		dec, err := resource.Decode[*pbcatalog.Service](res)
@@ -145,12 +151,12 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	apiRoutesID := &pbresource.ID{
 		Type:    types.ComputedRoutesType,
-		Tenancy: defaultTenancy(),
+		Tenancy: resource.DefaultNamespacedTenancy(),
 		Name:    "api",
 	}
 	adminRoutesID := &pbresource.ID{
 		Type:    types.ComputedRoutesType,
-		Tenancy: defaultTenancy(),
+		Tenancy: resource.DefaultNamespacedTenancy(),
 		Name:    "admin",
 	}
 
@@ -369,15 +375,9 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).Reference("")
-}
-
-func defaultTenancy() *pbresource.Tenancy {
-	return &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "default",
-		PeerName:  "local",
-	}
+	return rtest.Resource(typ, name).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Reference("")
 }
 
 type resourceGetter interface {

@@ -205,7 +205,9 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).Reference("")
+	return rtest.Resource(typ, name).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Reference("")
 }
 
 type testServiceGetter struct {

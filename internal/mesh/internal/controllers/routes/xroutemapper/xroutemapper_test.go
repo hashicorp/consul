@@ -79,13 +79,16 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 
 	newService := func(name string) *pbresource.Resource {
 		svc := rtest.Resource(catalog.ServiceType, name).
-			WithData(t, &pbcatalog.Service{}).Build()
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, &pbcatalog.Service{}).
+			Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
 		return svc
 	}
 
 	newDestPolicy := func(name string, dur time.Duration) *pbresource.Resource {
 		policy := rtest.Resource(types.DestinationPolicyType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, &pbmesh.DestinationPolicy{
 				PortConfigs: map[string]*pbmesh.DestinationConfig{
 					"http": {
@@ -105,6 +108,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			})
 		}
 		policy := rtest.Resource(catalog.FailoverPolicyType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Destinations: dests,
@@ -175,14 +179,16 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	)
 	testutil.RunStep(t, "track a name-aligned xroute", func(t *testing.T) {
 		// First route will also not cross any services.
-		route1 := rtest.Resource(typ, "route-1").WithData(t, newRoute(t,
-			[]*pbmesh.ParentReference{
-				{Ref: newRef(catalog.ServiceType, "api")},
-			},
-			[]*pbmesh.BackendReference{
-				newBackendRef("api"),
-			},
-		)).Build()
+		route1 := rtest.Resource(typ, "route-1").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, newRoute(t,
+				[]*pbmesh.ParentReference{
+					{Ref: newRef(catalog.ServiceType, "api")},
+				},
+				[]*pbmesh.BackendReference{
+					newBackendRef("api"),
+				},
+			)).Build()
 		rtest.ValidateAndNormalize(t, registry, route1)
 
 		requireTracking(t, m, route1, apiComputedRoutes)
@@ -216,14 +222,16 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	})
 
 	testutil.RunStep(t, "make the route cross services", func(t *testing.T) {
-		route1 = rtest.Resource(typ, "route-1").WithData(t, newRoute(t,
-			[]*pbmesh.ParentReference{
-				{Ref: newRef(catalog.ServiceType, "api")},
-			},
-			[]*pbmesh.BackendReference{
-				newBackendRef("www"),
-			},
-		)).Build()
+		route1 = rtest.Resource(typ, "route-1").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, newRoute(t,
+				[]*pbmesh.ParentReference{
+					{Ref: newRef(catalog.ServiceType, "api")},
+				},
+				[]*pbmesh.BackendReference{
+					newBackendRef("www"),
+				},
+			)).Build()
 		rtest.ValidateAndNormalize(t, registry, route1)
 
 		// Now witness the update.
@@ -264,15 +272,17 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		route2 *pbresource.Resource
 	)
 	testutil.RunStep(t, "make another route sharing a parent with the first", func(t *testing.T) {
-		route2 = rtest.Resource(typ, "route-2").WithData(t, newRoute(t,
-			[]*pbmesh.ParentReference{
-				{Ref: newRef(catalog.ServiceType, "api")},
-				{Ref: newRef(catalog.ServiceType, "foo")},
-			},
-			[]*pbmesh.BackendReference{
-				newBackendRef("bar"),
-			},
-		)).Build()
+		route2 = rtest.Resource(typ, "route-2").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, newRoute(t,
+				[]*pbmesh.ParentReference{
+					{Ref: newRef(catalog.ServiceType, "api")},
+					{Ref: newRef(catalog.ServiceType, "foo")},
+				},
+				[]*pbmesh.BackendReference{
+					newBackendRef("bar"),
+				},
+			)).Build()
 		rtest.ValidateAndNormalize(t, registry, route1)
 
 		// Now witness a route with multiple parents, overlapping the other route.
@@ -572,19 +582,15 @@ func newBackendRef(name string) *pbmesh.BackendReference {
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).Reference("")
+	return rtest.Resource(typ, name).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Reference("")
 }
 
 func newID(typ *pbresource.Type, name string) *pbresource.ID {
-	return rtest.Resource(typ, name).ID()
-}
-
-func defaultTenancy() *pbresource.Tenancy {
-	return &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "default",
-		PeerName:  "local",
-	}
+	return rtest.Resource(typ, name).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		ID()
 }
 
 func testDeduplicateRequests(reqs []controller.Request) []controller.Request {

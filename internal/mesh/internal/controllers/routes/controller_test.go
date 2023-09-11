@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
@@ -53,11 +54,19 @@ func (suite *controllerSuite) TestController() {
 	}
 
 	var (
-		apiServiceRef = rtest.Resource(catalog.ServiceType, "api").Reference("")
-		fooServiceRef = rtest.Resource(catalog.ServiceType, "foo").Reference("")
-		barServiceRef = rtest.Resource(catalog.ServiceType, "bar").Reference("")
+		apiServiceRef = rtest.Resource(catalog.ServiceType, "api").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				Reference("")
+		fooServiceRef = rtest.Resource(catalog.ServiceType, "foo").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				Reference("")
+		barServiceRef = rtest.Resource(catalog.ServiceType, "bar").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				Reference("")
 
-		computedRoutesID = rtest.Resource(types.ComputedRoutesType, "api").ID()
+		computedRoutesID = rtest.Resource(types.ComputedRoutesType, "api").
+					WithTenancy(resource.DefaultNamespacedTenancy()).
+					ID()
 	)
 
 	// Start out by creating a single port service and let it create the
@@ -75,6 +84,7 @@ func (suite *controllerSuite) TestController() {
 	}
 
 	_ = rtest.Resource(catalog.ServiceType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 
@@ -124,6 +134,7 @@ func (suite *controllerSuite) TestController() {
 	}
 
 	_ = rtest.Resource(catalog.ServiceType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 
@@ -142,6 +153,7 @@ func (suite *controllerSuite) TestController() {
 	}
 
 	_ = rtest.Resource(catalog.ServiceType, "foo").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), fooServiceData).
 		Write(suite.T(), suite.client)
 
@@ -256,6 +268,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	tcpRoute1ID := rtest.Resource(types.TCPRouteType, "api-tcp-route1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), tcpRoute1).
 		Write(suite.T(), suite.client).
 		Id
@@ -272,6 +285,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	httpRoute1ID := rtest.Resource(types.HTTPRouteType, "api-http-route1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), httpRoute1).
 		Write(suite.T(), suite.client).
 		Id
@@ -287,6 +301,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	grpcRoute1ID := rtest.Resource(types.GRPCRouteType, "api-grpc-route1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), grpcRoute1).
 		Write(suite.T(), suite.client).
 		Id
@@ -416,6 +431,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	tcpRoute2ID := rtest.Resource(types.TCPRouteType, "api-tcp-route2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), tcpRoute2).
 		Write(suite.T(), suite.client).
 		Id
@@ -438,6 +454,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	httpRoute2ID := rtest.Resource(types.HTTPRouteType, "api-http-route2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), httpRoute2).
 		Write(suite.T(), suite.client).
 		Id
@@ -460,6 +477,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	grpcRoute2ID := rtest.Resource(types.GRPCRouteType, "api-grpc-route2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), grpcRoute2).
 		Write(suite.T(), suite.client).
 		Id
@@ -644,6 +662,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	rtest.ResourceID(tcpRoute2ID).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), tcpRoute2).
 		Write(suite.T(), suite.client)
 
@@ -664,6 +683,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	rtest.ResourceID(httpRoute2ID).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), httpRoute2).
 		Write(suite.T(), suite.client)
 
@@ -685,6 +705,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	rtest.ResourceID(grpcRoute2ID).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), grpcRoute2).
 		Write(suite.T(), suite.client)
 
@@ -834,6 +855,7 @@ func (suite *controllerSuite) TestController() {
 		}},
 	}
 	grpcRoute1ID = rtest.Resource(types.GRPCRouteType, "zzz-bad-route").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), grpcRoute1).
 		Write(suite.T(), suite.client).
 		Id
@@ -970,6 +992,7 @@ func (suite *controllerSuite) TestController() {
 	}
 
 	_ = rtest.Resource(catalog.ServiceType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 
