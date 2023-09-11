@@ -209,7 +209,7 @@ func (m *Mapper) MapFailoverPolicy(
 
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
-	svcID := changeType(res.Id, catalog.ServiceType)
+	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -235,7 +235,7 @@ func (m *Mapper) MapDestinationPolicy(
 
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
-	svcID := changeType(res.Id, catalog.ServiceType)
+	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -253,7 +253,7 @@ func (m *Mapper) MapService(
 
 	// (case 2) First find all failover policies that have a reference to our input service.
 	failPolicyIDs := m.failMapper.FailoverIDsByService(res.Id)
-	effectiveServiceIDs := changeTypeForSlice(failPolicyIDs, catalog.ServiceType)
+	effectiveServiceIDs := SliceReplaceType(failPolicyIDs, catalog.ServiceType)
 
 	// (case 1) Do the direct mapping also.
 	effectiveServiceIDs = append(effectiveServiceIDs, res.Id)
@@ -278,7 +278,7 @@ func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(svcID *pbresource
 
 	// return 1 hit for the name aligned mesh config
 	primaryReq := controller.Request{
-		ID: changeType(svcID, types.ComputedRoutesType),
+		ID: resource.ReplaceType(types.ComputedRoutesType, svcID),
 	}
 
 	svcRef := resource.Reference(svcID, "")

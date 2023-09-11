@@ -37,21 +37,13 @@ func backendRefSliceToRefSlice(backendRefs []*pbmesh.BackendReference) []resourc
 	return backends
 }
 
-func changeType(id *pbresource.ID, typ *pbresource.Type) *pbresource.ID {
-	return &pbresource.ID{
-		Type:    typ,
-		Tenancy: id.Tenancy,
-		Name:    id.Name,
-	}
-}
-
-func changeTypeForSlice(list []*pbresource.ID, typ *pbresource.Type) []*pbresource.ID {
+func SliceReplaceType(list []*pbresource.ID, typ *pbresource.Type) []*pbresource.ID {
 	if list == nil {
 		return nil
 	}
 	out := make([]*pbresource.ID, 0, len(list))
 	for _, id := range list {
-		out = append(out, changeType(id, typ))
+		out = append(out, resource.ReplaceType(typ, id))
 	}
 	return out
 }
