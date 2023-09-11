@@ -1,34 +1,34 @@
 {
-  "name":  "envoy.filters.http.rbac",
-  "typedConfig":  {
-    "@type":  "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-    "rules":  {
-      "action":  "DENY",
-      "policies":  {
-        "consul-intentions-layer7-0":  {
-          "permissions":  [
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "action": "DENY",
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
             {
-              "urlPath":  {
-                "path":  {
-                  "exact":  "/v1/secret"
+              "urlPath": {
+                "path": {
+                  "exact": "/v1/secret"
                 }
               }
             },
             {
-              "andRules":  {
-                "rules":  [
+              "andRules": {
+                "rules": [
                   {
-                    "urlPath":  {
-                      "path":  {
-                        "exact":  "/v1/admin"
+                    "urlPath": {
+                      "path": {
+                        "exact": "/v1/admin"
                       }
                     }
                   },
                   {
-                    "notRule":  {
-                      "urlPath":  {
-                        "path":  {
-                          "exact":  "/v1/secret"
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
                         }
                       }
                     }
@@ -37,13 +37,13 @@
               }
             }
           ],
-          "principals":  [
+          "principals": [
             {
-              "authenticated":  {
-                "principalName":  {
-                  "safeRegex":  {
-                    "googleRe2":  {},
-                    "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {},
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                   }
                 }
               }
