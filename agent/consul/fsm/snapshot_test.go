@@ -83,7 +83,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	policy := &structs.ACLPolicy{
 		ID:          structs.ACLPolicyGlobalManagementID,
 		Name:        "global-management",
-		Description: "Builtin Policy that grants unlimited access",
+		Description: structs.ACLPolicyGlobalManagementDesc,
 		Rules:       structs.ACLPolicyGlobalManagementRules,
 	}
 	policy.SetHash(true)
