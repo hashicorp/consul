@@ -263,7 +263,19 @@ func (tps ACLTemplatedPolicies) Deduplicate() ACLTemplatedPolicies {
 }
 
 func GetACLTemplatedPolicyBase(templateName string) (*ACLTemplatedPolicyBase, bool) {
-	baseTemplate, found := aclTemplatedPoliciesList[templateName]
+	if orig, found := aclTemplatedPoliciesList[templateName]; found {
+		copy := *orig
+		return &copy, found
+	}
 
-	return baseTemplate, found
+	return nil, false
+}
+
+func GetACLTemplatedPolicyList() map[string]*ACLTemplatedPolicyBase {
+	m := make(map[string]*ACLTemplatedPolicyBase, len(aclTemplatedPoliciesList))
+	for k, v := range aclTemplatedPoliciesList {
+		m[k] = v
+	}
+
+	return m
 }

@@ -28,92 +28,92 @@ func (msg *ComputedPortRoutes) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedHTTPRoute) MarshalBinary() ([]byte, error) {
+func (msg *ComputedHTTPRoute) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedHTTPRoute) UnmarshalBinary(b []byte) error {
+func (msg *ComputedHTTPRoute) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedHTTPRouteRule) MarshalBinary() ([]byte, error) {
+func (msg *ComputedHTTPRouteRule) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedHTTPRouteRule) UnmarshalBinary(b []byte) error {
+func (msg *ComputedHTTPRouteRule) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedHTTPBackendRef) MarshalBinary() ([]byte, error) {
+func (msg *ComputedHTTPBackendRef) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedHTTPBackendRef) UnmarshalBinary(b []byte) error {
+func (msg *ComputedHTTPBackendRef) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedGRPCRoute) MarshalBinary() ([]byte, error) {
+func (msg *ComputedGRPCRoute) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedGRPCRoute) UnmarshalBinary(b []byte) error {
+func (msg *ComputedGRPCRoute) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedGRPCRouteRule) MarshalBinary() ([]byte, error) {
+func (msg *ComputedGRPCRouteRule) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedGRPCRouteRule) UnmarshalBinary(b []byte) error {
+func (msg *ComputedGRPCRouteRule) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedGRPCBackendRef) MarshalBinary() ([]byte, error) {
+func (msg *ComputedGRPCBackendRef) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedGRPCBackendRef) UnmarshalBinary(b []byte) error {
+func (msg *ComputedGRPCBackendRef) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedTCPRoute) MarshalBinary() ([]byte, error) {
+func (msg *ComputedTCPRoute) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedTCPRoute) UnmarshalBinary(b []byte) error {
+func (msg *ComputedTCPRoute) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedTCPRouteRule) MarshalBinary() ([]byte, error) {
+func (msg *ComputedTCPRouteRule) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedTCPRouteRule) UnmarshalBinary(b []byte) error {
+func (msg *ComputedTCPRouteRule) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InterpretedTCPBackendRef) MarshalBinary() ([]byte, error) {
+func (msg *ComputedTCPBackendRef) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InterpretedTCPBackendRef) UnmarshalBinary(b []byte) error {
+func (msg *ComputedTCPBackendRef) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

@@ -277,7 +277,8 @@ func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
 		})
 		resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 		tc.preProcessingFunc(pt, resourceID, lim, session1, session1TermCh)
-		require.Equal(t, tc.shouldExist, pt.ProxyConnectedToServer(resourceID))
+		_, ok := pt.ProxyConnectedToServer(resourceID)
+		require.Equal(t, tc.shouldExist, ok)
 	}
 }
 

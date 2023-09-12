@@ -6,6 +6,7 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -41,6 +42,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		request              *http.Request
 		response             *httptest.ResponseRecorder
 		expectedResponseCode int
+		expectedErrorMessage string
 	}
 	client := svctest.RunResourceService(t, demo.RegisterTypes)
 	resourceHandler := resourceHandler{
@@ -70,6 +72,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
+			expectedErrorMessage: "rpc error: code = InvalidArgument desc = resource.id.name is required",
 		},
 		{
 			description: "wrong schema",
@@ -86,12 +89,21 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
+			expectedErrorMessage: "Request body didn't follow the resource schema",
+		},
+		{
+			description:          "invalid request body",
+			request:              httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader("bad-input")),
+			response:             httptest.NewRecorder(),
+			expectedResponseCode: http.StatusBadRequest,
+			expectedErrorMessage: "Request body format is invalid",
 		},
 		{
 			description:          "no id",
 			request:              httptest.NewRequest("DELETE", "/?partition=default&peer_name=local&namespace=default", strings.NewReader("")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
+			expectedErrorMessage: "rpc error: code = InvalidArgument desc = id.name is required",
 		},
 	}
 
@@ -99,7 +111,15 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			resourceHandler.ServeHTTP(tc.response, tc.request)
 
+			response := tc.response.Result()
+
+			defer response.Body.Close()
+
+			b, err := io.ReadAll(tc.response.Body)
+			require.NoError(t, err)
+
 			require.Equal(t, tc.expectedResponseCode, tc.response.Result().StatusCode)
+			require.Equal(t, tc.expectedErrorMessage, string(b))
 		})
 	}
 }

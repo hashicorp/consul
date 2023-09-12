@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package builder
 
 import (
@@ -7,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func DestinationClusterName(serviceRef *pbresource.Reference, datacenter, trustDomain string) string {
+func DestinationSNI(serviceRef *pbresource.Reference, datacenter, trustDomain string) string {
 	return connect.ServiceSNI(serviceRef.Name,
 		"",
 		serviceRef.Tenancy.Namespace,
@@ -16,8 +19,9 @@ func DestinationClusterName(serviceRef *pbresource.Reference, datacenter, trustD
 		trustDomain)
 }
 
-func DestinationStatPrefix(serviceRef *pbresource.Reference, datacenter string) string {
-	return fmt.Sprintf("upstream.%s.%s.%s.%s",
+func DestinationStatPrefix(serviceRef *pbresource.Reference, portName, datacenter string) string {
+	return fmt.Sprintf("upstream.%s.%s.%s.%s.%s",
+		portName,
 		serviceRef.Name,
 		serviceRef.Tenancy.Namespace,
 		serviceRef.Tenancy.Partition,

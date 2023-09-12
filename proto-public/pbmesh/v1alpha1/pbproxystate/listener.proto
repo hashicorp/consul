@@ -74,11 +74,12 @@ message Router {
 }
 
 message Match {
-  google.protobuf.UInt32Value destination_port = 1;
-  repeated CidrRange prefix_ranges = 2;
-  repeated CidrRange source_prefix_ranges = 3;
+  repeated string alpn_protocols = 1;
+  google.protobuf.UInt32Value destination_port = 2;
+  repeated CidrRange prefix_ranges = 3;
+  repeated CidrRange source_prefix_ranges = 4;
   // server_names matches based on SNI of the incoming request.
-  repeated string server_names = 4;
+  repeated string server_names = 5;
 }
 
 message CidrRange {

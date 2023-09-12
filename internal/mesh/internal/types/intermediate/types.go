@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package intermediate
 
 import (
@@ -29,6 +32,11 @@ type ServiceEndpoints struct {
 	Endpoints *pbcatalog.ServiceEndpoints
 }
 
+type Service struct {
+	Resource *pbresource.Resource
+	Service  *pbcatalog.Service
+}
+
 type Destinations struct {
 	Resource     *pbresource.Resource
 	Destinations *pbmesh.Upstreams
@@ -53,6 +61,7 @@ type Destination struct {
 	Explicit         *pbmesh.Upstream
 	ServiceEndpoints *ServiceEndpoints
 	Identities       []*pbresource.Reference
+	VirtualIPs       []string
 }
 
 type Status struct {

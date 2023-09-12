@@ -1,0 +1,144 @@
+{
+  "proxyState": {
+    "clusters": {
+      "tcp.api-1.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-1.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "tcp.api-2.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-2.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "identity": {
+      "name": "test-identity",
+      "tenancy": {
+        "namespace": "default",
+        "partition": "default",
+        "peerName": "local"
+      }
+    },
+    "listeners": [
+      {
+        "capabilities": [
+          "CAPABILITY_TRANSPARENT"
+        ],
+        "direction": "DIRECTION_OUTBOUND",
+        "hostPort": {
+          "host": "127.0.0.1",
+          "port": 15001
+        },
+        "name": "outbound_listener",
+        "routers": [
+          {
+            "l4": {
+              "name": "tcp.api-2.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.tcp.api-2.default.default.dc1"
+            },
+            "match": {
+              "destinationPort": 8080,
+              "prefixRanges": [
+                {
+                  "addressPrefix": "2.2.2.2",
+                  "prefixLen": 32
+                },
+                {
+                  "addressPrefix": "3.3.3.3",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "direction": "DIRECTION_OUTBOUND",
+        "hostPort": {
+          "host": "1.1.1.1",
+          "port": 1234
+        },
+        "name": "api-1:tcp:1.1.1.1:1234",
+        "routers": [
+          {
+            "l4": {
+              "name": "tcp.api-1.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.tcp.api-1.default.default.dc1"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "requiredEndpoints": {
+    "api-1.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-1",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
+    "api-2.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    }
+  }
+}
