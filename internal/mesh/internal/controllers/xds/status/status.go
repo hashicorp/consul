@@ -20,6 +20,9 @@ const (
 	StatusReasonCreatingProxyStateEndpointsFailed = "ProxyStateEndpointsNotComputed"
 	StatusReasonPushChangeFailed                  = "ProxyStatePushChangeFailed"
 	StatusReasonTrustBundleFetchFailed            = "ProxyStateTrustBundleFetchFailed"
+	StatusReasonLeafWatchSetupFailed              = "ProxyStateLeafWatchSetupError"
+	StatusReasonLeafFetchFailed                   = "ProxyStateLeafFetchError"
+	StatusReasonLeafEmpty                         = "ProxyStateLeafEmptyError"
 )
 
 func KeyFromID(id *pbresource.ID) string {
@@ -43,6 +46,30 @@ func ConditionRejectedNilProxyState(pstRef string) *pbresource.Condition {
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  StatusReasonNilProxyState,
 		Message: fmt.Sprintf("nil proxy state is not valid %q.", pstRef),
+	}
+}
+func ConditionRejectedErrorCreatingLeafWatch(leafRef string, err string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionProxyStateAccepted,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  StatusReasonLeafWatchSetupFailed,
+		Message: fmt.Sprintf("error creating leaf watch %q: %s", leafRef, err),
+	}
+}
+func ConditionRejectedErrorGettingLeaf(leafRef string, err string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionProxyStateAccepted,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  StatusReasonLeafFetchFailed,
+		Message: fmt.Sprintf("error getting leaf from leaf certificate manager %q: %s", leafRef, err),
+	}
+}
+func ConditionRejectedErrorCreatingProxyStateLeaf(leafRef string, err string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionProxyStateAccepted,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  StatusReasonLeafEmpty,
+		Message: fmt.Sprintf("error getting leaf certificate contents %q: %s", leafRef, err),
 	}
 }
 func ConditionRejectedErrorReadingEndpoints(endpointRef string, err string) *pbresource.Condition {

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -43,9 +43,9 @@ func (m *Manager) Notify(
 	ctx context.Context,
 	req *ConnectCALeafRequest,
 	correlationID string,
-	ch chan<- cache.UpdateEvent,
+	ch chan<- cacheshim.UpdateEvent,
 ) error {
-	return m.NotifyCallback(ctx, req, correlationID, func(ctx context.Context, event cache.UpdateEvent) {
+	return m.NotifyCallback(ctx, req, correlationID, func(ctx context.Context, event cacheshim.UpdateEvent) {
 		select {
 		case ch <- event:
 		case <-ctx.Done():
@@ -60,7 +60,7 @@ func (m *Manager) NotifyCallback(
 	ctx context.Context,
 	req *ConnectCALeafRequest,
 	correlationID string,
-	cb cache.Callback,
+	cb cacheshim.Callback,
 ) error {
 	if req.Key() == "" {
 		return fmt.Errorf("a key is required")
@@ -81,7 +81,7 @@ func (m *Manager) notifyBlockingQuery(
 	ctx context.Context,
 	req *ConnectCALeafRequest,
 	correlationID string,
-	cb cache.Callback,
+	cb cacheshim.Callback,
 ) {
 	// Always start at 0 index to deliver the initial (possibly currently cached
 	// value).
@@ -106,7 +106,7 @@ func (m *Manager) notifyBlockingQuery(
 		// Check the index of the value returned in the cache entry to be sure it
 		// changed
 		if index == 0 || index < meta.Index {
-			cb(ctx, cache.UpdateEvent{
+			cb(ctx, cacheshim.UpdateEvent{
 				CorrelationID: correlationID,
 				Result:        newValue,
 				Meta:          meta,

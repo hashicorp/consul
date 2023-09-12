@@ -17,12 +17,42 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-// testSigner implements NetRPC and handles leaf signing operations
-type testSigner struct {
+// NewTestManager returns a *Manager that is pre-configured to use a mock RPC
+// implementation that can sign certs, and an in-memory CA roots reader that
+// interacts well with it.
+func NewTestManager(t *testing.T, mut func(*Config)) (*Manager, *TestSigner) {
+	signer := newTestSigner(t, nil, nil)
+
+	deps := Deps{
+		Logger:      testutil.Logger(t),
+		RootsReader: signer.RootsReader,
+		CertSigner:  signer,
+		Config: Config{
+			// Override the root-change spread so we don't have to wait up to 20 seconds
+			// to see root changes work. Can be changed back for specific tests that
+			// need to test this, Note it's not 0 since that used default but is
+			// effectively the same.
+			TestOverrideCAChangeInitialDelay: 1 * time.Microsecond,
+		},
+	}
+	if mut != nil {
+		mut(&deps.Config)
+	}
+
+	m := NewManager(deps)
+	t.Cleanup(m.Stop)
+
+	return m, signer
+}
+
+// TestSigner implements NetRPC and handles leaf signing operations
+type TestSigner struct {
 	caLock    sync.Mutex
 	ca        *structs.CARoot
 	prevRoots []*structs.CARoot // remember prior ones
@@ -36,37 +66,37 @@ type testSigner struct {
 	signCallCapture    []*structs.CASignRequest
 }
 
-var _ CertSigner = (*testSigner)(nil)
+var _ CertSigner = (*TestSigner)(nil)
 
 var ReplyWithExpiredCert = errors.New("reply with expired cert")
 
-func newTestSigner(t *testing.T, idGenerator *atomic.Uint64, rootsReader *testRootsReader) *testSigner {
+func newTestSigner(t *testing.T, idGenerator *atomic.Uint64, rootsReader *testRootsReader) *TestSigner {
 	if idGenerator == nil {
 		idGenerator = &atomic.Uint64{}
 	}
 	if rootsReader == nil {
 		rootsReader = newTestRootsReader(t)
 	}
-	s := &testSigner{
+	s := &TestSigner{
 		IDGenerator: idGenerator,
 		RootsReader: rootsReader,
 	}
 	return s
 }
 
-func (s *testSigner) SetSignCallErrors(errs ...error) {
+func (s *TestSigner) SetSignCallErrors(errs ...error) {
 	s.signCallLock.Lock()
 	defer s.signCallLock.Unlock()
 	s.signCallErrors = append(s.signCallErrors, errs...)
 }
 
-func (s *testSigner) GetSignCallErrorCount() uint64 {
+func (s *TestSigner) GetSignCallErrorCount() uint64 {
 	s.signCallLock.Lock()
 	defer s.signCallLock.Unlock()
 	return s.signCallErrorCount
 }
 
-func (s *testSigner) UpdateCA(t *testing.T, ca *structs.CARoot) *structs.CARoot {
+func (s *TestSigner) UpdateCA(t *testing.T, ca *structs.CARoot) *structs.CARoot {
 	if ca == nil {
 		ca = connect.TestCA(t, nil)
 	}
@@ -95,17 +125,17 @@ func (s *testSigner) UpdateCA(t *testing.T, ca *structs.CARoot) *structs.CARoot 
 	return ca
 }
 
-func (s *testSigner) nextIndex() uint64 {
+func (s *TestSigner) nextIndex() uint64 {
 	return s.IDGenerator.Add(1)
 }
 
-func (s *testSigner) getCA() *structs.CARoot {
+func (s *TestSigner) getCA() *structs.CARoot {
 	s.caLock.Lock()
 	defer s.caLock.Unlock()
 	return s.ca
 }
 
-func (s *testSigner) GetCapture(idx int) *structs.CASignRequest {
+func (s *TestSigner) GetCapture(idx int) *structs.CASignRequest {
 	s.signCallLock.Lock()
 	defer s.signCallLock.Unlock()
 	if len(s.signCallCapture) > idx {
@@ -115,7 +145,7 @@ func (s *testSigner) GetCapture(idx int) *structs.CASignRequest {
 	return nil
 }
 
-func (s *testSigner) SignCert(ctx context.Context, req *structs.CASignRequest) (*structs.IssuedCert, error) {
+func (s *TestSigner) SignCert(ctx context.Context, req *structs.CASignRequest) (*structs.IssuedCert, error) {
 	useExpiredCert := false
 	s.signCallLock.Lock()
 	s.signCallCapture = append(s.signCallCapture, req)
@@ -150,8 +180,17 @@ func (s *testSigner) SignCert(ctx context.Context, req *structs.CASignRequest) (
 		return nil, fmt.Errorf("error parsing CSR URI: %w", err)
 	}
 
-	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
-	if !isService {
+	var isService bool
+	var serviceID *connect.SpiffeIDService
+	var workloadID *connect.SpiffeIDWorkloadIdentity
+
+	switch spiffeID.(type) {
+	case *connect.SpiffeIDService:
+		isService = true
+		serviceID = spiffeID.(*connect.SpiffeIDService)
+	case *connect.SpiffeIDWorkloadIdentity:
+		workloadID = spiffeID.(*connect.SpiffeIDWorkloadIdentity)
+	default:
 		return nil, fmt.Errorf("unexpected spiffeID type %T", spiffeID)
 	}
 
@@ -231,16 +270,97 @@ func (s *testSigner) SignCert(ctx context.Context, req *structs.CASignRequest) (
 	}
 
 	index := s.nextIndex()
-	return &structs.IssuedCert{
-		SerialNumber: connect.EncodeSerialNumber(leafCert.SerialNumber),
-		CertPEM:      leafPEM,
-		Service:      serviceID.Service,
-		ServiceURI:   leafCert.URIs[0].String(),
-		ValidAfter:   leafCert.NotBefore,
-		ValidBefore:  leafCert.NotAfter,
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: index,
-			ModifyIndex: index,
-		},
-	}, nil
+	if isService {
+		// Service Spiffe ID case
+		return &structs.IssuedCert{
+			SerialNumber: connect.EncodeSerialNumber(leafCert.SerialNumber),
+			CertPEM:      leafPEM,
+			Service:      serviceID.Service,
+			ServiceURI:   leafCert.URIs[0].String(),
+			ValidAfter:   leafCert.NotBefore,
+			ValidBefore:  leafCert.NotAfter,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: index,
+				ModifyIndex: index,
+			},
+		}, nil
+	} else {
+		// Workload identity Spiffe ID case
+		return &structs.IssuedCert{
+			SerialNumber:        connect.EncodeSerialNumber(leafCert.SerialNumber),
+			CertPEM:             leafPEM,
+			WorkloadIdentity:    workloadID.WorkloadIdentity,
+			WorkloadIdentityURI: leafCert.URIs[0].String(),
+			ValidAfter:          leafCert.NotBefore,
+			ValidBefore:         leafCert.NotAfter,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: index,
+				ModifyIndex: index,
+			},
+		}, nil
+	}
+}
+
+type testRootsReader struct {
+	mu      sync.Mutex
+	index   uint64
+	roots   *structs.IndexedCARoots
+	watcher chan struct{}
+}
+
+func newTestRootsReader(t *testing.T) *testRootsReader {
+	r := &testRootsReader{
+		watcher: make(chan struct{}),
+	}
+	t.Cleanup(func() {
+		r.mu.Lock()
+		watcher := r.watcher
+		r.mu.Unlock()
+		close(watcher)
+	})
+	return r
+}
+
+var _ RootsReader = (*testRootsReader)(nil)
+
+func (r *testRootsReader) Set(roots *structs.IndexedCARoots) {
+	r.mu.Lock()
+	oldWatcher := r.watcher
+	r.watcher = make(chan struct{})
+	r.roots = roots
+	if roots == nil {
+		r.index = 1
+	} else {
+		r.index = roots.Index
+	}
+	r.mu.Unlock()
+
+	close(oldWatcher)
+}
+
+func (r *testRootsReader) Get() (*structs.IndexedCARoots, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.roots, nil
+}
+
+func (r *testRootsReader) Notify(ctx context.Context, correlationID string, ch chan<- cacheshim.UpdateEvent) error {
+	r.mu.Lock()
+	watcher := r.watcher
+	r.mu.Unlock()
+
+	go func() {
+		<-watcher
+
+		r.mu.Lock()
+		defer r.mu.Unlock()
+
+		ch <- cacheshim.UpdateEvent{
+			CorrelationID: correlationID,
+			Result:        r.roots,
+			Meta:          cacheshim.ResultMeta{Index: r.index},
+			Err:           nil,
+		}
+	}()
+	return nil
 }
