@@ -63,6 +63,10 @@ agent_prefix "" {
 event_prefix "" {
 	policy = "%[1]s"
 }
+identity_prefix "" {
+	policy = "%[1]s"
+	intentions = "%[1]s"
+}
 key_prefix "" {
 	policy = "%[1]s"
 }

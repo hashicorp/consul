@@ -29,6 +29,18 @@ func (authz testAuthorizer) EventRead(string, *AuthorizerContext) EnforcementDec
 func (authz testAuthorizer) EventWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) IdentityRead(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityReadAll(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityWrite(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityWriteAny(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 func (authz testAuthorizer) IntentionDefaultAllow(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
