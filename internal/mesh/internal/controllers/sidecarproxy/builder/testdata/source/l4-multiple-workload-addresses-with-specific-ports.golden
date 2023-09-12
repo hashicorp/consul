@@ -31,7 +31,7 @@
       {
         "direction": "DIRECTION_INBOUND",
         "hostPort": {
-          "host": "10.0.0.1",
+          "host": "10.0.0.2",
           "port": 20000
         },
         "name": "public_listener",
@@ -50,6 +50,11 @@
             "l4": {
               "name": "local_app:port1",
               "statPrefix": "public_listener"
+            },
+            "match": {
+              "alpnProtocols": [
+                "consul~port1"
+              ]
             }
           }
         ]

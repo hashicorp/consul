@@ -43,6 +43,10 @@ Write/update a resource:
 
 $ consul resource apply -f=<file-path>
 
+List resources by type:
+
+$ consul resource list [type] -partition=<default> -namespace=<default> -peer=<local>
+
 Run
 
 consul resource <subcommand> -h 

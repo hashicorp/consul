@@ -909,7 +909,6 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 				}
 				return &bundle, nil
 			},
-			ProxyUpdater: proxyUpdater,
 			// This function is adapted from server_connect.go:getCARoots.
 			TrustDomainFetcher: func() (string, error) {
 				_, caConfig, err := s.fsm.State().CAConfig(nil)
@@ -919,6 +918,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 
 				return s.getTrustDomain(caConfig)
 			},
+			LocalDatacenter: s.config.Datacenter,
+			ProxyUpdater:    proxyUpdater,
 		})
 	}
 

@@ -1,22 +1,22 @@
 {
-  "name":  "envoy.filters.http.rbac",
-  "typedConfig":  {
-    "@type":  "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-    "rules":  {
-      "policies":  {
-        "consul-intentions-layer4":  {
-          "permissions":  [
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer4": {
+          "permissions": [
             {
-              "any":  true
+              "any": true
             }
           ],
-          "principals":  [
+          "principals": [
             {
-              "authenticated":  {
-                "principalName":  {
-                  "safeRegex":  {
-                    "googleRe2":  {},
-                    "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {},
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                   }
                 }
               }

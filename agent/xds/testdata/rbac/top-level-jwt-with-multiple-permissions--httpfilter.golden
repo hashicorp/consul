@@ -1,59 +1,59 @@
 {
-  "name":  "envoy.filters.http.rbac",
-  "typedConfig":  {
-    "@type":  "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-    "rules":  {
-      "policies":  {
-        "consul-intentions-layer7-0":  {
-          "permissions":  [
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
             {
-              "andRules":  {
-                "rules":  [
+              "andRules": {
+                "rules": [
                   {
-                    "urlPath":  {
-                      "path":  {
-                        "exact":  "/v1/secret"
+                    "urlPath": {
+                      "path": {
+                        "exact": "/v1/secret"
                       }
                     }
                   },
                   {
-                    "andRules":  {
-                      "rules":  [
+                    "andRules": {
+                      "rules": [
                         {
-                          "metadata":  {
-                            "filter":  "envoy.filters.http.jwt_authn",
-                            "path":  [
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
                               {
-                                "key":  "jwt_payload_auth0"
+                                "key": "jwt_payload_auth0"
                               },
                               {
-                                "key":  "iss"
+                                "key": "iss"
                               }
                             ],
-                            "value":  {
-                              "stringMatch":  {
-                                "exact":  "mytest.auth0-issuer"
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.auth0-issuer"
                               }
                             }
                           }
                         },
                         {
-                          "metadata":  {
-                            "filter":  "envoy.filters.http.jwt_authn",
-                            "path":  [
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
                               {
-                                "key":  "jwt_payload_auth0"
+                                "key": "jwt_payload_auth0"
                               },
                               {
-                                "key":  "perms"
+                                "key": "perms"
                               },
                               {
-                                "key":  "role"
+                                "key": "role"
                               }
                             ],
-                            "value":  {
-                              "stringMatch":  {
-                                "exact":  "admin"
+                            "value": {
+                              "stringMatch": {
+                                "exact": "admin"
                               }
                             }
                           }
@@ -65,23 +65,23 @@
               }
             },
             {
-              "andRules":  {
-                "rules":  [
+              "andRules": {
+                "rules": [
                   {
-                    "andRules":  {
-                      "rules":  [
+                    "andRules": {
+                      "rules": [
                         {
-                          "urlPath":  {
-                            "path":  {
-                              "exact":  "/v1/admin"
+                          "urlPath": {
+                            "path": {
+                              "exact": "/v1/admin"
                             }
                           }
                         },
                         {
-                          "notRule":  {
-                            "urlPath":  {
-                              "path":  {
-                                "exact":  "/v1/secret"
+                          "notRule": {
+                            "urlPath": {
+                              "path": {
+                                "exact": "/v1/secret"
                               }
                             }
                           }
@@ -90,43 +90,43 @@
                     }
                   },
                   {
-                    "andRules":  {
-                      "rules":  [
+                    "andRules": {
+                      "rules": [
                         {
-                          "metadata":  {
-                            "filter":  "envoy.filters.http.jwt_authn",
-                            "path":  [
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
                               {
-                                "key":  "jwt_payload_auth0"
+                                "key": "jwt_payload_auth0"
                               },
                               {
-                                "key":  "iss"
+                                "key": "iss"
                               }
                             ],
-                            "value":  {
-                              "stringMatch":  {
-                                "exact":  "mytest.auth0-issuer"
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.auth0-issuer"
                               }
                             }
                           }
                         },
                         {
-                          "metadata":  {
-                            "filter":  "envoy.filters.http.jwt_authn",
-                            "path":  [
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
                               {
-                                "key":  "jwt_payload_auth0"
+                                "key": "jwt_payload_auth0"
                               },
                               {
-                                "key":  "perms"
+                                "key": "perms"
                               },
                               {
-                                "key":  "role"
+                                "key": "role"
                               }
                             ],
-                            "value":  {
-                              "stringMatch":  {
-                                "exact":  "admin"
+                            "value": {
+                              "stringMatch": {
+                                "exact": "admin"
                               }
                             }
                           }
@@ -138,55 +138,55 @@
               }
             }
           ],
-          "principals":  [
+          "principals": [
             {
-              "andIds":  {
-                "ids":  [
+              "andIds": {
+                "ids": [
                   {
-                    "authenticated":  {
-                      "principalName":  {
-                        "safeRegex":  {
-                          "googleRe2":  {},
-                          "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                    "authenticated": {
+                      "principalName": {
+                        "safeRegex": {
+                          "googleRe2": {},
+                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                         }
                       }
                     }
                   },
                   {
-                    "andIds":  {
-                      "ids":  [
+                    "andIds": {
+                      "ids": [
                         {
-                          "metadata":  {
-                            "filter":  "envoy.filters.http.jwt_authn",
-                            "path":  [
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
                               {
-                                "key":  "jwt_payload_okta"
+                                "key": "jwt_payload_okta"
                               },
                               {
-                                "key":  "iss"
+                                "key": "iss"
                               }
                             ],
-                            "value":  {
-                              "stringMatch":  {
-                                "exact":  "mytest.okta-issuer"
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.okta-issuer"
                               }
                             }
                           }
                         },
                         {
-                          "metadata":  {
-                            "filter":  "envoy.filters.http.jwt_authn",
-                            "path":  [
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
                               {
-                                "key":  "jwt_payload_okta"
+                                "key": "jwt_payload_okta"
                               },
                               {
-                                "key":  "roles"
+                                "key": "roles"
                               }
                             ],
-                            "value":  {
-                              "stringMatch":  {
-                                "exact":  "testing"
+                            "value": {
+                              "stringMatch": {
+                                "exact": "testing"
                               }
                             }
                           }

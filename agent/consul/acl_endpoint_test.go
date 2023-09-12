@@ -3573,7 +3573,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		}
 	}
 
-	requireSetErrors := func(t *testing.T, reqRule structs.ACLBindingRule) {
+	requireSetErrors := func(t *testing.T, reqRule structs.ACLBindingRule, msg ...string) {
 		req := structs.ACLBindingRuleSetRequest{
 			Datacenter:   "dc1",
 			BindingRule:  reqRule,
@@ -3583,6 +3583,10 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 
 		err := aclEp.BindingRuleSet(&req, &resp)
 		require.Error(t, err)
+
+		for _, s := range msg {
+			require.Contains(t, err.Error(), s)
+		}
 	}
 
 	requireOK := func(t *testing.T, reqRule structs.ACLBindingRule) *structs.ACLBindingRule {
@@ -3657,6 +3661,40 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
 		require.Equal(t, structs.BindingRuleBindTypeNode, rule.BindType)
 		require.Equal(t, "test-node", rule.BindName)
+	})
+
+	t.Run("templated policy", func(t *testing.T) {
+		req := structs.ACLBindingRuleSetRequest{
+			Datacenter: "dc1",
+			BindingRule: structs.ACLBindingRule{
+				Description: "templated policy binding rule",
+				AuthMethod:  testAuthMethod.Name,
+				Selector:    "serviceaccount.name==abc",
+				BindType:    structs.BindingRuleBindTypeTemplatedPolicy,
+				BindName:    api.ACLTemplatedPolicyNodeName,
+				BindVars: &structs.ACLTemplatedPolicyVariables{
+					Name: "test-node",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		var resp structs.ACLBindingRule
+
+		err := aclEp.BindingRuleSet(&req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
+
+		// Get the rule directly to validate that it exists
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
+		require.NoError(t, err)
+		rule := ruleResp.BindingRule
+
+		require.NotEmpty(t, rule.ID)
+		require.Equal(t, rule.Description, "templated policy binding rule")
+		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
+		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
+		require.Equal(t, structs.BindingRuleBindTypeTemplatedPolicy, rule.BindType)
+		require.Equal(t, api.ACLTemplatedPolicyNodeName, rule.BindName)
 	})
 
 	t.Run("Update fails; cannot change method name", func(t *testing.T) {
@@ -3775,10 +3813,35 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		requireSetErrors(t, reqRule)
 	})
 
+	t.Run("Create fails; when bind vars is set for non templated policy", func(t *testing.T) {
+		reqRule := newRule()
+		reqRule.BindVars = &structs.ACLTemplatedPolicyVariables{
+			Name: "test",
+		}
+		requireSetErrors(t, reqRule, "invalid Binding Rule: BindVars cannot be set when bind type is not templated-policy.")
+	})
+
+	t.Run("Create fails; when missing required bindvars", func(t *testing.T) {
+		reqRule := newRule()
+		reqRule.BindName = api.ACLTemplatedPolicyServiceName
+		reqRule.BindType = structs.BindingRuleBindTypeTemplatedPolicy
+		requireSetErrors(t, reqRule, "Invalid Binding Rule: invalid BindName or BindVars")
+	})
+
+	t.Run("Create fails; when bindvars contains unknown vars", func(t *testing.T) {
+		reqRule := newRule()
+		reqRule.BindName = api.ACLTemplatedPolicyServiceName
+		reqRule.BindType = structs.BindingRuleBindTypeTemplatedPolicy
+		reqRule.BindVars = &structs.ACLTemplatedPolicyVariables{
+			Name: "method-${serviceaccount.bizarroname}",
+		}
+		requireSetErrors(t, reqRule, "Invalid Binding Rule: invalid BindName or BindVars")
+	})
+
 	t.Run("Create fails; invalid bind type", func(t *testing.T) {
 		reqRule := newRule()
 		reqRule.BindType = "invalid"
-		requireSetErrors(t, reqRule)
+		requireSetErrors(t, reqRule, "Invalid Binding Rule: unknown BindType")
 	})
 
 	t.Run("Create fails; bind name with unknown vars", func(t *testing.T) {

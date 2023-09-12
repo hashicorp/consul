@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package builder
 
 import (
@@ -17,7 +20,7 @@ func TestBuildLocalApp(t *testing.T) {
 	cases := map[string]struct {
 		workload *pbcatalog.Workload
 	}{
-		"l4-single-workload-address-without-ports": {
+		"source/l4-single-workload-address-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -30,7 +33,7 @@ func TestBuildLocalApp(t *testing.T) {
 				},
 			},
 		},
-		"l4-multiple-workload-addresses-without-ports": {
+		"source/l4-multiple-workload-addresses-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -46,7 +49,7 @@ func TestBuildLocalApp(t *testing.T) {
 				},
 			},
 		},
-		"l4-multiple-workload-addresses-with-specific-ports": {
+		"source/l4-multiple-workload-addresses-with-specific-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -68,7 +71,8 @@ func TestBuildLocalApp(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul").BuildLocalApp(c.workload).
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
+				BuildLocalApp(c.workload).
 				Build()
 			actual := protoToJSON(t, proxyTmpl)
 			expected := golden.Get(t, actual, name+".golden")
