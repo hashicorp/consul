@@ -107,15 +107,13 @@ message L7Destination {
   L7Protocol protocol = 3;
   // traffic_permissions is a list of intentions for this destination.
   L7TrafficPermissions traffic_permissions = 4;
-  // add_empty_intention specifies whether to add an empty intention for this destination, when there are no other intentions specified.
-  bool add_empty_intention = 5;
   // include_xfcc specifies whether to add xfcc header.
-  bool include_xfcc = 6;
+  bool include_xfcc = 5;
   // static_route specifies whether this is a static route that is inlined in the listener filter. This is required to
   // match existing xds config.
-  bool static_route = 7;
+  bool static_route = 6;
   // max_inbound_connections specifies how many connections this destination can accept.
-  uint64 max_inbound_connections = 8;
+  uint64 max_inbound_connections = 7;
 }
 
 enum L7Protocol {

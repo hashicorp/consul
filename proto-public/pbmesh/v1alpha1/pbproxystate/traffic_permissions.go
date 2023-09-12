@@ -4,11 +4,11 @@
 package pbproxystate
 
 func (s *L4Principal) ToL7Principal() *L7Principal {
-	out := &L7Principal{}
-
-	out.Spiffes = append(out.Spiffes, &Spiffe{
-		Regex: s.SpiffeRegex,
-	})
+	out := &L7Principal{
+		Spiffe: &Spiffe{
+			Regex: s.SpiffeRegex,
+		},
+	}
 
 	for _, regex := range s.ExcludeSpiffeRegexes {
 		out.ExcludeSpiffes = append(out.ExcludeSpiffes, &Spiffe{

@@ -7,23 +7,17 @@ package hashicorp.consul.mesh.v1alpha1.pbproxystate;
 
 message L7TrafficPermissions {}
 
-enum TrafficPermissionAction {
-  TRAFFIC_PERMISSION_ACTION_UNSPECIFIED = 0;
-  TRAFFIC_PERMISSION_ACTION_DENY = 1;
-  TRAFFIC_PERMISSION_ACTION_ALLOW = 2;
-}
-
 message L4TrafficPermissions {
-  TrafficPermissionAction default_action = 1;
-  repeated L4Permission allow_permissions = 2;
-  repeated L4Permission deny_permissions = 3;
+  repeated L4Permission allow_permissions = 1;
+  repeated L4Permission deny_permissions = 2;
 }
 
 message L4Permission {
   repeated L4Principal principals = 1;
 
   // We don't need destination rules here because they either apply to L7 features or multi-ports.
-  // In the case of multiple ports, the xds controller is responsible for filtering per-port permissions.
+  // In the case of multiple ports, the sidecar proxy controller is responsible for filtering
+  // per-port permissions.
 }
 
 // L4Principal maps into Source. We first convert this to Source before generating Envoy resources.
@@ -33,7 +27,7 @@ message L4Principal {
 }
 
 message L7Principal {
-  repeated Spiffe spiffes = 1;
+  Spiffe spiffe = 1;
   repeated Spiffe exclude_spiffes = 2;
 }
 
@@ -41,7 +35,7 @@ message Spiffe {
   // regex is the regular expression for matching spiffe ids.
   string regex = 1;
 
-  // xfcc specifies that Envoy needs to find the spiffe id in an xfcc header.
+  // xfcc_regex specifies that Envoy needs to find the spiffe id in an xfcc header.
   // It is currently unused, but considering this is important for to avoid breaking changes.
-  bool xfcc = 2;
+  string xfcc_regex = 2;
 }

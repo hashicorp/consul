@@ -20,26 +20,11 @@ const (
 	baseL4PermissionKey = "consul-intentions-layer4"
 )
 
-func MakeL4RBAC(trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy_listener_v3.Filter, error) {
+func MakeL4RBAC(defaultAllow bool, trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy_listener_v3.Filter, error) {
 	var filters []*envoy_listener_v3.Filter
 
 	if trafficPermissions == nil {
 		return nil, nil
-	}
-
-	// Only include the allow RBAC when Consul is in default deny.
-	if trafficPermissions.DefaultAction != pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_ALLOW {
-		allowRBAC := &envoy_rbac_v3.RBAC{
-			Action:   envoy_rbac_v3.RBAC_ALLOW,
-			Policies: make(map[string]*envoy_rbac_v3.Policy),
-		}
-
-		allowRBAC.Policies = makeRBACPolicies(trafficPermissions.AllowPermissions)
-		filter, err := makeRBACFilter(allowRBAC)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, filter)
 	}
 
 	if len(trafficPermissions.DenyPermissions) > 0 {
@@ -55,7 +40,29 @@ func MakeL4RBAC(trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy
 		filters = append(filters, filter)
 	}
 
+	// Only include the allow RBAC when Consul is in default deny.
+	if includeAllowFilter(defaultAllow, trafficPermissions) {
+		allowRBAC := &envoy_rbac_v3.RBAC{
+			Action:   envoy_rbac_v3.RBAC_ALLOW,
+			Policies: make(map[string]*envoy_rbac_v3.Policy),
+		}
+
+		allowRBAC.Policies = makeRBACPolicies(trafficPermissions.AllowPermissions)
+		filter, err := makeRBACFilter(allowRBAC)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, filter)
+	}
+
 	return filters, nil
+}
+
+// includeAllowFilter determines if an Envoy RBAC allow filter will be included in the filter chain.
+// We include this filter with default deny or whenever any permissions are configured.
+func includeAllowFilter(defaultAllow bool, trafficPermissions *pbproxystate.L4TrafficPermissions) bool {
+	hasPermissions := len(trafficPermissions.DenyPermissions)+len(trafficPermissions.AllowPermissions) > 0
+	return !defaultAllow || hasPermissions
 }
 
 func makeRBACFilter(rbac *envoy_rbac_v3.RBAC) (*envoy_listener_v3.Filter, error) {
@@ -97,12 +104,7 @@ func makeRBACPolicy(p *pbproxystate.L4Permission) *envoy_rbac_v3.Policy {
 }
 
 func toEnvoyPrincipal(p *pbproxystate.L7Principal) *envoy_rbac_v3.Principal {
-	orIDs := make([]*envoy_rbac_v3.Principal, 0, len(p.Spiffes))
-	for _, regex := range p.Spiffes {
-		orIDs = append(orIDs, principal(regex.Regex, false, regex.Xfcc))
-	}
-
-	includePrincipal := orPrincipals(orIDs)
+	includePrincipal := principal(p.Spiffe)
 
 	if len(p.ExcludeSpiffes) == 0 {
 		return includePrincipal
@@ -110,25 +112,21 @@ func toEnvoyPrincipal(p *pbproxystate.L7Principal) *envoy_rbac_v3.Principal {
 
 	principals := make([]*envoy_rbac_v3.Principal, 0, len(p.ExcludeSpiffes)+1)
 	principals = append(principals, includePrincipal)
-	for _, sid := range p.ExcludeSpiffes {
-		principals = append(principals, principal(sid.Regex, true, sid.Xfcc))
+	for _, s := range p.ExcludeSpiffes {
+		principals = append(principals, negatePrincipal(principal(s)))
 	}
 	return andPrincipals(principals)
 }
 
-func principal(spiffeID string, negate, xfcc bool) *envoy_rbac_v3.Principal {
-	var p *envoy_rbac_v3.Principal
-	if xfcc {
-		p = xfccPrincipal(spiffeID)
-	} else {
-		p = idPrincipal(spiffeID)
+func principal(spiffe *pbproxystate.Spiffe) *envoy_rbac_v3.Principal {
+	var andIDs []*envoy_rbac_v3.Principal
+	andIDs = append(andIDs, idPrincipal(spiffe.Regex))
+
+	if len(spiffe.XfccRegex) > 0 {
+		andIDs = append(andIDs, xfccPrincipal(spiffe.XfccRegex))
 	}
 
-	if !negate {
-		return p
-	}
-
-	return negatePrincipal(p)
+	return andPrincipals(andIDs)
 }
 
 func negatePrincipal(p *envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
@@ -168,27 +166,6 @@ func andPrincipals(ids []*envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
 	}
 }
 
-func orPrincipals(ids []*envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
-	switch len(ids) {
-	case 1:
-		return ids[0]
-	default:
-		return &envoy_rbac_v3.Principal{
-			Identifier: &envoy_rbac_v3.Principal_OrIds{
-				OrIds: &envoy_rbac_v3.Principal_Set{
-					Ids: ids,
-				},
-			},
-		}
-	}
-}
-
-func anyPermission() *envoy_rbac_v3.Permission {
-	return &envoy_rbac_v3.Permission{
-		Rule: &envoy_rbac_v3.Permission_Any{Any: true},
-	}
-}
-
 func xfccPrincipal(spiffeID string) *envoy_rbac_v3.Principal {
 	return &envoy_rbac_v3.Principal{
 		Identifier: &envoy_rbac_v3.Principal_Header{
@@ -203,5 +180,11 @@ func xfccPrincipal(spiffeID string) *envoy_rbac_v3.Principal {
 				},
 			},
 		},
+	}
+}
+
+func anyPermission() *envoy_rbac_v3.Permission {
+	return &envoy_rbac_v3.Permission{
+		Rule: &envoy_rbac_v3.Permission_Any{Any: true},
 	}
 }

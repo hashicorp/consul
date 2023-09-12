@@ -1009,7 +1009,6 @@ func (s *Converter) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name s
 		if l7Dest == nil {
 			return nil, fmt.Errorf("l7 destination on inbound listener should not be empty")
 		}
-		l7Dest.AddEmptyIntention = true
 
 		// TODO(proxystate): L7 Intentions and JWT Auth will be added in the future.
 		//jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
@@ -1053,13 +1052,7 @@ func (s *Converter) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name s
 			l4Dest.MaxInboundConnections = uint64(cfg.MaxInboundConnections)
 		}
 
-		defaultAction := pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_DENY
-		if cfgSnap.IntentionDefaultAllow {
-			defaultAction = pbproxystate.TrafficPermissionAction_TRAFFIC_PERMISSION_ACTION_ALLOW
-		}
-		l4Dest.TrafficPermissions = &pbproxystate.L4TrafficPermissions{
-			DefaultAction: defaultAction,
-		}
+		l4Dest.TrafficPermissions = &pbproxystate.L4TrafficPermissions{}
 	}
 	l.Routers = append(l.Routers, localAppRouter)
 
