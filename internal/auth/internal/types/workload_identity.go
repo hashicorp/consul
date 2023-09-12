@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -28,16 +28,6 @@ func RegisterWorkloadIdentity(r resource.Registry) {
 		Type:     WorkloadIdentityV1Alpha1Type,
 		Proto:    &pbauth.WorkloadIdentity{},
 		Scope:    resource.ScopeNamespace,
-		Validate: ValidateWorkloadIdentity,
+		Validate: nil,
 	})
-}
-
-func ValidateWorkloadIdentity(res *pbresource.Resource) error {
-	var workloadIdentity pbauth.WorkloadIdentity
-
-	if err := res.Data.UnmarshalTo(&workloadIdentity); err != nil {
-		return resource.NewErrDataParse(&workloadIdentity, err)
-	}
-
-	return nil
 }
