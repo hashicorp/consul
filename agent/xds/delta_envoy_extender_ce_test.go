@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
+	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -717,6 +718,52 @@ end`,
 						"insert=AfterLastMatch:envoy.filters.network.rbac",
 						"config-type=full",
 					)
+				}, nil)
+			},
+		},
+		{
+			// Insert an OpenTelemetry access logging extension
+			name: "otel-access-logging-http",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "http"}
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: "builtin/otel-access-logging",
+							Arguments: map[string]any{
+								"Config": map[string]any{
+									"LogName": "otel-logger",
+									"GrpcService": map[string]any{
+										"Target": map[string]any{
+											"Service": map[string]any{
+												"Name": "db",
+											},
+										},
+									},
+									"BufferFlushInterval":     time.Millisecond,
+									"BufferSizeBytes":         4096,
+									"FilterStateObjectsToLog": []string{"obj-1", "obj-2"},
+									"RetryPolicy": map[string]any{
+										"RetryBackOff": map[string]any{
+											"BaseInterval": time.Second,
+											"MaxInterval":  10 * time.Second,
+										},
+										"NumRetries": 5,
+									},
+									// Note: only test with one entry in Attributes and ResourceAttributes because
+									// they are maps and multiple entries results in the output order being
+									// non-deterministic.
+									"Attributes": map[string]any{
+										"name": "Bugs Bunny",
+									},
+									"ResourceAttributes": map[string]any{
+										"type": "compute",
+									},
+								},
+							},
+							Required: true,
+						},
+					}
 				}, nil)
 			},
 		},
