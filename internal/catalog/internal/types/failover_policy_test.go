@@ -4,6 +4,7 @@
 package types
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,13 +20,15 @@ import (
 
 func TestMutateFailoverPolicy(t *testing.T) {
 	type testcase struct {
-		failover  *pbcatalog.FailoverPolicy
-		expect    *pbcatalog.FailoverPolicy
-		expectErr string
+		policyTenancy *pbresource.Tenancy
+		failover      *pbcatalog.FailoverPolicy
+		expect        *pbcatalog.FailoverPolicy
+		expectErr     string
 	}
 
 	run := func(t *testing.T, tc testcase) {
 		res := resourcetest.Resource(FailoverPolicyType, "api").
+			WithTenancy(tc.policyTenancy).
 			WithData(t, tc.failover).
 			Build()
 
@@ -134,6 +137,49 @@ func TestMutateFailoverPolicy(t *testing.T) {
 				},
 			},
 		},
+		"dest ref tenancy defaulting": {
+			policyTenancy: newTestTenancy("foo.bar"),
+			failover: &pbcatalog.FailoverPolicy{
+				Config: &pbcatalog.FailoverConfig{
+					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
+					Regions: []string{"foo", "bar"},
+					Destinations: []*pbcatalog.FailoverDestination{
+						{Ref: newRefWithTenancy(ServiceType, "", "api")},
+						{Ref: newRefWithTenancy(ServiceType, ".zim", "api")},
+						{Ref: newRefWithTenancy(ServiceType, "gir.zim", "api")},
+					},
+				},
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{
+							{Ref: newRefWithTenancy(ServiceType, "", "api")},
+							{Ref: newRefWithTenancy(ServiceType, ".luthor", "api")},
+							{Ref: newRefWithTenancy(ServiceType, "lex.luthor", "api")},
+						},
+					},
+				},
+			},
+			expect: &pbcatalog.FailoverPolicy{
+				Config: &pbcatalog.FailoverConfig{
+					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
+					Regions: []string{"foo", "bar"},
+					Destinations: []*pbcatalog.FailoverDestination{
+						{Ref: newRefWithTenancy(ServiceType, "foo.bar", "api")},
+						{Ref: newRefWithTenancy(ServiceType, "foo.zim", "api")},
+						{Ref: newRefWithTenancy(ServiceType, "gir.zim", "api")},
+					},
+				},
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{
+							{Ref: newRefWithTenancy(ServiceType, "foo.bar", "api")},
+							{Ref: newRefWithTenancy(ServiceType, "foo.luthor", "api")},
+							{Ref: newRefWithTenancy(ServiceType, "lex.luthor", "api")},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -224,7 +270,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 					{Ref: newRef(WorkloadType, "api-backup")},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: reference must have type catalog.v1alpha1.Service`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: invalid "type" field: reference must have type catalog.v1alpha1.Service`,
 		},
 		"dest: ref with section": {
 			config: &pbcatalog.FailoverConfig{
@@ -232,23 +278,25 @@ func TestValidateFailoverPolicy(t *testing.T) {
 					{Ref: resourcetest.Resource(ServiceType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).Reference("blah")},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: invalid "section" field: section not supported for failover policy dest refs`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: invalid "section" field: section cannot be set here`,
 		},
-		"dest: ref peer and datacenter": {
-			config: &pbcatalog.FailoverConfig{
-				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRefWithPeer(ServiceType, "api", "peer1"), Datacenter: "dc2"},
-				},
-			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "datacenter" field: ref.tenancy.peer_name and datacenter are mutually exclusive fields`,
-		},
-		"dest: ref peer without datacenter": {
-			config: &pbcatalog.FailoverConfig{
-				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRefWithPeer(ServiceType, "api", "peer1")},
-				},
-			},
-		},
+		// TODO(v2/peering): re-enable when peering can exist
+		// "dest: ref peer and datacenter": {
+		// 	config: &pbcatalog.FailoverConfig{
+		// 		Destinations: []*pbcatalog.FailoverDestination{
+		// 			{Ref: newRefWithPeer(ServiceType, "api", "peer1"), Datacenter: "dc2"},
+		// 		},
+		// 	},
+		// 	expectErr: `invalid element at index 0 of list "destinations": invalid "datacenter" field: ref.tenancy.peer_name and datacenter are mutually exclusive fields`,
+		// },
+		// TODO(v2/peering): re-enable when peering can exist
+		// "dest: ref peer without datacenter": {
+		// 	config: &pbcatalog.FailoverConfig{
+		// 		Destinations: []*pbcatalog.FailoverDestination{
+		// 			{Ref: newRefWithPeer(ServiceType, "api", "peer1")},
+		// 		},
+		// 	},
+		// },
 		"dest: ref datacenter without peer": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
@@ -595,8 +643,33 @@ func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
 		Reference("")
 }
 
+func newRefWithTenancy(typ *pbresource.Type, tenancyStr, name string) *pbresource.Reference {
+	return resourcetest.Resource(typ, name).
+		WithTenancy(newTestTenancy(tenancyStr)).
+		Reference("")
+}
+
 func newRefWithPeer(typ *pbresource.Type, name string, peer string) *pbresource.Reference {
 	ref := newRef(typ, name)
 	ref.Tenancy.PeerName = peer
 	return ref
+}
+
+func newTestTenancy(s string) *pbresource.Tenancy {
+	parts := strings.Split(s, ".")
+	switch len(parts) {
+	case 0:
+		return resource.DefaultClusteredTenancy()
+	case 1:
+		v := resource.DefaultPartitionedTenancy()
+		v.Partition = parts[0]
+		return v
+	case 2:
+		v := resource.DefaultNamespacedTenancy()
+		v.Partition = parts[0]
+		v.Namespace = parts[1]
+		return v
+	default:
+		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD", PeerName: "BAD"}
+	}
 }
