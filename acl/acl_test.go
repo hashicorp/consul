@@ -40,6 +40,22 @@ func checkAllowEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx 
 	require.Equal(t, Allow, authz.EventWrite(prefix, entCtx))
 }
 
+func checkAllowIdentityRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.IdentityRead(prefix, entCtx))
+}
+
+func checkAllowIdentityReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.IdentityReadAll(entCtx))
+}
+
+func checkAllowIdentityWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.IdentityWrite(prefix, entCtx))
+}
+
+func checkAllowIdentityWriteAny(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.IdentityWriteAny(entCtx))
+}
+
 func checkAllowIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.IntentionDefaultAllow(entCtx))
 }
@@ -172,6 +188,22 @@ func checkDenyEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *
 	require.Equal(t, Deny, authz.EventWrite(prefix, entCtx))
 }
 
+func checkDenyIdentityRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.IdentityRead(prefix, entCtx))
+}
+
+func checkDenyIdentityReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.IdentityReadAll(entCtx))
+}
+
+func checkDenyIdentityWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.IdentityWrite(prefix, entCtx))
+}
+
+func checkDenyIdentityWriteAny(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.IdentityWriteAny(entCtx))
+}
+
 func checkDenyIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.IntentionDefaultAllow(entCtx))
 }
@@ -302,6 +334,22 @@ func checkDefaultEventRead(t *testing.T, authz Authorizer, prefix string, entCtx
 
 func checkDefaultEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.EventWrite(prefix, entCtx))
+}
+
+func checkDefaultIdentityRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.IdentityRead(prefix, entCtx))
+}
+
+func checkDefaultIdentityReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.IdentityReadAll(entCtx))
+}
+
+func checkDefaultIdentityWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.IdentityWrite(prefix, entCtx))
+}
+
+func checkDefaultIdentityWriteAny(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.IdentityWriteAny(entCtx))
 }
 
 func checkDefaultIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
@@ -440,6 +488,10 @@ func TestACL(t *testing.T) {
 				{name: "DenyIntentionDefaultAllow", check: checkDenyIntentionDefaultAllow},
 				{name: "DenyIntentionRead", check: checkDenyIntentionRead},
 				{name: "DenyIntentionWrite", check: checkDenyIntentionWrite},
+				{name: "DenyIdentityRead", check: checkDenyIdentityRead},
+				{name: "DenyIdentityReadAll", check: checkDenyIdentityReadAll},
+				{name: "DenyIdentityWrite", check: checkDenyIdentityWrite},
+				{name: "DenyIdentityWriteAny", check: checkDenyIdentityWriteAny},
 				{name: "DenyKeyRead", check: checkDenyKeyRead},
 				{name: "DenyKeyringRead", check: checkDenyKeyringRead},
 				{name: "DenyKeyringWrite", check: checkDenyKeyringWrite},
@@ -458,6 +510,7 @@ func TestACL(t *testing.T) {
 				{name: "DenyServiceRead", check: checkDenyServiceRead},
 				{name: "DenyServiceReadAll", check: checkDenyServiceReadAll},
 				{name: "DenyServiceWrite", check: checkDenyServiceWrite},
+				{name: "DenyServiceWriteAny", check: checkDenyServiceWriteAny},
 				{name: "DenySessionRead", check: checkDenySessionRead},
 				{name: "DenySessionWrite", check: checkDenySessionWrite},
 				{name: "DenySnapshot", check: checkDenySnapshot},
@@ -473,6 +526,10 @@ func TestACL(t *testing.T) {
 				{name: "AllowAgentWrite", check: checkAllowAgentWrite},
 				{name: "AllowEventRead", check: checkAllowEventRead},
 				{name: "AllowEventWrite", check: checkAllowEventWrite},
+				{name: "AllowIdentityRead", check: checkAllowIdentityRead},
+				{name: "AllowIdentityReadAll", check: checkAllowIdentityReadAll},
+				{name: "AllowIdentityWrite", check: checkAllowIdentityWrite},
+				{name: "AllowIdentityWriteAny", check: checkAllowIdentityWriteAny},
 				{name: "AllowIntentionDefaultAllow", check: checkAllowIntentionDefaultAllow},
 				{name: "AllowIntentionRead", check: checkAllowIntentionRead},
 				{name: "AllowIntentionWrite", check: checkAllowIntentionWrite},
@@ -494,6 +551,7 @@ func TestACL(t *testing.T) {
 				{name: "AllowServiceRead", check: checkAllowServiceRead},
 				{name: "AllowServiceReadAll", check: checkAllowServiceReadAll},
 				{name: "AllowServiceWrite", check: checkAllowServiceWrite},
+				{name: "AllowServiceWriteAny", check: checkAllowServiceWriteAny},
 				{name: "AllowSessionRead", check: checkAllowSessionRead},
 				{name: "AllowSessionWrite", check: checkAllowSessionWrite},
 				{name: "DenySnapshot", check: checkDenySnapshot},
@@ -509,6 +567,10 @@ func TestACL(t *testing.T) {
 				{name: "AllowAgentWrite", check: checkAllowAgentWrite},
 				{name: "AllowEventRead", check: checkAllowEventRead},
 				{name: "AllowEventWrite", check: checkAllowEventWrite},
+				{name: "AllowIdentityRead", check: checkAllowIdentityRead},
+				{name: "AllowIdentityReadAll", check: checkAllowIdentityReadAll},
+				{name: "AllowIdentityWrite", check: checkAllowIdentityWrite},
+				{name: "AllowIdentityWriteAny", check: checkAllowIdentityWriteAny},
 				{name: "AllowIntentionDefaultAllow", check: checkAllowIntentionDefaultAllow},
 				{name: "AllowIntentionRead", check: checkAllowIntentionRead},
 				{name: "AllowIntentionWrite", check: checkAllowIntentionWrite},
@@ -530,6 +592,7 @@ func TestACL(t *testing.T) {
 				{name: "AllowServiceRead", check: checkAllowServiceRead},
 				{name: "AllowServiceReadAll", check: checkAllowServiceReadAll},
 				{name: "AllowServiceWrite", check: checkAllowServiceWrite},
+				{name: "AllowServiceWriteAny", check: checkAllowServiceWriteAny},
 				{name: "AllowSessionRead", check: checkAllowSessionRead},
 				{name: "AllowSessionWrite", check: checkAllowSessionWrite},
 				{name: "AllowSnapshot", check: checkAllowSnapshot},
@@ -903,6 +966,134 @@ func TestACL(t *testing.T) {
 				{name: "ChildRWSuffixWriteAllowed", prefix: "child-rw-prefix", check: checkAllowAgentWrite},
 				{name: "ChildOverrideReadAllowed", prefix: "override", check: checkAllowAgentRead},
 				{name: "ChildOverrideWriteAllowed", prefix: "override", check: checkAllowAgentWrite},
+			},
+		},
+		{
+			name:          "IdentityDefaultAllowPolicyDeny",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Identities: []*IdentityRule{
+							{
+								Name:   "foo",
+								Policy: PolicyDeny,
+							},
+						},
+						IdentityPrefixes: []*IdentityRule{
+							{
+								Name:   "prefix",
+								Policy: PolicyDeny,
+							},
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "IdentityFooReadDenied", prefix: "foo", check: checkDenyIdentityRead},
+				{name: "IdentityFooWriteDenied", prefix: "foo", check: checkDenyIdentityWrite},
+				{name: "IdentityPrefixReadDenied", prefix: "prefix", check: checkDenyIdentityRead},
+				{name: "IdentityPrefixWriteDenied", prefix: "prefix", check: checkDenyIdentityWrite},
+				{name: "IdentityBarReadAllowed", prefix: "fail", check: checkAllowIdentityRead},
+				{name: "IdentityBarWriteAllowed", prefix: "fail", check: checkAllowIdentityWrite},
+			},
+		},
+		{
+			name:          "IdentityDefaultDenyPolicyAllow",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Identities: []*IdentityRule{
+							{
+								Name:   "foo",
+								Policy: PolicyWrite,
+							},
+						},
+						IdentityPrefixes: []*IdentityRule{
+							{
+								Name:   "prefix",
+								Policy: PolicyRead,
+							},
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "IdentityFooReadAllowed", prefix: "foo", check: checkAllowIdentityRead},
+				{name: "IdentityFooWriteAllowed", prefix: "foo", check: checkAllowIdentityWrite},
+				{name: "IdentityPrefixReadAllowed", prefix: "prefix", check: checkAllowIdentityRead},
+				{name: "IdentityPrefixWriteDenied", prefix: "prefix", check: checkDenyIdentityWrite},
+				{name: "IdentityBarReadDenied", prefix: "fail", check: checkDenyIdentityRead},
+				{name: "IdentityBarWriteDenied", prefix: "fail", check: checkDenyIdentityWrite},
+			},
+		},
+		{
+			name:          "IdentityDefaultDenyPolicyComplex",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Identities: []*IdentityRule{
+							{
+								Name:   "football",
+								Policy: PolicyRead,
+							},
+							{
+								Name:       "prefix-forbidden",
+								Policy:     PolicyDeny,
+								Intentions: PolicyDeny,
+							},
+						},
+						IdentityPrefixes: []*IdentityRule{
+							{
+								Name:       "foo",
+								Policy:     PolicyWrite,
+								Intentions: PolicyWrite,
+							},
+							{
+								Name:       "prefix",
+								Policy:     PolicyRead,
+								Intentions: PolicyWrite,
+							},
+						},
+					},
+				},
+				{
+					PolicyRules: PolicyRules{
+						Identities: []*IdentityRule{
+							{
+								Name:       "foozball",
+								Policy:     PolicyWrite,
+								Intentions: PolicyRead,
+							},
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "IdentityReadAllowed", prefix: "foo", check: checkAllowIdentityRead},
+				{name: "IdentityWriteAllowed", prefix: "foo", check: checkAllowIdentityWrite},
+				{name: "IntentionReadAllowed", prefix: "foo", check: checkAllowIntentionRead},
+				{name: "IntentionWriteAllowed", prefix: "foo", check: checkAllowIntentionWrite},
+				{name: "IdentityReadAllowed", prefix: "football", check: checkAllowIdentityRead},
+				{name: "IdentityWriteDenied", prefix: "football", check: checkDenyIdentityWrite},
+				{name: "IntentionReadAllowed", prefix: "football", check: checkAllowIntentionRead},
+				// This might be surprising but omitting intention rule gives at most intention:read
+				// if we have identity:write perms. This matches services as well.
+				{name: "IntentionWriteDenied", prefix: "football", check: checkDenyIntentionWrite},
+				{name: "IdentityReadAllowed", prefix: "prefix", check: checkAllowIdentityRead},
+				{name: "IdentityWriteDenied", prefix: "prefix", check: checkDenyIdentityWrite},
+				{name: "IntentionReadAllowed", prefix: "prefix", check: checkAllowIntentionRead},
+				{name: "IntentionWriteDenied", prefix: "prefix", check: checkAllowIntentionWrite},
+				{name: "IdentityReadDenied", prefix: "prefix-forbidden", check: checkDenyIdentityRead},
+				{name: "IdentityWriteDenied", prefix: "prefix-forbidden", check: checkDenyIdentityWrite},
+				{name: "IntentionReadDenied", prefix: "prefix-forbidden", check: checkDenyIntentionRead},
+				{name: "IntentionWriteDenied", prefix: "prefix-forbidden", check: checkDenyIntentionWrite},
+				{name: "IdentityReadAllowed", prefix: "foozball", check: checkAllowIdentityRead},
+				{name: "IdentityWriteAllowed", prefix: "foozball", check: checkAllowIdentityWrite},
+				{name: "IntentionReadAllowed", prefix: "foozball", check: checkAllowIntentionRead},
+				{name: "IntentionWriteDenied", prefix: "foozball", check: checkDenyIntentionWrite},
 			},
 		},
 		{
