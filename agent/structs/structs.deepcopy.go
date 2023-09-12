@@ -383,28 +383,6 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 				cp.Rules[i2].Filters.URLRewrite = new(URLRewrite)
 				*cp.Rules[i2].Filters.URLRewrite = *o.Rules[i2].Filters.URLRewrite
 			}
-			if o.Rules[i2].ResponseFilters.Headers != nil {
-				cp.Rules[i2].ResponseFilters.Headers = make([]HTTPHeaderFilter, len(o.Rules[i2].ResponseFilters.Headers))
-				copy(cp.Rules[i2].ResponseFilters.Headers, o.Rules[i2].ResponseFilters.Headers)
-				for i5 := range o.Rules[i2].ResponseFilters.Headers {
-					if o.Rules[i2].ResponseFilters.Headers[i5].Add != nil {
-						cp.Rules[i2].ResponseFilters.Headers[i5].Add = make(map[string]string, len(o.Rules[i2].ResponseFilters.Headers[i5].Add))
-						for k7, v7 := range o.Rules[i2].ResponseFilters.Headers[i5].Add {
-							cp.Rules[i2].ResponseFilters.Headers[i5].Add[k7] = v7
-						}
-					}
-					if o.Rules[i2].ResponseFilters.Headers[i5].Remove != nil {
-						cp.Rules[i2].ResponseFilters.Headers[i5].Remove = make([]string, len(o.Rules[i2].ResponseFilters.Headers[i5].Remove))
-						copy(cp.Rules[i2].ResponseFilters.Headers[i5].Remove, o.Rules[i2].ResponseFilters.Headers[i5].Remove)
-					}
-					if o.Rules[i2].ResponseFilters.Headers[i5].Set != nil {
-						cp.Rules[i2].ResponseFilters.Headers[i5].Set = make(map[string]string, len(o.Rules[i2].ResponseFilters.Headers[i5].Set))
-						for k7, v7 := range o.Rules[i2].ResponseFilters.Headers[i5].Set {
-							cp.Rules[i2].ResponseFilters.Headers[i5].Set[k7] = v7
-						}
-					}
-				}
-			}
 			if o.Rules[i2].Matches != nil {
 				cp.Rules[i2].Matches = make([]HTTPMatch, len(o.Rules[i2].Matches))
 				copy(cp.Rules[i2].Matches, o.Rules[i2].Matches)
@@ -448,28 +426,6 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					if o.Rules[i2].Services[i4].Filters.URLRewrite != nil {
 						cp.Rules[i2].Services[i4].Filters.URLRewrite = new(URLRewrite)
 						*cp.Rules[i2].Services[i4].Filters.URLRewrite = *o.Rules[i2].Services[i4].Filters.URLRewrite
-					}
-					if o.Rules[i2].Services[i4].ResponseFilters.Headers != nil {
-						cp.Rules[i2].Services[i4].ResponseFilters.Headers = make([]HTTPHeaderFilter, len(o.Rules[i2].Services[i4].ResponseFilters.Headers))
-						copy(cp.Rules[i2].Services[i4].ResponseFilters.Headers, o.Rules[i2].Services[i4].ResponseFilters.Headers)
-						for i7 := range o.Rules[i2].Services[i4].ResponseFilters.Headers {
-							if o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add != nil {
-								cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add = make(map[string]string, len(o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add))
-								for k9, v9 := range o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add {
-									cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add[k9] = v9
-								}
-							}
-							if o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove != nil {
-								cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove = make([]string, len(o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove))
-								copy(cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove, o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove)
-							}
-							if o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set != nil {
-								cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set = make(map[string]string, len(o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set))
-								for k9, v9 := range o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set {
-									cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set[k9] = v9
-								}
-							}
-						}
 					}
 				}
 			}

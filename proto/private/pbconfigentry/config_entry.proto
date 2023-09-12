@@ -793,7 +793,6 @@ message HTTPRouteRule {
   HTTPFilters Filters = 1;
   repeated HTTPMatch Matches = 2;
   repeated HTTPService Services = 3;
-  HTTPResponseFilters ResponseFilters = 4;
 }
 
 // mog annotation:
@@ -889,15 +888,6 @@ message HTTPFilters {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/agent/structs.HTTPResponseFilters
-// output=config_entry.gen.go
-// name=Structs
-message HTTPResponseFilters {
-  repeated HTTPHeaderFilter Headers = 1;
-}
-
-// mog annotation:
-//
 // target=github.com/hashicorp/consul/agent/structs.URLRewrite
 // output=config_entry.gen.go
 // name=Structs
@@ -928,7 +918,6 @@ message HTTPService {
   HTTPFilters Filters = 3;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 4;
-  HTTPResponseFilters ResponseFilters = 5;
 }
 
 // mog annotation:
