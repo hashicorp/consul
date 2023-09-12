@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package builder
 
 import (
@@ -39,46 +42,7 @@ func newServicePortInfo(serviceEndpoints *pbcatalog.ServiceEndpoints) *servicePo
 	}
 	seen := make(map[string]*seenData)
 	for epIdx, ep := range serviceEndpoints.GetEndpoints() {
-		for _, address := range ep.Addresses {
-
-			hasAddressLevelPorts := false
-			if len(address.Ports) > 0 {
-				hasAddressLevelPorts = true
-			}
-
-			// if address has specific ports, add those to the seen array
-			for _, portName := range address.Ports {
-				// check that it is not service mesh port because we don't
-				// want to add that to the service ports map.
-				epPort, epOK := ep.Ports[portName]
-				if isMeshPort(epPort) {
-					continue
-				}
-
-				_, ok := seen[portName]
-				if ok {
-					// port is in the seen map
-					if epOK {
-						// port is also in the endpoints list which we want to verify.
-
-						// if this port has been seen already, add the current endpoint as a seenBy if it is not already
-						// present.
-						if seen[portName].seenBy == nil {
-							// port is in the seen map but has no seenBy indexes.
-							seen[portName].seenBy = append([]*int{}, &epIdx)
-						} else if len(seen[portName].seenBy)-1 < epIdx {
-							// port is in the seen map and has seenBy indexes but not this one.
-							seen[portName].seenBy = append(seen[portName].seenBy, &epIdx)
-						}
-						// else do nothing since this endpoint has already marked it as seen.
-					}
-				} else {
-					// port is not yet in the seen map
-					seenBy := append([]*int{}, &epIdx)
-					seen[portName] = &seenData{port: epPort, seenBy: seenBy}
-				}
-			}
-
+		for range ep.Addresses {
 			// iterate through endpoint ports and set the mesh port
 			// as well as all endpoint ports for this workload if there
 			// are no specific workload ports.
@@ -90,11 +54,6 @@ func newServicePortInfo(serviceEndpoints *pbcatalog.ServiceEndpoints) *servicePo
 					continue
 				}
 
-				// if address specifies a subset, it has already been accounted
-				// for in the seen list.
-				if hasAddressLevelPorts {
-					continue
-				}
 				// otherwise, add all ports for this endpoint.
 				portData, ok := seen[epPortName]
 				if ok {
