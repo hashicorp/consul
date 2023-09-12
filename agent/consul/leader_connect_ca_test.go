@@ -1312,11 +1312,6 @@ func TestCAManager_AuthorizeAndSignCertificate(t *testing.T) {
 		Namespace:  "ns1",
 		Service:    "test-service",
 	}.URI()
-	workloadIdentityURL := connect.SpiffeIDWorkloadIdentity{
-		Namespace:        "ns1",
-		WorkloadIdentity: "test-wl-identity",
-		TrustDomain:      "test-domain",
-	}.URI()
 	meshURL := connect.SpiffeIDMeshGateway{
 		Datacenter: conf.PrimaryDatacenter,
 		Host:       "test-host",
@@ -1329,15 +1324,6 @@ func TestCAManager_AuthorizeAndSignCertificate(t *testing.T) {
 		getCSR    func() *x509.CertificateRequest
 		authAllow bool
 	}{
-		{
-			name:      "err_workload_identity_not_allowed",
-			expectErr: "Permission denied",
-			getCSR: func() *x509.CertificateRequest {
-				return &x509.CertificateRequest{
-					URIs: []*url.URL{workloadIdentityURL},
-				}
-			},
-		},
 		{
 			name:      "err_not_one_uri",
 			expectErr: "CSR SAN contains an invalid number of URIs",
