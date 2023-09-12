@@ -741,7 +741,7 @@ Map that specifies a set of rules that enable Consul to remove hosts from the up
 
 ### `TransparentProxy`
 
-Controls configurations specific to proxies in transparent mode. Refer to [Transparent Proxy](/consul/docs/connect/transparent-proxy) for additional information.
+Controls configurations specific to proxies in transparent mode. Refer to [Transparent Proxy Mode](/consul/docs/k8s/connect/transparent-proxy) for additional information.
 
 You can configure the following parameters in the `TransparentProxy` block:
 
@@ -777,15 +777,17 @@ The following table describes how to configure values in the `EnvoyExtensions` m
 | `ConsulVersion` | Specifies the version of Consul that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `ConsulVersion` and `EnvoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
 | `EnvoyVersion` | Specifies the version of Envoy that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `ConsulVersion` and `EnvoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
 
-### `Destination[]`
+### `Destination{}`
 
 Configures the destination for service traffic through terminating gateways. Refer to [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for additional information.
+
+To use the `Destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
 
 You can configure the following parameters in the `Destination` block:
 
 | Parameter | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `Address` | Specifies a list of addresses for the destination. You can configure a list of hostnames and IP addresses. Wildcards are  not supported.  | List | None |
+| `Addresses` | Specifies a list of addresses for the destination. You can configure a list of hostnames and IP addresses. Wildcards are  not supported.  | List | None |
 | `Port` | Specifies the port number of the destination. | Integer | `0` |
 
 ### `MaxInboundConnections`
@@ -1196,13 +1198,15 @@ The following table describes how to configure values in the `envoyExtensions` m
 
 Map of configurations that specify one or more destinations for service traffic routed through terminating gateways. Refer to [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for additional information.
 
+To use the `destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
+
 #### Values
 
 You can configure the following parameters in the `destination` block:
 
 | Parameter | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `address` | Specifies a list of addresses for the destination. You can configure a list of hostnames and IP addresses. Wildcards are  not supported.  | List | None |
+| `addresses` | Specifies a list of addresses for the destination. You can configure a list of hostnames and IP addresses. Wildcards are  not supported.  | List | None |
 | `port` | Specifies the port number of the destination. | Integer | `0` |
 
 ### `spec.maxInboundConnections`
@@ -1511,6 +1515,7 @@ spec:
 
 The following examples creates a default destination assigned to a terminating gateway. A destination
 represents a location outside the Consul cluster. Services can dial destinations dialed directly when transparent proxy mode is enabled.
+Proxy services must be in transparent proxy mode to configure destinations. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
