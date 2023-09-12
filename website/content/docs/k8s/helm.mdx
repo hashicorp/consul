@@ -1153,12 +1153,13 @@ Use these links to navigate to a particular top-level stanza.
     used to join the cluster. In most cases, the `client.join` values
     should be the same, however, they may be different if you
     wish to use separate hosts for the HTTPS connections.
+    'tlsServerName' is required if TLS is enabled and 'hosts' is not a DNS name.
 
   - `httpsPort` ((#v-externalservers-httpsport)) (`integer: 8501`) - The HTTPS port of the Consul servers.
 
   - `grpcPort` ((#v-externalservers-grpcport)) (`integer: 8502`) - The GRPC port of the Consul servers.
 
-  - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS.
+  - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS. The hostname to expect in the server certificate's subject
 
   - `useSystemRoots` ((#v-externalservers-usesystemroots)) (`boolean: false`) - If true, consul-k8s-control-plane components will ignore the CA set in
     `global.tls.caCert` when making HTTPS calls to Consul servers and
