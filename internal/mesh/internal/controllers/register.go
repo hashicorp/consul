@@ -36,7 +36,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 		Cancels: make(map[string]context.CancelFunc),
 	}
 	mgr.Register(xds.Controller(endpointsMapper, deps.ProxyUpdater, deps.TrustBundleFetcher, deps.LeafCertManager, leafMapper, leafCancels, deps.Datacenter))
-	
+
 	destinationsCache := sidecarproxycache.NewDestinationsCache()
 	proxyCfgCache := sidecarproxycache.NewProxyConfigurationCache()
 	m := sidecarproxymapper.New(destinationsCache, proxyCfgCache)
