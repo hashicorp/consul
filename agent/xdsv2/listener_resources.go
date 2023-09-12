@@ -275,6 +275,14 @@ func makeEnvoyFilterChainMatch(routerMatch *pbproxystate.Match) *envoy_listener_
 			}
 			envoyFilterChainMatch.SourcePrefixRanges = ranges
 		}
+		if len(routerMatch.AlpnProtocols) > 0 {
+			sort.Strings(routerMatch.AlpnProtocols)
+			var alpnProtocols []string
+			for _, protocol := range routerMatch.AlpnProtocols {
+				alpnProtocols = append(alpnProtocols, protocol)
+			}
+			envoyFilterChainMatch.ApplicationProtocols = alpnProtocols
+		}
 	}
 	return envoyFilterChainMatch
 }
@@ -527,6 +535,10 @@ func (pr *ProxyResources) makeEnvoyTLSParameters(defaultParams *pbproxystate.TLS
 }
 
 func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSocket) (*envoy_core_v3.TransportSocket, error) {
+	// TODO(JM): did this just make tests pass.  Figure out whether proxyState.Tls will always be available.
+	if pr.proxyState.Tls == nil {
+		return nil, nil
+	}
 	if ts == nil {
 		return nil, nil
 	}

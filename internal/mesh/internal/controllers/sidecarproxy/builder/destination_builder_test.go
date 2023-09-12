@@ -195,13 +195,48 @@ func TestBuildImplicitDestinations(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", proxyCfg).
-			BuildDestinations(c.destinations).
-			Build()
+		t.Run(name, func(t *testing.T) {
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", proxyCfg).
+				BuildDestinations(c.destinations).
+				Build()
 
-		actual := protoToJSON(t, proxyTmpl)
-		expected := golden.Get(t, actual, name+".golden")
+			actual := protoToJSON(t, proxyTmpl)
+			expected := golden.Get(t, actual, name+".golden")
 
-		require.JSONEq(t, expected, actual)
+			require.JSONEq(t, expected, actual)
+		})
+	}
+}
+
+func Test_isMeshPort(t *testing.T) {
+	cases := map[string]struct {
+		protocol       pbcatalog.Protocol
+		expectedResult bool
+	}{
+		"mesh protocol returns true": {
+			protocol:       pbcatalog.Protocol_PROTOCOL_MESH,
+			expectedResult: true,
+		},
+		"grpc protocol returns false": {
+			protocol:       pbcatalog.Protocol_PROTOCOL_GRPC,
+			expectedResult: false,
+		},
+		"tcp protocol returns false": {
+			protocol:       pbcatalog.Protocol_PROTOCOL_TCP,
+			expectedResult: false,
+		},
+		"http protocol returns false": {
+			protocol:       pbcatalog.Protocol_PROTOCOL_HTTP,
+			expectedResult: false,
+		},
+		"http2 protocol returns false": {
+			protocol:       pbcatalog.Protocol_PROTOCOL_HTTP2,
+			expectedResult: false,
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.expectedResult, isMeshPort(&pbcatalog.WorkloadPort{Protocol: tc.protocol}))
+		})
 	}
 }

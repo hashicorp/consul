@@ -1,13 +1,16 @@
 {
   "proxyState": {
     "clusters": {
-      "api-2.default.dc1.internal.foo.consul": {
+      "tcp.api-2.default.dc1.internal.foo.consul": {
         "endpointGroup": {
           "dynamic": {
             "config": {
               "disablePanicThreshold": true
             },
             "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ],
               "outboundMesh": {
                 "identityKey": "test-identity",
                 "sni": "api-2.default.dc1.internal.foo.consul",
@@ -37,8 +40,8 @@
         "routers": [
           {
             "l4": {
-              "name": "api-2.default.dc1.internal.foo.consul",
-              "statPrefix": "upstream.api-2.default.default.dc1"
+              "name": "tcp.api-2.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.tcp.api-2.default.default.dc1"
             }
           }
         ],

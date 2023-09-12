@@ -12,22 +12,23 @@ import (
 )
 
 func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload) *Builder {
-	// Go through workload ports and add the first non-mesh port we see.
+	// Add the public listener.
+	lb := b.addInboundListener(xdscommon.PublicListenerName, workload)
+	lb.buildListener()
+
+	// Go through workload ports and add the routers, clusters, endpoints, and TLS.
 	// Note that the order of ports is non-deterministic here but the xds generation
 	// code should make sure to send it in the same order to Envoy to avoid unnecessary
 	// updates.
-	// todo (ishustava): Note we will need to support multiple ports in the future.
 	for portName, port := range workload.Ports {
 		clusterName := fmt.Sprintf("%s:%s", xdscommon.LocalAppClusterName, portName)
 
 		if port.Protocol != pbcatalog.Protocol_PROTOCOL_MESH {
-			b.addInboundListener(xdscommon.PublicListenerName, workload).
-				addInboundRouter(clusterName, port).
-				addInboundTLS().
-				buildListener().
-				addLocalAppCluster(clusterName).
+			lb.addInboundRouter(clusterName, port, portName).
+				addInboundTLS()
+
+			b.addLocalAppCluster(clusterName).
 				addLocalAppStaticEndpoints(clusterName, port)
-			break
 		}
 	}
 
@@ -76,7 +77,7 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 	return b.NewListenerBuilder(listener)
 }
 
-func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.WorkloadPort) *ListenerBuilder {
+func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.WorkloadPort, portName string) *ListenerBuilder {
 	if l.listener == nil {
 		return l
 	}
@@ -89,10 +90,17 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 					StatPrefix: l.listener.Name,
 				},
 			},
+			Match: &pbproxystate.Match{
+				AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
+			},
 		}
 		l.listener.Routers = append(l.listener.Routers, r)
 	}
 	return l
+}
+
+func getAlpnProtocolFromPortName(portName string) string {
+	return fmt.Sprintf("consul~%s", portName)
 }
 
 func (b *Builder) addLocalAppCluster(clusterName string) *Builder {
