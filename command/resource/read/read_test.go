@@ -7,6 +7,10 @@ import (
 
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/command/resource/apply"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestResourceReadInvalidArgs(t *testing.T) {
@@ -57,26 +61,73 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 	}
 }
 
-func TestResourceRead(t *testing.T) {
-	// TODO: add read test after apply checked in
-	//if testing.Short() {
-	//	t.Skip("too slow for testing.Short")
-	//}
-	//
-	//t.Parallel()
-	//
-	//a := agent.NewTestAgent(t, ``)
-	//defer a.Shutdown()
-	//client := a.Client()
-	//
-	//ui := cli.NewMockUi()
-	//c := New(ui)
+func createResource(t *testing.T, a *agent.TestAgent) {
+	applyUi := cli.NewMockUi()
+	applyCmd := apply.New(applyUi)
 
-	//_, _, err := client.Resource().Apply()
-	//require.NoError(t, err)
-	//
-	//args := []string{}
-	//
-	//code := c.Run(args)
-	//require.Equal(t, 0, code)
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-token=root",
+	}
+
+	args = append(args, []string{"-f=../testdata/demo.hcl"}...)
+
+	code := applyCmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Empty(t, applyUi.ErrorWriter.String())
+}
+
+func TestResourceRead(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	defaultCmdArgs := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-token=root",
+	}
+
+	createResource(t, a)
+	cases := []struct {
+		name         string
+		args         []string
+		expectedCode int
+		errMsg       string
+	}{
+		{
+			name:         "read resource in hcl format",
+			args:         []string{"-f=../testdata/demo.hcl"},
+			expectedCode: 0,
+			errMsg:       "",
+		},
+		{
+			name:         "read resource in command line format",
+			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
+			expectedCode: 0,
+			errMsg:       "",
+		},
+		{
+			name:         "read resource that doesn't exist",
+			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
+			expectedCode: 1,
+			errMsg:       "Error reading resource &{demo v2 Artist}/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+			cliArgs := append(tc.args, defaultCmdArgs...)
+			code := c.Run(cliArgs)
+			require.Equal(t, ui.ErrorWriter.String(), tc.errMsg)
+			require.Equal(t, tc.expectedCode, code)
+		})
+	}
 }
