@@ -4195,6 +4195,9 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	a.enableDebug.Store(newCfg.EnableDebug)
 	a.config.EnableDebug = newCfg.EnableDebug
 
+	// update Agent config with new config
+	a.config = newCfg.DeepCopy()
+
 	return nil
 }
 
