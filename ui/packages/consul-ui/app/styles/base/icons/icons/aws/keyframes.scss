@@ -1,0 +1,9 @@
+@keyframes icon-aws {
+  100% {
+
+    -webkit-mask-image: var(--icon-aws-color-16);
+    mask-image: var(--icon-aws-color-16);
+    background-color: var(--icon-color, var(--color-aws-500, currentColor));
+
+  }
+}

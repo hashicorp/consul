@@ -1,20 +1,16 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package fsm
 
 import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/raft"
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
-
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func init() {
@@ -24,6 +20,8 @@ func init() {
 	registerRestorer(structs.KVSRequestType, restoreKV)
 	registerRestorer(structs.TombstoneRequestType, restoreTombstone)
 	registerRestorer(structs.SessionRequestType, restoreSession)
+	registerRestorer(structs.DeprecatedACLRequestType, restoreACL) // TODO(ACL-Legacy-Compat) - remove in phase 2
+	registerRestorer(structs.ACLBootstrapRequestType, restoreACLBootstrap)
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
 	registerRestorer(structs.AutopilotRequestType, restoreAutopilot)
@@ -103,9 +101,6 @@ func persistCE(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) erro
 		return err
 	}
 	if err := s.persistPeeringSecrets(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistResources(sink, encoder); err != nil {
 		return err
 	}
 	return nil
@@ -613,25 +608,6 @@ func (s *snapshot) persistPeeringSecrets(sink raft.SnapshotSink, encoder *codec.
 	return nil
 }
 
-func (s *snapshot) persistResources(sink raft.SnapshotSink, encoder *codec.Encoder) error {
-	for {
-		v, err := s.storageSnapshot.Next()
-		if err != nil {
-			return err
-		}
-		if v == nil {
-			return nil
-		}
-
-		if _, err := sink.Write([]byte{byte(structs.ResourceOperationType)}); err != nil {
-			return err
-		}
-		if err := encoder.Encode(v); err != nil {
-			return err
-		}
-	}
-}
-
 func restoreRegistration(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.RegisterRequest
 	if err := decoder.Decode(&req); err != nil {
@@ -682,6 +658,73 @@ func restoreSession(header *SnapshotHeader, restore *state.Restore, decoder *cod
 		return err
 	}
 	return nil
+}
+
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+func restoreACL(_ *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req LegacyACL
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+
+	if err := restore.ACLToken(req.Convert()); err != nil {
+		return err
+	}
+	return nil
+}
+
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+type LegacyACL struct {
+	ID    string
+	Name  string
+	Type  string
+	Rules string
+
+	structs.RaftIndex
+}
+
+// TODO(ACL-Legacy-Compat): remove in phase 2, used by snapshot restore
+func (a LegacyACL) Convert() *structs.ACLToken {
+	correctedRules := structs.SanitizeLegacyACLTokenRules(a.Rules)
+	if correctedRules != "" {
+		a.Rules = correctedRules
+	}
+
+	token := &structs.ACLToken{
+		AccessorID:        "",
+		SecretID:          a.ID,
+		Description:       a.Name,
+		Policies:          nil,
+		ServiceIdentities: nil,
+		NodeIdentities:    nil,
+		Type:              a.Type,
+		Rules:             a.Rules,
+		Local:             false,
+		RaftIndex:         a.RaftIndex,
+	}
+
+	token.SetHash(true)
+	return token
+}
+
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+func restoreACLBootstrap(_ *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	type ACLBootstrap struct {
+		// AllowBootstrap will only be true if no existing management tokens
+		// have been found.
+		AllowBootstrap bool
+
+		structs.RaftIndex
+	}
+
+	var req ACLBootstrap
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+
+	// With V2 ACLs whether bootstrapping has been performed is stored in the index table like nomad
+	// so this "restores" into that index table.
+	return restore.IndexRestore(&state.IndexEntry{Key: "acl-token-bootstrap", Value: req.ModifyIndex})
 }
 
 func restoreCoordinates(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
@@ -774,6 +817,14 @@ func restoreToken(header *SnapshotHeader, restore *state.Restore, decoder *codec
 	var req structs.ACLToken
 	if err := decoder.Decode(&req); err != nil {
 		return err
+	}
+
+	// DEPRECATED (ACL-Legacy-Compat)
+	if req.Rules != "" {
+		// When we restore a snapshot we may have to correct old HCL in legacy
+		// tokens to prevent the in-memory representation from using an older
+		// syntax.
+		structs.SanitizeLegacyACLToken(&req)
 	}
 
 	// only set if unset - mitigates a bug where converted legacy tokens could end up without a hash

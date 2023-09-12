@@ -1,27 +1,25 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 #metrics-container .sparkline-wrapper {
   svg path {
     stroke-width: 0;
   }
 
   .tooltip {
-    @extend %body-200-regular;
     padding: 0 0 10px;
-    border: 1px solid var(--token-color-palette-neutral-300);
+    font-size: 0.875em;
+    line-height: 1.5em;
+    font-weight: normal;
+    border: 1px solid rgb(var(--tone-gray-300));
     background: #fff;
     border-radius: 2px;
     box-sizing: border-box;
-    box-shadow: var(--token-elevation-higher-box-shadow);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.05), 0px 4px 4px rgba(0, 0, 0, 0.1);
 
     .sparkline-time {
-      @extend %body-200-semibold;
       padding: 8px 10px;
+      font-weight: bold;
+      font-size: 14px;
       color: #000;
-      border-bottom: 1px solid var(--token-color-surface-interactive-active);
+      border-bottom: 1px solid rgb(var(--tone-gray-200));
       margin-bottom: 4px;
       text-align: center;
     }
@@ -33,7 +31,7 @@
     }
 
     .sparkline-tt-sum {
-      border-top: 1px solid var(--token-color-surface-interactive-active);
+      border-top: 1px solid rgb(var(--tone-gray-200));
       margin-top: 4px;
       padding: 8px 10px 0 10px;
     }
@@ -60,7 +58,7 @@
     height: 12px;
     left: 15px;
     bottom: -7px;
-    border: 1px solid var(--token-color-palette-neutral-300);
+    border: 1px solid rgb(var(--tone-gray-300));
     border-top: 0;
     border-left: 0;
     background: #fff;
@@ -73,29 +71,29 @@
   h3::before {
     @extend %with-info-circle-fill-mask, %as-pseudo;
     margin: 2px 3px 0 0;
-    font-size: var(--token-typography-body-200-font-size);
+    font-size: 14px;
   }
 
   h3 {
-    @extend %display-300-semibold;
-    color: var(--token-color-foreground-strong);
+    color: rgb(var(--tone-gray-900));
+    font-size: 16px;
   }
 
   .sparkline-key-content {
     dt {
-      font-weight: var(--token-typography-font-weight-semibold);
+      font-weight: 600;
     }
     dd {
-      color: var(--token-color-foreground-faint);
+      color: rgb(var(--tone-gray-500));
     }
   }
 }
 
 .sparkline-key-link {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-500));
 }
 .sparkline-key-link:hover {
-  color: var(--token-color-foreground-action);
+  color: rgb(var(--tone-blue-500));
 }
 #metrics-container:hover .sparkline-key-link::before {
   @extend %with-info-circle-fill-mask, %as-pseudo;

@@ -1,8 +1,6 @@
 ---
 layout: commands
 page_title: 'Commands: ACL'
-description: >-
-  The `consul acl` command exposes top-level commands for bootstrapping the ACL system, managing tokens and policies, and setting the tokens for use by an agent.
 ---
 
 # Consul ACLs
@@ -11,10 +9,10 @@ Command: `consul acl`
 
 The `acl` command is used to interact with Consul's ACLs via the command
 line. It exposes top-level commands for bootstrapping the ACL system,
-managing tokens and policies, and setting the
+managing tokens and policies, translating legacy rules, and setting the
 tokens for use by an agent.
 
-ACLs are also accessible via the [HTTP API](/consul/api-docs/acl).
+ACLs are also accessible via the [HTTP API](/api-docs/acl).
 
 Bootstrap Consul's ACLs:
 
@@ -101,6 +99,8 @@ Subcommands:
     role               Manage Consul's ACL roles
     set-agent-token    Assign tokens for the Consul Agent's usage
     token              Manage Consul's ACL tokens
+    translate-rules    Translate the legacy rule syntax into the current syntax
+
 ```
 
 For more information, examples, and usage about a subcommand, click on the name

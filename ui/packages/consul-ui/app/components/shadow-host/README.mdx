@@ -1,0 +1,29 @@
+# ShadowHost
+
+`ShadowHost` is a small renderless mainly utility component for easily attaching
+ShadowDOM to any applicable DOM node. It mainly exists to provide a context for
+passing around a reference to the element to be used for the shadow template,
+but named appropriately for recognition.
+
+If you are looking to write a custom element, please use the `CustomElement`
+component. If you are simply attaching ShadowDOM to a native HTML element then
+this is the component for you.
+
+```hbs preview-template
+<ShadowHost as |shadow|>
+  <div
+    {{did-insert shadow.host}}
+  >
+    <shadow.Template>
+      <p>hi</p>
+    </shadow.Template>
+  </div>
+</ShadowHost>
+```
+
+## Exports
+
+| Attribute | Type                    | Description                                                                      |
+| :-------- | :---------------------- | :------------------------------------------------------------------------------- |
+| host      | function                | A did-insert-able callback for tagging an element to be used for the shadow root |
+| Template  | ShadowTemplateComponent | ShadowTemplate component pre-configured with the shadow host                     |

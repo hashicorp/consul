@@ -1,20 +1,18 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Token List'
-description: |
-  The `consul acl token list` command outputs details for all ACL tokens, including the global management bootstrap token and the anonymous token.
 ---
 
 # Consul ACL Token List
 
 Command: `consul acl token list`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/tokens](/consul/api-docs/acl/tokens#list-tokens)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/tokens](/api-docs/acl/tokens#list-tokens)
 
 The `acl token list` command lists all tokens. By default it will not show metadata.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -54,6 +52,7 @@ AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
 Description:  Bootstrap Token (Global Management)
 Local:        false
 Create Time:  2018-10-22 11:27:04.479026 -0400 EDT
+Legacy:       false
 Policies:
    00000000-0000-0000-0000-000000000001 - global-management
 
@@ -61,6 +60,7 @@ AccessorID:   00000000-0000-0000-0000-000000000002
 Description:  Anonymous Token
 Local:        false
 Create Time:  0001-01-01 00:00:00 +0000 UTC
+Legacy:       false
 Policies:
    06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
 
@@ -68,6 +68,7 @@ AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
 Description:  WonderToken
 Local:        false
 Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Legacy:       false
 Policies:
    06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
 Service Identities:
@@ -77,6 +78,7 @@ AccessorID:       def4895d-eeb9-f78a-fbb9-2a15a568af31
 Description:      Node 1 agent token
 Local:            false
 Create Time:      2020-12-22 04:19:30.552528733 +0000 UTC
+Legacy:           false
 Node Identities:
    node1 (Datacenter: dc1)
 ```

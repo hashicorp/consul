@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';

@@ -9,7 +9,7 @@ description: >-
 
 The `/tasks` endpoints interact with the tasks that Consul-Terraform-Sync (CTS) is responsible for running.
 
-If you [run CTS with high availability enabled](/consul/docs/nia/usage/run-ha), you can send requests to the `/tasks` endpoint on CTS leader or follower instances. Requests to a follower instance, however, return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/consul/docs/nia/usage/errors-ref) for more information.
+If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), you can send requests to the `/tasks` endpoint on CTS leader or follower instances. Requests to a follower instance, however, return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
 
 ## Get Tasks
 
@@ -30,7 +30,7 @@ This endpoint returns information about all existing tasks.
 | Name         | Type   | Description                                                                               |
 | ------------ | ------------- | ---------------------------------------------------------------------------------- |
 | `request_id` | string        | The ID of the request. Used for auditing and debugging purposes.                    |
-| `tasks`      | list[[Task](/consul/docs/nia/api/tasks#task-object)]  | A list of Tasks  |
+| `tasks`      | list[[Task](/docs/nia/api/tasks#task-object)]  | A list of Tasks  |
 
 ### Example: Retrieve all tasks
 
@@ -253,7 +253,7 @@ Response:
 
 ## Update Task
 
-This endpoint allows patch updates to specifically supported fields for existing tasks. Currently only supports updating a task's [`enabled` value](/consul/docs/nia/configuration#enabled-7).
+This endpoint allows patch updates to specifically supported fields for existing tasks. Currently only supports updating a task's [`enabled` value](/docs/nia/configuration#enabled-7).
 
 | Method  | Path                | Produces           |
 | ------- | ------------------- | ------------------ |
@@ -283,7 +283,7 @@ This endpoint allows patch updates to specifically supported fields for existing
 
 | Name                      | Type    | Description                                                                                                                                                                                                            |
 | ------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `inspect`                 | object  | Information on how resources would be changed given a proposed task update, similar to [inspect-mode](/consul/docs/nia/cli/#inspect-mode). This is only returned when passed the `run=inspect` request parameter. |
+| `inspect`                 | object  | Information on how resources would be changed given a proposed task update, similar to [inspect-mode](/docs/nia/cli/#inspect-mode). This is only returned when passed the `run=inspect` request parameter. |
 | `inspect.changes_present` | boolean | Whether or not changes were detected for running the proposed task update.                                                                                                                                             |
 | `inspect.plan`            | string  | The Terraform plan generated for the proposed task update. Note: a non-empty string does not necessarily indicate changes were detected.                                                                               |
 
@@ -383,7 +383,7 @@ $ curl --request DELETE \
 
 ## Task Object
 
-The task object is used by the Task APIs as part of a request or response. It represents the task's [configuration information](/consul/docs/nia/configuration#task).
+The task object is used by the Task APIs as part of a request or response. It represents the task's [configuration information](/docs/nia/configuration#task).
 
 | Name                    | Required     | Type     | Description                                                                                                                                                                                                                                                                           | Default                                                      |
 | ----------------------- | ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -391,14 +391,14 @@ The task object is used by the Task APIs as part of a request or response. It re
 | `buffer_period.enabled` | bool         | Optional | Whether the buffer period is enabled or disabled.                                                                                                                                                                                                                                     | The global buffer period's enabled value configured for CTS. |
 | `buffer_period.min`     | string       | Optional | The minimum period of time to wait after changes are detected before triggering the task.                                                                                                                                                                                             | The global buffer period's min value configured for CTS.     |
 | `buffer_period.max`     | string       | Optional | The maximum period of time to wait after changes are detected before triggering the task.                                                                                                                                                                                             | The global buffer period's max value configured for CTS.     |
-| `condition`             | object       | Required | The [condition](/consul/docs/nia/configuration#task-condition) on which to trigger the task to execute. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `condition.services`.                                             | none                                                         |
+| `condition`             | object       | Required | The [condition](/docs/nia/configuration#task-condition) on which to trigger the task to execute. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `condition.services`.                                             | none                                                         |
 | `description`           | string       | Optional | The human readable text to describe the task.                                                                                                                                                                                                                                         | none                                                         |
 | `enabled`               | bool         | Optional | Whether the task is enabled or disabled from executing.                                                                                                                                                                                                                               | `true`                                                       |
 | `module`                | string       | Required | The location of the Terraform module.                                                                                                                                                                                                                                                 | none                                                         |
-| `module_input`          | object       | Optional | The additional [module input(s)](/consul/docs/nia/configuration#task-source-input) that the tasks provides to the Terraform module on execution. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `module_input.services`. | none                                                         |
+| `module_input`          | object       | Optional | The additional [module input(s)](/docs/nia/configuration#task-source-input) that the tasks provides to the Terraform module on execution. <br/><br/> If the task has the deprecated `services` field configured as a module input, it is represented here as `module_input.services`. | none                                                         |
 | `name`                  | string       | Required | The unique name of the task.                                                                                                                                                                                                                                                          | none                                                         |
 | `providers`             | list[string] | Optional | The list of provider names that the task's module uses.                                                                                                                                                                                                                               | none                                                         |
 | `variables`             | map[string]  | Optional | The map of variables that are provided to the task's module.                                                                                                                                                                                                                          | none                                                         |
 | `version`               | string       | Optional | The version of the configured module that the task uses.                                                                                                                                                                                                                              | The latest version.                                          |
-| `terraform_version`     | string       | Optional | <EnterpriseAlert inline /> **Deprecated in CTS 0.6.0 and will be removed in 0.8.0. Review `terraform_version` in `terraform_cloud_workspace` instead.** The version of Terraform to use for the Terraform Cloud workspace associated with the task. This is only available when used with the [Terraform Cloud driver](/consul/docs/nia/configuration#terraform-cloud-driver).                                                  | The latest compatible version supported by the organization. |
-| `terraform_cloud_workspace` | object | Optional | <EnterpriseAlert inline /> The [configurable attributes of the Terraform Cloud workspace](/consul/docs/nia/configuration#terraform_cloud_workspace) associated with the task. This option is only available when used with the [Terraform Cloud driver](/consul/docs/nia/configuration#terraform-cloud-driver).| none |
+| `terraform_version`     | string       | Optional | <EnterpriseAlert inline /> **Deprecated in CTS 0.6.0 and will be removed in 0.8.0. Review `terraform_version` in `terraform_cloud_workspace` instead.** The version of Terraform to use for the Terraform Cloud workspace associated with the task. This is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver).                                                  | The latest compatible version supported by the organization. |
+| `terraform_cloud_workspace` | object | Optional | <EnterpriseAlert inline /> The [configurable attributes of the Terraform Cloud workspace](/docs/nia/configuration#terraform_cloud_workspace) associated with the task. This option is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver).| none |

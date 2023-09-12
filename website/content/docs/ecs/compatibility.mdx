@@ -1,24 +1,25 @@
 ---
 layout: docs
-page_title: Consul on AWS Elastic Container Service (ECS) Compatibility Matrix
+page_title: Consul on AWS Elastic Container Service (ECS) Compatability Matrix
 description: >-
   The binary for Consul on Amazon Web Services ECS and the Terraform modules for automating deployments are tightly coupled and have specific version requirements. Review compatibility information for versions of Consul and `consul-ecs` to help you choose compatible versions.
 ---
 
-# Consul on AWS Elastic Container Service (ECS) compatibility matrix
+# Consul on AWS Elastic Container Service (ECS) Compatability Matrix
 
 For every release of Consul on ECS, the `consul-ecs` binary and `consul-ecs` Terraform module are updated. The versions of the Terraform module and binary are tightly coupled. For example, `consul-ecs` 0.5.2 binary must use the `consul-ecs` 0.5.2 Terraform module.
 
 ## Supported Consul versions
 
-| Consul Version          | Compatible consul-ecs Version |
-|----------------------- | ----------------------------- |
-| 1.15.x, 1.14.x, 1.13.x | 0.6.x                         |
-| 1.14.x, 1.13.x, 1.12.x | 0.5.2+                        |
-| 1.11.x                 | 0.3.0, 0.4.x                  |
-| 1.10.x                 | 0.2.x                         |
+| Consul Version | Compatible consul-ecs Versions  |
+| -------------- | ------------------------------- |
+| 1.14.x         | 0.5.2+                          |
+| 1.13.x         | 0.5.2+                          |
+| 1.12.x         | 0.5.x                           |
+| 1.11.x         | 0.3.0, 0.4.x                    |
+| 1.10.x         | 0.2.x                           |
 
 
 ## Supported Envoy versions
 
-Refer to [Envoy - Supported Versions](/consul/docs/connect/proxies/envoy#supported-versions) for information about which versions of Envoy are supported for each version of Consul. As a best practice, we recommend using the default version of Envoy that is provided in the Terraform module. This is because we test the default versions with Consul ECS binaries for the given version.
+Refer to [Envoy - Supported Versions](/docs/connect/proxies/envoy#supported-versions) for information about which versions of Envoy are supported for each version of Consul. As a best practice, we recommend using the default version of Envoy that is provided in the Terraform module. This is because we test the default versions with Consul ECS binaries for the given version.

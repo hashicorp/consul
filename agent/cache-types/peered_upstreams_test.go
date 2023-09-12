@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package cachetype
 
 import (
@@ -23,14 +20,14 @@ func TestPeeredUpstreams(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedPeeredServiceList
-	rpc.On("RPC", mock.Anything, "Internal.PeeredUpstreams", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "Internal.PeeredUpstreams", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.PartitionSpecificRequest)
+			req := args.Get(1).(*structs.PartitionSpecificRequest)
 			require.Equal(t, uint64(24), req.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(3).(*structs.IndexedPeeredServiceList)
+			reply := args.Get(2).(*structs.IndexedPeeredServiceList)
 			reply.Index = 48
 			resp = reply
 		})

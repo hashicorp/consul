@@ -13,7 +13,7 @@ This topic provides full details about the `Gateway` resource.
 
 A `Gateway` is an instance of network infrastructure that determines how service traffic should be handled. A `Gateway` contains one or more [`listeners`](#listeners) that bind to a set of IP addresses. An `HTTPRoute` or `TCPRoute` can then attach to a gateway listener to direct traffic from the gateway to a service.
 
-Gateway instances derive their configurations from the [`GatewayClass`](/consul/docs/api-gateway/configuration/gatewayclass) resource, which acts as a template for individual `Gateway` deployments. Refer to [GatewayClass](/consul/docs/api-gateway/configuration/gatewayclass) for additional information.
+Gateway instances derive their configurations from the [`GatewayClass`](/docs/api-gateway/configuration/gatewayclass) resource, which acts as a template for individual `Gateway` deployments. Refer to [GatewayClass](/docs/api-gateway/configuration/gatewayclass) for additional information.
 
 Specify the following parameters to declare a `Gateway`:
 
@@ -24,6 +24,7 @@ Specify the following parameters to declare a `Gateway`:
 | `version `    | Specifies the Kubernetes API version. The value should always be `gateway.networking.k8s.io/v1alpha2`                                                        | Required |
 | `scope`       | Specifies the effective scope of the Gateway. The value should always be `namespaced`.                                                                       | Required |
 | `fields`      | Specifies the configurations for the Gateway. The fields are listed in the [configuration model](#configuration-model). Details for each field are described in the [specification](#specification). | Required |
+
 
 
 ## Configuration model
@@ -57,7 +58,7 @@ The following outline shows how to format the configurations in the `Gateway` ob
 This topic provides details about the configuration parameters.
 
 ### gatewayClassName
-Specifies the name of the [`GatewayClass`](/consul/docs/api-gateway/configuration/gatewayclass) resource used for the `Gateway` instance. Unless you are using a custom [GatewayClass](/consul/docs/api-gateway/configuration/gatewayclass), this value should be set to `consul`.
+Specifies the name of the [`GatewayClass`](/docs/api-gateway/configuration/gatewayclass) resource used for the `Gateway` instance. Unless you are using a custom [GatewayClass](/docs/api-gateway/configuration/gatewayclass), this value should be set to `consul-api-gateway`.
 * Type: string
 * Required: required
 
@@ -195,7 +196,7 @@ The following example creates a `Gateway` named `example-gateway` in namespace `
     name: example-gateway
     namespace: gateway-namespace
   spec:
-    gatewayClassName: consul
+    gatewayClassName: consul-api-gateway
     listeners:
     - protocol: HTTPS
       port: 443

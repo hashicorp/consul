@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -37,23 +34,5 @@ func TestAPI_OperatorRaftRemovePeerByAddress(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(),
 		"address \"nope\" was not found in the Raft configuration") {
 		t.Fatalf("err: %v", err)
-	}
-}
-
-func TestAPI_OperatorRaftLeaderTransfer(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	// If we get this error, it proves we sent the address all the way
-	// through.
-	operator := c.Operator()
-	transfer, err := operator.RaftLeaderTransfer(nil)
-	if err == nil || !strings.Contains(err.Error(),
-		"cannot find peer") {
-		t.Fatalf("err: %v", err)
-	}
-	if transfer != nil {
-		t.Fatalf("err:%v", transfer)
 	}
 }

@@ -1,0 +1,125 @@
+<!-- START component-docs:@tagName -->
+# DisclosureCard
+<!-- END component-docs:@tagName -->
+
+```hbs preview-template
+
+<figure>
+
+  <figcaption>
+    Use the component
+  </figcaption>
+
+    <DisclosureCard as |disclosure|>
+
+      <header>
+        <h4>api-service-1</h4>
+      </header>
+      <Consul::Bucket::List
+        @item={{hash
+          Namespace="different-nspace"
+          Partition="different-partition"
+        }}
+        @nspace={{'nspace'}}
+        @partition={{'partition'}}
+      />
+      <DistributionMeter
+        type="linear"
+      as |meter|>
+        <meter.Meter class="warning" percentage="50" />
+        <meter.Meter class="critical" percentage="30" />
+      </DistributionMeter>
+
+      <disclosure.Details
+
+      as |details|>
+        <Consul::Bucket::List
+          @item={{hash
+            Namespace="different-nspace"
+            Partition="different-partition"
+          }}
+          @nspace={{'nspace'}}
+          @partition={{'partition'}}
+        />
+        <DistributionMeter
+          type="linear"
+        as |meter|>
+          <meter.Meter class="warning" percentage="80" />
+          <meter.Meter class="critical" percentage="10" />
+        </DistributionMeter>
+
+        <Consul::Bucket::List
+          @item={{hash
+            Namespace="different-nspace"
+            Partition="different-partition"
+          }}
+          @nspace={{'nspace'}}
+          @partition={{'partition'}}
+        />
+
+        <DistributionMeter
+          type="linear"
+        as |meter|>
+          <meter.Meter class="warning" percentage="10" />
+          <meter.Meter class="critical" percentage="40" />
+        </DistributionMeter>
+
+        <Consul::Bucket::List
+          @item={{hash
+            Namespace="different-nspace"
+            Partition="different-partition"
+          }}
+          @nspace={{'nspace'}}
+          @partition={{'partition'}}
+        />
+
+        <DistributionMeter
+          type="linear"
+        as |meter|>
+          <meter.Meter class="warning" percentage="50" />
+          <meter.Meter class="critical" percentage="30" />
+        </DistributionMeter>
+
+      </disclosure.Details>
+
+      <disclosure.Action
+        slot="action"
+        {{on 'click' disclosure.toggle}}
+      >
+        {{if disclosure.expanded "View less" "View more"}}
+      </disclosure.Action>
+
+    </DisclosureCard>
+
+</figure>
+```
+
+## Attributes
+
+<!-- START component-docs:@attrs -->
+<!-- END component-docs:@attrs -->
+
+## Arguments
+
+<!-- START component-docs:@args -->
+<!-- END component-docs:@args -->
+
+## Slots
+
+<!-- START component-docs:@slots -->
+<!-- END component-docs:@slots -->
+
+## CSS Parts
+
+<!-- START component-docs:@cssparts -->
+<!-- END component-docs:@cssparts -->
+
+## CSS Properties
+
+<!-- START component-docs:@cssprops -->
+<!-- END component-docs:@cssprops -->
+
+## Contextual Components
+
+<!-- START component-docs:@components -->
+<!-- END component-docs:@components -->

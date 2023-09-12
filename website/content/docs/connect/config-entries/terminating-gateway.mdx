@@ -7,23 +7,26 @@ description: >-
 
 # Terminating Gateway Configuration Entry
 
+-> **v1.8.4+:** On Kubernetes, the `TerminatingGateway` custom resource is supported in Consul versions 1.8.4+.<br />
+**v1.8.0+:** On other platforms, this config entry is supported in Consul versions 1.8.0+.
+
 The `terminating-gateway` config entry kind (`TerminatingGateway` on Kubernetes) allows you to configure terminating gateways
 to proxy traffic from services in the Consul service mesh to services registered with Consul that do not have a
-[service mesh sidecar proxy](/consul/docs/connect/proxies). The configuration is associated with the name of a gateway service
+[Connect service sidecar proxy](/docs/connect/proxies). The configuration is associated with the name of a gateway service
 and will apply to all instances of the gateway with that name.
 
-~> [Configuration entries](/consul/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
+~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
 across all federated Consul datacenters. If terminating gateways in different Consul datacenters need to route to different
 sets of services within their datacenter then the terminating gateways **must** be registered with different names.
 
-See [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for more information.
+See [Terminating Gateway](/docs/connect/gateways/terminating-gateway) for more information.
 
 ## TLS Origination
 
-By specifying a path to a [CA file](/consul/docs/connect/config-entries/terminating-gateway#cafile) connections
+By specifying a path to a [CA file](/docs/connect/config-entries/terminating-gateway#cafile) connections
 from the terminating gateway will be encrypted using one-way TLS authentication. If a path to a
-[client certificate](/consul/docs/connect/config-entries/terminating-gateway#certfile)
-and [private key](/consul/docs/connect/config-entries/terminating-gateway#keyfile) are also specified connections
+[client certificate](/docs/connect/config-entries/terminating-gateway#certfile)
+and [private key](/docs/connect/config-entries/terminating-gateway#keyfile) are also specified connections
 from the terminating gateway will be encrypted using mutual TLS authentication.
 
 ~> Setting the `SNI` field is strongly recommended when enabling TLS to a service. If this field is not set,
@@ -38,7 +41,7 @@ Terminating gateways can optionally target all services within a Consul namespac
 as the service name. Configuration options set on the wildcard act as defaults that can be overridden
 by options set on a specific service name.
 
-Note that if the wildcard specifier is used, and some services in that namespace have a service mesh sidecar proxy,
+Note that if the wildcard specifier is used, and some services in that namespace have a Connect sidecar proxy,
 traffic from the mesh to those services will be evenly load-balanced between the gateway and their sidecars.
 
 ## Sample Config Entries
@@ -151,7 +154,7 @@ file to be used for one-way TLS authentication.
 
 -> **Note**: When not using destinations in transparent proxy mode, you must specify the `CAFile` parameter
 and point to a valid CA bundle in order to properly initiate a TLS
-connection to the destination service. For more information about configuring a gateway for destinations, refer to [Register an External Service as a Destination](/consul/docs/k8s/connect/terminating-gateways#register-an-external-service-as-a-destination).
+connection to the destination service. For more information about configuring a gateway for destinations, refer to [Register an External Service as a Destination](/docs/k8s/connect/terminating-gateways#register-an-external-service-as-a-destination).
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -580,7 +583,7 @@ spec:
       enterprise: true,
       description:
         'Specifies the namespace to which the configuration entry will apply. This must match the namespace in which the gateway is registered.' +
-        ' If omitted, the namespace will be inherited from [the request](/consul/api-docs/config#ns)' +
+        ' If omitted, the namespace will be inherited from [the request](/api-docs/config#ns)' +
         ' or will default to the `default` namespace.',
       yaml: false,
     },
@@ -590,7 +593,7 @@ spec:
       enterprise: true,
       description:
         'Specifies the admin partition to which the configuration entry will apply. This must match the partition in which the gateway is registered.' +
-        ' If omitted, the partition will be inherited from [the request](/consul/api-docs/config)' +
+        ' If omitted, the partition will be inherited from [the request](/api-docs/config)' +
         ' or will default to the `default` partition.',
       yaml: false,
     },
@@ -611,7 +614,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -686,7 +689,7 @@ spec:
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
+Configuration entries may be protected by [ACLs](/docs/security/acl).
 
 Reading a `terminating-gateway` config entry requires `service:read` on the `Name`
 field of the config entry.

@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -21,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -73,7 +68,7 @@ func resolveTokenAsync(r *ACLResolver, token string, ch chan *asyncResolutionRes
 	ch <- &asyncResolutionResult{authz: authz, err: err}
 }
 
-func resolveTokenSecret(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
+func resolveToken(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
 	t.Helper()
 	authz, err := r.ResolveToken(token)
 	require.NoError(t, err)
@@ -217,6 +212,7 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "acl-ro",
 			Description: "acl-ro",
 			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -227,6 +223,7 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "acl-wr",
 			Description: "acl-wr",
 			Rules:       `acl = "write"`,
+			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -237,6 +234,7 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "service-ro",
 			Description: "service-ro",
 			Rules:       `service_prefix "" { policy = "read" }`,
+			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -247,6 +245,7 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "service-wr",
 			Description: "service-wr",
 			Rules:       `service_prefix "" { policy = "write" }`,
+			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -257,6 +256,7 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "node-wr",
 			Description: "node-wr",
 			Rules:       `node_prefix "" { policy = "write"}`,
+			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
@@ -268,6 +268,7 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "dc2-key-wr",
 			Description: "dc2-key-wr",
 			Rules:       `key_prefix "" { policy = "write"}`,
+			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc2"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
@@ -615,6 +616,10 @@ func (d *ACLResolverTestDelegate) ACLDatacenter() string {
 	return d.datacenter
 }
 
+func (d *ACLResolverTestDelegate) UseLegacyACLs() bool {
+	return d.legacy
+}
+
 func (d *ACLResolverTestDelegate) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	if !d.localTokens {
 		return false, nil, nil
@@ -666,7 +671,7 @@ func (d *ACLResolverTestDelegate) ResolveRoleFromID(roleID string) (bool, *struc
 	return testRoleForID(roleID)
 }
 
-func (d *ACLResolverTestDelegate) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply interface{}) error {
 	switch method {
 	case "ACL.TokenRead":
 		atomic.AddInt32(&d.remoteTokenResolutions, 1)
@@ -687,7 +692,7 @@ func (d *ACLResolverTestDelegate) RPC(ctx context.Context, method string, args i
 		}
 		panic("Bad Test Implementation: should provide a roleResolveFn to the ACLResolverTestDelegate")
 	}
-	if handled, err := d.EnterpriseACLResolverTestDelegate.RPC(context.Background(), method, args, reply); handled {
+	if handled, err := d.EnterpriseACLResolverTestDelegate.RPC(method, args, reply); handled {
 		return err
 	}
 	panic("Bad Test Implementation: Was the ACLResolver updated to use new RPC methods")
@@ -727,6 +732,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:    false,
 		datacenter: "dc1",
+		legacy:     false,
 	}
 
 	r := newTestACLResolver(t, delegate, nil)
@@ -741,6 +747,7 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:    true,
 		datacenter: "dc1",
+		legacy:     false,
 	}
 	r := newTestACLResolver(t, delegate, nil)
 
@@ -791,6 +798,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -818,6 +826,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -845,6 +854,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -880,6 +890,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -910,6 +921,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -960,6 +972,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -990,6 +1003,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1025,6 +1039,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1056,6 +1071,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1102,6 +1118,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1143,6 +1160,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			localRoles:    false,
@@ -1177,6 +1195,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			localRoles:    false,
@@ -1212,6 +1231,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -1257,6 +1277,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1320,6 +1341,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1377,6 +1399,7 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: true,
 			localRoles:    true,
@@ -1396,6 +1419,7 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc2",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: true,
 			localRoles:    true,
@@ -1431,6 +1455,7 @@ func TestACLResolver_Client(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1521,6 +1546,7 @@ func TestACLResolver_Client(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1583,6 +1609,7 @@ func TestACLResolver_Client_TokensPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
+		legacy:        false,
 		localTokens:   false,
 		localPolicies: false,
 		localRoles:    false,
@@ -1599,6 +1626,7 @@ func TestACLResolver_LocalTokensPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
+		legacy:        false,
 		localTokens:   true,
 		localPolicies: true,
 		localRoles:    true,
@@ -1614,6 +1642,7 @@ func TestACLResolver_LocalPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
+		legacy:        false,
 		localTokens:   false,
 		localPolicies: true,
 		localRoles:    true,
@@ -1669,10 +1698,11 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
+				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveTokenSecret(t, r, "missing-policy")
+		authz := resolveToken(t, r, "missing-policy")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1702,10 +1732,11 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
+				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveTokenSecret(t, r, "missing-role")
+		authz := resolveToken(t, r, "missing-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1736,10 +1767,11 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
+				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveTokenSecret(t, r, "missing-policy-on-role")
+		authz := resolveToken(t, r, "missing-policy-on-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1760,6 +1792,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
+				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1768,11 +1801,12 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
+				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveTokenSecret(t, r, "found")
+		authz := resolveToken(t, r, "found")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1801,6 +1835,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
+				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1809,11 +1844,12 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
+				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveTokenSecret(t, r, "found-role")
+		authz := resolveToken(t, r, "found-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1837,6 +1873,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
+				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1845,6 +1882,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
+				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1862,10 +1900,11 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "service-ro",
 				Description: "service-ro",
 				Rules:       `service_prefix "" { policy = "read" }`,
+				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveTokenSecret(t, r, "found-policy-and-role")
+		authz := resolveToken(t, r, "found-policy-and-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1897,7 +1936,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				},
 			},
 		})
-		authz := resolveTokenSecret(t, r, "found-role-node-identity")
+		authz := resolveToken(t, r, "found-role-node-identity")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.NodeWrite("test-node", nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
@@ -1948,48 +1987,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 					{
 						NodeName:   "test-node-dc2",
 						Datacenter: "dc2",
-					},
-				},
-			},
-			&structs.ACLToken{
-				AccessorID: "359b9927-25fd-46b9-84c2-3470f848ec65",
-				SecretID:   "found-synthetic-policy-5",
-				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "templated-test-node1",
-						},
-						Datacenters: []string{"dc1"},
-					},
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "templated-test-node2",
-						},
-						// as the resolver is in dc1 this identity should be ignored
-						Datacenters: []string{"dc2"},
-					},
-				},
-			},
-			&structs.ACLToken{
-				AccessorID: "359b9927-25fd-46b9-84c2-3470f848ec65",
-				SecretID:   "found-synthetic-policy-6",
-				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "templated-test-node3",
-						},
-						Datacenters: []string{"dc1"},
-					},
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "templated-test-node4",
-						},
-						// as the resolver is in dc1 this identity should be ignored
-						Datacenters: []string{"dc2"},
 					},
 				},
 			},
@@ -2058,22 +2055,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 			// ensure node identity for other DC is ignored
 			require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
 		})
-		t.Run("synthetic-policy-6", func(t *testing.T) { // templated policy
-			authz, err := r.ResolveToken("found-synthetic-policy-6")
-			require.NoError(t, err)
-			require.NotNil(t, authz)
-
-			// spot check some random perms
-			require.Equal(t, acl.Deny, authz.ACLRead(nil))
-			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
-			// ensure we didn't bleed over to the other synthetic policy
-			require.Equal(t, acl.Deny, authz.NodeWrite("templated-test-node1", nil))
-			// check our own synthetic policy
-			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
-			require.Equal(t, acl.Allow, authz.NodeWrite("templated-test-node3", nil))
-			// ensure template identity for other DC is ignored
-			require.Equal(t, acl.Deny, authz.NodeWrite("templated-test-node4", nil))
-		})
 	})
 
 	runTwiceAndReset("Anonymous", func(t *testing.T) {
@@ -2090,6 +2071,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
+				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -2115,6 +2097,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "ixn-write",
 				Description: "ixn-write",
 				Rules:       `service_prefix "" { policy = "write" intentions = "write" }`,
+				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})

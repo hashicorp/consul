@@ -20,6 +20,14 @@ Consul v1.12.1 and later
 
 Complete the following prerequisites prior to registering your Lambda functions. You only need to perform these steps once.
 
+### Enable the Serverless Plugin
+
+Add the following configuration to all Consul clients:
+
+`connect { enable_serverless_plugin = true, connect = true }`
+
+Refer to the [`enable_serverless_plugin`](/docs/agent/config/config-files#connect_enable_serverless_plugin) configuration documentation for additional information.
+
 ### Configure IAM Permissions for Envoy
 
 The Envoy proxy that invokes Lambda must have the `lambda:InvokeFunction` AWS IAM
@@ -56,13 +64,13 @@ Mesh gateways are optional for enabling services to invoke Lambda functions if t
  
 The mesh gateway must be running and registered in the relevant Consul datacenters and admin partitions. Refer to the following documentation and tutorials for instructions on how to set up mesh gateways:
 
-- [Mesh gateway documentation](/consul/docs/connect/gateways#mesh-gateways)
-- [Connect Services Across Datacenters with Mesh Gateways tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways)
-- [Secure Service Mesh Communication Across Kubernetes Clusters tutorial](/consul/tutorials/kubernetes/kubernetes-mesh-gateways?utm_source=docs%3Fin%3Dconsul%2Fkubernetes)
+- [Mesh gateway documentation](/docs/connect/gateways#mesh-gateways)
+- [Connect Services Across Datacenters with Mesh Gateways tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways)
+- [Secure Service Mesh Communication Across Kubernetes Clusters tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-mesh-gateways?utm_source=docs?in=consul/kubernetes)
 
 When using admin partitions, you must add Lambda services to the `Services`
 field of [the `exported-services` configuration
-entry](/consul/docs/connect/config-entries/exported-services).
+entry](/docs/connect/config-entries/exported-services).
 
 ### Optional: Terminating gateway
 
@@ -70,9 +78,9 @@ A terminating gateway is an access point in a Consul datacenter to an external s
 
 Refer to the following documentation and tutorials for instructions on how to set up a terminating gateway:
 
-- [Terminating gateways documentation](/consul/docs/connect/gateways#terminating-gateways)
-- [Terminating gateways on Kubernetes documentation](/consul/docs/k8s/connect/terminating-gateways)
-- [Connect External Services to Consul With Terminating Gateways tutorial](/consul/tutorials/developer-mesh/terminating-gateways-connect-external-services)
+- [Terminating gateways documentation](/docs/connect/gateways#terminating-gateways)
+- [Terminating gateways on Kubernetes documentation](/docs/k8s/connect/terminating-gateways)
+- [Connect External Services to Consul With Terminating Gateways tutorial](https://learn.hashicorp.com/tutorials/consul/teminating-gateways-connect-external-services)
 
 To register a Lambda service with a terminating gateway, add the service to the
 `Services` field of the terminating gateway's `terminating-gateway`

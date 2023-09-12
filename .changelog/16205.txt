@@ -1,3 +1,0 @@
-```release-note:feature
-command: Adds the `operator usage instances` subcommand for displaying total services, connect service instances and billable service instances in the local datacenter or globally.
-```

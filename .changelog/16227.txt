@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: update Ember version to 3.27;
-```

@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -46,7 +42,7 @@ func (c *FederationStateListMeshGateways) Fetch(opts cache.FetchOptions, req cac
 
 	// Fetch
 	var reply structs.DatacenterIndexedCheckServiceNodes
-	if err := c.RPC.RPC(context.Background(), "FederationState.ListMeshGateways", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("FederationState.ListMeshGateways", reqReal, &reply); err != nil {
 		return result, err
 	}
 

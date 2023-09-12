@@ -33,8 +33,8 @@ Feature: dc / intentions / update: Intention Update
     ---
     Then the url should be /datacenter/intentions
     And the title should be "Intentions - Consul"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
     Where:
       ------------------------------
       | Description       | Action |
@@ -44,6 +44,6 @@ Feature: dc / intentions / update: Intention Update
     Given the url "/v1/connect/intentions/exact?source=default%2Fdefault%2Fweb&destination=default%2Fdefault%2Fdb&dc=datacenter" responds with a 500 status
     And I submit
     Then the url should be /datacenter/intentions/intention-id
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    Then "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "error" class
 

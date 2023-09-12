@@ -1,3 +1,0 @@
-```release-note:improvement
-hcp: Add dynamic configuration support for the export of server metrics to HCP.
-```

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import FormComponent from '../form-component/index';
 import { get, set } from '@ember/object';
 

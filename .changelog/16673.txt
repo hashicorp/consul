@@ -1,3 +1,0 @@
-```release-note:bug
-peering: Fixes a bug where the importing partition was not added to peered failover targets, which causes issues when the importing partition is a non-default partition.
-```

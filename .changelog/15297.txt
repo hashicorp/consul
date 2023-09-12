@@ -1,7 +1,0 @@
-```release-note:improvement
-api: updated the go module directive to 1.18.
-```
-
-```release-note:improvement
-sdk: updated the go module directive to 1.18.
-```

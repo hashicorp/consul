@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default function (scenario, respondWith, set, oidc) {
   // respondWith should set the url to return a certain response shape
   scenario

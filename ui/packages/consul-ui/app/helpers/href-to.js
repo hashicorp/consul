@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // This helper requires `ember-href-to` for the moment at least
 // It's similar code but allows us to check on the type of route
 // (dynamic or wildcard) and encode or not depending on the type

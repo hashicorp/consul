@@ -1,1314 +1,60 @@
 ---
 layout: docs
-page_title: Service Router Configuration Entry Reference
+page_title: Service Router - Configuration Entry Reference
 description: >-
-  Service router configuration entries are L7 traffic management tools for redirecting requests for a service to a particular instance or set of instances. Learn how to write `service-router` config entries in HCL or YAML with a specification reference, configuration model, a complete example, and example code by use case.
+  The service router configuration entry kind defines where the service mesh routes requests based on L7 network information such as header or path. Use the reference guide to learn about `""service-router""` config entry parameters and how behaviors like request timeouts, retry behavior, header modification, and path rewriting can be applied to a request based on its header or path information.
 ---
 
-# Service router configuration entry reference
+# Service Router Configuration Entry
 
-This page provides reference information for service router configuration entries. Service routers use L7 network information to redirect a traffic request for a service to one or more specific service instances.
+The `service-router` config entry kind (`ServiceRouter` on Kubernetes) controls Connect traffic routing and
+manipulation at networking layer 7 (e.g. HTTP).
 
-Refer to [L7 traffic management overview](/consul/docs/connect/l7-traffic) for additional information.
+If a router is not explicitly configured or is configured with no routes then
+the system behaves as if a router were configured sending all traffic to a
+service of the same name.
 
-## Configuration model
+## Requirements
 
-The following list outlines field hierarchy, language-specific data types, and requirements in this configuration entry. Click on a property name to view additional details, including default values.
+- Consul [service mesh connect](/docs/connect/configuration) enabled services
+- Service to service communication over the protocol `http`
+- Consul 1.8.4+ on Kubernetes.
+- Consul 1.5.0+ on other platforms.
 
-<Tabs>
+-> **v1.8.4+:** On Kubernetes, the `ServiceRouter` custom resource is supported in Consul versions 1.8.4+.<br />
+**v1.6.0+:** On other platforms, this config entry is supported in Consul versions 1.6.0+.
 
-<Tab heading="HCL and JSON" group="hcl">
+## Interaction with other Config Entries
 
-- [`Kind`](#kind): string | required | must be set to `service-router`
-- [`Name`](#name): string | required
-- [`Namespace`](#namespace): string <EnterpriseAlert inline />
-- [`Partition`](#partition): string | `default` <EnterpriseAlert inline />
-- [`Meta`](#meta): map
-- [`Routes`](#routes): list
-  - [`Match`](#routes-match): map
-    - [`HTTP`](#routes-match-http): map
-      - [`PathExact`](#routes-match-http-pathexact): string
-      - [`PathPrefix`](#routes-match-http-pathprefix): string
-      - [`PathRegex`](#routes-match-http-pathregex): string
-      - [`Methods`](#routes-match-http-methods): list
-      - [`Header`](#routes-match-http-header): list
-        - [`Name`](#routes-match-http-header-name): string
-        - [`Present`](#routes-match-http-header-present): boolean | `false`
-        - [`Exact`](#routes-match-http-header-exact): string
-        - [`Prefix`](#routes-match-http-header-prefix): string
-        - [`Suffix`](#routes-match-http-header-suffix): string
-        - [`Regex`](#routes-match-http-header-regex): string
-        - [`Invert`](#routes-match-http-header-invert): boolean | `false`
-      - [`QueryParam`](#routes-match-http-queryparam): list
-        - [`Name`](#routes-match-http-queryparam-name): string
-        - [`Present`](#routes-match-http-queryparam-present): boolean | `false`
-        - [`Exact`](#routes-match-http-queryparam-exact): string
-        - [`Regex`](#routes-match-http-queryparam-regex): string
-  - [`Destination`](#routes-destination): map
-    - [`Service`](#routes-destination-service): string
-    - [`ServiceSubset`](#routes-destination-servicesubset): string
-    - [`Namespace`](#routes-destination-namespace): string <EnterpriseAlert inline />
-    - [`Partition`](#routes-destination-partition): string <EnterpriseAlert inline />
-    - [`PrefixRewrite`](#routes-destination-prefixrewrite): string
-    - [`RequestTimeout`](#routes-destination-requesttimeout): integer | `0`
-    - [`IdleTimeout`](#routes-destination-idletimeout): integer | `0`
-    - [`NumRetries`](#routes-destination-numretries): integer | `1`
-    - [`RetryOnConnectFailure`](#routes-destination-retryonconnectfailure): boolean | `false`
-    - [`RetryOn`](#routes-destination-retryon): list
-    - [`RetryOnStatusCodes`](#routes-destination-retryonstatuscodes): list
-    - [`RequestHeaders`](#routes-destination-requestheaders): map
-      - [`Add`](#routes-destination-requestheaders): map
-      - [`Set`](#routes-destination-requestheaders): map
-      - [`Remove`](#routes-destination-requestheaders): map
-    - [`ResponseHeaders`](#routes-destination-responseheaders): map
-      - [`Add`](#routes-destination-responseheaders): map
-      - [`Set`](#routes-destination-responseheaders): map
-      - [`Remove`](#routes-destination-responseheaders): map
+- Service router config entries are a component of [L7 Traffic
+  Management](/docs/connect/l7-traffic).
 
-</Tab>
+- Service router config entries are restricted to only services that define
+  their protocol as HTTP-based via a corresponding
+  [`service-defaults`](/docs/connect/config-entries/service-defaults) config
+  entry or globally via
+  [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
 
-<Tab heading="YAML" group="yaml">
+- Any route destination that omits the `ServiceSubset` field is eligible for
+  splitting via a
+  [`service-splitter`](/docs/connect/config-entries/service-splitter) should
+  one be configured for that service, otherwise resolution proceeds according
+  to any configured
+  [`service-resolver`](/docs/connect/config-entries/service-resolver).
 
-- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string | required | must be set to `ServiceRouter`
-- [`metadata`](#metadata): map | required
-  - [`name`](#metadata-name): string | required
-  - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
-- [`spec`](#spec): map | required
-  - [`routes`](#spec-routes): list
-    - [`match`](#spec-routes-match): map
-      - [`http`](#spec-routes-match-http): map
-        - [`pathExact`](#spec-routes-match-http-pathexact): string
-        - [`pathPrefix`](#spec-routes-match-http-pathprefix): string
-        - [`pathRegex`](#spec-routes-match-http-pathregex): string
-        - [`methods`](#spec-routes-match-http-methods): list
-        - [`header`](#spec-routes-match-http-header): list
-          - [`name`](#spec-routes-match-http-header-name): string
-          - [`present`](#spec-routes-match-http-header-present): boolean | `false`
-          - [`exact`](#spec-routes-match-http-header-exact): string
-          - [`prefix`](#spec-routes-match-http-header-prefix): string
-          - [`suffix`](#spec-routes-match-http-header-suffix): string
-          - [`regex`](#spec-routes-match-http-header-regex): string
-          - [`invert`](#spec-routes-match-http-header-invert): boolean
-        - [`queryParam`](#spec-routes-match-http-queryparam): list
-          - [`name`](#spec-routes-match-http-queryparam-name): string
-          - [`present`](#spec-routes-match-http-queryparam-present): boolean | `false`
-          - [`regex`](#spec-routes-match-http-queryparam-regex): string
-    - [`destination`](#spec-routes-destination): map
-      - [`service`](#spec-routes-destination-service): string
-      - [`serviceSubset`](#spec-routes-destination-servicesubset): string
-      - [`namespace`](#spec-routes-destination-namespace): string <EnterpriseAlert inline />
-      - [`partition`](#spec-routes-destination-partition): string <EnterpriseAlert inline />
-      - [`prefixRewrite`](#spec-routes-destination-prefixrewrite): string
-      - [`requestTimeout`](#spec-routes-destination-requesttimeout): integer | `0`
-      - [`numRetries`](#spec-routes-destination-numretries): integer | `0`
-      - [`numRetries`](#spec-routes-destination-numretries): integer | `1`
-      - [`retryOnConnectFailure`](#spec-routes-destination-retryonconnectfailure): boolean | `false`
-      - [`retryOn`](#spec-routes-destination-retryon): list
-      - [`retryOnStatusCodes`](#spec-routes-destination-retryonstatuscodes): list
-      - [`requestHeaders`](#spec-routes-destination-requestheaders): map
-        - [`add`](#spec-routes-destination-requestheaders): map
-        - [`set`](#spec-routes-destination-requestheaders): map
-        - [`remove`](#spec-routes-destination-requestheaders): map
-      - [`responseHeaders`](#spec-routes-destination-responseheaders): map
-        - [`add`](#spec-routes-destination-responseheaders): map
-        - [`set`](#spec-routes-destination-responseheaders): map
-        - [`remove`](#spec-routes-destination-responseheaders): map
+## UI
 
-</Tab>
-</Tabs>
+Once a `service-router` is successfully entered, you can view it in the UI. Service routers, service splitters, and service resolvers can all be viewed by clicking on your service then switching to the _routing_ tab.
 
-## Complete configuration
+![screenshot of service router in the UI](/img/l7-routing/Router.png)
 
-When every field is defined, a service router configuration entry has the following form:
-
-<Tabs>
-
-<Tab heading="HCL" group="hcl">
-
-```hcl
-Kind      = "service-router"                             ## required
-Name      = "<service-name>"                             ## required
-Namespace = "<namespace-configuration-applies-to>"
-Partition = "<partition-configuration-applies-to>"
-Meta = {
- <key> = "<value>"
-}
-
-
-Routes = [
- {
-   Match {
-     HTTP {
-       PathExact = "<exact/http/path>"                    ## cannot specify with PathPrefix or PathRegex
-     },
-     HTTP {
-       PathPrefix = "<path/prefix>"                       ## cannot specify with PathExact or PathRegex
-     },
-     HTTP {
-       PathRegex = "<regex/path>"                         ## cannot specify with PathPrefix or PathExact
-     },
-     HTTP {
-       Methods = ["GET", "POST", "PUT"]
-     },
-     HTTP {
-       Header = [                                         ## do not specify Present, Exact, Prefix, Suffix, and Regex in a single Header
-         {
-           Name    = "<header-to-match>"                  ## required when specifying Routes.Match.HTTP.Header
-           Present = false
-           Exact   = "<exact-match-name>"
-           Prefix  = "<prefix-to-match>"
-           Suffix  = "<suffix-to-match>"
-           Regex   = "<regex-to-match>"
-           Invert  = false
-         }
-       ]
-     }
-     HTTP {
-      QueryParam = [                                       ## do not specify Present, Exact, and Regex in a single QueryParam
-        Name   = "<text-to-match-in-query-parameter>"      ## required when specifying Routes.Match.HTTP.Header
-        Present = false
-        Exact = "<exact-text-to-match-in-query-parameter>"
-        Regex = "<regex-to-match-in-query-parameter>"
-      ]
-     }
-   },
-
-
-     Destination {
-       Service               = "<service-name-at-destination>"
-       ServiceSubset         = "<service-subset-at-destination>"
-       Namespace             = "<namespace-at-destination>"
-       Partition             = "<partition-at-destination>"
-       PrefixRewrite         = "<new-prefix-after-routing>"   ## required specifying either Routes.Match.HTTP.PathPrefix or Routes.Match.HTTP.PathExact
-       RequestTimeout        = 0
-       IdleTimeout           = 0
-       NumRetries            = 1
-       RetryOnConnectFailure = false
-       RetryOn               = ["reset", "unavailable"]
-       RetryOnStatusCodes    = [500, 502, 503]
-       RequestHeaders = {
-         Set = {
-           "X-Web-Version" : "<text-string>"
-         }
-       }
-       ResponseHeaders = {
-         Set = {
-           "X-Web-Version" : "<text-string>"
-         }
-       }
-     }
- }
-]
-```
-
-</Tab>
-
-<Tab heading="JSON" group="json">
-
-```json
-{
-  "Kind": "service-router",                                 // required
-  "Name": "<service-name>",                                 // required
-  "Namespace": "<namespace-configuration-applies-to>",
-  "Partition": "<partition-configuration-applies-to>",
-  "Meta": {
-   "<key>": "<value>"
-  },
-
-  "Routes": [
-   {
-    "Match": {
-      "HTTP": {
-        "PathExact": "<exact/http/path>"                     // cannot specify with PathPrefix or PathRegex
-      },
-      "HTTP": {
-        "PathPrefix": "<path/prefix>"                        // cannot specify with PathExact or PathRegex
-      },
-      "HTTP": {
-       "PathRegex": "<regex/path>"                           // cannot specify with PathPrefix or PathExact
-      },
-      "HTTP": {
-       "Methods": ["GET", "POST", "PUT"]
-      },
-      "HTTP": {
-       "Header": [                                           // do not specify Present, Exact, Prefix, Suffix, and Regex in a single Header
-         {
-           "Name": "<header-to-match>",                      // required when specifying Routes.Match.HTTP.Header
-           "Present": false,
-           "Exact": "<exact-match-name>",
-           "Prefix": "<prefix-to-match>",
-           "Suffix": "<suffix-to-match>",
-           "Regex": "<regex-to-match>",
-           "Invert": false,
-         }
-        ]
-      },
-      "HTTP": {
-       "QueryParam": [                                         // do not specify Present, Exact, and Regex in a single QueryParam
-         "Name": "<text-to-match-in-query-parameter>",         // required when specifying Routes.Match.HTTP.Header
-         "Present": false,
-         "Exact": "<exact-text-to-match-in-query-parameter>",
-         "Regex": "<regex-to-match-in-query-parameter>"
-       ]
-      }
-    },
-
-     "Destination": {
-       "Service": "<service-name-at-destination>",
-       "ServiceSubset": "<service-subset-at-destination>",
-       "Namespace": "<namespace-at-destination>",
-       "Partition": "<partition-at-destination>",
-       "PrefixRewrite": "<new-prefix-after-routing>",           // required specifying either Routes.Match.HTTP.PathPrefix or Routes.Match.HTTP.PathExact
-       "RequestTimeout": 0,
-       "IdleTimeout": 0,
-       "NumRetries": 1,
-       "RetryOnConnectFailure": false,
-       "RetryOn": ["reset", "unavailable"],
-       "RetryOnStatusCodes": [500, 502, 503],
-       "RequestHeaders": {
-         "Set":  {
-           "X-Web-Version" : "<text-string>"
-         }
-       },
-       "ResponseHeaders": {
-         "Set": {
-           "X-Web-Version" : "<text-string>"
-         }
-       }
-     }
-  }
- ]
-}
-```
-
-</Tab>
-
-<Tab heading="YAML" group="yaml">
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1                  # required
-kind: ServiceRouter                                        # required
-metadata:
-  name: <serviceName>
-  namespace: <namespace>
-spec:
-  routes:
-    - match:
-       http:
-         pathExact: <exact/http/path>                      ## cannot specify with pathPrefix or pathRegex
-       http:
-         pathPrefix: <path/prefix>                         ## cannot specify with pathExact or pathRegex
-       http:
-         pathRegex: <regex/path>                           ## cannot specify with pathPrefix or pathExact
-       http:
-         methods: [GET, POST, PUT]
-       http:
-         header:                                           ## do not specify present, exact, prefix, suffix, and regex in a single header
-          - name: <header-to-match>                        ## required when specifying spec.routes.match.http.header
-            present: false
-            exact: <exact-match-name>
-            prefix: <prefix-to-match>
-            suffix: <suffix-to-match>
-            regex: <regex-to-match>
-            invert: false
-       http:
-         queryParam:                                        ## do not specify present, exact, and regex in a single queryParam
-          - name: <text-to-match-in-query-parameter>        ## required when specifying spec.routes.match.http.header
-            present: false
-            exact: <exact-text-to-match-in-query-parameter>
-            regex: <regex-to-match-in-query-parameter>
-
-    destination:
-       service: <service-name-at-destination>
-       serviceSubset: <service-subset-at-destination>
-       namespace: <namespace-at-destination>
-       partition: <partition-at-destination>
-       prefixRewrite: <new-prefix-after-routing>             ## required specifying either spec.routes.match.http.pathPrefix or spec.routes.match.http.pathExact
-       requestTimeout: 0
-       idleTimeout: 0
-       numRetries: 1
-       retryOnConnectFailure: false
-       retryOn: ['reset']
-       retryOnStatusCodes: [500, 502, 503]
-       requestHeaders:
-         set:
-           x-Web-Version: <text-string>
-       responseHeaders:
-         set:
-           x-Web-Version: <text-string>
-```
-
-</Tab>
-
-</Tabs>
-
-## Specification
-
-This section provides details about the fields you can configure in the service router configuration entry.
-
-<Tabs>
-
-<Tab heading="HCL" group="hcl">
-
-### `Kind`
-
-Specifies the type of configuration entry to implement.
-
-#### Values
-
-- Default: none
-- This field is required.
-- Data type: String value that must be set to `service-router`.
-
-### `Name`
-
-Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations with the [`consul config` command](/consul/commands/config).
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Namespace` <EnterpriseAlert inline />
-
-Specifies the namespace to apply the configuration entry to. Refer to [Namespaces](/consul/docs/enterprise/namespaces) for additional information about Consul namespaces.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Partition` <EnterpriseAlert inline />
-
-Specifies the admin partition to apply the configuration entry to. Refer to [Admin partitions](/consul/docs/enterprise/admin-partitions) for additional information.
-
-#### Values
-
-- Default: `default`
-- Data type: String
-
-### `Meta`
-
-Specifies key-value pairs to add to the KV store.
-
-#### Values
-
-- Default: None
-- Data type: Map of one or more key-value pairs
-  - `<KEY>`: String
-  - `<VALUE>`: String or integer
-
-### `Routes`
-
-Defines the possible routes for L7 requests. Consul evaluates traffic against the list of routes in their order of appearance in the configuration entry. When multiple routes satisfy the request, Consul uses the first route that matches. Traffic that fails to match any of the provided routes is routed to the default service.
-
-#### Values
-
-- Default: None
-- Data type: List that can contain the following parameters:
-
-- [`Match`](#routes-match)
-- [`Destination`](#routes-destination)
-
-### `Routes[].Match`
-
-Describes a set of criteria that Consul compares incoming L7 traffic with. If empty or omitted, it acts as a catch-all.
-
-#### Values
-
-- Default: None
-- Data type: Map that contains the [`Routes[].Match{}.HTTP`](#routes-match-http) parameter.
-
-### `Routes[].Match{}.HTTP`
-
-Specifies a set of HTTP criteria used to evaluate incoming L7 traffic for matches.
-
-When matching on the HTTP request path, you can only match on one path at a time. Do not configure `PathExact`, `PathPrefix`, and `PathRegex` in a single HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: Map that can contain the following parameters:
-
-  - [`PathExact`](#routes-match-http-pathexact)
-  - [`PathPrefix`](#routes-match-http-pathprefix)
-  - [`PathRegex`](#routes-match-http-pathregex)
-  - [`Methods`](#routes-match-http-methods)
-  - [`Header`](#routes-match-http-header)
-  - [`QueryParam`](#routes-match-http-queryparam)
-
-### `Routes[].Match{}.HTTP{}.PathExact`
-
-Specifies the exact path to match on the HTTP request path. When using this field, do not configure `PathPrefix` or `PathRegex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.PathPrefix`
-
-Specifies the path prefix to match on the HTTP request path. When using this field, do not configure `PathExact` or `PathRegex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.PathRegex`
-
-Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.Methods`
-
-Specifies HTTP methods that the match applies to. If not specified, the request matches on all HTTP methods. If provided, the name must be a valid method formatted as a string.
-
-String values must be a valid [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).
-
-#### Values
-
-- Default: None
-- Data type: List of strings. Each string must match one of the following values:
-  - `GET`
-  - `HEAD`
-  - `POST`
-  - `PUT`
-  - `DELETE`
-  - `CONNECT`
-  - `OPTIONS`
-  - `TRACE`
-  - `PATCH`
-
-### `Routes[].Match{}.HTTP{}.Header`
-
-Specifies information in the HTTP request header to match with. When more than one field is configured, all criteria must match for the service routing to apply.
-
-When using this field, do not configure `Present`, `Exact`, `Prefix`, `Suffix`, and `Regex` in the same HTTP map. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another.
-
-#### Values
-
-- Default: None
-- Data type: List containing one or more of the following parameters:
-
-  - [`Name`](#routes-match-http-header-name)
-  - [`Present`](#routes-match-http-header-present)
-  - [`Exact`](#routes-match-http-header-exact)
-  - [`Prefix`](#routes-match-http-header-prefix)
-  - [`Suffix`](#routes-match-http-header-suffix)
-  - [`Regex`](#routes-match-http-header-regex)
-  - [`Invert`](#routes-match-http-header-invert)
-
-### `Routes[].Match{}.HTTP{}.Header[].Name`
-
-Specifies the name of the HTTP header to match. This field is required when using [`Routes[].Match{}.HTTP{}.Header`](#routes-match-http-header).
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.Header[].Present`
-
-Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP header. When using this field, do not configure `Exact`, `Prefix`, `Suffix`, or `Regex` in the same HTTP map.
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `Routes[].Match{}.HTTP{}.Header[].Exact`
-
-Specifies that a request matches when the header with the given name is this exact value. When using this field, do not configure `Present`, `Prefix`, `Suffix`, or `Regex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.Header[].Prefix`
-
-Specifies that a request matches when the header with the given name has this prefix. When using this field, do not configure `Present`, `Exact`, `Suffix`, or `Regex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.Header[].Suffix`
-
-Specifies that a request matches when the header with the given name has this suffix. When using this field, do not configure `Present`, `Exact`, `Prefix`, or `Regex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.Header[].Regex`
-
-Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `Present`, `Exact`, `Prefix`, or `Suffix` in the same HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.Header[].Invert`
-
-Specifies that the logic for the HTTP header match should be inverted. Requests with matching criteria are not routed.
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `Routes[].Match{}.HTTP{}.QueryParam`
-
-Specifies information to match to on HTTP query parameters. When more than one field is configured, all criteria must match for the service routing to apply.
-
-When using this field, do not configure `Present`, `Exact`, and `Regex` in a single map. You can use only one of these fields at a time when configuring match criteria for HTTP query parameters, as they are mutually exclusive with one another.
-
-#### Values
-
-- Default: None
-- Data type: List of maps. Each map can contain one or more of the following parameters:
-
-  - [`Name`](#routes-match-http-queryparam-name)
-  - [`Present`](#routes-match-http-queryparam-present)
-  - [`Exact`](#routes-match-http-queryparam-exact)
-  - [`Regex`](#routes-match-http-queryparam-regex)
-
-### `Routes[].Match{}.HTTP{}.QueryParam[].Name`
-
-Specifies the name of the HTTP query parameter to match. This value is required when using [`Routes[].Match{}.HTTP{}.QueryParam`](#routes-match-http-queryparam).
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.QueryParam[].Present`
-
-Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP query parameter. When using this field, do not configure `Exact` or `Regex` in the same map.
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `Routes[].Match{}.HTTP{}.QueryParam[].Exact`
-
-Specifies that a request matches when the query parameter with the given name is this exact value. When using this field, do not configure `Present` or `Regex` in the same map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Match{}.HTTP{}.QueryParam[].Regex`
-
-Specifies that a request matches when the query parameter with the given name matches this regular expression. When using this field, do not configure `Present` or `Exact` in the same map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Destination`
-
-Specifies the target service to route matching requests to, as well as behavior for the request to follow when routed.
-
-#### Values
-
-- Default: None
-- Data type: Map containing one or more of the following parameters:
-
-    - [`Service`](#routes-destination-service)
-    - [`ServiceSubset`](#routes-destination-servicesubset)
-    - [`Namespace`](#routes-destination-namespace)
-    - [`Partition`](#routes-destination-partition)
-    - [`PrefixRewrite`](#routes-destination-prefixrewrite)
-    - [`RequestTimeout`](#routes-destination-requesttimeout)
-    - [`IdleTimeout`](#routes-destination-idletimeout)
-    - [`NumRetries`](#routes-destination-numretries)
-    - [`RetryOnConnectFailure`](#routes-destination-retryonconnectfailure)
-    - [`RetryOn`](#routes-destination-retryon)
-    - [`RetryOnStatusCodes`](#routes-destination-retryonstatuscodes)
-    - [`RequestHeaders`](#routes-destination-requestheaders)
-    - [`ResponseHeaders`](#routes-destination-responseheaders)
-
-### `Routes[].Destination{}.Service`
-
-Specifies the name of the service to resolve. If this parameter is not specified, the default service name is inherited from the configuration entry’s [`Name` field](#name).
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Destination{}.ServiceSubset`
-
-Specifies a named subset of the given service to resolve instead of the one defined as that service's `DefaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If this parameter is not specified, the default subset is used.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Destination{}.Namespace`
-
-Specifies the Consul namespace to resolve the service from instead of the current namespace. If this parameter is not specified, the current namespace is used.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Destination{}.Partition`
-
-Specifies the Consul admin partition to resolve the service from instead of the current partition. If this parameter is not specified, the current partition is used.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Destination{}.PrefixRewrite`
-
-Specifies rewrites to the HTTP request path before proxying it to its final destination. This field requires that either [`Routes[].Match{}.HTTP{}.PathPrefix`](#routes-match-http-pathprefix) or [`Routes[].Match{}.HTTP{}.PathExact`](#routes-match-http-pathexact) be configured on this route.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `Routes[].Destination{}.RequestTimeout`
-
-Specifies the total amount of time permitted for the entire downstream request to be processed, including retry attempts.
-
-#### Values
-
-- Default: `0`
-- Data type: Integer
-
-### `Routes[].Destination{}.IdleTimeout`
-
-Specifies the total amount of time permitted for the request stream to be idle.
-
-#### Values
-
-- Default: `0`
-- Data type: Integer
-
-### `Routes[].Destination{}.NumRetries`
-
-Specifies the number of times to retry the request when a retry condition occurs. Configure this field and other retry fields in `Destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic). You cannot set the value to `0`. To disable retries, unset all other retry settings: `RetryOnConnectFailure`, `RetryOn`, `RetryOnStatusCodes`.
-
-#### Values
-
-- Default: `1`
-- Data type: Integer
-
-### `Routes[].Destination{}.RetryOnConnectFailure`
-
-Specifies that connection failure errors that trigger a retry request. Configure this field and other retry fields in `Destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `Routes[].Destination{}.RetryOn[]`
-
-Specifies a list of conditions for Consul to retry requests based on the response from an upstream service. Configure this field and other retry fields in the `Destination` object to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
-
-The following retry conditions are supported:
-
-| Conditions           | Description                                                                                              |
-| :------------------- | :------------------------------------------------------------------------------------------------------- |
-| `5xx`                | Consul retries the request when an upstream responds with any 5xx error code or does not respond at all. |
-| `gateway-error`      | Consul retries the request when the upstream responds with a 502, 503, or 504 error.                     |
-| `reset`              | Consul retries the request when the upstream does not respond at all.                                    |
-| `connect-failure`    | Consul retries the request when the connection to the upstream fails.                                    |
-| `envoy-ratelimited`  | Consul retries the request when the header `x-envoy-ratelimited` is present.                             |
-| `retriable-4xx`      | Consul retries the request when the upstream responds with a retriable 4xx code.                         |
-| `refused-stream`     | Consul retries the request when the upstream resets the stream with a `REFUSED_STREAM` error code.       |
-| `cancelled`          | Consul retries the request when the gRPC status code in the response headers is `cancelled`.             |
-| `deadline-exceeded`  | Consul retries the request when the gRPC status code in the response headers is `deadline-exceeded`.     |
-| `internal`           | Consul retries the request when the gRPC status code in the response headers is `internal`.              |
-| `resource-exhausted` | Consul retries the request when the gRPC status code in the response headers is `resource-exhausted`.    |
-| `unavailable`        | Consul retries the request when the gRPC status code in the response headers is `unavailable`.           |
-
-#### Values
-
-- Default: None
-- Data type: List of strings. Strings must match one of the following values:
-
-  - `5xx`
-  - `gateway-error`
-  - `reset`
-  - `connect-failure`
-  - `envoy-ratelimited`
-  - `retriable-4xx`
-  - `refused-stream`
-  - `cancelled`
-  - `deadline-exceeded`
-  - `internal`
-  - `resource-exhausted`
-  - `unavailable`
-
-### `Routes[].Destination{}.RetryOnStatusCodes`
-
-Specifies a list of integers for [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) that trigger a retry request. Configure this field and other retry fields in `Destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic)
-
-#### Values
-
-- Default: None
-- Data type: List of integers
-
-### `Routes[].Destination{}.RequestHeaders`
-
-Specifies a set of HTTP-specific header modification rules applied to requests routed with the service router. You cannot configure request headers if the listener protocol is set to `tcp`.
-
-#### Values
-
-- Default: None
-- Values: Object containing one or more fields that define header modification rules:
-  - `Add`: Map of one or more key-value pairs.
-  - `Set`: Map of one or more key-value pairs.
-  - `Remove`: Map of one or more key-value pairs.
-
-The following table describes how to configure values for request headers:
-
-| Rule | Description | Type |
-| ---       | ---         | ---         |
-| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
-
-#### Use variable placeholders
-
-For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the routing occurs.
-
-### `Routes[].Destination{}.ResponseHeaders`
-
-Specifies a set of HTTP-specific header modification rules applied to responses routed with the service router. You cannot configure request headers if the listener protocol is set to `tcp`.
-
-#### Values
-
-- Default: None
-- Values: Object containing one or more fields that define header modification rules:
-  - `Add`: Map of one or more string key-value pairs.
-  - `Set`: Map of one or more string key-value pairs.
-  - `Remove`: Map of one or more string key-value pairs.
-
-The following table describes how to configure values for response headers:
-
-| Rule | Description | Type |
-| ---       | ---         | ---         |
-| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
-
-#### Use variable placeholders
-
-For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the routing occurs.
-
-</Tab>
-
-<Tab heading="YAML" group="yaml">
-
-### `apiVersion`
-
-Kubernetes-only parameter that specifies the version of the Consul API that the configuration entry maps to Kubernetes configurations. The value must be `consul.hashicorp.com/v1alpha1`.
-
-### `kind`
-
-Specifies the type of configuration entry to implement.
-
-#### Values
-
-- Default: None
-- This field is required.
-- Data type: String value that must be set to `ServiceRouter`.
-
-### `metadata.name`
-
-Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `metadata.namespace` <EnterpriseAlert inline />
-
-Specifies the Consul namespace to use for resolving the service. You can map Consul namespaces to Kubernetes Namespaces in different ways. Refer to [Custom Resource Definitions (CRDs) for Consul on Kubernetes](/consul/docs/k8s/crds#consul-enterprise) for additional information.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec`
-
-Map that contains the details about the `ServiceRouter` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
-
-#### Values
-
-- Default: None
-- This field is required.
-- Data type: Object containing [`spec.routes`](#spec-routes) configuration
-
-### `spec.meta`
-
-Specifies key-value pairs to add to the KV store.
-
-#### Values
-
-- Default: none
-- Data type: Map of one or more key-value pairs
-  - keys: String
-  - values: String, integer, or float
-
-### `spec.routes`
-
-Defines the possible routes for L7 requests. Consul evaluates traffic against the list of routes in their order of appearance in the configuration entry. When multiple routes satisfy the request, Consul uses the first route that matches. Traffic that fails to match any of the provided routes is routed to the default service.
-
-#### Values
-
-- Default: None
-- Data type: List that can contain the following parameters:
-
-- [`match`](#spec-routes-match)
-- [`destination`](#spec-routes-destination)
-
-### `spec.routes[].match`
-
-Describes a set of criteria that Consul compares incoming L7 traffic with. If empty or omitted, it acts as a catch-all.
-
-#### Values
-
-- Default: None
-- Data type: Map that contains the [`spec.routes[].match.http`](#spec-routes-match-http) parameter.
-
-### `spec.routes[].match.http`
-
-Specifies a set of HTTP criteria used to evaluate incoming L7 traffic for matches.
-
-When matching on the HTTP request path, you can only match on one path at a time. Do not configure `pathExact`, `pathPrefix`, and `pathRegex` in a single HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: Map that can contain the following parameters:
-
-  - [`pathExact`](#spec-routes-match-http-pathexact)
-  - [`pathPrefix`](#spec-routes-match-http-pathprefix)
-  - [`pathRegex`](#spec-routes-match-http-pathregex)
-  - [`methods`](#spec-routes-match-http-methods)
-  - [`header`](#spec-routes-match-http-header)
-  - [`queryParam`](#spec-routes-match-http-queryparam)
-
-### `spec.routes[].match.http.pathExact`
-
-Specifies the exact path to match on the HTTP request path. When using this field, do not configure `pathPrefix` or `pathRegex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.pathPrefix`
-
-Specifies the path prefix to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathRegex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.pathRegex`
-
-Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.methods`
-
-Specifies HTTP methods that the match applies to. If not specified, the request matches on all HTTP methods. If provided, the name must be a valid method formatted as a string.
-
-String values must be a valid [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).
-
-#### Values
-
-- Default: None
-- Data type: List of strings. Each string must match one of the following values:
-  - `GET`
-  - `HEAD`
-  - `POST`
-  - `PUT`
-  - `DELETE`
-  - `CONNECT`
-  - `OPTIONS`
-  - `TRACE`
-  - `PATCH`
-
-### `spec.routes[].match.http.header`
-
-Specifies information to match to in the HTTP request header. When more than one field is configured, all criteria must match for the service routing to apply.
-
-When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, and `regex` in the same HTTP map. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another.
-
-#### Values
-
-- Default: None
-- Data type: List containing one or more of the following parameters:
-
-  - [`name`](#spec-routes-match-http-header-name)
-  - [`present`](#spec-routes-match-http-header-present)
-  - [`exact`](#spec-routes-match-http-header-exact)
-  - [`prefix`](#spec-routes-match-http-header-prefix)
-  - [`suffix`](#spec-routes-match-http-header-suffix)
-  - [`regex`](#spec-routes-match-http-header-regex)
-  - [`invert`](#spec-routes-match-http-header-invert)
-
-### `spec.routes[].match.http.header.name`
-
-Specifies the name of the HTTP header to match. This field is required when using [`spec.routes[].match.http.header`](#spec-routes-match-http-header).
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.header.present`
-
-Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP header. When using this field, do not configure `exact`, `prefix`, `suffix`, or `regex` in the same HTTP map.
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `spec.routes[].match.http.header.exact`
-
-Specifies that a request matches when the header with the given name is this exact value. When using this field, do not configure `present`, `prefix`, `suffix`, or `regex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.header.prefix`
-
-Specifies that a request matches when the header with the given name has this prefix. When using this field, do not configure `present`, `exact`, `suffix`, or `regex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.header.suffix`
-
-Specifies that a request matches when the header with the given name has this suffix. When using this field, do not configure `present`, `exact`, `prefix`, or `regex` in the same HTTP map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.header.regex`
-
-Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `present`, `exact`, `prefix`, or `suffix` in the same  HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.header.invert`
-
-Specifies that the logic for the HTTP header match should be inverted. Requests with matching criteria are not routed.
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `spec.routes[].match.http.queryParam`
-
-Specifies information to match to on HTTP query parameters. When more than one field is configured, all criteria must match for the service routing to apply.
-
-When using this field, do not configure `present`, `exact`, and `regex` in a single map. You can use only one of these fields at a time when configuring match criteria for HTTP query parameters, as they are mutually exclusive with one another.
-
-#### Values
-
-- Default: None
-- Data type: List of maps. Each map can contain one or more of the following parameters:
-
-  - [`name`](#spec-routes-match-http-queryparam-name)
-  - [`present`](#spec-routes-match-http-queryparam-present)
-  - [`regex`](#spec-routes-match-http-queryparam-regex)
-
-### `spec.routes[].match.http.queryParam[].name`
-
-Specifies the name of the HTTP query parameter to match. This value is required when using [`spec.routes[].match.http.queryParam`](#spec-routes-match-http-queryparam).
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.queryParam[].present`
-
-Specifies that a request matches when the value in the `name` field is present anywhere in the HTTP query parameter. When using this field, do not configure `exact` or `regex` in the same map.
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `spec.routes[].match.http.queryParam[].exact`
-
-Specifies that a request matches when the query parameter with the given name is this exact value. When using this field, do not configure `present` or `regex` in the same map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].match.http.queryParam[].regex`
-
-Specifies that a request matches when the query parameter with the given name matches this regular expression. When using this field, do not configure `present` or `exact` in the same map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].destination`
-
-Specifies the target service to route matching requests to, as well as behavior for the request to follow when routed.
-
-#### Values
-
-- Default: None
-- Data type: Map containing one or more of the following parameters:
-
-  - [`service`](#spec-routes-destination-service)
-  - [`serviceSubset`](#spec-routes-destination-servicesubset)
-  - [`namespace`](#spec-routes-destination-namespace)
-  - [`partition`](#spec-routes-destination-partition)
-  - [`prefixRewrite`](#spec-routes-destination-prefixrewrite)
-  - [`requestTimeout`](#spec-routes-destination-requesttimeout)
-  - [`numRetries`](#spec-routes-destination-numretries)
-  - [`numRetries`](#spec-routes-destination-numretries)
-  - [`retryOnConnectFailure`](#spec-routes-destination-retryonconnectfailure)
-  - [`retryOn`](#spec-routes-destination-retryon)
-  - [`retryOnStatusCodes`](#spec-routes-destination-retryonstatuscodes)
-  - [`requestHeaders`](#spec-routes-destination-requestheaders)
-  - [`responseHeaders`](#spec-routes-destination-responseheaders)
-
-### `spec.routes[].destination.service`
-
-Specifies the name of the service to resolve. If this parameter is not specified, the default service name is inherited from the configuration entry’s [`metadata.name` field](#metadata-name).
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].destination.serviceSubset`
-
-Specifies a named subset of the given service to resolve instead of the one defined as that service's `defaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If this parameter is not specified, the default subset is used.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].destination.namespace`
-
-Specifies the Consul namespace to resolve the service from instead of the current namespace. If this parameter is not specified, the current namespace is used.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].destination.partition`
-
-Specifies the Consul admin partition to resolve the service from instead of the current partition. If this parameter is not specified, the current partition is used.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].destination.prefixRewrite`
-
-Specifies rewrites to the HTTP request path before proxying it to its final destination. This field requires that either [`spec.routes[].match.http.pathPrefix`](#spec-routes-match-http-pathprefix) or [`spec.routes[].match.http.pathExact`](#spec-routes-match-http-pathexact) be configured on this route.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.routes[].destination.requestTimeout`
-
-Specifies the total amount of time permitted for the entire downstream request to be processed, including retry attempts.
-
-#### Values
-
-- Default: `0`
-- Data type: Integer
-
-### `spec.routes[].destination.idleTimeout`
-
-Specifies the total amount of time permitted for the request stream to be idle.
-
-#### Values
-
-- Default: `0`
-- Data type: Integer
-
-### `spec.routes[].destination.numRetries`
-
-Specifies the number of times to retry the request when a retry condition occurs. Configure this field and other retry fields in `spec.routes.destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic). You cannot set the value to `0`. To disable retries, unset all other retry settings: `retryOnConnectFailure`, `retryOn`, `retryOnStatusCodes`.
-
-#### Values
-
-- Default: `1`
-- Data type: Integer
-
-### `spec.routes[].destination.retryOnConnectFailure`
-
-Specifies that connection failure errors that trigger a retry request. Configure this field and other retry fields in `spec.routes[].destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `spec.routes[].destination.retryOn`
-
-Specifies a list of conditions for Consul to retry requests based on the response from an upstream service. Configure this field and other retry fields in the `spec.routes[].destination` object to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
-
-The following retry conditions are supported:
-
-| Conditions           | Description                                                                                              |
-| :------------------- | :------------------------------------------------------------------------------------------------------- |
-| `5xx`                | Consul retries the request when an upstream responds with any 5xx error code or does not respond at all. |
-| `gateway-error`      | Consul retries the request when the upstream responds with a 502, 503, or 504 error.                     |
-| `reset`              | Consul retries the request when the upstream does not respond at all.                                    |
-| `connect-failure`    | Consul retries the request when the connection to the upstream fails.                                    |
-| `envoy-ratelimited`  | Consul retries the request when the header `x-envoy-ratelimited` is present.                             |
-| `retriable-4xx`      | Consul retries the request when the upstream responds with a retriable 4xx code.                         |
-| `refused-stream`     | Consul retries the request when the upstream resets the stream with a `REFUSED_STREAM` error code.       |
-| `cancelled`          | Consul retries the request when the gRPC status code in the response headers is `cancelled`.             |
-| `deadline-exceeded`  | Consul retries the request when the gRPC status code in the response headers is `deadline-exceeded`.     |
-| `internal`           | Consul retries the request when the gRPC status code in the response headers is `internal`.              |
-| `resource-exhausted` | Consul retries the request when the gRPC status code in the response headers is `resource-exhausted`.    |
-| `unavailable`        | Consul retries the request when the gRPC status code in the response headers is `unavailable`.           |
-
-#### Values
-
-- Default: None
-- Data type: List of strings. Strings must match one of the following values:
-
-  - `5xx`
-  - `gateway-error`
-  - `reset`
-  - `connect-failure`
-  - `envoy-ratelimited`
-  - `retriable-4xx`
-  - `refused-stream`
-  - `cancelled`
-  - `deadline-exceeded`
-  - `internal`
-  - `resource-exhausted`
-  - `unavailable`
-
-### `spec.routes[].destination.retryOnStatusCodes`
-
-Specifies a list of integers for [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) that trigger a retry request. Configure this field and other retry fields in `spec.routes[].destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic)
-
-#### Values
-
-- Default: None
-- Data type: List of integers
-
-### `spec.routes[].destination.requestHeaders`
-
-Specifies a set of HTTP-specific header modification rules applied to requests routed with the service router. You cannot configure request headers if the listener protocol is set to `tcp`.
-
-#### Values
-
-- Default: None
-- Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more key-value pairs.
-  - `set`: Map of one or more key-value pairs.
-  - `remove`: Map of one or more key-value pairs.
-
-The following table describes how to configure values for request headers:
-
-| Rule | Description | Type |
-| --- 	    | ---	       | ---         |
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
-
-#### Use variable placeholders
-
-For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the routing occurs.
-
-### `spec.routes[].destination.responseHeaders`
-
-Specifies a set of HTTP-specific header modification rules applied to responses routed with the service router. You cannot configure request headers if the listener protocol is set to `tcp`.
-
-#### Values
-
-- Default: None
-- Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more string key-value pairs.
-  - `set`: Map of one or more string key-value pairs.
-  - `remove`: Map of one or more string key-value pairs.
-
-The following table describes how to configure values for response headers:
-
-| Rule | Description | Type |
-| --- 	    | ---	       | ---         |
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
-
-#### Use variable placeholders
-
-For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the routing occurs.
-
-</Tab>
-
-</Tabs>
-
-## Examples
-
-The following examples demonstrate common service router configuration patterns for specific use cases.
+## Sample Config Entries
 
 ### Path prefix matching
 
-The following example routes HTTP requests for the `web` service to a service named `admin` when they have `/admin` at the start of their path.
+Route HTTP requests with a path starting with `/admin` to a different service:
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-router"
@@ -1325,12 +71,9 @@ Routes = [
       Service = "admin"
     }
   },
+  # NOTE: a default catch-all will send unmatched traffic to "web"
 ]
 ```
-
-</Tab>
-
-<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -1344,11 +87,8 @@ spec:
           pathPrefix: /admin
       destination:
         service: admin
+  # NOTE: a default catch-all will send unmatched traffic to "web"
 ```
-
-</Tab>
-
-<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1369,15 +109,13 @@ spec:
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
-### Match a header and query parameter
+### Header/query parameter matching
 
-The following example routes HTTP traffic to the `web` service to a subset of `canary` instances when the requests have `x-debug` in either the header or the URL parameter.
+Route HTTP requests with a special URL parameter or header to a canary subset:
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-router"
@@ -1415,12 +153,9 @@ Routes = [
       ServiceSubset = "canary"
     }
   },
+  # NOTE: a default catch-all will send unmatched traffic to "web"
 ]
 ```
-
-</Tab>
-
-<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -1445,11 +180,8 @@ spec:
       destination:
         service: web
         serviceSubset: canary
+  # NOTE: a default catch-all will send unmatched traffic to "web"
 ```
-
-</Tab>
-
-<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1492,15 +224,14 @@ spec:
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 ### gRPC routing
 
-The following example routes gRPC requests to the `invoice-generator`service when they come from an HTTP path that is exact match for `mycompany.BillingService/GenerateInvoice`. Because gRPC method calls use HTTP/2, you can use an HTTP path match rule to re-route traffic.
+Re-route a gRPC method to another service. Since gRPC method calls [are
+HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can use an HTTP path match rule to re-route traffic:
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-router"
@@ -1517,12 +248,9 @@ Routes = [
       Service = "invoice-generator"
     }
   },
+  # NOTE: a default catch-all will send unmatched traffic to "billing"
 ]
 ```
-
-</Tab>
-
-<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -1536,11 +264,8 @@ spec:
           pathExact: /mycompany.BillingService/GenerateInvoice
       destination:
         service: invoice-generator
+  # NOTE: a default catch-all will send unmatched traffic to "billing"
 ```
-
-</Tab>
-
-<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1561,25 +286,21 @@ spec:
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 ### Retry logic
 
-The following example configures Consul so that when a request for the `orders` service passes through the service mesh, Consul routes the traffic to the `products` service or the `procurement` service based on the HTTP path that originated the request:
+Enable retry logic by delegating this responsibility to Consul and the proxy.  Review the [`ServiceRouteDestination`](#serviceroutedestination) block for more details.
 
-- If it originates from the `/coffees` path, the request routes to the `products` service, times out after 15 seconds, and attempts 5 retries.
-- If it originates from the `/orders` path, the request routes to the `procurement` services, times out after 10 seconds, and attempts 3 retries.
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-router"
 Name = "orders"
 Routes = [
   {
-    Match {
+    Match{
         HTTP {
             PathPrefix = "/coffees"
         }
@@ -1587,14 +308,14 @@ Routes = [
 
     Destination {
         Service = "products"
-        RequestTimeout = "15s"
-        NumRetries = 5
+        RequestTimeout = "10s"
+        NumRetries = 3
         RetryOnConnectFailure = true
         RetryOn = ["reset"]
     }
   },
   {
-    Match {
+    Match{
         HTTP {
             PathPrefix = "/orders"
         }
@@ -1611,10 +332,6 @@ Routes = [
 ]
 ```
 
-</Tab>
-
-<Tab heading="YAML" group="yaml">
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceRouter
@@ -1627,8 +344,8 @@ spec:
           pathExact: /coffees
       destination:
         service: products
-        requestTimeout: 15s
-        numRetries: 5
+        requestTimeout: 10s
+        numRetries: 3
         retryOnConnectFailure: true
         retryOn: ['reset']
     - match:
@@ -1642,9 +359,6 @@ spec:
         retryOn: ['reset']
 ```
 
-</Tab>
-
-<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1658,8 +372,8 @@ spec:
                 }
             },
             "Destination": {
-                "NumRetries": 5,
-                "RequestTimeout": "15s",
+                "NumRetries": 3,
+                "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
                 "RetryOn": ["reset"],
                 "Service": "procurement"
@@ -1683,6 +397,413 @@ spec:
 }
 
 ```
+</CodeTabs>
 
-</Tab>
-</Tabs>
+## Available Fields
+
+<ConfigEntryReference
+  keys={[
+    {
+      name: 'apiVersion',
+      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
+      hcl: false,
+    },
+    {
+      name: 'Kind',
+      description: {
+        hcl: 'Must be set to `service-router`',
+        yaml: 'Must be set to `ServiceRouter`',
+      },
+    },
+    {
+      name: 'Name',
+      description: 'Set to the name of the service being configured.',
+      type: 'string: <required>',
+      yaml: false,
+    },
+    {
+      name: 'Namespace',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the namespace to which the configuration entry will apply.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the admin partition to which the configuration will apply.',
+      yaml: false,
+    },
+    {
+      name: 'Meta',
+      type: 'map<string|string>: nil',
+      description:
+        'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
+      yaml: false,
+    },
+    {
+      name: 'metadata',
+      children: [
+        {
+          name: 'name',
+          description: 'Set to the name of the service being configured.',
+        },
+        {
+          name: 'namespace',
+          description:
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+        },
+      ],
+      hcl: false,
+    },
+    {
+      name: 'Routes',
+      type: 'array<ServiceRoute>',
+      description: `The list of routes to consider when
+                      processing L7 requests. The first route to match in the list is terminal and
+                      stops further evaluation. Traffic that fails to match any of the provided
+                      routes will be routed to the default service.`,
+      children: [
+        {
+          name: 'Match',
+          type: 'ServiceRouteMatch: <optional>',
+          description: `A set of criteria that can
+                        match incoming L7 requests. If empty or omitted it acts as a catch-all.`,
+          children: [
+            {
+              name: 'HTTP',
+              type: 'ServiceRouteHTTPMatch: <optional>',
+              description: `A set of [HTTP-specific match criteria](#serviceroutehttpmatch).`,
+            },
+          ],
+        },
+        {
+          name: 'Destination',
+          type: 'ServiceRouteDestination: <optional>',
+          description: `Controls [how to proxy](#serviceroutedestination) the matching request(s) to a service.`,
+        },
+      ],
+    },
+  ]}
+/>
+
+### `ServiceRouteHTTPMatch`
+
+<ConfigEntryReference
+  topLevel={false}
+  keys={[
+    {
+      name: 'PathExact',
+      type: 'string: ""',
+      description: {
+        hcl:
+          'Exact path to match on the HTTP request path.<br><br> At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.',
+        yaml:
+          'Exact path to match on the HTTP request path.<br><br> At most only one of `pathExact`, `pathPrefix`, or `pathRegex` may be configured.',
+      },
+    },
+    {
+      name: 'PathPrefix',
+      type: 'string: ""',
+      description: {
+        hcl:
+          'Path prefix to match on the HTTP request path.<br><br> At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.',
+        yaml:
+          'Path prefix to match on the HTTP request path.<br><br> At most only one of `pathExact`, `pathPrefix`, or `pathRegex` may be configured.',
+      },
+    },
+    {
+      name: 'PathRegex',
+      type: 'string: ""',
+      description: {
+        hcl:
+          'Regular expression to match on the HTTP request path.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br> At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.',
+        yaml:
+          'Regular expression to match on the HTTP request path.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br> At most only one of `pathExact`, `pathPrefix`, or `pathRegex` may be configured.',
+      },
+    },
+    {
+      name: 'Methods',
+      type: 'array<string>',
+      description:
+        'A list of HTTP methods for which this match  applies. If unspecified all HTTP methods are matched. If provided the names must be a valid [method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).',
+    },
+    {
+      name: 'Header',
+      type: 'array<ServiceRouteHTTPMatchHeader>)',
+      description:
+        'A set of criteria that can match on HTTP request headers. If more than one is configured all must match for the overall match to apply.',
+      children: [
+        {
+          name: 'Name',
+          type: 'string: <required>',
+          description: 'Name of the header to match.',
+        },
+        {
+          name: 'Present',
+          type: 'bool: false',
+          description: {
+            hcl:
+              'Match if the header with the given name is present with any value.<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name is present with any value.<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Exact',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the header with the given name is this value.<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name is this value.<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Prefix',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the header with the given name has this prefix.<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name has this prefix.<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Suffix',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the header with the given name has this suffix.<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name has this suffix.<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Regex',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the header with the given name matches this pattern.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name matches this pattern.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Invert',
+          type: 'bool: false',
+          description: 'Inverts the logic of the match',
+        },
+      ],
+    },
+    {
+      name: 'QueryParam',
+      type: 'array<ServiceRouteHTTPMatchQueryParam>)',
+      description:
+        'A set of criteria that can match on HTTP query parameters. If more than one is configured all must match for the overall match to apply.',
+      children: [
+        {
+          name: 'Name',
+          type: 'string: <required>',
+          description: 'The name of the query parameter to match on.',
+        },
+        {
+          name: 'Present',
+          type: 'bool: false',
+          description: {
+            hcl:
+              'Match if the query parameter with the given name is present with any value.<br><br>At most only one of `Exact`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the query parameter with the given name is present with any value.<br><br>At most only one of `exact`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Exact',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the query parameter with the given name is this value.<br><br>At most only one of `Exact`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the query parameter with the given name is this value.<br><br>At most only one of `exact`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Regex',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the query parameter with the given name matches this pattern.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br>At most only one of `Exact`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the query parameter with the given name matches this pattern.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br>At most only one of `exact`, `regex`, or `present` may be configured.',
+          },
+        },
+      ],
+    },
+  ]}
+/>
+
+### `ServiceRouteDestination`
+
+<ConfigEntryReference
+  topLevel={false}
+  keys={[
+    {
+      name: 'Service',
+      type: 'string: ""',
+      description:
+        'The service to resolve instead of the default service. If empty then the default service name is used.',
+    },
+    {
+      name: 'ServiceSubset',
+      type: 'string: ""',
+      description: {
+        hcl:
+          "A named subset of the given service to resolve instead of the one defined as that service's `DefaultSubset`. If empty, the default subset is used.",
+        yaml:
+          "A named subset of the given service to resolve instead of the one defined as that service's `defaultSubset`. If empty, the default subset is used.",
+      },
+    },
+    {
+      name: 'Namespace',
+      type: 'string: ""',
+      description:
+        'The Consul namespace to resolve the service from instead of the current namespace. If empty, the current namespace is used.',
+      enterprise: true,
+    },
+    {
+      name: 'Partition',
+      type: 'string: ""',
+      description:
+        'The Consul admin partition to resolve the service from instead of the current partition. If empty, the current partition is used.',
+      enterprise: true,
+    },
+    {
+      name: 'PrefixRewrite',
+      type: 'string: ""',
+      description: {
+        hcl:
+          'Defines how to rewrite the HTTP request path before proxying it to its final destination.<br><br> This requires that either `Match.HTTP.PathPrefix` or `Match.HTTP.PathExact` be configured on this route.',
+        yaml:
+          'Defines how to rewrite the HTTP request path before proxying it to its final destination.<br><br> This requires that either `match.http.pathPrefix` or `match.http.pathExact` be configured on this route.',
+      },
+    },
+    {
+      name: 'RequestTimeout',
+      type: 'duration: 0',
+      description:
+        'The total amount of time permitted for the entire downstream request (and retries) to be processed.',
+    },
+    {
+      name: 'IdleTimeout',
+      type: 'duration: 0',
+      description:
+        'The total amount of time permitted for the request stream to be idle',
+    },
+    {
+      name: 'NumRetries',
+      type: 'int: 1',
+      description: {
+        hcl: 'The number of times to retry the request when a retryable result occurs. You cannot set the value to `0`. To disable retries, unset all other retry settings (`RetryOnConnectFailure`, `RetryOn`, `RetryOnStatusCodes`)',
+        yaml: 'The number of times to retry the request when a retryable result occurs. You cannot set the value to `0`. To disable retries, unset all other retry settings (`retryOnConnectFailure`, `retryOn`, `retryOnStatusCodes`)',
+      }
+    },
+    {
+      name: 'RetryOnConnectFailure',
+      type: 'bool: false',
+      description: 'Allows for connection failure errors to trigger a retry.',
+    },
+    {
+      name: 'RetryOn',
+      type: 'array<string>',
+      description: `Allows Consul to retry requests when they meet one of the following sets of conditions:
+                      \`5xx\`, \`gateway-error\`, \`reset\`, \`connect-failure\`, \`envoy-ratelimited\`, \`retriable-4xx\`,
+                      \`refused-stream\`, \`cancelled\`, \`deadline-exceeded\`, \`internal\`, \`resource-exhausted\`, or \`unavailable\``,
+    },
+    {
+      name: 'RetryOnStatusCodes',
+      type: 'array<int>',
+      description:
+        'A list of HTTP response status codes that are eligible for retry.',
+    },
+    {
+      name: 'RequestHeaders',
+      type: 'HTTPHeaderModifiers: <optional>',
+      description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+      that will be applied to requests routed to this service.
+      This cannot be used with a \`tcp\` listener.`,
+    },
+    {
+      name: 'ResponseHeaders',
+      type: 'HTTPHeaderModifiers: <optional>',
+      description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+      that will be applied to responses from this service.
+      This cannot be used with a \`tcp\` listener.`,
+    },
+  ]}
+/>
+
+### `HTTPHeaderModifiers`
+
+<ConfigEntryReference
+  topLevel={false}
+  keys={[
+    {
+      name: 'Add',
+      type: 'map<string|string>: optional',
+      description: `The set of key/value pairs that specify header values to add.
+      Use header names as keys. Header names are _not_ case-sensitive.
+      If header values with the same name already exist, the value set here will
+      be appended and both will be present.
+      If Envoy is used as the proxy, the value may contain
+      [variable placeholders](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers) for example
+      \`%DOWNSTREAM_REMOTE_ADDRESS%\` to interpolate dynamic request
+      metadata into the value added.`,
+    },
+    {
+      name: 'Set',
+      type: 'map<string|string>: optional',
+      description: `The set of key/value pairs that specify header values to add.
+      Use header names as keys. Header names are _not_ case-sensitive.
+      If header values with the same name already exist, the value set here will
+      _replace_ them.
+      If Envoy is used as the proxy, the value may contain
+      [variable placeholders](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers) for example
+      \`%DOWNSTREAM_REMOTE_ADDRESS%\` to interpolate dynamic request
+      metadata into the value added.`,
+    },
+    {
+      name: 'Remove',
+      type: 'array<string>: optional',
+      description: `The set of header names to remove. Only headers
+      whose names are a <i>case-insensitive</i> exact match will be removed`,
+    },
+  ]}
+/>
+
+## ACLs
+
+Configuration entries may be protected by [ACLs](/docs/security/acl).
+
+Reading a `service-router` config entry requires `service:read` on the resource.
+
+Creating, updating, or deleting a `service-router` config entry requires
+`service:write` on the resource and `service:read` on any other service referenced by
+name in these fields:
+
+- [`Routes[].Destination.Service`](#service)
+
+## Regular Expression Syntax
+
+The actual syntax of the regular expression fields described here is entirely
+proxy-specific.
+
+When using [Envoy](/docs/connect/proxies/envoy) as a proxy (the only supported proxy in Kubernetes),
+the syntax for these fields is version specific:
+
+| Envoy Version   | Syntax                                                              |
+| --------------- | ------------------------------------------------------------------- |
+| 1.11.2 or newer | [documentation](https://github.com/google/re2/wiki/Syntax)          |
+| 1.11.1 or older | [documentation](https://en.cppreference.com/w/cpp/regex/ecmascript) |

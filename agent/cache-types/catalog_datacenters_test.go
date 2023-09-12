@@ -1,16 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package cachetype
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatalogDatacenters(t *testing.T) {
@@ -22,34 +18,34 @@ func TestCatalogDatacenters(t *testing.T) {
 	var resp *[]string
 	var resp2 *[]string
 	var resp3 *[]string
-	rpc.On("RPC", mock.Anything, "Catalog.ListDatacenters", mock.Anything, mock.Anything).Once().Return(nil).
+	rpc.On("RPC", "Catalog.ListDatacenters", mock.Anything, mock.Anything).Once().Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.DatacentersRequest)
+			req := args.Get(1).(*structs.DatacentersRequest)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(3).(*[]string)
+			reply := args.Get(2).(*[]string)
 			*reply = []string{
 				"primary", "secondary", "tertiary",
 			}
 			resp = reply
 		})
-	rpc.On("RPC", mock.Anything, "Catalog.ListDatacenters", mock.Anything, mock.Anything).Once().Return(nil).
+	rpc.On("RPC", "Catalog.ListDatacenters", mock.Anything, mock.Anything).Once().Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.DatacentersRequest)
+			req := args.Get(1).(*structs.DatacentersRequest)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(3).(*[]string)
+			reply := args.Get(2).(*[]string)
 			*reply = []string{
 				"primary", "tertiary", "secondary",
 			}
 			resp2 = reply
 		})
-	rpc.On("RPC", mock.Anything, "Catalog.ListDatacenters", mock.Anything, mock.Anything).Once().Return(nil).
+	rpc.On("RPC", "Catalog.ListDatacenters", mock.Anything, mock.Anything).Once().Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.DatacentersRequest)
+			req := args.Get(1).(*structs.DatacentersRequest)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(3).(*[]string)
+			reply := args.Get(2).(*[]string)
 			*reply = []string{
 				"primary", "secondary",
 			}

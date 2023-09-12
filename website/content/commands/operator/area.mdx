@@ -21,7 +21,7 @@ and relationships can be made between independent pairs of datacenters, so not a
 need to be fully connected. This allows for complex topologies among Consul datacenters like
 hub/spoke and more general trees.
 
-See the [Network Areas Guide](/consul/tutorials/datacenter-operations/federation-network-areas) for more details.
+See the [Network Areas Guide](https://learn.hashicorp.com/tutorials/consul/federation-network-areas) for more details.
 
 ```text
 Usage: consul operator area <subcommand> [options]
@@ -47,12 +47,12 @@ read or write privileges to use these commands.
 
 ## create
 
-Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/area](/consul/api-docs/operator/area#create-network-area)
+Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/area](/api-docs/operator/area#create-network-area)
 
 This command creates a new network area.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -89,12 +89,12 @@ The return code indicates success or failure.
 
 ## delete
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/area/:uuid](/consul/api-docs/operator/area#delete-network-area)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/area/:uuid](/api-docs/operator/area#delete-network-area)
 
 This command deletes an existing network area.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -127,13 +127,13 @@ The return code indicates success or failure.
 
 ## join
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/area/:uuid/join](/consul/api-docs/operator/area#join-network-area)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/area/:uuid/join](/api-docs/operator/area#join-network-area)
 
 This command joins Consul servers into an existing network area by address, such as
 an IP or hostname with an optional port. Multiple addresses may be given.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -172,12 +172,12 @@ The return code indicates success or failure.
 
 ## list
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/area](/consul/api-docs/operator/area#list-network-areas)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/area](/api-docs/operator/area#list-network-areas)
 
 This command lists all network areas.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required    |
@@ -210,13 +210,13 @@ The return code indicates success or failure.
 
 ## members
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/area/:uuid/members](/consul/api-docs/operator/area#list-network-area-members)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/area/:uuid/members](/api-docs/operator/area#list-network-area-members)
 
 This command displays Consul server nodes present in a network area, or all
 areas if no area is specified.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required    |
@@ -248,14 +248,14 @@ server over its server RPC interface.
 
 `Build` has the Consul version running on the node.
 
-`Protocol` is the [protocol version](/consul/docs/upgrading#protocol-versions) being
+`Protocol` is the [protocol version](/docs/upgrading#protocol-versions) being
 spoken by the node.
 
 `DC` is the node's Consul datacenter.
 
 `RTT` is an estimated network round trip time from the server answering the query
 to the given server, in a human-readable format. This is computed using
-[network coordinates](/consul/docs/architecture/coordinates).
+[network coordinates](/docs/architecture/coordinates).
 
 The return code indicates success or failure.
 
@@ -275,12 +275,12 @@ The return code indicates success or failure.
 
 ## update
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/area/:uuid](/consul/api-docs/operator/area#update-network-area)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/area/:uuid](/api-docs/operator/area#update-network-area)
 
 This command updates the configuration of network area.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |

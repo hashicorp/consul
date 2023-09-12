@@ -1,17 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package cachetype
 
 import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNodeServices(t *testing.T) {
@@ -22,15 +18,15 @@ func TestNodeServices(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedNodeServices
-	rpc.On("RPC", mock.Anything, "Catalog.NodeServices", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "Catalog.NodeServices", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.NodeSpecificRequest)
+			req := args.Get(1).(*structs.NodeSpecificRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.Equal(t, "node-01", req.Node)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(3).(*structs.IndexedNodeServices)
+			reply := args.Get(2).(*structs.IndexedNodeServices)
 			reply.NodeServices = &structs.NodeServices{
 				Node: &structs.Node{
 					ID:         "abcdef",

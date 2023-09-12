@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -11,12 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
-	"github.com/mitchellh/hashstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -24,17 +22,15 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 )
 
 type Self struct {
@@ -92,7 +88,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	if s.agent.xdsServer != nil {
 		xds = &XDSSelf{
 			SupportedProxies: map[string][]string{
-				"envoy": xdscommon.EnvoyVersions,
+				"envoy": proxysupport.EnvoyVersions,
 			},
 			// Prefer the TLS port. See comment on the XDSSelf struct for details.
 			Port: s.agent.config.GRPCTLSPort,
@@ -308,7 +304,6 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		ModifyIndex:       s.ModifyIndex,
 		Weights:           weights,
 		Datacenter:        dc,
-		Locality:          s.Locality.ToAPI(),
 	}
 
 	if as.Tags == nil {
@@ -1528,9 +1523,6 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 		case "acl_replication_token", "replication":
 			s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
 
-		case "config_file_service_registration":
-			s.agent.tokens.UpdateConfigFileRegistrationToken(args.Token, token_store.TokenSourceAPI)
-
 		default:
 			return HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token %q is unknown", target)}
 		}
@@ -1585,7 +1577,7 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 
 	// TODO(peering): expose way to get kind=mesh-gateway type cert with appropriate ACLs
 
-	args := leafcert.ConnectCALeafRequest{
+	args := cachetype.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
@@ -1614,13 +1606,17 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 		return nil, nil
 	}
 
-	reply, m, err := s.agent.leafCertManager.Get(req.Context(), &args)
+	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCALeafName, &args)
 	if err != nil {
 		return nil, err
 	}
-
 	defer setCacheMeta(resp, &m)
 
+	reply, ok := raw.(*structs.IssuedCert)
+	if !ok {
+		// This should never happen, but we want to protect against panics
+		return nil, fmt.Errorf("internal error: response type not correct")
+	}
 	setIndex(resp, reply.ModifyIndex)
 
 	return reply, nil
@@ -1694,13 +1690,4 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	return debug.CollectHostInfo(), nil
-}
-
-// AgentVersion
-//
-// GET /v1/agent/version
-//
-// Retrieves Consul version information.
-func (s *HTTPHandlers) AgentVersion(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return version.GetBuildInfo(), nil
 }

@@ -1,18 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package create
 
 import (
 	"flag"
 	"fmt"
 
-	"github.com/mitchellh/cli"
-
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/tls"
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -36,14 +32,13 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	// TODO: perhaps add a -years arg to better capture user intent given that leap years are a thing
-	c.flags.IntVar(&c.days, "days", 1825, "Number of days the CA is valid for. Defaults to 1825 days (approximately 5 years).")
-	c.flags.BoolVar(&c.constraint, "name-constraint", false, "Enables X.509 name constraints for the CA. "+
-		"If used, the CA only signs certificates for localhost and the domains specified by -domain and -additional-name-constraint. "+
-		"If Consul's UI is served over HTTPS in your deployment, add its DNS name with -additional-constraint. Defaults to false.")
-	c.flags.StringVar(&c.domain, "domain", "consul", "The DNS domain of the Consul cluster that agents are configured with. "+
-		"Defaults to consul. Only used when -name-constraint is set. "+
-		"Additional domains can be passed with -additional-name-constraint.")
-	c.flags.StringVar(&c.clusterID, "cluster-id", "", "ID of the Consul cluster. Sets the CA's URI with the SPIFFEID composed of the cluster ID and domain  (specified by -domain or 'consul' by default).")
+	c.flags.IntVar(&c.days, "days", 1825, "Provide number of days the CA is valid for from now on. Defaults to 5 years.")
+	c.flags.BoolVar(&c.constraint, "name-constraint", false, "Add name constraints for the CA. Results in rejecting "+
+		"certificates for other DNS than specified. If turned on localhost and -domain will be added to the allowed "+
+		"DNS. If the UI is going to be served over HTTPS its DNS has to be added with -additional-constraint. It is not "+
+		"possible to add that after the fact! Defaults to false.")
+	c.flags.StringVar(&c.domain, "domain", "consul", "Domain of consul cluster. Only used in combination with -name-constraint. Defaults to consul.")
+	c.flags.StringVar(&c.clusterID, "cluster-id", "", "ClusterID of the consul cluster, requires -domain to be set as well. When used will set URIs with spiffeid.")
 	c.flags.StringVar(&c.commonName, "common-name", "", "Common Name of CA. Defaults to Consul Agent CA.")
 	c.flags.Var(&c.additionalConstraints, "additional-name-constraint", "Add name constraints for the CA. Results in rejecting certificates "+
 		"for other DNS than specified. Can be used multiple times. Only used in combination with -name-constraint.")

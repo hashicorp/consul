@@ -3,6 +3,7 @@ SecretID:         257ade69-748c-4022-bafd-76d27d9143f8
 Description:      test token
 Local:            false
 Create Time:      2020-05-22 18:52:31 +0000 UTC
+Legacy:           false
 Hash:             6162636465666768
 Create Index:     42
 Modify Index:     100

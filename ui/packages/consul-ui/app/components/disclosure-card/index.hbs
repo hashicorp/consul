@@ -1,0 +1,90 @@
+<CustomElement
+  @element="disclosure-card"
+  @description="Block level component with extra disclosable content"
+  @attrs={{array
+  }}
+as |custom element|>
+<Disclosure as |disclosure|>
+  <disclosure-card
+    {{did-insert custom.connect}}
+    {{will-destroy custom.disconnect}}
+    expanded={{disclosure.expanded}}
+  >
+
+      <custom.Template
+        @styles={{css-map
+          (require '/styles/base/icons/base-keyframes.css' from='/components/disclosure-card')
+          (require '/styles/base/icons/icons/chevron-down/index.css' from='/components/disclosure-card')
+          (require '/components/panel/index.css' from='/components/disclosure-card')
+          (css "
+            :host {
+              display: block;
+            }
+            slot[name='action']::slotted(button) {
+              display: block;
+              cursor: pointer;
+              width: 100%;
+
+              background-color: rgb(var(--tone-gray-050));
+              color: rgb(var(--tone-gray-800));
+              padding-top: var(--padding-y);
+              padding-bottom: var(--padding-y);
+            }
+            slot[name='action']::slotted(button)::after {
+              transition-timing-function: linear;
+              transition-duration: 300ms;
+              transition-property: transform;
+              --icon-name: icon-chevron-down;
+              --icon-size: icon-000;
+              content: '';
+            }
+
+            :host([expanded]) slot[name='action']::slotted(button)::after {
+              transform: scaleY(-100%);
+            }
+
+            :host([expanded]) [style*='max-height'] {
+              transition-duration: 50ms;
+            }
+            [style*='max-height'] {
+              transition-timing-function: ease-out;
+              transition-property: max-height;
+              overflow: hidden;
+            }
+            .content {
+              padding: var(--padding-y) var(--padding-x);
+            }
+          ")
+        }}
+      >
+        <div part="base"
+          class={{class-map
+            "panel"
+          }}
+        >
+          <div
+            {{on-resize (dom-position (array
+              (array 'height' 'max-height')
+            ))}}
+            class={{class-map
+              'content'
+            }}
+          >
+            <slot>
+            </slot>
+          </div>
+          <hr
+            class={{class-map
+              'panel-separator'
+            }}
+          />
+          <slot name="action">
+          </slot>
+        </div>
+      </custom.Template>
+
+      {{yield disclosure}}
+
+  </disclosure-card>
+</Disclosure>
+</CustomElement>

@@ -1,0 +1,3 @@
+```release-note:bug
+connect: fix a bug with Envoy potentially starting with incomplete configuration by not waiting enough for initial xDS configuration.
+```

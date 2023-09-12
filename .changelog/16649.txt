@@ -1,3 +1,0 @@
-```release-note:bug
-gateways: Adds validation to ensure the API Gateway has a listener defined when created
-```

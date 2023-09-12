@@ -1,3 +1,0 @@
-```release-note:bug
-cache: revert cache refactor which could cause blocking queries to never return
-```

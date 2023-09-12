@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package tokenclone
 
 import (
@@ -20,6 +17,7 @@ import (
 )
 
 func parseCloneOutput(t *testing.T, output string) *api.ACLToken {
+	// This will only work for non-legacy tokens
 	re := regexp.MustCompile("AccessorID:       ([a-zA-Z0-9\\-]{36})\n" +
 		"SecretID:         ([a-zA-Z0-9\\-]{36})\n" +
 		"(?:Partition:        default\n)?" +
@@ -103,7 +101,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
+			"-id=" + token.AccessorID,
 			"-token=root",
 			"-description=test cloned",
 		}
@@ -139,7 +137,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
+			"-id=" + token.AccessorID,
 			"-token=root",
 		}
 
@@ -165,7 +163,6 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 		require.Equal(t, cloned.Description, apiToken.Description)
 		require.Equal(t, cloned.Local, apiToken.Local)
 		require.Equal(t, cloned.Policies, apiToken.Policies)
-		require.Equal(t, cloned.TemplatedPolicies, apiToken.TemplatedPolicies)
 	})
 }
 
@@ -199,13 +196,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{
-			Description: "test",
-			Policies:    []*api.ACLTokenPolicyLink{{Name: "test-policy"}},
-			TemplatedPolicies: []*api.ACLTemplatedPolicy{
-				{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "web"}},
-			},
-		},
+		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: "test-policy"}}},
 		&api.WriteOptions{Token: "root"},
 	)
 	require.NoError(t, err)
@@ -217,7 +208,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
+			"-id=" + token.AccessorID,
 			"-token=root",
 			"-description=test cloned",
 			"-format=json",
@@ -240,7 +231,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
+			"-id=" + token.AccessorID,
 			"-token=root",
 			"-format=json",
 		}

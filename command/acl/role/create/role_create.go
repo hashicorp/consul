@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package rolecreate
 
 import (
@@ -28,15 +25,12 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	name                     string
-	description              string
-	policyIDs                []string
-	policyNames              []string
-	serviceIdents            []string
-	nodeIdents               []string
-	templatedPolicy          string
-	templatedPolicyFile      string
-	templatedPolicyVariables []string
+	name          string
+	description   string
+	policyIDs     []string
+	policyNames   []string
+	serviceIdents []string
+	nodeIdents    []string
 
 	showMeta bool
 	format   string
@@ -58,12 +52,6 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
 		"node identity to use for this role. May be specified multiple times. Format is "+
 		"NODENAME:DATACENTER")
-	c.flags.Var((*flags.AppendSliceValue)(&c.templatedPolicyVariables), "var", "Templated policy variables."+
-		" Must be used in combination with -templated-policy flag to specify required variables."+
-		" May be specified multiple times with different variables."+
-		" Format is VariableName:Value")
-	c.flags.StringVar(&c.templatedPolicy, "templated-policy", "", "The templated policy name. Use -var flag to specify variables when required.")
-	c.flags.StringVar(&c.templatedPolicyFile, "templated-policy-file", "", "Path to a file containing templated policy names and variables.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -83,14 +71,13 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.name == "" {
-		c.UI.Error("Missing required '-name' flag")
+		c.UI.Error(fmt.Sprintf("Missing require '-name' flag"))
 		c.UI.Error(c.Help())
 		return 1
 	}
 
-	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 && len(c.serviceIdents) == 0 && len(c.nodeIdents) == 0 &&
-		len(c.templatedPolicy) == 0 && len(c.templatedPolicyFile) == 0 {
-		c.UI.Error("Cannot create a role without specifying -policy-name, -policy-id, -service-identity, -node-identity, -templated-policy-file or -templated-policy at least once")
+	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 && len(c.serviceIdents) == 0 && len(c.nodeIdents) == 0 {
+		c.UI.Error(fmt.Sprintf("Cannot create a role without specifying -policy-name, -policy-id, -service-identity, or -node-identity at least once"))
 		return 1
 	}
 
@@ -133,13 +120,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	newRole.NodeIdentities = parsedNodeIdents
-
-	parsedTemplatedPolicies, err := acl.ExtractTemplatedPolicies(c.templatedPolicy, c.templatedPolicyFile, c.templatedPolicyVariables)
-	if err != nil {
-		c.UI.Error(err.Error())
-		return 1
-	}
-	newRole.TemplatedPolicies = parsedTemplatedPolicies
 
 	r, _, err := client.ACL().RoleCreate(newRole, nil)
 	if err != nil {
@@ -184,7 +164,5 @@ Usage: consul acl role create -name NAME [options]
                                  -policy-id b52fc3de-5 \
                                  -policy-name "acl-replication" \
                                  -service-identity "web" \
-                                 -service-identity "db:east,west" \
-                                 -templated-policy "builtin/service" \
-                                 -var "name:api"
+                                 -service-identity "db:east,west"
 `

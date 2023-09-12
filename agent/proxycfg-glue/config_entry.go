@@ -1,19 +1,18 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfgglue
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbconfigentry"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // CacheConfigEntry satisfies the proxycfg.ConfigEntry interface by sourcing
@@ -63,22 +62,8 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_IngressGateway
 	case structs.ServiceDefaults:
 		topic = pbsubscribe.Topic_ServiceDefaults
-	case structs.APIGateway:
-		topic = pbsubscribe.Topic_APIGateway
-	case structs.HTTPRoute:
-		topic = pbsubscribe.Topic_HTTPRoute
-	case structs.TCPRoute:
-		topic = pbsubscribe.Topic_TCPRoute
-	case structs.InlineCertificate:
-		topic = pbsubscribe.Topic_InlineCertificate
-	case structs.BoundAPIGateway:
-		topic = pbsubscribe.Topic_BoundAPIGateway
-	case structs.RateLimitIPConfig:
-		topic = pbsubscribe.Topic_IPRateLimit
-	case structs.JWTProvider:
-		topic = pbsubscribe.Topic_JWTProvider
 	default:
-		return nil, fmt.Errorf("cannot map config entry kind: %q to a topic", req.Kind)
+		return nil, fmt.Errorf("cannot map config entry kind: %s to a topic", req.Kind)
 	}
 	return &configEntryRequest{
 		topic: topic,
@@ -98,9 +83,9 @@ func (r *configEntryRequest) CacheInfo() cache.RequestInfo { return r.req.CacheI
 func (r *configEntryRequest) NewMaterializer() (submatview.Materializer, error) {
 	var view submatview.View
 	if r.req.Name == "" {
-		view = configentry.NewConfigEntryListView(r.req.Kind, r.req.EnterpriseMeta)
+		view = newConfigEntryListView(r.req.Kind, r.req.EnterpriseMeta)
 	} else {
-		view = &configentry.ConfigEntryView{}
+		view = &configEntryView{}
 	}
 
 	return submatview.NewLocalMaterializer(submatview.LocalMaterializerDeps{
@@ -139,4 +124,121 @@ func (r *configEntryRequest) Request(index uint64) *pbsubscribe.SubscribeRequest
 	}
 
 	return req
+}
+
+// configEntryView implements a submatview.View for a single config entry.
+type configEntryView struct {
+	state structs.ConfigEntry
+}
+
+func (v *configEntryView) Reset() {
+	v.state = nil
+}
+
+func (v *configEntryView) Result(index uint64) any {
+	return &structs.ConfigEntryResponse{
+		QueryMeta: structs.QueryMeta{
+			Index:   index,
+			Backend: structs.QueryBackendStreaming,
+		},
+		Entry: v.state,
+	}
+}
+
+func (v *configEntryView) Update(events []*pbsubscribe.Event) error {
+	for _, event := range events {
+		update := event.GetConfigEntry()
+		if update == nil {
+			continue
+		}
+		switch update.Op {
+		case pbsubscribe.ConfigEntryUpdate_Delete:
+			v.state = nil
+		case pbsubscribe.ConfigEntryUpdate_Upsert:
+			v.state = pbconfigentry.ConfigEntryToStructs(update.ConfigEntry)
+		}
+	}
+	return nil
+}
+
+// configEntryListView implements a submatview.View for a list of config entries
+// that are all of the same kind (name is treated as unique).
+type configEntryListView struct {
+	kind    string
+	entMeta acl.EnterpriseMeta
+	state   map[string]structs.ConfigEntry
+}
+
+func newConfigEntryListView(kind string, entMeta acl.EnterpriseMeta) *configEntryListView {
+	view := &configEntryListView{kind: kind, entMeta: entMeta}
+	view.Reset()
+	return view
+}
+
+func (v *configEntryListView) Reset() {
+	v.state = make(map[string]structs.ConfigEntry)
+}
+
+func (v *configEntryListView) Result(index uint64) any {
+	entries := make([]structs.ConfigEntry, 0, len(v.state))
+	for _, entry := range v.state {
+		entries = append(entries, entry)
+	}
+
+	return &structs.IndexedConfigEntries{
+		Kind:    v.kind,
+		Entries: entries,
+		QueryMeta: structs.QueryMeta{
+			Index:   index,
+			Backend: structs.QueryBackendStreaming,
+		},
+	}
+}
+
+func (v *configEntryListView) Update(events []*pbsubscribe.Event) error {
+	for _, event := range filterByEnterpriseMeta(events, v.entMeta) {
+		update := event.GetConfigEntry()
+		configEntry := pbconfigentry.ConfigEntryToStructs(update.ConfigEntry)
+		name := structs.NewServiceName(configEntry.GetName(), configEntry.GetEnterpriseMeta()).String()
+
+		switch update.Op {
+		case pbsubscribe.ConfigEntryUpdate_Delete:
+			delete(v.state, name)
+		case pbsubscribe.ConfigEntryUpdate_Upsert:
+			v.state[name] = configEntry
+		}
+	}
+	return nil
+}
+
+// filterByEnterpriseMeta filters the given set of events to remove those that
+// don't match the request's enterprise meta - this is necessary because when
+// subscribing to a topic with SubjectWildcard we'll get events for resources
+// in all partitions and namespaces.
+func filterByEnterpriseMeta(events []*pbsubscribe.Event, entMeta acl.EnterpriseMeta) []*pbsubscribe.Event {
+	partition := entMeta.PartitionOrDefault()
+	namespace := entMeta.NamespaceOrDefault()
+
+	filtered := make([]*pbsubscribe.Event, 0, len(events))
+	for _, event := range events {
+		var eventEntMeta *pbcommon.EnterpriseMeta
+		switch payload := event.Payload.(type) {
+		case *pbsubscribe.Event_ConfigEntry:
+			eventEntMeta = payload.ConfigEntry.ConfigEntry.GetEnterpriseMeta()
+		case *pbsubscribe.Event_Service:
+			eventEntMeta = payload.Service.GetEnterpriseMeta()
+		default:
+			continue
+		}
+
+		if partition != acl.WildcardName && !acl.EqualPartitions(partition, eventEntMeta.GetPartition()) {
+			continue
+		}
+		if namespace != acl.WildcardName && !acl.EqualNamespaces(namespace, eventEntMeta.GetNamespace()) {
+			continue
+		}
+
+		filtered = append(filtered, event)
+	}
+	return filtered
 }

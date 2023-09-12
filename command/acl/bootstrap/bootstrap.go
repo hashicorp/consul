@@ -1,18 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package bootstrap
 
 import (
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl/token"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
 )
 
@@ -49,34 +43,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	args = c.flags.Args()
-	if l := len(args); l < 0 || l > 1 {
-		c.UI.Error("This command takes up to one argument")
-		return 1
-	}
-
-	var terminalToken string
-	var err error
-
-	if len(args) == 1 {
-		terminalToken, err = helpers.LoadDataSourceNoRaw(args[0], os.Stdin)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error reading provided token: %v", err))
-			return 1
-		}
-	}
-
-	// Remove newline from the token if it was passed by stdin
-	boottoken := strings.TrimSpace(terminalToken)
-
 	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
-	var t *api.ACLToken
-	t, _, err = client.ACL().BootstrapWithToken(boottoken)
+	t, _, err := client.ACL().Bootstrap()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed ACL bootstrapping: %v", err))
 		return 1

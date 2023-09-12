@@ -1,11 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package leakcheck
 
 import (
 	"crypto/x509"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -54,9 +51,9 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	keyPath := filepath.Join(d, "key.pem")
 	caPath := filepath.Join(d, "cacert.pem")
 
-	require.NoError(t, os.WriteFile(certPath, []byte(certPEM), 0600))
-	require.NoError(t, os.WriteFile(keyPath, []byte(keyPEM), 0600))
-	require.NoError(t, os.WriteFile(caPath, []byte(caPEM), 0600))
+	require.NoError(t, ioutil.WriteFile(certPath, []byte(certPEM), 0600))
+	require.NoError(t, ioutil.WriteFile(keyPath, []byte(keyPEM), 0600))
+	require.NoError(t, ioutil.WriteFile(caPath, []byte(caPEM), 0600))
 
 	aclParams := agent.DefaultTestACLConfigParams()
 	aclParams.PrimaryDatacenter = "primary"

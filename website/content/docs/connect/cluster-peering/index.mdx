@@ -2,7 +2,7 @@
 layout: docs
 page_title: Cluster Peering Overview
 description: >-
-  Cluster peering establishes communication between independent clusters in Consul, allowing services to interact across datacenters. Learn how cluster peering works, its differences with WAN federation for multi-datacenter deployments, and how to troubleshoot common issues.
+  Cluster peering establishes communication between independent clusters in Consul, allowing services to interact across datacenters. Learn how cluster peering works, its differences with WAN federation for multi-datacenter deployments, and how to troubleshoot common issues.  
 ---
 
 # Cluster peering overview
@@ -22,7 +22,7 @@ In this diagram, the `default` partition in Consul DC 1 has a cluster peering co
 
 Cluster peering leverages several components of Consul's architecture to enforce secure communication between services:
 
-- A _peering token_ contains an embedded secret that securely establishes communication when shared symmetrically between datacenters. Sharing this token enables each datacenter's server agents to recognize requests from authorized peers, similar to how the [gossip encryption key secures agent LAN gossip](/consul/docs/security/encryption#gossip-encryption).
+- A _peering token_ contains an embedded secret that securely establishes communication when shared symetrically between datacenters. Sharing this token enables each datacenter's server agents to recognize requests from authorized peers, similar to how the [gossip encryption key secures agent LAN gossip](/consul/docs/security/encryption#gossip-encryption).
 - A _mesh gateway_ encrypts outgoing traffic, decrypts incoming traffic, and directs traffic to healthy services. Consul's service mesh features must be enabled in order to use mesh gateways. Mesh gateways support the specific admin partitions they are deployed on. Refer to [Mesh gateways](/consul/docs/connect/gateways/mesh-gateway) for more information.
 - An _exported service_ communicates with downstreams deployed in other admin partitions. They are explicitly defined in an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services).
 - A _service intention_ secures [service-to-service communication in a service mesh](/consul/docs/connect/intentions). Intentions enable identity-based access between services by exchanging TLS certificates, which the service's sidecar proxy verifies upon each request.
@@ -41,7 +41,6 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Shares support queries and service endpoints       |    &#9989;     |    &#9989;      |
 | Connects clusters owned by different operators     |    &#10060;    |    &#9989;      |
 | Functions without declaring primary datacenter     |    &#10060;    |    &#9989;      |
-| Can use sameness groups for identical services     |    &#10060;    |    &#9989;      |
 | Replicates exported services for service discovery |    &#10060;    |    &#9989;      |
 | Gossip protocol: Requires LAN gossip only          |    &#10060;    |    &#9989;      |
 | Forwards service requests for service discovery    |    &#9989;     |    &#10060;     |
@@ -61,7 +60,6 @@ The following resources are available to help you use Consul's cluster peering f
 - [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering)
 - [Manage cluster peering connections](/consul/docs/connect/cluster-peering/usage/manage-connections)
 - [Manage L7 traffic with cluster peering](/consul/docs/connect/cluster-peering/usage/peering-traffic-management)
-- [Create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups)
 
 ### Kubernetes documentation
 
@@ -69,13 +67,12 @@ The following resources are available to help you use Consul's cluster peering f
 - [Establish cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering)
 - [Manage cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/manage-peering)
 - [Manage L7 traffic with cluster peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/l7-traffic)
-- [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups)
 
 ### HCP Consul documentation
 
 - [Cluster peering](/hcp/docs/consul/usage/cluster-peering)
 - [Cluster peering topologies](/hcp/docs/consul/usage/cluster-peering/topologies)
-- [Establish cluster peering connections on HCP Consul](/hcp/docs/consul/usage/cluster-peering/create-connections)
+- [Establish cluster peering connnections on HCP Consul](/hcp/docs/consul/usage/cluster-peering/create-connections)
 - [Cluster peering with management plane](/hcp/docs/consul/usage/management-plane#cluster-peering)
 
 ### Reference documentation

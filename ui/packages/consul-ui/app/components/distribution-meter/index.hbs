@@ -1,0 +1,30 @@
+<CustomElement
+  @element="distribution-meter"
+  @description="A meter-like component to show a distribution of values."
+  @attrs={{array
+    (array 'type' '"linear" | "radial" | "circular"' 'linear'
+      'The type of distribution meter to use'
+    )
+  }}
+as |custom element|>
+  <distribution-meter
+    {{did-insert custom.connect}}
+    {{will-destroy custom.disconnect}}
+    ...attributes
+  >
+    <custom.Template
+      @styles={{css-map
+        (require './index.css' from='/components/distribution-meter')
+      }}
+    >
+      <dl>
+        <slot></slot>
+      </dl>
+    </custom.Template>
+    {{yield (hash
+      Meter=(component 'distribution-meter/meter'
+        type=element.attrs.type
+      )
+    )}}
+  </distribution-meter>
+</CustomElement>

@@ -16,7 +16,6 @@
     "ACLTokens": {
         "ACLAgentRecoveryToken": "hidden",
         "ACLAgentToken": "hidden",
-        "ACLConfigFileRegistrationToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",
         "DataDir": "",
@@ -117,7 +116,6 @@
             "Status": "",
             "SuccessBeforePassing": 0,
             "TCP": "",
-            "TCPUseTLS": false,
             "TLSServerName": "",
             "TLSSkipVerify": false,
             "TTL": "0s",
@@ -135,15 +133,14 @@
         "ManagementToken": "hidden",
         "ResourceID": "cluster1",
         "ScadaAddress": "",
-        "TLSConfig": null,
-        "NodeID": "",
-        "NodeName": ""
+        "TLSConfig": null
     },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
     "ConnectMeshGatewayWANFederationEnabled": false,
+    "ConnectServerlessPluginEnabled": false,
     "ConnectSidecarMaxPort": 0,
     "ConnectSidecarMinPort": 0,
     "ConnectTestCALeafRootChangeSpread": "0s",
@@ -202,7 +199,6 @@
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
     "EnterpriseRuntimeConfig": {},
-    "Experiments": [],
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
     "GRPCAddrs": [],
@@ -238,10 +234,6 @@
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
     "LocalProxyConfigResyncInterval": "0s",
-    "Locality": {
-        "Region": "us-west-1",
-        "Zone": "us-west-1a"
-    },
     "Logging": {
         "EnableSyslog": false,
         "LogFilePath": "",
@@ -277,19 +269,8 @@
     "RPCMaxConnsPerClient": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
-    "RaftLogStoreConfig": {
-        "Backend": "",
-        "BoltDB": {
-            "NoFreelistSync": false
-        },
-        "DisableLogCache": false,
-        "Verification": {
-            "Enabled": false,
-            "Interval": "0s"
-        },
-        "WAL": {
-            "SegmentSize": 0
-        }
+    "RaftBoltDBConfig": {
+        "NoFreelistSync": false
     },
     "RaftProtocol": 3,
     "RaftSnapshotInterval": "0s",
@@ -304,9 +285,6 @@
             "Enabled": false
         }
     },
-    "RequestLimitsMode": 0,
-    "RequestLimitsReadRate": 0,
-    "RequestLimitsWriteRate": 0,
     "RetryJoinIntervalLAN": "0s",
     "RetryJoinIntervalWAN": "0s",
     "RetryJoinLAN": [
@@ -336,7 +314,6 @@
     "ServerMode": false,
     "ServerName": "",
     "ServerPort": 0,
-    "ServerRejoinAgeMax": "168h0m0s",
     "Services": [
         {
             "Address": "",
@@ -369,7 +346,6 @@
                 "Status": "",
                 "SuccessBeforePassing": 0,
                 "TCP": "",
-                "TCPUseTLS": false,
                 "TLSServerName": "",
                 "TLSSkipVerify": false,
                 "TTL": "0s",
@@ -382,7 +358,6 @@
             "EnterpriseMeta": {},
             "ID": "",
             "Kind": "",
-            "Locality": null,
             "Meta": {},
             "Name": "foo",
             "Port": 0,
@@ -399,6 +374,8 @@
     ],
     "SessionTTLMin": "0s",
     "SkipLeaveOnInt": false,
+    "StartJoinAddrsLAN": [],
+    "StartJoinAddrsWAN": [],
     "StaticRuntimeConfig": {
         "EncryptVerifyIncoming": false,
         "EncryptVerifyOutgoing": false
@@ -470,7 +447,6 @@
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
-        "EnableHostMetrics": false,
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusOpts": {

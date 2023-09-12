@@ -7,25 +7,21 @@ description: >-
 
 # Install Consul on Kubernetes with Helm
 
-This topic describes how to install Consul on Kubernetes using the official Consul Helm chart. For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Installing the Consul K8s CLI](/consul/docs/k8s/installation/install-cli).
+This topic describes how to install Consul on Kubernetes using the official Consul Helm chart. For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Installing the Consul K8s CLI](/docs/k8s/installation/install-cli).
 
 ## Introduction
 
 We recommend using the Consul Helm chart to install Consul on Kubernetes for multi-cluster installations that involve cross-partition or cross datacenter communication. The Helm chart installs and configures all necessary components to run Consul. 
 
-Consul can run directly on Kubernetes so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [Consul on Kubernetes architecture](/consul/docs/k8s/architecture) to learn more about its general architecture.
+Consul can run directly on Kubernetes so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [Consul on Kubernetes architecture](/docs/k8s/architecture) to learn more about its general architecture.
 
 The Helm chart exposes several useful configurations and automatically sets up complex resources, but it does not automatically operate Consul. You must still become familiar with how to monitor, backup, and upgrade the Consul cluster.
 
-The Helm chart has no required configuration, so it installs a Consul cluster with default configurations. We strongly recommend that you [learn about the configuration options](/consul/docs/k8s/helm#configuration-values) before going to production.
+The Helm chart has no required configuration, so it installs a Consul cluster with default configurations. We strongly recommend that you [learn about the configuration options](/docs/k8s/helm#configuration-values) before going to production.
 
--> **Security warning**: By default, Helm installs Consul with security configurations disabled so that the out-of-box experience is optimized for new users. We strongly recommend using a properly-secured Kubernetes cluster or making sure that you understand and enable [Consul’s security features](/consul/docs/security) before going into production. Some security features are not supported in the Helm chart and require additional manual configuration.
+-> **Security warning**: By default, Helm installs Consul with security configurations disabled so that the out-of-box experience is optimized for new users. We strongly recommend using a properly-secured Kubernetes cluster or making sure that you understand and enable [Consul’s security features](/docs/security) before going into production. Some security features are not supported in the Helm chart and require additional manual configuration.
 
-Refer to the [architecture](/consul/docs/k8s/installation/install#architecture) section to learn more about the general architecture of Consul on Kubernetes.
-
-For a hands-on experience with Consul as a service mesh
-for Kubernetes, follow the [Getting Started with Consul service
-mesh](/consul/tutorials/get-started-kubernetes) tutorial.
+> For a hands-on experience with Consul as a service mesh for Kubernetes, follow the [Getting Started with Consul service mesh tutorial](/consul/tutorials/kubernetes-features/service-mesh-deploy?utm_source=docs).
 
 ## Requirements
 
@@ -81,7 +77,7 @@ Using the Helm Chart requires Helm version 3.6+. Visit the [Helm website](https:
 If you want to customize your installation,
 create a `values.yaml` file to override the default settings.
 To learn what settings are available, run `helm inspect values hashicorp/consul`
-or read the [Helm Chart Reference](/consul/docs/k8s/helm).
+or read the [Helm Chart Reference](/docs/k8s/helm).
 
 ### Minimal `values.yaml` for Consul service mesh
 
@@ -92,7 +88,7 @@ The following `values.yaml` config file contains the minimum required settings t
 ```yaml
 global:
   name: consul
-```
+  ```
 
 </CodeBlockConfig>
 
@@ -106,7 +102,7 @@ NAME: consul
 
 ### Enable the Consul CNI plugin
 
-By default, Consul injects a `connect-inject-init` init container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/consul/docs/connect/transparent-proxy).
+By default, Consul injects a `connect-inject-init` init container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/docs/connect/transparent-proxy).
 The container configures traffic redirection in the service mesh through the sidecar proxy.
 To configure redirection, the container requires elevated `CAP_NET_ADMIN` privileges, which may not be compatible with security policies in your organization.
 
@@ -228,7 +224,7 @@ By default, Consul Service Mesh is enabled on almost all namespaces within a Kub
 ### Update your Consul on Kubernetes configuration
 
 If you already installed Consul and want to make changes, you need to run
-`helm upgrade`. Refer to [Upgrading](/consul/docs/k8s/upgrade) for more details.
+`helm upgrade`. Refer to [Upgrading](/docs/k8s/upgrade) for more details.
 
 ## Usage
 
@@ -286,13 +282,13 @@ with less permissions.
 #### Exposing the UI through a service
 
 If you want to expose the UI via a Kubernetes Service, configure
-the [`ui.service` chart values](/consul/docs/k8s/helm#v-ui-service).
+the [`ui.service` chart values](/docs/k8s/helm#v-ui-service).
 Because this service allows requests to the Consul servers, it should
 not be open to the world.
 
 ### Accessing the Consul HTTP API
 
-While technically any listening agent can respond to the HTTP API, communicating with the local Consul node has important caching behavior and allows you to use the simpler [`/agent` endpoints for services and checks](/consul/api-docs/agent).
+While technically any listening agent can respond to the HTTP API, communicating with the local Consul node has important caching behavior and allows you to use the simpler [`/agent` endpoints for services and checks](/api-docs/agent).
 
 To find information about a node, you can use the [downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
 
@@ -363,7 +359,7 @@ spec:
 
 ## Next Steps
 
-If you are still considering a move to Kubernetes, or to Consul on Kubernetes specifically, our [Migrate to Microservices with Consul Service Mesh on Kubernetes](/consul/tutorials/microservices?utm_source=docs)
+If you are still considering a move to Kubernetes, or to Consul on Kubernetes specifically, our [Migrate to Microservices with Consul Service Mesh on Kubernetes](https://learn.hashicorp.com/collections/consul/microservices?utm_source=docs)
 collection uses an example application written by a fictional company to illustrate why and how organizations can
 migrate from monolith to microservices using Consul service mesh on Kubernetes. The case study in this collection
 should provide information valuable for understanding how to develop services that leverage Consul during any stage

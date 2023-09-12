@@ -1,12 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package ca
 
 import (
-	"github.com/mitchellh/cli"
-
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
 func New() *cmd {
@@ -29,7 +25,7 @@ func (c *cmd) Help() string {
 
 const synopsis = `Helpers for CAs`
 const help = `
-Usage: consul tls ca <subcommand> [options]
+Usage: consul tls ca <subcommand> [options] filename-prefix
 
   This command has subcommands for interacting with Certificate Authorities.
 

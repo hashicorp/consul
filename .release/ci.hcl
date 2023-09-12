@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 schema = "1"
 
 project "consul" {
@@ -132,9 +129,21 @@ event "post-publish-website" {
     on = "always"
   }
 }
+event "bump-version" {
+  depends = ["post-publish-website"]
+  action "bump-version" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "bump-version"
+  }
+
+  notification {
+    on = "fail"
+  }
+}
 
 event "update-ironbank" {
-  depends = ["post-publish-website"]
+  depends = ["bump-version"]
   action "update-ironbank" {
     organization = "hashicorp"
     repository = "crt-workflows-common"

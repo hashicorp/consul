@@ -1,3 +1,0 @@
-```release-note:improvement
-agent: add a configurable maximimum age (default: 7 days) to prevent servers re-joining a cluster with stale data 
-```

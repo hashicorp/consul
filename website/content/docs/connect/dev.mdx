@@ -8,17 +8,17 @@ description: >-
 # Service Mesh Debugging
 
 It is often necessary to connect to a service for development or debugging.
-If a service only exposes a service mesh listener, then we need a way to establish
+If a service only exposes a Connect listener, then we need a way to establish
 a mutual TLS connection to the service. The
-[`consul connect proxy` command](/consul/commands/connect/proxy) can be used
+[`consul connect proxy` command](/commands/connect/proxy) can be used
 for this task on any machine with access to a Consul agent (local or remote).
 
-Restricting access to services only via service mesh ensures that the only way to
+Restricting access to services only via Connect ensures that the only way to
 connect to a service is through valid authorization of the
-[intentions](/consul/docs/connect/intentions). This can extend to developers
+[intentions](/docs/connect/intentions). This can extend to developers
 and operators, too.
 
-## Connecting to Mesh-only Services
+## Connecting to Connect-only Services
 
 As an example, let's assume that we have a PostgreSQL database running that
 we want to connect to via `psql`, but the only non-loopback listener is

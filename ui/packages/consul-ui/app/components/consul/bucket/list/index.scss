@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %consul-bucket-list {
   & {
     @extend %horizontal-kv-list;
@@ -20,7 +15,7 @@
     @extend %with-network-alt-mask, %as-pseudo;
   }
   .service + dd {
-    @extend .hds-font-weight-semibold;
+    font-weight: var(--typo-weight-semibold);
   }
   /* potential for some sort of %composite-kv thing here */
   dd:not(:last-child)::after {

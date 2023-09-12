@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package acl
 
 import (
@@ -43,7 +40,6 @@ const (
 	ResourceACL       Resource = "acl"
 	ResourceAgent     Resource = "agent"
 	ResourceEvent     Resource = "event"
-	ResourceIdentity  Resource = "identity"
 	ResourceIntention Resource = "intention"
 	ResourceKey       Resource = "key"
 	ResourceKeyring   Resource = "keyring"
@@ -77,19 +73,6 @@ type Authorizer interface {
 
 	// EventWrite determines if a specific event may be fired.
 	EventWrite(string, *AuthorizerContext) EnforcementDecision
-
-	// IdentityRead checks for permission to read a given workload identity.
-	IdentityRead(string, *AuthorizerContext) EnforcementDecision
-
-	// IdentityReadAll checks for permission to read all workload identities.
-	IdentityReadAll(*AuthorizerContext) EnforcementDecision
-
-	// IdentityWrite checks for permission to create or update a given
-	// workload identity.
-	IdentityWrite(string, *AuthorizerContext) EnforcementDecision
-
-	// IdentityWriteAny checks for write permission on any workload identity.
-	IdentityWriteAny(*AuthorizerContext) EnforcementDecision
 
 	// IntentionDefaultAllow determines the default authorized behavior
 	// when no intentions match a Connect request.
@@ -249,40 +232,6 @@ func (a AllowAuthorizer) EventReadAllowed(name string, ctx *AuthorizerContext) e
 func (a AllowAuthorizer) EventWriteAllowed(name string, ctx *AuthorizerContext) error {
 	if a.Authorizer.EventWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceEvent, AccessWrite, name)
-	}
-	return nil
-}
-
-// IdentityReadAllowed checks for permission to read a given workload identity,
-func (a AllowAuthorizer) IdentityReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.IdentityRead(name, ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessRead, name)
-	}
-	return nil
-}
-
-// IdentityReadAllAllowed checks for permission to read all workload identities.
-func (a AllowAuthorizer) IdentityReadAllAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.IdentityReadAll(ctx) != Allow {
-		// This is only used to gate certain UI functions right now (e.g metrics)
-		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessRead, "all identities") // read
-	}
-	return nil
-}
-
-// IdentityWriteAllowed checks for permission to create or update a given
-// workload identity.
-func (a AllowAuthorizer) IdentityWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.IdentityWrite(name, ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessWrite, name)
-	}
-	return nil
-}
-
-// IdentityWriteAnyAllowed checks for write permission on any workload identity
-func (a AllowAuthorizer) IdentityWriteAnyAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.IdentityWriteAny(ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessWrite, "any identity")
 	}
 	return nil
 }
@@ -551,13 +500,6 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 		case "write":
 			return authz.EventWrite(segment, ctx), nil
 		}
-	case ResourceIdentity:
-		switch lowerAccess {
-		case "read":
-			return authz.IdentityRead(segment, ctx), nil
-		case "write":
-			return authz.IdentityWrite(segment, ctx), nil
-		}
 	case ResourceIntention:
 		switch lowerAccess {
 		case "read":
@@ -644,8 +586,9 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 
 // NewAuthorizerFromRules is a convenience function to invoke NewPolicyFromSource followed by NewPolicyAuthorizer with
 // the parse policy.
-func NewAuthorizerFromRules(rules string, conf *Config, meta *EnterprisePolicyMeta) (Authorizer, error) {
-	policy, err := NewPolicyFromSource(rules, conf, meta)
+// TODO(ACL-Legacy-Compat): remove syntax arg after removing SyntaxLegacy
+func NewAuthorizerFromRules(rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (Authorizer, error) {
+	policy, err := NewPolicyFromSource(rules, syntax, conf, meta)
 	if err != nil {
 		return nil, err
 	}

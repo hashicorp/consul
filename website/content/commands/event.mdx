@@ -13,20 +13,20 @@ description: >-
 
 Command: `consul event`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/event/fire/:name](/consul/api-docs/event#fire-event)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/event/fire/:name](/api-docs/event#fire-event)
 
 The `event` command provides a mechanism to fire a custom user event to an
 entire datacenter. These events are opaque to Consul, but they can be used
 to build scripting infrastructure to do automated deploys, restart services,
 or perform any other orchestration action. Events can be handled by
-[using a watch](/consul/docs/dynamic-app-config/watches).
+[using a watch](/docs/dynamic-app-config/watches).
 
-Under the hood, events are propagated using the [gossip protocol](/consul/docs/architecture/gossip).
+Under the hood, events are propagated using the [gossip protocol](/docs/architecture/gossip).
 
 While the details are not important for using events, an understanding of
 the semantics is useful. The gossip layer will make a best-effort to deliver
 the event, but there is **no guaranteed delivery**. Unlike most Consul data, which is
-replicated using [consensus](/consul/docs/architecture/consensus), event data
+replicated using [consensus](/docs/architecture/consensus), event data
 is purely peer-to-peer over gossip. This means it is not persisted and does
 not have a total ordering. In practice, this means you cannot rely on the
 order of message delivery. An advantage however is that events can still
@@ -37,8 +37,8 @@ message. It is hard to give an exact number, as it depends on various
 parameters of the event, but the payload should be kept very small
 (< 100 bytes). Specifying too large of an event will return an error.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required  |

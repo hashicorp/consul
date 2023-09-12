@@ -68,7 +68,7 @@ to use port `8303` as its Serf LAN port prior to attempting to join the cluster.
 <Tab heading="Agent configuration">
 
 The following example configuration overrides the default Serf LAN port using the
-[`ports.serf_lan`](/consul/docs/agent/config/config-files#serf_lan_port) configuration option.
+[`ports.serf_lan`](/docs/agent/config/config-files#serf_lan_port) configuration option.
 
 <CodeBlockConfig filename="client-config.hcl">
 
@@ -84,7 +84,7 @@ ports {
 <Tab heading="Command-line flag">
 
 The following example overrides the default Serf LAN port using the
-[`-serf-lan-port`](/consul/docs/agent/config/cli-flags#_serf_lan_port) command line flag.
+[`-serf-lan-port`](/docs/agent/config/cli-flags#_serf_lan_port) command line flag.
 
 ```shell
 $ consul agent -serf-lan-port=8303 -retry-join "provider=..."

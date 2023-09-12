@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -74,7 +70,7 @@ func TestReplication_FederationStates(t *testing.T) {
 		}
 
 		out := false
-		require.NoError(t, s1.RPC(context.Background(), "FederationState.Apply", &arg, &out))
+		require.NoError(t, s1.RPC("FederationState.Apply", &arg, &out))
 		fedStateDCs = append(fedStateDCs, dc)
 	}
 
@@ -130,7 +126,7 @@ func TestReplication_FederationStates(t *testing.T) {
 		}
 
 		out := false
-		require.NoError(t, s1.RPC(context.Background(), "FederationState.Apply", &arg, &out))
+		require.NoError(t, s1.RPC("FederationState.Apply", &arg, &out))
 	}
 
 	// Wait for the replica to converge.
@@ -148,7 +144,7 @@ func TestReplication_FederationStates(t *testing.T) {
 		}
 
 		out := false
-		require.NoError(t, s1.RPC(context.Background(), "FederationState.Apply", &arg, &out))
+		require.NoError(t, s1.RPC("FederationState.Apply", &arg, &out))
 	}
 
 	// Wait for the replica to converge.

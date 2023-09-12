@@ -2,7 +2,7 @@
 layout: docs
 page_title: Annotations and Labels
 description: >-
-  Annotations and labels configure service mesh sidecar properties and injection behavior when scheduling Kubernetes clusters. Learn about the annotations and labels that enable Consul’s service mesh and secure upstream communication on k8s in this reference guide.
+  Annotations and labels configure Consul sidecar properties and injection behavior when scheduling Kubernetes clusters. Learn about the annotations and labels that enable Consul’s service mesh and secure upstream communication on k8s in this reference guide.
 ---
 
 # Annotations and Labels
@@ -77,7 +77,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
   public listener will listen on a dynamic port.
 
 - `consul.hashicorp.com/connect-service-upstreams` - The list of upstream
-  services that this pod needs to connect to via the service mesh along with a static
+  services that this pod needs to connect to via Connect along with a static
   local port to listen for those connections. When transparent proxy is enabled,
   this annotation is optional. This annotation can be either _labeled_ or _unlabeled_. We recommend the labeled format because it has a more consistent syntax and can be used to reference cluster peers as upstreams.
 
@@ -91,38 +91,38 @@ The following Kubernetes resource annotations could be used on a pod to control 
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc:[port]"
         ```
-
+      
       - Peer or datacenter: Place the peer or datacenter after `svc.` followed by either `peer` or `dc` and the port number.
-
+        
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-peer].peer:[port]"
         ```
-
+        
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-dc].dc:[port]"
         ```
-
+      
       - Namespace (requires Consul Enterprise): Place the namespace after `svc.` followed by `ns` and the port number.
-
+        
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns:[port]"
         ```
-
+        
         When namespaces are enabled, you must include the namespace in the annotation before specifying a cluster peer, WAN-federated datacenter, or admin partition in the same datacenter.
-
+        
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns.[service-peer].peer:[port]"
         ```
-
+        
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns.[service-partition].ap:[port]"
         ```
-
+        
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns.[service-dc].dc:[port]"
@@ -132,7 +132,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
        The unlabeled annotation format allows you to reference any service not in a cluster peer as an upstream. You can specify a Consul Enterprise namespace. You can also specify an admin partition in the same datacenter or a WAN-federated datacenter. Unlike the labeled annotation, you can also reference a prepared query as an upstream.
 
       - Service name: Place the service name at the beginning of the annotation to specify the upstream service. You also have the option to append the WAN federated datacenter where the service is deployed.
-
+   
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
@@ -140,7 +140,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
       - Namespace: Upstream services may be running in a different namespace. Place
       the upstream namespace after the service name. For additional details about configuring the injector, refer to [Consul Enterprise namespaces](#consul-enterprise-namespaces) .
-
+        
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace]:[port]:[optional datacenter]"
@@ -158,7 +158,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace].[service-partition]:[port]:[optional datacenter]"
         ```
-
+        
       - Prepared queries: To reference a [prepared query](/consul/api-docs/query) in an upstream annotation, prepend the annotation
         with `prepared_query` and then invoke the name of the query.
 
@@ -166,7 +166,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
         annotations:
           'consul.hashicorp.com/connect-service-upstreams': 'prepared_query:[query name]:[port]'
         ```
-
+        
     - **Multiple upstreams**: Delimit multiple services or upstreams with commas. You can specify any of the unlabeled, labeled, or prepared query formats when using the supported versions for the formats.
 
       ```yaml
@@ -196,6 +196,13 @@ The following Kubernetes resource annotations could be used on a pod to control 
     consul.hashicorp.com/kubernetes-service: 'service-name-to-use'
   ```
 
+- `consul.hashicorp.com/service-weight:` - Configure ability to support weighted loadbalancing by service annotation for Catalog Sync. The integer provided will be applied as a weight for the `passing` state for the health of the service. See [weights](/consul/docs/services/configuration/services-configuration-reference#weights) in service configuration for more information on how this is leveraged for services in the Catalog. 
+
+  ```yaml
+  annotations:
+    consul.hashicorp.com/service-weight: 10
+  ```
+
 - `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
   be applied to the Consul service and its sidecar.
 
@@ -220,7 +227,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
 - `consul.hashicorp.com/sidecar-proxy-` - Override default resource settings for
   the sidecar proxy container.
-  The defaults are set in Helm config via the [`connectInject.sidecarProxy.resources`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-resources) key.
+  The defaults are set in Helm config via the [`connectInject.sidecarProxy.resources`](/docs/k8s/helm#v-connectinject-sidecarproxy-resources) key.
 
   - `consul.hashicorp.com/sidecar-proxy-cpu-limit` - Override the default CPU limit.
   - `consul.hashicorp.com/sidecar-proxy-cpu-request` - Override the default CPU request.
@@ -232,24 +239,18 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
 - `consul.hashicorp.com/consul-sidecar-` - Override default resource settings for
   the `consul-sidecar` container.
-  The defaults are set in Helm config via the [`global.consulSidecarContainer.resources`](/consul/docs/k8s/helm#v-global-consulsidecarcontainer) key.
+  The defaults are set in Helm config via the [`global.consulSidecarContainer.resources`](/docs/k8s/helm#v-global-consulsidecarcontainer) key.
 
   - `consul.hashicorp.com/consul-sidecar-cpu-limit` - Override the default CPU limit.
   - `consul.hashicorp.com/consul-sidecar-cpu-request` - Override the default CPU request.
   - `consul.hashicorp.com/consul-sidecar-memory-limit` - Override the default memory limit.
   - `consul.hashicorp.com/consul-sidecar-memory-request` - Override the default memory request.
 
-- `consul.hashicorp.com/enable-sidecar-proxy-lifecycle` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenabled)
-- `consul.hashicorp.com/enable-sidecar-proxy-shutdown-drain-listeners` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnableShutdownDrainListeners`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultShutdownGracePeriodSeconds`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulPort`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulShutdownPath`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)
-
-- `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
-- `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
-- `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
-- `consul.hashicorp.com/prometheus-scrape-port` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePort`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapeport).
-- `consul.hashicorp.com/prometheus-scrape-path` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePath`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapepath).
+- `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
+- `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
+- `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
+- `consul.hashicorp.com/prometheus-scrape-port` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePort`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapeport).
+- `consul.hashicorp.com/prometheus-scrape-path` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePath`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapepath).
 - `consul.hashicorp.com/prometheus-ca-file` - Local filesystem path to a CA file for Envoy to use
   when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
   is set in proxy config.
@@ -262,8 +263,8 @@ The following Kubernetes resource annotations could be used on a pod to control 
 - `consul.hashicorp.com/prometheus-key-file` - Local filesystem path to a private key file for Envoy to use
   when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
   is set in proxy config.
-- `consul.hashicorp.com/service-metrics-port` - Set the port where the mesh service exposes metrics.
-- `consul.hashicorp.com/service-metrics-path` - Set the path where the mesh service exposes metrics.
+- `consul.hashicorp.com/service-metrics-port` - Set the port where the Connect service exposes metrics.
+- `consul.hashicorp.com/service-metrics-path` - Set the path where the Connect service exposes metrics.
 - `consul.hashicorp.com/connect-inject-mount-volume` - Comma separated list of container names to mount the connect-inject volume into. The volume will be mounted at `/consul/connect-inject`. The connect-inject volume contains Consul internals data needed by the other sidecar containers, for example the `consul` binary, and the Pod's Consul ACL token. This data can be valuable for advanced use-cases, such as making requests to the Consul API from within application containers.
 - `consul.hashicorp.com/consul-sidecar-user-volume` - JSON objects as specified by the [Volume pod spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#volume-v1-core), that define volumes to add to the Envoy sidecar.
   ```yaml
@@ -287,21 +288,21 @@ Resource labels could be used on a Kubernetes service to control connect-inject 
   registration to ignore all services except for the one which should be used for routing requests
   using Consul.
 
-## Service Sync
+## Service Sync 
 
 ### Annotations
 
 The following Kubernetes resource annotations could be used on a pod to [Service Sync](https://developer.hashicorp.com/consul/docs/k8s/service-sync) behavior:
 
-- `consul.hashicorp.com/service-sync`: If this is set to `true`, then the Kubernetes service is explicitly configured to be synced to Consul.
+- `consul.hashicorp.com/service-sync`: If this is set to `true`, then the Kubernetes service is explicitly configured to be synced to Consul.  
 
   ```yaml
   annotations:
     'consul.hashicorp.com/service-sync': 'true'
   ```
 
-- `consul.hashicorp.com/service-port`: Configures the port to register to the Consul Catalog for the Kubernetes service. The annotation value may be a name of a port (recommended) or an exact port value. Refer to [service ports](https://developer.hashicorp.com/consul/docs/k8s/service-sync#service-ports) for more information.
-
+- `consul.hashicorp.com/service-port`: Configures the port to register to the Consul Catalog for the Kubernetes service. The annotation value may be a name of a port (recommended) or an exact port value. Refer to [service ports](https://developer.hashicorp.com/consul/docs/k8s/service-sync#service-ports) for more information. 
+ 
   ```yaml
   annotations:
     'consul.hashicorp.com/service-port': 'http'
@@ -321,7 +322,7 @@ The following Kubernetes resource annotations could be used on a pod to [Service
     'consul.hashicorp.com/service-meta-KEY': 'value'
   ```
 
-- `consul.hashicorp.com/service-weight:` - Configures ability to support weighted loadbalancing by service annotation for Catalog Sync. The integer provided will be applied as a weight for the `passing` state for the health of the service. Refer to [weights](/consul/docs/services/configuration/services-configuration-reference#weights) in service configuration for more information on how this is leveraged for services in the Consul catalog.
+- `consul.hashicorp.com/service-weight:` - Configures ability to support weighted loadbalancing by service annotation for Catalog Sync. The integer provided will be applied as a weight for the `passing` state for the health of the service. Refer to [weights](/consul/docs/services/configuration/services-configuration-reference#weights) in service configuration for more information on how this is leveraged for services in the Consul catalog. 
 
   ```yaml
   annotations:

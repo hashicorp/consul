@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package stream
 
 // eventSnapshot represents the state of memdb for a given topic and key at some

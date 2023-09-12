@@ -1,19 +1,14 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 .filter-bar {
   & {
-    background-color: var(--token-color-foreground-high-contrast);
+    background-color: rgb(var(--tone-gray-010));
     border-bottom: var(--decor-border-100);
-    border-color: var(--token-color-surface-interactive-active);
+    border-color: rgb(var(--tone-gray-200));
   }
   .filters,
   .sort {
     .popover-menu > [type='checkbox']:checked + label button {
-      color: var(--token-color-foreground-action);
-      background-color: var(--token-color-foreground-high-contrast);
+      color: rgb(var(--tone-blue-500));
+      background-color: rgb(var(--tone-gray-100));
     }
   }
 }

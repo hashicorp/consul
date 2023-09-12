@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfgglue
 
 import (
@@ -16,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -127,7 +124,7 @@ func TestServerTrustBundle_ACLEnforcement(t *testing.T) {
 		require.NoError(t, err)
 
 		err = getEventError(t, eventCh)
-		require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write' on \"any service\"")
+		require.Contains(t, err.Error(), "provided token lacks permission 'service:write' on \"any service\"")
 	})
 }
 
@@ -327,7 +324,7 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 			require.NoError(t, err)
 
 			err = getEventError(t, eventCh)
-			require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write' on \"web\"")
+			require.Contains(t, err.Error(), "provided token lacks permission 'service:write' on \"web\"")
 		})
 	})
 
@@ -394,7 +391,7 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 			require.NoError(t, err)
 
 			err = getEventError(t, eventCh)
-			require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write'")
+			require.Contains(t, err.Error(), "provided token lacks permission 'service:write'")
 		})
 	})
 }

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package types
 
 // AreaID is a strongly-typed string used to uniquely represent a network area,

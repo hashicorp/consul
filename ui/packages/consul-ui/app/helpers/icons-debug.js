@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { helper } from '@ember/component/helper';
 
 export default helper(function ([lib], hash) {
@@ -80,6 +75,10 @@ export default helper(function ([lib], hash) {
     'auto-apply-24.svg',
     'award-16.svg',
     'award-24.svg',
+    'aws-16.svg',
+    'aws-24.svg',
+    'aws-color-16.svg',
+    'aws-color-24.svg',
     'azure-16.svg',
     'azure-24.svg',
     'azure-color-16.svg',
@@ -550,12 +549,15 @@ export default helper(function ([lib], hash) {
     'logo-alicloud-color.svg',
     'logo-alicloud-monochrome.svg',
     'logo-auth0-color.svg',
+    'logo-aws-color.svg',
+    'logo-aws-monochrome.svg',
     'logo-azure-color.svg',
     'logo-azure-dev-ops-color.svg',
     'logo-azure-dev-ops-monochrome.svg',
     'logo-azure-monochrome.svg',
     'logo-bitbucket-color.svg',
     'logo-bitbucket-monochrome.svg',
+    'logo-consul-color.svg',
     'logo-ember-circle-color.svg',
     'logo-gcp-color.svg',
     'logo-gcp-monochrome.svg',
@@ -571,12 +573,15 @@ export default helper(function ([lib], hash) {
     'logo-kubernetes-color.svg',
     'logo-kubernetes-monochrome.svg',
     'logo-microsoft-color.svg',
+    'logo-nomad-color.svg',
     'logo-oidc-color.svg',
     'logo-okta-color.svg',
     'logo-oracle-color.svg',
     'logo-oracle-monochrome.svg',
     'logo-slack-color.svg',
     'logo-slack-monochrome.svg',
+    'logo-terraform-color.svg',
+    'logo-vault-color.svg',
     'logo-vmware-color.svg',
     'logo-vmware-monochrome.svg',
     'mail-16.svg',
