@@ -9,48 +9,30 @@ import (
 )
 
 const (
-	NamespaceTrafficPermissionKind = "NamespaceTrafficPermission"
-	PartitionTrafficPermissionKind = "PartitionTrafficPermission"
+	TrafficPermissionsKind = "TrafficPermissions"
 )
 
 var (
-	NamespaceTrafficPermissionV1AlphaType = &pbresource.Type{
+	TrafficPermissionsV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: VersionV1Alpha1,
-		Kind:         NamespaceTrafficPermissionKind,
+		Kind:         TrafficPermissionsKind,
 	}
 
-	PartitionTrafficPermissionV1AlphaType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         PartitionTrafficPermissionKind,
-	}
-
-	NamespaceTrafficPermissionType = NamespaceTrafficPermissionV1AlphaType
-	PartitionTrafficPermissionType = PartitionTrafficPermissionV1AlphaType
+	TrafficPermissionsType = TrafficPermissionsV1Alpha1Type
 )
 
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     NamespaceTrafficPermissionV1AlphaType,
-		Proto:    &pbauth.TrafficPermission{},
+		Type:     TrafficPermissionsV1Alpha1Type,
+		Proto:    &pbauth.TrafficPermissions{},
 		Scope:    resource.ScopeNamespace,
-		Validate: ValidateNamespaceTrafficPermission,
-	})
-	r.Register(resource.Registration{
-		Type:     PartitionTrafficPermissionV1AlphaType,
-		Proto:    &pbauth.PartitionTrafficPermission{},
-		Scope:    resource.ScopePartition,
-		Validate: ValidatePartitionTrafficPermission,
+		Validate: ValidateTrafficPermissions,
 	})
 }
 
-func ValidatePartitionTrafficPermission(res *pbresource.Resource) error {
-	return errNotSupported
-}
-
-func ValidateNamespaceTrafficPermission(res *pbresource.Resource) error {
-	var tp pbauth.TrafficPermission
+func ValidateTrafficPermissions(res *pbresource.Resource) error {
+	var tp pbauth.TrafficPermissions
 
 	if err := res.Data.UnmarshalTo(&tp); err != nil {
 		return resource.NewErrDataParse(&tp, err)
@@ -65,10 +47,16 @@ func ValidateNamespaceTrafficPermission(res *pbresource.Resource) error {
 			Wrapped: errInvalidAction,
 		})
 	}
-	if tp.Destination != nil && len(tp.Destination.IdentityName) == 0 {
+	if tp.Destination == nil || (len(tp.Destination.IdentityName) == 0 && len(tp.Destination.IdentityPrefix) == 0) {
 		err = multierror.Append(err, resource.ErrInvalidField{
-			Name:    "data.destination.identity_name",
+			Name:    "data.destination",
 			Wrapped: resource.ErrEmpty,
+		})
+	}
+	if len(tp.Destination.IdentityName) > 0 && len(tp.Destination.IdentityPrefix) > 0 {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "data.destination",
+			Wrapped: errInvalidPrefixValues,
 		})
 	}
 
@@ -85,12 +73,27 @@ func ValidateNamespaceTrafficPermission(res *pbresource.Resource) error {
 		}
 
 		for _, src := range permission.Sources {
-			if len(src.IdentityName) == 0 {
+			if len(src.Partition) > 0 && len(src.Peer) > 0 && len(src.SamenessGroup) > 0 {
 				err = multierror.Append(err, resource.ErrInvalidListElement{
 					Name:    "sources",
 					Index:   i,
-					Wrapped: errEmptySources,
+					Wrapped: errSourcesTenancy,
 				})
+			}
+
+			if len(permission.DestinationRules) > 0 {
+				for i, d := range permission.DestinationRules {
+					if (len(d.PathExact) > 0 && len(d.PathPrefix) > 0) ||
+						(len(d.PathRegex) > 0 && len(d.PathExact) > 0) ||
+						(len(d.PathRegex) > 0 && len(d.PathPrefix) > 0) {
+						err = multierror.Append(err, resource.ErrInvalidListElement{
+							Name:    "data.destination",
+							Index:   i,
+							Wrapped: errInvalidPrefixValues,
+						})
+					}
+
+				}
 			}
 		}
 

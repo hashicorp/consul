@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -11,9 +11,6 @@ const (
 	GroupName       = "auth"
 	VersionV1Alpha1 = "v1alpha1"
 	CurrentVersion  = VersionV1Alpha1
-
-	ActionAllow = "allow"
-	ActionDeny  = "deny"
 )
 
 func Register(r resource.Registry) {

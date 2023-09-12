@@ -1,0 +1,40 @@
+{
+  "id": {
+    "type": {
+      "group": "auth",
+      "group_version": "v1alpha1",
+      "kind": "TrafficPermissions"
+    },
+    "tenancy": {
+      "partition": "default",
+      "namespace": "default",
+      "peer_name": "local"
+    },
+    "name": "tp-4"
+  },
+  "data": {
+    "@type": "hashicorp.consul.auth.v1alpha1.TrafficPermissions",
+    "destination": {
+      "identity_name": "wi-1"
+    },
+    "action": "ACTION_ALLOW",
+    "permissions": [
+      {
+        "sources": [
+          {
+            "identity_name": "wi-3"
+          }
+        ],
+        "destination_rules": [
+          {
+            "path_exact": "somepath",
+            "path_prefix": "some",
+            "port_names": [
+              "baz"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

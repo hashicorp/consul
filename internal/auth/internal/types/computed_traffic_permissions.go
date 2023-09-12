@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package types
 
 import (
@@ -7,38 +10,24 @@ import (
 )
 
 const (
-	ComputedTrafficPermissionKind = "ComputedTrafficPermission"
+	ComputedTrafficPermissionsKind = "ComputedTrafficPermission"
 )
 
 var (
-	ComputedTrafficPermissionV1AlphaType = &pbresource.Type{
+	ComputedTrafficPermissionsV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: VersionV1Alpha1,
-		Kind:         ComputedTrafficPermissionKind,
+		Kind:         ComputedTrafficPermissionsKind,
 	}
 
-	ComputedTrafficPermissionType = ComputedTrafficPermissionV1AlphaType
+	ComputedTrafficPermissionsType = ComputedTrafficPermissionsV1Alpha1Type
 )
 
 func RegisterComputedTrafficPermission(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ComputedTrafficPermissionV1AlphaType,
-		Proto:    &pbauth.ComputedTrafficPermission{},
-		Scope:    resource.ScopePartition,
-		Validate: ValidateComputedTrafficPermission,
+		Type:     ComputedTrafficPermissionsV1Alpha1Type,
+		Proto:    &pbauth.ComputedTrafficPermissions{},
+		Scope:    resource.ScopeNamespace,
+		Validate: nil,
 	})
-}
-
-func ValidateComputedTrafficPermission(res *pbresource.Resource) error {
-	var ctp pbauth.ComputedTrafficPermission
-
-	if err := res.Data.UnmarshalTo(&ctp); err != nil {
-		return resource.NewErrDataParse(&ctp, err)
-	}
-
-	// There isn't really anything else to validate other than that it is unmarshallable -- which it should always be.
-	// It is valid for the ComputedTrafficPermissions to be totally empty as this would mean that the default behavior
-	// applies for all sources.
-
-	return nil
 }
