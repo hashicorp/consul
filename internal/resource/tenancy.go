@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -90,6 +92,11 @@ func DefaultReferenceTenancy(ref *pbresource.Reference, parentTenancy, scopeTena
 	}
 	if ref.Tenancy == nil {
 		ref.Tenancy = &pbresource.Tenancy{}
+	}
+
+	if parentTenancy != nil {
+		dup := proto.Clone(parentTenancy).(*pbresource.Tenancy)
+		parentTenancy = dup
 	}
 
 	defaultTenancy(ref.Tenancy, parentTenancy, scopeTenancy)
