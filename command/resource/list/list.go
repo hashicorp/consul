@@ -47,11 +47,6 @@ func (c *cmd) Run(args []string) int {
 	var gvk *api.GVK
 	var opts *api.QueryOptions
 
-	if len(args) == 0 {
-		c.UI.Error("Please provide required arguments")
-		return 1
-	}
-
 	if err := c.flags.Parse(args); err != nil {
 		if !errors.Is(err, flag.ErrHelp) {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
@@ -93,7 +88,7 @@ func (c *cmd) Run(args []string) int {
 		// extract resource type
 		gvk, err = getResourceType(c.flags.Args())
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Your argument format is incorrect: %v", err))
+			c.UI.Error(fmt.Sprintf("Incorrect argument format: %v", err))
 			return 1
 		}
 		// skip resource type to parse remaining args
@@ -104,7 +99,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if c.filePath != "" {
-			c.UI.Warn(fmt.Sprintf("File argument is ignored when resource definition is provided with the command"))
+			c.UI.Warn(fmt.Sprintf("File argument is ignored when resource information is provided with the command"))
 		}
 
 		opts = &api.QueryOptions{

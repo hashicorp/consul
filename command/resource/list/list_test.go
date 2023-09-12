@@ -99,12 +99,12 @@ func TestResourceListInvalidArgs(t *testing.T) {
 		"nil args": {
 			args:         nil,
 			expectedCode: 1,
-			expectedErr:  errors.New("Please provide required arguments"),
+			expectedErr:  errors.New("Incorrect argument format: Must include resource type argument"),
 		},
 		"minimum args required": {
 			args:         []string{},
 			expectedCode: 1,
-			expectedErr:  errors.New("Please provide required arguments"),
+			expectedErr:  errors.New("Incorrect argument format: Must include resource type argument"),
 		},
 		"no file path": {
 			args: []string{
@@ -138,7 +138,7 @@ func TestResourceListInvalidArgs(t *testing.T) {
 				"-f=demo.hcl",
 			},
 			expectedCode: 0,
-			expectedErr:  errors.New("File argument is ignored when resource definition is provided with the command"),
+			expectedErr:  errors.New("File argument is ignored when resource information is provided with the command"),
 		},
 		"resource type invalid": {
 			args: []string{

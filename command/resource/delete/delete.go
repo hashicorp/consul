@@ -84,13 +84,13 @@ func (c *cmd) Run(args []string) int {
 		}
 	} else {
 		if len(args) < 2 {
-			c.UI.Error("Your argument format is incorrect: Must specify two arguments: resource type and resource name")
+			c.UI.Error("Incorrect argument format: Must specify two arguments: resource type and resource name")
 			return 1
 		}
 		var err error
 		gvk, resourceName, err = resource.GetTypeAndResourceName(args)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Your argument format is incorrect: %s", err))
+			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
 			return 1
 		}
 
@@ -101,7 +101,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if c.filePath != "" {
-			c.UI.Warn("We ignored the -f flag if you provide gvk and resource name")
+			c.UI.Warn("File argument is ignored when resource information is provided with the command")
 		}
 		opts = &api.QueryOptions{
 			Namespace: c.http.Namespace(),

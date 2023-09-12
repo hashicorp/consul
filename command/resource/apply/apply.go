@@ -85,7 +85,7 @@ func (c *cmd) Run(args []string) int {
 		}
 		parsedResource = data
 	} else {
-		c.UI.Error("Flag -f is required")
+		c.UI.Error("Incorrect argument format: Flag -f with file path argument is required")
 		return 1
 	}
 
