@@ -4,10 +4,9 @@
 name: test-integrations-windows
 
 on:
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    # Run nightly at 12AM UTC/8PM EST/5PM PST.
-    - cron: '0 0 * * *'
+  push:
+    # only trigger on branches, not on tags
+    branches: 'fix-test-integ'
   workflow_dispatch:
 
 env:
