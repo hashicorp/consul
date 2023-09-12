@@ -67,7 +67,7 @@ func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) (
 }
 
 func (resource *Resource) Delete(gvk *GVK, resourceName string, q *QueryOptions) error {
-	r := resource.c.newRequest("DELETE", fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
+	r := resource.c.newRequest("DELETE", strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName)))
 	r.setQueryOptions(q)
 	_, resp, err := resource.c.doRequest(r)
 	if err != nil {
