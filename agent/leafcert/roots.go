@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -100,7 +100,7 @@ func (r *rootWatcher) rootWatcher(ctx context.Context) {
 	atomic.AddUint32(&r.testStartCount, 1)
 	defer atomic.AddUint32(&r.testStopCount, 1)
 
-	ch := make(chan cache.UpdateEvent, 1)
+	ch := make(chan cacheshim.UpdateEvent, 1)
 
 	if err := r.rootsReader.Notify(ctx, "roots", ch); err != nil {
 		// Trigger all inflight watchers. We don't pass the error, but they will

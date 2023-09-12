@@ -4,6 +4,9 @@
 package controllers
 
 import (
+	"context"
+
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
@@ -20,11 +23,18 @@ type Dependencies struct {
 	LocalDatacenter    string
 	TrustBundleFetcher xds.TrustBundleFetcher
 	ProxyUpdater       xds.ProxyUpdater
+	LeafCertManager    *leafcert.Manager
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
-	mapper := bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
-	mgr.Register(xds.Controller(mapper, deps.ProxyUpdater, deps.TrustBundleFetcher))
+	endpointsMapper := bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
+	leafMapper := &xds.LeafMapper{
+		Mapper: bimapper.New(types.ProxyStateTemplateType, xds.InternalLeafType),
+	}
+	leafCancels := &xds.LeafCancels{
+		Cancels: make(map[string]context.CancelFunc),
+	}
+	mgr.Register(xds.Controller(endpointsMapper, deps.ProxyUpdater, deps.TrustBundleFetcher, deps.LeafCertManager, leafMapper, leafCancels, deps.LocalDatacenter))
 
 	destinationsCache := sidecarproxycache.NewDestinationsCache()
 	proxyCfgCache := sidecarproxycache.NewProxyConfigurationCache()

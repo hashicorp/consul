@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/ttlcache"
 )
@@ -104,7 +104,7 @@ type Deps struct {
 
 type RootsReader interface {
 	Get() (*structs.IndexedCARoots, error)
-	Notify(ctx context.Context, correlationID string, ch chan<- cache.UpdateEvent) error
+	Notify(ctx context.Context, correlationID string, ch chan<- cacheshim.UpdateEvent) error
 }
 
 type CertSigner interface {
@@ -237,7 +237,7 @@ func (m *Manager) Stop() {
 // index is retrieved, the last known value (maybe nil) is returned. No
 // error is returned on timeout. This matches the behavior of Consul blocking
 // queries.
-func (m *Manager) Get(ctx context.Context, req *ConnectCALeafRequest) (*structs.IssuedCert, cache.ResultMeta, error) {
+func (m *Manager) Get(ctx context.Context, req *ConnectCALeafRequest) (*structs.IssuedCert, cacheshim.ResultMeta, error) {
 	// Lightweight copy this object so that manipulating req doesn't race.
 	dup := *req
 	req = &dup
@@ -254,10 +254,10 @@ func (m *Manager) Get(ctx context.Context, req *ConnectCALeafRequest) (*structs.
 	return m.internalGet(ctx, req)
 }
 
-func (m *Manager) internalGet(ctx context.Context, req *ConnectCALeafRequest) (*structs.IssuedCert, cache.ResultMeta, error) {
+func (m *Manager) internalGet(ctx context.Context, req *ConnectCALeafRequest) (*structs.IssuedCert, cacheshim.ResultMeta, error) {
 	key := req.Key()
 	if key == "" {
-		return nil, cache.ResultMeta{}, fmt.Errorf("a key is required")
+		return nil, cacheshim.ResultMeta{}, fmt.Errorf("a key is required")
 	}
 
 	if req.MaxQueryTime <= 0 {
@@ -310,7 +310,7 @@ func (m *Manager) internalGet(ctx context.Context, req *ConnectCALeafRequest) (*
 		}
 
 		if !shouldReplaceCert {
-			meta := cache.ResultMeta{
+			meta := cacheshim.ResultMeta{
 				Index: existingIndex,
 			}
 
@@ -347,7 +347,7 @@ func (m *Manager) internalGet(ctx context.Context, req *ConnectCALeafRequest) (*
 		// other words valid fetches should reset the error. See
 		// https://github.com/hashicorp/consul/issues/4480.
 		if !first && lastFetchErr != nil {
-			return existing, cache.ResultMeta{Index: existingIndex}, lastFetchErr
+			return existing, cacheshim.ResultMeta{Index: existingIndex}, lastFetchErr
 		}
 
 		notifyCh := m.triggerCertRefreshInGroup(req, cd)
@@ -357,14 +357,14 @@ func (m *Manager) internalGet(ctx context.Context, req *ConnectCALeafRequest) (*
 
 		select {
 		case <-ctx.Done():
-			return nil, cache.ResultMeta{}, ctx.Err()
+			return nil, cacheshim.ResultMeta{}, ctx.Err()
 		case <-notifyCh:
 			// Our fetch returned, retry the get from the cache.
 			req.MustRevalidate = false
 
 		case <-timeoutTimer.C:
 			// Timeout on the cache read, just return whatever we have.
-			return existing, cache.ResultMeta{Index: existingIndex}, nil
+			return existing, cacheshim.ResultMeta{Index: existingIndex}, nil
 		}
 	}
 }
