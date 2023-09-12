@@ -7,13 +7,98 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func TestMutateGRPCRoute(t *testing.T) {
+	type testcase struct {
+		routeTenancy *pbresource.Tenancy
+		route        *pbmesh.GRPCRoute
+		expect       *pbmesh.GRPCRoute
+	}
+
+	cases := map[string]testcase{}
+
+	// Add common parent refs test cases.
+	for name, parentTC := range getXRouteParentRefMutateTestCases() {
+		cases["parent-ref: "+name] = testcase{
+			routeTenancy: parentTC.routeTenancy,
+			route: &pbmesh.GRPCRoute{
+				ParentRefs: parentTC.refs,
+			},
+			expect: &pbmesh.GRPCRoute{
+				ParentRefs: parentTC.expect,
+			},
+		}
+	}
+	// add common backend ref test cases.
+	for name, backendTC := range getXRouteBackendRefMutateTestCases() {
+		var (
+			refs   []*pbmesh.GRPCBackendRef
+			expect []*pbmesh.GRPCBackendRef
+		)
+		for _, br := range backendTC.refs {
+			refs = append(refs, &pbmesh.GRPCBackendRef{
+				BackendRef: br,
+			})
+		}
+		for _, br := range backendTC.expect {
+			expect = append(expect, &pbmesh.GRPCBackendRef{
+				BackendRef: br,
+			})
+		}
+		cases["backend-ref: "+name] = testcase{
+			routeTenancy: backendTC.routeTenancy,
+			route: &pbmesh.GRPCRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.GRPCRouteRule{
+					{BackendRefs: refs},
+				},
+			},
+			expect: &pbmesh.GRPCRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.GRPCRouteRule{
+					{BackendRefs: expect},
+				},
+			},
+		}
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		res := resourcetest.Resource(GRPCRouteType, "api").
+			WithTenancy(tc.routeTenancy).
+			WithData(t, tc.route).
+			Build()
+
+		err := MutateGRPCRoute(res)
+		require.NoError(t, err)
+
+		got := resourcetest.MustDecode[*pbmesh.GRPCRoute](t, res)
+
+		if tc.expect == nil {
+			tc.expect = proto.Clone(tc.route).(*pbmesh.GRPCRoute)
+		}
+
+		prototest.AssertDeepEqual(t, tc.expect, got.Data)
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
 
 func TestValidateGRPCRoute(t *testing.T) {
 	type testcase struct {
@@ -26,7 +111,15 @@ func TestValidateGRPCRoute(t *testing.T) {
 			WithData(t, tc.route).
 			Build()
 
-		err := ValidateGRPCRoute(res)
+		// Ensure things are properly mutated and updated in the inputs.
+		err := MutateGRPCRoute(res)
+		require.NoError(t, err)
+		{
+			mutated := resourcetest.MustDecode[*pbmesh.GRPCRoute](t, res)
+			tc.route = mutated.Data
+		}
+
+		err = ValidateGRPCRoute(res)
 
 		// Verify that validate didn't actually change the object.
 		got := resourcetest.MustDecode[*pbmesh.GRPCRoute](t, res)
