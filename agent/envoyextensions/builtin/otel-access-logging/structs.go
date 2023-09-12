@@ -38,9 +38,9 @@ type AccessLog struct {
 	BufferSizeBytes         uint32
 	FilterStateObjectsToLog []string
 	RetryPolicy             *RetryPolicy
-	Body                    interface{}
-	Attributes              map[string]interface{}
-	ResourceAttributes      map[string]interface{}
+	Body                    any
+	Attributes              map[string]any
+	ResourceAttributes      map[string]any
 }
 
 func (a *AccessLog) normalize() {
