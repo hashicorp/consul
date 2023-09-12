@@ -32,6 +32,8 @@ type servicePortInfo struct {
 //   - a Workload can optionally define ports specific to workload address.  If no
 //     ports are specified for a workload address, then all the destination ports are
 //     used.
+//
+// Deprecated: not used anymore?
 func newServicePortInfo(serviceEndpoints *pbcatalog.ServiceEndpoints) *servicePortInfo {
 	spInfo := &servicePortInfo{
 		servicePorts: make(map[string]*pbcatalog.WorkloadPort),

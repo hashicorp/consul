@@ -129,8 +129,3 @@ message ConnectionPropertiesPolicy {
   bool source_ip = 1;
   bool terminal = 2;
 }
-
-message DestinationCluster {
-  // name is the name of the cluster. This will be used to look up a cluster in the clusters map.
-  string name = 1;
-}

@@ -12,11 +12,11 @@ import (
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func (pr *ProxyResources) doesEnvoyClusterAlreadyExist(name string) bool {
@@ -174,9 +174,11 @@ func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, s
 	}
 	return cluster, nil
 }
+
 func (pr *ProxyResources) makeEnvoyDnsCluster(name string, protocol string, dns *pbproxystate.DNSEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	return nil, nil
 }
+
 func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol string, passthrough *pbproxystate.PassthroughEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
@@ -343,6 +345,6 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 }
 
 // TODO(proxystate): In a future PR this will create clusters and add it to ProxyResources.proxyState
-func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(name string) error {
+func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(l4 *pbproxystate.L4Destination) error {
 	return nil
 }

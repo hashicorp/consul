@@ -17,6 +17,9 @@ import (
 
 // MapServiceEndpointsToProxyStateTemplate maps catalog.ServiceEndpoints objects to the IDs of
 // ProxyStateTemplate.
+//
+// TODO(rb): This needs to be exploded out through all ComputedRoutes targets
+// to get to the actual list of ProxyStateTemplates.
 func (m *Mapper) MapServiceEndpointsToProxyStateTemplate(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	// This mapper needs to look up workload IDs from service endpoints and replace them with ProxyStateTemplate type.
 	var serviceEndpoints pbcatalog.ServiceEndpoints

@@ -10,11 +10,16 @@ import (
 )
 
 type (
-	DecodedHTTPRoute         = resource.DecodedResource[*pbmesh.HTTPRoute]
-	DecodedGRPCRoute         = resource.DecodedResource[*pbmesh.GRPCRoute]
-	DecodedTCPRoute          = resource.DecodedResource[*pbmesh.TCPRoute]
-	DecodedDestinationPolicy = resource.DecodedResource[*pbmesh.DestinationPolicy]
-	DecodedComputedRoutes    = resource.DecodedResource[*pbmesh.ComputedRoutes]
-	DecodedFailoverPolicy    = resource.DecodedResource[*pbcatalog.FailoverPolicy]
-	DecodedService           = resource.DecodedResource[*pbcatalog.Service]
+	DecodedHTTPRoute          = resource.DecodedResource[*pbmesh.HTTPRoute]
+	DecodedGRPCRoute          = resource.DecodedResource[*pbmesh.GRPCRoute]
+	DecodedTCPRoute           = resource.DecodedResource[*pbmesh.TCPRoute]
+	DecodedDestinationPolicy  = resource.DecodedResource[*pbmesh.DestinationPolicy]
+	DecodedComputedRoutes     = resource.DecodedResource[*pbmesh.ComputedRoutes]
+	DecodedFailoverPolicy     = resource.DecodedResource[*pbcatalog.FailoverPolicy]
+	DecodedService            = resource.DecodedResource[*pbcatalog.Service]
+	DecodedServiceEndpoints   = resource.DecodedResource[*pbcatalog.ServiceEndpoints]
+	DecodedWorkload           = resource.DecodedResource[*pbcatalog.Workload]
+	DecodedProxyConfiguration = resource.DecodedResource[*pbmesh.ProxyConfiguration]
+	DecodedDestinations       = resource.DecodedResource[*pbmesh.Upstreams]
+	DecodedProxyStateTemplate = resource.DecodedResource[*pbmesh.ProxyStateTemplate]
 )

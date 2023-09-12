@@ -5,13 +5,15 @@ package builder
 
 import (
 	"fmt"
+	"time"
 
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
-	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
@@ -21,90 +23,388 @@ import (
 // BuildDestinations creates listeners, routers, clusters, and endpointRefs for all destinations
 // and adds them to the proxyState.
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
+	var lb *ListenerBuilder
 	if b.proxyCfg.GetDynamicConfig() != nil &&
 		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
-		b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
+		lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
 	}
 
 	for _, destination := range destinations {
+		b.buildDestination(lb, destination)
+	}
+
+	return b
+}
+
+func (b *Builder) buildDestination(
+	tproxyOutboundListenerBuilder *ListenerBuilder,
+	destination *intermediate.Destination,
+) *Builder {
+	var (
+		// Find the destination proxy's port.
+		//
+		// Endpoints refs will need to route to mesh port instead of the
+		// destination port as that is the port of the destination's proxy.
+		meshPortName      string
+		virtualPortNumber uint32
+		effectiveProtocol = destination.ComputedPortRoutes.Protocol
+		targets           = destination.ComputedPortRoutes.Targets
+	)
+
+	for _, port := range destination.Service.Data.Ports {
+		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+			meshPortName = port.TargetPort
+		}
+		if port.TargetPort == destination.ComputedPortRoutes.ParentRef.Port {
+			virtualPortNumber = port.VirtualPort
+		}
+	}
+	if meshPortName == "" {
+		return b // not in mesh
+	}
+
+	if destination.Explicit != nil {
+		// router matches based on destination ports should only occur on
+		// implicit destinations for explicit
+		virtualPortNumber = 0
+	}
+
+	cpr := destination.ComputedPortRoutes
+
+	var lb *ListenerBuilder
+	if destination.Explicit != nil {
+		lb = b.addExplicitOutboundListener(destination.Explicit)
+	} else {
+		lb = tproxyOutboundListenerBuilder
+	}
+
+	defaultDC := func(dc string) string {
 		if destination.Explicit != nil {
-			b.buildExplicitDestination(destination)
-		} else {
-			b.buildImplicitDestination(destination)
+			dc = orDefault(dc, destination.Explicit.Datacenter)
+		}
+		dc = orDefault(dc, b.localDatacenter)
+		if dc != b.localDatacenter {
+			panic("cross datacenter service discovery clusters are not supported in v2")
+		}
+		return dc
+	}
+
+	statPrefix := DestinationStatPrefix(
+		cpr.ParentRef.Ref,
+		cpr.ParentRef.Port,
+		defaultDC(""),
+	)
+
+	var (
+		useRDS                bool
+		needsNullRouteCluster bool
+	)
+	switch config := cpr.Config.(type) {
+	case *pbmesh.ComputedPortRoutes_Http:
+		// NOTE: this could be HTTP/HTTP2/GRPC
+		useRDS = true
+
+		route := config.Http
+
+		listenerName := lb.listener.Name
+
+		// this corresponds to roughly "makeUpstreamRouteForDiscoveryChain"
+
+		var proxyRouteRules []*pbproxystate.RouteRule
+		for _, routeRule := range route.Rules {
+			for _, backendRef := range routeRule.BackendRefs {
+				if backendRef.BackendTarget == types.NullRouteBackend {
+					needsNullRouteCluster = true
+				}
+			}
+			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
+
+			dest := b.makeHTTPRouteDestination(
+				routeRule.BackendRefs,
+				destConfig,
+				targets,
+				defaultDC,
+			)
+
+			// TODO(rb/v2): Filters     []*HTTPRouteFilter
+			// TODO(rb/v2): BackendRefs []*ComputedHTTPBackendRef
+
+			// Explode out by matches
+			var matches []*pbproxystate.RouteMatch
+			for _, match := range routeRule.Matches {
+				routeMatch := makeHTTPRouteMatch(match)
+				matches = append(matches, routeMatch)
+
+				proxyRouteRules = append(proxyRouteRules, &pbproxystate.RouteRule{
+					Match:       routeMatch,
+					Destination: dest,
+					// TODO: mutations
+				})
+			}
+		}
+
+		b.addRoute(listenerName, &pbproxystate.Route{
+			VirtualHosts: []*pbproxystate.VirtualHost{{
+				Name:       listenerName,
+				RouteRules: proxyRouteRules,
+			}},
+		})
+
+	case *pbmesh.ComputedPortRoutes_Grpc:
+		useRDS = true
+		route := config.Grpc
+
+		listenerName := lb.listener.Name
+
+		var proxyRouteRules []*pbproxystate.RouteRule
+		for _, routeRule := range route.Rules {
+			for _, backendRef := range routeRule.BackendRefs {
+				if backendRef.BackendTarget == types.NullRouteBackend {
+					needsNullRouteCluster = true
+				}
+			}
+			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
+
+			dest := b.makeGRPCRouteDestination(
+				routeRule.BackendRefs,
+				destConfig,
+				targets,
+				defaultDC,
+			)
+
+			// TODO(rb/v2): Filters     []*HTTPRouteFilter
+
+			// Explode out by matches
+			var matches []*pbproxystate.RouteMatch
+			for _, match := range routeRule.Matches {
+				routeMatch := makeGRPCRouteMatch(match)
+				matches = append(matches, routeMatch)
+
+				proxyRouteRules = append(proxyRouteRules, &pbproxystate.RouteRule{
+					Match:       routeMatch,
+					Destination: dest,
+					// TODO: mutations
+				})
+			}
+		}
+
+		b.addRoute(listenerName, &pbproxystate.Route{
+			VirtualHosts: []*pbproxystate.VirtualHost{{
+				Name:       listenerName,
+				RouteRules: proxyRouteRules,
+			}},
+		})
+
+	case *pbmesh.ComputedPortRoutes_Tcp:
+		route := config.Tcp
+		useRDS = false
+
+		if len(route.Rules) != 1 {
+			panic("not possible due to validation and computation")
+		}
+
+		// When not using RDS we must generate a cluster name to attach to
+		// the filter chain. With RDS, cluster names get attached to the
+		// dynamic routes instead.
+
+		routeRule := route.Rules[0]
+
+		for _, backendRef := range routeRule.BackendRefs {
+			if backendRef.BackendTarget == types.NullRouteBackend {
+				needsNullRouteCluster = true
+			}
+		}
+
+		switch len(routeRule.BackendRefs) {
+		case 0:
+			panic("not possible to have a tcp route rule with no backend refs")
+		case 1:
+			tcpBackendRef := routeRule.BackendRefs[0]
+
+			clusterName := b.backendTargetToClusterName(tcpBackendRef.BackendTarget, targets, defaultDC)
+
+			rb := lb.addL4RouterForDirect(clusterName, statPrefix)
+			if destination.Explicit == nil {
+				rb.addIPAndPortMatch(destination.VirtualIPs, virtualPortNumber)
+			}
+			rb.buildRouter()
+		default:
+			clusters := make([]*pbproxystate.L4WeightedDestinationCluster, 0, len(routeRule.BackendRefs))
+			for _, tcpBackendRef := range routeRule.BackendRefs {
+				clusterName := b.backendTargetToClusterName(tcpBackendRef.BackendTarget, targets, defaultDC)
+
+				clusters = append(clusters, &pbproxystate.L4WeightedDestinationCluster{
+					Name:   clusterName,
+					Weight: wrapperspb.UInt32(tcpBackendRef.Weight),
+				})
+			}
+
+			rb := lb.addL4RouterForSplit(clusters, statPrefix)
+			if destination.Explicit == nil {
+				rb.addIPAndPortMatch(destination.VirtualIPs, virtualPortNumber)
+			}
+			rb.buildRouter()
 		}
 	}
 
-	return b
-}
+	if useRDS {
+		if !isProtocolHTTPLike(effectiveProtocol) {
+			panic(fmt.Sprintf("it should not be possible to have a tcp protocol here: %v", effectiveProtocol))
+		}
 
-// buildExplicitDestination creates listeners, routers, clusters, and endpointRefs for an explicit destination
-// and adds them to the proxyState.
-func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) *Builder {
-	serviceRef := destination.Explicit.DestinationRef
-	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
-	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
-
-	return b.addExplicitOutboundListener(destination.Explicit).
-		addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
-		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, false).
-		addClusters(portInfo, destination, sni)
-}
-
-// buildImplicitDestination creates listeners, routers, clusters, and endpointRefs for an implicit destination
-// and adds them to the proxyState.
-func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) *Builder {
-	serviceRef := resource.Reference(destination.ServiceEndpoints.Resource.Owner, "")
-	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
-	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
-
-	return b.addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
-		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, true).
-		addClusters(portInfo, destination, sni)
-}
-
-// addClusters creates clusters for each service port in the pre-processed a servicePortInfo.
-func (b *Builder) addClusters(portInfo *servicePortInfo, destination *intermediate.Destination, sni string) *Builder {
-	for portName, port := range portInfo.servicePorts {
-		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
-			//only implementing L4 at the moment
-		} else {
-			clusterName := fmt.Sprintf("%s.%s", portName, sni)
-			b.addCluster(clusterName, sni, portName, destination.Identities)
+		rb := lb.addL7Router("", effectiveProtocol)
+		if destination.Explicit == nil {
+			rb.addIPMatch(destination.VirtualIPs)
+		}
+		rb.buildRouter()
+	} else {
+		if isProtocolHTTPLike(effectiveProtocol) {
+			panic(fmt.Sprintf("it should not be possible to have an http-like protocol here: %v", effectiveProtocol))
 		}
 	}
-	return b
-}
 
-// addRouters creates routers for each service port in the pre-processed a servicePortInfo.
-func (b *Builder) addRouters(portInfo *servicePortInfo, destination *intermediate.Destination,
-	serviceRef *pbresource.Reference, sni, datacenter string, isImplicitDestination bool) *Builder {
+	lb.buildListener()
 
-	for portName, port := range portInfo.servicePorts {
-		statPrefix := DestinationStatPrefix(serviceRef, portName, datacenter)
+	if needsNullRouteCluster {
+		b.addNullRouteCluster()
+	}
 
-		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
-			//only implementing L4 at the moment
-			continue
-		}
+	for _, details := range targets {
+		dc := defaultDC(details.BackendRef.Datacenter)
+		portName := details.BackendRef.Port
 
+		sni := DestinationSNI(
+			details.BackendRef.Ref,
+			dc,
+			b.trustDomain,
+		)
 		clusterName := fmt.Sprintf("%s.%s", portName, sni)
-		var portForRouterMatch *pbcatalog.WorkloadPort
-		// router matches based on destination ports should only occur on implicit destinations
-		// for explicit, nil will get passed to addRouterWithIPAndPortMatch() which will then
-		// exclude the destinationPort match on the listener router.
-		if isImplicitDestination {
-			portForRouterMatch = port
-		}
-		b.addRouterWithIPAndPortMatch(clusterName, statPrefix, portForRouterMatch, destination.VirtualIPs)
+
+		b.addCluster(clusterName, sni, portName, details.IdentityRefs)
+		b.addEndpointsRef(clusterName, details.ServiceEndpointsId, meshPortName)
 	}
+
 	return b
+}
+
+const NullRouteClusterName = "null_route_cluster"
+
+func (b *Builder) addNullRouteCluster() *Builder {
+	cluster := &pbproxystate.Cluster{
+		Name: NullRouteClusterName,
+		Group: &pbproxystate.Cluster_EndpointGroup{
+			EndpointGroup: &pbproxystate.EndpointGroup{
+				Group: &pbproxystate.EndpointGroup_Static{
+					Static: &pbproxystate.StaticEndpointGroup{
+						Config: &pbproxystate.StaticEndpointGroupConfig{
+							ConnectTimeout: durationpb.New(10 * time.Second),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b.proxyStateTemplate.ProxyState.Clusters[cluster.Name] = cluster
+	return b
+}
+
+func (b *ListenerBuilder) addL4RouterForDirect(clusterName, statPrefix string) *RouterBuilder {
+	// For explicit destinations, we have no filter chain match, and filters
+	// are based on port protocol.
+	router := &pbproxystate.Router{}
+
+	if statPrefix == "" {
+		statPrefix = "upstream."
+	}
+
+	router.Destination = &pbproxystate.Router_L4{
+		L4: &pbproxystate.L4Destination{
+			Destination: &pbproxystate.L4Destination_Cluster{
+				Cluster: &pbproxystate.DestinationCluster{
+					Name: clusterName,
+				},
+			},
+			StatPrefix: statPrefix,
+		},
+	}
+
+	return b.NewRouterBuilder(router)
+}
+
+func (b *ListenerBuilder) addL4RouterForSplit(
+	clusters []*pbproxystate.L4WeightedDestinationCluster,
+	statPrefix string,
+) *RouterBuilder {
+	// For explicit destinations, we have no filter chain match, and filters
+	// are based on port protocol.
+	router := &pbproxystate.Router{}
+
+	if statPrefix == "" {
+		statPrefix = "upstream."
+	}
+
+	router.Destination = &pbproxystate.Router_L4{
+		L4: &pbproxystate.L4Destination{
+			Destination: &pbproxystate.L4Destination_WeightedClusters{
+				WeightedClusters: &pbproxystate.L4WeightedClusterGroup{
+					Clusters: clusters,
+				},
+			},
+			StatPrefix: statPrefix,
+			// TODO: can we use RDS for TCPRoute split?
+		},
+	}
+
+	return b.NewRouterBuilder(router)
+}
+
+func (b *ListenerBuilder) addL7Router(statPrefix string, protocol pbcatalog.Protocol) *RouterBuilder {
+	// For explicit destinations, we have no filter chain match, and filters
+	// are based on port protocol.
+	router := &pbproxystate.Router{}
+
+	listenerName := b.listener.Name
+	if listenerName == "" {
+		panic("listenerName is required")
+	}
+
+	if statPrefix == "" {
+		statPrefix = "upstream."
+	}
+
+	if !isProtocolHTTPLike(protocol) {
+		panic(fmt.Sprintf("unexpected protocol: %v", protocol))
+	}
+
+	router.Destination = &pbproxystate.Router_L7{
+		L7: &pbproxystate.L7Destination{
+			Name:        listenerName,
+			StatPrefix:  statPrefix,
+			StaticRoute: false,
+		},
+	}
+
+	return b.NewRouterBuilder(router)
 }
 
 // addExplicitOutboundListener creates an outbound listener for an explicit destination.
-func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Upstream) *Builder {
-	listener := &pbproxystate.Listener{
-		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
+func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Upstream) *ListenerBuilder {
+	listener := makeExplicitListener(explicit, pbproxystate.Direction_DIRECTION_OUTBOUND)
+
+	return b.NewListenerBuilder(listener)
+}
+
+func makeExplicitListener(explicit *pbmesh.Upstream, direction pbproxystate.Direction) *pbproxystate.Listener {
+	if explicit == nil {
+		panic("explicit upstream required")
 	}
+
+	listener := &pbproxystate.Listener{
+		Direction: direction,
+	}
+
+	// TODO(v2): access logs, connection balancing
 
 	// Create outbound listener address.
 	switch explicit.ListenAddr.(type) {
@@ -128,11 +428,11 @@ func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Upstream) *Builde
 		listener.Name = DestinationListenerName(explicit.DestinationRef.Name, explicit.DestinationPort, destinationAddr.Unix.Path, 0)
 	}
 
-	return b.NewListenerBuilder(listener).buildListener()
+	return listener
 }
 
 // addTransparentProxyOutboundListener creates an outbound listener for transparent proxy mode.
-func (b *Builder) addTransparentProxyOutboundListener(port uint32) *Builder {
+func (b *Builder) addTransparentProxyOutboundListener(port uint32) *ListenerBuilder {
 	listener := &pbproxystate.Listener{
 		Name:      xdscommon.OutboundListenerName,
 		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
@@ -145,63 +445,45 @@ func (b *Builder) addTransparentProxyOutboundListener(port uint32) *Builder {
 		Capabilities: []pbproxystate.Capability{pbproxystate.Capability_CAPABILITY_TRANSPARENT},
 	}
 
-	return b.NewListenerBuilder(listener).buildListener()
+	return b.NewListenerBuilder(listener)
 }
 
-// addRouterDestination returns the appropriate router destination based on the port protocol.
-func (b *Builder) addRouterDestination(router *pbproxystate.Router, clusterName, statPrefix string, _ *pbcatalog.WorkloadPort) *Builder {
-	//switch port.GetProtocol() {
-	//case pbcatalog.Protocol_PROTOCOL_TCP:
-	//	router.Destination = &pbproxystate.Router_L4{
-	//		L4: &pbproxystate.L4Destination{
-	//			Name:       clusterName,
-	//			StatPrefix: statPrefix,
-	//		},
-	//	}
-	//case pbcatalog.Protocol_PROTOCOL_HTTP:
-	//	router.Destination = &pbproxystate.Router_L7{
-	//		L7: &pbproxystate.L7Destination{
-	//			Name:       clusterName,
-	//			StatPrefix: statPrefix,
-	//		},
-	//	}
-	//}
-	// TODO(proxystate): add L7 in future work.
-	router.Destination = &pbproxystate.Router_L4{
-		L4: &pbproxystate.L4Destination{
-			Name:       clusterName,
-			StatPrefix: statPrefix,
-		},
+func isProtocolHTTPLike(protocol pbcatalog.Protocol) bool {
+	// enumcover:pbcatalog.Protocol
+	switch protocol {
+	case pbcatalog.Protocol_PROTOCOL_TCP:
+		return false
+	case pbcatalog.Protocol_PROTOCOL_HTTP2,
+		pbcatalog.Protocol_PROTOCOL_HTTP,
+		pbcatalog.Protocol_PROTOCOL_GRPC:
+		return true
+	default:
+		return false
 	}
+}
+
+func (b *RouterBuilder) addIPMatch(vips []string) *RouterBuilder {
+	return b.addIPAndPortMatch(vips, 0)
+}
+
+func (b *RouterBuilder) addIPAndPortMatch(vips []string, virtualPort uint32) *RouterBuilder {
+	b.router.Match = makeRouterMatchForIPAndPort(vips, virtualPort)
 	return b
 }
 
-// addRouterWithIPAndPortMatch will create and add a listener router to proxyState that
-// matches on the IP and port of the cluster.
-func (b *Builder) addRouterWithIPAndPortMatch(clusterName, statPrefix string, port *pbcatalog.WorkloadPort, vips []string) *Builder {
-	listener := b.getLastBuiltListener()
+func makeRouterMatchForIPAndPort(vips []string, virtualPort uint32) *pbproxystate.Match {
+	match := &pbproxystate.Match{}
+	for _, vip := range vips {
+		match.PrefixRanges = append(match.PrefixRanges, &pbproxystate.CidrRange{
+			AddressPrefix: vip,
+			PrefixLen:     &wrapperspb.UInt32Value{Value: 32},
+		})
 
-	// For explicit destinations, we have no filter chain match, and filters are based on port protocol.
-	router := &pbproxystate.Router{}
-	b.addRouterDestination(router, clusterName, statPrefix, port)
-
-	if router.Destination != nil {
-		if (port != nil || len(vips) > 0) && router.Match == nil {
-			router.Match = &pbproxystate.Match{}
+		if virtualPort > 0 {
+			match.DestinationPort = &wrapperspb.UInt32Value{Value: virtualPort}
 		}
-		if port != nil {
-			router.Match.DestinationPort = &wrapperspb.UInt32Value{Value: port.GetPort()}
-		}
-		for _, vip := range vips {
-			router.Match.PrefixRanges = append(router.Match.PrefixRanges, &pbproxystate.CidrRange{
-				AddressPrefix: vip,
-				PrefixLen:     &wrapperspb.UInt32Value{Value: 32},
-			})
-		}
-		listener.Routers = append(listener.Routers, router)
 	}
-
-	return b
+	return match
 }
 
 // addCluster creates and adds a cluster to the proxyState based on the destination.
@@ -211,8 +493,14 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 		spiffeIDs = append(spiffeIDs, connect.SpiffeIDFromIdentityRef(b.trustDomain, identity))
 	}
 
+	// TODO(v2): DestinationPolicy: connect timeout, lb policy, cluster discovery type, circuit breakers, outlier detection
+
+	// TODO(v2): if http2/grpc then set http2protocol options
+
 	// Create destination cluster.
 	cluster := &pbproxystate.Cluster{
+		Name:        clusterName,
+		AltStatName: clusterName,
 		Group: &pbproxystate.Cluster_EndpointGroup{
 			EndpointGroup: &pbproxystate.EndpointGroup{
 				Group: &pbproxystate.EndpointGroup_Dynamic{
@@ -238,8 +526,13 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 		},
 	}
 
-	b.proxyStateTemplate.ProxyState.Clusters[clusterName] = cluster
+	b.proxyStateTemplate.ProxyState.Clusters[cluster.Name] = cluster
 
+	return b
+}
+
+func (b *Builder) addRoute(listenerName string, route *pbproxystate.Route) *Builder {
+	b.proxyStateTemplate.ProxyState.Routes[listenerName] = route
 	return b
 }
 
@@ -254,8 +547,9 @@ func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbreso
 	return b
 }
 
-// last
-func (b *Builder) getLastBuiltListener() *pbproxystate.Listener {
-	lastBuiltIndex := len(b.proxyStateTemplate.ProxyState.Listeners) - 1
-	return b.proxyStateTemplate.ProxyState.Listeners[lastBuiltIndex]
+func orDefault(v, def string) string {
+	if v != "" {
+		return v
+	}
+	return def
 }

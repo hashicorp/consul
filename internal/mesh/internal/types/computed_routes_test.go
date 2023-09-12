@@ -9,7 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -52,6 +54,59 @@ func TestValidateComputedRoutes(t *testing.T) {
 				},
 			},
 			expectErr: `invalid value of key "http" within ported_configs: invalid "config" field: cannot be empty`,
+		},
+		"should not have service endpoints id": {
+			routes: &pbmesh.ComputedRoutes{
+				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+					"http": {
+						Config: &pbmesh.ComputedPortRoutes_Tcp{
+							Tcp: &pbmesh.ComputedTCPRoute{},
+						},
+						Targets: map[string]*pbmesh.BackendTargetDetails{
+							"foo": {
+								ServiceEndpointsId: &pbresource.ID{},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "service_endpoints_id" field: field should be empty`,
+		},
+		"should not have service endpoints": {
+			routes: &pbmesh.ComputedRoutes{
+				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+					"http": {
+						Config: &pbmesh.ComputedPortRoutes_Tcp{
+							Tcp: &pbmesh.ComputedTCPRoute{},
+						},
+						Targets: map[string]*pbmesh.BackendTargetDetails{
+							"foo": {
+								ServiceEndpoints: &pbcatalog.ServiceEndpoints{},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "service_endpoints" field: field should be empty`,
+		},
+		"should not have identity refs": {
+			routes: &pbmesh.ComputedRoutes{
+				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+					"http": {
+						Config: &pbmesh.ComputedPortRoutes_Tcp{
+							Tcp: &pbmesh.ComputedTCPRoute{},
+						},
+						Targets: map[string]*pbmesh.BackendTargetDetails{
+							"foo": {
+								IdentityRefs: []*pbresource.Reference{
+									{},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "identity_refs" field: field should be empty`,
 		},
 		"valid": {
 			routes: &pbmesh.ComputedRoutes{

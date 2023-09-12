@@ -4,6 +4,8 @@
 package types
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
@@ -70,6 +72,34 @@ func ValidateComputedRoutes(res *pbresource.Resource) error {
 				Name:    "config",
 				Wrapped: resource.ErrEmpty,
 			}))
+		}
+
+		for targetName, target := range pmc.Targets {
+			wrapTargetErr := func(err error) error {
+				return wrapErr(resource.ErrInvalidMapValue{
+					Map:     "targets",
+					Key:     targetName,
+					Wrapped: err,
+				})
+			}
+			if target.ServiceEndpointsId != nil {
+				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
+					Name:    "service_endpoints_id",
+					Wrapped: fmt.Errorf("field should be empty"),
+				}))
+			}
+			if target.ServiceEndpoints != nil {
+				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
+					Name:    "service_endpoints",
+					Wrapped: fmt.Errorf("field should be empty"),
+				}))
+			}
+			if len(target.IdentityRefs) > 0 {
+				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
+					Name:    "identity_refs",
+					Wrapped: fmt.Errorf("field should be empty"),
+				}))
+			}
 		}
 
 		// TODO(rb): do a deep inspection of the config to verify that all

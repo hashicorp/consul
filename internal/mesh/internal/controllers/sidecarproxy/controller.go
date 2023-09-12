@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
-	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -26,12 +25,13 @@ const ControllerName = "consul.io/sidecar-proxy-controller"
 
 type TrustDomainFetcher func() (string, error)
 
-func Controller(destinationsCache *sidecarproxycache.DestinationsCache,
+func Controller(
+	destinationsCache *sidecarproxycache.DestinationsCache,
 	proxyCfgCache *sidecarproxycache.ProxyConfigurationCache,
 	mapper *sidecarproxymapper.Mapper,
 	trustDomainFetcher TrustDomainFetcher,
-	dc string) controller.Controller {
-
+	dc string,
+) controller.Controller {
 	if destinationsCache == nil || proxyCfgCache == nil || mapper == nil || trustDomainFetcher == nil {
 		panic("destinations cache, proxy configuration cache, mapper and trust domain fetcher are required")
 	}
@@ -40,6 +40,7 @@ func Controller(destinationsCache *sidecarproxycache.DestinationsCache,
 		WithWatch(catalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
 		WithWatch(types.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
 		WithWatch(types.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
+		WithWatch(types.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
 		WithReconciler(&reconciler{
 			destinationsCache: destinationsCache,
 			proxyCfgCache:     proxyCfgCache,
@@ -88,7 +89,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Trace("proxy state template for this workload doesn't yet exist; generating a new one")
 	}
 
-	if !workload.Workload.IsMeshEnabled() {
+	if !fetcher.IsWorkloadMeshEnabled(workload.Data.Ports) {
 		// Skip non-mesh workloads.
 
 		// If there's existing proxy state template, delete it.
@@ -121,7 +122,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, proxyCfg).
-		BuildLocalApp(workload.Workload)
+		BuildLocalApp(workload.Data)
 
 	// Get all destinationsData.
 	destinationsRefs := r.destinationsCache.DestinationsBySourceProxy(req.ID)
@@ -143,7 +144,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	newProxyTemplate := b.Build()
 
-	if proxyStateTemplate == nil || !proto.Equal(proxyStateTemplate.Tmpl, newProxyTemplate) {
+	if proxyStateTemplate == nil || !proto.Equal(proxyStateTemplate.Data, newProxyTemplate) {
 		if proxyStateTemplate == nil {
 			req.ID.Uid = ""
 		}
@@ -191,9 +192,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	return nil
 }
 
-func identityRefFromWorkload(w *intermediate.Workload) *pbresource.Reference {
+func identityRefFromWorkload(w *types.DecodedWorkload) *pbresource.Reference {
 	return &pbresource.Reference{
-		Name:    w.Workload.Identity,
+		Name:    w.Data.Identity,
 		Tenancy: w.Resource.Id.Tenancy,
 	}
 }

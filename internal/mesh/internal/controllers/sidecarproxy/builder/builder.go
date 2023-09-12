@@ -16,17 +16,15 @@ type Builder struct {
 	proxyCfg           *pbmesh.ProxyConfiguration
 	trustDomain        string
 	localDatacenter    string
-
-	outboundListenerBuilder *ListenerBuilder
 }
 
-func New(id *pbresource.ID,
+func New(
+	id *pbresource.ID,
 	identity *pbresource.Reference,
 	trustDomain string,
 	dc string,
 	proxyCfg *pbmesh.ProxyConfiguration,
 ) *Builder {
-
 	return &Builder{
 		id:              id,
 		trustDomain:     trustDomain,
@@ -37,6 +35,7 @@ func New(id *pbresource.ID,
 				Identity:  identity,
 				Clusters:  make(map[string]*pbproxystate.Cluster),
 				Endpoints: make(map[string]*pbproxystate.Endpoints),
+				Routes:    make(map[string]*pbproxystate.Route),
 			},
 			RequiredEndpoints:        make(map[string]*pbproxystate.EndpointRef),
 			RequiredLeafCertificates: make(map[string]*pbproxystate.LeafCertificateRef),
@@ -65,4 +64,22 @@ func (l *ListenerBuilder) buildListener() *Builder {
 	l.builder.proxyStateTemplate.ProxyState.Listeners = append(l.builder.proxyStateTemplate.ProxyState.Listeners, l.listener)
 
 	return l.builder
+}
+
+type RouterBuilder struct {
+	router  *pbproxystate.Router
+	builder *ListenerBuilder
+}
+
+func (b *ListenerBuilder) NewRouterBuilder(r *pbproxystate.Router) *RouterBuilder {
+	return &RouterBuilder{
+		router:  r,
+		builder: b,
+	}
+}
+
+func (r *RouterBuilder) buildRouter() *ListenerBuilder {
+	r.builder.listener.Routers = append(r.builder.listener.Routers, r.router)
+
+	return r.builder
 }

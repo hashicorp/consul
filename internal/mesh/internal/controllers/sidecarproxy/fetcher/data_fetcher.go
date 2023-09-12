@@ -5,6 +5,8 @@ package fetcher
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -38,136 +40,49 @@ func New(client pbresource.ResourceServiceClient,
 	}
 }
 
-func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*intermediateTypes.Workload, error) {
-	rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
-
-	switch {
-	case status.Code(err) == codes.NotFound:
+func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
+	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.Client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
 		// We also need to make sure to delete the associated proxy from cache.
 		// We are ignoring errors from cache here as this deletion is best effort.
 		proxyID := resource.ReplaceType(types.ProxyStateTemplateType, id)
 		f.DestinationsCache.DeleteSourceProxy(proxyID)
 		f.ProxyCfgCache.UntrackProxyID(proxyID)
 		return nil, nil
-	case err != nil:
-		return nil, err
 	}
 
-	w := &intermediateTypes.Workload{
-		Resource: rsp.Resource,
-	}
-
-	var workload pbcatalog.Workload
-	err = rsp.Resource.Data.UnmarshalTo(&workload)
-	if err != nil {
-		return nil, resource.NewErrDataParse(&workload, err)
-	}
-
-	w.Workload = &workload
-	return w, nil
+	return dec, err
 }
 
-func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*intermediateTypes.ProxyStateTemplate, error) {
-	rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
-
-	switch {
-	case status.Code(err) == codes.NotFound:
-		return nil, nil
-	case err != nil:
-		return nil, err
-	}
-
-	p := &intermediateTypes.ProxyStateTemplate{
-		Resource: rsp.Resource,
-	}
-
-	var tmpl pbmesh.ProxyStateTemplate
-	err = rsp.Resource.Data.UnmarshalTo(&tmpl)
-	if err != nil {
-		return nil, resource.NewErrDataParse(&tmpl, err)
-	}
-
-	p.Tmpl = &tmpl
-	return p, nil
+func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*types.DecodedProxyStateTemplate, error) {
+	return resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.Client, id)
 }
 
-func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) (*intermediateTypes.ServiceEndpoints, error) {
-	rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
-
-	switch {
-	case status.Code(err) == codes.NotFound:
-		return nil, nil
-	case err != nil:
-		return nil, err
-	}
-
-	se := &intermediateTypes.ServiceEndpoints{
-		Resource: rsp.Resource,
-	}
-
-	var endpoints pbcatalog.ServiceEndpoints
-	err = rsp.Resource.Data.UnmarshalTo(&endpoints)
-	if err != nil {
-		return nil, resource.NewErrDataParse(&endpoints, err)
-	}
-
-	se.Endpoints = &endpoints
-	return se, nil
+func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) (*types.DecodedServiceEndpoints, error) {
+	return resource.GetDecodedResource[*pbcatalog.ServiceEndpoints](ctx, f.Client, id)
 }
 
-func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*intermediateTypes.Service, error) {
-	rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
-
-	switch {
-	case status.Code(err) == codes.NotFound:
-		return nil, nil
-	case err != nil:
-		return nil, err
-	}
-
-	se := &intermediateTypes.Service{
-		Resource: rsp.Resource,
-	}
-
-	var service pbcatalog.Service
-	err = rsp.Resource.Data.UnmarshalTo(&service)
-	if err != nil {
-		return nil, resource.NewErrDataParse(&service, err)
-	}
-
-	se.Service = &service
-	return se, nil
+func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
+	return resource.GetDecodedResource[*pbcatalog.Service](ctx, f.Client, id)
 }
 
-func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*intermediateTypes.Destinations, error) {
-	rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
+func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*types.DecodedDestinations, error) {
+	return resource.GetDecodedResource[*pbmesh.Upstreams](ctx, f.Client, id)
+}
 
-	switch {
-	case status.Code(err) == codes.NotFound:
-		return nil, nil
-	case err != nil:
-		return nil, err
+func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedRoutes, error) {
+	if !types.IsComputedRoutesType(id.Type) {
+		return nil, fmt.Errorf("id must be a ComputedRoutes type")
 	}
-
-	u := &intermediateTypes.Destinations{
-		Resource: rsp.Resource,
-	}
-
-	var destinations pbmesh.Upstreams
-	err = rsp.Resource.Data.UnmarshalTo(&destinations)
-	if err != nil {
-		return nil, resource.NewErrDataParse(&destinations, err)
-	}
-
-	u.Destinations = &destinations
-	return u, nil
+	return resource.GetDecodedResource[*pbmesh.ComputedRoutes](ctx, f.Client, id)
 }
 
 func (f *Fetcher) FetchExplicitDestinationsData(
 	ctx context.Context,
 	explDestRefs []intermediateTypes.CombinedDestinationRef,
 ) ([]*intermediateTypes.Destination, map[string]*intermediateTypes.Status, error) {
-
 	var (
 		destinations []*intermediateTypes.Destination
 		statuses     = make(map[string]*intermediateTypes.Status)
@@ -192,20 +107,24 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 
 		// As Destinations resource contains a list of destinations,
 		// we need to find the one that references our service and port.
-		d.Explicit = findDestination(dest.ServiceRef, dest.Port, us.Destinations)
+		d.Explicit = findDestination(dest.ServiceRef, dest.Port, us.Data)
 
-		// Fetch ServiceEndpoints.
-		serviceID := resource.IDFromReference(dest.ServiceRef)
-		se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(catalog.ServiceEndpointsType, serviceID))
+		var (
+			serviceID    = resource.IDFromReference(dest.ServiceRef)
+			serviceRef   = resource.ReferenceToString(dest.ServiceRef)
+			upstreamsRef = resource.IDToString(us.Resource.Id)
+		)
+
+		// Fetch Service
+		svc, err := f.FetchService(ctx, serviceID)
 		if err != nil {
 			return nil, statuses, err
 		}
 
-		serviceRef := resource.ReferenceToString(dest.ServiceRef)
-		upstreamsRef := resource.IDToString(us.Resource.Id)
-		if se == nil {
-			// If the Service Endpoints resource is not found, then we update the status of the Upstreams resource
-			// but don't remove it from cache in case it comes back.
+		if svc == nil {
+			// If the Service resource is not found, then we update the status
+			// of the Upstreams resource but don't remove it from cache in case
+			// it comes back.
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
 				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionDestinationServiceNotFound(serviceRef))
 			continue
@@ -214,10 +133,10 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionDestinationServiceFound(serviceRef))
 		}
 
-		d.ServiceEndpoints = se
+		d.Service = svc
 
 		// Check if this endpoints is mesh-enabled. If not, remove it from cache and return an error.
-		if len(se.Endpoints.Endpoints) > 0 && !IsMeshEnabled(se.Endpoints.Endpoints[0].Ports) {
+		if !IsMeshEnabled(svc.Data.Ports) {
 			// Add invalid status but don't remove from cache. If this state changes,
 			// we want to be able to detect this change.
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
@@ -234,9 +153,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 
 		// No destination port should point to a port with "mesh" protocol,
 		// so check if destination port has the mesh protocol and update the status.
-		if len(se.Endpoints.Endpoints) > 0 &&
-			se.Endpoints.Endpoints[0].Ports[dest.Port].Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-
+		if isServicePortMeshProtocol(svc.Data.Ports, dest.Port) {
 			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
 				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionMeshProtocolDestinationPort(serviceRef, dest.Port))
 			continue
@@ -245,16 +162,60 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 				us.Resource.Status, us.Resource.Generation, ctrlStatus.ConditionNonMeshProtocolDestinationPort(serviceRef, dest.Port))
 		}
 
-		// Gather all identities.
-		if se != nil {
-			var identities []*pbresource.Reference
-			for _, ep := range se.Endpoints.Endpoints {
-				identities = append(identities, &pbresource.Reference{
-					Name:    ep.Identity,
-					Tenancy: se.Resource.Id.Tenancy,
-				})
+		// Fetch ComputedRoutes.
+		cr, err := f.FetchComputedRoutes(ctx, resource.ReplaceType(types.ComputedRoutesType, serviceID))
+		if err != nil {
+			return nil, statuses, err
+		} else if cr == nil {
+			// This is required, so wait until it exists.
+			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
+				us.Resource.Status, us.Resource.Generation,
+				ctrlStatus.ConditionDestinationComputedRoutesNotFound(serviceRef))
+			continue
+		} else {
+			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
+				us.Resource.Status, us.Resource.Generation,
+				ctrlStatus.ConditionDestinationComputedRoutesFound(serviceRef))
+		}
+
+		portConfig, ok := cr.Data.PortedConfigs[dest.Port]
+		if !ok {
+			// This is required, so wait until it exists.
+			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
+				us.Resource.Status, us.Resource.Generation,
+				ctrlStatus.ConditionDestinationComputedRoutesPortNotFound(serviceRef, dest.Port))
+			continue
+		} else {
+			updateStatusCondition(statuses, upstreamsRef, dest.ExplicitDestinationsID,
+				us.Resource.Status, us.Resource.Generation,
+				ctrlStatus.ConditionDestinationComputedRoutesPortFound(serviceRef, dest.Port))
+		}
+		// Copy this so we can mutate the targets.
+		d.ComputedPortRoutes = proto.Clone(portConfig).(*pbmesh.ComputedPortRoutes)
+
+		for _, routeTarget := range d.ComputedPortRoutes.Targets {
+			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
+
+			// Fetch ServiceEndpoints.
+			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID))
+			if err != nil {
+				return nil, statuses, err
 			}
-			d.Identities = identities
+
+			if se != nil {
+				routeTarget.ServiceEndpointsId = se.Resource.Id
+				routeTarget.ServiceEndpoints = se.Data
+
+				// Gather all identities.
+				var identities []*pbresource.Reference
+				for _, ep := range se.Data.Endpoints {
+					identities = append(identities, &pbresource.Reference{
+						Name:    ep.Identity,
+						Tenancy: se.Resource.Id.Tenancy,
+					})
+				}
+				routeTarget.IdentityRefs = identities
+			}
 		}
 
 		destinations = append(destinations, d)
@@ -263,19 +224,35 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 	return destinations, statuses, nil
 }
 
+type PortReferenceKey struct {
+	resource.ReferenceKey
+	Port string
+}
+
 // FetchImplicitDestinationsData fetches all implicit destinations and adds them to existing destinations.
 // If the implicit destination is already in addToDestinations, it will be skipped.
 // todo (ishustava): this function will eventually need to fetch implicit destinations from the ImplicitDestinations resource instead.
-func (f *Fetcher) FetchImplicitDestinationsData(ctx context.Context, proxyID *pbresource.ID, addToDestinations []*intermediateTypes.Destination) ([]*intermediateTypes.Destination, error) {
+func (f *Fetcher) FetchImplicitDestinationsData(
+	ctx context.Context,
+	proxyID *pbresource.ID,
+	addToDestinations []*intermediateTypes.Destination,
+) ([]*intermediateTypes.Destination, error) {
 	// First, convert existing destinations to a map so we can de-dup.
-	destinations := make(map[resource.ReferenceKey]*intermediateTypes.Destination)
+	//
+	// This is keyed by the serviceID+port of the upstream, which is effectively
+	// the same as the id of the computed routes for the service.
+	destinations := make(map[PortReferenceKey]*intermediateTypes.Destination)
 	for _, d := range addToDestinations {
-		destinations[resource.NewReferenceKey(d.ServiceEndpoints.Resource.Id)] = d
+		prk := PortReferenceKey{
+			ReferenceKey: resource.NewReferenceKey(d.Service.Resource.Id),
+			Port:         d.ComputedPortRoutes.ParentRef.Port,
+		}
+		destinations[prk] = d
 	}
 
-	// For now, we need to look up all service endpoints within a partition.
+	// For now we need to look up all computed routes within a partition.
 	rsp, err := f.Client.List(ctx, &pbresource.ListRequest{
-		Type: catalog.ServiceEndpointsType,
+		Type: types.ComputedRoutesType,
 		Tenancy: &pbresource.Tenancy{
 			Namespace: proxyID.Tenancy.Namespace,
 			Partition: proxyID.Tenancy.Partition,
@@ -287,56 +264,107 @@ func (f *Fetcher) FetchImplicitDestinationsData(ctx context.Context, proxyID *pb
 	}
 
 	for _, r := range rsp.Resources {
-		// If it's already in destinations, ignore it.
-		if _, ok := destinations[resource.NewReferenceKey(r.Id)]; ok {
-			continue
-		}
-
-		var endpoints pbcatalog.ServiceEndpoints
-		err = r.Data.UnmarshalTo(&endpoints)
+		svcID := resource.ReplaceType(catalog.ServiceType, r.Id)
+		computedRoutes, err := resource.Decode[*pbmesh.ComputedRoutes](r)
 		if err != nil {
 			return nil, err
 		}
 
-		// If this proxy is a part of this service, ignore it.
-		if isPartOfService(resource.ReplaceType(catalog.WorkloadType, proxyID), &endpoints) {
+		if computedRoutes == nil {
+			// the routes-controller doesn't deem this worthy of the mesh
 			continue
-		}
-
-		// Skip if this service is not mesh-enabled.
-		if len(endpoints.Endpoints) > 0 && !IsMeshEnabled(endpoints.Endpoints[0].Ports) {
-			continue
-		}
-
-		// Collect all identities.
-		var identities []*pbresource.Reference
-		for _, ep := range endpoints.Endpoints {
-			identities = append(identities, &pbresource.Reference{
-				Name:    ep.Identity,
-				Tenancy: r.Id.Tenancy,
-			})
 		}
 
 		// Fetch the service.
 		// todo (ishustava): this should eventually grab virtual IPs resource.
-		s, err := f.FetchService(ctx, resource.ReplaceType(catalog.ServiceType, r.Id))
+		svc, err := f.FetchService(ctx, resource.ReplaceType(catalog.ServiceType, r.Id))
 		if err != nil {
 			return nil, err
 		}
-		if s == nil {
+		if svc == nil {
 			// If service no longer exists, skip.
 			continue
 		}
+		s := svc // TODO(rb)
 
-		d := &intermediateTypes.Destination{
-			ServiceEndpoints: &intermediateTypes.ServiceEndpoints{
-				Resource:  r,
-				Endpoints: &endpoints,
-			},
-			VirtualIPs: s.Service.VirtualIps,
-			Identities: identities,
+		// If this proxy is a part of this service, ignore it.
+		if isPartOfService_NEW(resource.ReplaceType(catalog.WorkloadType, proxyID), s) {
+			continue
 		}
-		addToDestinations = append(addToDestinations, d)
+
+		inMesh := false
+		for _, port := range svc.Data.Ports {
+			if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+				inMesh = true
+				break
+			}
+		}
+
+		if !inMesh {
+			// If a service is no longer in the mesh, skip.
+			continue
+		}
+
+		// Fetch the resources that may show up duplicated.
+		endpointsMap := make(map[resource.ReferenceKey]*types.DecodedServiceEndpoints)
+		for _, portConfig := range computedRoutes.Data.PortedConfigs {
+			for _, routeTarget := range portConfig.Targets {
+				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
+				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
+
+				rk := resource.NewReferenceKey(seID)
+
+				if _, ok := endpointsMap[rk]; !ok {
+					se, err := f.FetchServiceEndpoints(ctx, seID)
+					if err != nil {
+						return nil, err
+					}
+					endpointsMap[rk] = se
+				}
+			}
+		}
+
+		for portName, portConfig := range computedRoutes.Data.PortedConfigs {
+			// If it's already in destinations, ignore it.
+			prk := PortReferenceKey{
+				ReferenceKey: resource.NewReferenceKey(svcID),
+				Port:         portName,
+			}
+			if _, ok := destinations[prk]; ok {
+				continue
+			}
+
+			// Copy this so we can mutate the targets.
+			portConfig = proto.Clone(portConfig).(*pbmesh.ComputedPortRoutes)
+
+			d := &intermediateTypes.Destination{
+				Service:            svc,
+				ComputedPortRoutes: portConfig,
+				VirtualIPs:         svc.Data.VirtualIps,
+			}
+			for _, routeTarget := range portConfig.Targets {
+				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
+				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
+
+				// Fetch ServiceEndpoints.
+				se, ok := endpointsMap[resource.NewReferenceKey(seID)]
+				if ok {
+					routeTarget.ServiceEndpointsId = se.Resource.Id
+					routeTarget.ServiceEndpoints = se.Data
+
+					// Gather all identities.
+					var identities []*pbresource.Reference
+					for _, ep := range se.Data.Endpoints {
+						identities = append(identities, &pbresource.Reference{
+							Name:    ep.Identity,
+							Tenancy: se.Resource.Id.Tenancy,
+						})
+					}
+					routeTarget.IdentityRefs = identities
+				}
+			}
+			addToDestinations = append(addToDestinations, d)
+		}
 	}
 	return addToDestinations, err
 }
@@ -381,15 +409,40 @@ func (f *Fetcher) FetchAndMergeProxyConfigurations(ctx context.Context, id *pbre
 	return result, nil
 }
 
-// IsMeshEnabled returns true if the workload or service endpoints port
+// IsWorkloadMeshEnabled returns true if the workload or service endpoints port
 // contain a port with the "mesh" protocol.
-func IsMeshEnabled(ports map[string]*pbcatalog.WorkloadPort) bool {
+func IsWorkloadMeshEnabled(ports map[string]*pbcatalog.WorkloadPort) bool {
 	for _, port := range ports {
 		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 			return true
 		}
 	}
 	return false
+}
+
+// IsMeshEnabled returns true if the service ports contain a port with the
+// "mesh" protocol.
+func IsMeshEnabled(ports []*pbcatalog.ServicePort) bool {
+	for _, port := range ports {
+		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+			return true
+		}
+	}
+	return false
+}
+
+func isServicePortMeshProtocol(ports []*pbcatalog.ServicePort, name string) bool {
+	sp := findServicePort(ports, name)
+	return sp != nil && sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH
+}
+
+func findServicePort(ports []*pbcatalog.ServicePort, name string) *pbcatalog.ServicePort {
+	for _, port := range ports {
+		if port.TargetPort == name {
+			return port
+		}
+	}
+	return nil
 }
 
 func findDestination(ref *pbresource.Reference, port string, destinations *pbmesh.Upstreams) *pbmesh.Upstream {
@@ -421,6 +474,7 @@ func updateStatusCondition(
 	}
 }
 
+// Deprecated: see isPartOfService_NEW
 func isPartOfService(workloadID *pbresource.ID, endpoints *pbcatalog.ServiceEndpoints) bool {
 	// convert IDs to refs so that we can compare without UIDs.
 	workloadRef := resource.Reference(workloadID, "")
@@ -430,6 +484,24 @@ func isPartOfService(workloadID *pbresource.ID, endpoints *pbcatalog.ServiceEndp
 			if resource.EqualReference(workloadRef, targetRef) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+func isPartOfService_NEW(workloadID *pbresource.ID, svc *types.DecodedService) bool {
+	if !resource.EqualTenancy(workloadID.GetTenancy(), svc.Resource.Id.GetTenancy()) {
+		return false
+	}
+	sel := svc.Data.Workloads
+	for _, exact := range sel.GetNames() {
+		if workloadID.GetName() == exact {
+			return true
+		}
+	}
+	for _, prefix := range sel.GetPrefixes() {
+		if strings.HasPrefix(workloadID.GetName(), prefix) {
+			return true
 		}
 	}
 	return false

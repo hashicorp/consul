@@ -41,7 +41,35 @@ func TestValidateTCPRoute(t *testing.T) {
 		}
 	}
 
-	cases := map[string]testcase{}
+	cases := map[string]testcase{
+		"no rules": {
+			route: &pbmesh.TCPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+			},
+		},
+		"more than one rule": {
+			route: &pbmesh.TCPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.TCPRouteRule{
+					{
+						BackendRefs: []*pbmesh.TCPBackendRef{{
+							BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+						}},
+					},
+					{
+						BackendRefs: []*pbmesh.TCPBackendRef{{
+							BackendRef: newBackendRef(catalog.ServiceType, "db", ""),
+						}},
+					},
+				},
+			},
+			expectErr: `invalid "rules" field: must only specify a single rule for now`,
+		},
+	}
 
 	// Add common parent refs test cases.
 	for name, parentTC := range getXRouteParentRefTestCases() {

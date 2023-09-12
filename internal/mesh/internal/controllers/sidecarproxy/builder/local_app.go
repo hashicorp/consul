@@ -86,7 +86,11 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 		r := &pbproxystate.Router{
 			Destination: &pbproxystate.Router_L4{
 				L4: &pbproxystate.L4Destination{
-					Name:       clusterName,
+					Destination: &pbproxystate.L4Destination_Cluster{
+						Cluster: &pbproxystate.DestinationCluster{
+							Name: clusterName,
+						},
+					},
 					StatPrefix: l.listener.Name,
 				},
 			},

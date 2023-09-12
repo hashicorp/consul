@@ -5,11 +5,12 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1;
 
-// ALTERNATIVE: not using policy attachment semantics
+import "google/protobuf/wrappers.proto";
+
 message HTTPRouteRetries {
-  // NumRetries is the number of times to retry the request when a retryable
+  // Number is the number of times to retry the request when a retryable
   // result occurs.
-  int32 number = 1;
+  google.protobuf.UInt32Value number = 1;
 
   // RetryOnConnectFailure allows for connection failure errors to trigger a
   // retry.
