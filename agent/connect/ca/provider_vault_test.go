@@ -574,12 +574,6 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	run := func(t *testing.T, tc CASigningKeyTypes, withSudo, expectFailure bool) {
 		t.Parallel()
 
-		if tc.SigningKeyType != tc.CSRKeyType {
-			// TODO: uncomment since the bug is closed
-			// See https://github.com/hashicorp/vault/issues/7709
-			t.Skip("Vault doesn't support cross-signing different key types yet.")
-		}
-
 		testVault1 := NewTestVaultServer(t)
 
 		attr1 := &VaultTokenAttributes{
@@ -1193,6 +1187,40 @@ func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
 	expIssSet, errStr = provider.autotidyIssuers("pki-bad/")
 	require.False(t, expIssSet)
 	require.Contains(t, errStr, "permission denied")
+}
+
+func TestVaultCAProvider_DeletePreviousIssuer(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+	t.Parallel()
+
+	testVault := NewTestVaultServer(t)
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+	provider := createVaultProvider(t, true, testVault.Addr, token,
+		map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		})
+	res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
+	require.NoError(t, err)
+	// Why 2 keys? There is always an initial non-default key that
+	// gets created before we manage the lifecycle of issuers.
+	// Since we're asserting that the number of keys don't grow
+	// this isn't too much of a concern.
+	require.Len(t, res.Data["keys"], 2)
+
+	for i := 0; i < 3; i++ {
+		_, err := provider.GenerateLeafSigningCert()
+		require.NoError(t, err)
+
+		res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
+		require.NoError(t, err)
+		require.Len(t, res.Data["keys"], 2)
+	}
 }
 
 func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {

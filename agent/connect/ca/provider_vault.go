@@ -659,12 +659,26 @@ func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret,
 		return fmt.Errorf("could not read from /config/issuers: %w", err)
 	}
 	issuersConf := resp.Data
+	defaultIssuer := issuersConf["default"].(string)
+
+	if defaultIssuer == intermediateId {
+		return nil
+	}
+
 	// Overwrite the default issuer
 	issuersConf["default"] = intermediateId
-
 	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"config/issuers", issuersConf)
 	if err != nil {
 		return fmt.Errorf("could not write default issuer to /config/issuers: %w", err)
+	}
+
+	// Delete the previously known default issuer to prevent the number of unused
+	// issuers from increasing too much.
+	_, err = v.deleteNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"issuer/"+defaultIssuer)
+	if err != nil {
+		v.logger.Warn("Could not delete previous issuer. Manually delete from Vault to prevent the list of issuers from growing too large.",
+			"prev_issuer_id", defaultIssuer,
+			"error", err)
 	}
 
 	return nil
@@ -841,6 +855,11 @@ func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaul
 func (v *VaultProvider) writeNamespaced(namespace string, resource string, data map[string]interface{}) (*vaultapi.Secret, error) {
 	defer v.setNamespace(namespace)()
 	return v.client.Logical().Write(resource, data)
+}
+
+func (v *VaultProvider) deleteNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
+	defer v.setNamespace(namespace)()
+	return v.client.Logical().Delete(resource)
 }
 
 func (v *VaultProvider) setNamespace(namespace string) func() {
