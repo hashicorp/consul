@@ -4,6 +4,8 @@
 package builder
 
 import (
+	"fmt"
+
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -16,11 +18,12 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+// BuildDestinations creates listeners, routers, clusters, and endpointRefs for all destinations
+// and adds them to the proxyState.
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	if b.proxyCfg.GetDynamicConfig() != nil &&
 		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
-
-		b.addOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
+		b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
 	}
 
 	for _, destination := range destinations {
@@ -34,55 +37,71 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 	return b
 }
 
-func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) {
-	clusterName := DestinationClusterName(destination.Explicit.DestinationRef, destination.Explicit.Datacenter, b.trustDomain)
-	statPrefix := DestinationStatPrefix(destination.Explicit.DestinationRef, destination.Explicit.Datacenter)
+// buildExplicitDestination creates listeners, routers, clusters, and endpointRefs for an explicit destination
+// and adds them to the proxyState.
+func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) *Builder {
+	serviceRef := destination.Explicit.DestinationRef
+	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
+	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
 
-	// All endpoints should have the same protocol as the endpoints controller ensures that is the case,
-	// so it's sufficient to read just the first endpoint.
-	if len(destination.ServiceEndpoints.Endpoints.Endpoints) > 0 {
-		// Get destination port so that we can configure this destination correctly based on its protocol.
-		destPort := destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports[destination.Explicit.DestinationPort]
-
-		// Find the destination proxy's port.
-		// Endpoints refs will need to route to mesh port instead of the destination port as that
-		// is the port of the destination's proxy.
-		meshPortName := findMeshPort(destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports)
-
-		if destPort != nil {
-			b.addOutboundDestinationListener(destination.Explicit).
-				addRouter(clusterName, statPrefix, destPort.Protocol).
-				buildListener().
-				addCluster(clusterName, destination.Identities).
-				addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, meshPortName)
-		}
-	}
+	return b.addExplicitOutboundListener(destination.Explicit).
+		addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
+		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, false).
+		addClusters(portInfo, destination, sni)
 }
 
-func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) {
+// buildImplicitDestination creates listeners, routers, clusters, and endpointRefs for an implicit destination
+// and adds them to the proxyState.
+func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) *Builder {
 	serviceRef := resource.Reference(destination.ServiceEndpoints.Resource.Owner, "")
-	clusterName := DestinationClusterName(serviceRef, b.localDatacenter, b.trustDomain)
-	statPrefix := DestinationStatPrefix(serviceRef, b.localDatacenter)
+	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
+	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
 
-	// We assume that all endpoints have the same port protocol and name, and so it's sufficient
-	// to check ports just from the first endpoint.
-	if len(destination.ServiceEndpoints.Endpoints.Endpoints) > 0 {
-		// Find the destination proxy's port.
-		// Endpoints refs will need to route to mesh port instead of the destination port as that
-		// is the port of the destination's proxy.
-		meshPortName := findMeshPort(destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports)
-
-		for _, port := range destination.ServiceEndpoints.Endpoints.Endpoints[0].Ports {
-			b.outboundListenerBuilder.
-				addRouterWithIPMatch(clusterName, statPrefix, port.Protocol, destination.VirtualIPs).
-				buildListener().
-				addCluster(clusterName, destination.Identities).
-				addEndpointsRef(clusterName, destination.ServiceEndpoints.Resource.Id, meshPortName)
-		}
-	}
+	return b.addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
+		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, true).
+		addClusters(portInfo, destination, sni)
 }
 
-func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *ListenerBuilder {
+// addClusters creates clusters for each service port in the pre-processed a servicePortInfo.
+func (b *Builder) addClusters(portInfo *servicePortInfo, destination *intermediate.Destination, sni string) *Builder {
+	for portName, port := range portInfo.servicePorts {
+		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
+			//only implementing L4 at the moment
+		} else {
+			clusterName := fmt.Sprintf("%s.%s", portName, sni)
+			b.addCluster(clusterName, sni, portName, destination.Identities)
+		}
+	}
+	return b
+}
+
+// addRouters creates routers for each service port in the pre-processed a servicePortInfo.
+func (b *Builder) addRouters(portInfo *servicePortInfo, destination *intermediate.Destination,
+	serviceRef *pbresource.Reference, sni, datacenter string, isImplicitDestination bool) *Builder {
+
+	for portName, port := range portInfo.servicePorts {
+		statPrefix := DestinationStatPrefix(serviceRef, portName, datacenter)
+
+		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
+			//only implementing L4 at the moment
+			continue
+		}
+
+		clusterName := fmt.Sprintf("%s.%s", portName, sni)
+		var portForRouterMatch *pbcatalog.WorkloadPort
+		// router matches based on destination ports should only occur on implicit destinations
+		// for explicit, nil will get passed to addRouterWithIPAndPortMatch() which will then
+		// exclude the destinationPort match on the listener router.
+		if isImplicitDestination {
+			portForRouterMatch = port
+		}
+		b.addRouterWithIPAndPortMatch(clusterName, statPrefix, portForRouterMatch, destination.VirtualIPs)
+	}
+	return b
+}
+
+// addExplicitOutboundListener creates an outbound listener for an explicit destination.
+func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Upstream) *Builder {
 	listener := &pbproxystate.Listener{
 		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
 	}
@@ -109,10 +128,11 @@ func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Lis
 		listener.Name = DestinationListenerName(explicit.DestinationRef.Name, explicit.DestinationPort, destinationAddr.Unix.Path, 0)
 	}
 
-	return b.NewListenerBuilder(listener)
+	return b.NewListenerBuilder(listener).buildListener()
 }
 
-func (b *Builder) addOutboundListener(port uint32) *ListenerBuilder {
+// addTransparentProxyOutboundListener creates an outbound listener for transparent proxy mode.
+func (b *Builder) addTransparentProxyOutboundListener(port uint32) *Builder {
 	listener := &pbproxystate.Listener{
 		Name:      xdscommon.OutboundListenerName,
 		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
@@ -125,48 +145,67 @@ func (b *Builder) addOutboundListener(port uint32) *ListenerBuilder {
 		Capabilities: []pbproxystate.Capability{pbproxystate.Capability_CAPABILITY_TRANSPARENT},
 	}
 
-	lb := b.NewListenerBuilder(listener)
-
-	// Save outbound listener builder so we can use it in the future.
-	b.outboundListenerBuilder = lb
-
-	return lb
+	return b.NewListenerBuilder(listener).buildListener()
 }
 
-func (l *ListenerBuilder) addRouter(clusterName, statPrefix string, protocol pbcatalog.Protocol) *ListenerBuilder {
-	return l.addRouterWithIPMatch(clusterName, statPrefix, protocol, nil)
+// addRouterDestination returns the appropriate router destination based on the port protocol.
+func (b *Builder) addRouterDestination(router *pbproxystate.Router, clusterName, statPrefix string, _ *pbcatalog.WorkloadPort) *Builder {
+	//switch port.GetProtocol() {
+	//case pbcatalog.Protocol_PROTOCOL_TCP:
+	//	router.Destination = &pbproxystate.Router_L4{
+	//		L4: &pbproxystate.L4Destination{
+	//			Name:       clusterName,
+	//			StatPrefix: statPrefix,
+	//		},
+	//	}
+	//case pbcatalog.Protocol_PROTOCOL_HTTP:
+	//	router.Destination = &pbproxystate.Router_L7{
+	//		L7: &pbproxystate.L7Destination{
+	//			Name:       clusterName,
+	//			StatPrefix: statPrefix,
+	//		},
+	//	}
+	//}
+	// TODO(proxystate): add L7 in future work.
+	router.Destination = &pbproxystate.Router_L4{
+		L4: &pbproxystate.L4Destination{
+			Name:       clusterName,
+			StatPrefix: statPrefix,
+		},
+	}
+	return b
 }
 
-func (l *ListenerBuilder) addRouterWithIPMatch(clusterName, statPrefix string, protocol pbcatalog.Protocol, vips []string) *ListenerBuilder {
+// addRouterWithIPAndPortMatch will create and add a listener router to proxyState that
+// matches on the IP and port of the cluster.
+func (b *Builder) addRouterWithIPAndPortMatch(clusterName, statPrefix string, port *pbcatalog.WorkloadPort, vips []string) *Builder {
+	listener := b.getLastBuiltListener()
+
 	// For explicit destinations, we have no filter chain match, and filters are based on port protocol.
 	router := &pbproxystate.Router{}
-	switch protocol {
-	case pbcatalog.Protocol_PROTOCOL_TCP:
-		router.Destination = &pbproxystate.Router_L4{
-			L4: &pbproxystate.L4Destination{
-				Name:       clusterName,
-				StatPrefix: statPrefix,
-			},
-		}
-	}
+	b.addRouterDestination(router, clusterName, statPrefix, port)
 
 	if router.Destination != nil {
+		if (port != nil || len(vips) > 0) && router.Match == nil {
+			router.Match = &pbproxystate.Match{}
+		}
+		if port != nil {
+			router.Match.DestinationPort = &wrapperspb.UInt32Value{Value: port.GetPort()}
+		}
 		for _, vip := range vips {
-			if router.Match == nil {
-				router.Match = &pbproxystate.Match{}
-			}
-
 			router.Match.PrefixRanges = append(router.Match.PrefixRanges, &pbproxystate.CidrRange{
 				AddressPrefix: vip,
 				PrefixLen:     &wrapperspb.UInt32Value{Value: 32},
 			})
 		}
-		l.listener.Routers = append(l.listener.Routers, router)
+		listener.Routers = append(listener.Routers, router)
 	}
-	return l
+
+	return b
 }
 
-func (b *Builder) addCluster(clusterName string, destinationIdentities []*pbresource.Reference) *Builder {
+// addCluster creates and adds a cluster to the proxyState based on the destination.
+func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdentities []*pbresource.Reference) *Builder {
 	var spiffeIDs []string
 	for _, identity := range destinationIdentities {
 		spiffeIDs = append(spiffeIDs, connect.SpiffeIDFromIdentityRef(b.trustDomain, identity))
@@ -188,9 +227,10 @@ func (b *Builder) addCluster(clusterName string, destinationIdentities []*pbreso
 									ValidationContext: &pbproxystate.MeshOutboundValidationContext{
 										SpiffeIds: spiffeIDs,
 									},
-									Sni: clusterName,
+									Sni: sni,
 								},
 							},
+							AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
 						},
 					},
 				},
@@ -199,21 +239,23 @@ func (b *Builder) addCluster(clusterName string, destinationIdentities []*pbreso
 	}
 
 	b.proxyStateTemplate.ProxyState.Clusters[clusterName] = cluster
+
 	return b
 }
 
-func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) {
+// addEndpointsRef creates and add an endpointRef for each serviceEndpoint for a destination and
+// adds it to the proxyStateTemplate so it will be processed later during reconciliation by
+// the XDS controller.
+func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) *Builder {
 	b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
 		Id:   serviceEndpointsID,
 		Port: destinationPort,
 	}
+	return b
 }
 
-func findMeshPort(ports map[string]*pbcatalog.WorkloadPort) string {
-	for name, port := range ports {
-		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-			return name
-		}
-	}
-	return ""
+// last
+func (b *Builder) getLastBuiltListener() *pbproxystate.Listener {
+	lastBuiltIndex := len(b.proxyStateTemplate.ProxyState.Listeners) - 1
+	return b.proxyStateTemplate.ProxyState.Listeners[lastBuiltIndex]
 }

@@ -8,6 +8,10 @@ import (
 	"os"
 	"testing"
 
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -20,4 +24,13 @@ func TestMain(m *testing.M) {
 
 func protoToJSON(t *testing.T, pb proto.Message) string {
 	return prototest.ProtoToJSON(t, pb)
+}
+
+func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
+	t.Helper()
+	proxyTemplate := &pbmesh.ProxyStateTemplate{}
+	m := protojson.UnmarshalOptions{}
+	err := m.Unmarshal(json, proxyTemplate)
+	require.NoError(t, err)
+	return proxyTemplate
 }

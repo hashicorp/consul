@@ -1,0 +1,123 @@
+{
+  "proxyState": {
+    "identity": {
+      "tenancy": {
+        "partition": "default",
+        "namespace": "default",
+        "peerName": "local"
+      },
+      "name": "test-identity"
+    },
+    "listeners": [
+      {
+        "name": "outbound_listener",
+        "direction": "DIRECTION_OUTBOUND",
+        "hostPort": {
+          "host": "127.0.0.1",
+          "port": 15001
+        },
+        "routers": [
+          {
+            "match": {
+              "prefixRanges": [
+                {
+                  "addressPrefix": "1.1.1.1",
+                  "prefixLen": 32
+                }
+              ],
+              "destinationPort": 8080
+            },
+            "l4": {
+              "name": "admin-port.api-app.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.admin-port.api-app.default.default.dc1"
+            }
+          },
+          {
+            "match": {
+              "prefixRanges": [
+                {
+                  "addressPrefix": "1.1.1.1",
+                  "prefixLen": 32
+                }
+              ],
+              "destinationPort": 9090
+            },
+            "l4": {
+              "name": "api-port.api-app.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.api-port.api-app.default.default.dc1"
+            }
+          }
+        ],
+        "capabilities": [
+          "CAPABILITY_TRANSPARENT"
+        ]
+      }
+    ],
+    "clusters": {
+      "api-port.api-app.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
+                  ]
+                },
+                "sni": "api-app.default.dc1.internal.foo.consul"
+              },
+              "alpnProtocols": [
+                "consul~api-port"
+              ]
+            }
+          }
+        }
+      },
+      "admin-port.api-app.default.dc1.internal.foo.consul": {
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
+                  ]
+                },
+                "sni": "api-app.default.dc1.internal.foo.consul"
+              },
+              "alpnProtocols": [
+                "consul~admin-port"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "requiredEndpoints": {
+    "api-app.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app",
+        "tenancy": {
+          "partition": "default",
+          "namespace": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    }
+  }
+}

@@ -1,13 +1,16 @@
 {
   "proxyState": {
     "clusters": {
-      "api-1.default.dc1.internal.foo.consul": {
+      "tcp.api-1.default.dc1.internal.foo.consul": {
         "endpointGroup": {
           "dynamic": {
             "config": {
               "disablePanicThreshold": true
             },
             "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ],
               "outboundMesh": {
                 "identityKey": "test-identity",
                 "sni": "api-1.default.dc1.internal.foo.consul",
@@ -21,13 +24,16 @@
           }
         }
       },
-      "api-2.default.dc1.internal.foo.consul": {
+      "tcp.api-2.default.dc1.internal.foo.consul": {
         "endpointGroup": {
           "dynamic": {
             "config": {
               "disablePanicThreshold": true
             },
             "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ],
               "outboundMesh": {
                 "identityKey": "test-identity",
                 "sni": "api-2.default.dc1.internal.foo.consul",
@@ -64,72 +70,11 @@
         "routers": [
           {
             "l4": {
-              "name": "api-2.default.dc1.internal.foo.consul",
-              "statPrefix": "upstream.api-2.default.default.dc1"
+              "name": "tcp.api-2.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.tcp.api-2.default.default.dc1"
             },
             "match": {
-              "prefixRanges": [
-                {
-                  "addressPrefix": "2.2.2.2",
-                  "prefixLen": 32
-                },
-                {
-                  "addressPrefix": "3.3.3.3",
-                  "prefixLen": 32
-                }
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "capabilities": [
-          "CAPABILITY_TRANSPARENT"
-        ],
-        "direction": "DIRECTION_OUTBOUND",
-        "hostPort": {
-          "host": "127.0.0.1",
-          "port": 15001
-        },
-        "name": "outbound_listener",
-        "routers": [
-          {
-            "l4": {
-              "name": "api-2.default.dc1.internal.foo.consul",
-              "statPrefix": "upstream.api-2.default.default.dc1"
-            },
-            "match": {
-              "prefixRanges": [
-                {
-                  "addressPrefix": "2.2.2.2",
-                  "prefixLen": 32
-                },
-                {
-                  "addressPrefix": "3.3.3.3",
-                  "prefixLen": 32
-                }
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "capabilities": [
-          "CAPABILITY_TRANSPARENT"
-        ],
-        "direction": "DIRECTION_OUTBOUND",
-        "hostPort": {
-          "host": "127.0.0.1",
-          "port": 15001
-        },
-        "name": "outbound_listener",
-        "routers": [
-          {
-            "l4": {
-              "name": "api-2.default.dc1.internal.foo.consul",
-              "statPrefix": "upstream.api-2.default.default.dc1"
-            },
-            "match": {
+              "destinationPort": 8080,
               "prefixRanges": [
                 {
                   "addressPrefix": "2.2.2.2",
@@ -154,8 +99,8 @@
         "routers": [
           {
             "l4": {
-              "name": "api-1.default.dc1.internal.foo.consul",
-              "statPrefix": "upstream.api-1.default.default.dc1"
+              "name": "tcp.api-1.default.dc1.internal.foo.consul",
+              "statPrefix": "upstream.tcp.api-1.default.default.dc1"
             }
           }
         ]
