@@ -24,7 +24,6 @@ type Dependencies struct {
 	TrustBundleFetcher xds.TrustBundleFetcher
 	ProxyUpdater       xds.ProxyUpdater
 	LeafCertManager    *leafcert.Manager
-	Datacenter         string
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
@@ -35,7 +34,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	leafCancels := &xds.LeafCancels{
 		Cancels: make(map[string]context.CancelFunc),
 	}
-	mgr.Register(xds.Controller(endpointsMapper, deps.ProxyUpdater, deps.TrustBundleFetcher, deps.LeafCertManager, leafMapper, leafCancels, deps.Datacenter))
+	mgr.Register(xds.Controller(endpointsMapper, deps.ProxyUpdater, deps.TrustBundleFetcher, deps.LeafCertManager, leafMapper, leafCancels, deps.LocalDatacenter))
 
 	destinationsCache := sidecarproxycache.NewDestinationsCache()
 	proxyCfgCache := sidecarproxycache.NewProxyConfigurationCache()
