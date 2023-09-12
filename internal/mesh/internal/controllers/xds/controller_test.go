@@ -442,6 +442,19 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 		Port: "mesh",
 	}
 
+	oldVersion := suite.fooProxyStateTemplate.Version
+	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
+			RequiredEndpoints:        suite.fooEndpointRefs,
+			ProxyState:               &pbmesh.ProxyState{},
+			RequiredLeafCertificates: suite.fooLeafRefs,
+		}).
+		Write(suite.T(), suite.client)
+
+	retry.Run(suite.T(), func(r *retry.R) {
+		suite.client.RequireVersionChanged(r, fooProxyStateTemplate.Id, oldVersion)
+	})
+
 	// Update the expected endpoints with this new endpoints.
 	suite.expectedFooProxyStateEndpoints["test-cluster-2"] = &pbproxystate.Endpoints{
 		Endpoints: []*pbproxystate.Endpoint{
