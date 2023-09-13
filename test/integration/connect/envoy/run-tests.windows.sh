@@ -605,12 +605,10 @@ function suite_teardown {
 
 function run_containers {
   echo "Starting containers"
-  echo $(date)
   echo $@
   for name in $@ ; do
     echo "Starting container"
     echo $name
-    echo $(date)
     run_container $name
   done
   echo "Done running containers"

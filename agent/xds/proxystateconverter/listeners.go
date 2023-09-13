@@ -1009,7 +1009,6 @@ func (s *Converter) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name s
 		if l7Dest == nil {
 			return nil, fmt.Errorf("l7 destination on inbound listener should not be empty")
 		}
-		l7Dest.AddEmptyIntention = true
 
 		// TODO(proxystate): L7 Intentions and JWT Auth will be added in the future.
 		//jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
@@ -1053,8 +1052,7 @@ func (s *Converter) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name s
 			l4Dest.MaxInboundConnections = uint64(cfg.MaxInboundConnections)
 		}
 
-		// TODO(proxystate): Intentions will be added to l4 destination in the future. This is currently done in finalizePublicListenerFromConfig.
-		l4Dest.AddEmptyIntention = true
+		l4Dest.TrafficPermissions = &pbproxystate.L4TrafficPermissions{}
 	}
 	l.Routers = append(l.Routers, localAppRouter)
 
@@ -1575,7 +1573,7 @@ func (g *Converter) makeL7Destination(opts destinationOpts) (*pbproxystate.L7Des
 	// access and that every filter chain uses our TLS certs.
 	if len(opts.httpAuthzFilters) > 0 {
 		// TODO(proxystate) support intentions in the future
-		dest.Intentions = make([]*pbproxystate.L7Intention, 0)
+		dest.TrafficPermissions = &pbproxystate.L7TrafficPermissions{}
 		//cfg.HttpFilters = append(opts.httpAuthzFilters, cfg.HttpFilters...)
 	}
 

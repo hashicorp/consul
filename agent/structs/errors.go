@@ -19,6 +19,10 @@ const (
 	errServiceNotFound            = "Service not found: "
 	errQueryNotFound              = "Query not found"
 	errLeaderNotTracked           = "Raft leader not found in server lookup mapping"
+	errConnectNotEnabled          = "Connect must be enabled in order to use this endpoint"
+	errRateLimited                = "Rate limit reached, try again later" // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
+	errNotPrimaryDatacenter       = "not the primary datacenter"
+	errStateReadOnly              = "CA Provider State is read-only"
 )
 
 var (
@@ -31,6 +35,10 @@ var (
 	ErrDCNotAvailable             = errors.New(errDCNotAvailable)
 	ErrQueryNotFound              = errors.New(errQueryNotFound)
 	ErrLeaderNotTracked           = errors.New(errLeaderNotTracked)
+	ErrConnectNotEnabled          = errors.New(errConnectNotEnabled)
+	ErrRateLimited                = errors.New(errRateLimited) // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
+	ErrNotPrimaryDatacenter       = errors.New(errNotPrimaryDatacenter)
+	ErrStateReadOnly              = errors.New(errStateReadOnly)
 )
 
 func IsErrNoDCPath(err error) bool {

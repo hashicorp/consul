@@ -54,33 +54,13 @@ func (id SpiffeIDService) uriPath() string {
 	return path
 }
 
-// SpiffeIDWorkloadIdentity is the structure to represent the SPIFFE ID for a workload identity.
-type SpiffeIDWorkloadIdentity struct {
-	Host      string
-	Partition string
-	Namespace string
-	Identity  string
-}
-
-func (id SpiffeIDWorkloadIdentity) URI() *url.URL {
-	var result url.URL
-	result.Scheme = "spiffe"
-	result.Host = id.Host
-	result.Path = fmt.Sprintf("/ap/%s/ns/%s/identity/%s",
-		id.Partition,
-		id.Namespace,
-		id.Identity,
-	)
-	return &result
-}
-
 // SpiffeIDFromIdentityRef creates the SPIFFE ID from a workload identity.
 // TODO (ishustava): make sure ref type is workload identity.
 func SpiffeIDFromIdentityRef(trustDomain string, ref *pbresource.Reference) string {
 	return SpiffeIDWorkloadIdentity{
-		Host:      trustDomain,
-		Partition: ref.Tenancy.Partition,
-		Namespace: ref.Tenancy.Namespace,
-		Identity:  ref.Name,
+		TrustDomain:      trustDomain,
+		Partition:        ref.Tenancy.Partition,
+		Namespace:        ref.Tenancy.Namespace,
+		WorkloadIdentity: ref.Name,
 	}.URI().String()
 }

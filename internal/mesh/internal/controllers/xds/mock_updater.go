@@ -55,13 +55,13 @@ func (m *mockUpdater) PushChange(id *pbresource.ID, snapshot proxysnapshot.Proxy
 	return nil
 }
 
-func (m *mockUpdater) ProxyConnectedToServer(_ *pbresource.ID) bool {
+func (m *mockUpdater) ProxyConnectedToServer(_ *pbresource.ID) (string, bool) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	if m.notConnected {
-		return false
+		return "", false
 	}
-	return true
+	return "atoken", true
 }
 
 func (m *mockUpdater) EventChannel() chan controller.Event {
@@ -87,6 +87,16 @@ func (p *mockUpdater) GetEndpoints(name string) map[string]*pbproxystate.Endpoin
 	ps, ok := p.latestPs[name]
 	if ok {
 		return ps.(*proxytracker.ProxyState).Endpoints
+	}
+	return nil
+}
+
+func (p *mockUpdater) GetLeafs(name string) map[string]*pbproxystate.LeafCertificate {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	ps, ok := p.latestPs[name]
+	if ok {
+		return ps.(*proxytracker.ProxyState).LeafCertificates
 	}
 	return nil
 }
