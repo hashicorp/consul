@@ -4,8 +4,8 @@
 package sidecarproxycache
 
 import (
-	auth "github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -20,7 +20,7 @@ type IdentitiesCache struct {
 
 func NewIdentitiesCache() *IdentitiesCache {
 	return &IdentitiesCache{
-		mapper: bimapper.New(types.ProxyStateTemplateType, auth.WorkloadIdentityType),
+		mapper: bimapper.New(meshapi.ProxyStateTemplateType, auth.WorkloadIdentityType),
 	}
 }
 

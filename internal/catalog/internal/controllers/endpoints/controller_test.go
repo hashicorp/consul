@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
@@ -64,14 +65,14 @@ func TestWorkloadsToEndpoints(t *testing.T) {
 	workloads := []*workloadData{
 		{
 			// this workload should result in an endpoints
-			resource: rtest.Resource(types.WorkloadType, "foo").
+			resource: rtest.Resource(catalogapi.WorkloadType, "foo").
 				WithData(t, workloadData1).
 				Build(),
 			workload: workloadData1,
 		},
 		{
 			// this workload should be filtered out
-			resource: rtest.Resource(types.WorkloadType, "bar").
+			resource: rtest.Resource(catalogapi.WorkloadType, "bar").
 				WithData(t, workloadData2).
 				Build(),
 			workload: workloadData2,
@@ -128,7 +129,7 @@ func TestWorkloadToEndpoint(t *testing.T) {
 	}
 
 	data := &workloadData{
-		resource: rtest.Resource(types.WorkloadType, "foo").
+		resource: rtest.Resource(catalogapi.WorkloadType, "foo").
 			WithData(t, workload).
 			Build(),
 		workload: workload,
@@ -176,7 +177,7 @@ func TestWorkloadToEndpoint_AllAddressesFiltered(t *testing.T) {
 	}
 
 	data := &workloadData{
-		resource: rtest.Resource(types.WorkloadType, "foo").
+		resource: rtest.Resource(catalogapi.WorkloadType, "foo").
 			WithData(t, workload).
 			Build(),
 		workload: workload,
@@ -205,7 +206,7 @@ func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
 	}
 
 	data := &workloadData{
-		resource: rtest.Resource(types.WorkloadType, "foo").
+		resource: rtest.Resource(catalogapi.WorkloadType, "foo").
 			WithData(t, workload).
 			Build(),
 		workload: workload,
@@ -292,11 +293,11 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 
 	cases := map[string]testCase{
 		"no-status": {
-			res:      rtest.Resource(types.WorkloadType, "foo").Build(),
+			res:      rtest.Resource(catalogapi.WorkloadType, "foo").Build(),
 			expected: pbcatalog.Health_HEALTH_CRITICAL,
 		},
 		"condition-not-found": {
-			res: rtest.Resource(types.WorkloadType, "foo").
+			res: rtest.Resource(catalogapi.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -310,7 +311,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_CRITICAL,
 		},
 		"invalid-reason": {
-			res: rtest.Resource(types.WorkloadType, "foo").
+			res: rtest.Resource(catalogapi.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -324,7 +325,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_CRITICAL,
 		},
 		"passing": {
-			res: rtest.Resource(types.WorkloadType, "foo").
+			res: rtest.Resource(catalogapi.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -338,7 +339,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_PASSING,
 		},
 		"warning": {
-			res: rtest.Resource(types.WorkloadType, "foo").
+			res: rtest.Resource(catalogapi.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -352,7 +353,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_WARNING,
 		},
 		"critical": {
-			res: rtest.Resource(types.WorkloadType, "foo").
+			res: rtest.Resource(catalogapi.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -366,7 +367,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_CRITICAL,
 		},
 		"maintenance": {
-			res: rtest.Resource(types.WorkloadType, "foo").
+			res: rtest.Resource(catalogapi.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -434,11 +435,11 @@ func (suite *controllerSuite) TestReconcile_ServiceNotFound() {
 
 	// generate a workload resource to use for checking if it maps
 	// to a service endpoints object
-	workload := rtest.Resource(types.WorkloadType, "foo").Build()
+	workload := rtest.Resource(catalogapi.WorkloadType, "foo").Build()
 
 	// ensure that the tracker knows about the service prior to
 	// calling reconcile so that we can ensure it removes tracking
-	id := rtest.Resource(types.ServiceEndpointsType, "not-found").ID()
+	id := rtest.Resource(catalogapi.ServiceEndpointsType, "not-found").ID()
 	suite.tracker.TrackIDForSelector(id, &pbcatalog.WorkloadSelector{Prefixes: []string{""}})
 
 	// verify that mapping the workload to service endpoints returns a
@@ -461,7 +462,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_NoEndpoints() {
 	// managed. Additionally, with no endpoints pre-existing it will
 	// not attempt to delete them.
 
-	service := rtest.Resource(types.ServiceType, "test").
+	service := rtest.Resource(catalogapi.ServiceType, "test").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -469,7 +470,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_NoEndpoints() {
 		}).
 		Write(suite.T(), suite.client)
 
-	endpointsID := rtest.Resource(types.ServiceEndpointsType, "test").ID()
+	endpointsID := rtest.Resource(catalogapi.ServiceEndpointsType, "test").ID()
 
 	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
 	require.NoError(suite.T(), err)
@@ -482,7 +483,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_ManagedEndpoints() {
 	// to unmanaged endpoints for a service, any already generated managed endpoints
 	// get deleted.
 
-	service := rtest.Resource(types.ServiceType, "test").
+	service := rtest.Resource(catalogapi.ServiceType, "test").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -490,7 +491,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_ManagedEndpoints() {
 		}).
 		Write(suite.T(), suite.client)
 
-	endpoints := rtest.Resource(types.ServiceEndpointsType, "test").
+	endpoints := rtest.Resource(catalogapi.ServiceEndpointsType, "test").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
 		// this marks these endpoints as under management
 		WithMeta(endpointsMetaManagedBy, StatusKey).
@@ -509,7 +510,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_UnmanagedEndpoints() {
 	// doesn't have its endpoints managed, that we do not delete any unmanaged
 	// ServiceEndpoints resource that the user would have manually written.
 
-	service := rtest.Resource(types.ServiceType, "test").
+	service := rtest.Resource(catalogapi.ServiceType, "test").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -517,7 +518,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_UnmanagedEndpoints() {
 		}).
 		Write(suite.T(), suite.client)
 
-	endpoints := rtest.Resource(types.ServiceEndpointsType, "test").
+	endpoints := rtest.Resource(catalogapi.ServiceEndpointsType, "test").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
 		Write(suite.T(), suite.client)
 
@@ -533,7 +534,7 @@ func (suite *controllerSuite) TestReconcile_Managed_NoPreviousEndpoints() {
 	// This test's purpose is to ensure the managed endpoint generation occurs
 	// as expected when there are no pre-existing endpoints.
 
-	service := rtest.Resource(types.ServiceType, "test").
+	service := rtest.Resource(catalogapi.ServiceType, "test").
 		WithData(suite.T(), &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{
 				Prefixes: []string{""},
@@ -544,9 +545,9 @@ func (suite *controllerSuite) TestReconcile_Managed_NoPreviousEndpoints() {
 		}).
 		Write(suite.T(), suite.client)
 
-	endpointsID := rtest.Resource(types.ServiceEndpointsType, "test").ID()
+	endpointsID := rtest.Resource(catalogapi.ServiceEndpointsType, "test").ID()
 
-	rtest.Resource(types.WorkloadType, "test-workload").
+	rtest.Resource(catalogapi.WorkloadType, "test-workload").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
 			Ports: map[string]*pbcatalog.WorkloadPort{
@@ -578,7 +579,7 @@ func (suite *controllerSuite) TestReconcile_Managed_ExistingEndpoints() {
 	// This test's purpose is to ensure that when the current set of endpoints
 	// differs from any prior set of endpoints that the resource gets rewritten.
 
-	service := rtest.Resource(types.ServiceType, "test").
+	service := rtest.Resource(catalogapi.ServiceType, "test").
 		WithData(suite.T(), &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{
 				Prefixes: []string{""},
@@ -589,12 +590,12 @@ func (suite *controllerSuite) TestReconcile_Managed_ExistingEndpoints() {
 		}).
 		Write(suite.T(), suite.client)
 
-	endpoints := rtest.Resource(types.ServiceEndpointsType, "test").
+	endpoints := rtest.Resource(catalogapi.ServiceEndpointsType, "test").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
 		WithOwner(service.Id).
 		Write(suite.T(), suite.client)
 
-	rtest.Resource(types.WorkloadType, "test-workload").
+	rtest.Resource(catalogapi.WorkloadType, "test-workload").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
 			Ports: map[string]*pbcatalog.WorkloadPort{
@@ -631,7 +632,7 @@ func (suite *controllerSuite) TestController() {
 
 	// Add a service - there are no workloads so an empty endpoints
 	// object should be created.
-	service := rtest.Resource(types.ServiceType, "api").
+	service := rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{
 				Prefixes: []string{"api-"},
@@ -648,13 +649,13 @@ func (suite *controllerSuite) TestController() {
 	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionManaged)
 
 	// Check that the endpoints resource exists and contains 0 endpoints
-	endpointsID := rtest.Resource(types.ServiceEndpointsType, "api").ID()
+	endpointsID := rtest.Resource(catalogapi.ServiceEndpointsType, "api").ID()
 	endpoints := suite.client.RequireResourceExists(suite.T(), endpointsID)
 	suite.requireEndpoints(endpoints)
 
 	// Now add a workload that would be selected by the service. Leave
 	// the workload in a state where its health has not been reconciled
-	workload := rtest.Resource(types.WorkloadType, "api-1").
+	workload := rtest.Resource(catalogapi.WorkloadType, "api-1").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
 			Ports: map[string]*pbcatalog.WorkloadPort{
@@ -716,7 +717,7 @@ func (suite *controllerSuite) TestController() {
 	// rewrite the service to add more selection criteria. This should trigger
 	// reconciliation but shouldn't result in updating the endpoints because
 	// the actual list of currently selected workloads has not changed
-	rtest.Resource(types.ServiceType, "api").
+	rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{
 				Prefixes: []string{"api-"},
@@ -735,7 +736,7 @@ func (suite *controllerSuite) TestController() {
 	suite.client.RequireVersionUnchanged(suite.T(), endpointsID, endpoints.Version)
 
 	// Update the service.
-	updatedService := rtest.Resource(types.ServiceType, "api").
+	updatedService := rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{
 				Prefixes: []string{"api-"},
@@ -760,7 +761,7 @@ func (suite *controllerSuite) TestController() {
 	})
 
 	// Move the service to having unmanaged endpoints
-	rtest.Resource(types.ServiceType, "api").
+	rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},

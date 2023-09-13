@@ -8,18 +8,18 @@ import (
 
 	"github.com/oklog/ulid"
 
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
 func gammaSortRouteRules(node *inputRouteNode) {
 	switch {
-	case resource.EqualType(node.RouteType, types.HTTPRouteType):
+	case resource.EqualType(node.RouteType, meshapi.HTTPRouteType):
 		gammaSortHTTPRouteRules(node.HTTPRules)
-	case resource.EqualType(node.RouteType, types.GRPCRouteType):
+	case resource.EqualType(node.RouteType, meshapi.GRPCRouteType):
 		// TODO(rb): do a determinstic sort of something
-	case resource.EqualType(node.RouteType, types.TCPRouteType):
+	case resource.EqualType(node.RouteType, meshapi.TCPRouteType):
 		// TODO(rb): do a determinstic sort of something
 	default:
 		panic("impossible")

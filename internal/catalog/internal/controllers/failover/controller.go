@@ -6,6 +6,7 @@ package failover
 import (
 	"context"
 
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -35,8 +36,8 @@ func FailoverPolicyController(mapper FailoverMapper) controller.Controller {
 	if mapper == nil {
 		panic("No FailoverMapper was provided to the FailoverPolicyController constructor")
 	}
-	return controller.ForType(types.FailoverPolicyType).
-		WithWatch(types.ServiceType, mapper.MapService).
+	return controller.ForType(catalogapi.FailoverPolicyType).
+		WithWatch(catalogapi.ServiceType, mapper.MapService).
 		WithReconciler(newFailoverPolicyReconciler(mapper))
 }
 
@@ -76,7 +77,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 
 	// FailoverPolicy is name-aligned with the Service it controls.
 	serviceID := &pbresource.ID{
-		Type:    types.ServiceType,
+		Type:    catalogapi.ServiceType,
 		Tenancy: failoverPolicyID.Tenancy,
 		Name:    failoverPolicyID.Name,
 	}
@@ -269,7 +270,7 @@ func serviceHasPort(
 
 func isServiceType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, types.ServiceType):
+	case resource.EqualType(typ, catalogapi.ServiceType):
 		return true
 	}
 	return false

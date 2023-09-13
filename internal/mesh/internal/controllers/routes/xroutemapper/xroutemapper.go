@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -45,15 +47,15 @@ type Mapper struct {
 // New creates a new Mapper.
 func New() *Mapper {
 	return &Mapper{
-		boundRefMapper: bimapper.NewWithWildcardLinkType(types.ComputedRoutesType),
+		boundRefMapper: bimapper.NewWithWildcardLinkType(meshapi.ComputedRoutesType),
 
-		httpRouteParentMapper: bimapper.New(types.HTTPRouteType, catalog.ServiceType),
-		grpcRouteParentMapper: bimapper.New(types.GRPCRouteType, catalog.ServiceType),
-		tcpRouteParentMapper:  bimapper.New(types.TCPRouteType, catalog.ServiceType),
+		httpRouteParentMapper: bimapper.New(meshapi.HTTPRouteType, catalogapi.ServiceType),
+		grpcRouteParentMapper: bimapper.New(meshapi.GRPCRouteType, catalogapi.ServiceType),
+		tcpRouteParentMapper:  bimapper.New(meshapi.TCPRouteType, catalogapi.ServiceType),
 
-		httpRouteBackendMapper: bimapper.New(types.HTTPRouteType, catalog.ServiceType),
-		grpcRouteBackendMapper: bimapper.New(types.GRPCRouteType, catalog.ServiceType),
-		tcpRouteBackendMapper:  bimapper.New(types.TCPRouteType, catalog.ServiceType),
+		httpRouteBackendMapper: bimapper.New(meshapi.HTTPRouteType, catalogapi.ServiceType),
+		grpcRouteBackendMapper: bimapper.New(meshapi.GRPCRouteType, catalogapi.ServiceType),
+		tcpRouteBackendMapper:  bimapper.New(meshapi.TCPRouteType, catalogapi.ServiceType),
 
 		failMapper: catalog.NewFailoverPolicyMapper(),
 	}
@@ -61,11 +63,11 @@ func New() *Mapper {
 
 func (m *Mapper) getRouteBiMappers(typ *pbresource.Type) (parent, backend *bimapper.Mapper) {
 	switch {
-	case resource.EqualType(types.HTTPRouteType, typ):
+	case resource.EqualType(meshapi.HTTPRouteType, typ):
 		return m.httpRouteParentMapper, m.httpRouteBackendMapper
-	case resource.EqualType(types.GRPCRouteType, typ):
+	case resource.EqualType(meshapi.GRPCRouteType, typ):
 		return m.grpcRouteParentMapper, m.grpcRouteBackendMapper
-	case resource.EqualType(types.TCPRouteType, typ):
+	case resource.EqualType(meshapi.TCPRouteType, typ):
 		return m.tcpRouteParentMapper, m.tcpRouteBackendMapper
 	default:
 		panic("unknown xroute type: " + resource.TypeToString(typ))
@@ -204,7 +206,7 @@ func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *
 		refs = append(refs, ref)
 	}
 
-	return controller.MakeRequests(types.ComputedRoutesType, refs), nil
+	return controller.MakeRequests(meshapi.ComputedRoutesType, refs), nil
 }
 
 func (m *Mapper) MapFailoverPolicy(
@@ -225,7 +227,7 @@ func (m *Mapper) MapFailoverPolicy(
 
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
-	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
+	svcID := resource.ReplaceType(catalogapi.ServiceType, res.Id)
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -251,7 +253,7 @@ func (m *Mapper) MapDestinationPolicy(
 
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
-	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
+	svcID := resource.ReplaceType(catalogapi.ServiceType, res.Id)
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -269,7 +271,7 @@ func (m *Mapper) MapService(
 
 	// (case 2) First find all failover policies that have a reference to our input service.
 	failPolicyIDs := m.failMapper.FailoverIDsByService(res.Id)
-	effectiveServiceIDs := sliceReplaceType(failPolicyIDs, catalog.ServiceType)
+	effectiveServiceIDs := sliceReplaceType(failPolicyIDs, catalogapi.ServiceType)
 
 	// (case 1) Do the direct mapping also.
 	effectiveServiceIDs = append(effectiveServiceIDs, res.Id)
@@ -294,7 +296,7 @@ func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(svcID *pbresource
 
 	// return 1 hit for the name aligned mesh config
 	primaryReq := controller.Request{
-		ID: resource.ReplaceType(types.ComputedRoutesType, svcID),
+		ID: resource.ReplaceType(meshapi.ComputedRoutesType, svcID),
 	}
 
 	svcRef := resource.Reference(svcID, "")
@@ -313,7 +315,7 @@ func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(svcID *pbresource
 		svcRefs := m.ParentServiceRefsByRouteID(routeID)
 
 		out = append(out, controller.MakeRequests(
-			types.ComputedRoutesType,
+			meshapi.ComputedRoutesType,
 			svcRefs,
 		)...)
 	}

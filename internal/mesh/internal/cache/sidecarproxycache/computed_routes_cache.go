@@ -4,7 +4,8 @@
 package sidecarproxycache
 
 import (
-	"github.com/hashicorp/consul/internal/catalog"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
@@ -17,7 +18,7 @@ type ComputedRoutesCache struct {
 
 func NewComputedRoutesCache() *ComputedRoutesCache {
 	return &ComputedRoutesCache{
-		mapper: bimapper.New(types.ComputedRoutesType, catalog.ServiceType),
+		mapper: bimapper.New(meshapi.ComputedRoutesType, catalogapi.ServiceType),
 	}
 }
 

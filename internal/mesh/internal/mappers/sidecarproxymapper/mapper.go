@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/internal/catalog"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -48,7 +48,7 @@ func mapSelectorToProxyStateTemplates(ctx context.Context,
 
 	for _, prefix := range selector.Prefixes {
 		resp, err := client.List(ctx, &pbresource.ListRequest{
-			Type:       catalog.WorkloadType,
+			Type:       catalogapi.WorkloadType,
 			Tenancy:    tenancy,
 			NamePrefix: prefix,
 		})
@@ -59,7 +59,7 @@ func mapSelectorToProxyStateTemplates(ctx context.Context,
 			return nil, fmt.Errorf("no workloads found")
 		}
 		for _, r := range resp.Resources {
-			id := resource.ReplaceType(types.ProxyStateTemplateType, r.Id)
+			id := resource.ReplaceType(meshapi.ProxyStateTemplateType, r.Id)
 			result = append(result, controller.Request{
 				ID: id,
 			})
@@ -71,7 +71,7 @@ func mapSelectorToProxyStateTemplates(ctx context.Context,
 		id := &pbresource.ID{
 			Name:    name,
 			Tenancy: tenancy,
-			Type:    types.ProxyStateTemplateType,
+			Type:    meshapi.ProxyStateTemplateType,
 		}
 		result = append(result, controller.Request{
 			ID: id,

@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -23,9 +23,9 @@ func TestIdentitiesCache(t *testing.T) {
 	identityID2 := resourcetest.Resource(auth.WorkloadIdentityType, "workload-identity-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
-	proxyID1 := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-1").
+	proxyID1 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "service-workload-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	proxyID2 := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-2").
+	proxyID2 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "service-workload-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
 	// Empty cache

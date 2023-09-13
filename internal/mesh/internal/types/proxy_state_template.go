@@ -9,29 +9,16 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	ProxyStateTemplateKind = "ProxyStateTemplate"
-)
-
-var (
-	ProxyStateTemplateV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         ProxyStateTemplateKind,
-	}
-
-	ProxyStateTemplateType = ProxyStateTemplateV2Beta1Type
-)
-
 func RegisterProxyStateTemplate(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ProxyStateTemplateV2Beta1Type,
+		Type:     meshapi.ProxyStateTemplateV2Beta1Type,
 		Proto:    &pbmesh.ProxyStateTemplate{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateProxyStateTemplate,

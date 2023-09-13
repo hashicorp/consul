@@ -8,28 +8,15 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	TCPRouteKind = "TCPRoute"
-)
-
-var (
-	TCPRouteV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         TCPRouteKind,
-	}
-
-	TCPRouteType = TCPRouteV2Beta1Type
-)
-
 func RegisterTCPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     TCPRouteV2Beta1Type,
+		Type:     meshapi.TCPRouteV2Beta1Type,
 		Proto:    &pbmesh.TCPRoute{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateTCPRoute,

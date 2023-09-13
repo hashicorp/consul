@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
@@ -39,9 +40,9 @@ func TestMapComputedTrafficPermissionsToProxyStateTemplate(t *testing.T) {
 	identityID1 := resourcetest.Resource(auth.WorkloadIdentityType, "workload-identity-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
-	proxyID1 := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-1").
+	proxyID1 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "service-workload-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	proxyID2 := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-2").
+	proxyID2 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "service-workload-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
 	i.TrackPair(identityID1, proxyID1)

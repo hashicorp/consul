@@ -7,29 +7,16 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	UpstreamsKind = "Upstreams"
-)
-
-var (
-	UpstreamsV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         UpstreamsKind,
-	}
-
-	UpstreamsType = UpstreamsV2Beta1Type
-)
-
 func RegisterUpstreams(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     UpstreamsV2Beta1Type,
+		Type:     meshapi.UpstreamsV2Beta1Type,
 		Proto:    &pbmesh.Upstreams{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateUpstreams,

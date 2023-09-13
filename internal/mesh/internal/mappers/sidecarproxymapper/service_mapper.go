@@ -6,8 +6,8 @@ package sidecarproxymapper
 import (
 	"context"
 
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -21,7 +21,7 @@ func (m *Mapper) MapServiceToProxyStateTemplate(ctx context.Context, rt controll
 		return nil, err
 	}
 
-	return controller.MakeRequests(types.ProxyStateTemplateType, ids), nil
+	return controller.MakeRequests(meshapi.ProxyStateTemplateType, ids), nil
 }
 
 // mapServiceThroughDestinationsToProxyStateTemplates takes an explicit
@@ -76,7 +76,7 @@ func (m *Mapper) listAllProxyStateTemplatesTemporarily(ctx context.Context, rt c
 	// This will generate duplicate events for proxies already added above,
 	// however, we expect that the controller runtime will de-dup for us.
 	rsp, err := rt.Client.List(ctx, &pbresource.ListRequest{
-		Type: types.ProxyStateTemplateType,
+		Type: meshapi.ProxyStateTemplateType,
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: tenancy.Partition,

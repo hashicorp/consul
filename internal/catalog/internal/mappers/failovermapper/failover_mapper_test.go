@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -23,43 +24,43 @@ func TestMapper_Tracking(t *testing.T) {
 	types.Register(registry)
 
 	// Create an advance pointer to some services.
-	randoSvc := rtest.Resource(types.ServiceType, "rando").
+	randoSvc := rtest.Resource(catalogapi.ServiceType, "rando").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, randoSvc)
 
-	apiSvc := rtest.Resource(types.ServiceType, "api").
+	apiSvc := rtest.Resource(catalogapi.ServiceType, "api").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, apiSvc)
 
-	fooSvc := rtest.Resource(types.ServiceType, "foo").
+	fooSvc := rtest.Resource(catalogapi.ServiceType, "foo").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, fooSvc)
 
-	barSvc := rtest.Resource(types.ServiceType, "bar").
+	barSvc := rtest.Resource(catalogapi.ServiceType, "bar").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, barSvc)
 
-	wwwSvc := rtest.Resource(types.ServiceType, "www").
+	wwwSvc := rtest.Resource(catalogapi.ServiceType, "www").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, wwwSvc)
 
-	fail1 := rtest.Resource(types.FailoverPolicyType, "api").
+	fail1 := rtest.Resource(catalogapi.FailoverPolicyType, "api").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(types.ServiceType, "foo")},
-					{Ref: newRef(types.ServiceType, "bar")},
+					{Ref: newRef(catalogapi.ServiceType, "foo")},
+					{Ref: newRef(catalogapi.ServiceType, "bar")},
 				},
 			},
 		}).
@@ -67,13 +68,13 @@ func TestMapper_Tracking(t *testing.T) {
 	rtest.ValidateAndNormalize(t, registry, fail1)
 	failDec1 := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail1)
 
-	fail2 := rtest.Resource(types.FailoverPolicyType, "www").
+	fail2 := rtest.Resource(catalogapi.FailoverPolicyType, "www").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(types.ServiceType, "www"), Datacenter: "dc2"},
-					{Ref: newRef(types.ServiceType, "foo")},
+					{Ref: newRef(catalogapi.ServiceType, "www"), Datacenter: "dc2"},
+					{Ref: newRef(catalogapi.ServiceType, "foo")},
 				},
 			},
 		}).
@@ -81,12 +82,12 @@ func TestMapper_Tracking(t *testing.T) {
 	rtest.ValidateAndNormalize(t, registry, fail2)
 	failDec2 := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail2)
 
-	fail1_updated := rtest.Resource(types.FailoverPolicyType, "api").
+	fail1_updated := rtest.Resource(catalogapi.FailoverPolicyType, "api").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(types.ServiceType, "bar")},
+					{Ref: newRef(catalogapi.ServiceType, "bar")},
 				},
 			},
 		}).

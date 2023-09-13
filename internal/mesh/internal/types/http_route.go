@@ -11,28 +11,15 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	HTTPRouteKind = "HTTPRoute"
-)
-
-var (
-	HTTPRouteV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         HTTPRouteKind,
-	}
-
-	HTTPRouteType = HTTPRouteV2Beta1Type
-)
-
 func RegisterHTTPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HTTPRouteV2Beta1Type,
+		Type:     meshapi.HTTPRouteV2Beta1Type,
 		Proto:    &pbmesh.HTTPRoute{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateHTTPRoute,

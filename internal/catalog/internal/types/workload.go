@@ -9,28 +9,15 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	WorkloadKind = "Workload"
-)
-
-var (
-	WorkloadV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         WorkloadKind,
-	}
-
-	WorkloadType = WorkloadV2Beta1Type
-)
-
 func RegisterWorkload(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     WorkloadV2Beta1Type,
+		Type:     catalogapi.WorkloadV2Beta1Type,
 		Proto:    &pbcatalog.Workload{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateWorkload,

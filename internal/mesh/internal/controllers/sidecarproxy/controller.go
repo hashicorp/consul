@@ -9,8 +9,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
@@ -86,12 +87,12 @@ func Controller(
 							[implicit/temp]: trigger all
 	*/
 
-	return controller.ForType(types.ProxyStateTemplateType).
-		WithWatch(catalog.ServiceType, mapper.MapServiceToProxyStateTemplate).
-		WithWatch(catalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
-		WithWatch(types.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
-		WithWatch(types.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
-		WithWatch(types.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
+	return controller.ForType(meshapi.ProxyStateTemplateType).
+		WithWatch(catalogapi.ServiceType, mapper.MapServiceToProxyStateTemplate).
+		WithWatch(catalogapi.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
+		WithWatch(meshapi.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
+		WithWatch(meshapi.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
+		WithWatch(meshapi.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
 		WithWatch(auth.ComputedTrafficPermissionsType, mapper.MapComputedTrafficPermissionsToProxyStateTemplate).
 		WithReconciler(&reconciler{
 			destinationsCache:   destinationsCache,
@@ -129,7 +130,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	)
 
 	// Check if the workload exists.
-	workloadID := resource.ReplaceType(catalog.WorkloadType, req.ID)
+	workloadID := resource.ReplaceType(catalogapi.WorkloadType, req.ID)
 	workload, err := dataFetcher.FetchWorkload(ctx, workloadID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated workload", "error", err)

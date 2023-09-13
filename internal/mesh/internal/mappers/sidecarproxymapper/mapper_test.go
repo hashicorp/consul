@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -30,20 +32,20 @@ func TestMapWorkloadsBySelector(t *testing.T) {
 		Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
 		Ports:     map[string]*pbcatalog.WorkloadPort{"p1": {Port: 8080}},
 	}
-	w1 := resourcetest.Resource(catalog.WorkloadType, "w1").
+	w1 := resourcetest.Resource(catalogapi.WorkloadType, "w1").
 		WithData(t, workloadData).
 		Write(t, client).Id
-	w2 := resourcetest.Resource(catalog.WorkloadType, "w2").
+	w2 := resourcetest.Resource(catalogapi.WorkloadType, "w2").
 		WithData(t, workloadData).
 		Write(t, client).Id
-	w3 := resourcetest.Resource(catalog.WorkloadType, "prefix-w3").
+	w3 := resourcetest.Resource(catalogapi.WorkloadType, "prefix-w3").
 		WithData(t, workloadData).
 		Write(t, client).Id
-	w4 := resourcetest.Resource(catalog.WorkloadType, "prefix-w4").
+	w4 := resourcetest.Resource(catalogapi.WorkloadType, "prefix-w4").
 		WithData(t, workloadData).
 		Write(t, client).Id
 	// This workload should not be used as it's not selected by the workload selector.
-	resourcetest.Resource(catalog.WorkloadType, "not-selected-workload").
+	resourcetest.Resource(catalogapi.WorkloadType, "not-selected-workload").
 		WithData(t, workloadData).
 		Write(t, client)
 
@@ -52,10 +54,10 @@ func TestMapWorkloadsBySelector(t *testing.T) {
 		Prefixes: []string{"prefix"},
 	}
 	expReqs := []controller.Request{
-		{ID: resource.ReplaceType(types.ProxyStateTemplateType, w1)},
-		{ID: resource.ReplaceType(types.ProxyStateTemplateType, w2)},
-		{ID: resource.ReplaceType(types.ProxyStateTemplateType, w3)},
-		{ID: resource.ReplaceType(types.ProxyStateTemplateType, w4)},
+		{ID: resource.ReplaceType(meshapi.ProxyStateTemplateType, w1)},
+		{ID: resource.ReplaceType(meshapi.ProxyStateTemplateType, w2)},
+		{ID: resource.ReplaceType(meshapi.ProxyStateTemplateType, w3)},
+		{ID: resource.ReplaceType(meshapi.ProxyStateTemplateType, w4)},
 	}
 
 	var cachedReqs []controller.Request

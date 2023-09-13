@@ -10,7 +10,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/internal/catalog"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
@@ -26,13 +27,13 @@ func Controller() controller.Controller {
 	r := &routesReconciler{
 		mapper: mapper,
 	}
-	return controller.ForType(types.ComputedRoutesType).
-		WithWatch(types.HTTPRouteType, mapper.MapHTTPRoute).
-		WithWatch(types.GRPCRouteType, mapper.MapGRPCRoute).
-		WithWatch(types.TCPRouteType, mapper.MapTCPRoute).
-		WithWatch(types.DestinationPolicyType, mapper.MapDestinationPolicy).
-		WithWatch(catalog.FailoverPolicyType, mapper.MapFailoverPolicy).
-		WithWatch(catalog.ServiceType, mapper.MapService).
+	return controller.ForType(meshapi.ComputedRoutesType).
+		WithWatch(meshapi.HTTPRouteType, mapper.MapHTTPRoute).
+		WithWatch(meshapi.GRPCRouteType, mapper.MapGRPCRoute).
+		WithWatch(meshapi.TCPRouteType, mapper.MapTCPRoute).
+		WithWatch(meshapi.DestinationPolicyType, mapper.MapDestinationPolicy).
+		WithWatch(catalogapi.FailoverPolicyType, mapper.MapFailoverPolicy).
+		WithWatch(catalogapi.ServiceType, mapper.MapService).
 		WithReconciler(r)
 }
 

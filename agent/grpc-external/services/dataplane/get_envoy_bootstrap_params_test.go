@@ -16,6 +16,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
@@ -288,14 +290,14 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		tc.workloadData.Ports = map[string]*pbcatalog.WorkloadPort{
 			"tcp": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 		}
-		workloadResource := resourcetest.Resource(catalog.WorkloadType, "test-workload").
+		workloadResource := resourcetest.Resource(catalogapi.WorkloadType, "test-workload").
 			WithData(t, tc.workloadData).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			Write(t, resourceClient)
 
 		// Create any proxy cfg resources.
 		for i, cfg := range tc.proxyCfgs {
-			resourcetest.Resource(mesh.ProxyConfigurationType, fmt.Sprintf("proxy-cfg-%d", i)).
+			resourcetest.Resource(meshapi.ProxyConfigurationType, fmt.Sprintf("proxy-cfg-%d", i)).
 				WithData(t, cfg).
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				Write(t, resourceClient)
@@ -543,7 +545,7 @@ func TestGetEnvoyBootstrapParams_Error_EnableV2(t *testing.T) {
 		require.Equal(t, tc.expecteErrMsg, errStatus.Message())
 	}
 
-	workload := resourcetest.Resource(catalog.WorkloadType, "test-workload").
+	workload := resourcetest.Resource(catalogapi.WorkloadType, "test-workload").
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},

@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -19,23 +19,23 @@ func TestProxyConfigurationCache(t *testing.T) {
 	cache := NewProxyConfigurationCache()
 
 	// Create some proxy configurations.
-	proxyCfg1 := resourcetest.Resource(types.ProxyConfigurationType, "test-cfg-1").
+	proxyCfg1 := resourcetest.Resource(meshapi.ProxyConfigurationType, "test-cfg-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	proxyCfg2 := resourcetest.Resource(types.ProxyConfigurationType, "test-cfg-2").
+	proxyCfg2 := resourcetest.Resource(meshapi.ProxyConfigurationType, "test-cfg-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	proxyCfg3 := resourcetest.Resource(types.ProxyConfigurationType, "test-cfg-3").
+	proxyCfg3 := resourcetest.Resource(meshapi.ProxyConfigurationType, "test-cfg-3").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
 	// Create some proxy state templates.
-	p1 := resourcetest.Resource(types.ProxyStateTemplateType, "w-111").
+	p1 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "w-111").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	p2 := resourcetest.Resource(types.ProxyStateTemplateType, "w-222").
+	p2 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "w-222").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	p3 := resourcetest.Resource(types.ProxyStateTemplateType, "w-333").
+	p3 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "w-333").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	p4 := resourcetest.Resource(types.ProxyStateTemplateType, "w-444").
+	p4 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "w-444").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	p5 := resourcetest.Resource(types.ProxyStateTemplateType, "w-555").
+	p5 := resourcetest.Resource(meshapi.ProxyStateTemplateType, "w-555").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
 	// Track these and make sure there's some overlap.

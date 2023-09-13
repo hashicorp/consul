@@ -8,28 +8,15 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	DNSPolicyKind = "DNSPolicy"
-)
-
-var (
-	DNSPolicyV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         DNSPolicyKind,
-	}
-
-	DNSPolicyType = DNSPolicyV2Beta1Type
-)
-
 func RegisterDNSPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     DNSPolicyV2Beta1Type,
+		Type:     catalogapi.DNSPolicyV2Beta1Type,
 		Proto:    &pbcatalog.DNSPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,

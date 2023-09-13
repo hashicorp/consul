@@ -6,9 +6,11 @@ package types
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
 )
 
 func TestTypeRegistration(t *testing.T) {
@@ -17,14 +19,15 @@ func TestTypeRegistration(t *testing.T) {
 	// are correct as that would amount more or less to hardcoding structs
 	// from types.go a second time here.
 	requiredKinds := []string{
-		WorkloadKind,
-		ServiceKind,
-		ServiceEndpointsKind,
-		VirtualIPsKind,
-		NodeKind,
-		HealthStatusKind,
-		HealthChecksKind,
-		DNSPolicyKind,
+		catalogapi.WorkloadKind,
+		catalogapi.ServiceKind,
+		catalogapi.ServiceEndpointsKind,
+		catalogapi.NodeKind,
+		catalogapi.HealthStatusKind,
+		catalogapi.HealthChecksKind,
+		catalogapi.DNSPolicyKind,
+		// todo (ishustava): uncomment once we implement these
+		//catalogapi.VirtualIPsKind,
 	}
 
 	r := resource.NewRegistry()
@@ -33,8 +36,8 @@ func TestTypeRegistration(t *testing.T) {
 	for _, kind := range requiredKinds {
 		t.Run(kind, func(t *testing.T) {
 			registration, ok := r.Resolve(&pbresource.Type{
-				Group:        GroupName,
-				GroupVersion: CurrentVersion,
+				Group:        catalogapi.GroupName,
+				GroupVersion: catalogapi.CurrentVersion,
 				Kind:         kind,
 			})
 

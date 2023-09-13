@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -179,8 +179,8 @@ func (pt *ProxyTracker) validateWatchArgs(proxyID *pbresource.ID,
 	nodeName string) error {
 	if proxyID == nil {
 		return errors.New("proxyID is required")
-	} else if proxyID.GetType().GetKind() != types.ProxyStateTemplateType.Kind {
-		return fmt.Errorf("proxyID must be a %s", types.ProxyStateTemplateType.GetKind())
+	} else if proxyID.GetType().GetKind() != meshapi.ProxyStateTemplateType.Kind {
+		return fmt.Errorf("proxyID must be a %s", meshapi.ProxyStateTemplateType.GetKind())
 	} else if nodeName == "" {
 		return errors.New("nodeName is required")
 	}

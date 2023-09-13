@@ -7,18 +7,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/internal/catalog/internal/types"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func NodeHealthController() controller.Controller {
-	return controller.ForType(types.NodeType).
-		WithWatch(types.HealthStatusType, controller.MapOwnerFiltered(types.NodeType)).
+	return controller.ForType(catalogapi.NodeType).
+		WithWatch(catalogapi.HealthStatusType, controller.MapOwnerFiltered(catalogapi.NodeType)).
 		WithReconciler(&nodeHealthReconciler{})
 }
 
@@ -89,7 +90,7 @@ func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresour
 	health := pbcatalog.Health_HEALTH_PASSING
 
 	for _, res := range rsp.Resources {
-		if resource.EqualType(res.Id.Type, types.HealthStatusType) {
+		if resource.EqualType(res.Id.Type, catalogapi.HealthStatusType) {
 			var hs pbcatalog.HealthStatus
 			if err := res.Data.UnmarshalTo(&hs); err != nil {
 				// This should be impossible as the resource service + type validations the

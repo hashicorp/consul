@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
+	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
@@ -91,11 +93,11 @@ func (suite *meshControllerTestSuite) SetupTest() {
 				"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 			},
 		}
-		suite.dbWorkloadID = resourcetest.Resource(catalog.WorkloadType, "db-abc").
+		suite.dbWorkloadID = resourcetest.Resource(catalogapi.WorkloadType, "db-abc").
 			WithData(suite.T(), suite.dbWorkload).
 			Write(suite.T(), resourceClient).Id
 
-		suite.dbService = resourcetest.Resource(catalog.ServiceType, "db-service").
+		suite.dbService = resourcetest.Resource(catalogapi.ServiceType, "db-service").
 			WithData(suite.T(), &pbcatalog.Service{
 				Workloads:  &pbcatalog.WorkloadSelector{Names: []string{"db-abc"}},
 				VirtualIps: []string{"1.1.1.1"},
@@ -115,7 +117,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 				},
 			},
 		}
-		suite.dbEndpoints = resourcetest.Resource(catalog.ServiceEndpointsType, "db-service").
+		suite.dbEndpoints = resourcetest.Resource(catalogapi.ServiceEndpointsType, "db-service").
 			WithData(suite.T(), suite.dbEndpointsData).
 			Write(suite.T(), suite.client)
 
@@ -134,7 +136,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		},
 	}
 
-	suite.apiWorkloadID = resourcetest.Resource(catalog.WorkloadType, "api-abc").
+	suite.apiWorkloadID = resourcetest.Resource(catalogapi.WorkloadType, "api-abc").
 		WithData(suite.T(), suite.apiWorkload).
 		Write(suite.T(), resourceClient).Id
 
@@ -166,7 +168,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		WithData(suite.T(), suite.computedTrafficPermissionsData).
 		Write(suite.T(), resourceClient)
 
-	suite.apiService = resourcetest.Resource(catalog.ServiceType, "api-service").
+	suite.apiService = resourcetest.Resource(catalogapi.ServiceType, "api-service").
 		WithData(suite.T(), suite.apiServiceData).
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
@@ -180,7 +182,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 			},
 		},
 	}
-	suite.apiEndpoints = resourcetest.Resource(catalog.ServiceEndpointsType, "api-service").
+	suite.apiEndpoints = resourcetest.Resource(catalogapi.ServiceEndpointsType, "api-service").
 		WithData(suite.T(), suite.apiEndpointsData).
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
@@ -196,11 +198,11 @@ func (suite *meshControllerTestSuite) SetupTest() {
 			"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 		},
 	}
-	suite.webWorkload = resourcetest.Resource(catalog.WorkloadType, "web-def").
+	suite.webWorkload = resourcetest.Resource(catalogapi.WorkloadType, "web-def").
 		WithData(suite.T(), webWorkloadData).
 		Write(suite.T(), suite.client)
 
-	resourcetest.Resource(catalog.ServiceType, "web").
+	resourcetest.Resource(catalogapi.ServiceType, "web").
 		WithData(suite.T(), &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
 			Ports: []*pbcatalog.ServicePort{
@@ -209,7 +211,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 			}}).
 		Write(suite.T(), suite.client)
 
-	resourcetest.Resource(catalog.ServiceEndpointsType, "web").
+	resourcetest.Resource(catalogapi.ServiceEndpointsType, "web").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
 				{
@@ -235,11 +237,11 @@ func (suite *meshControllerTestSuite) TestReconcile_NoWorkload() {
 	// This test ensures that removed workloads are ignored and don't result
 	// in the creation of the proxy state template.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: resourceID(types.ProxyStateTemplateType, "not-found"),
+		ID: resourceID(meshapi.ProxyStateTemplateType, "not-found"),
 	})
 	require.NoError(suite.T(), err)
 
-	suite.client.RequireResourceNotFound(suite.T(), resourceID(types.ProxyStateTemplateType, "not-found"))
+	suite.client.RequireResourceNotFound(suite.T(), resourceID(meshapi.ProxyStateTemplateType, "not-found"))
 }
 
 func (suite *meshControllerTestSuite) TestReconcile_NonMeshWorkload() {
@@ -256,25 +258,25 @@ func (suite *meshControllerTestSuite) TestReconcile_NonMeshWorkload() {
 		},
 	}
 
-	resourcetest.Resource(catalog.WorkloadType, "test-non-mesh-api-workload").
+	resourcetest.Resource(catalogapi.WorkloadType, "test-non-mesh-api-workload").
 		WithData(suite.T(), nonMeshWorkload).
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: resourceID(types.ProxyStateTemplateType, "test-non-mesh-api-workload"),
+		ID: resourceID(meshapi.ProxyStateTemplateType, "test-non-mesh-api-workload"),
 	})
 
 	require.NoError(suite.T(), err)
-	suite.client.RequireResourceNotFound(suite.T(), resourceID(types.ProxyStateTemplateType, "test-non-mesh-api-workload"))
+	suite.client.RequireResourceNotFound(suite.T(), resourceID(meshapi.ProxyStateTemplateType, "test-non-mesh-api-workload"))
 }
 
 func (suite *meshControllerTestSuite) TestReconcile_NoExistingProxyStateTemplate() {
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: resourceID(types.ProxyStateTemplateType, suite.apiWorkloadID.Name),
+		ID: resourceID(meshapi.ProxyStateTemplateType, suite.apiWorkloadID.Name),
 	})
 	require.NoError(suite.T(), err)
 
-	res := suite.client.RequireResourceExists(suite.T(), resourceID(types.ProxyStateTemplateType, suite.apiWorkloadID.Name))
+	res := suite.client.RequireResourceExists(suite.T(), resourceID(meshapi.ProxyStateTemplateType, suite.apiWorkloadID.Name))
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), res.Data)
 	prototest.AssertDeepEqual(suite.T(), suite.apiWorkloadID, res.Owner)
@@ -284,23 +286,23 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_W
 	// This test ensures that we write a new proxy state template when there are changes.
 
 	// Write the original.
-	resourcetest.Resource(types.ProxyStateTemplateType, "api-abc").
+	resourcetest.Resource(meshapi.ProxyStateTemplateType, "api-abc").
 		WithData(suite.T(), suite.proxyStateTemplate).
 		WithOwner(suite.apiWorkloadID).
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
 	// Update the apiWorkload.
 	suite.apiWorkload.Ports["mesh"].Port = 21000
-	updatedWorkloadID := resourcetest.Resource(catalog.WorkloadType, "api-abc").
+	updatedWorkloadID := resourcetest.Resource(catalogapi.WorkloadType, "api-abc").
 		WithData(suite.T(), suite.apiWorkload).
 		Write(suite.T(), suite.client.ResourceServiceClient).Id
 
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: resourceID(types.ProxyStateTemplateType, updatedWorkloadID.Name),
+		ID: resourceID(meshapi.ProxyStateTemplateType, updatedWorkloadID.Name),
 	})
 	require.NoError(suite.T(), err)
 
-	res := suite.client.RequireResourceExists(suite.T(), resourceID(types.ProxyStateTemplateType, updatedWorkloadID.Name))
+	res := suite.client.RequireResourceExists(suite.T(), resourceID(meshapi.ProxyStateTemplateType, updatedWorkloadID.Name))
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), res.Data)
 	prototest.AssertDeepEqual(suite.T(), updatedWorkloadID, res.Owner)
@@ -319,23 +321,23 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_N
 	// This test ensures that we skip writing of the proxy state template when there are no changes to it.
 
 	// Write the original.
-	originalProxyState := resourcetest.Resource(types.ProxyStateTemplateType, "api-abc").
+	originalProxyState := resourcetest.Resource(meshapi.ProxyStateTemplateType, "api-abc").
 		WithData(suite.T(), suite.proxyStateTemplate).
 		WithOwner(suite.apiWorkloadID).
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
 	// Update the metadata on the apiWorkload which should result in no changes.
-	updatedWorkloadID := resourcetest.Resource(catalog.WorkloadType, "api-abc").
+	updatedWorkloadID := resourcetest.Resource(catalogapi.WorkloadType, "api-abc").
 		WithData(suite.T(), suite.apiWorkload).
 		WithMeta("some", "meta").
 		Write(suite.T(), suite.client.ResourceServiceClient).Id
 
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: resourceID(types.ProxyStateTemplateType, updatedWorkloadID.Name),
+		ID: resourceID(meshapi.ProxyStateTemplateType, updatedWorkloadID.Name),
 	})
 	require.NoError(suite.T(), err)
 
-	updatedProxyState := suite.client.RequireResourceExists(suite.T(), resourceID(types.ProxyStateTemplateType, suite.apiWorkloadID.Name))
+	updatedProxyState := suite.client.RequireResourceExists(suite.T(), resourceID(meshapi.ProxyStateTemplateType, suite.apiWorkloadID.Name))
 	resourcetest.RequireVersionUnchanged(suite.T(), updatedProxyState, originalProxyState.Version)
 }
 
@@ -363,11 +365,11 @@ func (suite *meshControllerTestSuite) TestController() {
 
 	var (
 		// Create proxy state template IDs to check against in this test.
-		apiProxyStateTemplateID = resourcetest.Resource(types.ProxyStateTemplateType, "api-abc").ID()
-		webProxyStateTemplateID = resourcetest.Resource(types.ProxyStateTemplateType, "web-def").ID()
+		apiProxyStateTemplateID = resourcetest.Resource(meshapi.ProxyStateTemplateType, "api-abc").ID()
+		webProxyStateTemplateID = resourcetest.Resource(meshapi.ProxyStateTemplateType, "web-def").ID()
 
-		apiComputedRoutesID = resource.ReplaceType(types.ComputedRoutesType, suite.apiService.Id)
-		dbComputedRoutesID  = resource.ReplaceType(types.ComputedRoutesType, suite.dbService.Id)
+		apiComputedRoutesID = resource.ReplaceType(meshapi.ComputedRoutesType, suite.apiService.Id)
+		dbComputedRoutesID  = resource.ReplaceType(meshapi.ComputedRoutesType, suite.dbService.Id)
 
 		apiProxyStateTemplate *pbresource.Resource
 		webProxyStateTemplate *pbresource.Resource
@@ -390,7 +392,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		)
 
 		// Add a source service and check that a new proxy state is generated.
-		webDestinations = resourcetest.Resource(types.UpstreamsType, "web-destinations").
+		webDestinations = resourcetest.Resource(meshapi.UpstreamsType, "web-destinations").
 			WithData(suite.T(), &pbmesh.Upstreams{
 				Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
 				Upstreams: []*pbmesh.Upstream{
@@ -425,7 +427,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		// Note: the order matters here because in reality service endpoints will only
 		// be reconciled after the workload has been updated, and so we need to write the
 		// workload and service before we write service endpoints.
-		resourcetest.Resource(catalog.WorkloadType, "api-abc").
+		resourcetest.Resource(catalogapi.WorkloadType, "api-abc").
 			WithData(suite.T(), &pbcatalog.Workload{
 				Identity:  "api-identity",
 				Addresses: suite.apiWorkload.Addresses,
@@ -443,7 +445,7 @@ func (suite *meshControllerTestSuite) TestController() {
 			}).
 			Write(suite.T(), suite.client)
 
-		resourcetest.Resource(catalog.ServiceEndpointsType, "api-service").
+		resourcetest.Resource(catalogapi.ServiceEndpointsType, "api-service").
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{
 				Endpoints: []*pbcatalog.Endpoint{
 					{
@@ -482,15 +484,15 @@ func (suite *meshControllerTestSuite) TestController() {
 		// and that the status on Upstreams resource is updated to be empty.
 		suite.runtime.Logger.Trace("updating ports to mesh")
 
-		resourcetest.Resource(catalog.WorkloadType, "api-abc").
+		resourcetest.Resource(catalogapi.WorkloadType, "api-abc").
 			WithData(suite.T(), suite.apiWorkload).
 			Write(suite.T(), suite.client)
 
-		suite.apiService = resourcetest.Resource(catalog.ServiceType, "api-service").
+		suite.apiService = resourcetest.Resource(catalogapi.ServiceType, "api-service").
 			WithData(suite.T(), suite.apiServiceData).
 			Write(suite.T(), suite.client.ResourceServiceClient)
 
-		resourcetest.Resource(catalog.ServiceEndpointsType, "api-service").
+		resourcetest.Resource(catalogapi.ServiceEndpointsType, "api-service").
 			WithData(suite.T(), suite.apiEndpointsData).
 			Write(suite.T(), suite.client.ResourceServiceClient)
 
@@ -534,7 +536,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		require.NotNil(t, dbCR)
 
 		// Enable transparent proxy for the web proxy.
-		resourcetest.Resource(types.ProxyConfigurationType, "proxy-config").
+		resourcetest.Resource(meshapi.ProxyConfigurationType, "proxy-config").
 			WithData(t, &pbmesh.ProxyConfiguration{
 				Workloads: &pbcatalog.WorkloadSelector{
 					Prefixes: []string{"web"},
@@ -603,14 +605,14 @@ func (suite *meshControllerTestSuite) TestController() {
 				},
 			}},
 		}
-		route := resourcetest.Resource(types.HTTPRouteType, "db-http-route").
+		route := resourcetest.Resource(meshapi.HTTPRouteType, "db-http-route").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, routeData).
 			Build()
 		require.NoError(t, types.MutateHTTPRoute(route))
 		require.NoError(t, types.ValidateHTTPRoute(route))
 
-		dbCRID := resource.ReplaceType(types.ComputedRoutesType, suite.dbService.Id)
+		dbCRID := resource.ReplaceType(meshapi.ComputedRoutesType, suite.dbService.Id)
 
 		dbCR := routestest.ReconcileComputedRoutes(suite.T(), suite.client, dbCRID,
 			resourcetest.MustDecode[*pbmesh.HTTPRoute](t, route),
@@ -646,7 +648,7 @@ func (suite *meshControllerTestSuite) TestControllerDefaultAllow() {
 
 	var (
 		// Create proxy state template IDs to check against in this test.
-		webProxyStateTemplateID = resourcetest.Resource(types.ProxyStateTemplateType, "web-def").ID()
+		webProxyStateTemplateID = resourcetest.Resource(meshapi.ProxyStateTemplateType, "web-def").ID()
 	)
 
 	retry.Run(suite.T(), func(r *retry.R) {

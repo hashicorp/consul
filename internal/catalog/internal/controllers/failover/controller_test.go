@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
@@ -54,8 +55,8 @@ func (suite *controllerSuite) TestController() {
 	go mgr.Run(suite.ctx)
 
 	// Create an advance pointer to some services.
-	apiServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).ID(), "")
-	otherServiceRef := resource.Reference(rtest.Resource(types.ServiceType, "other").WithTenancy(resource.DefaultNamespacedTenancy()).ID(), "")
+	apiServiceRef := resource.Reference(rtest.Resource(catalogapi.ServiceType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).ID(), "")
+	otherServiceRef := resource.Reference(rtest.Resource(catalogapi.ServiceType, "other").WithTenancy(resource.DefaultNamespacedTenancy()).ID(), "")
 
 	// create a failover without any services
 	failoverData := &pbcatalog.FailoverPolicy{
@@ -65,7 +66,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		},
 	}
-	failover := rtest.Resource(types.FailoverPolicyType, "api").
+	failover := rtest.Resource(catalogapi.FailoverPolicyType, "api").
 		WithData(suite.T(), failoverData).
 		Write(suite.T(), suite.client)
 
@@ -79,7 +80,7 @@ func (suite *controllerSuite) TestController() {
 			Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
 		}},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
@@ -101,7 +102,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.FailoverPolicyType, "api").
+	_ = rtest.Resource(catalogapi.FailoverPolicyType, "api").
 		WithData(suite.T(), failoverData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownPort("admin"))
@@ -120,7 +121,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUsingMeshDestinationPort(apiServiceRef, "admin"))
@@ -139,7 +140,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
@@ -161,7 +162,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.FailoverPolicyType, "api").
+	_ = rtest.Resource(catalogapi.FailoverPolicyType, "api").
 		WithData(suite.T(), failoverData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionMissingDestinationService(otherServiceRef))
@@ -174,7 +175,7 @@ func (suite *controllerSuite) TestController() {
 			Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
 		}},
 	}
-	_ = rtest.Resource(types.ServiceType, "other").
+	_ = rtest.Resource(catalogapi.ServiceType, "other").
 		WithData(suite.T(), otherServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownDestinationPort(otherServiceRef, "admin"))
@@ -193,7 +194,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "other").
+	_ = rtest.Resource(catalogapi.ServiceType, "other").
 		WithData(suite.T(), otherServiceData).
 		Write(suite.T(), suite.client)
 	suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
@@ -212,7 +213,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 
@@ -229,7 +230,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "other").
+	_ = rtest.Resource(catalogapi.ServiceType, "other").
 		WithData(suite.T(), otherServiceData).
 		Write(suite.T(), suite.client)
 
@@ -240,7 +241,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		},
 	}
-	failover = rtest.Resource(types.FailoverPolicyType, "api").
+	failover = rtest.Resource(catalogapi.FailoverPolicyType, "api").
 		WithData(suite.T(), failoverData).
 		Write(suite.T(), suite.client)
 
@@ -256,7 +257,7 @@ func (suite *controllerSuite) TestController() {
 			},
 		},
 	}
-	_ = rtest.Resource(types.ServiceType, "api").
+	_ = rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
 

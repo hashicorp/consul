@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
@@ -29,7 +30,7 @@ func TestMutateFailoverPolicy(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(FailoverPolicyType, "api").
+		res := resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 			WithTenancy(tc.policyTenancy).
 			WithData(t, tc.failover).
 			Build()
@@ -95,21 +96,21 @@ func TestMutateFailoverPolicy(t *testing.T) {
 					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
 					Regions: []string{"foo", "bar"},
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(ServiceType, "a")},
-						{Ref: newRef(ServiceType, "b")},
+						{Ref: newRef(catalogapi.ServiceType, "a")},
+						{Ref: newRef(catalogapi.ServiceType, "b")},
 					},
 				},
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "foo")},
-							{Ref: newRef(ServiceType, "bar")},
+							{Ref: newRef(catalogapi.ServiceType, "foo")},
+							{Ref: newRef(catalogapi.ServiceType, "bar")},
 						},
 					},
 					"admin": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "y")},
-							{Ref: newRef(ServiceType, "z")},
+							{Ref: newRef(catalogapi.ServiceType, "y")},
+							{Ref: newRef(catalogapi.ServiceType, "z")},
 						},
 					},
 				},
@@ -119,21 +120,21 @@ func TestMutateFailoverPolicy(t *testing.T) {
 					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
 					Regions: []string{"foo", "bar"},
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(ServiceType, "a")},
-						{Ref: newRef(ServiceType, "b")},
+						{Ref: newRef(catalogapi.ServiceType, "a")},
+						{Ref: newRef(catalogapi.ServiceType, "b")},
 					},
 				},
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "foo")},
-							{Ref: newRef(ServiceType, "bar")},
+							{Ref: newRef(catalogapi.ServiceType, "foo")},
+							{Ref: newRef(catalogapi.ServiceType, "bar")},
 						},
 					},
 					"admin": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "y")},
-							{Ref: newRef(ServiceType, "z")},
+							{Ref: newRef(catalogapi.ServiceType, "y")},
+							{Ref: newRef(catalogapi.ServiceType, "z")},
 						},
 					},
 				},
@@ -146,17 +147,17 @@ func TestMutateFailoverPolicy(t *testing.T) {
 					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
 					Regions: []string{"foo", "bar"},
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRefWithTenancy(ServiceType, "", "api")},
-						{Ref: newRefWithTenancy(ServiceType, ".zim", "api")},
-						{Ref: newRefWithTenancy(ServiceType, "gir.zim", "api")},
+						{Ref: newRefWithTenancy(catalogapi.ServiceType, "", "api")},
+						{Ref: newRefWithTenancy(catalogapi.ServiceType, ".zim", "api")},
+						{Ref: newRefWithTenancy(catalogapi.ServiceType, "gir.zim", "api")},
 					},
 				},
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRefWithTenancy(ServiceType, "", "api")},
-							{Ref: newRefWithTenancy(ServiceType, ".luthor", "api")},
-							{Ref: newRefWithTenancy(ServiceType, "lex.luthor", "api")},
+							{Ref: newRefWithTenancy(catalogapi.ServiceType, "", "api")},
+							{Ref: newRefWithTenancy(catalogapi.ServiceType, ".luthor", "api")},
+							{Ref: newRefWithTenancy(catalogapi.ServiceType, "lex.luthor", "api")},
 						},
 					},
 				},
@@ -166,17 +167,17 @@ func TestMutateFailoverPolicy(t *testing.T) {
 					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
 					Regions: []string{"foo", "bar"},
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRefWithTenancy(ServiceType, "foo.bar", "api")},
-						{Ref: newRefWithTenancy(ServiceType, "foo.zim", "api")},
-						{Ref: newRefWithTenancy(ServiceType, "gir.zim", "api")},
+						{Ref: newRefWithTenancy(catalogapi.ServiceType, "foo.bar", "api")},
+						{Ref: newRefWithTenancy(catalogapi.ServiceType, "foo.zim", "api")},
+						{Ref: newRefWithTenancy(catalogapi.ServiceType, "gir.zim", "api")},
 					},
 				},
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRefWithTenancy(ServiceType, "foo.bar", "api")},
-							{Ref: newRefWithTenancy(ServiceType, "foo.luthor", "api")},
-							{Ref: newRefWithTenancy(ServiceType, "lex.luthor", "api")},
+							{Ref: newRefWithTenancy(catalogapi.ServiceType, "foo.bar", "api")},
+							{Ref: newRefWithTenancy(catalogapi.ServiceType, "foo.luthor", "api")},
+							{Ref: newRefWithTenancy(catalogapi.ServiceType, "lex.luthor", "api")},
 						},
 					},
 				},
@@ -203,7 +204,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(FailoverPolicyType, "api").
+		res := resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, tc.failover).
 			Build()
@@ -231,7 +232,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest with sameness": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(ServiceType, "api-backup")},
+					{Ref: newRef(catalogapi.ServiceType, "api-backup")},
 				},
 				SamenessGroup: "blah",
 			},
@@ -242,7 +243,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest without sameness": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(ServiceType, "api-backup")},
+					{Ref: newRef(catalogapi.ServiceType, "api-backup")},
 				},
 			},
 		},
@@ -257,7 +258,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			config: &pbcatalog.FailoverConfig{
 				Mode: 99,
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(ServiceType, "api-backup")},
+					{Ref: newRef(catalogapi.ServiceType, "api-backup")},
 				},
 			},
 			expectErr: `invalid "mode" field: not a supported enum value: 99`,
@@ -273,7 +274,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest: non-service ref": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(WorkloadType, "api-backup")},
+					{Ref: newRef(catalogapi.WorkloadType, "api-backup")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: invalid "type" field: reference must have type catalog.v2beta1.Service`,
@@ -281,7 +282,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		"dest: ref with section": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: resourcetest.Resource(ServiceType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).Reference("blah")},
+					{Ref: resourcetest.Resource(catalogapi.ServiceType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).Reference("blah")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "destinations": invalid "ref" field: invalid "section" field: section cannot be set here`,
@@ -290,7 +291,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		// "dest: ref peer and datacenter": {
 		// 	config: &pbcatalog.FailoverConfig{
 		// 		Destinations: []*pbcatalog.FailoverDestination{
-		// 			{Ref: newRefWithPeer(ServiceType, "api", "peer1"), Datacenter: "dc2"},
+		// 			{Ref: newRefWithPeer(catalogapi.ServiceType, "api", "peer1"), Datacenter: "dc2"},
 		// 		},
 		// 	},
 		// 	expectErr: `invalid element at index 0 of list "destinations": invalid "datacenter" field: ref.tenancy.peer_name and datacenter are mutually exclusive fields`,
@@ -299,14 +300,14 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		// "dest: ref peer without datacenter": {
 		// 	config: &pbcatalog.FailoverConfig{
 		// 		Destinations: []*pbcatalog.FailoverDestination{
-		// 			{Ref: newRefWithPeer(ServiceType, "api", "peer1")},
+		// 			{Ref: newRefWithPeer(catalogapi.ServiceType, "api", "peer1")},
 		// 		},
 		// 	},
 		// },
 		"dest: ref datacenter without peer": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(ServiceType, "api"), Datacenter: "dc2"},
+					{Ref: newRef(catalogapi.ServiceType, "api"), Datacenter: "dc2"},
 				},
 			},
 		},
@@ -323,7 +324,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "api-backup")},
+							{Ref: newRef(catalogapi.ServiceType, "api-backup")},
 						},
 					},
 				},
@@ -333,7 +334,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			failover: &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(ServiceType, "api-backup")},
+						{Ref: newRef(catalogapi.ServiceType, "api-backup")},
 					},
 				},
 			},
@@ -343,7 +344,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			failover: &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(ServiceType, "api-backup"), Port: "web"},
+						{Ref: newRef(catalogapi.ServiceType, "api-backup"), Port: "web"},
 					},
 				},
 			},
@@ -355,7 +356,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "api-backup"), Port: "$bad$"},
+							{Ref: newRef(catalogapi.ServiceType, "api-backup"), Port: "$bad$"},
 						},
 					},
 				},
@@ -367,7 +368,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"$bad$": {
 						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(ServiceType, "api-backup"), Port: "http"},
+							{Ref: newRef(catalogapi.ServiceType, "api-backup"), Port: "http"},
 						},
 					},
 				},
@@ -446,7 +447,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 
 	cases := map[string]testcase{
 		"implicit with mesh port skipping": {
-			svc: resourcetest.Resource(ServiceType, "api").
+			svc: resourcetest.Resource(catalogapi.ServiceType, "api").
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
 						newPort("mesh", 21001, pbcatalog.Protocol_PROTOCOL_MESH),
@@ -454,24 +455,24 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			failover: resourcetest.Resource(FailoverPolicyType, "api").
+			failover: resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 				WithData(t, &pbcatalog.FailoverPolicy{
 					Config: &pbcatalog.FailoverConfig{
 						Destinations: []*pbcatalog.FailoverDestination{
 							{
-								Ref: newRef(ServiceType, "api-backup"),
+								Ref: newRef(catalogapi.ServiceType, "api-backup"),
 							},
 						},
 					},
 				}).
 				Build(),
-			expect: resourcetest.Resource(FailoverPolicyType, "api").
+			expect: resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-backup"),
 									Port: "http", // port defaulted
 								},
 							},
@@ -481,7 +482,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 				Build(),
 		},
 		"explicit with port aligned defaulting": {
-			svc: resourcetest.Resource(ServiceType, "api").
+			svc: resourcetest.Resource(catalogapi.ServiceType, "api").
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
 						newPort("mesh", 9999, pbcatalog.Protocol_PROTOCOL_MESH),
@@ -490,34 +491,34 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			failover: resourcetest.Resource(FailoverPolicyType, "api").
+			failover: resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-backup"),
 									Port: "www",
 								},
 								{
-									Ref: newRef(ServiceType, "api-double-backup"),
+									Ref: newRef(catalogapi.ServiceType, "api-double-backup"),
 								},
 							},
 						},
 					},
 				}).
 				Build(),
-			expect: resourcetest.Resource(FailoverPolicyType, "api").
+			expect: resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-backup"),
 									Port: "www",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-double-backup"),
 									Port: "http", // port defaulted
 								},
 							},
@@ -527,7 +528,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 				Build(),
 		},
 		"implicit port explosion": {
-			svc: resourcetest.Resource(ServiceType, "api").
+			svc: resourcetest.Resource(catalogapi.ServiceType, "api").
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
 						newPort("http", 8080, pbcatalog.Protocol_PROTOCOL_HTTP),
@@ -535,31 +536,31 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			failover: resourcetest.Resource(FailoverPolicyType, "api").
+			failover: resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 				WithData(t, &pbcatalog.FailoverPolicy{
 					Config: &pbcatalog.FailoverConfig{
 						Destinations: []*pbcatalog.FailoverDestination{
 							{
-								Ref: newRef(ServiceType, "api-backup"),
+								Ref: newRef(catalogapi.ServiceType, "api-backup"),
 							},
 							{
-								Ref: newRef(ServiceType, "api-double-backup"),
+								Ref: newRef(catalogapi.ServiceType, "api-double-backup"),
 							},
 						},
 					},
 				}).
 				Build(),
-			expect: resourcetest.Resource(FailoverPolicyType, "api").
+			expect: resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-backup"),
 									Port: "http",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-double-backup"),
 									Port: "http",
 								},
 							},
@@ -567,11 +568,11 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 						"rest": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-backup"),
 									Port: "rest",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-double-backup"),
 									Port: "rest",
 								},
 							},
@@ -581,7 +582,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 				Build(),
 		},
 		"mixed port explosion with skip": {
-			svc: resourcetest.Resource(ServiceType, "api").
+			svc: resourcetest.Resource(catalogapi.ServiceType, "api").
 				WithData(t, &pbcatalog.Service{
 					Ports: []*pbcatalog.ServicePort{
 						newPort("http", 8080, pbcatalog.Protocol_PROTOCOL_HTTP),
@@ -589,15 +590,15 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			failover: resourcetest.Resource(FailoverPolicyType, "api").
+			failover: resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 				WithData(t, &pbcatalog.FailoverPolicy{
 					Config: &pbcatalog.FailoverConfig{
 						Destinations: []*pbcatalog.FailoverDestination{
 							{
-								Ref: newRef(ServiceType, "api-backup"),
+								Ref: newRef(catalogapi.ServiceType, "api-backup"),
 							},
 							{
-								Ref: newRef(ServiceType, "api-double-backup"),
+								Ref: newRef(catalogapi.ServiceType, "api-double-backup"),
 							},
 						},
 					},
@@ -609,11 +610,11 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 							// SamenessGroup: "sameweb",
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-backup"),
 									Port: "rest",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-double-backup"),
 									Port: "rest",
 								},
 							},
@@ -621,17 +622,17 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
-			expect: resourcetest.Resource(FailoverPolicyType, "api").
+			expect: resourcetest.Resource(catalogapi.FailoverPolicyType, "api").
 				WithData(t, &pbcatalog.FailoverPolicy{
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"http": {
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-backup"),
 									Port: "http",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-double-backup"),
 									Port: "http",
 								},
 							},
@@ -643,11 +644,11 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 							// SamenessGroup: "sameweb",
 							Destinations: []*pbcatalog.FailoverDestination{
 								{
-									Ref:  newRef(ServiceType, "api-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-backup"),
 									Port: "rest",
 								},
 								{
-									Ref:  newRef(ServiceType, "api-double-backup"),
+									Ref:  newRef(catalogapi.ServiceType, "api-double-backup"),
 									Port: "rest",
 								},
 							},

@@ -7,7 +7,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -16,10 +22,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type reconciliationDataSuite struct {
@@ -62,11 +64,11 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		},
 	}
 
-	suite.apiService = rtest.Resource(types.ServiceType, "api").
+	suite.apiService = rtest.Resource(catalogapi.ServiceType, "api").
 		WithData(suite.T(), suite.apiServiceData).
 		Write(suite.T(), suite.client)
 
-	suite.api1Workload = rtest.Resource(types.WorkloadType, "api-1").
+	suite.api1Workload = rtest.Resource(catalogapi.WorkloadType, "api-1").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -78,7 +80,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.api2Workload = rtest.Resource(types.WorkloadType, "api-2").
+	suite.api2Workload = rtest.Resource(catalogapi.WorkloadType, "api-2").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -90,7 +92,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.api123Workload = rtest.Resource(types.WorkloadType, "api-123").
+	suite.api123Workload = rtest.Resource(catalogapi.WorkloadType, "api-123").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -102,7 +104,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.web1Workload = rtest.Resource(types.WorkloadType, "web-1").
+	suite.web1Workload = rtest.Resource(catalogapi.WorkloadType, "web-1").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -114,7 +116,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.web2Workload = rtest.Resource(types.WorkloadType, "web-2").
+	suite.web2Workload = rtest.Resource(catalogapi.WorkloadType, "web-2").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -126,11 +128,11 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		}).
 		Write(suite.T(), suite.client)
 
-	suite.apiEndpoints = rtest.Resource(types.ServiceEndpointsType, "api").
+	suite.apiEndpoints = rtest.Resource(catalogapi.ServiceEndpointsType, "api").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
 				{
-					TargetRef: rtest.Resource(types.WorkloadType, "api-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID(),
+					TargetRef: rtest.Resource(catalogapi.WorkloadType, "api-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID(),
 					Addresses: []*pbcatalog.WorkloadAddress{
 						{
 							Host:  "127.0.0.1",
@@ -150,7 +152,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 func (suite *reconciliationDataSuite) TestGetServiceData_NotFound() {
 	// This test's purposes is to ensure that NotFound errors when retrieving
 	// the service data are ignored properly.
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(types.ServiceType, "not-found").WithTenancy(resource.DefaultNamespacedTenancy()).ID())
+	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(catalogapi.ServiceType, "not-found").WithTenancy(resource.DefaultNamespacedTenancy()).ID())
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), data)
 }
@@ -174,7 +176,7 @@ func (suite *reconciliationDataSuite) TestGetServiceData_UnmarshalError() {
 	// This test's purpose is to ensure that unmarshlling errors are returned
 	// to the caller. We are using a resource id that points to an endpoints
 	// object instead of a service to ensure that the data will be unmarshallable.
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(types.ServiceEndpointsType, "api").ID())
+	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(catalogapi.ServiceEndpointsType, "api").ID())
 	require.Error(suite.T(), err)
 	var parseErr resource.ErrDataParse
 	require.ErrorAs(suite.T(), err, &parseErr)
@@ -195,7 +197,7 @@ func (suite *reconciliationDataSuite) TestGetServiceData_Ok() {
 func (suite *reconciliationDataSuite) TestGetEndpointsData_NotFound() {
 	// This test's purposes is to ensure that NotFound errors when retrieving
 	// the endpoint data are ignored properly.
-	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(types.ServiceEndpointsType, "not-found").ID())
+	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(catalogapi.ServiceEndpointsType, "not-found").ID())
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), data)
 }
@@ -219,7 +221,7 @@ func (suite *reconciliationDataSuite) TestGetEndpointsData_UnmarshalError() {
 	// This test's purpose is to ensure that unmarshlling errors are returned
 	// to the caller. We are using a resource id that points to a service object
 	// instead of an endpoints object to ensure that the data will be unmarshallable.
-	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(types.ServiceType, "api").ID())
+	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(catalogapi.ServiceType, "api").ID())
 	require.Error(suite.T(), err)
 	var parseErr resource.ErrDataParse
 	require.ErrorAs(suite.T(), err, &parseErr)
