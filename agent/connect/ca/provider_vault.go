@@ -12,7 +12,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -58,9 +57,7 @@ type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
 
 	client *vaultapi.Client
-	// We modify the namespace on the fly to override default namespace for rootCertificate and intermediateCertificate. Can't guarantee
-	// all operations (specifically Sign) are not called re-entrantly, so we add this for safety.
-	clientMutex   sync.Mutex
+
 	baseNamespace string
 
 	stopWatcher func()
@@ -521,9 +518,7 @@ func (v *VaultProvider) ActiveLeafSigningCert() (string, error) {
 // because the endpoint only returns the raw PEM contents of the CA cert
 // and not the typical format of the secrets endpoints.
 func (v *VaultProvider) getCA(namespace, path string) (string, error) {
-	defer v.setNamespace(namespace)()
-
-	resp, err := v.client.Logical().ReadRaw(path + "/ca/pem")
+	resp, err := v.client.WithNamespace(namespace).Logical().ReadRaw(path + "/ca/pem")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -549,9 +544,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 
 // TODO: refactor to remove duplication with getCA
 func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
-	defer v.setNamespace(namespace)()
-
-	resp, err := v.client.Logical().ReadRaw(path + "/ca_chain")
+	resp, err := v.client.WithNamespace(namespace).Logical().ReadRaw(path + "/ca_chain")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -622,6 +615,9 @@ func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
 // should contain a "mapping" data field we can use to cross-reference
 // with the keyId returned when calling [/intermediate/generate/internal].
 //
+// After a new default issuer is written, this function also cleans up
+// the previous default issuer along with its associated key.
+//
 // [/intermediate/set-signed]: https://developer.hashicorp.com/vault/api-docs/secret/pki#import-ca-certificates-and-keys
 // [/intermediate/generate/internal]: https://developer.hashicorp.com/vault/api-docs/secret/pki#generate-intermediate-csr
 func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret, keyId string) error {
@@ -659,12 +655,48 @@ func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret,
 		return fmt.Errorf("could not read from /config/issuers: %w", err)
 	}
 	issuersConf := resp.Data
+	prevIssuer, ok := issuersConf["default"].(string)
+	if !ok {
+		return fmt.Errorf("unexpected type for 'default' value in Vault response from /pki/config/issuers")
+	}
+
+	if prevIssuer == intermediateId {
+		return nil
+	}
+
 	// Overwrite the default issuer
 	issuersConf["default"] = intermediateId
-
 	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"config/issuers", issuersConf)
 	if err != nil {
 		return fmt.Errorf("could not write default issuer to /config/issuers: %w", err)
+	}
+
+	// Find the key_id of the previous issuer. In Consul, issuers have 1:1 relationship with
+	// keys so we can delete issuer first then the key.
+	resp, err = v.readNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"issuer/"+prevIssuer)
+	if err != nil {
+		return fmt.Errorf("could not read issuer %q: %w", prevIssuer, err)
+	}
+	prevKeyId, ok := resp.Data["key_id"].(string)
+	if !ok {
+		return fmt.Errorf("unexpected type for 'key_id' value in Vault response")
+	}
+
+	// Delete the previously known default issuer to prevent the number of unused
+	// issuers from increasing too much.
+	_, err = v.deleteNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"issuer/"+prevIssuer)
+	if err != nil {
+		v.logger.Warn("Could not delete previous issuer. Manually delete from Vault to prevent the list of issuers from growing too large.",
+			"prev_issuer_id", prevIssuer,
+			"error", err)
+	}
+
+	// Keys can only be deleted if there are no more issuers referencing them.
+	_, err = v.deleteNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"key/"+prevKeyId)
+	if err != nil {
+		v.logger.Warn("Could not delete previous key. Manually delete from Vault to prevent the list of keys from growing too large.",
+			"prev_key_id", prevKeyId,
+			"error", err)
 	}
 
 	return nil
@@ -819,41 +851,27 @@ func (v *VaultProvider) Stop() {
 
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
-	defer v.setNamespace(namespace)()
-	return v.client.Sys().Mount(path, mountInfo)
+	return v.client.WithNamespace(namespace).Sys().Mount(path, mountInfo)
 }
 
 func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig *vaultapi.MountConfigInput) error {
-	defer v.setNamespace(namespace)()
-	return v.client.Sys().TuneMount(path, *mountConfig)
+	return v.client.WithNamespace(namespace).Sys().TuneMount(path, *mountConfig)
 }
 
 func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
-	defer v.setNamespace(namespace)()
-	return v.client.Sys().Unmount(path)
+	return v.client.WithNamespace(namespace).Sys().Unmount(path)
 }
 
 func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
-	defer v.setNamespace(namespace)()
-	return v.client.Logical().Read(resource)
+	return v.client.WithNamespace(namespace).Logical().Read(resource)
 }
 
 func (v *VaultProvider) writeNamespaced(namespace string, resource string, data map[string]interface{}) (*vaultapi.Secret, error) {
-	defer v.setNamespace(namespace)()
-	return v.client.Logical().Write(resource, data)
+	return v.client.WithNamespace(namespace).Logical().Write(resource, data)
 }
 
-func (v *VaultProvider) setNamespace(namespace string) func() {
-	if namespace != "" {
-		v.clientMutex.Lock()
-		v.client.SetNamespace(namespace)
-		return func() {
-			v.client.SetNamespace(v.baseNamespace)
-			v.clientMutex.Unlock()
-		}
-	} else {
-		return func() {}
-	}
+func (v *VaultProvider) deleteNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
+	return v.client.WithNamespace(namespace).Logical().Delete(resource)
 }
 
 // autotidyIssuers sets Vault's auto-tidy to remove expired issuers
