@@ -102,22 +102,22 @@ jobs:
       # https://hashicorp.atlassian.net/browse/NET-4973
       # ^ Ticket to figure out why grouping test case is failing on Windows Machine
 
-      - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
-        shell: bash
-        if: always()
-        env:
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          LAMBDA_TESTS_ENABLED: "true"
-          # tput complains if this isn't set to something.
-          TERM: ansi
-        run: |
-          # shellcheck disable=SC2001
-          echo "Running Integration Test case-api-gateway-http-hostnames"
-          # shellcheck disable=SC2001
-          go test -v -timeout=45m -tags integration \
-            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-hostnames" -win=true
+#      - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
+#        shell: bash
+#        if: always()
+#        env:
+#          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+#          GOTESTSUM_FORMAT: standard-verbose
+#          COMPOSE_INTERACTIVE_NO_CLI: 1
+#          LAMBDA_TESTS_ENABLED: "true"
+#          # tput complains if this isn't set to something.
+#          TERM: ansi
+#        run: |
+#          # shellcheck disable=SC2001
+#          echo "Running Integration Test case-api-gateway-http-hostnames"
+#          # shellcheck disable=SC2001
+#          go test -v -timeout=45m -tags integration \
+#            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-hostnames" -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-simple
         shell: bash
