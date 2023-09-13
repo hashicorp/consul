@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
@@ -8,12 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-multierror"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsValidDNSLabel(t *testing.T) {
@@ -332,26 +331,6 @@ func TestValidatePortName(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		require.NoError(t, validatePortName("http"))
 	})
-}
-
-func TestValidateProtocol(t *testing.T) {
-	// this test simply verifies that we accept all enum values specified in our proto
-	// in order to avoid validator drift.
-	for name, value := range pbcatalog.Protocol_value {
-		t.Run(name, func(t *testing.T) {
-			require.NoError(t, validateProtocol(pbcatalog.Protocol(value)))
-		})
-	}
-}
-
-func TestValidateHealth(t *testing.T) {
-	// this test simply verifies that we accept all enum values specified in our proto
-	// in order to avoid validator drift.
-	for name, value := range pbcatalog.Health_value {
-		t.Run(name, func(t *testing.T) {
-			require.NoError(t, validateHealth(pbcatalog.Health(value)))
-		})
-	}
 }
 
 func TestValidateWorkloadAddress(t *testing.T) {

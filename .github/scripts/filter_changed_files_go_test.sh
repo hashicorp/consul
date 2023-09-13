@@ -1,7 +1,4 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 
 # Get the list of changed files
 files_to_check=$(git diff --name-only origin/$GITHUB_BASE_REF)

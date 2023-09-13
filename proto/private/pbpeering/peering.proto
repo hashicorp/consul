@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 syntax = "proto3";
 
@@ -229,7 +229,7 @@ message Peering {
   // PeerServerName is the name of the remote server as it relates to TLS.
   string PeerServerName = 9;
 
-  // PeerServerAddresses contains all the connection addresses for the remote peer.
+  // PeerServerAddresses contains all the the connection addresses for the remote peer.
   repeated string PeerServerAddresses = 10;
 
   // StreamStatus contains information computed on read based on the state of the stream.

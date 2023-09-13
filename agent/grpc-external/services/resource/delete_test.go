@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package resource
 
@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -25,32 +25,32 @@ func TestDelete_InputValidation(t *testing.T) {
 
 	demo.RegisterTypes(server.Registry)
 
-	testCases := map[string]func(artistId, recordLabelId *pbresource.ID) *pbresource.ID{
-		"no id": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
-			return nil
+	testCases := map[string]func(*pbresource.DeleteRequest){
+		"no id":      func(req *pbresource.DeleteRequest) { req.Id = nil },
+		"no type":    func(req *pbresource.DeleteRequest) { req.Id.Type = nil },
+		"no tenancy": func(req *pbresource.DeleteRequest) { req.Id.Tenancy = nil },
+		"no name":    func(req *pbresource.DeleteRequest) { req.Id.Name = "" },
+		// clone necessary to not pollute DefaultTenancy
+		"tenancy partition not default": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.Partition = ""
 		},
-		"no type": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Type = nil
-			return artistId
+		"tenancy namespace not default": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.Namespace = ""
 		},
-		"no name": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Name = ""
-			return artistId
-		},
-		"partition scoped resource with namespace": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
-			recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
-			return recordLabelId
+		"tenancy peername not local": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.PeerName = ""
 		},
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
-			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+			res, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
-
-			req := &pbresource.DeleteRequest{Id: modFn(artist.Id, recordLabel.Id), Version: ""}
+			req := &pbresource.DeleteRequest{Id: res.Id, Version: ""}
+			modFn(req)
 
 			_, err = client.Delete(testContext(t), req)
 			require.Error(t, err)
@@ -97,23 +97,21 @@ func TestDelete_ACLs(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
 			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			// Write test resource to delete.
-			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: artist})
+			artist, err = server.Backend.WriteCAS(context.Background(), artist)
 			require.NoError(t, err)
 
-			// Mock is put in place after the above "write" since the "write" must also pass the ACL check.
-			mockACLResolver := &MockACLResolver{}
-			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-				Return(tc.authz, nil)
-			server.ACLResolver = mockACLResolver
-
-			// Exercise ACL.
-			_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: rsp.Resource.Id})
+			// exercise ACL
+			_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: artist.Id})
 			tc.assertErrFn(err)
 		})
 	}
@@ -124,59 +122,34 @@ func TestDelete_Success(t *testing.T) {
 
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			for tenancyDesc, modFn := range tenancyCases() {
-				t.Run(tenancyDesc, func(t *testing.T) {
-					server, client, ctx := testDeps(t)
-					demo.RegisterTypes(server.Registry)
+			server, client, ctx := testDeps(t)
+			demo.RegisterTypes(server.Registry)
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
 
-					recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
-					require.NoError(t, err)
-					writeRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
-					require.NoError(t, err)
-					recordLabel = writeRsp.Resource
-					originalRecordLabelId := clone(recordLabel.Id)
+			rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+			require.NoError(t, err)
+			artistId := clone(rsp.Resource.Id)
+			artist = rsp.Resource
 
-					artist, err := demo.GenerateV2Artist()
-					require.NoError(t, err)
-					writeRsp, err = client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
-					require.NoError(t, err)
-					artist = writeRsp.Resource
-					originalArtistId := clone(artist.Id)
+			// delete
+			_, err = client.Delete(ctx, tc.deleteReqFn(artist))
+			require.NoError(t, err)
 
-					// Pick the resource to be deleted based on type's scope and mod tenancy
-					// based on the tenancy test case.
-					deleteId := modFn(artist.Id, recordLabel.Id)
-					deleteReq := tc.deleteReqFn(recordLabel)
-					if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
-						deleteReq = tc.deleteReqFn(artist)
-					}
+			// verify deleted
+			_, err = server.Backend.Read(ctx, storage.StrongConsistency, artistId)
+			require.Error(t, err)
+			require.ErrorIs(t, err, storage.ErrNotFound)
 
-					// Delete
-					_, err = client.Delete(ctx, deleteReq)
-					require.NoError(t, err)
-
-					// Verify deleted
-					_, err = client.Read(ctx, &pbresource.ReadRequest{Id: deleteId})
-					require.Error(t, err)
-					require.Equal(t, codes.NotFound.String(), status.Code(err).String())
-
-					// Derive tombstone name from resource that was deleted.
-					tname := tombstoneName(originalRecordLabelId)
-					if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
-						tname = tombstoneName(originalArtistId)
-					}
-
-					// Verify tombstone created
-					_, err = client.Read(ctx, &pbresource.ReadRequest{
-						Id: &pbresource.ID{
-							Name:    tname,
-							Type:    resource.TypeV1Tombstone,
-							Tenancy: deleteReq.Id.Tenancy,
-						},
-					})
-					require.NoError(t, err, "expected tombstone to be found")
-				})
-			}
+			// verify tombstone created
+			_, err = client.Read(ctx, &pbresource.ReadRequest{
+				Id: &pbresource.ID{
+					Name:    tombstoneName(artistId),
+					Type:    resource.TypeV1Tombstone,
+					Tenancy: artist.Id.Tenancy,
+				},
+			})
+			require.NoError(t, err)
 		})
 	}
 }

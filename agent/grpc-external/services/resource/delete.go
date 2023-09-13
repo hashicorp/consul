@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package resource
 
@@ -27,38 +27,21 @@ import (
 // - Errors with Aborted if the requested Version does not match the stored Version.
 // - Errors with PermissionDenied if ACL check fails
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	reg, err := s.validateDeleteRequest(req)
+	if err := validateDeleteRequest(req); err != nil {
+		return nil, err
+	}
+
+	reg, err := s.resolveType(req.Id.Type)
 	if err != nil {
 		return nil, err
 	}
 
-	entMeta := v2TenancyToV1EntMeta(req.Id.Tenancy)
-	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), entMeta)
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
 
-	// Retrieve resource since ACL hook requires it. Furthermore, we'll need the
-	// read to be strongly consistent if the passed in Version or Uid are empty.
-	consistency := storage.EventualConsistency
-	if req.Version == "" || req.Id.Uid == "" {
-		consistency = storage.StrongConsistency
-	}
-
-	// Apply defaults when tenancy units empty.
-	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
-
-	existing, err := s.Backend.Read(ctx, consistency, req.Id)
-	switch {
-	case errors.Is(err, storage.ErrNotFound):
-		// Deletes are idempotent so no-op when not found
-		return &pbresource.DeleteResponse{}, nil
-	case err != nil:
-		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
-	}
-
-	// Check ACLs
-	err = reg.ACLs.Write(authz, authzContext, existing)
+	err = reg.ACLs.Write(authz, req.Id)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -66,11 +49,27 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
 	}
 
+	// The storage backend requires a Version and Uid to delete a resource based
+	// on CAS semantics. When either are not provided, the resource must be read
+	// with a strongly consistent read to retrieve either or both.
+	//
+	// n.b.: There is a chance DeleteCAS may fail with a storage.ErrCASFailure
+	// if an update occurs between the Read and DeleteCAS. Consider refactoring
+	// to use retryCAS() similar to the Write endpoint to close this gap.
 	deleteVersion := req.Version
 	deleteId := req.Id
 	if deleteVersion == "" || deleteId.Uid == "" {
-		deleteVersion = existing.Version
-		deleteId = existing.Id
+		existing, err := s.Backend.Read(ctx, storage.StrongConsistency, req.Id)
+		switch {
+		case err == nil:
+			deleteVersion = existing.Version
+			deleteId = existing.Id
+		case errors.Is(err, storage.ErrNotFound):
+			// Deletes are idempotent so no-op when not found
+			return &pbresource.DeleteResponse{}, nil
+		default:
+			return nil, status.Errorf(codes.Internal, "failed read: %v", err)
+		}
 	}
 
 	if err := s.maybeCreateTombstone(ctx, deleteId); err != nil {
@@ -144,31 +143,15 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 	}
 }
 
-func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource.Registration, error) {
+func validateDeleteRequest(req *pbresource.DeleteRequest) error {
 	if req.Id == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "id is required")
+		return status.Errorf(codes.InvalidArgument, "id is required")
 	}
 
 	if err := validateId(req.Id, "id"); err != nil {
-		return nil, err
+		return err
 	}
-
-	reg, err := s.resolveType(req.Id.Type)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check scope
-	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"partition scoped resource %s cannot have a namespace. got: %s",
-			resource.ToGVK(req.Id.Type),
-			req.Id.Tenancy.Namespace,
-		)
-	}
-
-	return reg, nil
+	return nil
 }
 
 // Maintains a deterministic mapping between a resource and it's tombstone's

@@ -1,7 +1,0 @@
-FROM mcr.microsoft.com/windows/servercore:ltsc2019
-
-COPY ["tcpdump.exe", "C:/Program Files/"]
-
-ENTRYPOINT ["C:/Program Files/tcpdump.exe"]
-
-# docker.exe build -t envoy-tcpdump -f Dockerfile-tcpdump-windows .

@@ -35,10 +35,10 @@ When transparent proxy mode is enabled, all service-to-service traffic is requir
 
 The following configurations are examples for registering workloads on Kubernetes into Consul's service mesh in different scenarios. Each scenario provides an example Kubernetes manifest to demonstrate how to use Consul's service mesh with a specific Kubernetes workload type.
 
-- [Kubernetes Pods running as a deployment](#kubernetes-pods-running-as-a-deployment)
-- [Connecting to mesh-enabled Services](#connecting-to-mesh-enabled-services)
-- [Kubernetes Jobs](#kubernetes-jobs)
-- [Kubernetes Pods with multiple ports](#kubernetes-pods-with-multiple-ports)
+ - [Kubernetes Pods running as a deployment](#kubernetes-pods-running-as-a-deployment)
+ - [Connecting to mesh-enabled Services](#connecting-to-mesh-enabled-services)
+ - [Kubernetes Jobs](#kubernetes-jobs)
+ - [Kubernetes Pods with multiple ports](#kubernetes-pods-with-multiple-ports)
 
 #### Kubernetes Pods running as a deployment
 
@@ -105,6 +105,7 @@ The example Deployment specification below configures a Deployment that is capab
 of establishing connections to our previous example "static-server" service. The
 connection to this static text service happens over an authorized and encrypted
 connection via service mesh.
+
 
 <CodeBlockConfig filename="static-client.yaml">
 

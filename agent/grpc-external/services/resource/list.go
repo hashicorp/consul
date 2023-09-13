@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package resource
 
@@ -10,36 +10,34 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbresource.ListResponse, error) {
-	reg, err := s.validateListRequest(req)
+	if err := validateListRequest(req); err != nil {
+		return nil, err
+	}
+
+	// check type
+	reg, err := s.resolveType(req.Type)
 	if err != nil {
 		return nil, err
 	}
 
-	// v1 ACL subsystem is "wildcard" aware so just pass on through.
-	entMeta := v2TenancyToV1EntMeta(req.Tenancy)
-	token := tokenFromContext(ctx)
-	authz, authzContext, err := s.getAuthorizer(token, entMeta)
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
 
-	// Check ACLs.
-	err = reg.ACLs.List(authz, authzContext)
+	// check acls
+	err = reg.ACLs.List(authz, req.Tenancy)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
-
-	// Ensure we're defaulting correctly when request tenancy units are empty.
-	v1EntMetaToV2Tenancy(reg, entMeta, req.Tenancy)
 
 	resources, err := s.Backend.List(
 		ctx,
@@ -54,22 +52,13 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 
 	result := make([]*pbresource.Resource, 0)
 	for _, resource := range resources {
-		// Filter out non-matching GroupVersion.
+		// filter out non-matching GroupVersion
 		if resource.Id.Type.GroupVersion != req.Type.GroupVersion {
 			continue
 		}
 
-		// Need to rebuild authorizer per resource since wildcard inputs may
-		// result in different tenancies. Consider caching per tenancy if this
-		// is deemed expensive.
-		entMeta = v2TenancyToV1EntMeta(resource.Id.Tenancy)
-		authz, authzContext, err = s.getAuthorizer(token, entMeta)
-		if err != nil {
-			return nil, err
-		}
-
-		// Filter out items that don't pass read ACLs.
-		err = reg.ACLs.Read(authz, authzContext, resource.Id)
+		// filter out items that don't pass read ACLs
+		err = reg.ACLs.Read(authz, resource.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue
@@ -81,37 +70,15 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 	return &pbresource.ListResponse{Resources: result}, nil
 }
 
-func (s *Server) validateListRequest(req *pbresource.ListRequest) (*resource.Registration, error) {
+func validateListRequest(req *pbresource.ListRequest) error {
 	var field string
 	switch {
 	case req.Type == nil:
 		field = "type"
 	case req.Tenancy == nil:
 		field = "tenancy"
+	default:
+		return nil
 	}
-
-	if field != "" {
-		return nil, status.Errorf(codes.InvalidArgument, "%s is required", field)
-	}
-
-	// Check type exists.
-	reg, err := s.resolveType(req.Type)
-	if err != nil {
-		return nil, err
-	}
-
-	// Lowercase
-	resource.Normalize(req.Tenancy)
-
-	// Error when partition scoped and namespace not empty.
-	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"partition scoped type %s cannot have a namespace. got: %s",
-			resource.ToGVK(req.Type),
-			req.Tenancy.Namespace,
-		)
-	}
-
-	return reg, nil
+	return status.Errorf(codes.InvalidArgument, "%s is required", field)
 }

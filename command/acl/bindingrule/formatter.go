@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package bindingrule
 
@@ -63,10 +63,6 @@ func (f *prettyFormatter) FormatBindingRule(rule *api.ACLBindingRule) (string, e
 	buffer.WriteString(fmt.Sprintf("Description:  %s\n", rule.Description))
 	buffer.WriteString(fmt.Sprintf("BindType:     %s\n", rule.BindType))
 	buffer.WriteString(fmt.Sprintf("BindName:     %s\n", rule.BindName))
-	if rule.BindVars != nil && rule.BindVars.Name != "" {
-		buffer.WriteString(fmt.Sprintf("BindVars:     \n     - Name: %s\n", rule.BindVars.Name))
-	}
-
 	buffer.WriteString(fmt.Sprintf("Selector:     %s\n", rule.Selector))
 	if f.showMeta {
 		buffer.WriteString(fmt.Sprintf("Create Index: %d\n", rule.CreateIndex))
@@ -100,9 +96,6 @@ func (f *prettyFormatter) formatBindingRuleListEntry(rule *api.ACLBindingRule) s
 	buffer.WriteString(fmt.Sprintf("   Description:  %s\n", rule.Description))
 	buffer.WriteString(fmt.Sprintf("   BindType:     %s\n", rule.BindType))
 	buffer.WriteString(fmt.Sprintf("   BindName:     %s\n", rule.BindName))
-	if rule.BindVars != nil && rule.BindVars.Name != "" {
-		buffer.WriteString(fmt.Sprintf("   BindVars:     \n      - Name: %s\n", rule.BindVars.Name))
-	}
 	buffer.WriteString(fmt.Sprintf("   Selector:     %s\n", rule.Selector))
 	if f.showMeta {
 		buffer.WriteString(fmt.Sprintf("   Create Index: %d\n", rule.CreateIndex))
