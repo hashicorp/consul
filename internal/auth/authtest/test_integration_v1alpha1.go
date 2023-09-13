@@ -73,18 +73,18 @@ func VerifyAuthV1Alpha1IntegrationTestResults(t *testing.T, client pbresource.Re
 	c := rtest.NewClient(client)
 
 	testutil.RunStep(t, "resources-exist", func(t *testing.T) {
-		c.RequireResourceExists(t, rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-1").ID())
-		c.RequireResourceExists(t, rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-2").ID())
-		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-3").ID())
-		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-4").ID())
-		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-5").ID())
-		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-6").ID())
-		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-7").ID())
-		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-8").ID())
+		c.RequireResourceExists(t, rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-1").ID())
+		c.RequireResourceExists(t, rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-2").ID())
+		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-3").ID())
+		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-4").ID())
+		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-5").ID())
+		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-6").ID())
+		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-7").ID())
+		c.RequireResourceNotFound(t, rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-8").ID())
 
-		tp1 := rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+		tp1 := rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, tp1)
-		tp2 := rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-2").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+		tp2 := rtest.Resource(auth.TrafficPermissionsV2Beta1Type, "tp-2").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, tp2)
 	})
 }

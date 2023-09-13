@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -40,15 +40,15 @@ var (
 
 	// Resource Types for the v1alpha1 version.
 
-	WorkloadV1Alpha1Type         = types.WorkloadV1Alpha1Type
-	ServiceV1Alpha1Type          = types.ServiceV1Alpha1Type
-	ServiceEndpointsV1Alpha1Type = types.ServiceEndpointsV1Alpha1Type
-	VirtualIPsV1Alpha1Type       = types.VirtualIPsV1Alpha1Type
-	NodeV1Alpha1Type             = types.NodeV1Alpha1Type
-	HealthStatusV1Alpha1Type     = types.HealthStatusV1Alpha1Type
-	HealthChecksV1Alpha1Type     = types.HealthChecksV1Alpha1Type
-	DNSPolicyV1Alpha1Type        = types.DNSPolicyV1Alpha1Type
-	FailoverPolicyV1Alpha1Type   = types.FailoverPolicyV1Alpha1Type
+	WorkloadV2Beta1Type         = types.WorkloadV2Beta1Type
+	ServiceV2Beta1Type          = types.ServiceV2Beta1Type
+	ServiceEndpointsV2Beta1Type = types.ServiceEndpointsV2Beta1Type
+	VirtualIPsV2Beta1Type       = types.VirtualIPsV2Beta1Type
+	NodeV2Beta1Type             = types.NodeV2Beta1Type
+	HealthStatusV2Beta1Type     = types.HealthStatusV2Beta1Type
+	HealthChecksV2Beta1Type     = types.HealthChecksV2Beta1Type
+	DNSPolicyV2Beta1Type        = types.DNSPolicyV2Beta1Type
+	FailoverPolicyV2Beta1Type   = types.FailoverPolicyV2Beta1Type
 
 	// Resource Types for the latest version.
 

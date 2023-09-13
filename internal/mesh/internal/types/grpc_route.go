@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -19,18 +19,18 @@ const (
 )
 
 var (
-	GRPCRouteV1Alpha1Type = &pbresource.Type{
+	GRPCRouteV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2beta1,
 		Kind:         GRPCRouteKind,
 	}
 
-	GRPCRouteType = GRPCRouteV1Alpha1Type
+	GRPCRouteType = GRPCRouteV2Beta1Type
 )
 
 func RegisterGRPCRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  GRPCRouteV1Alpha1Type,
+		Type:  GRPCRouteV2Beta1Type,
 		Proto: &pbmesh.GRPCRoute{},
 		Scope: resource.ScopeNamespace,
 		// TODO(rb): normalize parent/backend ref tenancies in a Mutate hook

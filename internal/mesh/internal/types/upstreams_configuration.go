@@ -5,7 +5,7 @@ package types
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -14,18 +14,18 @@ const (
 )
 
 var (
-	UpstreamsConfigurationV1Alpha1Type = &pbresource.Type{
+	UpstreamsConfigurationV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2beta1,
 		Kind:         UpstreamsConfigurationKind,
 	}
 
-	UpstreamsConfigurationType = UpstreamsConfigurationV1Alpha1Type
+	UpstreamsConfigurationType = UpstreamsConfigurationV2Beta1Type
 )
 
 func RegisterUpstreamsConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     UpstreamsConfigurationV1Alpha1Type,
+		Type:     UpstreamsConfigurationV2Beta1Type,
 		Proto:    &pbmesh.UpstreamsConfiguration{},
 		Scope:    resource.ScopeNamespace,
 		Validate: nil,

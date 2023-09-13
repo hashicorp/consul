@@ -2,7 +2,7 @@
   "id": {
     "type": {
       "group": "auth",
-      "group_version": "v1alpha1",
+      "group_version": "v2beta1",
       "kind": "TrafficPermissions"
     },
     "tenancy": {
@@ -13,7 +13,7 @@
     "name": "tp-6"
   },
   "data": {
-    "@type": "hashicorp.consul.auth.v1alpha1.TrafficPermissions",
+    "@type": "hashicorp.consul.auth.v2beta1.TrafficPermissions",
     "destination": {
       "identity_name": "wi-1"
     },

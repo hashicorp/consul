@@ -429,7 +429,7 @@ func newResourceIDFromEnvoyNode(node *envoy_config_core_v3.Node) *pbresource.ID 
 			Namespace: entMeta.NamespaceOrDefault(),
 			Partition: entMeta.PartitionOrDefault(),
 		},
-		Type: mesh.ProxyStateTemplateConfigurationV1Alpha1Type,
+		Type: mesh.ProxyStateTemplateType,
 	}
 }
 

@@ -5,7 +5,7 @@ package types
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -14,18 +14,18 @@ const (
 )
 
 var (
-	ComputedTrafficPermissionsV1Alpha1Type = &pbresource.Type{
+	ComputedTrafficPermissionsV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: VersionV1Alpha1,
 		Kind:         ComputedTrafficPermissionsKind,
 	}
 
-	ComputedTrafficPermissionsType = ComputedTrafficPermissionsV1Alpha1Type
+	ComputedTrafficPermissionsType = ComputedTrafficPermissionsV2Beta1Type
 )
 
 func RegisterComputedTrafficPermission(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ComputedTrafficPermissionsV1Alpha1Type,
+		Type:     ComputedTrafficPermissionsV2Beta1Type,
 		Proto:    &pbauth.ComputedTrafficPermissions{},
 		Scope:    resource.ScopeNamespace,
 		Validate: nil,

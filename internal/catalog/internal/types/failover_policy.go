@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -20,18 +20,18 @@ const (
 )
 
 var (
-	FailoverPolicyV1Alpha1Type = &pbresource.Type{
+	FailoverPolicyV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: VersionV1Alpha1,
 		Kind:         FailoverPolicyKind,
 	}
 
-	FailoverPolicyType = FailoverPolicyV1Alpha1Type
+	FailoverPolicyType = FailoverPolicyV2Beta1Type
 )
 
 func RegisterFailoverPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     FailoverPolicyV1Alpha1Type,
+		Type:     FailoverPolicyV2Beta1Type,
 		Proto:    &pbcatalog.FailoverPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateFailoverPolicy,

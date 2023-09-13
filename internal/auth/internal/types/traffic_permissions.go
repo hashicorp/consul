@@ -4,7 +4,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -13,18 +13,18 @@ const (
 )
 
 var (
-	TrafficPermissionsV1Alpha1Type = &pbresource.Type{
+	TrafficPermissionsV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: VersionV1Alpha1,
 		Kind:         TrafficPermissionsKind,
 	}
 
-	TrafficPermissionsType = TrafficPermissionsV1Alpha1Type
+	TrafficPermissionsType = TrafficPermissionsV2Beta1Type
 )
 
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     TrafficPermissionsV1Alpha1Type,
+		Type:     TrafficPermissionsV2Beta1Type,
 		Proto:    &pbauth.TrafficPermissions{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateTrafficPermissions,
