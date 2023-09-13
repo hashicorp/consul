@@ -1152,7 +1152,7 @@ func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
 	require.Len(t, res.Data["keys"], 1)
 
 	for i := 0; i < 3; i++ {
-		_, err := provider.GenerateLeafSigningCert()
+		_, err := provider.GenerateIntermediate()
 		require.NoError(t, err)
 
 		res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
