@@ -235,11 +235,11 @@ TransparentProxy = {
 MutualTLSMode = "strict" # only supported when services are in transparent proxy mode
 EnvoyExtensions = [
   {
-    Name = "<name of the extension to implement>"
+    Name = "<name of the extension>"
     Required = `false`
     Arguments = { <specific to each extension> }
-    ConsulVersion = "<version of Consul that your extension supports>"
-    EnvoyVersion = "<version of Envoy that your extension supports>"
+    ConsulVersion = "<Consul version constraint for applying the extension>"
+    EnvoyVersion = "<Envoy version constraint for applying the extension>"
   }
 ]
 Destination = {
@@ -323,12 +323,12 @@ spec:
     dialedDirectly: false
   mutualTLSMode: strict
   envoyExtensions: 
-  - name: <name of the extension you want to implement>
+  - name: <name of the extension>
     required: false
     arguments: 
     - <specific to each extension>
-    consulVersion: <version of Consul that your extension supports>
-    envoyVersion: <version of Envoy that your extension supports> 
+    consulVersion: <Consul version constraint for applying the extension>
+    envoyVersion: <Envoy version constraint for applying the extension> 
   destination:
     addresses:
     - <first hostname or IP address>
@@ -414,13 +414,13 @@ spec:
 	},
 	"MutualTLSMode": "strict",
 	"EnvoyExtensions": [{
-		"Name": "<name of the extension you want to implement",
+		"Name": "<name of the extension>",
 		"Required": false,
 		"Arguments": {
 			"<specific to each extension>": "<specific to each extension>"
 		},
-		"ConsulVersion": "<version of Consul that your extension supports>",
-		"EnvoyVersion": "<version of Envoy that your extension supports>"
+		"ConsulVersion": "<Consul version constraint for applying the extension>",
+		"EnvoyVersion": "<Envoy version constraint for applying the extension>"
 	}],
 	"Destination": {
 		"Addresses": [
@@ -772,10 +772,10 @@ The following table describes how to configure values in the `EnvoyExtensions` m
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `Name` | Specifies the name of the extension. | String | None |
-| `Required` | Specify `true` to require Consul to implement the extension. <p>Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed.</p><p>Consul returns an error when `Required` is set to `true` and the extension does not update Envoy resources. </p> | String | None |
-| `Arguments` | Specifies the arguments to pass to the extension executable. Refer to the documentation for the extension you want to implement for additional information. | Map | None |
-| `ConsulVersion` | Specifies the version of Consul that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `ConsulVersion` and `EnvoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
-| `EnvoyVersion` | Specifies the version of Envoy that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `ConsulVersion` and `EnvoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
+| `Required` | Specify `true` to require the extension to apply successfully. <p>Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed.</p><p>When Envoy fails to apply a required extension, Consul logs an error and skips all extensions, leaving xDS resources unchanged. </p> | String | None |
+| `Arguments` | Specifies the arguments to pass to the extension. Refer to the documentation for the extension you want to implement for additional information. | Map | None |
+| `ConsulVersion` | Specifies the Consul [version constraint](https://github.com/hashicorp/go-version) for the extension. Consul validates the version constraint against the runtime version during xDS updates. If a non-matching version is in use, Consul logs and skips the extension. <p>Use this parameter to avoid upgrade issues when a configured extension is not compatible with a new version of Consul.</p> | String | None |
+| `EnvoyVersion` | Specifies the Envoy [version constraint](https://github.com/hashicorp/go-version) for the extension. Consul validates the version constraint against the version of the running Envoy proxy during xDS updates. If a non-matching version is in use, Consul logs and skips the extension. <p>Use this parameter to avoid upgrade issues when a configured extension is not compatible with a new version of Envoy.</p> | String | None |
 
 ### `Destination{}`
 
@@ -1189,10 +1189,10 @@ The following table describes how to configure values in the `envoyExtensions` m
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `name` | Specifies the name of the extension. | String | None |
-| `required` | Specify `true` to require Consul to implement the extension. <p>Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed.</p><p>Consul returns an error when `required` is set to `true` and the extension does not update Envoy resources. </p> | String | None |
-| `arguments` | Specifies the arguments to pass to the extension executable. Refer to the documentation for the extension you want to implement for additional information. | Map | None |
-| `consulVersion` | Specifies the version of Consul that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `consulVersion` and `envoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
-| `envoyVersion` | Specifies the version of Envoy that the extension is allowed to work with. Consul validates the version during xDS updates. If a different version is in use, Consul skips the extension and writes the event to the log. <p>The `consulVersion` and `envoyVersion` must both validate for Consul to implement the extension.</p> | String | None |
+| `required` | Specify `true` to require the extension to apply successfully. <p>Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed.</p><p>When Envoy fails to apply a required extension, Consul logs an error and skips all extensions, leaving xDS resources unchanged. </p> | String | None |
+| `arguments` | Specifies the arguments to pass to the extension. Refer to the documentation for the extension for additional information. | Map | None |
+| `consulVersion` | Specifies the Consul [version constraint](https://github.com/hashicorp/go-version) for the extension. Consul validates the version constraint against the runtime version during xDS updates. If a non-matching version is in use, Consul logs and skips the extension. <p>Use this parameter to avoid upgrade issues when a configured extension is not compatible with a new version of Consul.</p> | String | None |
+| `envoyVersion` | Specifies the Envoy [version constraint](https://github.com/hashicorp/go-version) for the extension. Consul validates the version constraint against the version of the running Envoy proxy during xDS updates. If a non-matching version is in use, Consul logs and skips the extension. <p>Use this parameter to avoid upgrade issues when a configured extension is not compatible with a new version of Envoy.</p> | String | None |
 
 ### `spec.destination`
 
