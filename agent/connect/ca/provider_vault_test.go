@@ -563,6 +563,12 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	run := func(t *testing.T, tc CASigningKeyTypes, withSudo, expectFailure bool) {
 		t.Parallel()
 
+		if tc.SigningKeyType != tc.CSRKeyType {
+			// TODO: uncomment since the bug is closed
+			// See https://github.com/hashicorp/vault/issues/7709
+			t.Skip("Vault doesn't support cross-signing different key types yet.")
+		}
+
 		testVault1 := NewTestVaultServer(t)
 
 		attr1 := &VaultTokenAttributes{
