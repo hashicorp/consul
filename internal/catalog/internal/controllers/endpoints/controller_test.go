@@ -185,6 +185,51 @@ func TestWorkloadToEndpoint_AllAddressesFiltered(t *testing.T) {
 	require.Nil(t, workloadToEndpoint(service, data))
 }
 
+func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
+	// This test checks that when a workload is missing its protocol,
+	// we will default to service's protocol.
+
+	service := &pbcatalog.Service{
+		Ports: []*pbcatalog.ServicePort{
+			{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+		},
+	}
+
+	workload := &pbcatalog.Workload{
+		Addresses: []*pbcatalog.WorkloadAddress{
+			{Host: "127.0.0.1"},
+		},
+		Ports: map[string]*pbcatalog.WorkloadPort{
+			"http": {Port: 8080},
+		},
+	}
+
+	data := &workloadData{
+		resource: rtest.Resource(types.WorkloadType, "foo").
+			WithData(t, workload).
+			Build(),
+		workload: workload,
+	}
+
+	expected := &pbcatalog.Endpoint{
+		TargetRef: data.resource.Id,
+		Addresses: []*pbcatalog.WorkloadAddress{
+			{Host: "127.0.0.1", Ports: []string{"http"}},
+		},
+		Ports: map[string]*pbcatalog.WorkloadPort{
+			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+		},
+		// The health is critical because we are not setting the workload's
+		// health status. The tests for determineWorkloadHealth will ensure
+		// that we can properly determine the health status and the overall
+		// controller tests will prove that the integration works as expected.
+		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
+		Identity:     workload.Identity,
+	}
+
+	prototest.AssertDeepEqual(t, expected, workloadToEndpoint(service, data))
+}
+
 func TestServiceUnderManagement(t *testing.T) {
 	// This test ensures that we can properly detect when a service
 	// should have endpoints generated for it vs when those endpoints
