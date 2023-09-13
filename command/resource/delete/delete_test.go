@@ -26,22 +26,27 @@ func TestResourceDeleteInvalidArgs(t *testing.T) {
 		"nil args": {
 			args:           nil,
 			expectedCode:   1,
-			expectedErrMsg: "Please provide required arguments",
+			expectedErrMsg: "Must specify two arguments: resource type and resource name\n",
 		},
 		"empty args": {
 			args:           []string{},
 			expectedCode:   1,
-			expectedErrMsg: "Please provide required arguments",
+			expectedErrMsg: "Must specify two arguments: resource type and resource name\n",
 		},
 		"missing file path": {
 			args:           []string{"-f"},
 			expectedCode:   1,
 			expectedErrMsg: "Failed to parse args: flag needs an argument: -f",
 		},
-		"provide type and name": {
+		"missing resource name": {
 			args:           []string{"a.b.c"},
 			expectedCode:   1,
 			expectedErrMsg: "Must specify two arguments: resource type and resource name",
+		},
+		"mal-formed group.version.kind": {
+			args:           []string{"a.b", "name"},
+			expectedCode:   1,
+			expectedErrMsg: "Must include resource type argument in group.verion.kind format",
 		},
 		"does not provide resource name after type": {
 			args:           []string{"a.b.c", "-namespace", "default"},

@@ -10,12 +10,9 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/command/resource"
-	"github.com/hashicorp/consul/internal/resourcehcl"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -49,11 +46,6 @@ func (c *cmd) Run(args []string) int {
 	var resourceName string
 	var opts *api.QueryOptions
 
-	if len(args) == 0 {
-		c.UI.Error("Please provide required arguments")
-		return 1
-	}
-
 	if err := c.flags.Parse(args); err != nil {
 		if !errors.Is(err, flag.ErrHelp) {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
@@ -63,14 +55,14 @@ func (c *cmd) Run(args []string) int {
 
 	if c.flags.Lookup("f").Value.String() != "" {
 		if c.filePath != "" {
-			data, err := helpers.LoadDataSourceNoRaw(c.filePath, nil)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to load data: %v", err))
-				return 1
-			}
-			parsedResource, err := resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
+			parsedResource, err := resource.ParseResourceFromFile(c.filePath)
 			if err != nil {
 				c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
+				return 1
+			}
+
+			if parsedResource == nil {
+				c.UI.Error("Unable to parse the file argument")
 				return 1
 			}
 
@@ -103,11 +95,9 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		inputArgs := args[2:]
-		if err := c.flags.Parse(inputArgs); err != nil {
-			if errors.Is(err, flag.ErrHelp) {
-				return 0
-			}
-			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
+		err = resource.ParseInputParams(inputArgs, c.flags)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error parsing input arguments: %v", err))
 			return 1
 		}
 		if c.filePath != "" {

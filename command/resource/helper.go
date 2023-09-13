@@ -45,6 +45,10 @@ func GetTypeAndResourceName(args []string) (gvk *api.GVK, resourceName string, e
 	}
 
 	s := strings.Split(args[0], ".")
+	if len(s) != 3 {
+		return nil, "", fmt.Errorf("Must include resource type argument in group.verion.kind format")
+	}
+
 	gvk = &api.GVK{
 		Group:   s[0],
 		Version: s[1],
