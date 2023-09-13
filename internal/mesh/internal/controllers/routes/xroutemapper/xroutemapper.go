@@ -171,6 +171,10 @@ func (m *Mapper) MapTCPRoute(_ context.Context, _ controller.Runtime, res *pbres
 
 // mapXRouteToComputedRoutes will map xRoute changes to ComputedRoutes changes.
 func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *Mapper) ([]controller.Request, error) {
+	if !types.IsRouteType(res.Id.Type) {
+		return nil, fmt.Errorf("type is not a route type: %s", res.Id.Type)
+	}
+
 	dec, err := resource.Decode[T](res)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling xRoute: %w", err)

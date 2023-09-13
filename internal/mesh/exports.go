@@ -35,6 +35,7 @@ var (
 	APIGatewayKind             = types.APIGatewayKind
 	MeshGatewayKind            = types.MeshGatewayKind
 	TerminatingGatewayKind     = types.TerminatingGatewayKind
+	ComputedGatewayKind        = types.ComputedGatewayKind
 
 	// Resource Types for the v1alpha1 version.
 
@@ -50,6 +51,7 @@ var (
 	APIGatewayV1Alpha1Type             = types.APIGatewayV1Alpha1Type
 	MeshGatewayV1Alpha1Type            = types.MeshGatewayV1Alpha1Type
 	TerminatingGatewayV1Alpha1Type     = types.TerminatingGatewayV1Alpha1Type
+	ComputedGatewayV1Alpha1Type        = types.ComputedGatewayV1Alpha1Type
 
 	// Resource Types for the latest version.
 
@@ -66,6 +68,7 @@ var (
 	APIGatewayType                      = types.APIGatewayType
 	MeshGatewayType                     = types.MeshGatewayType
 	TerminatingGatewayType              = types.TerminatingGatewayType
+	ComputedGatewayType                 = types.ComputedGatewayType
 
 	// Controller statuses.
 

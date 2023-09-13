@@ -1,0 +1,26 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+// This is a Resource type that contains the collected components for a
+// given gateway type: api, mesh or terminating.
+// TODO(nathancoleman)
+message ComputedGateway {
+  oneof config {
+    ComputedAPIGateway api = 1;
+    ComputedMeshGateway mesh = 2;
+    ComputedTerminatingGateway terminating = 3;
+  }
+}
+
+// TODO(nathancoleman)
+message ComputedAPIGateway {}
+
+// TODO(nathancoleman)
+message ComputedMeshGateway {}
+
+// TODO(nathancoleman)
+message ComputedTerminatingGateway {}

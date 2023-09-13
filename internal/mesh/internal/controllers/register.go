@@ -44,4 +44,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	)
 
 	mgr.Register(routes.Controller())
+
+	// TODO(nathancoleman) Enable once mappers are defined
+	// mgr.Register(gateways.Controller())
 }

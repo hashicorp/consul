@@ -29,6 +29,7 @@ func TestTypeRegistration(t *testing.T) {
 		APIGatewayKind,
 		MeshGatewayKind,
 		TerminatingGatewayKind,
+		ComputedGatewayKind,
 	}
 
 	r := resource.NewRegistry()
