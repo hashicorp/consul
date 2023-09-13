@@ -639,6 +639,9 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 // should contain a "mapping" data field we can use to cross-reference
 // with the keyId returned when calling [/intermediate/generate/internal].
 //
+// After a new default issuer is written, this function also cleans up
+// the previous default issuer along with its associated key.
+//
 // [/intermediate/set-signed]: https://developer.hashicorp.com/vault/api-docs/secret/pki#import-ca-certificates-and-keys
 // [/intermediate/generate/internal]: https://developer.hashicorp.com/vault/api-docs/secret/pki#generate-intermediate-csr
 func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret, keyId string) error {
@@ -676,12 +679,49 @@ func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret,
 		return fmt.Errorf("could not read from /config/issuers: %w", err)
 	}
 	issuersConf := resp.Data
+	prevIssuer, ok := issuersConf["default"].(string)
+	if !ok {
+		return fmt.Errorf("unexpected type for 'default' value in Vault response from /pki/config/issuers")
+	}
+
+	if prevIssuer == intermediateId {
+		return nil
+	}
+
 	// Overwrite the default issuer
 	issuersConf["default"] = intermediateId
 
 	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"config/issuers", issuersConf)
 	if err != nil {
 		return fmt.Errorf("could not write default issuer to /config/issuers: %w", err)
+	}
+
+	// Find the key_id of the previous issuer. In Consul, issuers have 1:1 relationship with
+	// keys so we can delete issuer first then the key.
+	resp, err = v.readNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"issuer/"+prevIssuer)
+	if err != nil {
+		return fmt.Errorf("could not read issuer %q: %w", prevIssuer, err)
+	}
+	prevKeyId, ok := resp.Data["key_id"].(string)
+	if !ok {
+		return fmt.Errorf("unexpected type for 'key_id' value in Vault response")
+	}
+
+	// Delete the previously known default issuer to prevent the number of unused
+	// issuers from increasing too much.
+	_, err = v.deleteNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"issuer/"+prevIssuer)
+	if err != nil {
+		v.logger.Warn("Could not delete previous issuer. Manually delete from Vault to prevent the list of issuers from growing too large.",
+			"prev_issuer_id", prevIssuer,
+			"error", err)
+	}
+
+	// Keys can only be deleted if there are no more issuers referencing them.
+	_, err = v.deleteNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"key/"+prevKeyId)
+	if err != nil {
+		v.logger.Warn("Could not delete previous key. Manually delete from Vault to prevent the list of keys from growing too large.",
+			"prev_key_id", prevKeyId,
+			"error", err)
 	}
 
 	return nil
@@ -891,6 +931,11 @@ func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaul
 func (v *VaultProvider) writeNamespaced(namespace string, resource string, data map[string]interface{}) (*vaultapi.Secret, error) {
 	defer v.setNamespace(namespace)()
 	return v.client.Logical().Write(resource, data)
+}
+
+func (v *VaultProvider) deleteNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
+	defer v.setNamespace(namespace)()
+	return v.client.Logical().Delete(resource)
 }
 
 func (v *VaultProvider) setNamespace(namespace string) func() {
