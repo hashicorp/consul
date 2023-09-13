@@ -18,6 +18,7 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/api/auth/gcp"
 	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -1189,7 +1190,7 @@ func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
 	require.Contains(t, errStr, "permission denied")
 }
 
-func TestVaultCAProvider_DeletePreviousIssuer(t *testing.T) {
+func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
 	SkipIfVaultNotPresent(t)
 	t.Parallel()
 
@@ -1207,11 +1208,18 @@ func TestVaultCAProvider_DeletePreviousIssuer(t *testing.T) {
 		})
 	res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
 	require.NoError(t, err)
-	// Why 2 keys? There is always an initial non-default key that
+	// Why 2 issuers? There is always an initial issuer that
 	// gets created before we manage the lifecycle of issuers.
-	// Since we're asserting that the number of keys don't grow
+	// Since we're asserting that the number doesn't grow
 	// this isn't too much of a concern.
+	//
+	// Note the key "keys" refers to the IDs of the resource based
+	// on the endpoint the response is from.
 	require.Len(t, res.Data["keys"], 2)
+
+	res, err = testVault.Client().Logical().List("pki-intermediate/keys")
+	require.NoError(t, err)
+	require.Len(t, res.Data["keys"], 1)
 
 	for i := 0; i < 3; i++ {
 		_, err := provider.GenerateLeafSigningCert()
@@ -1220,6 +1228,10 @@ func TestVaultCAProvider_DeletePreviousIssuer(t *testing.T) {
 		res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
 		require.NoError(t, err)
 		require.Len(t, res.Data["keys"], 2)
+
+		res, err = testVault.Client().Logical().List("pki-intermediate/keys")
+		require.NoError(t, err)
+		assert.Len(t, res.Data["keys"], 1)
 	}
 }
 
