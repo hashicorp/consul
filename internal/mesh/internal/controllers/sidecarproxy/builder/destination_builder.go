@@ -45,7 +45,7 @@ func (b *Builder) buildExplicitDestination(destination *intermediate.Destination
 	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
 
 	return b.addExplicitOutboundListener(destination.Explicit).
-		addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
+		addEndpointsRefs(sni, destination.ServiceEndpoints.Resource.Id, portInfo).
 		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, false).
 		addClusters(portInfo, destination, sni)
 }
@@ -57,7 +57,7 @@ func (b *Builder) buildImplicitDestination(destination *intermediate.Destination
 	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
 	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
 
-	return b.addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
+	return b.addEndpointsRefs(sni, destination.ServiceEndpoints.Resource.Id, portInfo).
 		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, true).
 		addClusters(portInfo, destination, sni)
 }
@@ -243,13 +243,20 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 	return b
 }
 
-// addEndpointsRef creates and add an endpointRef for each serviceEndpoint for a destination and
+// addEndpointsRefs creates and add an endpointRef for each serviceEndpoint for a destination and
 // adds it to the proxyStateTemplate so it will be processed later during reconciliation by
 // the XDS controller.
-func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) *Builder {
-	b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
-		Id:   serviceEndpointsID,
-		Port: destinationPort,
+func (b *Builder) addEndpointsRefs(sni string, serviceEndpointsID *pbresource.ID, portInfo *servicePortInfo) *Builder {
+	for portName, port := range portInfo.servicePorts {
+		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
+			//only implementing L4 at the moment
+		} else {
+			clusterName := fmt.Sprintf("%s.%s", portName, sni)
+			b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
+				Id:   serviceEndpointsID,
+				Port: portInfo.meshPortName,
+			}
+		}
 	}
 	return b
 }

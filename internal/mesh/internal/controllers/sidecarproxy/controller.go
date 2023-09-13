@@ -125,6 +125,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// Get all destinationsData.
 	destinationsRefs := r.destinationsCache.DestinationsBySourceProxy(req.ID)
+	if len(destinationsRefs) > 0 {
+		rt.Logger.Trace("found destinations", "destination_refs", destinationsRefs)
+	}
 	destinationsData, statuses, err := dataFetcher.FetchExplicitDestinationsData(ctx, destinationsRefs)
 	if err != nil {
 		rt.Logger.Error("error fetching explicit destinations for this proxy", "error", err)

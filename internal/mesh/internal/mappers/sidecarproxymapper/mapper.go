@@ -5,6 +5,7 @@ package sidecarproxymapper
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
@@ -44,6 +45,9 @@ func mapSelectorToProxyStateTemplates(ctx context.Context,
 		})
 		if err != nil {
 			return nil, err
+		}
+		if len(resp.Resources) == 0 {
+			return nil, fmt.Errorf("no workloads found")
 		}
 		for _, r := range resp.Resources {
 			id := resource.ReplaceType(types.ProxyStateTemplateType, r.Id)

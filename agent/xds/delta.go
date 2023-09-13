@@ -116,7 +116,13 @@ func getEnvoyConfiguration(proxySnapshot proxysnapshot.ProxySnapshot, logger hcl
 		)
 		c := proxySnapshot.(*proxytracker.ProxyState)
 		logger.Trace("ProxyState", c)
-		return generator.AllResourcesFromIR(c)
+		resources, err := generator.AllResourcesFromIR(c)
+		if err != nil {
+			logger.Error("error generating resources from proxy state template", "err", err)
+			return nil, err
+		}
+		logger.Trace("generated resources from proxy state template", "resources", resources)
+		return resources, nil
 	default:
 		return nil, errors.New("proxysnapshot must be of type ProxyState or ConfigSnapshot")
 	}
@@ -428,9 +434,9 @@ func newResourceIDFromEnvoyNode(node *envoy_config_core_v3.Node) *pbresource.ID 
 		Tenancy: &pbresource.Tenancy{
 			Namespace: entMeta.NamespaceOrDefault(),
 			Partition: entMeta.PartitionOrDefault(),
-			PeerName:  "local",
+			//PeerName:  "local",
 		},
-		Type: mesh.ProxyStateTemplateV1AlphaType,
+		Type: mesh.ProxyStateTemplateType,
 	}
 }
 

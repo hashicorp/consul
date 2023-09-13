@@ -148,7 +148,7 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 			InboundMesh: &pbproxystate.InboundMeshMTLS{
 				IdentityKey: workloadIdentity,
 				ValidationContext: &pbproxystate.MeshInboundValidationContext{
-					TrustBundlePeerNameKeys: []string{l.builder.id.Tenancy.PeerName},
+					TrustBundlePeerNameKeys: []string{"local"},
 				},
 			},
 		},
@@ -159,8 +159,8 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 		Partition: l.builder.id.Tenancy.Partition,
 	}
 
-	l.builder.proxyStateTemplate.RequiredTrustBundles[l.builder.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
-		Peer: l.builder.id.Tenancy.PeerName,
+	l.builder.proxyStateTemplate.RequiredTrustBundles["local"] = &pbproxystate.TrustBundleRef{
+		Peer: "local",
 	}
 
 	for i := range l.listener.Routers {

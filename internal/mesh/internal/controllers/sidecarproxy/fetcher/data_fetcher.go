@@ -5,6 +5,7 @@ package fetcher
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -144,6 +145,7 @@ func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*in
 
 	switch {
 	case status.Code(err) == codes.NotFound:
+		fmt.Println("**********explicit upstreams resource not found", "id", id)
 		return nil, nil
 	case err != nil:
 		return nil, err

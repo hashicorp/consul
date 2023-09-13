@@ -6,6 +6,7 @@ package dataplane
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
@@ -59,7 +60,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			Tenancy: &pbresource.Tenancy{
 				Namespace: req.Namespace,
 				Partition: req.Partition,
-				PeerName:  "local",
+				//PeerName:  "local",
 			},
 			Type: catalog.WorkloadType,
 		}
@@ -69,6 +70,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		if err != nil {
 			// This error should already include the gRPC status code and so we don't need to wrap it
 			// in status.Error.
+			fmt.Println("workload not found", "id", workloadId)
 			return nil, err
 		}
 		var workload pbcatalog.Workload
@@ -93,6 +95,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			Type:    mesh.ProxyConfigurationType,
 		})
 		if err != nil {
+			fmt.Println("proxy config not found")
 			return nil, err
 		}
 
