@@ -99,10 +99,6 @@ jobs:
         shell: bash
         run: cd build-support/windows && ./build-consul-dev-image.sh
 
-      - name: Sleep
-        shell: bash
-        run: sleep 10
-
       # https://hashicorp.atlassian.net/browse/NET-4973
       # ^ Ticket to figure out why grouping test case is failing on Windows Machine
 
