@@ -3,6 +3,7 @@
 package read
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/mitchellh/cli"
@@ -17,41 +18,56 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 	t.Parallel()
 
 	type tc struct {
-		args           []string
-		expectedCode   int
-		expectedErrMsg string
+		args         []string
+		expectedCode int
+		expectedErr  error
 	}
 
 	cases := map[string]tc{
 		"nil args": {
-			args:           nil,
-			expectedCode:   1,
-			expectedErrMsg: "Must specify two arguments: resource type and resource name\n",
+			args:         nil,
+			expectedCode: 1,
+			expectedErr:  errors.New("Your argument format is incorrect: Must specify two arguments: resource type and resource name"),
 		},
 		"empty args": {
-			args:           []string{},
-			expectedCode:   1,
-			expectedErrMsg: "Must specify two arguments: resource type and resource name\n",
+			args:         []string{},
+			expectedCode: 1,
+			expectedErr:  errors.New("Your argument format is incorrect: Must specify two arguments: resource type and resource name"),
 		},
 		"missing file path": {
-			args:           []string{"-f"},
-			expectedCode:   1,
-			expectedErrMsg: "Failed to parse args: flag needs an argument: -f",
+			args:         []string{"-f"},
+			expectedCode: 1,
+			expectedErr:  errors.New("Failed to parse args: flag needs an argument: -f"),
 		},
-		"missing resource name": {
-			args:           []string{"a.b.c"},
-			expectedCode:   1,
-			expectedErrMsg: "Must specify two arguments: resource type and resource name",
+		"file not found": {
+			args:         []string{"-f=../testdata/test.hcl"},
+			expectedCode: 1,
+			expectedErr:  errors.New("Failed to load data: Failed to read file: open ../testdata/test.hcl: no such file or directory"),
 		},
-		"mal-formed group.version.kind": {
-			args:           []string{"a.b", "name"},
-			expectedCode:   1,
-			expectedErrMsg: "Must include resource type argument in group.verion.kind format",
+		"provide type and name": {
+			args:         []string{"a.b.c"},
+			expectedCode: 1,
+			expectedErr:  errors.New("Your argument format is incorrect: Must specify two arguments: resource type and resource name"),
+		},
+		"provide type and name with -f": {
+			args:         []string{"a.b.c", "name", "-f", "test.hcl"},
+			expectedCode: 1,
+			expectedErr:  errors.New("We ignored the -f flag if you provide gvk and resource name"),
+		},
+		"provide type and name with -f and other flags": {
+			args:         []string{"a.b.c", "name", "-f", "test.hcl", "-namespace", "default"},
+			expectedCode: 1,
+			expectedErr:  errors.New("We ignored the -f flag if you provide gvk and resource name"),
 		},
 		"does not provide resource name after type": {
-			args:           []string{"a.b.c", "-namespace", "default"},
-			expectedCode:   1,
-			expectedErrMsg: "Must provide resource name right after type",
+			args:         []string{"a.b.c", "-namespace", "default"},
+			expectedCode: 1,
+			expectedErr:  errors.New("Your argument format is incorrect: Must provide resource name right after type"),
+		},
+		"invalid resource type format": {
+			args:         []string{"a.", "name", "-namespace", "default"},
+			expectedCode: 1,
+			expectedErr:  errors.New("Your argument format is incorrect: Must include resource type argument in group.verion.kind format"),
 		},
 	}
 
@@ -60,8 +76,10 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
 
-			require.Equal(t, tc.expectedCode, c.Run(tc.args))
-			require.Contains(t, ui.ErrorWriter.String(), tc.expectedErrMsg)
+			code := c.Run(tc.args)
+
+			require.Equal(t, tc.expectedCode, code)
+			require.Contains(t, ui.ErrorWriter.String(), tc.expectedErr.Error())
 		})
 	}
 }

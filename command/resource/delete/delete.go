@@ -84,7 +84,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	} else {
 		if len(args) < 2 {
-			c.UI.Error("Must specify two arguments: resource type and resource name")
+			c.UI.Error("Your argument format is incorrect: Must specify two arguments: resource type and resource name")
 			return 1
 		}
 		var err error
