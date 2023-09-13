@@ -8,26 +8,27 @@ skipped_directories=("docs/" "ui/" "website/" "grafana/")
 
 # Initialize a variable to track directories outside the skipped ones
 other_directories=""
-trigger_ci=false
+trigger_ci=true
 
-# Loop through the changed files and find directories/files outside the skipped ones
-for file_to_check in $files_to_check; do
-	file_is_skipped=false
-	for dir in "${skipped_directories[@]}"; do
-		if [[ "$file_to_check" == "$dir"* ]] || [[ "$file_to_check" == *.md && "$dir" == *"/" ]]; then
-			file_is_skipped=true
-			break
-		fi
-	done
-	if [ "$file_is_skipped" = "false" ]; then
-		other_directories+="$(dirname "$file_to_check")\n"
-		trigger_ci=true
-		echo "Non doc file(s) changed - triggered ci: $trigger_ci"
-		echo -e $other_directories
-		echo "trigger-ci=$trigger_ci" >>"$GITHUB_OUTPUT"
-		exit 0 ## if file is outside of the skipped_directory exit script
-	fi
-done
+# # Loop through the changed files and find directories/files outside the skipped ones
+# for file_to_check in $files_to_check; do
+# 	file_is_skipped=false
+# 	for dir in "${skipped_directories[@]}"; do
+# 		if [[ "$file_to_check" == "$dir"* ]] || [[ "$file_to_check" == *.md && "$dir" == *"/" ]]; then
+# 			file_is_skipped=true
+# 			break
+# 		fi
+# 	done
+# 	if [ "$file_is_skipped" = "false" ]; then
+# 		other_directories+="$(dirname "$file_to_check")\n"
+# 		trigger_ci=true
+# 		echo "Non doc file(s) changed - triggered ci: $trigger_ci"
+# 		echo -e $other_directories
+# 		echo "trigger-ci=$trigger_ci" >>"$GITHUB_OUTPUT"
+# 		exit 0 ## if file is outside of the skipped_directory exit script
+# 	fi
+# done
 
-echo "Only doc file(s) changed - triggered ci: $trigger_ci"
+# echo "Only doc file(s) changed - triggered ci: $trigger_ci"
+echo "Doc file(s) change detection is currently disabled - triggering ci"
 echo "trigger-ci=$trigger_ci" >>"$GITHUB_OUTPUT"
