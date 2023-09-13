@@ -155,8 +155,7 @@ You can specify the following strings:
 * `trace`
 
 ### matchPrivilegedContainerPorts
-Specifies the value to add to privileged ports ( ports < 1024). If this value is set, any privileged port on the gateway
-will have this value added to it. This is useful to avoid running containers with privileged ports.
+Specifies the value to add to privileged ports ( ports < 1024). If this value is set, any privileged port on the gateway will have this value added to it. This is useful to avoid running containers with privileged ports.
 for gateway containers
 * Type: Integer
 * Required: optional
@@ -170,8 +169,7 @@ Pods normally run on multiple nodes. You can specify a set of parameters in the 
 * Required: optional
 
 ### openshiftSCCName
-Specifies the Openshift Security Context Constraint for the gateway-class-config to use
-for gateway containers
+Specifies the Openshift Security Context Constraint for the `GatewayClassConfig` to use. View available default security context constraints on [Openshift](https://docs.openshift.com/container-platform/4.13/authentication/managing-security-context-constraints.html#default-sccs_configuring-internal-oauth).
 * Type: string
 * Required: optional
 * Default: `restricted-v2`
