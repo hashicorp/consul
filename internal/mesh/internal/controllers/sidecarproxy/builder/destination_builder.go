@@ -457,6 +457,10 @@ func isProtocolHTTPLike(protocol pbcatalog.Protocol) bool {
 		pbcatalog.Protocol_PROTOCOL_HTTP,
 		pbcatalog.Protocol_PROTOCOL_GRPC:
 		return true
+	case pbcatalog.Protocol_PROTOCOL_MESH:
+		fallthrough // to default
+	case pbcatalog.Protocol_PROTOCOL_UNSPECIFIED:
+		fallthrough // to default
 	default:
 		return false
 	}
