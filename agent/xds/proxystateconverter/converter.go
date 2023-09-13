@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
 // Converter converts a single snapshot into a ProxyState.

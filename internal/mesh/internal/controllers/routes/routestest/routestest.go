@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )

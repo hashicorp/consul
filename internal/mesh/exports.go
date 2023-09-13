@@ -16,9 +16,9 @@ import (
 var (
 	// API Group Information
 
-	APIGroup        = types.GroupName
-	VersionV1Alpha1 = types.VersionV1Alpha1
-	CurrentVersion  = types.CurrentVersion
+	APIGroup       = types.GroupName
+	VersionV2Beta1 = types.VersionV2beta1
+	CurrentVersion = types.CurrentVersion
 
 	// Resource Kind Names.
 
@@ -33,30 +33,30 @@ var (
 	ComputedRoutesKind         = types.ComputedRoutesKind
 	ProxyStateTemplateKind     = types.ProxyStateTemplateKind
 
-	// Resource Types for the v1alpha1 version.
+	// Resource Types for the v2beta1 version.
 
-	ProxyConfigurationV1Alpha1Type     = types.ProxyConfigurationV1Alpha1Type
-	UpstreamsV1Alpha1Type              = types.UpstreamsV1Alpha1Type
-	UpstreamsConfigurationV1Alpha1Type = types.UpstreamsConfigurationV1Alpha1Type
-	HTTPRouteV1Alpha1Type              = types.HTTPRouteV1Alpha1Type
-	GRPCRouteV1Alpha1Type              = types.GRPCRouteV1Alpha1Type
-	TCPRouteV1Alpha1Type               = types.TCPRouteV1Alpha1Type
-	DestinationPolicyV1Alpha1Type      = types.DestinationPolicyV1Alpha1Type
-	ComputedRoutesV1Alpha1Type         = types.ComputedRoutesV1Alpha1Type
-	ProxyStateTemplateV1AlphaType      = types.ProxyStateTemplateV1Alpha1Type
+	ProxyConfigurationV2Beta1Type              = types.ProxyConfigurationV2Beta1Type
+	UpstreamsV2Beta1Type                       = types.UpstreamsV2Beta1Type
+	UpstreamsConfigurationV2Beta1Type          = types.UpstreamsConfigurationV2Beta1Type
+	ProxyStateTemplateConfigurationV2Beta1Type = types.ProxyStateTemplateV2Beta1Type
+	HTTPRouteV2Beta1Type                       = types.HTTPRouteV2Beta1Type
+	GRPCRouteV2Beta1Type                       = types.GRPCRouteV2Beta1Type
+	TCPRouteV2Beta1Type                        = types.TCPRouteV2Beta1Type
+	DestinationPolicyV2Beta1Type               = types.DestinationPolicyV2Beta1Type
+	ComputedRoutesV2Beta1Type                  = types.ComputedRoutesV2Beta1Type
+	ProxyStateTemplateV1AlphaType              = types.ProxyStateTemplateV2Beta1Type
 
 	// Resource Types for the latest version.
 
-	ProxyConfigurationType              = types.ProxyConfigurationType
-	UpstreamsType                       = types.UpstreamsType
-	UpstreamsConfigurationType          = types.UpstreamsConfigurationType
-	ProxyStateTemplateType              = types.ProxyStateTemplateType
-	ProxyStateTemplateConfigurationType = types.ProxyStateTemplateType
-	HTTPRouteType                       = types.HTTPRouteType
-	GRPCRouteType                       = types.GRPCRouteType
-	TCPRouteType                        = types.TCPRouteType
-	DestinationPolicyType               = types.DestinationPolicyType
-	ComputedRoutesType                  = types.ComputedRoutesType
+	ProxyConfigurationType     = types.ProxyConfigurationType
+	UpstreamsType              = types.UpstreamsType
+	UpstreamsConfigurationType = types.UpstreamsConfigurationType
+	ProxyStateTemplateType     = types.ProxyStateTemplateType
+	HTTPRouteType              = types.HTTPRouteType
+	GRPCRouteType              = types.GRPCRouteType
+	TCPRouteType               = types.TCPRouteType
+	DestinationPolicyType      = types.DestinationPolicyType
+	ComputedRoutesType         = types.ComputedRoutesType
 
 	// Controller statuses.
 

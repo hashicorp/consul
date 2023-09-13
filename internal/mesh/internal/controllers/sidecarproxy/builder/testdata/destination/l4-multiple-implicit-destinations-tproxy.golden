@@ -129,7 +129,7 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },
@@ -145,7 +145,7 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },

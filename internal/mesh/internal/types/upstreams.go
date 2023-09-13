@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -18,18 +18,18 @@ const (
 )
 
 var (
-	UpstreamsV1Alpha1Type = &pbresource.Type{
+	UpstreamsV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2beta1,
 		Kind:         UpstreamsKind,
 	}
 
-	UpstreamsType = UpstreamsV1Alpha1Type
+	UpstreamsType = UpstreamsV2Beta1Type
 )
 
 func RegisterUpstreams(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     UpstreamsV1Alpha1Type,
+		Type:     UpstreamsV2Beta1Type,
 		Proto:    &pbmesh.Upstreams{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateUpstreams,

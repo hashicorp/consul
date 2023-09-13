@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 

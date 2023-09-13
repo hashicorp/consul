@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -18,18 +18,18 @@ const (
 )
 
 var (
-	ServiceEndpointsV1Alpha1Type = &pbresource.Type{
+	ServiceEndpointsV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2Beta1,
 		Kind:         ServiceEndpointsKind,
 	}
 
-	ServiceEndpointsType = ServiceEndpointsV1Alpha1Type
+	ServiceEndpointsType = ServiceEndpointsV2Beta1Type
 )
 
 func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ServiceEndpointsV1Alpha1Type,
+		Type:     ServiceEndpointsV2Beta1Type,
 		Proto:    &pbcatalog.ServiceEndpoints{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateServiceEndpoints,
@@ -40,7 +40,7 @@ func RegisterServiceEndpoints(r resource.Registry) {
 func MutateServiceEndpoints(res *pbresource.Resource) error {
 	if res.Owner == nil {
 		res.Owner = &pbresource.ID{
-			Type:    ServiceV1Alpha1Type,
+			Type:    ServiceV2Beta1Type,
 			Tenancy: res.Id.Tenancy,
 			Name:    res.Id.Name,
 		}
@@ -57,16 +57,16 @@ func ValidateServiceEndpoints(res *pbresource.Resource) error {
 	}
 
 	var err error
-	if !resource.EqualType(res.Owner.Type, ServiceV1Alpha1Type) {
+	if !resource.EqualType(res.Owner.Type, ServiceV2Beta1Type) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{
-			ResourceType: ServiceEndpointsV1Alpha1Type,
+			ResourceType: ServiceEndpointsV2Beta1Type,
 			OwnerType:    res.Owner.Type,
 		})
 	}
 
 	if !resource.EqualTenancy(res.Owner.Tenancy, res.Id.Tenancy) {
 		err = multierror.Append(err, resource.ErrOwnerTenantInvalid{
-			ResourceType:    ServiceEndpointsV1Alpha1Type,
+			ResourceType:    ServiceEndpointsV2Beta1Type,
 			ResourceTenancy: res.Id.Tenancy,
 			OwnerTenancy:    res.Owner.Tenancy,
 		})

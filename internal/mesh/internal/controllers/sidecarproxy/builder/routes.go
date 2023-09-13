@@ -10,8 +10,8 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
 func (b *Builder) backendTargetToClusterName(

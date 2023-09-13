@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 

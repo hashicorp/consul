@@ -6,10 +6,11 @@ package types
 import (
 	"math"
 
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
@@ -17,18 +18,18 @@ const (
 )
 
 var (
-	DNSPolicyV1Alpha1Type = &pbresource.Type{
+	DNSPolicyV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2Beta1,
 		Kind:         DNSPolicyKind,
 	}
 
-	DNSPolicyType = DNSPolicyV1Alpha1Type
+	DNSPolicyType = DNSPolicyV2Beta1Type
 )
 
 func RegisterDNSPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     DNSPolicyV1Alpha1Type,
+		Type:     DNSPolicyV2Beta1Type,
 		Proto:    &pbcatalog.DNSPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,

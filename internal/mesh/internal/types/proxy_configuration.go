@@ -5,7 +5,7 @@ package types
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -14,18 +14,18 @@ const (
 )
 
 var (
-	ProxyConfigurationV1Alpha1Type = &pbresource.Type{
+	ProxyConfigurationV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2beta1,
 		Kind:         ProxyConfigurationKind,
 	}
 
-	ProxyConfigurationType = ProxyConfigurationV1Alpha1Type
+	ProxyConfigurationType = ProxyConfigurationV2Beta1Type
 )
 
 func RegisterProxyConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  ProxyConfigurationV1Alpha1Type,
+		Type:  ProxyConfigurationV2Beta1Type,
 		Proto: &pbmesh.ProxyConfiguration{},
 		Scope: resource.ScopeNamespace,
 		// TODO(rb): add validation for proxy configuration

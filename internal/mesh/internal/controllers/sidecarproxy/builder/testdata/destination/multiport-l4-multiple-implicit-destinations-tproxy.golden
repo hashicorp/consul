@@ -330,7 +330,7 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },
@@ -346,7 +346,7 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },
@@ -362,23 +362,7 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
-          "kind": "ServiceEndpoints"
-        }
-      },
-      "port": "mesh"
-    },
-    "tcp2.api-app.default.dc1.internal.foo.consul": {
-      "id": {
-        "name": "api-app",
-        "tenancy": {
-          "namespace": "default",
-          "partition": "default",
-          "peerName": "local"
-        },
-        "type": {
-          "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },
@@ -394,7 +378,23 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
+    "tcp2.api-app.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },
@@ -410,7 +410,7 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },

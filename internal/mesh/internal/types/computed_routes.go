@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -24,18 +24,18 @@ const (
 )
 
 var (
-	ComputedRoutesV1Alpha1Type = &pbresource.Type{
+	ComputedRoutesV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2beta1,
 		Kind:         ComputedRoutesKind,
 	}
 
-	ComputedRoutesType = ComputedRoutesV1Alpha1Type
+	ComputedRoutesType = ComputedRoutesV2Beta1Type
 )
 
 func RegisterComputedRoutes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ComputedRoutesV1Alpha1Type,
+		Type:     ComputedRoutesV2Beta1Type,
 		Proto:    &pbmesh.ComputedRoutes{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateComputedRoutes,

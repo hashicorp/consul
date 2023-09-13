@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
@@ -16,8 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )

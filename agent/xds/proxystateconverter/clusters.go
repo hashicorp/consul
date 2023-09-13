@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
