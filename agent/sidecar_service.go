@@ -81,6 +81,12 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 		sidecar.Tags = append(sidecar.Tags, ns.Tags...)
 	}
 
+	// Copy the locality from the original service if locality was not provided
+	if sidecar.Locality == nil && ns.Locality != nil {
+		tmp := *ns.Locality
+		sidecar.Locality = &tmp
+	}
+
 	// Flag this as a sidecar - this is not persisted in catalog but only needed
 	// in local agent state to disambiguate lineage when deregistering the parent
 	// service later.
