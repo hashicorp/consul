@@ -6,15 +6,20 @@ package builder
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload) *Builder {
+func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.ComputedTrafficPermissions) *Builder {
 	// Add the public listener.
 	lb := b.addInboundListener(xdscommon.PublicListenerName, workload)
 	lb.buildListener()
+
+	trafficPermissions := buildTrafficPermissions(b.trustDomain, workload, ctp)
 
 	// Go through workload ports and add the routers, clusters, endpoints, and TLS.
 	// Note that the order of ports is non-deterministic here but the xds generation
@@ -24,7 +29,7 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload) *Builder {
 		clusterName := fmt.Sprintf("%s:%s", xdscommon.LocalAppClusterName, portName)
 
 		if port.Protocol != pbcatalog.Protocol_PROTOCOL_MESH {
-			lb.addInboundRouter(clusterName, port, portName).
+			lb.addInboundRouter(clusterName, port, portName, trafficPermissions[portName]).
 				addInboundTLS()
 
 			b.addLocalAppCluster(clusterName).
@@ -33,6 +38,172 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload) *Builder {
 	}
 
 	return b
+}
+
+func buildTrafficPermissions(trustDomain string, workload *pbcatalog.Workload, computed *pbauth.ComputedTrafficPermissions) map[string]*pbproxystate.TrafficPermissions {
+	portsWithProtocol := workload.GetPortsByProtocol()
+
+	out := make(map[string]*pbproxystate.TrafficPermissions)
+	portToProtocol := make(map[string]pbcatalog.Protocol)
+	var allPorts []string
+	for protocol, ports := range portsWithProtocol {
+		for _, p := range ports {
+			allPorts = append(allPorts, p)
+			portToProtocol[p] = protocol
+			out[p] = &pbproxystate.TrafficPermissions{}
+		}
+	}
+
+	if computed == nil {
+		return out
+	}
+
+	for _, p := range computed.DenyPermissions {
+		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
+		principals := makePrincipals(trustDomain, p)
+		for port := range drsByPort {
+			if portToProtocol[port] == pbcatalog.Protocol_PROTOCOL_TCP {
+				out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
+					Principals: principals,
+				})
+			}
+		}
+	}
+
+	for _, p := range computed.AllowPermissions {
+		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
+		principals := makePrincipals(trustDomain, p)
+		for port := range drsByPort {
+			if portToProtocol[port] == pbcatalog.Protocol_PROTOCOL_TCP {
+				out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
+					Principals: principals,
+				})
+			}
+		}
+	}
+
+	return out
+}
+
+// TODO this is a placeholder until we add them to the IR.
+type DestinationRule struct{}
+
+func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.DestinationRule) map[string][]DestinationRule {
+	out := make(map[string][]DestinationRule)
+
+	if len(destinationRules) == 0 {
+		for _, p := range allPorts {
+			out[p] = nil
+		}
+
+		return out
+	}
+
+	for _, destinationRule := range destinationRules {
+		ports, dr := convertDestinationRule(allPorts, destinationRule)
+		for _, p := range ports {
+			out[p] = append(out[p], dr)
+		}
+	}
+
+	return out
+}
+
+func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]string, DestinationRule) {
+	ports := make(map[string]struct{})
+	if len(dr.PortNames) > 0 {
+		for _, p := range dr.PortNames {
+			ports[p] = struct{}{}
+		}
+	} else {
+		for _, p := range allPorts {
+			ports[p] = struct{}{}
+		}
+	}
+
+	for _, exclude := range dr.Exclude {
+		for _, p := range exclude.PortNames {
+			delete(ports, p)
+		}
+	}
+
+	var out []string
+	for p := range ports {
+		out = append(out, p)
+	}
+
+	return out, DestinationRule{}
+}
+
+func makePrincipals(trustDomain string, perm *pbauth.Permission) []*pbproxystate.Principal {
+	var principals []*pbproxystate.Principal
+	for _, s := range perm.Sources {
+		principals = append(principals, makePrincipal(trustDomain, s))
+	}
+
+	return principals
+}
+
+func makePrincipal(trustDomain string, s *pbauth.Source) *pbproxystate.Principal {
+	excludes := make([]*pbproxystate.Spiffe, 0, len(s.Exclude))
+	for _, es := range s.Exclude {
+		excludes = append(excludes, sourceToSpiffe(trustDomain, es))
+	}
+
+	return &pbproxystate.Principal{
+		Spiffe:         sourceToSpiffe(trustDomain, s),
+		ExcludeSpiffes: excludes,
+	}
+}
+
+type SourceToSpiffe interface {
+	GetIdentityName() string
+	GetPartition() string
+	GetNamespace() string
+	GetPeer() string
+}
+
+var _ SourceToSpiffe = (*pbauth.Source)(nil)
+var _ SourceToSpiffe = (*pbauth.ExcludeSource)(nil)
+
+const (
+	anyPath = `[^/]+`
+)
+
+func sourceToSpiffe(trustDomain string, s SourceToSpiffe) *pbproxystate.Spiffe {
+	var (
+		name = s.GetIdentityName()
+		ns   = s.GetNamespace()
+		ap   = s.GetPartition()
+	)
+
+	if ns == "" && name != "" {
+		panic(fmt.Sprintf("not possible to have a wildcarded namespace %q but an exact identity %q", ns, name))
+	}
+
+	if ap == "" {
+		panic("not possible to have a wildcarded source partition")
+	}
+
+	if ns == "" {
+		ns = anyPath
+	}
+	if name == "" {
+		name = anyPath
+	}
+
+	spiffeMatcher := connect.SpiffeIDFromIdentityRef(trustDomain, &pbresource.Reference{
+		Name: name,
+		Tenancy: &pbresource.Tenancy{
+			Partition: ap,
+			Namespace: ns,
+			PeerName:  s.GetPeer(),
+		},
+	})
+
+	return &pbproxystate.Spiffe{
+		Regex: fmt.Sprintf(`^%s$`, spiffeMatcher),
+	}
 }
 
 func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) *ListenerBuilder {
@@ -77,7 +248,7 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 	return b.NewListenerBuilder(listener)
 }
 
-func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.WorkloadPort, portName string) *ListenerBuilder {
+func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.WorkloadPort, portName string, tp *pbproxystate.TrafficPermissions) *ListenerBuilder {
 	if l.listener == nil {
 		return l
 	}
@@ -91,7 +262,8 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 							Name: clusterName,
 						},
 					},
-					StatPrefix: l.listener.Name,
+					StatPrefix:         l.listener.Name,
+					TrafficPermissions: tp,
 				},
 			},
 			Match: &pbproxystate.Match{

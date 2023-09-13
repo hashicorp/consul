@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
@@ -29,12 +30,13 @@ func Controller(
 	destinationsCache *sidecarproxycache.DestinationsCache,
 	proxyCfgCache *sidecarproxycache.ProxyConfigurationCache,
 	computedRoutesCache *sidecarproxycache.ComputedRoutesCache,
+	identitiesCache *sidecarproxycache.IdentitiesCache,
 	mapper *sidecarproxymapper.Mapper,
 	trustDomainFetcher TrustDomainFetcher,
 	dc string,
 ) controller.Controller {
-	if destinationsCache == nil || proxyCfgCache == nil || computedRoutesCache == nil || mapper == nil || trustDomainFetcher == nil {
-		panic("destinations cache, proxy configuration cache, computed routes cache, mapper, and trust domain fetcher are required")
+	if destinationsCache == nil || proxyCfgCache == nil || computedRoutesCache == nil || identitiesCache == nil || mapper == nil || trustDomainFetcher == nil {
+		panic("destinations cache, proxy configuration cache, computed routes cache, identities cache, mapper, and trust domain fetcher are required")
 	}
 
 	/*
@@ -92,6 +94,7 @@ func Controller(
 			destinationsCache:   destinationsCache,
 			proxyCfgCache:       proxyCfgCache,
 			computedRoutesCache: computedRoutesCache,
+			identitiesCache:     identitiesCache,
 			getTrustDomain:      trustDomainFetcher,
 			dc:                  dc,
 		})
@@ -101,6 +104,7 @@ type reconciler struct {
 	destinationsCache   *sidecarproxycache.DestinationsCache
 	proxyCfgCache       *sidecarproxycache.ProxyConfigurationCache
 	computedRoutesCache *sidecarproxycache.ComputedRoutesCache
+	identitiesCache     *sidecarproxycache.IdentitiesCache
 	getTrustDomain      TrustDomainFetcher
 	dc                  string
 }
@@ -116,6 +120,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		r.destinationsCache,
 		r.proxyCfgCache,
 		r.computedRoutesCache,
+		r.identitiesCache,
 	)
 
 	// Check if the workload exists.
@@ -175,8 +180,15 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Error("error fetching proxy and merging proxy configurations", "error", err)
 		return err
 	}
+
+	ctp, err := dataFetcher.FetchComputedTrafficPermissions(ctx, computedTrafficPermissionsIDFromWorkload(workload))
+	if err != nil {
+		rt.Logger.Error("error fetching computed traffic permissions to compute proxy state template", "error", err)
+		return err
+	}
+
 	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, proxyCfg).
-		BuildLocalApp(workload.Data)
+		BuildLocalApp(workload.Data, ctp)
 
 	// Get all destinationsData.
 	destinationsRefs := r.destinationsCache.DestinationsBySourceProxy(req.ID)
@@ -248,6 +260,14 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 func identityRefFromWorkload(w *types.DecodedWorkload) *pbresource.Reference {
 	return &pbresource.Reference{
+		Name:    w.Data.Identity,
+		Tenancy: w.Resource.Id.Tenancy,
+	}
+}
+
+func computedTrafficPermissionsIDFromWorkload(w *types.DecodedWorkload) *pbresource.ID {
+	return &pbresource.ID{
+		Type:    auth.ComputedTrafficPermissionsType,
 		Name:    w.Data.Identity,
 		Tenancy: w.Resource.Id.Tenancy,
 	}
