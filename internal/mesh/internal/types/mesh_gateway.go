@@ -28,6 +28,7 @@ func RegisterMeshGateway(r resource.Registry) {
 		Type:     MeshGatewayV1Alpha1Type,
 		Proto:    &pbmesh.MeshGateway{},
 		Scope:    resource.ScopeNamespace,
+		ACLs:     nil, //TODO(nathancoleman)
 		Mutate:   nil, // TODO(nathancoleman)
 		Validate: nil, // TODO(nathancoleman)
 	})
