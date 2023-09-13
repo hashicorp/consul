@@ -39,6 +39,14 @@ Read a resource:
 
 $ consul resource read [type] [name] -partition=<default> -namespace=<default> -peer=<local> -consistent=<false> -json
 
+Write/update a resource:
+
+$ consul resource apply -f=<file-path>
+
+List resources by type:
+
+$ consul resource list [type] -partition=<default> -namespace=<default> -peer=<local>
+
 Run
 
 consul resource <subcommand> -h 

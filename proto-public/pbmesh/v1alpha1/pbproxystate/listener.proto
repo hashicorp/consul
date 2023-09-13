@@ -7,7 +7,7 @@ package hashicorp.consul.mesh.v1alpha1.pbproxystate;
 
 import "google/protobuf/wrappers.proto";
 import "pbmesh/v1alpha1/pbproxystate/address.proto";
-import "pbmesh/v1alpha1/pbproxystate/intentions.proto";
+import "pbmesh/v1alpha1/pbproxystate/traffic_permissions.proto";
 import "pbmesh/v1alpha1/pbproxystate/transport_socket.proto";
 
 message Listener {
@@ -74,11 +74,12 @@ message Router {
 }
 
 message Match {
-  google.protobuf.UInt32Value destination_port = 1;
-  repeated CidrRange prefix_ranges = 2;
-  repeated CidrRange source_prefix_ranges = 3;
+  repeated string alpn_protocols = 1;
+  google.protobuf.UInt32Value destination_port = 2;
+  repeated CidrRange prefix_ranges = 3;
+  repeated CidrRange source_prefix_ranges = 4;
   // server_names matches based on SNI of the incoming request.
-  repeated string server_names = 4;
+  repeated string server_names = 5;
 }
 
 message CidrRange {
@@ -91,10 +92,8 @@ message L4Destination {
   string name = 1;
   // stat_prefix is for compatibility with v1 xds configuration, so it is generated in exactly the same way.
   string stat_prefix = 2;
-  // intentions is a list of intentions for this destination.
-  repeated L4Intention intentions = 3;
-  // add_empty_intention specifies whether to add an empty intention for this destination, when there are no other intentions specified.
-  bool add_empty_intention = 4;
+  // traffic_permissions is a list of traffic permissions for this destination.
+  L4TrafficPermissions traffic_permissions = 3;
   // max_inbound_connections specifies how many connections this destination can accept.
   uint64 max_inbound_connections = 5;
 }
@@ -106,17 +105,15 @@ message L7Destination {
   string stat_prefix = 2;
   // protocol for the destination.
   L7Protocol protocol = 3;
-  // intentions is a list of intentions for this destination.
-  repeated L7Intention intentions = 4;
-  // add_empty_intention specifies whether to add an empty intention for this destination, when there are no other intentions specified.
-  bool add_empty_intention = 5;
+  // traffic_permissions is a list of intentions for this destination.
+  L7TrafficPermissions traffic_permissions = 4;
   // include_xfcc specifies whether to add xfcc header.
-  bool include_xfcc = 6;
+  bool include_xfcc = 5;
   // static_route specifies whether this is a static route that is inlined in the listener filter. This is required to
   // match existing xds config.
-  bool static_route = 7;
+  bool static_route = 6;
   // max_inbound_connections specifies how many connections this destination can accept.
-  uint64 max_inbound_connections = 8;
+  uint64 max_inbound_connections = 7;
 }
 
 enum L7Protocol {

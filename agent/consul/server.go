@@ -489,8 +489,9 @@ type ProxyUpdater interface {
 	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
 	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
 
-	// ProxyConnectedToServer returns whether this id is connected to this server.
-	ProxyConnectedToServer(id *pbresource.ID) bool
+	// ProxyConnectedToServer returns whether this id is connected to this server. If it is connected, it also returns
+	// the token as the first argument.
+	ProxyConnectedToServer(id *pbresource.ID) (string, bool)
 
 	EventChannel() chan controller.Event
 }
@@ -817,17 +818,19 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// Setup resource service clients.
-	if err := s.setupSecureResourceServiceClient(); err != nil {
-		return nil, err
-	}
-
+	// Setup insecure resource service client.
 	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
 		return nil, err
 	}
 
 	// Initialize external gRPC server
 	s.setupExternalGRPC(config, flat, logger)
+
+	// Setup secure resource service client. We need to do it after we setup the
+	// gRPC server because it needs the server to be instantiated.
+	if err := s.setupSecureResourceServiceClient(); err != nil {
+		return nil, err
+	}
 
 	// Initialize internal gRPC server.
 	//
@@ -907,7 +910,6 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 				}
 				return &bundle, nil
 			},
-			ProxyUpdater: proxyUpdater,
 			// This function is adapted from server_connect.go:getCARoots.
 			TrustDomainFetcher: func() (string, error) {
 				_, caConfig, err := s.fsm.State().CAConfig(nil)
@@ -917,6 +919,10 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 
 				return s.getTrustDomain(caConfig)
 			},
+
+			LeafCertManager: deps.LeafCertManager,
+			LocalDatacenter: s.config.Datacenter,
+			ProxyUpdater:    proxyUpdater,
 		})
 	}
 
@@ -1400,6 +1406,10 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 }
 
 func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
+	if s.raftStorageBackend == nil {
+		return fmt.Errorf("raft storage backend cannot be nil")
+	}
+
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
 		Registry:        typeRegistry,
 		Backend:         s.raftStorageBackend,
@@ -1418,6 +1428,9 @@ func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Regist
 }
 
 func (s *Server) setupSecureResourceServiceClient() error {
+	if s.resourceServiceServer == nil {
+		return fmt.Errorf("resource service server cannot be nil")
+	}
 	conn, err := s.runInProcessGRPCServer(s.resourceServiceServer.Register)
 	if err != nil {
 		return err

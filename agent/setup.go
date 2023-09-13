@@ -185,6 +185,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 			TestOverrideCAChangeInitialDelay: cfg.ConnectTestCALeafRootChangeSpread,
 		},
 	})
+	// Set the leaf cert manager in the embedded deps type so it can be used by consul servers.
+	d.Deps.LeafCertManager = d.LeafCertManager
 
 	agentType := "client"
 	if cfg.ServerMode {
