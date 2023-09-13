@@ -263,6 +263,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 	}
 	destCache.WriteDestination(dest1)
 	destCache.WriteDestination(dest2)
+	suite.syncDestinations(dest1, dest2)
 
 	proxyCfgID := resourcetest.Resource(types.ProxyConfigurationType, "proxy-config").ID()
 	proxyCfgCache.TrackProxyConfiguration(proxyCfgID, []resource.ReferenceOrID{proxyID})
@@ -399,7 +400,234 @@ func (suite *dataFetcherSuite) TestFetcher_FetchErrors() {
 	}
 }
 
+func (suite *dataFetcherSuite) syncDestinations(destinations ...intermediate.CombinedDestinationRef) {
+	data := &pbmesh.Upstreams{}
+	for _, dest := range destinations {
+		data.Upstreams = append(data.Upstreams, &pbmesh.Upstream{
+			DestinationRef:  dest.ServiceRef,
+			DestinationPort: dest.Port,
+		})
+	}
+
+	suite.webDestinations = resourcetest.Resource(types.UpstreamsType, "web-destinations").
+		WithData(suite.T(), data).
+		Write(suite.T(), suite.client)
+}
+
 func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
+	c := sidecarproxycache.NewDestinationsCache()
+
+	writeDestination := func(t *testing.T, dest intermediate.CombinedDestinationRef) {
+		c.WriteDestination(dest)
+		t.Cleanup(func() {
+			c.DeleteDestination(dest.ServiceRef, dest.Port)
+		})
+	}
+
+	var (
+		api1ServiceRef = resource.Reference(suite.api1Service.Id, "")
+	)
+
+	f := Fetcher{
+		DestinationsCache: c,
+		Client:            suite.client,
+	}
+
+	testutil.RunStep(suite.T(), "invalid destinations: destinations not found", func(t *testing.T) {
+		destinationRefNoDestinations := intermediate.CombinedDestinationRef{
+			ServiceRef:             api1ServiceRef,
+			Port:                   "tcp",
+			ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "not-found").ID(),
+			SourceProxies: map[resource.ReferenceKey]struct{}{
+				resource.NewReferenceKey(suite.webProxy.Id): {},
+			},
+		}
+		c.WriteDestination(destinationRefNoDestinations)
+		suite.syncDestinations(destinationRefNoDestinations)
+
+		destinationRefs := []intermediate.CombinedDestinationRef{destinationRefNoDestinations}
+		destinations, _, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
+		require.NoError(t, err)
+		require.Nil(t, destinations)
+		_, foundDest := c.ReadDestination(destinationRefNoDestinations.ServiceRef, destinationRefNoDestinations.Port)
+		require.False(t, foundDest)
+	})
+
+	testutil.RunStep(suite.T(), "invalid destinations: service not found", func(t *testing.T) {
+		notFoundServiceRef := resourcetest.Resource(catalog.ServiceType, "not-found").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			ReferenceNoSection()
+		destinationNoServiceEndpoints := intermediate.CombinedDestinationRef{
+			ServiceRef:             notFoundServiceRef,
+			Port:                   "tcp",
+			ExplicitDestinationsID: suite.webDestinations.Id,
+			SourceProxies: map[resource.ReferenceKey]struct{}{
+				resource.NewReferenceKey(suite.webProxy.Id): {},
+			},
+		}
+		c.WriteDestination(destinationNoServiceEndpoints)
+		suite.syncDestinations(destinationNoServiceEndpoints)
+
+		t.Cleanup(func() {
+			// Restore this for the next test step.
+			suite.webDestinations = resourcetest.Resource(types.UpstreamsType, "web-destinations").
+				WithData(suite.T(), suite.webDestinationsData).
+				Write(suite.T(), suite.client)
+		})
+		suite.webDestinations = resourcetest.Resource(types.UpstreamsType, "web-destinations").
+			WithData(suite.T(), &pbmesh.Upstreams{
+				Upstreams: []*pbmesh.Upstream{{
+					DestinationRef:  notFoundServiceRef,
+					DestinationPort: "tcp",
+				}},
+			}).
+			Write(suite.T(), suite.client)
+
+		destinationRefs := []intermediate.CombinedDestinationRef{destinationNoServiceEndpoints}
+		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
+		require.NoError(t, err)
+		require.Empty(t, destinations)
+
+		destinationRef := resource.IDToString(destinationNoServiceEndpoints.ExplicitDestinationsID)
+		serviceRef := resource.ReferenceToString(destinationNoServiceEndpoints.ServiceRef)
+
+		destStatus, exists := statuses[destinationRef]
+		require.True(t, exists, "status map does not contain service: %s", destinationRef)
+
+		require.Len(t, destStatus.Conditions, 1)
+		require.Equal(t, destStatus.Conditions[0],
+			meshStatus.ConditionDestinationServiceNotFound(serviceRef))
+
+		_, foundDest := c.ReadDestination(destinationNoServiceEndpoints.ServiceRef, destinationNoServiceEndpoints.Port)
+		require.True(t, foundDest)
+	})
+
+	testutil.RunStep(suite.T(), "invalid destinations: service not on mesh", func(t *testing.T) {
+		apiNonMeshServiceData := &pbcatalog.Service{
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "tcp", Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+			},
+		}
+		suite.api1Service = resourcetest.ResourceID(suite.api1Service.Id).
+			WithData(suite.T(), apiNonMeshServiceData).
+			Write(suite.T(), suite.client)
+		destinationNonMeshServiceEndpoints := intermediate.CombinedDestinationRef{
+			ServiceRef:             api1ServiceRef,
+			Port:                   "tcp",
+			ExplicitDestinationsID: suite.webDestinations.Id,
+			SourceProxies: map[resource.ReferenceKey]struct{}{
+				resource.NewReferenceKey(suite.webProxy.Id): {},
+			},
+		}
+		c.WriteDestination(destinationNonMeshServiceEndpoints)
+		suite.syncDestinations(destinationNonMeshServiceEndpoints)
+
+		destinationRefs := []intermediate.CombinedDestinationRef{destinationNonMeshServiceEndpoints}
+		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
+		require.NoError(t, err)
+		require.Nil(t, destinations)
+
+		destinationRef := resource.IDToString(destinationNonMeshServiceEndpoints.ExplicitDestinationsID)
+		serviceRef := resource.ReferenceToString(destinationNonMeshServiceEndpoints.ServiceRef)
+
+		destStatus, exists := statuses[destinationRef]
+		require.True(t, exists, "status map does not contain service: %s", destinationRef)
+
+		prototest.AssertElementsMatch(t, []*pbresource.Condition{
+			meshStatus.ConditionDestinationServiceFound(serviceRef),
+			meshStatus.ConditionMeshProtocolNotFound(serviceRef),
+		}, destStatus.Conditions)
+
+		_, foundDest := c.ReadDestination(destinationNonMeshServiceEndpoints.ServiceRef, destinationNonMeshServiceEndpoints.Port)
+		require.True(t, foundDest)
+
+		// Update the service to be mesh enabled again and check that the status is now valid.
+		suite.api1Service = resourcetest.ResourceID(suite.api1Service.Id).
+			WithData(suite.T(), suite.api1ServiceData).
+			Write(suite.T(), suite.client)
+
+		destinations, statuses, err = f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
+		require.NoError(t, err)
+		require.Nil(t, destinations)
+
+		destStatus, exists = statuses[destinationRef]
+		require.True(t, exists, "status map does not contain service: %s", destinationRef)
+
+		prototest.AssertElementsMatch(t, []*pbresource.Condition{
+			meshStatus.ConditionDestinationServiceFound(serviceRef),
+			meshStatus.ConditionMeshProtocolFound(serviceRef),
+			meshStatus.ConditionNonMeshProtocolDestinationPort(serviceRef, destinationNonMeshServiceEndpoints.Port),
+			meshStatus.ConditionDestinationComputedRoutesNotFound(serviceRef),
+		}, destStatus.Conditions)
+	})
+
+	testutil.RunStep(suite.T(), "invalid destinations: destination is pointing to a mesh port", func(t *testing.T) {
+		// Create a destination pointing to the mesh port.
+		destinationMeshDestinationPort := intermediate.CombinedDestinationRef{
+			ServiceRef:             api1ServiceRef,
+			Port:                   "mesh",
+			ExplicitDestinationsID: suite.webDestinations.Id,
+			SourceProxies: map[resource.ReferenceKey]struct{}{
+				resource.NewReferenceKey(suite.webProxy.Id): {},
+			},
+		}
+		c.WriteDestination(destinationMeshDestinationPort)
+		suite.syncDestinations(destinationMeshDestinationPort)
+		destinationRefs := []intermediate.CombinedDestinationRef{destinationMeshDestinationPort}
+
+		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
+		serviceRef := resource.ReferenceToString(destinationMeshDestinationPort.ServiceRef)
+		destinationRef := resource.IDToString(destinationMeshDestinationPort.ExplicitDestinationsID)
+		expectedStatus := &intermediate.Status{
+			ID:         suite.webDestinations.Id,
+			Generation: suite.webDestinations.Generation,
+			Conditions: []*pbresource.Condition{
+				meshStatus.ConditionDestinationServiceFound(serviceRef),
+				meshStatus.ConditionMeshProtocolFound(serviceRef),
+				meshStatus.ConditionMeshProtocolDestinationPort(serviceRef, destinationMeshDestinationPort.Port),
+			},
+		}
+
+		require.NoError(t, err)
+
+		destStatus, exists := statuses[destinationRef]
+		require.True(t, exists, "status map does not contain service: %s", destinationRef)
+
+		// Check that the status is generated correctly.
+		prototest.AssertDeepEqual(t, expectedStatus, destStatus)
+
+		// Check that we didn't return any destinations.
+		require.Empty(t, destinations)
+
+		// Check that destination service is still in cache because it's still referenced from the pbmesh.Upstreams
+		// resource.
+		_, foundDest := c.ReadDestination(destinationMeshDestinationPort.ServiceRef, destinationMeshDestinationPort.Port)
+		require.True(t, foundDest)
+
+		// Update the destination to point to a non-mesh port and check that the status is now updated.
+		destinationRefs[0].Port = "tcp"
+		c.WriteDestination(destinationMeshDestinationPort)
+		suite.syncDestinations(destinationMeshDestinationPort)
+		expectedStatus = &intermediate.Status{
+			ID:         suite.webDestinations.Id,
+			Generation: suite.webDestinations.Generation,
+			Conditions: []*pbresource.Condition{
+				meshStatus.ConditionDestinationServiceFound(serviceRef),
+				meshStatus.ConditionMeshProtocolFound(serviceRef),
+				meshStatus.ConditionNonMeshProtocolDestinationPort(serviceRef, destinationRefs[0].Port),
+				meshStatus.ConditionDestinationComputedRoutesNotFound(serviceRef),
+			},
+		}
+
+		_, statuses, err = f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
+		require.NoError(t, err)
+
+		destStatus, exists = statuses[destinationRef]
+		require.True(t, exists, "status map does not contain service: %s", destinationRef)
+
+		prototest.AssertDeepEqual(t, expectedStatus, destStatus)
+	})
+
 	destination1 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resource.Reference(suite.api1Service.Id, ""),
 		Port:                   "tcp",
@@ -425,179 +653,6 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		},
 	}
 
-	c := sidecarproxycache.NewDestinationsCache()
-	c.WriteDestination(destination1)
-	c.WriteDestination(destination2)
-	c.WriteDestination(destination3)
-
-	var (
-		api1ServiceRef = resource.Reference(suite.api1Service.Id, "")
-	)
-
-	f := Fetcher{
-		DestinationsCache: c,
-		Client:            suite.client,
-	}
-
-	testutil.RunStep(suite.T(), "invalid destinations: destinations not found", func(t *testing.T) {
-		destinationRefNoDestinations := intermediate.CombinedDestinationRef{
-			ServiceRef:             api1ServiceRef,
-			Port:                   "tcp",
-			ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "not-found").ID(),
-			SourceProxies: map[resource.ReferenceKey]struct{}{
-				resource.NewReferenceKey(suite.webProxy.Id): {},
-			},
-		}
-		c.WriteDestination(destinationRefNoDestinations)
-
-		destinationRefs := []intermediate.CombinedDestinationRef{destinationRefNoDestinations}
-		destinations, _, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
-		require.NoError(t, err)
-		require.Nil(t, destinations)
-		_, foundDest := c.ReadDestination(destinationRefNoDestinations.ServiceRef, destinationRefNoDestinations.Port)
-		require.False(t, foundDest)
-	})
-
-	testutil.RunStep(suite.T(), "invalid destinations: service not found", func(t *testing.T) {
-		notFoundServiceRef := resourcetest.Resource(catalog.ServiceType, "not-found").
-			WithTenancy(resource.DefaultNamespacedTenancy()).
-			ReferenceNoSection()
-		destinationNoServiceEndpoints := intermediate.CombinedDestinationRef{
-			ServiceRef:             notFoundServiceRef,
-			Port:                   "tcp",
-			ExplicitDestinationsID: suite.webDestinations.Id,
-			SourceProxies: map[resource.ReferenceKey]struct{}{
-				resource.NewReferenceKey(suite.webProxy.Id): {},
-			},
-		}
-		c.WriteDestination(destinationNoServiceEndpoints)
-
-		destinationRefs := []intermediate.CombinedDestinationRef{destinationNoServiceEndpoints}
-		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
-		require.NoError(t, err)
-		require.Nil(t, destinations)
-
-		destinationRef := resource.IDToString(destinationNoServiceEndpoints.ExplicitDestinationsID)
-		serviceRef := resource.ReferenceToString(destinationNoServiceEndpoints.ServiceRef)
-
-		require.Len(t, statuses[destinationRef].Conditions, 1)
-		require.Equal(t, statuses[destinationRef].Conditions[0],
-			meshStatus.ConditionDestinationServiceNotFound(serviceRef))
-
-		_, foundDest := c.ReadDestination(destinationNoServiceEndpoints.ServiceRef, destinationNoServiceEndpoints.Port)
-		require.True(t, foundDest)
-	})
-
-	testutil.RunStep(suite.T(), "invalid destinations: service not on mesh", func(t *testing.T) {
-		apiNonMeshServiceData := &pbcatalog.Service{
-			Ports: []*pbcatalog.ServicePort{
-				{TargetPort: "tcp", Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-			},
-		}
-		suite.api1Service = resourcetest.ResourceID(suite.api1Service.Id).
-			WithData(suite.T(), apiNonMeshServiceData).
-			Write(suite.T(), suite.client)
-		destinationNonMeshServiceEndpoints := intermediate.CombinedDestinationRef{
-			ServiceRef:             api1ServiceRef,
-			Port:                   "tcp",
-			ExplicitDestinationsID: suite.webDestinations.Id,
-			SourceProxies: map[resource.ReferenceKey]struct{}{
-				resource.NewReferenceKey(suite.webProxy.Id): {},
-			},
-		}
-		c.WriteDestination(destinationNonMeshServiceEndpoints)
-
-		destinationRefs := []intermediate.CombinedDestinationRef{destinationNonMeshServiceEndpoints}
-		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
-		require.NoError(t, err)
-		require.Nil(t, destinations)
-
-		destinationRef := resource.IDToString(destinationNonMeshServiceEndpoints.ExplicitDestinationsID)
-		serviceRef := resource.ReferenceToString(destinationNonMeshServiceEndpoints.ServiceRef)
-
-		prototest.AssertElementsMatch(t, []*pbresource.Condition{
-			meshStatus.ConditionDestinationServiceFound(serviceRef),
-			meshStatus.ConditionMeshProtocolNotFound(serviceRef),
-		}, statuses[destinationRef].Conditions)
-
-		_, foundDest := c.ReadDestination(destinationNonMeshServiceEndpoints.ServiceRef, destinationNonMeshServiceEndpoints.Port)
-		require.True(t, foundDest)
-
-		// Update the service to be mesh enabled again and check that the status is now valid.
-		suite.api1Service = resourcetest.ResourceID(suite.api1Service.Id).
-			WithData(suite.T(), suite.api1ServiceData).
-			Write(suite.T(), suite.client)
-
-		destinations, statuses, err = f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
-		require.NoError(t, err)
-		require.Nil(t, destinations)
-
-		prototest.AssertElementsMatch(t, []*pbresource.Condition{
-			meshStatus.ConditionDestinationServiceFound(serviceRef),
-			meshStatus.ConditionMeshProtocolFound(serviceRef),
-			meshStatus.ConditionNonMeshProtocolDestinationPort(serviceRef, destination1.Port),
-			meshStatus.ConditionDestinationComputedRoutesNotFound(serviceRef),
-		}, statuses[destinationRef].Conditions)
-	})
-
-	testutil.RunStep(suite.T(), "invalid destinations: destination is pointing to a mesh port", func(t *testing.T) {
-		// Create a destination pointing to the mesh port.
-		destinationMeshDestinationPort := intermediate.CombinedDestinationRef{
-			ServiceRef:             api1ServiceRef,
-			Port:                   "mesh",
-			ExplicitDestinationsID: suite.webDestinations.Id,
-			SourceProxies: map[resource.ReferenceKey]struct{}{
-				resource.NewReferenceKey(suite.webProxy.Id): {},
-			},
-		}
-		c.WriteDestination(destinationMeshDestinationPort)
-		destinationRefs := []intermediate.CombinedDestinationRef{destinationMeshDestinationPort}
-
-		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
-		serviceRef := resource.ReferenceToString(destination1.ServiceRef)
-		destinationRef := resource.IDToString(destination1.ExplicitDestinationsID)
-		expectedStatus := &intermediate.Status{
-			ID:         suite.webDestinations.Id,
-			Generation: suite.webDestinations.Generation,
-			Conditions: []*pbresource.Condition{
-				meshStatus.ConditionDestinationServiceFound(serviceRef),
-				meshStatus.ConditionMeshProtocolFound(serviceRef),
-				meshStatus.ConditionMeshProtocolDestinationPort(serviceRef, destinationMeshDestinationPort.Port),
-			},
-		}
-
-		require.NoError(t, err)
-
-		// Check that the status is generated correctly.
-		prototest.AssertDeepEqual(t, expectedStatus, statuses[destinationRef])
-
-		// Check that we didn't return any destinations.
-		require.Nil(t, destinations)
-
-		// Check that destination service is still in cache because it's still referenced from the pbmesh.Upstreams
-		// resource.
-		_, foundDest := c.ReadDestination(destinationMeshDestinationPort.ServiceRef, destinationMeshDestinationPort.Port)
-		require.True(t, foundDest)
-
-		// Update the destination to point to a non-mesh port and check that the status is now updated.
-		destinationRefs[0].Port = "tcp"
-		c.WriteDestination(destinationMeshDestinationPort)
-		expectedStatus = &intermediate.Status{
-			ID:         suite.webDestinations.Id,
-			Generation: suite.webDestinations.Generation,
-			Conditions: []*pbresource.Condition{
-				meshStatus.ConditionDestinationServiceFound(serviceRef),
-				meshStatus.ConditionMeshProtocolFound(serviceRef),
-				meshStatus.ConditionNonMeshProtocolDestinationPort(serviceRef, destinationRefs[0].Port),
-				meshStatus.ConditionDestinationComputedRoutesNotFound(serviceRef),
-			},
-		}
-
-		_, statuses, err = f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
-		require.NoError(t, err)
-		prototest.AssertDeepEqual(t, expectedStatus, statuses[destinationRef])
-	})
-
 	testutil.RunStep(suite.T(), "invalid destinations: destination is pointing to a port but computed routes is not aware of it yet", func(t *testing.T) {
 		apiNonTCPServiceData := &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
@@ -616,7 +671,8 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		require.NotNil(suite.T(), api1ComputedRoutes)
 
 		// This destination points to TCP, but the computed routes is stale and only knows about HTTP.
-		c.WriteDestination(destination1)
+		writeDestination(t, destination1)
+		suite.syncDestinations(destination1)
 		destinationRefs := []intermediate.CombinedDestinationRef{destination1}
 
 		destinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
@@ -636,8 +692,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 
 		require.NoError(t, err)
 
+		destStatus, exists := statuses[destinationRef]
+		require.True(t, exists, "status map does not contain service: %s", destinationRef)
+
 		// Check that the status is generated correctly.
-		prototest.AssertDeepEqual(t, expectedStatus, statuses[destinationRef])
+		prototest.AssertDeepEqual(t, expectedStatus, destStatus)
 
 		// Check that we didn't return any destinations.
 		require.Nil(t, destinations)
@@ -667,14 +726,20 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 
 		actualDestinations, statuses, err := f.FetchExplicitDestinationsData(suite.ctx, destinationRefs)
 		require.NoError(t, err)
-		prototest.AssertDeepEqual(t, expectedStatus, statuses[destinationRef])
+
+		destStatus, exists = statuses[destinationRef]
+		require.True(t, exists, "status map does not contain service: %s", destinationRef)
+
+		prototest.AssertDeepEqual(t, expectedStatus, destStatus)
 
 		expectedDestinations := []*intermediate.Destination{
 			{
 				Explicit: suite.webDestinationsData.Upstreams[0],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api1ComputedRoutes.Data.PortedConfigs["tcp"], suite.api1Service.Id, "tcp", func(details *pbmesh.BackendTargetDetails) {
+					svc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service)
 					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
+					details.Service = svc.Data
 					details.ServiceEndpointsId = se.Resource.Id
 					details.ServiceEndpoints = se.Data
 					details.IdentityRefs = []*pbresource.Reference{{
@@ -688,6 +753,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 	})
 
 	testutil.RunStep(suite.T(), "happy path", func(t *testing.T) {
+		writeDestination(t, destination1)
+		writeDestination(t, destination2)
+		writeDestination(t, destination3)
+		suite.syncDestinations(destination1, destination2, destination3)
+
 		// Write a default ComputedRoutes for api1 and api2.
 		var (
 			api1ComputedRoutesID = resource.ReplaceType(types.ComputedRoutesType, suite.api1Service.Id)
@@ -708,7 +778,9 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				Explicit: suite.webDestinationsData.Upstreams[0],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api1ComputedRoutes.Data.PortedConfigs["tcp"], suite.api1Service.Id, "tcp", func(details *pbmesh.BackendTargetDetails) {
+					svc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service)
 					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
+					details.Service = svc.Data
 					details.ServiceEndpointsId = se.Resource.Id
 					details.ServiceEndpoints = se.Data
 					details.IdentityRefs = []*pbresource.Reference{{
@@ -721,7 +793,9 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				Explicit: suite.webDestinationsData.Upstreams[1],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api2ComputedRoutes.Data.PortedConfigs["tcp1"], suite.api2Service.Id, "tcp1", func(details *pbmesh.BackendTargetDetails) {
+					svc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service)
 					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
+					details.Service = svc.Data
 					details.ServiceEndpointsId = se.Resource.Id
 					details.ServiceEndpoints = se.Data
 					details.IdentityRefs = []*pbresource.Reference{{
@@ -734,7 +808,9 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				Explicit: suite.webDestinationsData.Upstreams[2],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api2ComputedRoutes.Data.PortedConfigs["tcp2"], suite.api2Service.Id, "tcp2", func(details *pbmesh.BackendTargetDetails) {
+					svc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service)
 					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
+					details.Service = svc.Data
 					details.ServiceEndpointsId = se.Resource.Id
 					details.ServiceEndpoints = se.Data
 					details.IdentityRefs = []*pbresource.Reference{{
