@@ -1,21 +1,17 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %main-nav-vertical-action {
-  @extend %body-200-medium;
+  @extend %p1;
   cursor: pointer;
   border-right: var(--decor-border-400);
-  border-color: transparent;
+  border-color: var(--transparent);
 }
 %main-nav-vertical-action > a {
   color: inherit;
   font-size: inherit;
 }
 %main-nav-vertical [role='separator'] {
-  @extend %body-100-medium;
+  @extend %p3;
   text-transform: uppercase;
+  font-weight: var(--typo-weight-medium);
 }
 %main-nav-vertical-action-intent {
   text-decoration: underline;
@@ -24,31 +20,29 @@
   text-decoration: none;
 }
 %main-nav-vertical {
-  background-color: var(--token-color-foreground-strong);
-  color: var(--token-color-foreground-faint);
+  background-color: rgb(var(--tone-gray-050));
+  color: rgb(var(--tone-gray-700));
 }
 %main-nav-vertical li:not([role='separator']) > span {
-  color: var(--token-color-palette-neutral-300);
+  color: rgb(var(--tone-gray-300));
 }
-%main-nav-vertical [role='separator'],
-%main-nav-vertical-hoisted [role='separator'] {
-  color: var(--token-color-palette-neutral-400);
-  background-color: var(--token-color-foreground-strong);
+%main-nav-vertical [role='separator'] {
+  color: rgb(var(--tone-gray-600));
 }
 %main-nav-vertical-action {
-  color: var(--token-color-palette-neutral-300);
+  color: rgb(var(--tone-gray-800));
 }
 %main-nav-vertical-item,
 %main-nav-vertical-action-intent,
 %main-nav-vertical-action-active {
-  color: var(--token-color-palette-neutral-0);
+  color: rgb(var(--tone-gray-999));
 }
 %main-nav-vertical-action-active {
-  background-color: var(--token-color-palette-neutral-500);
-  border-color: var(--token-color-palette-neutral-0);
+  background-color: rgb(var(--tone-gray-150));
+  border-color: rgb(var(--tone-gray-999));
 }
 %main-nav-vertical [aria-label]::before {
-  color: var(--token-color-palette-neutral-400);
+  color: rgb(var(--tone-gray-700));
   content: attr(aria-label);
   display: block;
   margin-top: -0.5rem;
@@ -56,42 +50,18 @@
 }
 %main-nav-vertical-popover-menu-trigger {
   border: var(--decor-border-100);
-  border-color: var(--token-color-foreground-faint);
+  border-color: rgb(var(--tone-gray-500));
   border-radius: var(--decor-radius-100);
 
   font-weight: inherit;
 
-  background-color: var(--token-color-foreground-strong);
-  color: var(--token-color-palette-neutral-200);
+  background-color: rgb(var(--tone-gray-050));
+  color: rgb(var(--tone-gray-999));
 }
-
-%main-nav-vertical-popover-menu-trigger:hover,
-%main-nav-vertical-popover-menu-trigger:focus {
-  color: var(--token-color-palette-neutral-300);
-  background-color: var(--token-color-foreground-strong);
-}
-
-%main-nav-vertical ul[role='menu'] li a[role='menuitem'] {
-  color: var(--token-color-palette-neutral-300);
-  background-color: var(--token-color-foreground-strong);
-}
-
-%main-nav-vertical ul[role='menu']li a[role='menuitem']:hover {
-  background-color: var(--token-color-palette-neutral-600);
-}
-
 %main-nav-vertical-popover-menu-trigger[aria-expanded='true'] {
   border-bottom-left-radius: var(--decor-radius-000);
   border-bottom-right-radius: var(--decor-radius-000);
 }
-
-%main-nav-horizontal %panel,
-%main-nav-horizontal %panel-separator,
-%main-nav-vertical %panel,
-%main-nav-vertical %panel-separator {
-  border-color: var(--token-color-foreground-faint);
-}
-
 %main-nav-vertical-popover-menu-trigger::after {
   @extend %with-chevron-down-mask, %as-pseudo;
   width: 16px;
@@ -105,10 +75,4 @@
   border-top-left-radius: var(--decor-radius-000);
   border-top-right-radius: var(--decor-radius-000);
   border-top: var(--decor-border-000);
-  color: var(--token-color-palette-neutral-300);
-  background-color: var(--token-color-foreground-strong);
-}
-
-%main-nav-vertical-hoisted ul[role='menu'] {
-  background-color: var(--token-color-hashicorp-brand);
 }

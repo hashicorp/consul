@@ -9,54 +9,54 @@ description: >-
 
 ## Release Highlights
 
-- **Enhanced Envoy Access Logging:** Envoy access logs are now centrally managed via config entries and CRDs to allow operators to easily turn on access logs for all proxies within the service mesh. Refer to [Access logs overview](/consul/docs/connect/observability/access-logs) for more information. Additionally, the [Proxy default configuration entry](/consul/docs/connect/config-entries/proxy-defaults) shows you how to enable access logs centrally via the ProxyDefaults config entry or CRD.
+- **Enhanced Envoy Access Logging:** Envoy access logs are now centrally managed via config entries and CRDs to allow operators to easily turn on access logs for all proxies within the service mesh. Refer to [Access logs overview](/consul/docs/connect/observability/access-logs) for more information. Additionally, the [Proxy default configuration entry](/consul/docs/connect/config-entries/proxy-defaults) shows you how to enable access logs centrally via the ProxyDefaults config entry or CRD.  
 
-- **Consul Envoy Extensions:** The new Envoy extension system enables you to modify Consul-generated Envoy resources outside of the Consul binary. This will allow extensions to add, delete, and modify Envoy listeners, routes, clusters, and endpoints, enabling support for additional Envoy features without changes to the Consul codebase.
-Current supported extensions include the [Lua](/consul/docs/connect/proxies/envoy-extensions#lua) and [AWS Lambda](/consul/docs/connect/proxies/envoy-extensions#lambda) extensions. Refer to [Envoy extensions overview](/consul/docs/connect/proxies/envoy-extensions) for more information on how to use these extensions for Consul service mesh.
+- **Consul Envoy Extensions:** The new Envoy extension system enables you to modify Consul-generated Envoy resources outside of the Consul binary. This will allow extensions to add, delete, and modify Envoy listeners, routes, clusters, and endpoints, enabling support for additional Envoy features without changes to the Consul codebase. 
+Current supported extensions include the [Lua](/consul/docs/connect/proxies/envoy-extensions#lua) and [AWS Lambda](/consul/docs/connect/proxies/envoy-extensions#lambda) extensions. Refer to [Envoy extensions overview](/consul/docs/connect/proxies/envoy-extensions) for more information on how to use these extensions for Consul service mesh.  
 
-- **API Gateway support on Linux VM runtimes:** You can now deploy Consul API Gateway on Linux VM runtimes. API Gateway is built into Consul and, when deploying on Linux VM runtimes, is not separately installed software. Refer to [API gateway overview](/consul/docs/connect/gateways/api-gateway) for more information on API Gateway specifically for VM.
+- **API Gateway support on Linux VM runtimes:** You can now deploy Consul API Gateway on Linux VM runtimes. API Gateway is built into Consul and, when deploying on Linux VM runtimes, is not separately installed software. Refer to [API gateway overview](/consul/docs/connect/gateways/api-gateway) for more information on API Gateway specifically for VM. 
 
   ~> **Note:** Support for API Gateway on Linux VM runtimes is considered a "Beta" feature in Consul v1.15.0. HashiCorp expects to change it to a GA feature as part of a v1.15 patch release in the near future.
 
-- **Limit traffic rates to Consul servers:** You can now configure global RPC rate limits to mitigate the risks to Consul servers when clients send excessive read or write requests to Consul resources. Refer to [Limit traffic rates overview](/consul/docs/agent/limits) for more details on how to use the new troubleshooting commands.
+- **Limit traffic rates to Consul servers:** You can now configure global RPC rate limits to mitigate the risks to Consul servers when clients send excessive read or write requests to Consul resources. Refer to [Limit traffic rates overview](/consul/docs/agent/limits) for more details on how to use the new troubleshooting commands. 
 
-- **Service-to-service troubleshooting:** Consul includes a built-in tool for troubleshooting communication between services in a service mesh. The `consul troubleshoot` command enables you to validate communication between upstream and downstream Envoy proxies on VM and Kubernetes deployments. Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot/troubleshoot-services) for more details on how to use the new troubleshooting commands.
-Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot/troubleshoot-services) for more details on how to use the new troubleshooting commands.
+- **Service-to-service troubleshooting:** Consul includes a built-in tool for troubleshooting communication between services in a service mesh. The `consul troubleshoot` command enables you to validate communication between upstream and downstream Envoy proxies on VM and Kubernetes deployments. Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot/troubleshoot-services) for more details on how to use the new troubleshooting commands. 
+Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot/troubleshoot-services) for more details on how to use the new troubleshooting commands. 
 
-- **Raft write-ahead log (Experimental):** Consul provides an experimental storage backend called write-ahead log (WAL). WAL implements a traditional log with rotating, append-only log files which resolves a number of performance issues with the current BoltDB storage backend. Refer to [Experimental WAL LogStore backend overview](/consul/docs/agent/wal-logstore) for more details.
-
-  ~> **Note:** The new Raft write-ahead log storage backend is not recommended for production use cases yet, but is ready for testing by the general community.
+- **Raft write-ahead log (Experimental):** Consul provides an experimental storage backend called write-ahead log (WAL). WAL implements a traditional log with rotating, append-only log files which resolves a number of performance issues with the current BoltDB storage backend. Refer to [Experimental WAL LogStore backend overview](/consul/docs/agent/wal-logstore) for more details.   
+  
+  ~> **Note:** The new Raft write-ahead log storage backend is not recommended for production use cases yet, but is ready for testing by the general community. 
 
 ## What's Changed
 
-- ACL errors have now been enhanced to return descriptive errors when the specified resource cannot be found. Other ACL request errors provide more information about when a resource is missing. In addition, errors are now gracefully thrown when interacting with the ACL system before the ACL system been bootstrapped.
+- ACL errors have now been ehanced to return descriptive errors when the specified resource cannot be found. Other ACL request errors provide more information about when a resource is missing. In addition, errors are now gracefully thrown when interacting with the ACL system before the ACL system been bootstrapped.
   - The Delete Token/Policy/AuthMethod/Role/BindingRule endpoints now return 404 when the resource cannot be found. The new error format is as follows:
 
     ```log hideClipboard
     Requested * does not exist: ACL not found", "* not found in namespace $NAMESPACE: ACL not found`
     ```
 
-  - The Read Token/Policy/Role endpoints now return 404 when the resource cannot be found. The new error format is as follows:
-
+  - The Read Token/Policy/Role endpoints now return 404 when the resource cannot be found. The new error format is as follows: 
+    
     ```log hideClipboard
     Cannot find * to delete
     ```
-
-  - The Logout endpoint now returns a 401 error when the supplied token cannot be found. The new error format is as follows:
-
+    
+  - The Logout endpoint now returns a 401 error when the supplied token cannot be found. The new error format is as follows: 
+    
     ```log hideClipboard
     Supplied token does not exist
     ```
-
-  - The Token Self endpoint now returns 404 when the token cannot be found. The new error format is as follows:
-
+    
+  - The Token Self endpoint now returns 404 when the token cannot be found. The new error format is as follows: 
+   
     ```log hideClipboard
     Supplied token does not exist
     ```
-
+    
 - Consul v1.15.0 formally removes all uses of legacy ACLs and ACL policies from Consul. The legacy ACL system was deprecated in Consul v1.4.0 and removed in Consul v1.11.0. The documentation for the new ACL system can be found [here](/consul/docs/v1.14.x/security/acl). For information on how to migrate to the new ACL System, please read the [Migrate Legacy ACL Tokens tutorial](/consul/tutorials/security-operations/access-control-token-migration).
-- The following agent flags are now deprecated: `-join`, `-join-wan`, `start_join`, and `start_join_wan`. These options are now aliases of `-retry-join`, `-retry-join-wan`, `retry_join`, and `retry_join_wan`, respectively.
-- A `peer` field has been added to ServiceDefaults upstream overrides to make it possible to apply upstream overrides only to peer services. Prior to this change, overrides would be applied based on matching the namespace and name fields only, which means users could not have different configuration for local versus peer services. With this change, peer upstreams are only affected if the peer field matches the destination peer name.
+- The following agent flags are now deprecated: `-join`, `-join-wan`, `start_join`, and `start_join_wan`. These options are now aliases of `-retry-join`, `-retry-join-wan`, `retry_join`, and `retry_join_wan`, respectively. 
+- A `peer` field has been added to ServiceDefaults upstream overrides to make it possible to apply upstream overrides only to peer services. Prior to this change, overrides would be applied based on matching the namespace and name fields only, which means users could not have different configuration for local versus peer services. With this change, peer upstreams are only affected if the peer field matches the destination peer name. 
 - If you run the `consul connect envoy` command with an incompatible Envoy version, Consul will now error and exit. To ignore this check, use flag `--ignore-envoy-compatibility`.
 - Ingress Gateway upstream clusters will have empty `outlier_detection` if passive health check is unspecified.
 
@@ -74,15 +74,15 @@ The following issues are known to exist in the v1.15.x releases:
   due to a problem with leaf certificate rotation.
   This is resolved in Consul v1.15.2.
 
-- For v1.15.0, Consul is reporting newer releases of Envoy (for example, v1.25.1) as not supported, even though these versions are listed as valid in the [Envoy compatibility matrix](/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent). The following error would result for newer versions of Envoy:
+- For v1.15.0, Consul is reporting newer releases of Envoy (for example, v1.25.1) as not supported, even though these versions are listed as valid in the [Envoy compatilibity matrix](/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent). The following error would result for newer versions of Envoy:
 
   ```log hideClipboard
   Envoy version 1.25.1 is not supported. If there is a reason you need to use this version of envoy use the ignore-envoy-compatibility flag. Using an unsupported version of Envoy is not recommended and your experience may vary.
   ```
-
+  
   To workaround this issue on Consul v1.15.0, launch sidecar proxies
-  with the `ignore-envoy-compatibility` flag:
-
+  with the `ignore-envoy-compatiblity` flag: 
+  
   ```shell-session
   $ consul connect envoy --ignore-envoy-compatibility
   ```
@@ -90,7 +90,6 @@ The following issues are known to exist in the v1.15.x releases:
 - For v1.15.0, there is a known issue where `consul acl token read -self` requires an `-accessor-id`. This is resolved in Consul v1.15.1.
 
 - For v1.15.0, there is a known issue where search filters produced errors and resulted in lists not showing full results until being interacted with. This is resolved in Consul v1.15.1.
-
 
 ## Changelogs
 

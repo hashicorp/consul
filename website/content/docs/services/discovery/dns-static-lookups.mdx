@@ -9,16 +9,16 @@ description: ->
 This topic describes how to query the Consul DNS to look up nodes and services registered with Consul. Refer to [Enable Dynamic DNS Queries](/consul/docs/services/discovery/dns-dynamic-lookups) for information about using prepared queries.
 
 ## Introduction
-Node lookups and service lookups are the fundamental types of queries you can perform using the Consul DNS. Node lookups interrogate the catalog for named Consul agents. Service lookups interrogate the catalog for services registered with Consul. Refer to [DNS Usage Overview](/consul/docs/services/discovery/dns-overview) for additional background information.
+Node lookups and service lookups are the fundamental types of queries you can perform using the Consul DNS. Node lookups interrogate the catalog for named Consul agents. Service lookups interrogate the catalog for services registered with Consul. Refer to [DNS Usage Overivew](/consul/docs/services/discovery/dns-overview) for additional background information. 
 
 ## Requirements
-All versions of Consul support DNS lookup features.
+All versions of Consul support DNS lookup features.  
 
 ### ACLs
 If ACLs are enabled, you must present a token linked with the necessary policies. We recommend using a separate token in production deployments for querying the DNS. By default, Consul agents resolve DNS requests using the preconfigured tokens in order of precedence:
 
 The agent's [`default` token](/consul/docs/agent/config/config-files#acl_tokens_default)
-The built-in [`anonymous` token](/consul/docs/security/acl/tokens#built-in-tokens).
+The built-in [`anonymous` token](/consul/docs/security/acl/acl-tokens#built-in-tokens).
 
 
 The following table describes the available DNS lookups and required policies when ACLs are enabled:
@@ -39,7 +39,7 @@ Specify the name of the node, datacenter, and domain using the following FQDN sy
 
 The `datacenter` subdomain is optional. By default, the lookup queries the datacenter of the agent.
 
-By default, the domain is `consul`. Refer to [Configure DNS Behaviors](/consul/docs/services/discovery/dns-configuration) for information about using alternate domains.
+By default, the domain is `consul`. Refer to [Configure DNS Behaviors](/consul/docs/services/discovery/dns-configuration) for information about using alternate domains. 
 
 ### Node lookup results
 
@@ -75,9 +75,9 @@ consul.     0 IN  SOA ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
 
 ### Node lookups for Consul Enterprise
 
-Consul Enterprise includes the admin partition concept, which is an abstraction that lets you define isolated administrative network areas. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.
+Consul Enterprise includes the admin partition concept, which is an abstraction that lets you define isolated administrative network areas. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.   
 
-Consul nodes reside in admin partitions within a datacenter. By default, node lookups query the same partition and datacenter of the Consul agent that received the DNS query.
+Consul nodes reside in admin partitions within a datacenter. By default, node lookups query the same partition and datacenter of the Consul agent that received the DNS query. 
 
 Use the following query format to specify a partition for a node lookup:
 
@@ -88,9 +88,9 @@ Use the following query format to specify a partition for a node lookup:
 Consul server agents are in the `default` partition. If you send a DNS query to Consul server agents, you must explicitly specify the partition of the target node if it is not `default`.
 
 ## Service lookups
-You can query the network for service providers using either the [standard lookup](#standard-lookup) method or [strict RFC 2782 lookup](#rfc-2782-lookup) method.
+You can query the network for service providers using either the [standard lookup](#standard-lookup) method or [strict RFC 2782 lookup](#rfc-2782-lookup) method. 
 
-By default, all SRV records are weighted equally in service lookup responses, but you can configure the weights using the [`Weights`](/consul/docs/services/configuration/services-configuration-reference#weights) attribute of the service definition. Refer to [Define Services](/consul/docs/services/usage/define-services) for additional information.
+By default, all SRV records are weighted equally in service lookup responses, but you can configure the weights using the [`Weights`](/consul/docs/services/configuration/services-configuration-reference#weights) attribute of the service definition. Refer to [Define Services](/consul/docs/services/usage/define-services) for additional information. 
 
 The DNS protocol limits the size of requests, even when performing DNS TCP queries, which may affect your experience querying for services. For services with more than 500 instances, you may not be able to retrieve the complete list of instances for the service. Refer to [RFC 1035, Domain Names - Implementation and Specification](https://datatracker.ietf.org/doc/html/rfc1035#section-2.3.4) for additional information.
 
@@ -103,13 +103,13 @@ To perform standard service lookups, specify tags, the name of the service, data
 [<tag>.]<service>.service[.<datacenter>.dc][.<cluster-peer>.peer].<domain>
 ```
 
-The `tag` subdomain is optional. It filters responses so that only service providers containing the tag appear.
+The `tag` subdomain is optional. It filters responses so that only service providers containing the tag appear.  
 
 The `datacenter` subdomain is optional. By default, Consul interrogates the querying agent's datacenter.
 
 The `cluster-peer` name is optional, and specifies the [cluster peer](/consul/docs/connect/cluster-peering) whose [exported services](/consul/docs/connect/config-entries/exported-services) should be the target of the query.
 
-By default, the lookups query in the `consul` domain. Refer to [Configure DNS Behaviors](/consul/docs/services/discovery/dns-configuration) for information about using alternate domains.
+By default, the lookups query in the `consul` domain. Refer to [Configure DNS Behaviors](/consul/docs/services/discovery/dns-configuration) for information about using alternate domains. 
 
 #### Standard lookup results
 Standard services queries return A and SRV records. SRV records include the port that the service is registered on. SRV records are only served if the client specifically requests them.
@@ -163,7 +163,7 @@ primary.postgresql.service.dc2.consul. 0 IN  A 10.1.10.12
 ```
 
 ### RFC 2782 lookup
-Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries must prepend `service` and `protocol` values with an underscore (`_`) to prevent DNS collisions. Use the following syntax to perform RFC 2782 lookups:
+Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries must prepend `service` and `protocol` values with an underscore (`_`) to prevent DNS collisions. Use the following syntax to perform RFC 2782 lookups: 
 
 ```text
 _<service>._<protocol>[.service][.<datacenter>].<domain>
@@ -231,7 +231,7 @@ _redis._tcp.service.phx1.peer.consul. 0 IN SRV 1 1 29142 0a010d56.addr.consul.
 
 #### SRV responses for hosts in the .addr subdomain
 
-If a service registered with Consul is configured with an explicit IP address or addresses in the  [`address`](/consul/docs/services/configuration/services-configuration-reference#address) or [`tagged_address`](/consul/docs/services/configuration/services-configuration-reference#tagged_address) parameter, then Consul returns the hostname in the target field of the answer section for the DNS SRV query according to the following format:
+If a service registered with Consul is configured with an explicit IP address or addresses in the  [`address`](/consul/docs/services/configuration/services-configuration-reference#address) or [`tagged_address`](/consul/docs/services/configuration/services-configuration-reference#tagged_address) parameter, then Consul returns the hostname in the target field of the answer section for the DNS SRV query according to the following format: 
 
 ```text
 <hexadecimal-encoded IP>.addr.<datacenter>.consul`.
@@ -322,7 +322,7 @@ Use the following query format to specify namespace, partition, or datacenter:
 [<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>
 ```
 
-The `namespace`, `partition`, and `datacenter` are optional. By default, all service lookups use the `default` namespace within the partition and datacenter of the Consul agent that received the DNS query.
+The `namespace`, `partition`, and `datacenter` are optional. By default, all service lookups use the `default` namespace within the partition and datacenter of the Consul agent that received the DNS query. 
 
 Consul server agents reside in the `default` partition. If DNS queries are addressed to Consul server agents, you must explicitly specify the partition of the target service when querying for services in  partitions other than `default`.
 
@@ -357,7 +357,7 @@ Add the `.virtual` subdomain to queries to find the unique virtual IP allocated 
 <service>.virtual[.<peer>].<domain>
 ```
 
-This returns the unique virtual IP for any service mesh-capable service. Each service mesh service has a virtual IP assigned to it by Consul. Sidecar proxies use the virtual IP to enable the [transparent proxy](/consul/docs/connect/transparent-proxy) feature.
+This returns the unique virtual IP for any service mesh-capable service. Each service mesh service has a virtual IP assigned to it by Consul. Sidecar proxies use the virtual IP to enable the [transparent proxy](/consul/docs/connect/transparent-proxy) feature. 
 
 The peer name is an optional. The DNS uses it to query for the virtual IP of a service imported from the specified peer.
 
@@ -388,4 +388,4 @@ This endpoint finds services within the same datacenter and does not support tag
 
 ### UDP-based DNS queries
 
-When the DNS query is performed using UDP, Consul truncates the results without setting the truncate bit. This prevents a redundant lookup over TCP that generates additional load. If the lookup is done over TCP, the results are not truncated.
+When the DNS query is performed using UDP, Consul truncateß the results without setting the truncate bit. This prevents a redundant lookup over TCP that generates additional load. If the lookup is done over TCP, the results are not truncated.

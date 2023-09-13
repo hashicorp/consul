@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 /* eslint-disable no-prototype-builtins */
 import { get } from '@ember/object';
 

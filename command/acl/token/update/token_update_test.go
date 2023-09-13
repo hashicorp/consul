@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package tokenupdate
 
 import (
@@ -120,51 +117,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 		require.ElementsMatch(t, expected, responseToken.NodeIdentities)
 	})
 
-	t.Run("replace-templated-policy", func(t *testing.T) {
-		token := create_token(
-			t,
-			client, &api.ACLToken{Description: "test", TemplatedPolicies: []*api.ACLTemplatedPolicy{
-				{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "api"}},
-			}},
-			&api.WriteOptions{Token: "root"},
-		)
-
-		responseToken := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
-			"-token=root",
-			"-replace-templated-policy=builtin/node",
-			"-description=test token",
-			"-var=name:web",
-		})
-
-		require.Len(t, responseToken.TemplatedPolicies, 1)
-		require.Equal(t, api.ACLTemplatedPolicyNodeName, responseToken.TemplatedPolicies[0].TemplateName)
-		require.Equal(t, "web", responseToken.TemplatedPolicies[0].TemplateVariables.Name)
-	})
-	t.Run("append-templated-policy", func(t *testing.T) {
-		templatedPolicy := &api.ACLTemplatedPolicy{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "api"}}
-		token := create_token(
-			t,
-			client, &api.ACLToken{Description: "test", TemplatedPolicies: []*api.ACLTemplatedPolicy{
-				templatedPolicy,
-			}},
-			&api.WriteOptions{Token: "root"},
-		)
-
-		responseToken := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
-			"-token=root",
-			"-append-templated-policy=builtin/node",
-			"-description=test token",
-			"-var=name:web",
-		})
-
-		require.Len(t, responseToken.TemplatedPolicies, 2)
-		require.ElementsMatch(t, responseToken.TemplatedPolicies,
-			[]*api.ACLTemplatedPolicy{templatedPolicy, {TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "web"}}})
-	})
 	// update with policy by name
 	t.Run("policy-name", func(t *testing.T) {
 		token := create_token(t, client, &api.ACLToken{Description: "test"}, &api.WriteOptions{Token: "root"})

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -134,78 +131,25 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			wantToken: "custom-token",
 		},
 		{
-			name: "inherit locality, tags and meta",
+			name: "inherit tags and meta",
 			sd: &structs.ServiceDefinition{
 				ID:   "web1",
 				Name: "web",
 				Port: 1111,
 				Tags: []string{"foo"},
 				Meta: map[string]string{"foo": "bar"},
-				Locality: &structs.Locality{
-					Region: "us-east-1",
-					Zone:   "us-east-1a",
-				},
 				Connect: &structs.ServiceConnect{
 					SidecarService: &structs.ServiceDefinition{},
 				},
 			},
 			wantNS: &structs.NodeService{
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				Kind:           structs.ServiceKindConnectProxy,
-				ID:             "web1-sidecar-proxy",
-				Service:        "web-sidecar-proxy",
-				Port:           0,
-				Tags:           []string{"foo"},
-				Meta:           map[string]string{"foo": "bar"},
-				Locality: &structs.Locality{
-					Region: "us-east-1",
-					Zone:   "us-east-1a",
-				},
-				LocallyRegisteredAsSidecar: true,
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "web",
-					DestinationServiceID:   "web1",
-					LocalServiceAddress:    "127.0.0.1",
-					LocalServicePort:       1111,
-				},
-			},
-			wantChecks: nil,
-		},
-		{
-			name: "retain locality, tags and meta if explicitly configured",
-			sd: &structs.ServiceDefinition{
-				ID:   "web1",
-				Name: "web",
-				Port: 1111,
-				Tags: []string{"foo"},
-				Meta: map[string]string{"foo": "bar"},
-				Locality: &structs.Locality{
-					Region: "us-east-1",
-					Zone:   "us-east-1a",
-				},
-				Connect: &structs.ServiceConnect{
-					SidecarService: &structs.ServiceDefinition{
-						Tags: []string{"bar"},
-						Meta: map[string]string{"baz": "qux"},
-						Locality: &structs.Locality{
-							Region: "us-east-2",
-							Zone:   "us-east-2a",
-						},
-					},
-				},
-			},
-			wantNS: &structs.NodeService{
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				Kind:           structs.ServiceKindConnectProxy,
-				ID:             "web1-sidecar-proxy",
-				Service:        "web-sidecar-proxy",
-				Port:           0,
-				Tags:           []string{"bar"},
-				Meta:           map[string]string{"baz": "qux"},
-				Locality: &structs.Locality{
-					Region: "us-east-2",
-					Zone:   "us-east-2a",
-				},
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       0,
+				Tags:                       []string{"foo"},
+				Meta:                       map[string]string{"foo": "bar"},
 				LocallyRegisteredAsSidecar: true,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "web",

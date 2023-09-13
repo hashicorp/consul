@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 $syntax-consul: #69499a;
 $syntax-dark-gray: #535f73;
 :root {
@@ -26,7 +21,7 @@ $syntax-dark-gray: #535f73;
   --syntax-dark-gray: #{$syntax-dark-gray};
 
   --syntax-gutter-grey: #2a2f36;
-  --syntax-yellow: var(--token-color-vault-brand);
+  --syntax-yellow: rgb(var(--tone-yellow-500));
 }
 .CodeMirror {
   max-width: 1260px;
@@ -39,21 +34,22 @@ $syntax-dark-gray: #535f73;
   overflow-x: hidden !important;
 }
 .CodeMirror-lint-tooltip {
-  @extend %code-100-regular;
   background-color: #f9f9fa;
   border: 1px solid var(--syntax-light-gray);
   border-radius: 0;
   color: lighten(#000, 13%);
+  font-family: var(--typo-family-mono);
+  font-size: 13px;
   padding: 7px 8px 9px;
 }
 
 .cm-s-hashi {
   &.CodeMirror {
     width: 100%;
-    background-color: var(--token-color-hashicorp-brand) !important;
+    background-color: rgb(var(--tone-gray-999)) !important;
     color: #cfd2d1 !important;
     border: none;
-    font-family: var(--token-typography-font-stack-code);
+    font-family: var(--typo-family-mono);
     -webkit-font-smoothing: auto;
     line-height: 1.4;
   }
@@ -85,7 +81,7 @@ $syntax-dark-gray: #535f73;
   .CodeMirror-line::-moz-selection,
   .CodeMirror-line > span::-moz-selection,
   .CodeMirror-line > span > span::-moz-selection {
-    background: var(--token-color-surface-interactive);
+    background: rgb(var(--tone-gray-000) / 10%);
   }
 
   span.cm-comment {
@@ -162,7 +158,7 @@ $syntax-dark-gray: #535f73;
 
   .CodeMirror-matchingbracket {
     text-decoration: underline;
-    color: var(--token-color-surface-primary) !important;
+    color: rgb(var(--tone-gray-000)) !important;
   }
 }
 
@@ -186,7 +182,7 @@ $syntax-dark-gray: #535f73;
     }
 
     span.cm-property {
-      color: var(--token-color-surface-primary);
+      color: rgb(var(--tone-gray-000));
     }
 
     span.cm-variable-2 {
@@ -197,31 +193,32 @@ $syntax-dark-gray: #535f73;
 
 %code-editor {
   .toolbar-container {
-    background: var(--token-color-surface-strong);
+    background: rgb(var(--tone-gray-050));
     background: linear-gradient(
       180deg,
-      var(--token-color-surface-strong) 50%,
-      var(--token-color-surface-interactive-active) 100%
+      rgb(var(--tone-gray-050)) 50%,
+      rgb(var(--tone-gray-150)) 100%
     );
-    border: 1px solid var(--token-color-surface-interactive-active);
-    border-bottom-color: var(--token-color-foreground-faint);
-    border-top-color: var(--token-color-foreground-disabled);
+    border: 1px solid rgb(var(--tone-gray-150));
+    border-bottom-color: rgb(var(--tone-gray-600));
+    border-top-color: rgb(var(--tone-gray-400));
 
     .toolbar {
       .title {
-        @extend %body-200-semibold;
-        color: var(--token-color-foreground-strong);
+        color: rgb(var(--tone-gray-900));
+        font-size: 14px;
+        font-weight: 700;
       }
       .toolbar-separator {
-        border-right: 1px solid var(--token-color-palette-neutral-300);
+        border-right: 1px solid rgb(var(--tone-gray-300));
       }
     }
     .ember-power-select-trigger {
-      background-color: var(--token-color-surface-primary);
-      color: var(--token-color-hashicorp-brand);
+      background-color: rgb(var(--tone-gray-000));
+      color: rgb(var(--tone-gray-999));
       border-radius: var(--decor-radius-100);
       border: var(--decor-border-100);
-      border-color: var(--token-color-foreground-faint);
+      border-color: rgb(var(--tone-gray-700));
     }
   }
 }

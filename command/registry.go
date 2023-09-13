@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package command
 
 import (
@@ -108,14 +105,9 @@ import (
 	peerlist "github.com/hashicorp/consul/command/peering/list"
 	peerread "github.com/hashicorp/consul/command/peering/read"
 	"github.com/hashicorp/consul/command/reload"
-	"github.com/hashicorp/consul/command/resource"
-	resourceapply "github.com/hashicorp/consul/command/resource/apply"
-	resourcelist "github.com/hashicorp/consul/command/resource/list"
-	resourceread "github.com/hashicorp/consul/command/resource/read"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
-	svcsexport "github.com/hashicorp/consul/command/services/export"
 	svcsregister "github.com/hashicorp/consul/command/services/register"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
@@ -126,7 +118,7 @@ import (
 	tlscacreate "github.com/hashicorp/consul/command/tls/ca/create"
 	tlscert "github.com/hashicorp/consul/command/tls/cert"
 	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
-	"github.com/hashicorp/consul/command/troubleshoot"
+	troubleshoot "github.com/hashicorp/consul/command/troubleshoot"
 	troubleshootproxy "github.com/hashicorp/consul/command/troubleshoot/proxy"
 	troubleshootupstreams "github.com/hashicorp/consul/command/troubleshoot/upstreams"
 	"github.com/hashicorp/consul/command/validate"
@@ -242,15 +234,10 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
 		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
-		entry{"resource", func(cli.Ui) (cli.Command, error) { return resource.New(), nil }},
-		entry{"resource read", func(ui cli.Ui) (cli.Command, error) { return resourceread.New(ui), nil }},
-		entry{"resource apply", func(ui cli.Ui) (cli.Command, error) { return resourceapply.New(ui), nil }},
-		entry{"resource list", func(ui cli.Ui) (cli.Command, error) { return resourcelist.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
 		entry{"services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil }},
 		entry{"services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil }},
-		entry{"services export", func(ui cli.Ui) (cli.Command, error) { return svcsexport.New(ui), nil }},
 		entry{"snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil }},
 		entry{"snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil }},
 		entry{"snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil }},

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 import { getOwner } from '@ember/application';
 import { match } from 'consul-ui/decorators/data-source';

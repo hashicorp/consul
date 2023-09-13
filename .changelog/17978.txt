@@ -1,3 +1,0 @@
-```release-note:improvement
-mesh: Expose remote jwks cluster configuration through jwt-provider config entry
-```

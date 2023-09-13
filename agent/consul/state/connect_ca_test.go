@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 
 	"github.com/hashicorp/go-memdb"

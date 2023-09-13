@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 /* globals requirejs */
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';

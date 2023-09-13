@@ -1,9 +1,4 @@
 /**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-/**
  * super stubber
  * Ember's `_super` functionality is a little challenging to stub.
  * The following will essentially let you stub `_super`, letting

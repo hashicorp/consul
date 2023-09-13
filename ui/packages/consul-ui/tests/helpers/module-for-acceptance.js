@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module } from 'qunit';
 import { resolve } from 'rsvp';
 import startApp from '../helpers/start-app';

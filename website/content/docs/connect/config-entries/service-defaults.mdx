@@ -62,7 +62,6 @@ The following outline shows how to format the service defaults configuration ent
 - [`TransparentProxy`](#transparentproxy): map | no default
   - [`OutboundListenerPort`](#transparentproxy): integer | `15001`
   - [`DialedDirectly`](#transparentproxy  ): boolean | `false`
-- [`MutualTLSMode`](#mutualtlsmode): string | `""`
 - [`EnvoyExtensions`](#envoyextensions): list | no default
   - [`Name`](#envoyextensions): string | `""`
   - [`Required`](#envoyextensions): string | `""`
@@ -100,7 +99,6 @@ The following outline shows how to format the service defaults configuration ent
     - [`overrides`](#upstreamconfig-overrides): list | no default
       - [`name`](#upstreamconfig-overrides-name): string | no default
       - [`namespace`](#upstreamconfig-overrides-namespace): string | no default
-      - [`peer`](#upstreamconfig-overrides-peer): string | no default
       - [`protocol`](#upstreamconfig-overrides-protocol): string | no default
       - [`connectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | default: `5000`
       - [`meshGateway`](#upstreamconfig-overrides-meshgateway): map | no default
@@ -135,7 +133,6 @@ The following outline shows how to format the service defaults configuration ent
   - [`transparentProxy`](#transparentproxy): map | no default
     - [`outboundListenerPort`](#transparentproxy): integer | `15001`
     - [`dialedDirectly`](#transparentproxy): boolean | `false`
-  - [`mutualTLSMode`](#mutualtlsmode): string | `""`
   - [`envoyExtensions`](#envoyextensions): list | no default
     - [`name`](#envoyextensions): string | `""`
     - [`required`](#envoyextensions): string | `""`
@@ -182,7 +179,6 @@ UpstreamConfig = {
   Overrides = {
     Name             = "name-of-upstreams-to-override"
     Namespace        = "namespace-containing-upstreams-to-override"
-    Peer             = "peer-name-of-upstream-service"
     Protocol         = "http"
     ConnectTimeoutMs = 100
     MeshGateway = {
@@ -227,7 +223,6 @@ TransparentProxy = {
   OutboundListenerPort = 15002
   DialedDirectly       = true
 }
-MutualTLSMode = "strict"
 Destination = {
   Addresses = [
     "First IP address",
@@ -272,7 +267,6 @@ spec:
     overrides:
     - name: <name of upstream>
       namespace: <namespace containing upstream - Consul Enterprise>
-      peer: <peer name of the upstream service>
       protocol: <protocol for the upstream listener>
       connectTimeoutMs: 5000
       meshGateway:
@@ -307,7 +301,6 @@ spec:
   transparentProxy:
     outboundListenerPort: 15001
     dialedDirectly: false
-  mutualTLSMode: strict
   destination:
     addresses:
     - <First hostname or IP address>
@@ -394,7 +387,6 @@ spec:
       "outboundListenerPort": 15001,
       "dialedDirectly": false
     },
-    "mutualTLSMode": "strict",
     "destination": {
       "addresses": [
         "<First hostname or IP address>",
@@ -555,16 +547,7 @@ Specifies the name of the upstream service that the configuration applies to. We
 
 ### `UpstreamConfig.Overrides[].Namespace` <Enterprise/>
 
-Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from applying to unintended upstreams.
-
-#### Values
-
-- Default: none
-- Data type: string
-
-### `UpstreamConfig.Overrides[].Peer`
-
-Specifies the peer name of the upstream service that the configuration applies to. The `*` wildcard is not supported.
+Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from appling to unintended upstreams.
 
 #### Values
 
@@ -726,19 +709,6 @@ You can configure the following parameters in the `TransparentProxy` block:
 | `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
 | `DialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
 
-### `MutualTLSMode`
-
-Controls whether mutual TLS is required for incoming connections to this service. This setting is
-only supported for services with transparent proxy enabled. We recommend only using `permissive`
-mode if necessary while onboarding services to the service mesh.
-
-You can specify the following string values for the `MutualTLSMode` field:
-
-- `""`: When this field is empty, the value is inherited from the `proxy-defaults` config entry.
-- `strict`: The sidecar proxy requires mutual TLS for incoming traffic.
-- `permissive`: The sidecar proxy accepts mutual TLS traffic on the sidecar proxy service port,
-  and accepts any traffic on the destination service's port.
-
 ### `EnvoyExtensions`
 
 List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
@@ -802,7 +772,7 @@ Specifies the TLS server name indication (SNI) when federating with an external 
 
 ### `Expose`
 
-Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on `localhost` only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information and example configurations.
+Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on localhost only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference) for additional information and example configurations.
 
 - Default: none
 - Data type: map
@@ -956,15 +926,6 @@ Specifies the name of the upstream service that the configuration applies to. Do
 ### `spec.upstreamConfig.overrides[].namespace` <Enterprise/>
 
 Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from applying to unintended upstreams.
-
-#### Values
-
-- Default: none
-- Data type: string
-
-### `spec.upstreamConfig.overrides[].peer`
-
-Specifies the peer name of the upstream service that the configuration applies to. The `*` wildcard is not supported.
 
 #### Values
 
@@ -1135,21 +1096,6 @@ You can configure the following parameters in the `TransparentProxy` block:
 | `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
 | `dialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
 
-### `spec.mutualTLSMode`
-
-Controls whether mutual TLS is required for incoming connections to this service. This setting is
-only supported for services with transparent proxy enabled. We recommend only using `permissive`
-mode if necessary while onboarding services to the service mesh.
-
-#### Values
-
-You can specify the following string values for the `MutualTLSMode` field:
-
-- `""`: When this field is empty, the value is inherited from the `proxy-defaults` config entry.
-- `strict`: The sidecar proxy requires mutual TLS for incoming traffic.
-- `permissive`: The sidecar proxy accepts mutual TLS traffic on the sidecar proxy service port,
-  and accepts any traffic on the destination service's port.
-
 ### `spec.envoyExtensions`
 
 List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
@@ -1226,7 +1172,7 @@ Specifies the TLS server name indication (SNI) when federating with an external 
 
 ### `spec.expose`
 
-Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on `localhost` only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information and example configurations.
+Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on `localhost` only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference) for additional information and example configurations.
 
 #### Values
 
@@ -1674,7 +1620,11 @@ represents a location outside the Consul cluster. Services can dial destinations
               name: 'Peer',
               type: 'string: ""',
               description:
-                `The peer name of the upstream. Do not use a wildcard specifier ( \`*\`).`,
+                `The name of the peer containing the upstream. Do not use a wildcard specifier ( \`*\`).<br><br>
+                    If the \`peer\` field is not set in any \`Overrides\` configuration, then Consul applies overrides to peered services with the same [\`name\`](/consul/docs/connect/config-entries/service-defaults#name).
+                    This maintains backward compatibility with Consul 1.14.0.
+                    If the \`peer\` field is specified in any override, then backward compatibility with Consul 1.14.0 is disabled.
+                    As a result, each peered service must have a separate override configuration if desired.` ,
             },
             {
               name: 'Protocol',
@@ -2081,7 +2031,7 @@ represents a location outside the Consul cluster. Services can dial destinations
       name: 'Expose',
       type: 'ExposeConfig: <optional>',
       description: `Controls the default
-                      [expose path configuration](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference)
+                      [expose path configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
                       for Envoy. Added in v1.6.2.<br><br>
                       Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
                       non-mesh-enabled applications to contact an HTTP endpoint.

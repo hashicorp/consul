@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -633,7 +630,8 @@ func TestAPI_ACLToken_ListFiltered(t *testing.T) {
 		ServiceName: "s",
 		AuthMethod:  "a",
 	}, nil)
-	require.ErrorContains(t, err, "can only filter by one of")
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "can only filter by one of")
 }
 
 func TestAPI_ACLToken_Clone(t *testing.T) {

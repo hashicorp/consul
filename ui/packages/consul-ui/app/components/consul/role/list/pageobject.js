@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default (collection, clickable, attribute, text, actions) => () => {
   return collection('.consul-role-list [data-test-list-row]', {
     role: clickable('a'),

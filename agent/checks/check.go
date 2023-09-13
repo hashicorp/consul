@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package checks
 
 import (
@@ -625,20 +622,19 @@ func (c *CheckH2PING) Start() {
 	go c.run()
 }
 
-// CheckTCP is used to periodically make a TCP connection to determine the
-// health of a given check.
+// CheckTCP is used to periodically make an TCP/UDP connection to
+// determine the health of a given check.
 // The check is passing if the connection succeeds
 // The check is critical if the connection returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckTCP struct {
-	CheckID         structs.CheckID
-	ServiceID       structs.ServiceID
-	TCP             string
-	Interval        time.Duration
-	Timeout         time.Duration
-	Logger          hclog.Logger
-	TLSClientConfig *tls.Config
-	StatusHandler   *StatusHandler
+	CheckID       structs.CheckID
+	ServiceID     structs.ServiceID
+	TCP           string
+	Interval      time.Duration
+	Timeout       time.Duration
+	Logger        hclog.Logger
+	StatusHandler *StatusHandler
 
 	dialer   *net.Dialer
 	stop     bool
@@ -695,30 +691,17 @@ func (c *CheckTCP) run() {
 
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
-	var conn io.Closer
-	var err error
-	var checkType string
-
-	if c.TLSClientConfig == nil {
-		conn, err = c.dialer.Dial(`tcp`, c.TCP)
-		checkType = "TCP"
-	} else {
-		conn, err = tls.DialWithDialer(c.dialer, `tcp`, c.TCP, c.TLSClientConfig)
-		checkType = "TCP+TLS"
-	}
-
+	conn, err := c.dialer.Dial(`tcp`, c.TCP)
 	if err != nil {
-		c.Logger.Warn(fmt.Sprintf("Check %s connection failed", checkType),
+		c.Logger.Warn("Check socket connection failed",
 			"check", c.CheckID.String(),
 			"error", err,
 		)
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
-
 	conn.Close()
-	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("%s connect %s: Success", checkType, c.TCP))
-
+	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
 // CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.

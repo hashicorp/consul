@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export const diff = (a, b) => {
   return a.filter((item) => !b.includes(item));
 };

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
@@ -41,13 +38,44 @@ type ExportedService struct {
 // At most one of Partition or Peer must be specified.
 type ServiceConsumer struct {
 	// Partition is the admin partition to export the service to.
+	// Deprecated: Peer should be used for both remote peers and local partitions.
 	Partition string `json:",omitempty"`
 
 	// Peer is the name of the peer to export the service to.
 	Peer string `json:",omitempty" alias:"peer_name"`
+}
 
-	// SamenessGroup is the name of the sameness group to export the service to.
-	SamenessGroup string `json:",omitempty" alias:"sameness_group"`
+func (e *ExportedServicesConfigEntry) ToMap() map[string]map[string][]string {
+	resp := make(map[string]map[string][]string)
+	for _, svc := range e.Services {
+		if _, ok := resp[svc.Namespace]; !ok {
+			resp[svc.Namespace] = make(map[string][]string)
+		}
+		if _, ok := resp[svc.Namespace][svc.Name]; !ok {
+			consumers := make([]string, 0, len(svc.Consumers))
+			for _, c := range svc.Consumers {
+				consumers = append(consumers, c.Partition)
+			}
+			resp[svc.Namespace][svc.Name] = consumers
+			resp[svc.Namespace][svc.Name+SidecarProxySuffix] = consumers
+		}
+	}
+	return resp
+}
+
+func (e *ExportedServicesConfigEntry) Clone() *ExportedServicesConfigEntry {
+	e2 := *e
+	e2.Services = make([]ExportedService, len(e.Services))
+	for _, svc := range e.Services {
+		exportedSvc := svc
+		exportedSvc.Consumers = make([]ServiceConsumer, len(svc.Consumers))
+		for _, consumer := range svc.Consumers {
+			exportedSvc.Consumers = append(exportedSvc.Consumers, consumer)
+		}
+		e2.Services = append(e2.Services, exportedSvc)
+	}
+
+	return &e2
 }
 
 func (e *ExportedServicesConfigEntry) GetKind() string {
@@ -92,14 +120,6 @@ func (e *ExportedServicesConfigEntry) Validate() error {
 		return err
 	}
 
-	if err := e.validateServicesEnterprise(); err != nil {
-		return err
-	}
-
-	return e.validateServices()
-}
-
-func (e *ExportedServicesConfigEntry) validateServices() error {
 	for i, svc := range e.Services {
 		if svc.Name == "" {
 			return fmt.Errorf("Services[%d]: service name cannot be empty", i)
@@ -111,18 +131,8 @@ func (e *ExportedServicesConfigEntry) validateServices() error {
 			return fmt.Errorf("Services[%d]: must have at least one consumer", i)
 		}
 		for j, consumer := range svc.Consumers {
-			count := 0
-			if consumer.Peer != "" {
-				count++
-			}
-			if consumer.Partition != "" {
-				count++
-			}
-			if consumer.SamenessGroup != "" {
-				count++
-			}
-			if count > 1 {
-				return fmt.Errorf("Services[%d].Consumers[%d]: must define at most one of Peer, Partition, or SamenessGroup", i, j)
+			if consumer.Peer != "" && consumer.Partition != "" {
+				return fmt.Errorf("Services[%d].Consumers[%d]: must define at most one of Peer or Partition", i, j)
 			}
 			if consumer.Partition == WildcardSpecifier {
 				return fmt.Errorf("Services[%d].Consumers[%d]: exporting to all partitions (wildcard) is not supported", i, j)

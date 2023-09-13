@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package internal
 
 import (
@@ -390,7 +387,6 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
 	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
 	registerWithGRPC(t, res, bb)
-
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
