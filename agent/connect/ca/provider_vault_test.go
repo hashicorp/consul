@@ -1138,6 +1138,11 @@ func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
 		})
 	res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
 	require.NoError(t, err)
+
+	if res == nil {
+		t.Skip("Vault version < 1.11 does not have multi issuers functionality")
+	}
+
 	// Why 2 issuers? There is always an initial issuer that
 	// gets created before we manage the lifecycle of issuers.
 	// Since we're asserting that the number doesn't grow
