@@ -93,7 +93,7 @@ message L4Destination {
   // stat_prefix is for compatibility with v1 xds configuration, so it is generated in exactly the same way.
   string stat_prefix = 2;
   // traffic_permissions is a list of traffic permissions for this destination.
-  L4TrafficPermissions traffic_permissions = 3;
+  TrafficPermissions traffic_permissions = 3;
   // max_inbound_connections specifies how many connections this destination can accept.
   uint64 max_inbound_connections = 5;
 }
@@ -106,7 +106,7 @@ message L7Destination {
   // protocol for the destination.
   L7Protocol protocol = 3;
   // traffic_permissions is a list of intentions for this destination.
-  L7TrafficPermissions traffic_permissions = 4;
+  TrafficPermissions traffic_permissions = 4;
   // include_xfcc specifies whether to add xfcc header.
   bool include_xfcc = 5;
   // static_route specifies whether this is a static route that is inlined in the listener filter. This is required to

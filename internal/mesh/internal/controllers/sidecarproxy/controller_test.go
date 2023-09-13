@@ -13,6 +13,7 @@ import (
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
@@ -40,17 +42,19 @@ type meshControllerTestSuite struct {
 	ctl *reconciler
 	ctx context.Context
 
-	apiWorkloadID      *pbresource.ID
-	apiWorkload        *pbcatalog.Workload
-	apiService         *pbresource.Resource
-	apiEndpoints       *pbresource.Resource
-	apiEndpointsData   *pbcatalog.ServiceEndpoints
-	webWorkload        *pbresource.Resource
-	proxyStateTemplate *pbmesh.ProxyStateTemplate
+	apiWorkloadID                  *pbresource.ID
+	apiWorkload                    *pbcatalog.Workload
+	computedTrafficPermissions     *pbresource.Resource
+	computedTrafficPermissionsData *pbauth.ComputedTrafficPermissions
+	apiService                     *pbresource.Resource
+	apiEndpoints                   *pbresource.Resource
+	apiEndpointsData               *pbcatalog.ServiceEndpoints
+	webWorkload                    *pbresource.Resource
+	proxyStateTemplate             *pbmesh.ProxyStateTemplate
 }
 
 func (suite *meshControllerTestSuite) SetupTest() {
-	resourceClient := svctest.RunResourceService(suite.T(), types.Register, catalog.RegisterTypes)
+	resourceClient := svctest.RunResourceService(suite.T(), types.Register, catalog.RegisterTypes, auth.RegisterTypes)
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())
@@ -58,6 +62,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 	suite.ctl = &reconciler{
 		destinationsCache: sidecarproxycache.NewDestinationsCache(),
 		proxyCfgCache:     sidecarproxycache.NewProxyConfigurationCache(),
+		identitiesCache:   sidecarproxycache.NewIdentitiesCache(),
 		getTrustDomain: func() (string, error) {
 			return "test.consul", nil
 		},
@@ -79,6 +84,25 @@ func (suite *meshControllerTestSuite) SetupTest() {
 	suite.apiWorkloadID = resourcetest.Resource(catalog.WorkloadType, "api-abc").
 		WithData(suite.T(), suite.apiWorkload).
 		Write(suite.T(), resourceClient).Id
+
+	suite.computedTrafficPermissionsData = &pbauth.ComputedTrafficPermissions{
+		AllowPermissions: []*pbauth.Permission{
+			{
+				Sources: []*pbauth.Source{
+					{
+						IdentityName: "foo",
+						Namespace:    "default",
+						Partition:    "default",
+						Peer:         "local",
+					},
+				},
+			},
+		},
+	}
+
+	suite.computedTrafficPermissions = resourcetest.Resource(auth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
+		WithData(suite.T(), suite.computedTrafficPermissionsData).
+		Write(suite.T(), resourceClient)
 
 	suite.apiService = resourcetest.Resource(catalog.ServiceType, "api-service").
 		WithData(suite.T(), &pbcatalog.Service{
@@ -146,7 +170,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 	}
 
 	suite.proxyStateTemplate = builder.New(suite.apiWorkloadID, identityRef, "test.consul", "dc1", nil).
-		BuildLocalApp(suite.apiWorkload).
+		BuildLocalApp(suite.apiWorkload, suite.computedTrafficPermissionsData).
 		Build()
 }
 
@@ -269,10 +293,11 @@ func (suite *meshControllerTestSuite) TestController() {
 	// Initialize controller dependencies.
 	destinationsCache := sidecarproxycache.NewDestinationsCache()
 	proxyCfgCache := sidecarproxycache.NewProxyConfigurationCache()
-	m := sidecarproxymapper.New(destinationsCache, proxyCfgCache)
+	identitiesCache := sidecarproxycache.NewIdentitiesCache()
+	m := sidecarproxymapper.New(destinationsCache, proxyCfgCache, identitiesCache)
 	trustDomainFetcher := func() (string, error) { return "test.consul", nil }
 
-	mgr.Register(Controller(destinationsCache, proxyCfgCache, m, trustDomainFetcher, "dc1"))
+	mgr.Register(Controller(destinationsCache, proxyCfgCache, identitiesCache, m, trustDomainFetcher, "dc1"))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -281,6 +306,7 @@ func (suite *meshControllerTestSuite) TestController() {
 	webProxyStateTemplateID := resourcetest.Resource(types.ProxyStateTemplateType, "web-def").ID()
 
 	var (
+		apiProxyStateTemplate *pbresource.Resource
 		webProxyStateTemplate *pbresource.Resource
 		webDestinations       *pbresource.Resource
 	)
@@ -290,6 +316,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		retry.Run(t, func(r *retry.R) {
 			suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
 			webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
+			apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
 		})
 	})
 
@@ -422,6 +449,24 @@ func (suite *meshControllerTestSuite) TestController() {
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
+
+		apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
+	})
+
+	testutil.RunStep(suite.T(), "computed traffic permissions force regeneration", func(t *testing.T) {
+		suite.runtime.Logger.Trace("deleting computed traffic permissions")
+		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.computedTrafficPermissions.Id})
+		require.NoError(t, err)
+		suite.client.WaitForDeletion(t, suite.computedTrafficPermissions.Id)
+
+		apiProxyStateTemplate = suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
+
+		suite.runtime.Logger.Trace("creating computed traffic permissions")
+		resourcetest.Resource(auth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
+			WithData(t, suite.computedTrafficPermissionsData).
+			Write(t, suite.client)
+
+		suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 	})
 }
 

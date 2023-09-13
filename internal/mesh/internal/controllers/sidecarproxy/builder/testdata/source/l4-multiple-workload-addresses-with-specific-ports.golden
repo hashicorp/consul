@@ -49,7 +49,20 @@
             },
             "l4": {
               "name": "local_app:port1",
-              "statPrefix": "public_listener"
+              "statPrefix": "public_listener",
+              "trafficPermissions": {
+                "allowPermissions": [
+                  {
+                    "principals": [
+                      {
+                        "spiffe": {
+                          "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
             },
             "match": {
               "alpnProtocols": [

@@ -18,12 +18,14 @@ import (
 type Mapper struct {
 	destinationsCache *sidecarproxycache.DestinationsCache
 	proxyCfgCache     *sidecarproxycache.ProxyConfigurationCache
+	identitiesCache   *sidecarproxycache.IdentitiesCache
 }
 
-func New(destinationsCache *sidecarproxycache.DestinationsCache, proxyCfgCache *sidecarproxycache.ProxyConfigurationCache) *Mapper {
+func New(destinationsCache *sidecarproxycache.DestinationsCache, proxyCfgCache *sidecarproxycache.ProxyConfigurationCache, identitiesCache *sidecarproxycache.IdentitiesCache) *Mapper {
 	return &Mapper{
 		destinationsCache: destinationsCache,
 		proxyCfgCache:     proxyCfgCache,
+		identitiesCache:   identitiesCache,
 	}
 }
 
