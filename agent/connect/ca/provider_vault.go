@@ -933,6 +933,7 @@ func (v *VaultProvider) writeNamespaced(namespace string, resource string, data 
 	return v.client.Logical().Write(resource, data)
 }
 
+//nolint:unparam
 func (v *VaultProvider) deleteNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
 	defer v.setNamespace(namespace)()
 	return v.client.Logical().Delete(resource)
