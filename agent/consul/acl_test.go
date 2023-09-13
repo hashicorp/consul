@@ -615,10 +615,6 @@ func (d *ACLResolverTestDelegate) ACLDatacenter() string {
 	return d.datacenter
 }
 
-func (d *ACLResolverTestDelegate) UseLegacyACLs() bool {
-	return d.legacy
-}
-
 func (d *ACLResolverTestDelegate) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	if !d.localTokens {
 		return false, nil, nil
@@ -731,7 +727,6 @@ func TestACLResolver_Disabled(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:    false,
 		datacenter: "dc1",
-		legacy:     false,
 	}
 
 	r := newTestACLResolver(t, delegate, nil)
@@ -746,7 +741,6 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:    true,
 		datacenter: "dc1",
-		legacy:     false,
 	}
 	r := newTestACLResolver(t, delegate, nil)
 
@@ -797,7 +791,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -825,7 +818,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -853,7 +845,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -889,7 +880,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -920,7 +910,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -971,7 +960,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -1002,7 +990,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1038,7 +1025,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1070,7 +1056,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1117,7 +1102,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1159,7 +1143,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			localRoles:    false,
@@ -1194,7 +1177,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			localRoles:    false,
@@ -1230,7 +1212,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -1276,7 +1257,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1340,7 +1320,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1398,7 +1377,6 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   true,
 			localPolicies: true,
 			localRoles:    true,
@@ -1418,7 +1396,6 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc2",
-			legacy:        false,
 			localTokens:   true,
 			localPolicies: true,
 			localRoles:    true,
@@ -1454,7 +1431,6 @@ func TestACLResolver_Client(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1545,7 +1521,6 @@ func TestACLResolver_Client(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
-			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1608,7 +1583,6 @@ func TestACLResolver_Client_TokensPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
-		legacy:        false,
 		localTokens:   false,
 		localPolicies: false,
 		localRoles:    false,
@@ -1625,7 +1599,6 @@ func TestACLResolver_LocalTokensPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
-		legacy:        false,
 		localTokens:   true,
 		localPolicies: true,
 		localRoles:    true,
@@ -1641,7 +1614,6 @@ func TestACLResolver_LocalPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
-		legacy:        false,
 		localTokens:   false,
 		localPolicies: true,
 		localRoles:    true,
