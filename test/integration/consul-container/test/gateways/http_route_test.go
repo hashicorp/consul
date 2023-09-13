@@ -795,7 +795,7 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 			GRPCPort:  retryServiceGRPCPort,
 		},
 		testcontainers.ContainerRequest{
-			Image: "nicholasjackson/fake-service:v0.26.0",
+			Image: libservice.HashicorpDockerProxy + "/nicholasjackson/fake-service:v0.26.0",
 			Env: map[string]string{
 				"LISTEN_ADDR": fmt.Sprintf("0.0.0.0:%d", retryServiceHTTPPort),
 				"ERROR_RATE":  "0.75",
@@ -814,7 +814,7 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 			GRPCPort:  timeoutServiceGRPCPort,
 		},
 		testcontainers.ContainerRequest{
-			Image: "/nicholasjackson/fake-service:v0.26.0",
+			Image: libservice.HashicorpDockerProxy + "/nicholasjackson/fake-service:v0.26.0",
 			Env: map[string]string{
 				"LISTEN_ADDR": fmt.Sprintf("0.0.0.0:%d", timeoutServiceHTTPPort),
 				"ERROR_DELAY": "1m",
