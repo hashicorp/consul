@@ -89,6 +89,23 @@ func TestValidateComputedRoutes(t *testing.T) {
 			},
 			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "service_endpoints" field: field should be empty`,
 		},
+		"should not have service": {
+			routes: &pbmesh.ComputedRoutes{
+				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+					"http": {
+						Config: &pbmesh.ComputedPortRoutes_Tcp{
+							Tcp: &pbmesh.ComputedTCPRoute{},
+						},
+						Targets: map[string]*pbmesh.BackendTargetDetails{
+							"foo": {
+								Service: &pbcatalog.Service{},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "service" field: field should be empty`,
+		},
 		"should not have identity refs": {
 			routes: &pbmesh.ComputedRoutes{
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{

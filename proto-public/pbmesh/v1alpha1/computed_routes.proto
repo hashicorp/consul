@@ -7,6 +7,7 @@ package hashicorp.consul.mesh.v1alpha1;
 
 import "pbcatalog/v1alpha1/failover_policy.proto";
 import "pbcatalog/v1alpha1/protocol.proto";
+import "pbcatalog/v1alpha1/service.proto";
 import "pbcatalog/v1alpha1/service_endpoints.proto";
 import "pbmesh/v1alpha1/common.proto";
 import "pbmesh/v1alpha1/destination_policy.proto";
@@ -128,7 +129,11 @@ message BackendTargetDetails {
   // downstream consumers.
   hashicorp.consul.catalog.v1alpha1.ServiceEndpoints service_endpoints = 5;
 
+  // Service is not populated naturally and the field exists only for
+  // downstream consumers.
+  hashicorp.consul.catalog.v1alpha1.Service service = 6;
+
   // IdentityRefs are not populated naturally and the field exists only for
   // downstream consumers.
-  repeated hashicorp.consul.resource.Reference identity_refs = 6;
+  repeated hashicorp.consul.resource.Reference identity_refs = 7;
 }
