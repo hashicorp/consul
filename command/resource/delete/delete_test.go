@@ -1,6 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
-package read
+package delete
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestResourceReadInvalidArgs(t *testing.T) {
+func TestResourceDeleteInvalidArgs(t *testing.T) {
 	t.Parallel()
 
 	type tc struct {
@@ -100,7 +100,7 @@ func createResource(t *testing.T, a *agent.TestAgent) {
 	require.Empty(t, applyUi.ErrorWriter.String())
 }
 
-func TestResourceRead(t *testing.T) {
+func TestResourceDelete(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -115,31 +115,29 @@ func TestResourceRead(t *testing.T) {
 		"-http-addr=" + a.HTTPAddr(),
 		"-token=root",
 	}
-
-	createResource(t, a)
 	cases := []struct {
-		name         string
-		args         []string
-		expectedCode int
-		errMsg       string
+		name           string
+		args           []string
+		expectedCode   int
+		createResource bool
 	}{
 		{
-			name:         "read resource in hcl format",
-			args:         []string{"-f=../testdata/demo.hcl"},
-			expectedCode: 0,
-			errMsg:       "",
+			name:           "delete resource in hcl format",
+			args:           []string{"-f=../testdata/demo.hcl"},
+			expectedCode:   0,
+			createResource: true,
 		},
 		{
-			name:         "read resource in command line format",
-			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
-			expectedCode: 0,
-			errMsg:       "",
+			name:           "delete resource in command line format",
+			args:           []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
+			expectedCode:   0,
+			createResource: true,
 		},
 		{
-			name:         "read resource that doesn't exist",
-			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
-			expectedCode: 1,
-			errMsg:       "Error reading resource &{demo v2 Artist}/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
+			name:           "delete resource that doesn't exist in command line format",
+			args:           []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
+			expectedCode:   0,
+			createResource: false,
 		},
 	}
 
@@ -148,9 +146,13 @@ func TestResourceRead(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
 			cliArgs := append(tc.args, defaultCmdArgs...)
+			if tc.createResource {
+				createResource(t, a)
+			}
 			code := c.Run(cliArgs)
-			require.Equal(t, ui.ErrorWriter.String(), tc.errMsg)
+			require.Empty(t, ui.ErrorWriter.String())
 			require.Equal(t, tc.expectedCode, code)
+			require.Contains(t, ui.OutputWriter.String(), "deleted")
 		})
 	}
 }

@@ -1,10 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package read
+package delete
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -74,11 +73,10 @@ func (c *cmd) Run(args []string) int {
 			}
 			resourceName = parsedResource.Id.GetName()
 			opts = &api.QueryOptions{
-				Namespace:         parsedResource.Id.Tenancy.GetNamespace(),
-				Partition:         parsedResource.Id.Tenancy.GetPartition(),
-				Peer:              parsedResource.Id.Tenancy.GetPeerName(),
-				Token:             c.http.Token(),
-				RequireConsistent: !c.http.Stale(),
+				Namespace: parsedResource.Id.Tenancy.GetNamespace(),
+				Partition: parsedResource.Id.Tenancy.GetPartition(),
+				Peer:      parsedResource.Id.Tenancy.GetPeerName(),
+				Token:     c.http.Token(),
 			}
 		} else {
 			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
@@ -106,11 +104,10 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Warn("We ignored the -f flag if you provide gvk and resource name")
 		}
 		opts = &api.QueryOptions{
-			Namespace:         c.http.Namespace(),
-			Partition:         c.http.Partition(),
-			Peer:              c.http.PeerName(),
-			Token:             c.http.Token(),
-			RequireConsistent: !c.http.Stale(),
+			Namespace: c.http.Namespace(),
+			Partition: c.http.Partition(),
+			Peer:      c.http.PeerName(),
+			Token:     c.http.Token(),
 		}
 	}
 
@@ -120,19 +117,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entry, err := client.Resource().Read(gvk, resourceName, opts)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading resource %s/%s: %v", gvk, resourceName, err))
+	if err := client.Resource().Delete(gvk, resourceName, opts); err != nil {
+		c.UI.Error(fmt.Sprintf("Error deleting resource %s.%s.%s/%s: %v", gvk.Group, gvk.Version, gvk.Kind, resourceName, err))
 		return 1
 	}
 
-	b, err := json.MarshalIndent(entry, "", "    ")
-	if err != nil {
-		c.UI.Error("Failed to encode output data")
-		return 1
-	}
-
-	c.UI.Info(string(b))
+	c.UI.Info(fmt.Sprintf("%s.%s.%s/%s deleted", gvk.Group, gvk.Version, gvk.Kind, resourceName))
 	return 0
 }
 
@@ -144,20 +134,20 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read resource information"
+const synopsis = "Delete resource information"
 const help = `
-Usage: You have two options to read the resource specified by the given
+Usage: You have two options to delete the resource specified by the given
 type, name, partition, namespace and peer and outputs its JSON representation.
 
-consul resource read [type] [name] -partition=<default> -namespace=<default> -peer=<local>
-consul resource read -f [resource_file_path]
+consul resource delete [type] [name] -partition=<default> -namespace=<default> -peer=<local>
+consul resource delete -f [resource_file_path]
 
 But you could only use one of the approaches.
 
 Example:
 
-$ consul resource read catalog.v1alpha1.Service card-processor -partition=billing -namespace=payments -peer=eu
-$ consul resource read -f resource.hcl
+$ consul resource delete catalog.v1alpha1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource delete -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
