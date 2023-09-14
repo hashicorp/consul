@@ -502,7 +502,8 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 								OutboundMesh: &pbproxystate.OutboundMeshMTLS{
 									IdentityKey: b.proxyStateTemplate.ProxyState.Identity.Name,
 									ValidationContext: &pbproxystate.MeshOutboundValidationContext{
-										SpiffeIds: spiffeIDs,
+										SpiffeIds:              spiffeIDs,
+										TrustBundlePeerNameKey: "local",
 									},
 									Sni: sni,
 								},

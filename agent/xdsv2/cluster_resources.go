@@ -346,5 +346,6 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 
 // TODO(proxystate): In a future PR this will create clusters and add it to ProxyResources.proxyState
 func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(l4 *pbproxystate.L4Destination) error {
+	fmt.Println("********* BAD CODEPATH")
 	return nil
 }
