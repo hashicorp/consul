@@ -17,8 +17,9 @@ var (
 
 	// Resource Kind Names.
 
-	WorkloadIdentity   = types.WorkloadIdentityKind
-	TrafficPermissions = types.TrafficPermissionsKind
+	WorkloadIdentity           = types.WorkloadIdentityKind
+	TrafficPermissions         = types.TrafficPermissionsKind
+	ComputedTrafficPermissions = types.ComputedTrafficPermissionsKind
 
 	// Resource Types for the v1alpha1 version.
 
@@ -31,9 +32,6 @@ var (
 	WorkloadIdentityType           = types.WorkloadIdentityType
 	TrafficPermissionsType         = types.TrafficPermissionsType
 	ComputedTrafficPermissionsType = types.ComputedTrafficPermissionsType
-
-	// Controller Statuses
-	// TODO
 )
 
 // RegisterTypes adds all resource types within the "catalog" API group

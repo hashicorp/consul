@@ -40,64 +40,83 @@ func ValidateTrafficPermissions(res *pbresource.Resource) error {
 
 	var err error
 
-	// TODO: Refactor errors for nested fields after further validation logic is added
 	if tp.Action == pbauth.Action_ACTION_UNSPECIFIED {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "data.action",
 			Wrapped: errInvalidAction,
 		})
 	}
-	if tp.Destination == nil || (len(tp.Destination.IdentityName) == 0 && len(tp.Destination.IdentityPrefix) == 0) {
+	if tp.Destination == nil || (len(tp.Destination.IdentityName) == 0) {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "data.destination",
 			Wrapped: resource.ErrEmpty,
 		})
 	}
-	if len(tp.Destination.IdentityName) > 0 && len(tp.Destination.IdentityPrefix) > 0 {
-		err = multierror.Append(err, resource.ErrInvalidField{
-			Name:    "data.destination",
-			Wrapped: errInvalidPrefixValues,
-		})
-	}
-
 	// Validate permissions
 	for i, permission := range tp.Permissions {
-		// TODO: Validate destination rules
-
-		if len(permission.Sources) <= 0 {
-			err = multierror.Append(err, resource.ErrInvalidListElement{
-				Name:    "sources",
+		wrapPermissionErr := func(err error) error {
+			return resource.ErrInvalidListElement{
+				Name:    "permissions",
 				Index:   i,
-				Wrapped: errEmptySources,
-			})
+				Wrapped: err,
+			}
 		}
-
-		for _, src := range permission.Sources {
-			if len(src.Partition) > 0 && len(src.Peer) > 0 && len(src.SamenessGroup) > 0 {
-				err = multierror.Append(err, resource.ErrInvalidListElement{
+		for s, src := range permission.Sources {
+			wrapSrcErr := func(err error) error {
+				return wrapPermissionErr(resource.ErrInvalidListElement{
 					Name:    "sources",
-					Index:   i,
-					Wrapped: errSourcesTenancy,
+					Index:   s,
+					Wrapped: err,
 				})
 			}
-
+			if (len(src.Partition) > 0 && len(src.Peer) > 0) ||
+				(len(src.Partition) > 0 && len(src.SamenessGroup) > 0) ||
+				(len(src.Peer) > 0 && len(src.SamenessGroup) > 0) {
+				err = multierror.Append(err, wrapSrcErr(resource.ErrInvalidListElement{
+					Name:    "source",
+					Wrapped: errSourcesTenancy,
+				}))
+			}
 			if len(permission.DestinationRules) > 0 {
-				for i, d := range permission.DestinationRules {
-					if (len(d.PathExact) > 0 && len(d.PathPrefix) > 0) ||
-						(len(d.PathRegex) > 0 && len(d.PathExact) > 0) ||
-						(len(d.PathRegex) > 0 && len(d.PathPrefix) > 0) {
-						err = multierror.Append(err, resource.ErrInvalidListElement{
-							Name:    "data.destination",
-							Index:   i,
-							Wrapped: errInvalidPrefixValues,
+				for d, dest := range permission.DestinationRules {
+					wrapDestRuleErr := func(err error) error {
+						return wrapPermissionErr(resource.ErrInvalidListElement{
+							Name:    "destination_rule",
+							Index:   d,
+							Wrapped: err,
 						})
+					}
+					if (len(dest.PathExact) > 0 && len(dest.PathPrefix) > 0) ||
+						(len(dest.PathRegex) > 0 && len(dest.PathExact) > 0) ||
+						(len(dest.PathRegex) > 0 && len(dest.PathPrefix) > 0) {
+						err = multierror.Append(err, wrapDestRuleErr(resource.ErrInvalidListElement{
+							Name:    "destination_rule",
+							Wrapped: errInvalidPrefixValues,
+						}))
 					}
 
 				}
 			}
+			if len(src.Exclude) > 0 {
+				for e, d := range src.Exclude {
+					wrapExclSrcErr := func(err error) error {
+						return wrapPermissionErr(resource.ErrInvalidListElement{
+							Name:    "exclude_source",
+							Index:   e,
+							Wrapped: err,
+						})
+					}
+					if (len(d.Partition) > 0 && len(d.Peer) > 0) ||
+						(len(d.Partition) > 0 && len(d.SamenessGroup) > 0) ||
+						(len(d.Peer) > 0 && len(d.SamenessGroup) > 0) {
+						err = multierror.Append(err, wrapExclSrcErr(resource.ErrInvalidListElement{
+							Name:    "destination_rule",
+							Wrapped: errSourcesTenancy,
+						}))
+					}
+				}
+			}
 		}
-
-		// TODO: Validate sources
 	}
 
 	return err
