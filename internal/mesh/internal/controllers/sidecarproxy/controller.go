@@ -83,7 +83,7 @@ func Controller(
 	*/
 
 	return controller.ForType(types.ProxyStateTemplateType).
-		WithWatch(catalog.ServiceType, mapper.MapServiceEndpointsToProxyStateTemplate).
+		WithWatch(catalog.ServiceType, mapper.MapServiceToProxyStateTemplate).
 		WithWatch(catalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
 		WithWatch(types.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
 		WithWatch(types.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
