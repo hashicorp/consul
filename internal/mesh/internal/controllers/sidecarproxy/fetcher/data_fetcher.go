@@ -199,20 +199,13 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 		for _, routeTarget := range d.ComputedPortRoutes.Targets {
 			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
-			// Fetch Service.
-			targetSvc, err := f.FetchService(ctx, targetServiceID)
-			if err != nil {
-				return nil, statuses, err
-			}
-
 			// Fetch ServiceEndpoints.
 			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID))
 			if err != nil {
 				return nil, statuses, err
 			}
 
-			if targetSvc != nil && se != nil {
-				routeTarget.Service = svc.Data
+			if se != nil {
 				routeTarget.ServiceEndpointsId = se.Resource.Id
 				routeTarget.ServiceEndpoints = se.Data
 
@@ -316,25 +309,13 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 		}
 
 		// Fetch the resources that may show up duplicated.
-		var (
-			serviceMap   = make(map[resource.ReferenceKey]*types.DecodedService)
-			endpointsMap = make(map[resource.ReferenceKey]*types.DecodedServiceEndpoints)
-		)
+		endpointsMap := make(map[resource.ReferenceKey]*types.DecodedServiceEndpoints)
 		for _, portConfig := range computedRoutes.Data.PortedConfigs {
 			for _, routeTarget := range portConfig.Targets {
 				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
-				svcRK := resource.NewReferenceKey(targetServiceID)
 
 				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
 				seRK := resource.NewReferenceKey(seID)
-
-				if _, ok := serviceMap[svcRK]; !ok {
-					svc, err := f.FetchService(ctx, targetServiceID)
-					if err != nil {
-						return nil, err
-					}
-					serviceMap[svcRK] = svc
-				}
 
 				if _, ok := endpointsMap[seRK]; !ok {
 					se, err := f.FetchServiceEndpoints(ctx, seID)
@@ -368,13 +349,9 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
 
-				// Fetch Service.
-				svc, svcOK := serviceMap[resource.NewReferenceKey(targetServiceID)]
 				// Fetch ServiceEndpoints.
-				se, seOK := endpointsMap[resource.NewReferenceKey(seID)]
-
-				if svcOK && seOK {
-					routeTarget.Service = svc.Data
+				se, ok := endpointsMap[resource.NewReferenceKey(seID)]
+				if ok {
 					routeTarget.ServiceEndpointsId = se.Resource.Id
 					routeTarget.ServiceEndpoints = se.Data
 

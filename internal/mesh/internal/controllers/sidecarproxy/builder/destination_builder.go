@@ -41,16 +41,9 @@ func (b *Builder) buildDestination(
 	destination *intermediate.Destination,
 ) *Builder {
 	var (
-		virtualPortNumber uint32
 		effectiveProtocol = destination.ComputedPortRoutes.Protocol
 		targets           = destination.ComputedPortRoutes.Targets
 	)
-
-	if destination.Explicit != nil {
-		// router matches based on destination ports should only occur on
-		// implicit destinations for explicit
-		virtualPortNumber = 0
-	}
 
 	cpr := destination.ComputedPortRoutes
 
@@ -59,6 +52,17 @@ func (b *Builder) buildDestination(
 		lb = b.addExplicitOutboundListener(destination.Explicit)
 	} else {
 		lb = tproxyOutboundListenerBuilder
+	}
+
+	// router matches based on destination ports should only occur on
+	// implicit destinations for explicit
+	var virtualPortNumber uint32
+	if destination.Explicit == nil {
+		for _, port := range destination.Service.Data.Ports {
+			if port.TargetPort == cpr.ParentRef.Port {
+				virtualPortNumber = port.VirtualPort
+			}
+		}
 	}
 
 	defaultDC := func(dc string) string {

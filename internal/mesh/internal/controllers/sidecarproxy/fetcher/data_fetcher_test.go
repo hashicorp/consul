@@ -737,9 +737,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				Explicit: suite.webDestinationsData.Upstreams[0],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api1ComputedRoutes.Data.PortedConfigs["tcp"], suite.api1Service.Id, "tcp", func(details *pbmesh.BackendTargetDetails) {
-					svc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service)
 					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-					details.Service = svc.Data
 					details.ServiceEndpointsId = se.Resource.Id
 					details.ServiceEndpoints = se.Data
 					details.IdentityRefs = []*pbresource.Reference{{
@@ -778,9 +776,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				Explicit: suite.webDestinationsData.Upstreams[0],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api1ComputedRoutes.Data.PortedConfigs["tcp"], suite.api1Service.Id, "tcp", func(details *pbmesh.BackendTargetDetails) {
-					svc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service)
 					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-					details.Service = svc.Data
 					details.ServiceEndpointsId = se.Resource.Id
 					details.ServiceEndpoints = se.Data
 					details.IdentityRefs = []*pbresource.Reference{{
@@ -793,9 +789,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				Explicit: suite.webDestinationsData.Upstreams[1],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api2ComputedRoutes.Data.PortedConfigs["tcp1"], suite.api2Service.Id, "tcp1", func(details *pbmesh.BackendTargetDetails) {
-					svc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service)
 					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-					details.Service = svc.Data
 					details.ServiceEndpointsId = se.Resource.Id
 					details.ServiceEndpoints = se.Data
 					details.IdentityRefs = []*pbresource.Reference{{
@@ -808,9 +802,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				Explicit: suite.webDestinationsData.Upstreams[2],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api2ComputedRoutes.Data.PortedConfigs["tcp2"], suite.api2Service.Id, "tcp2", func(details *pbmesh.BackendTargetDetails) {
-					svc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service)
 					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-					details.Service = svc.Data
 					details.ServiceEndpointsId = se.Resource.Id
 					details.ServiceEndpoints = se.Data
 					details.IdentityRefs = []*pbresource.Reference{{
