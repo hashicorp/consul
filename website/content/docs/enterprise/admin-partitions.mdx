@@ -60,7 +60,7 @@ the lookup uses the admin partition of the Consul agent that received the query.
 Server agents always exist within the `default` admin partition.
 Client agents are configured to operate within a specific admin partition.
 
--> **Consul Dataplane and DNS**: As of Consul v1.14, The Consul clients are optional in Kubernetes since the introduction of [Consul Dataplane](/consul/docs/connect/dataplane), however, to utilize the Consul DNS for service discovery a Consul client is required in the client admin partitions
+By default, Consul on Kubernetes uses [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents to manage communication between service instances. But to use the Consul DNS for service discovery, you must start a Consul client in client admin partitions.
 
 ### Service Mesh Configurations
 
