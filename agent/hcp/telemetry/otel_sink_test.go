@@ -303,7 +303,7 @@ func TestLabelsToAttributes(t *testing.T) {
 			sink, err := NewOTELSink(ctx, opts)
 			require.NoError(t, err)
 
-			require.Equal(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
+			require.ElementsMatch(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
 		})
 	}
 }
