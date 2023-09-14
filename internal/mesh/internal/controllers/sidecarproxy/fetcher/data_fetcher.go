@@ -302,7 +302,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 		}
 
 		// If this proxy is a part of this service, ignore it.
-		if isPartOfService_NEW(resource.ReplaceType(catalog.WorkloadType, proxyID), svc) {
+		if isPartOfService(resource.ReplaceType(catalog.WorkloadType, proxyID), svc) {
 			continue
 		}
 
@@ -488,22 +488,7 @@ func updateStatusCondition(
 	}
 }
 
-// Deprecated: see isPartOfService_NEW
-func isPartOfService(workloadID *pbresource.ID, endpoints *pbcatalog.ServiceEndpoints) bool {
-	// convert IDs to refs so that we can compare without UIDs.
-	workloadRef := resource.Reference(workloadID, "")
-	for _, ep := range endpoints.Endpoints {
-		if ep.TargetRef != nil {
-			targetRef := resource.Reference(ep.TargetRef, "")
-			if resource.EqualReference(workloadRef, targetRef) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func isPartOfService_NEW(workloadID *pbresource.ID, svc *types.DecodedService) bool {
+func isPartOfService(workloadID *pbresource.ID, svc *types.DecodedService) bool {
 	if !resource.EqualTenancy(workloadID.GetTenancy(), svc.Resource.Id.GetTenancy()) {
 		return false
 	}
