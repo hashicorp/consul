@@ -197,7 +197,6 @@ func (c *DestinationsCache) ReadDestination(ref *pbresource.Reference, port stri
 	return d, found
 }
 
-// TODO: test
 func (c *DestinationsCache) ReadDestinationsByServiceAllPorts(ref *pbresource.Reference) []intermediate.CombinedDestinationRef {
 	// Check that reference is a catalog.Service type.
 	if !resource.EqualType(catalog.ServiceType, ref.Type) {
