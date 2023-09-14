@@ -191,7 +191,7 @@ func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
 
 	service := &pbcatalog.Service{
 		Ports: []*pbcatalog.ServicePort{
-			{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			{TargetPort: "test-port", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 		},
 	}
 
@@ -200,7 +200,7 @@ func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
 			{Host: "127.0.0.1"},
 		},
 		Ports: map[string]*pbcatalog.WorkloadPort{
-			"http": {Port: 8080},
+			"test-port": {Port: 8080},
 		},
 	}
 
@@ -214,10 +214,10 @@ func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
 	expected := &pbcatalog.Endpoint{
 		TargetRef: data.resource.Id,
 		Addresses: []*pbcatalog.WorkloadAddress{
-			{Host: "127.0.0.1", Ports: []string{"http"}},
+			{Host: "127.0.0.1", Ports: []string{"test-port"}},
 		},
 		Ports: map[string]*pbcatalog.WorkloadPort{
-			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			"test-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 		},
 		// The health is critical because we are not setting the workload's
 		// health status. The tests for determineWorkloadHealth will ensure
