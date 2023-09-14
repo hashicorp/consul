@@ -17,7 +17,7 @@
     "destination": {
       "identity_name": "wi-2"
     },
-    "action": "ACTION_ALLOW",
+    "action": "ACTION_DENY",
     "permissions": [
       {
         "sources": [
@@ -28,7 +28,7 @@
         "destination_rules": [
           {
             "port_names": [
-              "foo"
+              "bar"
             ]
           }
         ]

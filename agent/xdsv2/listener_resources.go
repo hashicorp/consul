@@ -345,12 +345,6 @@ func makeL4Filters(defaultAllow bool, l4 *pbproxystate.L4Destination) ([]*envoy_
 			envoyFilters = append(envoyFilters, rbacFilters...)
 		}
 
-		rbacTrafficPermissionsFilter, err := makeRBACNetworkFilter(l4)
-		if err != nil {
-			return nil, err
-		}
-		envoyFilters = append(envoyFilters, rbacTrafficPermissionsFilter)
-
 		if l4.MaxInboundConnections > 0 {
 			connectionLimitFilter, err := makeEnvoyConnectionLimitFilter(l4.MaxInboundConnections)
 			if err != nil {

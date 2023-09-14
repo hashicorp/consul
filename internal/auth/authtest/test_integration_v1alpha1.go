@@ -5,7 +5,6 @@ package authtest
 
 import (
 	"embed"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -67,7 +66,7 @@ func VerifyAuthV1Alpha1IntegrationTestResults(t *testing.T, client pbresource.Re
 		c.RequireResourceExists(t, wi1)
 		wi2 := rtest.Resource(auth.WorkloadIdentityV1Alpha1Type, "wi-2").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, wi2)
-		wi3 := rtest.Resource(auth.WorkloadIdentityV1Alpha1Type, "wi-2").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+		wi3 := rtest.Resource(auth.WorkloadIdentityV1Alpha1Type, "wi-3").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, wi3)
 		//wi4 := rtest.Resource(auth.WorkloadIdentityV1Alpha1Type, "wi-4").WithTenancy(&pbresource.Tenancy{
 		//	Partition: resource.DefaultPartitionName,
@@ -77,16 +76,16 @@ func VerifyAuthV1Alpha1IntegrationTestResults(t *testing.T, client pbresource.Re
 
 		tp1 := rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, tp1)
-		tp2 := rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+		tp2 := rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-2").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, tp2)
-		tp3 := rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-1").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+		tp3 := rtest.Resource(auth.TrafficPermissionsV1Alpha1Type, "tp-3").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 		c.RequireResourceExists(t, tp3)
 	})
 
 	testutil.RunStep(t, "ctp-generation", func(t *testing.T) {
 		verifyComputedTrafficPermissions(t, c, rtest.Resource(auth.ComputedTrafficPermissionsV1Alpha1Type, "wi-1").ID(), expectedCTPForWI["wi-1"])
-		//verifyComputedTrafficPermissions(t, c, rtest.Resource(auth.ComputedTrafficPermissionsV1Alpha1Type, "wi-2").ID(), expectedCTPForWI["wi-2"])
-		//verifyComputedTrafficPermissions(t, c, rtest.Resource(auth.ComputedTrafficPermissionsV1Alpha1Type, "wi-3").ID(), expectedCTPForWI["wi-3"])
+		verifyComputedTrafficPermissions(t, c, rtest.Resource(auth.ComputedTrafficPermissionsV1Alpha1Type, "wi-2").ID(), expectedCTPForWI["wi-2"])
+		verifyComputedTrafficPermissions(t, c, rtest.Resource(auth.ComputedTrafficPermissionsV1Alpha1Type, "wi-3").ID(), expectedCTPForWI["wi-3"])
 	})
 }
 
@@ -96,8 +95,6 @@ func verifyComputedTrafficPermissions(t *testing.T, c *rtest.Client, id *pbresou
 		var actual pbauth.ComputedTrafficPermissions
 		err := res.Data.UnmarshalTo(&actual)
 		require.NoError(t, err)
-		fmt.Printf("DENY expected: %v, actual: %v\n", expected.DenyPermissions, actual.DenyPermissions)
-		fmt.Printf("ALLOW expected: %v, actual: %v\n", expected.AllowPermissions, actual.AllowPermissions)
 		prototest.AssertElementsMatch(t, expected.AllowPermissions, actual.AllowPermissions)
 		prototest.AssertElementsMatch(t, expected.DenyPermissions, actual.DenyPermissions)
 	})
@@ -110,4 +107,12 @@ var expectedCTPForWI = map[string]*pbauth.ComputedTrafficPermissions{
 			{Sources: []*pbauth.Source{{IdentityName: "wi-2"}}, DestinationRules: []*pbauth.DestinationRule{{PortNames: []string{"foo"}}}},
 		},
 		DenyPermissions: nil},
+	"wi-2": {
+		AllowPermissions: nil,
+		DenyPermissions: []*pbauth.Permission{
+			{Sources: []*pbauth.Source{{IdentityName: "wi-1"}}, DestinationRules: []*pbauth.DestinationRule{{PortNames: []string{"bar"}}}},
+		}},
+	"wi-3": {
+		AllowPermissions: nil,
+		DenyPermissions:  nil},
 }
