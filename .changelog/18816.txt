@@ -1,0 +1,3 @@
+```release-note:feature
+cli: Add `consul acl templated-policy` commands to read, list and preview templated policies. 
+```
