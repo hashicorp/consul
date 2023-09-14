@@ -41,27 +41,10 @@ func (b *Builder) buildDestination(
 	destination *intermediate.Destination,
 ) *Builder {
 	var (
-		// Find the destination proxy's port.
-		//
-		// Endpoints refs will need to route to mesh port instead of the
-		// destination port as that is the port of the destination's proxy.
-		meshPortName      string
 		virtualPortNumber uint32
 		effectiveProtocol = destination.ComputedPortRoutes.Protocol
 		targets           = destination.ComputedPortRoutes.Targets
 	)
-
-	for _, port := range destination.Service.Data.Ports {
-		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-			meshPortName = port.TargetPort
-		}
-		if port.TargetPort == destination.ComputedPortRoutes.ParentRef.Port {
-			virtualPortNumber = port.VirtualPort
-		}
-	}
-	if meshPortName == "" {
-		return b // not in mesh
-	}
 
 	if destination.Explicit != nil {
 		// router matches based on destination ports should only occur on
@@ -279,6 +262,20 @@ func (b *Builder) buildDestination(
 			b.trustDomain,
 		)
 		clusterName := fmt.Sprintf("%s.%s", portName, sni)
+
+		// Find the destination proxy's port.
+		//
+		// Endpoints refs will need to route to mesh port instead of the
+		// destination port as that is the port of the destination's proxy.
+		var meshPortName string
+		for _, port := range details.Service.Ports {
+			if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+				meshPortName = port.TargetPort
+			}
+		}
+		if meshPortName == "" {
+			return b // not in mesh
+		}
 
 		b.addCluster(clusterName, sni, portName, details.IdentityRefs)
 		b.addEndpointsRef(clusterName, details.ServiceEndpointsId, meshPortName)

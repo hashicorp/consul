@@ -283,6 +283,19 @@ func compile(
 				panic("impossible at this point; should already have been handled before getting here")
 			}
 
+			// Find the destination proxy's port.
+			//
+			// Endpoints refs will need to route to mesh port instead of the
+			// destination port as that is the port of the destination's proxy.
+			//
+			// Note: we will always find a port here because we only add targets that have
+			// mesh ports above in shouldRouteTrafficToBackend().
+			for _, port := range details.Service.Ports {
+				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+					details.MeshPort = port.TargetPort
+				}
+			}
+
 			if failoverPolicy != nil {
 				simpleFailoverPolicy := catalog.SimplifyFailoverPolicy(svc.Data, failoverPolicy.Data)
 				portFailoverConfig, ok := simpleFailoverPolicy.PortConfigs[details.BackendRef.Port]

@@ -36,7 +36,55 @@ func Controller(
 		panic("destinations cache, proxy configuration cache, mapper and trust domain fetcher are required")
 	}
 
+	/*
+		Workload           <align>   PST
+		Upstreams          <select>  PST(==Workload)
+		Upstreams          <contain> Service(upstream)
+		ProxyConfiguration <select>  PST(==Workload)
+		ComputedRoutes     <align>   Service(upstream)
+		ComputedRoutes     <contain> Service(disco)
+		ServiceEndpoints   <align>   Service(disco)
+
+		These relationships then dicate the following reconcile logic.
+
+		controller: read workload for PST
+		controller: read previous PST
+		controller: read ProxyConfiguration for Workload
+		controller: use cached Upstreams data to walk explicit upstreams
+		<EXPLICIT-for-each>
+			fetcher: read Upstreams to find single Upstream
+			fetcher: read Service(upstream)
+			fetcher: read ComputedRoutes
+			<TARGET-for-each>
+				fetcher: read Service(disco)
+				fetcher: read ServiceEndpoints
+			</TARGET-for-each>
+		</EXPLICIT-for-each>
+		<IMPLICIT>
+			fetcher: list ALL ComputedRoutes
+			<CR-for-each>
+				fetcher: read Service(upstream)
+				<TARGET-for-each>
+					fetcher: read Service(disco)
+					fetcher: read ServiceEndpoints
+				</TARGET-for-each>
+			</CR-for-each>
+		</IMPLICIT>
+	*/
+
+	/*
+		Which means for equivalence, the following mapper relationships should exist:
+
+		Service:            find computed routes with service as a target (or failover dest); Recurse(ComputedRoutes)
+		ServiceEndpoints:   ServiceEndpoints=>Service; Recurse(Service)
+		Upstreams:          use selector to select workloads; workloads=>PST
+		ProxyConfiguration: use selector to select workloads; workloads=>PST
+		ComputedRoutes:     CR=>Service; find upstreams with Service; Recurse(Upstreams)
+							[implicit/temp]: trigger all
+	*/
+
 	return controller.ForType(types.ProxyStateTemplateType).
+		// TODO: need watch on Service.
 		WithWatch(catalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
 		WithWatch(types.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
 		WithWatch(types.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).

@@ -82,6 +82,12 @@ func ValidateComputedRoutes(res *pbresource.Resource) error {
 					Wrapped: err,
 				})
 			}
+			if target.MeshPort == "" {
+				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
+					Name:    "mesh_port",
+					Wrapped: resource.ErrEmpty,
+				}))
+			}
 			if target.ServiceEndpointsId != nil {
 				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
 					Name:    "service_endpoints_id",
@@ -91,12 +97,6 @@ func ValidateComputedRoutes(res *pbresource.Resource) error {
 			if target.ServiceEndpoints != nil {
 				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
 					Name:    "service_endpoints",
-					Wrapped: fmt.Errorf("field should be empty"),
-				}))
-			}
-			if target.Service != nil {
-				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
-					Name:    "service",
 					Wrapped: fmt.Errorf("field should be empty"),
 				}))
 			}

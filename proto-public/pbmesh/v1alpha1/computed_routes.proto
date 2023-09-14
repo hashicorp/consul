@@ -118,22 +118,21 @@ message BackendTargetDetails {
   // identity info
   BackendReference backend_ref = 1;
 
-  hashicorp.consul.catalog.v1alpha1.FailoverConfig failover_config = 2;
-  DestinationConfig destination_config = 3;
+  string meshPort = 2;
+  hashicorp.consul.catalog.v1alpha1.FailoverConfig failover_config = 3;
+  DestinationConfig destination_config = 4;
+
+  reserved 5 to 20; // leaving a gap between computed and retroactively added fields.
 
   // ServiceEndpointsID is not populated naturally and the field exists only for
   // downstream consumers.
-  hashicorp.consul.resource.ID service_endpoints_id = 4;
+  hashicorp.consul.resource.ID service_endpoints_id = 21;
 
   // ServiceEndpoints is not populated naturally and the field exists only for
   // downstream consumers.
-  hashicorp.consul.catalog.v1alpha1.ServiceEndpoints service_endpoints = 5;
-
-  // Service is not populated naturally and the field exists only for
-  // downstream consumers.
-  hashicorp.consul.catalog.v1alpha1.Service service = 6;
+  hashicorp.consul.catalog.v1alpha1.ServiceEndpoints service_endpoints = 22;
 
   // IdentityRefs are not populated naturally and the field exists only for
   // downstream consumers.
-  repeated hashicorp.consul.resource.Reference identity_refs = 7;
+  repeated hashicorp.consul.resource.Reference identity_refs = 23;
 }
