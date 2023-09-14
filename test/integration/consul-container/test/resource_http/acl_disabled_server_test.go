@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
 package resource_http
 
 import (
@@ -9,18 +11,6 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
-
-var clusterConfig = &libtopology.ClusterConfig{
-	NumServers:  1,
-	NumClients:  0,
-	LogConsumer: &libtopology.TestLogConsumer{},
-	BuildOpts: &libcluster.BuildOptions{
-		Datacenter:             "dc1",
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-	},
-	ApplyDefaultProxySettings: false,
-}
 
 type config struct {
 	gvk          api.GVK
@@ -38,6 +28,17 @@ type testCase struct {
 	config      []config
 }
 
+var clusterConfig = &libtopology.ClusterConfig{
+	NumServers:  1,
+	NumClients:  0,
+	LogConsumer: &libtopology.TestLogConsumer{},
+	BuildOpts: &libcluster.BuildOptions{
+		Datacenter:             "dc1",
+		InjectAutoEncryption:   true,
+		InjectGossipEncryption: true,
+	},
+	ApplyDefaultProxySettings: false,
+}
 var applyResource = func(client *api.Client, config config) error {
 	_, _, err := client.Resource().Apply(&config.gvk, config.resourceName, &config.queryOptions, &config.payload)
 	return err
