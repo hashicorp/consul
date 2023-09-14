@@ -270,6 +270,7 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 		}
 		l.listener.Routers = append(l.listener.Routers, r)
 	}
+	l.listener.Capabilities = append(l.listener.Capabilities, pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION)
 	return l
 }
 
@@ -357,7 +358,7 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 			InboundMesh: &pbproxystate.InboundMeshMTLS{
 				IdentityKey: workloadIdentity,
 				ValidationContext: &pbproxystate.MeshInboundValidationContext{
-					TrustBundlePeerNameKeys: []string{l.builder.id.Tenancy.PeerName},
+					TrustBundlePeerNameKeys: []string{"local"},
 				},
 			},
 		},

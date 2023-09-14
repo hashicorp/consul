@@ -42,6 +42,7 @@ const (
 )
 
 func (pr *ProxyResources) makeXDSListeners() ([]proto.Message, error) {
+	fmt.Println("******** xds listeners")
 	listeners := make([]proto.Message, 0)
 
 	for _, l := range pr.proxyState.Listeners {
@@ -56,6 +57,7 @@ func (pr *ProxyResources) makeXDSListeners() ([]proto.Message, error) {
 }
 
 func (pr *ProxyResources) makeListener(listener *pbproxystate.Listener) (*envoy_listener_v3.Listener, error) {
+	fmt.Println("******** xds listeners")
 	envoyListener := &envoy_listener_v3.Listener{}
 
 	// Listener Address
@@ -90,6 +92,7 @@ func (pr *ProxyResources) makeListener(listener *pbproxystate.Listener) (*envoy_
 
 	// Listener filter chains
 	for _, r := range listener.Routers {
+		fmt.Println("******** xds listener routers")
 		filterChain, err := pr.makeEnvoyListenerFilterChain(r)
 		if err != nil {
 			return nil, fmt.Errorf("could not make filter chain: %w", err)
@@ -180,6 +183,7 @@ func makeUnixSocketEnvoyAddress(address *pbproxystate.Listener_UnixSocket) *envo
 }
 
 func (pr *ProxyResources) makeEnvoyListenerFilterChain(router *pbproxystate.Router) (*envoy_listener_v3.FilterChain, error) {
+	fmt.Println("********* in filter chain")
 	envoyFilterChain := &envoy_listener_v3.FilterChain{}
 
 	if router == nil {
@@ -196,12 +200,14 @@ func (pr *ProxyResources) makeEnvoyListenerFilterChain(router *pbproxystate.Rout
 	var envoyFilters []*envoy_listener_v3.Filter
 	switch router.Destination.(type) {
 	case *pbproxystate.Router_L4:
+		fmt.Println("********* making l4 dest")
 		l4Filters, err := pr.makeEnvoyResourcesForL4Destination(router.Destination.(*pbproxystate.Router_L4))
 		if err != nil {
 			return nil, err
 		}
 		envoyFilters = append(envoyFilters, l4Filters...)
 	case *pbproxystate.Router_L7:
+		fmt.Println("********* making l7 dest")
 		l7 := router.Destination.(*pbproxystate.Router_L7)
 		l7Filters, err := pr.makeEnvoyResourcesForL7Destination(l7)
 		if err != nil {
@@ -225,6 +231,7 @@ func (pr *ProxyResources) makeEnvoyListenerFilterChain(router *pbproxystate.Rout
 
 	}
 
+	fmt.Println("********* making transport socket")
 	// Router TLS
 	ts, err := pr.makeEnvoyTransportSocket(router.InboundTls)
 	if err != nil {
@@ -540,33 +547,40 @@ func (pr *ProxyResources) makeEnvoyTLSParameters(defaultParams *pbproxystate.TLS
 }
 
 func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSocket) (*envoy_core_v3.TransportSocket, error) {
+	fmt.Println("************* transport socket: ", ts)
+	//fmt.Println("************* transport socket type: ", ts.ConnectionTls.(type))
 	// TODO(JM): did this just make tests pass.  Figure out whether proxyState.Tls will always be available.
-	if pr.proxyState.Tls == nil {
-		return nil, nil
-	}
+	//if pr.proxyState.Tls == nil {
+	//	return nil, nil
+	//}
 	if ts == nil {
 		return nil, nil
 	}
 	commonTLSContext := &envoy_tls_v3.CommonTlsContext{}
+	if ts.AlpnProtocols != nil {
+		commonTLSContext.AlpnProtocols = ts.AlpnProtocols
+	}
 
 	// Create connection TLS. Listeners should only look at inbound TLS.
 	switch ts.ConnectionTls.(type) {
 	case *pbproxystate.TransportSocket_InboundMesh:
+		fmt.Println("******** inbound mesh")
 		downstreamContext := &envoy_tls_v3.DownstreamTlsContext{}
 		downstreamContext.CommonTlsContext = commonTLSContext
 		// Set TLS Parameters.
-		tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.InboundTlsParameters, ts.TlsParameters)
-		commonTLSContext.TlsParams = tlsParams
+		//tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.InboundTlsParameters, ts.TlsParameters)
+		//commonTLSContext.TlsParams = tlsParams
 
 		// Set the certificate config on the tls context.
 		// For inbound mesh, we need to add the identity certificate
 		// and the validation context for the mesh depending on the provided trust bundle names.
 		if pr.proxyState.Tls == nil {
 			// if tls is nil but connection tls is provided, then the proxy state is misconfigured
-			return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
+			//return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
 		}
 		im := ts.ConnectionTls.(*pbproxystate.TransportSocket_InboundMesh).InboundMesh
 		leaf, ok := pr.proxyState.LeafCertificates[im.IdentityKey]
+		fmt.Println("******** looked up leaf: ", leaf)
 		if !ok {
 			return nil, fmt.Errorf("failed to create transport socket: leaf certificate %q not found", im.IdentityKey)
 		}
@@ -658,13 +672,13 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 		upstreamContext := &envoy_tls_v3.UpstreamTlsContext{}
 		upstreamContext.CommonTlsContext = commonTLSContext
 		// Set TLS Parameters
-		tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.OutboundTlsParameters, ts.TlsParameters)
-		commonTLSContext.TlsParams = tlsParams
+		//tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.OutboundTlsParameters, ts.TlsParameters)
+		//commonTLSContext.TlsParams = tlsParams
 		// For outbound mesh, we need to insert the mesh identity certificate
 		// and the validation context for the mesh depending on the provided trust bundle names.
 		if pr.proxyState.Tls == nil {
 			// if tls is nil but connection tls is provided, then the proxy state is misconfigured
-			return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
+			//return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
 		}
 		om := ts.GetOutboundMesh()
 		leaf, ok := pr.proxyState.LeafCertificates[om.IdentityKey]
@@ -713,6 +727,7 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 		}
 		return transportSocket, nil
 	default:
+		fmt.Println("******** bad tls")
 		return nil, nil
 	}
 
