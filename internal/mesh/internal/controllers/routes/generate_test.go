@@ -195,6 +195,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:           pbcatalog.Protocol_PROTOCOL_TCP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("api", "tcp"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(apiServiceRef, "tcp", ""),
 							},
 						},
@@ -250,6 +251,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 							Protocol:           protocol,
 							Targets: map[string]*pbmesh.BackendTargetDetails{
 								backendName("api", protoName): {
+									MeshPort:   "mesh",
 									BackendRef: newBackendRef(apiServiceRef, protoName, ""),
 								},
 							},
@@ -297,6 +299,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:           pbcatalog.Protocol_PROTOCOL_GRPC,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("api", "grpc"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(apiServiceRef, "grpc", ""),
 							},
 						},
@@ -397,6 +400,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_TCP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "tcp"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(fooServiceRef, "tcp", ""),
 							},
 						},
@@ -424,6 +428,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "http"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(fooServiceRef, "http", ""),
 							},
 						},
@@ -451,6 +456,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP2,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "http2"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(fooServiceRef, "http2", ""),
 							},
 						},
@@ -478,6 +484,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_GRPC,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "grpc"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(fooServiceRef, "grpc", ""),
 							},
 						},
@@ -558,6 +565,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				Protocol:  protocol,
 				Targets: map[string]*pbmesh.BackendTargetDetails{
 					backendName("foo", portName): {
+						MeshPort:   "mesh",
 						BackendRef: newBackendRef(fooServiceRef, portName, ""),
 					},
 				},
@@ -657,6 +665,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:           pbcatalog.Protocol_PROTOCOL_HTTP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("api", "http"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(apiServiceRef, "http", ""),
 							},
 						},
@@ -734,6 +743,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:           pbcatalog.Protocol_PROTOCOL_HTTP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("api", "http"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(apiServiceRef, "http", ""),
 							},
 						},
@@ -833,6 +843,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "http"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(fooServiceRef, "http", ""),
 							},
 						},
@@ -976,9 +987,11 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "http"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(fooServiceRef, "http", ""),
 							},
 							backendName("bar", "http"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(barServiceRef, "http", ""),
 							},
 						},
@@ -1060,6 +1073,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "http"): {
+								MeshPort:   "mesh",
 								BackendRef: newBackendRef(fooServiceRef, "http", ""),
 							},
 						},
@@ -1407,6 +1421,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "http"): {
+								MeshPort:          "mesh",
 								BackendRef:        newBackendRef(fooServiceRef, "http", ""),
 								DestinationConfig: portDestConfig,
 							},
@@ -1518,6 +1533,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							backendName("foo", "http"): {
+								MeshPort:       "mesh",
 								BackendRef:     newBackendRef(fooServiceRef, "http", ""),
 								FailoverConfig: portFailoverConfig,
 							},

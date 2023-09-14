@@ -290,7 +290,7 @@ func compile(
 			//
 			// Note: we will always find a port here because we only add targets that have
 			// mesh ports above in shouldRouteTrafficToBackend().
-			for _, port := range details.Service.Ports {
+			for _, port := range svc.Data.Ports {
 				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 					details.MeshPort = port.TargetPort
 				}
