@@ -548,6 +548,7 @@ func (suite *meshControllerTestSuite) TestController() {
 			}).Write(suite.T(), suite.client)
 
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
+		apiProxyStateTemplate = suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
 		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
 		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)

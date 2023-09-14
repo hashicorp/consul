@@ -47,6 +47,10 @@ func buildTrafficPermissions(trustDomain string, workload *pbcatalog.Workload, c
 	portToProtocol := make(map[string]pbcatalog.Protocol)
 	var allPorts []string
 	for protocol, ports := range portsWithProtocol {
+		if protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+			continue
+		}
+
 		for _, p := range ports {
 			allPorts = append(allPorts, p)
 			portToProtocol[p] = protocol
@@ -62,11 +66,9 @@ func buildTrafficPermissions(trustDomain string, workload *pbcatalog.Workload, c
 		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
 		principals := makePrincipals(trustDomain, p)
 		for port := range drsByPort {
-			if portToProtocol[port] == pbcatalog.Protocol_PROTOCOL_TCP {
-				out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
-					Principals: principals,
-				})
-			}
+			out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
+				Principals: principals,
+			})
 		}
 	}
 
@@ -74,11 +76,9 @@ func buildTrafficPermissions(trustDomain string, workload *pbcatalog.Workload, c
 		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
 		principals := makePrincipals(trustDomain, p)
 		for port := range drsByPort {
-			if portToProtocol[port] == pbcatalog.Protocol_PROTOCOL_TCP {
-				out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
-					Principals: principals,
-				})
-			}
+			out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
+				Principals: principals,
+			})
 		}
 	}
 
@@ -156,21 +156,11 @@ func makePrincipal(trustDomain string, s *pbauth.Source) *pbproxystate.Principal
 	}
 }
 
-type SourceToSpiffe interface {
-	GetIdentityName() string
-	GetPartition() string
-	GetNamespace() string
-	GetPeer() string
-}
-
-var _ SourceToSpiffe = (*pbauth.Source)(nil)
-var _ SourceToSpiffe = (*pbauth.ExcludeSource)(nil)
-
 const (
 	anyPath = `[^/]+`
 )
 
-func sourceToSpiffe(trustDomain string, s SourceToSpiffe) *pbproxystate.Spiffe {
+func sourceToSpiffe(trustDomain string, s pbauth.SourceToSpiffe) *pbproxystate.Spiffe {
 	var (
 		name = s.GetIdentityName()
 		ns   = s.GetNamespace()

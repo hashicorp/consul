@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -90,6 +91,7 @@ func Controller(
 		WithWatch(types.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
 		WithWatch(types.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
 		WithWatch(types.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
+		WithWatch(auth.ComputedTrafficPermissionsType, mapper.MapComputedTrafficPermissionsToProxyStateTemplate).
 		WithReconciler(&reconciler{
 			destinationsCache:   destinationsCache,
 			proxyCfgCache:       proxyCfgCache,
@@ -181,10 +183,15 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 
-	ctp, err := dataFetcher.FetchComputedTrafficPermissions(ctx, computedTrafficPermissionsIDFromWorkload(workload))
+	trafficPermissions, err := dataFetcher.FetchComputedTrafficPermissions(ctx, computedTrafficPermissionsIDFromWorkload(workload))
 	if err != nil {
 		rt.Logger.Error("error fetching computed traffic permissions to compute proxy state template", "error", err)
 		return err
+	}
+
+	var ctp *pbauth.ComputedTrafficPermissions
+	if trafficPermissions != nil {
+		ctp = trafficPermissions.Data
 	}
 
 	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, proxyCfg).

@@ -132,10 +132,15 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 				"p2": {
 					Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
 				},
+				"p3": {},
+				"mesh": {
+					Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+				},
 			},
 			expected: map[string]*pbproxystate.TrafficPermissions{
 				"p1": {},
 				"p2": {},
+				"p3": {},
 			},
 		},
 		"kitchen sink": {
@@ -144,7 +149,7 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
 				},
 				"p2": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+					Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
 				},
 			},
 			ctp: &pbauth.ComputedTrafficPermissions{

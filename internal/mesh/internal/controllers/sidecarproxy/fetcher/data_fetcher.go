@@ -79,23 +79,8 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 	return resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.Client, id)
 }
 
-func (f *Fetcher) FetchComputedTrafficPermissions(ctx context.Context, id *pbresource.ID) (*pbauth.ComputedTrafficPermissions, error) {
-	rsp, err := f.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
-
-	switch {
-	case status.Code(err) == codes.NotFound:
-		return nil, nil
-	case err != nil:
-		return nil, err
-	}
-
-	var ctp pbauth.ComputedTrafficPermissions
-	err = rsp.Resource.Data.UnmarshalTo(&ctp)
-	if err != nil {
-		return nil, resource.NewErrDataParse(&ctp, err)
-	}
-
-	return &ctp, nil
+func (f *Fetcher) FetchComputedTrafficPermissions(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedTrafficPermissions, error) {
+	return resource.GetDecodedResource[*pbauth.ComputedTrafficPermissions](ctx, f.Client, id)
 }
 
 func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) (*types.DecodedServiceEndpoints, error) {
