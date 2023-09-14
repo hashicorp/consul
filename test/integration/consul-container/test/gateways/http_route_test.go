@@ -817,7 +817,7 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 			Image: libservice.HashicorpDockerProxy + "/nicholasjackson/fake-service:v0.26.0",
 			Env: map[string]string{
 				"LISTEN_ADDR": fmt.Sprintf("0.0.0.0:%d", timeoutServiceHTTPPort),
-				//"ERROR_DELAY": "1m",
+				"ERROR_DELAY": "1m",
 			},
 		},
 		nil,
@@ -965,6 +965,6 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 
 	checkRoute(t, gatewayPort, timeoutPath, map[string]string{
 		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: 200, testName: "timeout should timeout", expectedBody: "timeout"})
+	}, checkOptions{debug: false, statusCode: 504, testName: "timeout should timeout", expectedBody: "timeout"})
 
 }
