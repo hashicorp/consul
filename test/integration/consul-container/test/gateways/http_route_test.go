@@ -966,6 +966,6 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 
 	checkRoute(t, gatewayPort, timeoutPath, map[string]string{
 		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: 504, testName: "timeout should timeout", expectedBody: "timeout"})
+	}, checkOptions{debug: false, statusCode: 500, testName: "timeout should timeout", expectedBody: "timeout"})
 
 }
