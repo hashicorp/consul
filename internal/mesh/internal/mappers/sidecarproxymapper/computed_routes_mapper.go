@@ -10,53 +10,35 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (m *Mapper) MapComputedRoutesToProxyStateTemplate(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	var computedRoutes pbmesh.ComputedRoutes
-	err := res.Data.UnmarshalTo(&computedRoutes)
+	computedRoutes, err := resource.Decode[*pbmesh.ComputedRoutes](res)
 	if err != nil {
 		return nil, err
 	}
 
+	reqs, err := m.mapComputedRoutesToProxyStateTemplate(ctx, rt, res.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	m.computedRoutesCache.TrackComputedRoutes(computedRoutes)
+
+	return reqs, nil
+}
+
+func (m *Mapper) mapComputedRoutesToProxyStateTemplate(ctx context.Context, rt controller.Runtime, computedRoutesID *pbresource.ID) ([]controller.Request, error) {
 	// Each Destination gets a single ComputedRoutes.
-	serviceID := resource.ReplaceType(catalog.ServiceType, res.Id)
+	serviceID := resource.ReplaceType(catalog.ServiceType, computedRoutesID)
 	serviceRef := resource.Reference(serviceID, "")
 
-	var result []controller.Request
-
-	for port := range computedRoutes.PortedConfigs {
-		dest, ok := m.destinationsCache.ReadDestination(serviceRef, port)
-		if !ok {
-			continue // skip
-		}
-
-		for rk := range dest.SourceProxies {
-			result = append(result, controller.Request{ID: rk.ToID()})
-		}
-	}
-
-	// todo (ishustava): this is a stub for now until we implement implicit destinations.
-	// For tproxy, we generate requests for all proxy states in the cluster.
-	// This will generate duplicate events for proxies already added above,
-	// however, we expect that the controller runtime will de-dup for us.
-	rsp, err := rt.Client.List(ctx, &pbresource.ListRequest{
-		Type: types.ProxyStateTemplateType,
-		Tenancy: &pbresource.Tenancy{
-			Namespace: storage.Wildcard,
-			Partition: res.Id.Tenancy.Partition,
-			PeerName:  "local",
-		},
-	})
+	ids, err := m.mapServiceThroughDestinationsToProxyStateTemplates(ctx, rt, serviceRef)
 	if err != nil {
 		return nil, err
 	}
-	for _, r := range rsp.Resources {
-		result = append(result, controller.Request{ID: r.Id})
-	}
 
-	return result, nil
+	return controller.MakeRequests(types.ProxyStateTemplateType, ids), nil
 }

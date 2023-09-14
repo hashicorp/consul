@@ -324,12 +324,15 @@ func (suite *meshControllerTestSuite) TestController() {
 	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
 
 	// Initialize controller dependencies.
-	destinationsCache := sidecarproxycache.NewDestinationsCache()
-	proxyCfgCache := sidecarproxycache.NewProxyConfigurationCache()
-	m := sidecarproxymapper.New(destinationsCache, proxyCfgCache)
+	var (
+		destinationsCache   = sidecarproxycache.NewDestinationsCache()
+		proxyCfgCache       = sidecarproxycache.NewProxyConfigurationCache()
+		computedRoutesCache = sidecarproxycache.NewComputedRoutesCache()
+		m                   = sidecarproxymapper.New(destinationsCache, proxyCfgCache, computedRoutesCache)
+	)
 	trustDomainFetcher := func() (string, error) { return "test.consul", nil }
 
-	mgr.Register(Controller(destinationsCache, proxyCfgCache, m, trustDomainFetcher, "dc1"))
+	mgr.Register(Controller(destinationsCache, proxyCfgCache, computedRoutesCache, m, trustDomainFetcher, "dc1"))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 

@@ -24,19 +24,23 @@ import (
 )
 
 type Fetcher struct {
-	Client            pbresource.ResourceServiceClient
-	DestinationsCache *sidecarproxycache.DestinationsCache
-	ProxyCfgCache     *sidecarproxycache.ProxyConfigurationCache
+	Client              pbresource.ResourceServiceClient
+	DestinationsCache   *sidecarproxycache.DestinationsCache
+	ProxyCfgCache       *sidecarproxycache.ProxyConfigurationCache
+	ComputedRoutesCache *sidecarproxycache.ComputedRoutesCache
 }
 
-func New(client pbresource.ResourceServiceClient,
+func New(
+	client pbresource.ResourceServiceClient,
 	dCache *sidecarproxycache.DestinationsCache,
-	pcfgCache *sidecarproxycache.ProxyConfigurationCache) *Fetcher {
-
+	pcfgCache *sidecarproxycache.ProxyConfigurationCache,
+	computedRoutesCache *sidecarproxycache.ComputedRoutesCache,
+) *Fetcher {
 	return &Fetcher{
-		Client:            client,
-		DestinationsCache: dCache,
-		ProxyCfgCache:     pcfgCache,
+		Client:              client,
+		DestinationsCache:   dCache,
+		ProxyCfgCache:       pcfgCache,
+		ComputedRoutesCache: computedRoutesCache,
 	}
 }
 
@@ -76,7 +80,15 @@ func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*
 	if !types.IsComputedRoutesType(id.Type) {
 		return nil, fmt.Errorf("id must be a ComputedRoutes type")
 	}
-	return resource.GetDecodedResource[*pbmesh.ComputedRoutes](ctx, f.Client, id)
+
+	dec, err := resource.GetDecodedResource[*pbmesh.ComputedRoutes](ctx, f.Client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
+		f.ComputedRoutesCache.UntrackComputedRoutes(id)
+	}
+
+	return dec, err
 }
 
 func (f *Fetcher) FetchExplicitDestinationsData(

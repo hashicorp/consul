@@ -28,12 +28,13 @@ type TrustDomainFetcher func() (string, error)
 func Controller(
 	destinationsCache *sidecarproxycache.DestinationsCache,
 	proxyCfgCache *sidecarproxycache.ProxyConfigurationCache,
+	computedRoutesCache *sidecarproxycache.ComputedRoutesCache,
 	mapper *sidecarproxymapper.Mapper,
 	trustDomainFetcher TrustDomainFetcher,
 	dc string,
 ) controller.Controller {
-	if destinationsCache == nil || proxyCfgCache == nil || mapper == nil || trustDomainFetcher == nil {
-		panic("destinations cache, proxy configuration cache, mapper and trust domain fetcher are required")
+	if destinationsCache == nil || proxyCfgCache == nil || computedRoutesCache == nil || mapper == nil || trustDomainFetcher == nil {
+		panic("destinations cache, proxy configuration cache, computed routes cache, mapper, and trust domain fetcher are required")
 	}
 
 	/*
@@ -56,7 +57,6 @@ func Controller(
 			fetcher: read Service(upstream)
 			fetcher: read ComputedRoutes
 			<TARGET-for-each>
-				fetcher: read Service(disco)
 				fetcher: read ServiceEndpoints
 			</TARGET-for-each>
 		</EXPLICIT-for-each>
@@ -65,7 +65,6 @@ func Controller(
 			<CR-for-each>
 				fetcher: read Service(upstream)
 				<TARGET-for-each>
-					fetcher: read Service(disco)
 					fetcher: read ServiceEndpoints
 				</TARGET-for-each>
 			</CR-for-each>
@@ -75,8 +74,8 @@ func Controller(
 	/*
 		Which means for equivalence, the following mapper relationships should exist:
 
-		Service:            find computed routes with service as a target (or failover dest); Recurse(ComputedRoutes)
-		ServiceEndpoints:   ServiceEndpoints=>Service; Recurse(Service)
+		Service:            find upstreams with Service; Recurse(Upstreams)
+		ServiceEndpoints:   ServiceEndpoints=>Service; find ComputedRoutes with this in a Target or FailoverConfig; Recurse(ComputedRoutes)
 		Upstreams:          use selector to select workloads; workloads=>PST
 		ProxyConfiguration: use selector to select workloads; workloads=>PST
 		ComputedRoutes:     CR=>Service; find upstreams with Service; Recurse(Upstreams)
@@ -84,24 +83,26 @@ func Controller(
 	*/
 
 	return controller.ForType(types.ProxyStateTemplateType).
-		// TODO: need watch on Service.
+		WithWatch(catalog.ServiceType, mapper.MapServiceEndpointsToProxyStateTemplate).
 		WithWatch(catalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
 		WithWatch(types.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
 		WithWatch(types.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
 		WithWatch(types.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
 		WithReconciler(&reconciler{
-			destinationsCache: destinationsCache,
-			proxyCfgCache:     proxyCfgCache,
-			getTrustDomain:    trustDomainFetcher,
-			dc:                dc,
+			destinationsCache:   destinationsCache,
+			proxyCfgCache:       proxyCfgCache,
+			computedRoutesCache: computedRoutesCache,
+			getTrustDomain:      trustDomainFetcher,
+			dc:                  dc,
 		})
 }
 
 type reconciler struct {
-	destinationsCache *sidecarproxycache.DestinationsCache
-	proxyCfgCache     *sidecarproxycache.ProxyConfigurationCache
-	getTrustDomain    TrustDomainFetcher
-	dc                string
+	destinationsCache   *sidecarproxycache.DestinationsCache
+	proxyCfgCache       *sidecarproxycache.ProxyConfigurationCache
+	computedRoutesCache *sidecarproxycache.ComputedRoutesCache
+	getTrustDomain      TrustDomainFetcher
+	dc                  string
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -110,7 +111,12 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	rt.Logger.Trace("reconciling proxy state template")
 
 	// Instantiate a data fetcher to fetch all reconciliation data.
-	dataFetcher := fetcher.New(rt.Client, r.destinationsCache, r.proxyCfgCache)
+	dataFetcher := fetcher.New(
+		rt.Client,
+		r.destinationsCache,
+		r.proxyCfgCache,
+		r.computedRoutesCache,
+	)
 
 	// Check if the workload exists.
 	workloadID := resource.ReplaceType(catalog.WorkloadType, req.ID)
