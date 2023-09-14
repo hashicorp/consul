@@ -19,9 +19,7 @@ func DestinationSNI(serviceRef *pbresource.Reference, datacenter, trustDomain st
 		trustDomain)
 }
 
-// note: this is a listener thing
 func DestinationStatPrefix(serviceRef *pbresource.Reference, portName, datacenter string) string {
-	// TODO(rb): portName prefix?
 	return fmt.Sprintf("upstream.%s.%s.%s.%s.%s",
 		portName,
 		serviceRef.Name,
