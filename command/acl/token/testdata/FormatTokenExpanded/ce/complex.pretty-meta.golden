@@ -26,7 +26,7 @@ Policies:
 
 Service Identities:
 	Name: gardener (Datacenters: middleearth-northwest)
-		Description: synthetic policy for service identity "gardener"
+		Description: synthetic policy generated from templated policy: builtin/service
 		Rules:
 			service "gardener" {
 				policy = "write"
@@ -43,7 +43,7 @@ Service Identities:
 
 Node Identities:
 	Name: bagend (Datacenter: middleearth-northwest)
-		Description: synthetic policy for node identity "bagend"
+		Description: synthetic policy generated from templated policy: builtin/node
 		Rules:
 			node "bagend" {
 				policy = "write"
@@ -96,7 +96,7 @@ Roles:
 
 		Service Identities:
 			Name: foo (Datacenters: middleearth-southwest)
-				Description: synthetic policy for service identity "foo"
+				Description: synthetic policy generated from templated policy: builtin/service
 				Rules:
 					service "foo" {
 						policy = "write"
@@ -125,7 +125,7 @@ Roles:
 
 		Node Identities:
 			Name: bar (Datacenter: middleearth-southwest)
-				Description: synthetic policy for node identity "bar"
+				Description: synthetic policy generated from templated policy: builtin/node
 				Rules:
 					node "bar" {
 						policy = "write"
@@ -158,7 +158,7 @@ Namespace Role Defaults:
 
 		Service Identities:
 			Name: web (Datacenters: middleearth-northeast)
-				Description: synthetic policy for service identity "web"
+				Description: synthetic policy generated from templated policy: builtin/service
 				Rules:
 					service "web" {
 						policy = "write"
@@ -175,7 +175,7 @@ Namespace Role Defaults:
 
 		Node Identities:
 			Name: db (Datacenter: middleearth-northwest)
-				Description: synthetic policy for node identity "db"
+				Description: synthetic policy generated from templated policy: builtin/node
 				Rules:
 					node "db" {
 						policy = "write"
