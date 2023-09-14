@@ -155,7 +155,8 @@ You can specify the following strings:
 * `trace`
 
 ### matchPrivilegedContainerPorts
-Specifies the value to add to privileged ports ( ports < 1024). If this value is set, any privileged port on the gateway will have this value added to it. This is useful to avoid running containers with privileged ports.
+```suggestion
+Specifies a value that Consul adds to privileged ports defined in the gateway. Privileged ports are port numbers less than 1024 and some platforms, such as Red Hat OpenShift, explicitly configure Kubernetes to avoid running containers on privileged ports. The total value of the configured port number and the `matchPriviledgedContainerPorts` value must not exceed 66535, which is the highest possible TCP port number allowed. 
 for gateway containers
 * Type: Integer
 * Required: optional
