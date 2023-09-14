@@ -785,6 +785,11 @@ Usage: consul debug [options]
   strongly recommend review of the data within the archive prior to
   transmitting it.
 
+  To get information from past, -since flag can be used. It internally uses
+  hcdiag -consul -since
+  
+	$ consul debug -since 1h
+
   For a full list of options and examples, please see the Consul
   documentation.
 `
