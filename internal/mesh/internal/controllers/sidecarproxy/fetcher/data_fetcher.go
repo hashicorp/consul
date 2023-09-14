@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -269,7 +270,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 	rsp, err := f.Client.List(ctx, &pbresource.ListRequest{
 		Type: types.ComputedRoutesType,
 		Tenancy: &pbresource.Tenancy{
-			Namespace: proxyID.Tenancy.Namespace,
+			Namespace: storage.Wildcard,
 			Partition: proxyID.Tenancy.Partition,
 			PeerName:  proxyID.Tenancy.PeerName,
 		},
