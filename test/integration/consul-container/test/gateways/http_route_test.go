@@ -798,7 +798,7 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 			Image: libservice.HashicorpDockerProxy + "/nicholasjackson/fake-service:v0.26.0",
 			Env: map[string]string{
 				"LISTEN_ADDR": fmt.Sprintf("0.0.0.0:%d", retryServiceHTTPPort),
-				//"ERROR_RATE":  "0.5",
+				"ERROR_RATE":  "0.5",
 			},
 		},
 		nil,
@@ -868,7 +868,7 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 			{
 				Filters: api.HTTPFilters{
 					RetryFilter: &api.RetryFilter{
-						NumRetries:         pointer.Uint32(5),
+						NumRetries:         pointer.Uint32(10),
 						RetryOnStatusCodes: []uint32{500},
 					},
 				},
