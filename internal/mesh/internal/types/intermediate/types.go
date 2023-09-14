@@ -6,7 +6,6 @@ package intermediate
 import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -26,42 +25,6 @@ type CombinedDestinationRef struct {
 	// ExplicitDestinationsID is the id of the pbmesh.Upstreams resource. For implicit destinations,
 	// this should be nil.
 	ExplicitDestinationsID *pbresource.ID
-}
-
-// Deprecated: types.DecodedServiceEndpoints
-type ServiceEndpoints struct {
-	Resource  *pbresource.Resource
-	Endpoints *pbcatalog.ServiceEndpoints
-}
-
-// Deprecated: types.DecodedService
-type Service struct {
-	Resource *pbresource.Resource
-	Service  *pbcatalog.Service
-}
-
-// Deprecated: types.DecodedDestinations
-type Destinations struct {
-	Resource     *pbresource.Resource
-	Destinations *pbmesh.Upstreams
-}
-
-// Deprecated: types.DecodedWorkload
-type Workload struct {
-	Resource *pbresource.Resource
-	Workload *pbcatalog.Workload
-}
-
-// Deprecated: types.DecodedProxyStateTemplate
-type ProxyStateTemplate struct {
-	Resource *pbresource.Resource
-	Tmpl     *pbmesh.ProxyStateTemplate
-}
-
-// Deprecated: types.DecodedProxyConfiguration
-type ProxyConfiguration struct {
-	Resource *pbresource.Resource
-	Cfg      *pbmesh.ProxyConfiguration
 }
 
 type Destination struct {
