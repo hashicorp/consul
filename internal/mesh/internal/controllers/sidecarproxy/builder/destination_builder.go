@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -117,14 +118,12 @@ func (b *Builder) buildDestination(
 			// TODO(rb/v2): BackendRefs []*ComputedHTTPBackendRef
 
 			// Explode out by matches
-			var matches []*pbproxystate.RouteMatch
 			for _, match := range routeRule.Matches {
 				routeMatch := makeHTTPRouteMatch(match)
-				matches = append(matches, routeMatch)
 
 				proxyRouteRules = append(proxyRouteRules, &pbproxystate.RouteRule{
 					Match:       routeMatch,
-					Destination: dest,
+					Destination: proto.Clone(dest).(*pbproxystate.RouteDestination),
 					// TODO: mutations
 				})
 			}
@@ -152,6 +151,7 @@ func (b *Builder) buildDestination(
 			}
 			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
 
+			// nolint:staticcheck
 			dest := b.makeGRPCRouteDestination(
 				routeRule.BackendRefs,
 				destConfig,
@@ -162,14 +162,12 @@ func (b *Builder) buildDestination(
 			// TODO(rb/v2): Filters     []*HTTPRouteFilter
 
 			// Explode out by matches
-			var matches []*pbproxystate.RouteMatch
 			for _, match := range routeRule.Matches {
 				routeMatch := makeGRPCRouteMatch(match)
-				matches = append(matches, routeMatch)
 
 				proxyRouteRules = append(proxyRouteRules, &pbproxystate.RouteRule{
 					Match:       routeMatch,
-					Destination: dest,
+					Destination: proto.Clone(dest).(*pbproxystate.RouteDestination),
 					// TODO: mutations
 				})
 			}
