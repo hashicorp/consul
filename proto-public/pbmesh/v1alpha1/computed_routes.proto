@@ -118,7 +118,7 @@ message BackendTargetDetails {
   // identity info
   BackendReference backend_ref = 1;
 
-  string meshPort = 2;
+  string mesh_port = 2;
   hashicorp.consul.catalog.v1alpha1.FailoverConfig failover_config = 3;
   DestinationConfig destination_config = 4;
 
