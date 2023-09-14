@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package types
 
 import (
@@ -77,31 +80,11 @@ func ValidateTrafficPermissions(res *pbresource.Resource) error {
 					Wrapped: errSourcesTenancy,
 				}))
 			}
-			if len(permission.DestinationRules) > 0 {
-				for d, dest := range permission.DestinationRules {
-					wrapDestRuleErr := func(err error) error {
-						return wrapPermissionErr(resource.ErrInvalidListElement{
-							Name:    "destination_rule",
-							Index:   d,
-							Wrapped: err,
-						})
-					}
-					if (len(dest.PathExact) > 0 && len(dest.PathPrefix) > 0) ||
-						(len(dest.PathRegex) > 0 && len(dest.PathExact) > 0) ||
-						(len(dest.PathRegex) > 0 && len(dest.PathPrefix) > 0) {
-						err = multierror.Append(err, wrapDestRuleErr(resource.ErrInvalidListElement{
-							Name:    "destination_rule",
-							Wrapped: errInvalidPrefixValues,
-						}))
-					}
-
-				}
-			}
 			if len(src.Exclude) > 0 {
 				for e, d := range src.Exclude {
 					wrapExclSrcErr := func(err error) error {
 						return wrapPermissionErr(resource.ErrInvalidListElement{
-							Name:    "exclude_source",
+							Name:    "exclude_sources",
 							Index:   e,
 							Wrapped: err,
 						})
@@ -110,9 +93,47 @@ func ValidateTrafficPermissions(res *pbresource.Resource) error {
 						(len(d.Partition) > 0 && len(d.SamenessGroup) > 0) ||
 						(len(d.Peer) > 0 && len(d.SamenessGroup) > 0) {
 						err = multierror.Append(err, wrapExclSrcErr(resource.ErrInvalidListElement{
-							Name:    "destination_rule",
+							Name:    "exclude_source",
 							Wrapped: errSourcesTenancy,
 						}))
+					}
+				}
+			}
+		}
+		if len(permission.DestinationRules) > 0 {
+			for d, dest := range permission.DestinationRules {
+				wrapDestRuleErr := func(err error) error {
+					return wrapPermissionErr(resource.ErrInvalidListElement{
+						Name:    "destination_rules",
+						Index:   d,
+						Wrapped: err,
+					})
+				}
+				if (len(dest.PathExact) > 0 && len(dest.PathPrefix) > 0) ||
+					(len(dest.PathRegex) > 0 && len(dest.PathExact) > 0) ||
+					(len(dest.PathRegex) > 0 && len(dest.PathPrefix) > 0) {
+					err = multierror.Append(err, wrapDestRuleErr(resource.ErrInvalidListElement{
+						Name:    "destination_rule",
+						Wrapped: errInvalidPrefixValues,
+					}))
+				}
+				if len(dest.Exclude) > 0 {
+					for e, excl := range dest.Exclude {
+						wrapExclPermRuleErr := func(err error) error {
+							return wrapPermissionErr(resource.ErrInvalidListElement{
+								Name:    "exclude_permission_rules",
+								Index:   e,
+								Wrapped: err,
+							})
+						}
+						if (len(excl.PathExact) > 0 && len(excl.PathPrefix) > 0) ||
+							(len(excl.PathRegex) > 0 && len(excl.PathExact) > 0) ||
+							(len(excl.PathRegex) > 0 && len(excl.PathPrefix) > 0) {
+							err = multierror.Append(err, wrapExclPermRuleErr(resource.ErrInvalidListElement{
+								Name:    "exclude_permission_rule",
+								Wrapped: errInvalidPrefixValues,
+							}))
+						}
 					}
 				}
 			}
