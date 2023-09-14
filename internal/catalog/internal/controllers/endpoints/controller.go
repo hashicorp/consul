@@ -311,8 +311,13 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 			continue
 		}
 
-		if workloadPort.Protocol != svcPort.Protocol {
-			// workload port mismatch - ignore it
+		// If workload protocol is not specified, we will default to service's protocol.
+		// This is because on some platforms (kubernetes), workload protocol is not always
+		// known, and so we need to inherit from the service instead.
+		if workloadPort.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+			workloadPort.Protocol = svcPort.Protocol
+		} else if workloadPort.Protocol != svcPort.Protocol {
+			// Otherwise, there's workload port mismatch - ignore it.
 			continue
 		}
 
