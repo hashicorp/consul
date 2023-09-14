@@ -60,10 +60,8 @@ func (b *Builder) NewListenerBuilder(l *pbproxystate.Listener) *ListenerBuilder 
 	}
 }
 
-func (l *ListenerBuilder) buildListener() *Builder {
+func (l *ListenerBuilder) buildListener() {
 	l.builder.proxyStateTemplate.ProxyState.Listeners = append(l.builder.proxyStateTemplate.ProxyState.Listeners, l.listener)
-
-	return l.builder
 }
 
 type RouterBuilder struct {
@@ -78,8 +76,6 @@ func (b *ListenerBuilder) NewRouterBuilder(r *pbproxystate.Router) *RouterBuilde
 	}
 }
 
-func (r *RouterBuilder) buildRouter() *ListenerBuilder {
+func (r *RouterBuilder) buildRouter() {
 	r.builder.listener.Routers = append(r.builder.listener.Routers, r.router)
-
-	return r.builder
 }

@@ -522,9 +522,8 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 	return b
 }
 
-func (b *Builder) addRoute(listenerName string, route *pbproxystate.Route) *Builder {
+func (b *Builder) addRoute(listenerName string, route *pbproxystate.Route) {
 	b.proxyStateTemplate.ProxyState.Routes[listenerName] = route
-	return b
 }
 
 // addEndpointsRef creates and add an endpointRef for each serviceEndpoint for a destination and
