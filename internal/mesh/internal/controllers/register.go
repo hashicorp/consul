@@ -36,11 +36,14 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	}
 	mgr.Register(xds.Controller(endpointsMapper, deps.ProxyUpdater, deps.TrustBundleFetcher, deps.LeafCertManager, leafMapper, leafCancels, deps.LocalDatacenter))
 
-	destinationsCache := sidecarproxycache.NewDestinationsCache()
-	proxyCfgCache := sidecarproxycache.NewProxyConfigurationCache()
-	m := sidecarproxymapper.New(destinationsCache, proxyCfgCache)
+	var (
+		destinationsCache   = sidecarproxycache.NewDestinationsCache()
+		proxyCfgCache       = sidecarproxycache.NewProxyConfigurationCache()
+		computedRoutesCache = sidecarproxycache.NewComputedRoutesCache()
+		m                   = sidecarproxymapper.New(destinationsCache, proxyCfgCache, computedRoutesCache)
+	)
 	mgr.Register(
-		sidecarproxy.Controller(destinationsCache, proxyCfgCache, m, deps.TrustDomainFetcher, deps.LocalDatacenter),
+		sidecarproxy.Controller(destinationsCache, proxyCfgCache, computedRoutesCache, m, deps.TrustDomainFetcher, deps.LocalDatacenter),
 	)
 
 	mgr.Register(routes.Controller())

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package apply
 
@@ -156,6 +156,7 @@ func (c *cmd) Help() string {
 }
 
 const synopsis = "Writes/updates resource information"
+
 const help = `
 Usage: consul resource apply -f=<file-path>
 

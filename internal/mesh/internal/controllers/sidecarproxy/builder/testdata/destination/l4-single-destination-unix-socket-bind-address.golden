@@ -2,6 +2,7 @@
   "proxyState": {
     "clusters": {
       "tcp.api-2.default.dc1.internal.foo.consul": {
+        "altStatName": "tcp.api-2.default.dc1.internal.foo.consul",
         "endpointGroup": {
           "dynamic": {
             "config": {
@@ -22,7 +23,8 @@
               }
             }
           }
-        }
+        },
+        "name": "tcp.api-2.default.dc1.internal.foo.consul"
       }
     },
     "identity": {
@@ -40,7 +42,9 @@
         "routers": [
           {
             "l4": {
-              "name": "tcp.api-2.default.dc1.internal.foo.consul",
+              "cluster": {
+                "name": "tcp.api-2.default.dc1.internal.foo.consul"
+              },
               "statPrefix": "upstream.tcp.api-2.default.default.dc1"
             }
           }
@@ -53,7 +57,7 @@
     ]
   },
   "requiredEndpoints": {
-    "api-2.default.dc1.internal.foo.consul": {
+    "tcp.api-2.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-2",
         "tenancy": {

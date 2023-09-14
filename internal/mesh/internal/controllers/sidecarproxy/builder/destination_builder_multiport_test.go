@@ -5,22 +5,27 @@ package builder
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/testing/golden"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	"github.com/hashicorp/consul/internal/testing/golden"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestBuildMultiportImplicitDestinations(t *testing.T) {
+	// TODO(rb/v2): add a fetchertest package to construct implicit upstreams
+	// correctly from inputs. the following is far too manual and error prone
+	// to be an accurate representation of what implicit upstreams look like.
 	const (
 		apiApp      = "api-app"
 		apiApp2     = "api-app2"
@@ -50,16 +55,53 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			},
 		},
 	}
+	apiAppService := resourcetest.Resource(catalog.ServiceType, apiApp).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(t, serviceData).
+		Build()
+
+	apiApp2Service := resourcetest.Resource(catalog.ServiceType, apiApp2).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(t, serviceData).
+		Build()
+
 	apiAppEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp).
-		WithOwner(resourcetest.Resource(catalog.ServiceType, apiApp).
-			WithTenancy(resource.DefaultNamespacedTenancy()).ID()).
+		WithOwner(apiAppService.Id).
 		WithData(t, multiportEndpointsData).
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 
 	apiApp2Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp2).
-		WithOwner(resourcetest.Resource(catalog.ServiceType, apiApp2).
-			WithTenancy(resource.DefaultNamespacedTenancy()).ID()).
+		WithOwner(apiApp2Service.Id).
 		WithData(t, multiportEndpointsData).
+		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+
+	mwEndpointsData := &pbcatalog.ServiceEndpoints{ // variant on apiAppEndpoints
+		Endpoints: []*pbcatalog.Endpoint{
+			{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{Host: "10.0.0.1"},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+			{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{Host: "10.0.0.2"},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+		},
+	}
+	mwEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp).
+		WithOwner(apiAppService.Id).
+		WithData(t, mwEndpointsData).
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 
 	apiAppIdentity := &pbresource.Reference{
@@ -72,85 +114,97 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		Tenancy: apiApp2Endpoints.Id.Tenancy,
 	}
 
-	destination1 := &intermediate.Destination{
-		ServiceEndpoints: &intermediate.ServiceEndpoints{
-			Resource:  apiAppEndpoints,
-			Endpoints: multiportEndpointsData,
-		},
-		Identities: []*pbresource.Reference{apiAppIdentity},
-		VirtualIPs: []string{"1.1.1.1"},
+	apiAppComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, apiAppService.Id)
+	apiAppComputedRoutes := routestest.BuildComputedRoutes(t, apiAppComputedRoutesID,
+		resourcetest.MustDecode[*pbcatalog.Service](t, apiAppService),
+	)
+	require.NotNil(t, apiAppComputedRoutes)
+
+	apiApp2ComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, apiApp2Service.Id)
+	apiApp2ComputedRoutes := routestest.BuildComputedRoutes(t, apiApp2ComputedRoutesID,
+		resourcetest.MustDecode[*pbcatalog.Service](t, apiApp2Service),
+	)
+	require.NotNil(t, apiApp2ComputedRoutes)
+
+	newImplicitDestination := func(
+		svc *pbresource.Resource,
+		endpoints *pbresource.Resource,
+		computedRoutes *types.DecodedComputedRoutes,
+		identities []*pbresource.Reference,
+		virtualIPs []string,
+	) []*intermediate.Destination {
+		svcDec := resourcetest.MustDecode[*pbcatalog.Service](t, svc)
+		seDec := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](t, endpoints)
+
+		var out []*intermediate.Destination
+		for _, port := range svcDec.Data.Ports {
+			portName := port.TargetPort
+			if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+				continue
+			}
+
+			portConfig, ok := computedRoutes.Data.PortedConfigs[portName]
+			require.True(t, ok, "port %q not found in port configs", portName)
+
+			dest := &intermediate.Destination{
+				Service: svcDec,
+				ComputedPortRoutes: routestest.MutateTarget(t, portConfig, svc.Id, portName, func(details *pbmesh.BackendTargetDetails) {
+					details.ServiceEndpointsId = endpoints.Id
+					details.ServiceEndpoints = seDec.Data
+					details.IdentityRefs = identities
+				}),
+				VirtualIPs: virtualIPs,
+			}
+			out = append(out, dest)
+		}
+		return out
 	}
 
-	destination2 := &intermediate.Destination{
-		ServiceEndpoints: &intermediate.ServiceEndpoints{
-			Resource:  apiApp2Endpoints,
-			Endpoints: multiportEndpointsData,
-		},
-		Identities: []*pbresource.Reference{apiApp2Identity},
-		VirtualIPs: []string{"2.2.2.2", "3.3.3.3"},
-	}
+	apiAppDestinations := newImplicitDestination(
+		apiAppService,
+		apiAppEndpoints,
+		apiAppComputedRoutes,
+		[]*pbresource.Reference{apiAppIdentity},
+		[]string{"1.1.1.1"},
+	)
+
+	apiApp2Destinations := newImplicitDestination(
+		apiApp2Service,
+		apiApp2Endpoints,
+		apiApp2ComputedRoutes,
+		[]*pbresource.Reference{apiApp2Identity},
+		[]string{"2.2.2.2", "3.3.3.3"},
+	)
+
+	mwDestinations := newImplicitDestination(
+		apiAppService,
+		mwEndpoints,
+		apiAppComputedRoutes,
+		[]*pbresource.Reference{apiAppIdentity},
+		[]string{"1.1.1.1"},
+	)
+
+	twoImplicitDestinations := append(
+		append([]*intermediate.Destination{}, apiAppDestinations...),
+		apiApp2Destinations...,
+	)
 
 	cases := map[string]struct {
 		getDestinations func() []*intermediate.Destination
 	}{
 		// Most basic test that multiport configuration works
 		"destination/multiport-l4-single-implicit-destination-tproxy": {
-			getDestinations: func() []*intermediate.Destination { return []*intermediate.Destination{destination1} },
+			getDestinations: func() []*intermediate.Destination { return apiAppDestinations },
 		},
 		// Test shows that with multiple workloads for a service exposing the same ports, the routers
 		// and clusters do not get duplicated.
 		"destination/multiport-l4-single-implicit-destination-with-multiple-workloads-tproxy": {
-			getDestinations: func() []*intermediate.Destination {
-				mwEndpointsData := &pbcatalog.ServiceEndpoints{
-					Endpoints: []*pbcatalog.Endpoint{
-						{
-							Addresses: []*pbcatalog.WorkloadAddress{
-								{Host: "10.0.0.1"},
-							},
-							Ports: map[string]*pbcatalog.WorkloadPort{
-								"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-								"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-								"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-							},
-						},
-						{
-							Addresses: []*pbcatalog.WorkloadAddress{
-								{Host: "10.0.0.2"},
-							},
-							Ports: map[string]*pbcatalog.WorkloadPort{
-								"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-								"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-								"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-							},
-						},
-					},
-				}
-				mwEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp).
-					WithOwner(resourcetest.Resource(catalog.ServiceType, apiApp).
-						WithTenancy(resource.DefaultNamespacedTenancy()).ID()).
-					WithData(t, mwEndpointsData).
-					WithTenancy(resource.DefaultNamespacedTenancy()).Build()
-
-				mwIdentity := &pbresource.Reference{
-					Name:    fmt.Sprintf("%s-identity", apiApp),
-					Tenancy: mwEndpoints.Id.Tenancy,
-				}
-
-				mwDestination := &intermediate.Destination{
-					ServiceEndpoints: &intermediate.ServiceEndpoints{
-						Resource:  mwEndpoints,
-						Endpoints: mwEndpointsData,
-					},
-					Identities: []*pbresource.Reference{mwIdentity},
-					VirtualIPs: []string{"1.1.1.1"},
-				}
-				return []*intermediate.Destination{mwDestination}
-			},
+			getDestinations: func() []*intermediate.Destination { return mwDestinations },
 		},
 		// Test shows that with multiple workloads for a service exposing the same ports, the routers
 		// and clusters do not get duplicated.
 		"destination/multiport-l4-multiple-implicit-destinations-tproxy": {
-			getDestinations: func() []*intermediate.Destination { return []*intermediate.Destination{destination1, destination2} },
+			getDestinations: func() []*intermediate.Destination { return twoImplicitDestinations },
 		},
 	}
 

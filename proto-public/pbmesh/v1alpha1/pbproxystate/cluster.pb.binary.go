@@ -88,6 +88,16 @@ func (msg *StaticEndpointGroup) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *DestinationCluster) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *DestinationCluster) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *L4WeightedClusterGroup) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

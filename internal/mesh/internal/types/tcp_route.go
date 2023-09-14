@@ -4,6 +4,8 @@
 package types
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
@@ -46,6 +48,13 @@ func ValidateTCPRoute(res *pbresource.Resource) error {
 
 	if err := validateParentRefs(route.ParentRefs); err != nil {
 		merr = multierror.Append(merr, err)
+	}
+
+	if len(route.Rules) > 1 {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "rules",
+			Wrapped: fmt.Errorf("must only specify a single rule for now"),
+		})
 	}
 
 	for i, rule := range route.Rules {

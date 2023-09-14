@@ -24,7 +24,8 @@ type DestinationsCache struct {
 
 	// store is a map from destination service reference and port as a reference key
 	// to the object representing destination reference.
-	store map[ReferenceKeyWithPort]intermediate.CombinedDestinationRef
+	store       map[ReferenceKeyWithPort]intermediate.CombinedDestinationRef
+	storedPorts map[resource.ReferenceKey]map[string]struct{}
 
 	// sourceProxiesIndex stores a map from a reference key of source proxy IDs
 	// to the keys in the store map.
@@ -36,6 +37,7 @@ type storeKeys map[ReferenceKeyWithPort]struct{}
 func NewDestinationsCache() *DestinationsCache {
 	return &DestinationsCache{
 		store:              make(map[ReferenceKeyWithPort]intermediate.CombinedDestinationRef),
+		storedPorts:        make(map[resource.ReferenceKey]map[string]struct{}),
 		sourceProxiesIndex: make(map[resource.ReferenceKey]storeKeys),
 	}
 }
@@ -87,6 +89,7 @@ func (c *DestinationsCache) addLocked(d intermediate.CombinedDestinationRef) {
 	key := KeyFromRefAndPort(d.ServiceRef, d.Port)
 
 	c.store[key] = d
+	c.addPortLocked(d.ServiceRef, d.Port)
 
 	// Update source proxies index.
 	for proxyRef := range d.SourceProxies {
@@ -97,6 +100,18 @@ func (c *DestinationsCache) addLocked(d intermediate.CombinedDestinationRef) {
 
 		c.sourceProxiesIndex[proxyRef][key] = struct{}{}
 	}
+}
+
+func (c *DestinationsCache) addPortLocked(ref *pbresource.Reference, port string) {
+	rk := resource.NewReferenceKey(ref)
+
+	m, ok := c.storedPorts[rk]
+	if !ok {
+		m = make(map[string]struct{})
+		c.storedPorts[rk] = m
+	}
+
+	m[port] = struct{}{}
 }
 
 func (c *DestinationsCache) deleteLocked(ref *pbresource.Reference, port string) {
@@ -117,6 +132,22 @@ func (c *DestinationsCache) deleteLocked(ref *pbresource.Reference, port string)
 
 	// Finally, delete this destination from the store.
 	delete(c.store, key)
+	c.deletePortLocked(ref, port)
+}
+
+func (c *DestinationsCache) deletePortLocked(ref *pbresource.Reference, port string) {
+	rk := resource.NewReferenceKey(ref)
+
+	m, ok := c.storedPorts[rk]
+	if !ok {
+		return
+	}
+
+	delete(m, port)
+
+	if len(m) == 0 {
+		delete(c.storedPorts, rk)
+	}
 }
 
 // DeleteSourceProxy deletes the source proxy given by id from the cache.
@@ -164,6 +195,35 @@ func (c *DestinationsCache) ReadDestination(ref *pbresource.Reference, port stri
 
 	d, found := c.store[key]
 	return d, found
+}
+
+func (c *DestinationsCache) ReadDestinationsByServiceAllPorts(ref *pbresource.Reference) []intermediate.CombinedDestinationRef {
+	// Check that reference is a catalog.Service type.
+	if !resource.EqualType(catalog.ServiceType, ref.Type) {
+		panic("ref must of type catalog.Service")
+	}
+
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	rk := resource.NewReferenceKey(ref)
+
+	ports, ok := c.storedPorts[rk]
+	if !ok {
+		return nil
+	}
+
+	var destinations []intermediate.CombinedDestinationRef
+	for port := range ports {
+		key := KeyFromRefAndPort(ref, port)
+
+		d, found := c.store[key]
+		if found {
+			destinations = append(destinations, d)
+		}
+	}
+
+	return destinations
 }
 
 // DestinationsBySourceProxy returns all destinations that are a referenced by the given source proxy id.
