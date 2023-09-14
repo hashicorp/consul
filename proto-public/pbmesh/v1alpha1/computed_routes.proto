@@ -7,7 +7,6 @@ package hashicorp.consul.mesh.v1alpha1;
 
 import "pbcatalog/v1alpha1/failover_policy.proto";
 import "pbcatalog/v1alpha1/protocol.proto";
-import "pbcatalog/v1alpha1/service.proto";
 import "pbcatalog/v1alpha1/service_endpoints.proto";
 import "pbmesh/v1alpha1/common.proto";
 import "pbmesh/v1alpha1/destination_policy.proto";
