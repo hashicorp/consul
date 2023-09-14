@@ -69,8 +69,11 @@ func protoEnumFromCty(desc protoreflect.FieldDescriptor, val cty.Value) (protore
 
 	valDesc := desc.Enum().Values().ByName(protoreflect.Name(val.AsString()))
 	if valDesc == nil {
-		defaultValDesc := desc.DefaultEnumValue()
-		return protoreflect.ValueOfEnum(defaultValDesc.Number()), nil
+		if desc.HasDefault() {
+			defaultValDesc := desc.DefaultEnumValue()
+			return protoreflect.ValueOfEnum(defaultValDesc.Number()), nil
+		}
+		return protoreflect.Value{}, fmt.Errorf("no default value for type")
 	}
 
 	return protoreflect.ValueOfEnum(valDesc.Number()), nil
