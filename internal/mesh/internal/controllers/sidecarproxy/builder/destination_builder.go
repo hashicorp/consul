@@ -263,22 +263,8 @@ func (b *Builder) buildDestination(
 		)
 		clusterName := fmt.Sprintf("%s.%s", portName, sni)
 
-		// Find the destination proxy's port.
-		//
-		// Endpoints refs will need to route to mesh port instead of the
-		// destination port as that is the port of the destination's proxy.
-		var meshPortName string
-		for _, port := range details.Service.Ports {
-			if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-				meshPortName = port.TargetPort
-			}
-		}
-		if meshPortName == "" {
-			return b // not in mesh
-		}
-
 		b.addCluster(clusterName, sni, portName, details.IdentityRefs)
-		b.addEndpointsRef(clusterName, details.ServiceEndpointsId, meshPortName)
+		b.addEndpointsRef(clusterName, details.ServiceEndpointsId, details.MeshPort)
 	}
 
 	return b
