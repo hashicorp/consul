@@ -300,10 +300,9 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 			// If service no longer exists, skip.
 			continue
 		}
-		s := svc // TODO(rb)
 
 		// If this proxy is a part of this service, ignore it.
-		if isPartOfService_NEW(resource.ReplaceType(catalog.WorkloadType, proxyID), s) {
+		if isPartOfService_NEW(resource.ReplaceType(catalog.WorkloadType, proxyID), svc) {
 			continue
 		}
 
