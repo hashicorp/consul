@@ -5,11 +5,63 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1;
 
+import "pbresource/resource.proto";
+
 // NOTE: this should align to the GAMMA/gateway-api version, or at least be
 // easily translatable.
 //
 // https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1beta1.Gateway
 //
 // This is a Resource type.
-// TODO(nathancoleman) Implement me
-message APIGateway {}
+message APIGateway {
+  repeated Listener listeners = 1;
+}
+
+message Listener {
+  string name = 1;
+  string hostname = 2;
+  // TODO Consider using string if we ever need to reference something other than ServicePort.virtual_port
+  int32 port = 3;
+  ListenerProtocol protocol = 4;
+  ListenerTLSConfiguration tls = 5;
+
+  // TODO Policy overrides + defaults
+}
+
+enum ListenerProtocol {
+  LISTENER_PROTOCOL_UNSPECIFIED = 0;
+  LISTENER_PROTOCOL_HTTP = 1;
+  LISTENER_PROTOCOL_TCP = 2;
+}
+
+message ListenerTLSConfiguration {
+  repeated hashicorp.consul.resource.Reference certificates = 1;
+  TLSVersion maxVersion = 2;
+  TLSVersion minVersion = 3;
+  repeated TLSCipherSuite cipherSuites = 4;
+}
+
+enum TLSVersion {
+  TLS_VERSION_UNSPECIFIED = 0;
+  TLS_VERSION_AUTO = 1;
+  TLS_VERSION_1_0 = 2;
+  TLS_VERSION_1_1 = 3;
+  TLS_VERSION_1_2 = 4;
+  TLS_VERSION_1_3 = 5;
+}
+
+enum TLSCipherSuite {
+  TLS_CIPHER_SUITE_UNSPECIFIED = 0;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 = 1;
+  TLS_CIPHER_SUITE_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 = 2;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = 3;
+  TLS_CIPHER_SUITE_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = 4;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_WITH_AES_128_CBC_SHA = 5;
+  TLS_CIPHER_SUITE_ECDHE_RSA_WITH_AES_128_CBC_SHA = 6;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 = 7;
+  TLS_CIPHER_SUITE_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = 8;
+  TLS_CIPHER_SUITE_ECDHE_ECDSA_WITH_AES_256_CBC_SHA = 9;
+  TLS_CIPHER_SUITE_ECDHE_RSA_WITH_AES_256_CBC_SHA = 10;
+
+  // TODO Consider whether or not to include older cipher suites listed in types/tls.go
+}

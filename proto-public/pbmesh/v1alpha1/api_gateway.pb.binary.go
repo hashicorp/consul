@@ -16,3 +16,23 @@ func (msg *APIGateway) MarshalBinary() ([]byte, error) {
 func (msg *APIGateway) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *Listener) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *Listener) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ListenerTLSConfiguration) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ListenerTLSConfiguration) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
