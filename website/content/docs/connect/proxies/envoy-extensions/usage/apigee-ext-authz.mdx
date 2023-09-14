@@ -1,19 +1,66 @@
 ---
 layout: docs
-page_title: Delegate authorization to an external service
-description: Learn how to use the `ext-authz` Envoy extension to delegate data plane authorization requests to external systems. 
+page_title: Delegate authorization to Apigee
+description: Learn how to use the `ext-authz` Envoy extension to delegate data plane authorization requests to Apigee. 
 ---
 
-# Delegate authorization to an external service
+# Delegate authorization to Apigee
 
-This topic describes how to use the external authorization Envoy extension to delegate data plane authorization requests to external systems. 
+This topic describes how to use the external authorization Envoy extension to delegate data plane authorization requests to Apigee.
+
+For a more detailed walkthrough follow [this learn guide](https://github.com/hashicorp-education/learn-consul-apigee-external-authz).
 
 ## Workflow
 
 Complete the following steps to use the external authorization extension:
 
+1. Deploy the `apigee-remote-service-envoy` service and register the service in Consul
 1. Configure an `EnvoyExtensions` block in a service defaults or proxy defaults configuration entry. 
 1. Apply the configuration entry.
+
+## Configure the `apigee-remote-service-envoy` service default
+
+The following example shows the service defaults configuration entry for the `apigee-remote-service-envoy` service that directs the authorization requests to Apigee:
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+<CodeBlockConfig filename="apigee-remote-service-envoy.hcl">
+
+```hcl
+Kind = "service-defaults"
+Name = "apigee-remote-service-envoy"
+Protocol = "grpc",
+```
+</CodeBlockConfig>
+</Tab>
+<Tab heading="JSON" group="json">
+<CodeBlockConfig filename="apigee-remote-service-envoy.json">
+
+```json
+{
+  "kind": "service-defaults",
+  "name": "apigee-remote-service-envoy",
+  "protocol": "grpc",
+}
+```
+
+</CodeBlockConfig>
+</Tab>
+<Tab heading="Kubernetes" group="yaml">
+<CodeBlockConfig filename="apigee-remote-service-envoy.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: apigee-remote-service-envoy
+  namespace: apigee
+spec:
+  protocol: grpc
+```
+</CodeBlockConfig>
+</Tab>
+</Tabs>
 
 ## Add the `EnvoyExtensions`
 
@@ -22,7 +69,7 @@ Add Envoy extension configurations to a proxy defaults or service defaults confi
 - When you configure Envoy extensions on proxy defaults, they apply to every service.
 - When you configure Envoy extensions on service defaults, they apply to a specific service.
 
-Consul applies Envoy extensions configured in proxy defaults before it applies extensions in service defaults. As a result, the Envoy extension configuration in service defaults may  override configurations in proxy defaults.
+Consul applies Envoy extensions configured in proxy defaults before it applies extensions in service defaults. As a result, the Envoy extension configuration in service defaults may override configurations in proxy defaults.
 
 The following example shows a service defaults configuration entry for the `api` service that directs the Envoy proxy to make gRPC authorization requests to the `authz` service:
 
@@ -42,7 +89,7 @@ EnvoyExtensions = [
         GrpcService = {
           Target = {
             Service = {
-              Name = "authz"
+              Name = "apigee-remote-service-envoy"
             }
           }
         }
@@ -68,7 +115,7 @@ EnvoyExtensions = [
         "GrpcService": {
           "Target": {
             "Service": {
-              "Name": "authz"
+              "Name": "apigee-remote-service-envoy"
               }
             }
           }
@@ -82,7 +129,7 @@ EnvoyExtensions = [
 </CodeBlockConfig>
 </Tab>
 <Tab heading="Kubernetes" group="yaml">
-<CodeBlockConfig filename="api-auth-service-defaults">
+<CodeBlockConfig filename="api-auth-service-defaults.yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -99,8 +146,8 @@ spec:
         grpcService:
           target:
             service:
-              name: authz
-              namespace: authz
+              name: apigee-remote-service-envoy
+              namespace: apigee
 ```
 </CodeBlockConfig>
 </Tab>
@@ -132,6 +179,7 @@ If your network is deployed to virtual machines, use the `consul config write` c
 <Tab heading="HCL" group="hcl">
 
 ```shell-session
+$ consul config write apigee-remote-service-envoy.hcl
 $ consul config write api-auth-service-defaults.hcl
 ```
 
@@ -139,6 +187,7 @@ $ consul config write api-auth-service-defaults.hcl
 <Tab heading="JSON" group="json">
 
 ```shell-session
+$ consul config write apigee-remote-service-envoy.json
 $ consul config write api-auth-service-defaults.json
 ```
 
@@ -146,6 +195,7 @@ $ consul config write api-auth-service-defaults.json
 <Tab heading="Kubernetes" group="kubernetes">
 
 ```shell-session
+$ kubectl apply -f apigee-remote-service-envoy.yaml
 $ kubectl apply -f api-auth-service-defaults.yaml
 ```
 
