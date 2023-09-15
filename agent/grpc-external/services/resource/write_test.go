@@ -46,10 +46,6 @@ func TestWrite_InputValidation(t *testing.T) {
 			artist.Id.Name = ""
 			return artist
 		},
-		"no data": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Data = nil
-			return artist
-		},
 		"wrong data type": func(artist, _ *pbresource.Resource) *pbresource.Resource {
 			var err error
 			artist.Data, err = anypb.New(&pbdemov2.Album{})
@@ -682,6 +678,21 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 
 	// Check that the write succeeded anyway because of a retry.
 	require.NoError(t, <-errCh)
+}
+
+func TestWrite_NoData(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	res, err := demo.GenerateV1Concept("jazz")
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+	require.NotEmpty(t, rsp.Resource.Version)
+	require.Equal(t, rsp.Resource.Id.Name, "jazz")
 }
 
 func TestWrite_Owner_Immutable(t *testing.T) {
