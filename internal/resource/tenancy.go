@@ -52,12 +52,17 @@ func Normalize(tenancy *pbresource.Tenancy) {
 	}
 	tenancy.Partition = strings.ToLower(tenancy.Partition)
 	tenancy.Namespace = strings.ToLower(tenancy.Namespace)
+
+	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+	if tenancy.PeerName == "" {
+		tenancy.PeerName = "local"
+	}
 }
 
 // DefaultClusteredTenancy returns the default tenancy for a cluster scoped resource.
 func DefaultClusteredTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
-		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 		PeerName: "local",
 	}
 }
@@ -66,7 +71,7 @@ func DefaultClusteredTenancy() *pbresource.Tenancy {
 func DefaultPartitionedTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: DefaultPartitionName,
-		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 		PeerName: "local",
 	}
 }
@@ -76,7 +81,7 @@ func DefaultNamespacedTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: DefaultPartitionName,
 		Namespace: DefaultNamespaceName,
-		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 		PeerName: "local",
 	}
 }
