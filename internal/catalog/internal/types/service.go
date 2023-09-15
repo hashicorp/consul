@@ -44,11 +44,18 @@ func MutateService(res *pbresource.Resource) error {
 		return err
 	}
 
+	changed := false
+
 	// Default service port protocols.
 	for _, port := range service.Ports {
 		if port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
 			port.Protocol = pbcatalog.Protocol_PROTOCOL_TCP
+			changed = true
 		}
+	}
+
+	if !changed {
+		return nil
 	}
 
 	return res.Data.MarshalFrom(&service)
