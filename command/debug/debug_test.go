@@ -100,12 +100,10 @@ func TestDebugCommand_WithSinceFlag(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	a := agent.NewTestAgent(t, `
-	enable_debug = true
-	`)
+	server, err := testutil.NewTestServerConfigT(t, nil)
+	require.NoError(t, err)
 
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	server.WaitForLeader(t)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui)
