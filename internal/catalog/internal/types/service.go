@@ -33,7 +33,25 @@ func RegisterService(r resource.Registry) {
 		Proto:    &pbcatalog.Service{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateService,
+		Mutate:   MutateService,
 	})
+}
+
+func MutateService(res *pbresource.Resource) error {
+	var service pbcatalog.Service
+
+	if err := res.Data.UnmarshalTo(&service); err != nil {
+		return err
+	}
+
+	// Default service port protocols.
+	for _, port := range service.Ports {
+		if port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+			port.Protocol = pbcatalog.Protocol_PROTOCOL_TCP
+		}
+	}
+
+	return res.Data.MarshalFrom(&service)
 }
 
 func ValidateService(res *pbresource.Resource) error {
