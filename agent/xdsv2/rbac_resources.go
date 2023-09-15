@@ -20,7 +20,7 @@ const (
 	baseL4PermissionKey = "consul-intentions-layer4"
 )
 
-func MakeL4RBAC(defaultAllow bool, trafficPermissions *pbproxystate.L4TrafficPermissions) ([]*envoy_listener_v3.Filter, error) {
+func MakeL4RBAC(defaultAllow bool, trafficPermissions *pbproxystate.TrafficPermissions) ([]*envoy_listener_v3.Filter, error) {
 	var filters []*envoy_listener_v3.Filter
 
 	if trafficPermissions == nil {
@@ -60,7 +60,7 @@ func MakeL4RBAC(defaultAllow bool, trafficPermissions *pbproxystate.L4TrafficPer
 
 // includeAllowFilter determines if an Envoy RBAC allow filter will be included in the filter chain.
 // We include this filter with default deny or whenever any permissions are configured.
-func includeAllowFilter(defaultAllow bool, trafficPermissions *pbproxystate.L4TrafficPermissions) bool {
+func includeAllowFilter(defaultAllow bool, trafficPermissions *pbproxystate.TrafficPermissions) bool {
 	hasPermissions := len(trafficPermissions.DenyPermissions)+len(trafficPermissions.AllowPermissions) > 0
 	return !defaultAllow || hasPermissions
 }
@@ -73,7 +73,7 @@ func makeRBACFilter(rbac *envoy_rbac_v3.RBAC) (*envoy_listener_v3.Filter, error)
 	return makeEnvoyFilter("envoy.filters.network.rbac", cfg)
 }
 
-func makeRBACPolicies(l4Permissions []*pbproxystate.L4Permission) map[string]*envoy_rbac_v3.Policy {
+func makeRBACPolicies(l4Permissions []*pbproxystate.Permission) map[string]*envoy_rbac_v3.Policy {
 	policyLabel := func(i int) string {
 		if len(l4Permissions) == 1 {
 			return baseL4PermissionKey
@@ -90,11 +90,11 @@ func makeRBACPolicies(l4Permissions []*pbproxystate.L4Permission) map[string]*en
 	return policies
 }
 
-func makeRBACPolicy(p *pbproxystate.L4Permission) *envoy_rbac_v3.Policy {
+func makeRBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
 	var principals []*envoy_rbac_v3.Principal
 
-	for _, l4Principal := range p.Principals {
-		principals = append(principals, toEnvoyPrincipal(l4Principal.ToL7Principal()))
+	for _, p := range p.Principals {
+		principals = append(principals, toEnvoyPrincipal(p))
 	}
 
 	return &envoy_rbac_v3.Policy{
@@ -103,7 +103,7 @@ func makeRBACPolicy(p *pbproxystate.L4Permission) *envoy_rbac_v3.Policy {
 	}
 }
 
-func toEnvoyPrincipal(p *pbproxystate.L7Principal) *envoy_rbac_v3.Principal {
+func toEnvoyPrincipal(p *pbproxystate.Principal) *envoy_rbac_v3.Principal {
 	includePrincipal := principal(p.Spiffe)
 
 	if len(p.ExcludeSpiffes) == 0 {

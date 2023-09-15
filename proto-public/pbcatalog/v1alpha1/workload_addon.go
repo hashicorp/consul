@@ -38,3 +38,16 @@ func (w *Workload) GetNonExternalAddressesForPort(portName string) []*WorkloadAd
 
 	return addresses
 }
+
+func (w *Workload) GetPortsByProtocol() map[Protocol][]string {
+	if w == nil {
+		return nil
+	}
+
+	out := make(map[Protocol][]string, len(w.Ports))
+	for name, port := range w.Ports {
+		out[port.GetProtocol()] = append(out[port.GetProtocol()], name)
+	}
+
+	return out
+}

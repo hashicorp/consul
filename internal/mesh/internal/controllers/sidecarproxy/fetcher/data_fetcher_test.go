@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
@@ -238,16 +239,28 @@ func (suite *dataFetcherSuite) SetupTest() {
 }
 
 func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
-	// Test that when workload is not found, we remove it from cache.
-
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
+	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		ID()
+	identityID := resourcetest.Resource(auth.WorkloadIdentityType, "workload-identity-abc").ID()
 
 	// Create cache and pre-populate it.
 	var (
 		destCache           = sidecarproxycache.NewDestinationsCache()
 		proxyCfgCache       = sidecarproxycache.NewProxyConfigurationCache()
 		computedRoutesCache = sidecarproxycache.NewComputedRoutesCache()
+		identitiesCache     = sidecarproxycache.NewIdentitiesCache()
 	)
+
+	f := Fetcher{
+		DestinationsCache:   destCache,
+		ProxyCfgCache:       proxyCfgCache,
+		ComputedRoutesCache: computedRoutesCache,
+		IdentitiesCache:     identitiesCache,
+		Client:              suite.client,
+	}
+
+	// Prepopulate the cache.
 	dest1 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resourcetest.Resource(catalog.ServiceType, "test-service-1").ReferenceNoSection(),
 		Port:                   "tcp",
@@ -264,21 +277,45 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 			resource.NewReferenceKey(proxyID): {},
 		},
 	}
+
 	destCache.WriteDestination(dest1)
 	destCache.WriteDestination(dest2)
 	suite.syncDestinations(dest1, dest2)
 
+	workload := resourcetest.Resource(catalog.WorkloadType, "service-workload-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(suite.T(), &pbcatalog.Workload{
+			Identity: identityID.Name,
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"foo": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+			Addresses: []*pbcatalog.WorkloadAddress{
+				{
+					Host:  "10.0.0.1",
+					Ports: []string{"foo"},
+				},
+			},
+		}).Write(suite.T(), suite.client)
+
+	// Track the workload's identity
+	_, err := f.FetchWorkload(context.Background(), workload.Id)
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), destCache.DestinationsBySourceProxy(proxyID))
+	require.Nil(suite.T(), proxyCfgCache.ProxyConfigurationsByProxyID(proxyID))
+	require.Nil(suite.T(), proxyCfgCache.ProxyConfigurationsByProxyID(proxyID))
+	require.Equal(suite.T(), []*pbresource.ID{proxyID}, identitiesCache.ProxyIDsByWorkloadIdentity(identityID))
+
 	proxyCfgID := resourcetest.Resource(types.ProxyConfigurationType, "proxy-config").ID()
 	proxyCfgCache.TrackProxyConfiguration(proxyCfgID, []resource.ReferenceOrID{proxyID})
 
-	f := New(suite.client, destCache, proxyCfgCache, computedRoutesCache)
-
-	_, err := f.FetchWorkload(context.Background(), proxyID)
+	_, err = f.FetchWorkload(context.Background(), proxyID)
 	require.NoError(suite.T(), err)
 
 	// Check that cache is updated to remove proxy id.
 	require.Nil(suite.T(), destCache.DestinationsBySourceProxy(proxyID))
 	require.Nil(suite.T(), proxyCfgCache.ProxyConfigurationsByProxyID(proxyID))
+	require.Nil(suite.T(), proxyCfgCache.ProxyConfigurationsByProxyID(proxyID))
+	require.Nil(suite.T(), identitiesCache.ProxyIDsByWorkloadIdentity(identityID))
 }
 
 func (suite *dataFetcherSuite) TestFetcher_NotFound() {

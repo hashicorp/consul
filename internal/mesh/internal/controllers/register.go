@@ -40,10 +40,11 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 		destinationsCache   = sidecarproxycache.NewDestinationsCache()
 		proxyCfgCache       = sidecarproxycache.NewProxyConfigurationCache()
 		computedRoutesCache = sidecarproxycache.NewComputedRoutesCache()
-		m                   = sidecarproxymapper.New(destinationsCache, proxyCfgCache, computedRoutesCache)
+		identitiesCache     = sidecarproxycache.NewIdentitiesCache()
+		m                   = sidecarproxymapper.New(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache)
 	)
 	mgr.Register(
-		sidecarproxy.Controller(destinationsCache, proxyCfgCache, computedRoutesCache, m, deps.TrustDomainFetcher, deps.LocalDatacenter),
+		sidecarproxy.Controller(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache, m, deps.TrustDomainFetcher, deps.LocalDatacenter),
 	)
 
 	mgr.Register(routes.Controller())

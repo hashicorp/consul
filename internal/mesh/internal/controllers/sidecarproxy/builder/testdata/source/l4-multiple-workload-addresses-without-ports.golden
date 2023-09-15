@@ -51,7 +51,8 @@
               "cluster": {
                 "name": "local_app:port1"
               },
-              "statPrefix": "public_listener"
+              "statPrefix": "public_listener",
+              "trafficPermissions": {}
             },
             "match": {
               "alpnProtocols": [
