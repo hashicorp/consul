@@ -60,7 +60,8 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			Tenancy: &pbresource.Tenancy{
 				Namespace: req.Namespace,
 				Partition: req.Partition,
-				PeerName:  "local",
+				// commenting in for k8s acceptance tests
+				PeerName: "local",
 			},
 			Type: catalog.WorkloadType,
 		}
