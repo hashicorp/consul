@@ -1097,7 +1097,7 @@ func newRefWithTenancy(typ *pbresource.Type, tenancy *pbresource.Tenancy, name s
 		tenancy = resource.DefaultNamespacedTenancy()
 	}
 	return resourcetest.Resource(typ, name).
-		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithTenancy(tenancy).
 		Reference("")
 }
 
