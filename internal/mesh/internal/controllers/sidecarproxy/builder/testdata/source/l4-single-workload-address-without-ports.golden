@@ -29,6 +29,9 @@
     },
     "listeners": [
       {
+        "capabilities": [
+         "CAPABILITY_L4_TLS_INSPECTION"
+        ],
         "direction": "DIRECTION_INBOUND",
         "hostPort": {
           "host": "10.0.0.1",

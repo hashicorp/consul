@@ -18,7 +18,8 @@
                 "validationContext": {
                   "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
-                  ]
+                  ],
+                  "trustBundlePeerNameKey": "local"
                 }
               }
             }
