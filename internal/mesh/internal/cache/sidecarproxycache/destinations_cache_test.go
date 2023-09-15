@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func TestWrite_Create(t *testing.T) {
@@ -188,6 +189,43 @@ func TestDestinationsBySourceProxy(t *testing.T) {
 	actualDestinations := cache.DestinationsBySourceProxy(proxyID)
 	expectedDestinations := []intermediate.CombinedDestinationRef{destination1, destination2}
 	require.ElementsMatch(t, expectedDestinations, actualDestinations)
+}
+
+func TestReadDestinationsByServiceAllPorts(t *testing.T) {
+	cache := NewDestinationsCache()
+
+	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+
+	// test-service@tcp
+	destination1 := testDestination(proxyID)
+	cache.WriteDestination(destination1)
+
+	// test-service@tcp2
+	destination2 := testDestination(proxyID)
+	destination2.Port = "tcp2"
+	cache.WriteDestination(destination2)
+
+	// other-service@tcp
+	destination3 := testDestination(proxyID)
+	destination3.ServiceRef = resourcetest.Resource(catalog.ServiceType, "other-service").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
+	cache.WriteDestination(destination3)
+
+	t.Run("test-service referenced by two ports", func(t *testing.T) {
+		dests := cache.ReadDestinationsByServiceAllPorts(destination1.ServiceRef)
+		require.Len(t, dests, 2)
+		prototest.AssertElementsMatch(t, []intermediate.CombinedDestinationRef{
+			destination1, destination2,
+		}, dests)
+	})
+	t.Run("other-service referenced by one port", func(t *testing.T) {
+		dests := cache.ReadDestinationsByServiceAllPorts(destination3.ServiceRef)
+		require.Len(t, dests, 1)
+		prototest.AssertElementsMatch(t, []intermediate.CombinedDestinationRef{
+			destination3,
+		}, dests)
+	})
 }
 
 func testDestination(proxyID *pbresource.ID) intermediate.CombinedDestinationRef {

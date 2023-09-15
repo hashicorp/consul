@@ -77,6 +77,11 @@ message StaticEndpointGroup {
   StaticEndpointGroupConfig config = 1;
 }
 
+message DestinationCluster {
+  // name is the name of the cluster. This will be used to look up a cluster in the clusters map.
+  string name = 1;
+}
+
 message L4WeightedClusterGroup {
   // clusters to route to by weight.
   repeated L4WeightedDestinationCluster clusters = 1;

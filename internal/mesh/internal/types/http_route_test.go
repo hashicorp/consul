@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
@@ -941,12 +942,6 @@ type xRouteRetriesTestcase struct {
 
 func getXRouteRetriesTestCases() map[string]xRouteRetriesTestcase {
 	return map[string]xRouteRetriesTestcase{
-		"bad number": {
-			retries: &pbmesh.HTTPRouteRetries{
-				Number: -5,
-			},
-			expectErr: `invalid element at index 0 of list "rules": invalid "retries" field: invalid "number" field: cannot be negative: -5`,
-		},
 		"bad conditions": {
 			retries: &pbmesh.HTTPRouteRetries{
 				OnConditions: []string{"garbage"},
@@ -955,7 +950,7 @@ func getXRouteRetriesTestCases() map[string]xRouteRetriesTestcase {
 		},
 		"good all": {
 			retries: &pbmesh.HTTPRouteRetries{
-				Number:       5,
+				Number:       wrapperspb.UInt32(5),
 				OnConditions: []string{"internal"},
 			},
 		},
@@ -963,7 +958,9 @@ func getXRouteRetriesTestCases() map[string]xRouteRetriesTestcase {
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return resourcetest.Resource(typ, name).WithTenancy(resource.DefaultNamespacedTenancy()).Reference("")
+	return resourcetest.Resource(typ, name).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Reference("")
 }
 
 func newBackendRef(typ *pbresource.Type, name, port string) *pbmesh.BackendReference {

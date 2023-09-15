@@ -304,7 +304,7 @@ func (pr *ProxyResources) makeEnvoyResourcesForSNIDestination(sni *pbproxystate.
 }
 
 func (pr *ProxyResources) makeEnvoyResourcesForL4Destination(l4 *pbproxystate.Router_L4) ([]*envoy_listener_v3.Filter, error) {
-	err := pr.makeEnvoyClusterFromL4Destination(l4.L4.Name)
+	err := pr.makeEnvoyClusterFromL4Destination(l4.L4)
 	if err != nil {
 		return nil, err
 	}
@@ -355,9 +355,30 @@ func makeL4Filters(defaultAllow bool, l4 *pbproxystate.L4Destination) ([]*envoy_
 
 		// Add tcp proxy filter
 		tcp := &envoy_tcp_proxy_v3.TcpProxy{
-			ClusterSpecifier: &envoy_tcp_proxy_v3.TcpProxy_Cluster{Cluster: l4.Name},
-			StatPrefix:       l4.StatPrefix,
+			StatPrefix: l4.StatPrefix,
 		}
+
+		switch dest := l4.Destination.(type) {
+		case *pbproxystate.L4Destination_Cluster:
+			tcp.ClusterSpecifier = &envoy_tcp_proxy_v3.TcpProxy_Cluster{Cluster: dest.Cluster.Name}
+		case *pbproxystate.L4Destination_WeightedClusters:
+			clusters := make([]*envoy_tcp_proxy_v3.TcpProxy_WeightedCluster_ClusterWeight, 0, len(dest.WeightedClusters.Clusters))
+			for _, cluster := range dest.WeightedClusters.Clusters {
+				clusters = append(clusters, &envoy_tcp_proxy_v3.TcpProxy_WeightedCluster_ClusterWeight{
+					Name:   cluster.Name,
+					Weight: cluster.Weight.GetValue(),
+				})
+			}
+
+			tcp.ClusterSpecifier = &envoy_tcp_proxy_v3.TcpProxy_WeightedClusters{
+				WeightedClusters: &envoy_tcp_proxy_v3.TcpProxy_WeightedCluster{
+					Clusters: clusters,
+				},
+			}
+		default:
+			return nil, fmt.Errorf("unexpected l4 destination type: %T", l4.Destination)
+		}
+
 		tcpFilter, err := makeEnvoyFilter(envoyNetworkFilterName, tcp)
 		if err != nil {
 			return nil, err
