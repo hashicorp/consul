@@ -56,6 +56,7 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 
 	// If there are no mesh addresses, return. This should be impossible.
 	if len(meshAddresses) == 0 {
+		fmt.Println("***************** missing mesh addresses")
 		return &ListenerBuilder{
 			builder: b,
 		}
@@ -83,7 +84,7 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 		return l
 	}
 
-	if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP {
+	if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP || port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
 		r := &pbproxystate.Router{
 			Destination: &pbproxystate.Router_L4{
 				L4: &pbproxystate.L4Destination{

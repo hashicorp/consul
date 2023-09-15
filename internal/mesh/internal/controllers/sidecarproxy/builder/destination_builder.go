@@ -27,7 +27,12 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 	var lb *ListenerBuilder
 	if b.proxyCfg.GetDynamicConfig() != nil &&
 		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
-		lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
+		// TODO: when debugging k8s acceptance, TransparentProxy was nil so this wasn't getting set
+		if b.proxyCfg.DynamicConfig.TransparentProxy == nil {
+			lb = b.addTransparentProxyOutboundListener(15001)
+		} else {
+			lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
+		}
 	}
 
 	for _, destination := range destinations {

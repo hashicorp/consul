@@ -182,6 +182,8 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	destinationsRefs := r.destinationsCache.DestinationsBySourceProxy(req.ID)
 	if len(destinationsRefs) > 0 {
 		rt.Logger.Trace("found destinations", "destination_refs", destinationsRefs)
+	} else {
+		rt.Logger.Trace("did not find any destinations for this proxy", "id", req.ID)
 	}
 	destinationsData, statuses, err := dataFetcher.FetchExplicitDestinationsData(ctx, destinationsRefs)
 	if err != nil {
