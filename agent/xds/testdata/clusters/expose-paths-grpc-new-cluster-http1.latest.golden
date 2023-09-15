@@ -53,8 +53,9 @@
       "typedExtensionProtocolOptions": {
         "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
           "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-          "explicitHttpConfig": {
-            "http2ProtocolOptions": {}
+          "useDownstreamProtocolConfig": {
+            "http2ProtocolOptions": {},
+            "httpProtocolOptions": {}
           }
         }
       }
