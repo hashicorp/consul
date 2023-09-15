@@ -787,8 +787,8 @@ Usage: consul debug [options]
 
   To get information from past, -since flag can be used. It internally uses
   hcdiag -consul -since
-  
-	$ consul debug -since 1h
+      
+      $ consul debug -since 1h
 
   For a full list of options and examples, please see the Consul
   documentation.
