@@ -1096,8 +1096,14 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		protocol = cfg.Protocol
 	}
 	if protocol == "http2" || protocol == "grpc" {
-		if err := s.setLocalAppHttpProtocolOptions(c); err != nil {
-			return c, err
+		if name == xdscommon.LocalAppClusterName {
+			if err := s.setLocalAppHttpProtocolOptions(c); err != nil {
+				return c, err
+			}
+		} else {
+			if err := s.setHttp2ProtocolOptions(c); err != nil {
+				return c, err
+			}
 		}
 	}
 	if cfg.MaxInboundConnections > 0 {
