@@ -256,6 +256,14 @@ func TestWrite_Create_Success(t *testing.T) {
 			},
 			expectedTenancy: resource.DefaultNamespacedTenancy(),
 		},
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+		"namespaced resource defaults peername to local when empty": {
+			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
+				artist.Id.Tenancy.PeerName = ""
+				return artist
+			},
+			expectedTenancy: resource.DefaultNamespacedTenancy(),
+		},
 		"partitioned resource provides nonempty partition": {
 			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
 				return recordLabel
@@ -279,6 +287,14 @@ func TestWrite_Create_Success(t *testing.T) {
 		"partitioned resource inherits tokens partition when tenancy nil": {
 			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
 				recordLabel.Id.Tenancy = nil
+				return recordLabel
+			},
+			expectedTenancy: resource.DefaultPartitionedTenancy(),
+		},
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+		"partitioned resource defaults peername to local when empty": {
+			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
+				recordLabel.Id.Tenancy.PeerName = ""
 				return recordLabel
 			},
 			expectedTenancy: resource.DefaultPartitionedTenancy(),

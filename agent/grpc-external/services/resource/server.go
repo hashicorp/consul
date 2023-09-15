@@ -147,7 +147,7 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 		id.Tenancy = &pbresource.Tenancy{
 			Partition: "",
 			Namespace: "",
-			// TODO(spatel): Remove when peerTenancy introduced.
+			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 			PeerName: "local",
 		}
 	}
