@@ -39,6 +39,10 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 		b.buildDestination(lb, destination)
 	}
 
+	if b.proxyCfg.IsTransparentProxy() {
+		lb.buildListener()
+	}
+
 	return b
 }
 
@@ -253,7 +257,10 @@ func (b *Builder) buildDestination(
 		}
 	}
 
-	lb.buildListener()
+	// Build outbound listener if the destination is explicit.
+	if destination.Explicit != nil {
+		lb.buildListener()
+	}
 
 	if needsNullRouteCluster {
 		b.addNullRouteCluster()
