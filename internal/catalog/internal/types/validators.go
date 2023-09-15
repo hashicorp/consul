@@ -307,5 +307,12 @@ func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(er
 		}
 	}
 
+	if ref.Name == "" {
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "name",
+			Wrapped: resource.ErrMissing,
+		}))
+	}
+
 	return merr
 }
